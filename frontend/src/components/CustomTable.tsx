@@ -165,7 +165,7 @@ export const css = stylesheet({
   },
   selectionToggle: {
     marginRight: 12,
-    minWidth: 32,
+    overflow: 'initial', // Resets overflow from 'hidden'
   },
   verticalAlignInitial: {
     verticalAlign: 'initial',
@@ -317,19 +317,24 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         {/* Header */}
         <div className={classes(css.header, this.props.disableSelection && padding(20, 'l'))}>
           <HeaderRowSelectionSection
-            useRadioButtons={this.props.useRadioButtons}
             disableSelection={this.props.disableSelection}
-            numSelected={numSelected}
-            rowCount={this.props.rows.length}
-            onSelectAll={this.handleSelectAllClick.bind(this)}
+            useRadioButtons={this.props.useRadioButtons}
             showExpandButton={!!this.props.getExpandComponent}
+            isSelected={!!numSelected && numSelected === this.props.rows.length}
+            indeterminate={!!numSelected && numSelected < this.props.rows.length}
+            onSelectAll={this.handleSelectAllClick.bind(this)}
           />
           {this.props.columns.map((col, i) => {
             const isColumnSortable = !!this.props.columns[i].sortKey;
             const isCurrentSortColumn = sortBy === this.props.columns[i].sortKey;
             return (
-              <div key={i} style={{ width: widths[i] + '%' }} className={css.columnName}>
-                {this.props.disableSorting === true && <div>{col.label}</div>}
+              <div
+                key={i}
+                style={{ width: widths[i] + '%' }}
+                className={classes(css.columnName, css.cell)}
+                title={col.label}
+              >
+                {this.props.disableSorting === true && col.label}
                 {!this.props.disableSorting && (
                   <Tooltip
                     title={isColumnSortable ? 'Sort' : 'Cannot sort by this column'}
@@ -395,11 +400,11 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 >
                   <BodyRowSelectionSection
                     disableSelection={this.props.disableSelection}
-                    expandState={row.expandState}
-                    isSelected={this.isSelected(row.id)}
-                    onExpand={e => this._expandButtonToggled(e, i)}
-                    showExpandButton={!!this.props.getExpandComponent}
                     useRadioButtons={this.props.useRadioButtons}
+                    showExpandButton={!!this.props.getExpandComponent}
+                    isSelected={this.isSelected(row.id)}
+                    expandState={row.expandState}
+                    onExpand={e => this._expandButtonToggled(e, i)}
                   />
                   <CustomTableRow row={row} columns={this.props.columns} />
                 </div>
@@ -584,52 +589,61 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 }
 
-interface HeaderRowSelectionSectionProps {
+interface SelectionSectionCommonProps {
   disableSelection?: boolean;
   useRadioButtons?: boolean;
   showExpandButton: boolean;
-  numSelected?: number;
-  rowCount: number;
-  onSelectAll: (event: React.ChangeEvent) => void;
+  isSelected: boolean;
+}
+
+interface HeaderRowSelectionSectionProps extends SelectionSectionCommonProps {
+  indeterminate?: boolean;
+  onSelectAll: React.ChangeEventHandler;
 }
 const HeaderRowSelectionSection: React.FC<HeaderRowSelectionSectionProps> = ({
   disableSelection,
   useRadioButtons,
   showExpandButton,
-  numSelected,
-  rowCount,
+  isSelected,
+  indeterminate,
   onSelectAll,
-}) => (
-  <>
-    {disableSelection !== true && useRadioButtons !== true && (
-      <div className={classes(css.columnName, css.cell, css.selectionToggle)}>
+}) => {
+  const nonEmpty = disableSelection !== true || showExpandButton;
+  if (!nonEmpty) {
+    return null;
+  }
+
+  return (
+    <div className={classes(css.columnName, css.cell, css.selectionToggle)}>
+      {/* If using checkboxes */}
+      {disableSelection !== true && useRadioButtons !== true && (
         <Checkbox
-          indeterminate={!!numSelected && numSelected < rowCount}
+          indeterminate={indeterminate}
           color='primary'
-          checked={!!numSelected && numSelected === rowCount}
+          checked={isSelected}
           onChange={onSelectAll}
         />
-      </div>
-    )}
-    {/* Shift cells to account for expand button */}
-    {showExpandButton && <Separator orientation='horizontal' units={40} />}
-  </>
-);
+      )}
+      {/* If using radio buttons */}
+      {disableSelection !== true && useRadioButtons && (
+        // Placeholder for radio button horizontal space.
+        <Separator orientation='horizontal' units={42} />
+      )}
+      {showExpandButton && <Separator orientation='horizontal' units={40} />}
+    </div>
+  );
+};
 
-interface BodyRowSelectionSectionProps {
-  disableSelection?: boolean;
-  useRadioButtons?: boolean;
-  showExpandButton: boolean;
+interface BodyRowSelectionSectionProps extends SelectionSectionCommonProps {
   expandState?: ExpandState;
-  isSelected: boolean;
   onExpand: React.MouseEventHandler;
 }
 const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
   disableSelection,
   useRadioButtons,
   showExpandButton,
-  expandState,
   isSelected,
+  expandState,
   onExpand,
 }) => (
   <>
