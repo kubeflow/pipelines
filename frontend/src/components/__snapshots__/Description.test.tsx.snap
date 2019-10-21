@@ -2,6 +2,7 @@
 
 exports[`Description When in inline mode renders markdown link 1`] = `
 <a
+  class="link"
   href="https://www.google.com"
   rel="noreferrer noopener"
   target="_blank"
@@ -36,6 +37,7 @@ exports[`Description When in inline mode renders pure text 1`] = `
 
 exports[`Description When in inline mode renders raw link 1`] = `
 <a
+  class="link"
   href="https://www.google.com"
   rel="noreferrer noopener"
   target="_blank"
@@ -48,6 +50,7 @@ exports[`Description When in normal mode renders empty string 1`] = `<span />`;
 
 exports[`Description When in normal mode renders markdown link 1`] = `
 <a
+  class="link"
   href="https://www.google.com"
   rel="noreferrer noopener"
   target="_blank"
@@ -86,6 +89,7 @@ exports[`Description When in normal mode renders pure text 1`] = `
 
 exports[`Description When in normal mode renders raw link 1`] = `
 <a
+  class="link"
   href="https://www.google.com"
   rel="noreferrer noopener"
   target="_blank"
