@@ -28,11 +28,14 @@ type ObjectPaths struct {
 	pipelineFolder string
 }
 
-// GetPipelinePath return the object store path to a pipeline spec.
+// GetPipelinePath return the object store path to a pipeline spec based on the
+// configured pipeline folder.
 func (p *ObjectPaths) GetPipelinePath(pipelineID string) string {
 	return path.Join(p.pipelineFolder, pipelineID)
 }
 
+// NewObjectPaths creates a new instance of ObjectPaths with the provided 
+// pipeline folder.
 func NewObjectPaths(pipelineFolder string) *ObjectPaths {
 	return &ObjectPaths{pipelineFolder: pipelineFolder}
 }
