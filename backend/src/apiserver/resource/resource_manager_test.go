@@ -854,6 +854,83 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 	assert.Equal(t, expectedJob, newJob)
 }
 
+func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
+	// Create experiment, pipeline and pipeline version.
+	store, manager, experiment, pipeline := initWithExperimentAndPipeline(t)
+	defer store.Close()
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
+		Name: "version_for_job",
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   pipeline.UUID,
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}, []byte(testWorkflow.ToStringForStore()))
+	assert.Nil(t, err)
+
+	job := &api.Job{
+		Name:    "j1",
+		Enabled: true,
+		PipelineSpec: &api.PipelineSpec{
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: version.UUID},
+				Relationship: api.Relationship_CREATOR,
+			},
+		},
+	}
+	newJob, err := manager.CreateJob(job)
+	expectedJob := &model.Job{
+		UUID:           "123",
+		DisplayName:    "j1",
+		Name:           "j1",
+		Namespace:      "default",
+		Enabled:        true,
+		CreatedAtInSec: 4,
+		UpdatedAtInSec: 4,
+		Conditions:     "NO_STATUS",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  "123",
+				ResourceType:  common.Job,
+				ReferenceUUID: experiment.UUID,
+				ReferenceName: "e1",
+				ReferenceType: common.Experiment,
+				Relationship:  common.Owner,
+			},
+			{
+				ResourceUUID:  "123",
+				ResourceType:  common.Job,
+				ReferenceUUID: version.UUID,
+				ReferenceName: "version_for_job",
+				ReferenceType: common.PipelineVersion,
+				Relationship:  common.Creator,
+			},
+		},
+	}
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, newJob)
+}
+
 func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
