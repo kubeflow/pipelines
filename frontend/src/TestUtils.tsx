@@ -50,7 +50,7 @@ export default class TestUtils {
    * Adds a one-time mock implementation to the provided spy that mimics an error
    * network response
    */
-  public static makeErrorResponseOnce(spy: jest.MockInstance<{}>, message: string): void {
+  public static makeErrorResponseOnce(spy: jest.MockInstance<unknown>, message: string): void {
     spy.mockImplementationOnce(() => {
       throw {
         text: () => Promise.resolve(message),
@@ -66,9 +66,9 @@ export default class TestUtils {
   // tslint:disable-next-line:variable-name
   public static generatePageProps(PageElement: new (_: PageProps) => Page<any, any>,
     location: Location, matchValue: match,
-    historyPushSpy: jest.SpyInstance | null, updateBannerSpy: jest.SpyInstance | null,
-    updateDialogSpy: jest.SpyInstance | null, updateToolbarSpy: jest.SpyInstance | null,
-    updateSnackbarSpy: jest.SpyInstance | null): PageProps {
+    historyPushSpy: jest.SpyInstance<unknown> | null, updateBannerSpy: jest.SpyInstance<unknown> | null,
+    updateDialogSpy: jest.SpyInstance<unknown> | null, updateToolbarSpy: jest.SpyInstance<unknown> | null,
+    updateSnackbarSpy: jest.SpyInstance<unknown> | null): PageProps {
     const pageProps = {
       history: { push: historyPushSpy } as any,
       location: location as any,
@@ -88,7 +88,7 @@ export default class TestUtils {
     return pageProps;
   }
 
-  public static getToolbarButton(updateToolbarSpy: jest.SpyInstance, buttonKey: string): ToolbarActionConfig {
+  public static getToolbarButton(updateToolbarSpy: jest.SpyInstance<unknown>, buttonKey: string): ToolbarActionConfig {
     const lastCallIdx = updateToolbarSpy.mock.calls.length - 1;
     const lastCall = updateToolbarSpy.mock.calls[lastCallIdx][0];
     return lastCall.actions[buttonKey];

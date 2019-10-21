@@ -43,6 +43,7 @@ export interface ResourceSelectorProps extends RouteComponentProps {
   initialSortColumn: any;
   selectionChanged: (resource: BaseResource) => void;
   title: string;
+  toolbarActionMap?: ToolbarActionMap;
   updateDialog: (dialogProps: DialogProps) => void;
 }
 
@@ -63,17 +64,17 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
       resources: [],
       rows: [],
       selectedIds: [],
-      toolbarActionMap: {},
+      toolbarActionMap: (props && props.toolbarActionMap) || {},
     };
   }
 
   public render(): JSX.Element {
-    const { rows, selectedIds, toolbarActionMap: toolbarActions } = this.state;
+    const { rows, selectedIds, toolbarActionMap } = this.state;
     const { columns, title, filterLabel, emptyMessage, initialSortColumn } = this.props;
 
     return (
       <React.Fragment>
-        <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle={title} />
+        <Toolbar actions={toolbarActionMap} breadcrumbs={[]} pageTitle={title} />
         <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
           updateSelection={this._selectionChanged.bind(this)} filterLabel={filterLabel}
           initialSortColumn={initialSortColumn} reload={this._load.bind(this)}

@@ -20,8 +20,9 @@ import os
 import re
 import tarfile
 import tempfile
-import zipfile
+import warnings
 import yaml
+import zipfile
 from datetime import datetime
 from typing import Mapping, Callable
 
@@ -144,12 +145,14 @@ class Client(object):
 
   def _is_iap_host(self, host, client_id):
     if host and client_id:
-      return re.match(r'\S+.endpoints.\S+.cloud.goog', host)
+      if re.match(r'\S+.endpoints.\S+.cloud.goog/{0,1}$', host):
+        warnings.warn('Suffix /pipeline is not ignorable for IAP host.')
+      return re.match(r'\S+.endpoints.\S+.cloud.goog/pipeline', host)
     return False
 
   def _is_inverse_proxy_host(self, host):
     if host:
-      return re.match(r'\S+dot-datalab-vm\S+.googleusercontent.com', host)
+      return re.match(r'\S+dot-datalab-vm\S+.googleusercontent.com/{0,1}$', host)
     return False
 
   def _is_ipython(self):
@@ -452,3 +455,14 @@ class Client(object):
       html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
       IPython.display.display(IPython.display.HTML(html))
     return response
+
+  def get_pipeline(self, pipeline_id):
+    """Get pipeline details.
+    Args:
+      id of the pipeline.
+    Returns:
+      A response object including details of a pipeline.
+    Throws:
+      Exception if pipeline is not found.
+    """
+    return self._pipelines_api.get_pipeline(id=pipeline_id)
