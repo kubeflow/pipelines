@@ -67,7 +67,7 @@ def get_kubectl_configuration(
     configuration: Commands,
     kubernetes_context: Text = None,
     namespace: Text = None,
-    human_readable: Optional[bool] = False) -> utility.ExecutorResponse:
+    human_readable: bool = False) -> utility.ExecutorResponse:
   """Captures the specified environment configuration.
 
   Captures the environment state for the specified setting such as current
