@@ -124,8 +124,8 @@ describe('Apis', () => {
       'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir'),
       {
         credentials: 'same-origin',
-        method: 'POST',
         headers: { 'content-type': 'application/json' },
+        method: 'POST',
       },
     );
   });

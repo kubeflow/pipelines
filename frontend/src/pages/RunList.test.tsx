@@ -463,8 +463,8 @@ describe('RunList', () => {
   it('renders pipeline name as link to its details page', () => {
     expect(
       getMountedInstance()._pipelineCustomRenderer({
-        value: { displayName: 'test pipeline', id: 'pipeline-id', usePlaceholder: false },
         id: 'run-id',
+        value: { displayName: 'test pipeline', id: 'pipeline-id', usePlaceholder: false },
       }),
     ).toMatchSnapshot();
   });
@@ -472,8 +472,8 @@ describe('RunList', () => {
   it('handles no pipeline id given', () => {
     expect(
       getMountedInstance()._pipelineCustomRenderer({
-        value: { displayName: 'test pipeline', usePlaceholder: false },
         id: 'run-id',
+        value: { displayName: 'test pipeline', usePlaceholder: false },
       }),
     ).toMatchSnapshot();
   });
@@ -481,8 +481,8 @@ describe('RunList', () => {
   it('shows "View pipeline" button if pipeline is embedded in run', () => {
     expect(
       getMountedInstance()._pipelineCustomRenderer({
-        value: { displayName: 'test pipeline', id: 'pipeline-id', usePlaceholder: true },
         id: 'run-id',
+        value: { displayName: 'test pipeline', id: 'pipeline-id', usePlaceholder: true },
       }),
     ).toMatchSnapshot();
   });
@@ -490,8 +490,8 @@ describe('RunList', () => {
   it('handles no pipeline name', () => {
     expect(
       getMountedInstance()._pipelineCustomRenderer({
-        value: { /* no displayName */ usePlaceholder: true },
         id: 'run-id',
+        value: { /* no displayName */ usePlaceholder: true },
       }),
     ).toMatchSnapshot();
   });
@@ -499,8 +499,8 @@ describe('RunList', () => {
   it('renders pipeline name as link to its details page', () => {
     expect(
       getMountedInstance()._recurringRunCustomRenderer({
-        value: { id: 'recurring-run-id' },
         id: 'run-id',
+        value: { id: 'recurring-run-id' },
       }),
     ).toMatchSnapshot();
   });
@@ -508,8 +508,8 @@ describe('RunList', () => {
   it('renders experiment name as link to its details page', () => {
     expect(
       getMountedInstance()._experimentCustomRenderer({
-        value: { displayName: 'test experiment', id: 'experiment-id' },
         id: 'run-id',
+        value: { displayName: 'test experiment', id: 'experiment-id' },
       }),
     ).toMatchSnapshot();
   });
@@ -517,8 +517,8 @@ describe('RunList', () => {
   it('renders no experiment name', () => {
     expect(
       getMountedInstance()._experimentCustomRenderer({
-        value: { /* no displayName */ id: 'experiment-id' },
         id: 'run-id',
+        value: { /* no displayName */ id: 'experiment-id' },
       }),
     ).toMatchSnapshot();
   });

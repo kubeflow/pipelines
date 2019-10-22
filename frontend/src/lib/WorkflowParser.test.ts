@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import WorkflowParser, { StorageService } from './WorkflowParser';
-import { NodePhase } from '../lib/StatusUtils';
 import { color } from '../Css';
+import { NodePhase } from '../lib/StatusUtils';
 import { Constants } from './Constants';
+import WorkflowParser, { StorageService } from './WorkflowParser';
 
 describe('WorkflowParser', () => {
   describe('createRuntimeGraph', () => {
@@ -47,8 +47,8 @@ describe('WorkflowParser', () => {
 
     it('handles a workflow without a name', () => {
       const g = WorkflowParser.createRuntimeGraph({
-        status: { nodes: [{ key: 'value' }] },
         metadata: {},
+        status: { nodes: [{ key: 'value' }] },
       } as any);
       expect(g.nodes()).toEqual([]);
       expect(g.edges()).toEqual([]);

@@ -111,8 +111,8 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     if (!this.props.hideExperimentColumn) {
       columns.splice(3, 0, {
         customRenderer: this._experimentCustomRenderer,
-        label: 'Experiment',
         flex: 1,
+        label: 'Experiment',
       });
     }
 

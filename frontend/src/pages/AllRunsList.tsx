@@ -86,8 +86,8 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     toolbarActions[ButtonKeys.CLONE_RUN].disabled = selectedIds.length !== 1;
     toolbarActions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
     this.props.updateToolbar({
-      breadcrumbs: this.props.toolbarProps.breadcrumbs,
       actions: toolbarActions,
+      breadcrumbs: this.props.toolbarProps.breadcrumbs,
     });
     this.setState({ selectedIds });
   }

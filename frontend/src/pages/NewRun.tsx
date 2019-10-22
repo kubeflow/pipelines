@@ -219,8 +219,8 @@ class NewRun extends Page<{}, NewRunState> {
                 listApi={async (...args) => {
                   const response = await Apis.pipelineServiceApi.listPipelines(...args);
                   return {
-                    resources: response.pipelines || [],
                     nextPageToken: response.next_page_token || '',
+                    resources: response.pipelines || [],
                   };
                 }}
                 columns={this.pipelineSelectorColumns}

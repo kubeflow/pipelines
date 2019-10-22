@@ -84,8 +84,8 @@ describe('ResourceSelector', () => {
   beforeEach(() => {
     listResourceSpy.mockReset();
     listResourceSpy.mockImplementation(() => ({
-      resources: RESOURCES,
       nextPageToken: 'test-next-page-token',
+      resources: RESOURCES,
     }));
     updateDialogSpy.mockReset();
     selectionChangedCbSpy.mockReset();

@@ -42,8 +42,8 @@ describe('RecurringRunDetails', () => {
 
   function generateProps(): PageProps {
     const match = {
-      params: { [RouteParams.runId]: fullTestJob.id },
       isExact: true,
+      params: { [RouteParams.runId]: fullTestJob.id },
       path: '',
       url: '',
     };

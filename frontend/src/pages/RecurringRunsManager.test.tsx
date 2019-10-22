@@ -157,8 +157,8 @@ describe('RecurringRunsManager', () => {
     tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
     expect(
       (tree.instance() as RecurringRunsManager)._nameCustomRenderer({
-        value: 'test-run',
         id: 'run-id',
+        value: 'test-run',
       }),
     ).toMatchSnapshot();
   });

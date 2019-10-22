@@ -195,8 +195,8 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                     id='expandExperimentDescriptionBtn'
                     onClick={() =>
                       this.props.updateDialog({
-                        title: 'Experiment description',
                         content: description,
+                        title: 'Experiment description',
                       })
                     }
                     className={classes(css.popOutIcon, 'popOutButton')}

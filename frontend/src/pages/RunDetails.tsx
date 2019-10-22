@@ -764,9 +764,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       const logs = await Apis.getPodLogs(selectedNodeDetails.id);
       selectedNodeDetails.logs = logs;
       this.setStateSafe({
-        selectedNodeDetails,
         logsBannerAdditionalInfo: '',
         logsBannerMessage: '',
+        selectedNodeDetails,
       });
     } catch (err) {
       try {

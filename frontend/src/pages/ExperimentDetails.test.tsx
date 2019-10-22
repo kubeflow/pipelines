@@ -70,8 +70,8 @@ describe('ExperimentDetails', () => {
   async function mockNJobs(n: number): Promise<void> {
     listJobsSpy.mockImplementation(() => ({
       jobs: range(n).map(i => ({
-        id: 'test-job-id' + i,
         enabled: true,
+        id: 'test-job-id' + i,
         name: 'test job name' + i,
       })),
     }));

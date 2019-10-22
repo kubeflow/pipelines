@@ -77,8 +77,8 @@ export default class Archive extends Page<{}, ArchiveState> {
     const toolbarActions = this.props.toolbarProps.actions;
     toolbarActions[ButtonKeys.RESTORE].disabled = !selectedIds.length;
     this.props.updateToolbar({
-      breadcrumbs: this.props.toolbarProps.breadcrumbs,
       actions: toolbarActions,
+      breadcrumbs: this.props.toolbarProps.breadcrumbs,
     });
     this.setState({ selectedIds });
   }

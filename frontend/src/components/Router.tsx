@@ -151,8 +151,8 @@ class Router extends React.Component<{}, RouteComponentState> {
       { path: RoutePage.EXECUTIONS, Component: ExecutionList },
       { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
       {
-        path: RoutePage.EXPERIMENTS,
         Component: ExperimentsAndRuns,
+        path: RoutePage.EXPERIMENTS,
         view: ExperimentsAndRunsTab.EXPERIMENTS,
       },
       { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
