@@ -43,7 +43,7 @@ _command_string = {
 
 def execute_kubectl_command(
     kubectl_command_list: List[Text],
-    human_readable: Optional[bool] = False) -> utility.ExecutorResponse:
+    human_readable: bool = False) -> utility.ExecutorResponse:
   """Invokes  the kubectl command.
 
   Args:
