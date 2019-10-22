@@ -1137,7 +1137,8 @@ exports[`RunDetails logs tab shows warning banner and link to Stackdriver in log
                   <div
                     className=""
                   >
-                    Logs can still be viewed in either 
+                    Logs can still be viewed in either
+                     
                     <a
                       className="link unstyled"
                       href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_id:\\"node1\\""
@@ -1145,7 +1146,9 @@ exports[`RunDetails logs tab shows warning banner and link to Stackdriver in log
                     >
                       Legacy Stackdriver
                     </a>
-                     or in 
+                     
+                    or in
+                     
                     <a
                       className="link unstyled"
                       href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"k8s_container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_name:\\"node1\\""
