@@ -21,31 +21,31 @@ from . import utility
 
 class Commands(enum.Enum):
   """Enum for gcloud and gsutil commands."""
-  APIS = 1
-  CONTAINER_CLUSTERS = 2
-  CONTAINER_IMAGES = 3
-  DISKS = 4
-  GCLOUD_DEFAULT = 5
-  NETWORKS = 6
-  QUOTAS = 7
-  SCOPES = 8
-  SERVICE_ACCOUNTS = 9
-  STORAGE_BUCKETS = 10
-  GCLOUD_VERSION = 11
+  GET_APIS = 1
+  GET_CONTAINER_CLUSTERS = 2
+  GET_CONTAINER_IMAGES = 3
+  GET_DISKS = 4
+  GET_GCLOUD_DEFAULT = 5
+  GET_NETWORKS = 6
+  GET_QUOTAS = 7
+  GET_SCOPES = 8
+  GET_SERVICE_ACCOUNTS = 9
+  GET_STORAGE_BUCKETS = 10
+  GET_GCLOUD_VERSION = 11
 
 
 _command_string = {
-    Commands.APIS: 'services list',
-    Commands.CONTAINER_CLUSTERS: 'container clusters list',
-    Commands.CONTAINER_IMAGES: 'container images list',
-    Commands.DISKS: 'compute disks list',
-    Commands.GCLOUD_DEFAULT: 'config list --all',
-    Commands.NETWORKS: 'compute networks list',
-    Commands.QUOTAS: 'compute regions list',
-    Commands.SCOPES: 'compute instances list',
-    Commands.SERVICE_ACCOUNTS: 'iam service-accounts list',
-    Commands.STORAGE_BUCKETS: 'ls',
-    Commands.GCLOUD_VERSION: 'version',
+    Commands.GET_APIS: 'services list',
+    Commands.GET_CONTAINER_CLUSTERS: 'container clusters list',
+    Commands.GET_CONTAINER_IMAGES: 'container images list',
+    Commands.GET_DISKS: 'compute disks list',
+    Commands.GET_GCLOUD_DEFAULT: 'config list --all',
+    Commands.GET_NETWORKS: 'compute networks list',
+    Commands.GET_QUOTAS: 'compute regions list',
+    Commands.GET_SCOPES: 'compute instances list',
+    Commands.GET_SERVICE_ACCOUNTS: 'iam service-accounts list',
+    Commands.GET_STORAGE_BUCKETS: 'ls',
+    Commands.GET_GCLOUD_VERSION: 'version',
 }
 
 
@@ -141,8 +141,8 @@ def get_gcp_configuration(
     command.
   """
   # storage bucket call requires execute_gsutil_command
-  if configuration is Commands.STORAGE_BUCKETS:
-    return execute_gsutil_command([_command_string[Commands.STORAGE_BUCKETS]],
+  if configuration is Commands.GET_STORAGE_BUCKETS:
+    return execute_gsutil_command([_command_string[Commands.GET_STORAGE_BUCKETS]],
                                   project_id)
 
   # For all other cases can execute the command directly

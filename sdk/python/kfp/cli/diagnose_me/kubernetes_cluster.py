@@ -15,29 +15,29 @@
 """Functions for collecting diagnostic information on Kubernetes cluster."""
 
 import enum
-from typing import List, Text, Optional
+from typing import List, Text
 from . import utility
 
 
 class Commands(enum.Enum):
   """Enum for kubernetes commands."""
-  K8_CONFIGURED_CONTEXT = 1
-  PODS = 2
-  PVCS = 3
-  PVS = 4
-  SECRETS = 5
-  SERVICES = 6
-  KUBECTL_VERSION = 7
+  GET_CONFIGURED_CONTEXT = 1
+  GET_PODS = 2
+  GET_PVCS = 3
+  GET_PVS = 4
+  GET_SECRETS = 5
+  GET_SERVICES = 6
+  GET_KUBECTL_VERSION = 7
 
 
 _command_string = {
-    Commands.K8_CONFIGURED_CONTEXT: 'config view',
-    Commands.PODS: 'get pods',
-    Commands.PVCS: 'get pvc',
-    Commands.PVS: 'get pv',
-    Commands.SECRETS: 'get secrets',
-    Commands.SERVICES: 'get services',
-    Commands.KUBECTL_VERSION: 'version',
+    Commands.GET_CONFIGURED_CONTEXT: 'config view',
+    Commands.GET_PODS: 'get pods',
+    Commands.GET_PVCS: 'get pvc',
+    Commands.GET_PVS: 'get pv',
+    Commands.GET_SECRETS: 'get secrets',
+    Commands.GET_SERVICES: 'get services',
+    Commands.GET_KUBECTL_VERSION: 'version',
 }
 
 
@@ -67,7 +67,7 @@ def get_kubectl_configuration(
     configuration: Commands,
     kubernetes_context: Text = None,
     namespace: Text = None,
-    human_readable: Optional[bool] = False) -> utility.ExecutorResponse:
+    human_readable: bool = False) -> utility.ExecutorResponse:
   """Captures the specified environment configuration.
 
   Captures the environment state for the specified setting such as current
@@ -96,8 +96,8 @@ def get_kubectl_configuration(
     configuration,or an error message if any occurs during execution.
   """
 
-  if configuration in (Commands.K8_CONFIGURED_CONTEXT,
-                       Commands.KUBECTL_VERSION):
+  if configuration in (Commands.GET_CONFIGURED_CONTEXT,
+                       Commands.GET_KUBECTL_VERSION):
     return execute_kubectl_command((_command_string[configuration]).split(' '),
                                    human_readable)
 
@@ -118,5 +118,5 @@ def _get_kfp_runtime() -> Text:
   Returns:
     Returns the run-time version of kfp in as a string.
   """
-  # TODO(chavoshi) working with the team to implement this.
+  # TODO(chavoshi) needs to be implemented.
   raise NotImplementedError
