@@ -73,17 +73,17 @@ interface LogViewerProps {
 // lines not exceeding maximum overscanRowCount lines off screen are still
 // selectable.
 const overscanOnBothDirections: OverscanIndicesGetter = ({
-  direction,          // One of "horizontal" or "vertical"
-  cellCount,          // Number of rows or columns in the current axis
-  scrollDirection,    // 1 (forwards) or -1 (backwards)
+  direction, // One of "horizontal" or "vertical"
+  cellCount, // Number of rows or columns in the current axis
+  scrollDirection, // 1 (forwards) or -1 (backwards)
   overscanCellsCount, // Maximum number of cells to over-render in either direction
-  startIndex,         // Begin of range of visible cells
-  stopIndex           // End of range of visible cells
+  startIndex, // Begin of range of visible cells
+  stopIndex, // End of range of visible cells
 }) => {
-  return ({
+  return {
     overscanStartIndex: Math.max(0, startIndex - overscanCellsCount),
-    overscanStopIndex: Math.min(cellCount - 1, stopIndex + overscanCellsCount)
-  });
+    overscanStopIndex: Math.min(cellCount - 1, stopIndex + overscanCellsCount),
+  };
 };
 
 interface LogViewerState {
@@ -112,26 +112,37 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
   }
 
   public render(): JSX.Element {
-    return <AutoSizer>
-      {({ height, width }) => (
-        <List
-          id='logViewer'
-          width={width} height={height} rowCount={this.props.logLines.length}
-          rowHeight={15} className={css.root} ref={this._rootRef}
-          overscanIndicesGetter={overscanOnBothDirections}
-          overscanRowCount={400 /* make this large, so selecting maximum 400 lines is supported */}
-          rowRenderer={this._rowRenderer.bind(this)}
-          onScroll={this.handleScroll}
-        />
-      )}
-    </AutoSizer>;
+    return (
+      <AutoSizer>
+        {({ height, width }) => (
+          <List
+            id='logViewer'
+            width={width}
+            height={height}
+            rowCount={this.props.logLines.length}
+            rowHeight={15}
+            className={css.root}
+            ref={this._rootRef}
+            overscanIndicesGetter={overscanOnBothDirections}
+            overscanRowCount={
+              400 /* make this large, so selecting maximum 400 lines is supported */
+            }
+            rowRenderer={this._rowRenderer.bind(this)}
+            onScroll={this.handleScroll}
+          />
+        )}
+      </AutoSizer>
+    );
   }
 
-  private handleScroll = (
-    info: { clientHeight: number; scrollHeight: number; scrollTop: number }
-  ) => {
+  private handleScroll = (info: {
+    clientHeight: number;
+    scrollHeight: number;
+    scrollTop: number;
+  }) => {
     const offsetTolerance = 20; // pixels
-    const isScrolledToBottom = info.scrollHeight - info.scrollTop - info.clientHeight <= offsetTolerance;
+    const isScrolledToBottom =
+      info.scrollHeight - info.scrollTop - info.clientHeight <= offsetTolerance;
     if (isScrolledToBottom !== this.state.followNewLogs) {
       this.setState({
         followNewLogs: isScrolledToBottom,
@@ -157,13 +168,18 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
   }
 }
 
-const LogLine: React.FC<{ index: number, line: string }> = ({ index, line }) =>
+const LogLine: React.FC<{ index: number; line: string }> = ({ index, line }) => (
   <>
-    <span className={css.number} style={getLineStyle(line)}>{index + 1}</span>
-    <span className={css.line} style={getLineStyle(line)}>
-      {parseLine(line).map((piece, p) => (<span key={p}>{piece}</span>))}
+    <span className={css.number} style={getLineStyle(line)}>
+      {index + 1}
     </span>
-  </>;
+    <span className={css.line} style={getLineStyle(line)}>
+      {parseLine(line).map((piece, p) => (
+        <span key={p}>{piece}</span>
+      ))}
+    </span>
+  </>
+);
 // improve performance when rerendering, because we render a lot of logs
 const MemoedLogLine = React.memo(LogLine);
 
@@ -194,7 +210,11 @@ function parseLine(line: string): React.ReactNode[] {
     // Append all text before URL match
     nodes.push(<span>{line.substr(lastMatch, match.index)}</span>);
     // Append URL via an anchor element
-    nodes.push(<a href={match[0]} target='_blank' className={css.a}>{match[0]}</a>);
+    nodes.push(
+      <a href={match[0]} target='_blank' className={css.a}>
+        {match[0]}
+      </a>,
+    );
 
     lastMatch = match.index + match[0].length;
     match = urlPattern.exec(line);

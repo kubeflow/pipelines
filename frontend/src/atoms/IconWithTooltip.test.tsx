@@ -22,15 +22,20 @@ import { create } from 'react-test-renderer';
 describe('IconWithTooltip', () => {
   it('renders without height or weight', () => {
     const tree = create(
-      <IconWithTooltip Icon={TestIcon} iconColor='green' tooltip='test icon tooltip' />
+      <IconWithTooltip Icon={TestIcon} iconColor='green' tooltip='test icon tooltip' />,
     );
     expect(tree).toMatchSnapshot();
   });
 
   it('renders with height and weight', () => {
     const tree = create(
-      <IconWithTooltip Icon={TestIcon} height={20} width={20} iconColor='green'
-        tooltip='test icon tooltip' />
+      <IconWithTooltip
+        Icon={TestIcon}
+        height={20}
+        width={20}
+        iconColor='green'
+        tooltip='test icon tooltip'
+      />,
     );
     expect(tree).toMatchSnapshot();
   });

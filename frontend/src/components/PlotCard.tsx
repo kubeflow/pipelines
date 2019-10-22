@@ -100,8 +100,10 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
   }
 
   public shouldComponentUpdate(nextProps: PlotCardProps, nextState: PlotCardState): boolean {
-    return JSON.stringify(nextProps) !== JSON.stringify(this.props) ||
-      nextState.fullscreenDialogOpen !== this.state.fullscreenDialogOpen;
+    return (
+      JSON.stringify(nextProps) !== JSON.stringify(this.props) ||
+      nextState.fullscreenDialogOpen !== this.state.fullscreenDialogOpen
+    );
   }
 
   public render(): JSX.Element | null {
@@ -111,38 +113,50 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
       return null;
     }
 
-    return <div>
-      <Paper {...otherProps} className={classes(css.plotCard, 'plotCard')}>
-        <div className={css.plotHeader}>
-          <div className={css.plotTitle} title={title}>{title}</div>
-          <div>
-            <Button onClick={() => this.setState({ fullscreenDialogOpen: true })}
-              style={{ padding: 4, minHeight: 0, minWidth: 0 }} className='popOutButton'>
-              <Tooltip title='Pop out'>
-                <PopOutIcon classes={{ root: css.popoutIcon }} />
-              </Tooltip>
-            </Button>
+    return (
+      <div>
+        <Paper {...otherProps} className={classes(css.plotCard, 'plotCard')}>
+          <div className={css.plotHeader}>
+            <div className={css.plotTitle} title={title}>
+              {title}
+            </div>
+            <div>
+              <Button
+                onClick={() => this.setState({ fullscreenDialogOpen: true })}
+                style={{ padding: 4, minHeight: 0, minWidth: 0 }}
+                className='popOutButton'
+              >
+                <Tooltip title='Pop out'>
+                  <PopOutIcon classes={{ root: css.popoutIcon }} />
+                </Tooltip>
+              </Button>
+            </div>
           </div>
-        </div>
-        <ViewerContainer configs={configs} maxDimension={maxDimension} />
-      </Paper>
+          <ViewerContainer configs={configs} maxDimension={maxDimension} />
+        </Paper>
 
-      <Dialog open={!!this.state.fullscreenDialogOpen} classes={{ paper: css.fullscreenDialog }}
-        onClose={() => this.setState({ fullscreenDialogOpen: false })}>
-        <div className={css.dialogTitle}>
-          <Button onClick={() => this.setState({ fullscreenDialogOpen: false })}
-            className={classes(css.fullscreenCloseBtn, 'fullscreenCloseButton')}>
-            <CloseIcon />
-          </Button>
-          {componentMap[configs[0].type].prototype.getDisplayName()}
-          <Separator />
-          <span style={{ color: color.inactive }}>({title})</span>
-        </div>
-        <div className={css.fullscreenViewerContainer}>
-          <ViewerContainer configs={configs} />
-        </div>
-      </Dialog>
-    </div>;
+        <Dialog
+          open={!!this.state.fullscreenDialogOpen}
+          classes={{ paper: css.fullscreenDialog }}
+          onClose={() => this.setState({ fullscreenDialogOpen: false })}
+        >
+          <div className={css.dialogTitle}>
+            <Button
+              onClick={() => this.setState({ fullscreenDialogOpen: false })}
+              className={classes(css.fullscreenCloseBtn, 'fullscreenCloseButton')}
+            >
+              <CloseIcon />
+            </Button>
+            {componentMap[configs[0].type].prototype.getDisplayName()}
+            <Separator />
+            <span style={{ color: color.inactive }}>({title})</span>
+          </div>
+          <div className={css.fullscreenViewerContainer}>
+            <ViewerContainer configs={configs} />
+          </div>
+        </Dialog>
+      </div>
+    );
   }
 }
 

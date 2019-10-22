@@ -57,17 +57,20 @@ class BusyButton extends React.Component<BusyButtonProps> {
   public render(): JSX.Element {
     const { title, busy, className, disabled, icon, outlined, ...rest } = this.props;
 
-    return <Button {...rest} color={outlined ? 'primary' : 'secondary'}
-      className={classes(
-        css.root,
-        busy && css.rootBusy,
-        className)}
-      disabled={busy || disabled}>
-      {!!icon && <this.props.icon className={css.icon} />}
-      <span>{title}</span>
-      {busy === true && <CircularProgress size={15}
-        className={classes(css.spinner, busy && css.spinnerBusy)} />}
-    </Button>;
+    return (
+      <Button
+        {...rest}
+        color={outlined ? 'primary' : 'secondary'}
+        className={classes(css.root, busy && css.rootBusy, className)}
+        disabled={busy || disabled}
+      >
+        {!!icon && <this.props.icon className={css.icon} />}
+        <span>{title}</span>
+        {busy === true && (
+          <CircularProgress size={15} className={classes(css.spinner, busy && css.spinnerBusy)} />
+        )}
+      </Button>
+    );
   }
 }
 

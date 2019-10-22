@@ -19,7 +19,11 @@ import { ApiPipeline, PipelineServiceApi } from '../apis/pipeline';
 import { RunServiceApi } from '../apis/run';
 import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization';
 import { PlotType } from '../components/viewers/Viewer';
-import { MetadataStoreServiceClient, ServiceError, UnaryResponse } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
+import {
+  MetadataStoreServiceClient,
+  ServiceError,
+  UnaryResponse,
+} from '../generated/src/apis/metadata/metadata_store_service_pb_service';
 import * as Utils from './Utils';
 import { StoragePath } from './WorkflowParser';
 
@@ -73,32 +77,46 @@ let customVisualizationsAllowed: boolean;
 
 type Callback<R> = (err: ServiceError | null, res: R | null) => void;
 type MetadataApiMethod<T, R> = (request: T, callback: Callback<R>) => UnaryResponse;
-type PromiseBasedMetadataApiMethod<T, R> = (request: T) => Promise<{ response: R | null, error: ServiceError | null }>;
+type PromiseBasedMetadataApiMethod<T, R> = (
+  request: T,
+) => Promise<{ response: R | null; error: ServiceError | null }>;
 
 /**
  * Converts a callback based api method to promise based api method.
  */
-function makePromiseApi<T, R>(apiMethod: MetadataApiMethod<T, R>): PromiseBasedMetadataApiMethod<T, R> {
-  return (request: T) => new Promise((resolve, reject) => {
-    const handler = (error: ServiceError | null, response: R | null) => {
-      // resolve both response and error to keep type information
-      resolve({ response, error });
-    };
-    apiMethod(request, handler);
-  });
+function makePromiseApi<T, R>(
+  apiMethod: MetadataApiMethod<T, R>,
+): PromiseBasedMetadataApiMethod<T, R> {
+  return (request: T) =>
+    new Promise((resolve, reject) => {
+      const handler = (error: ServiceError | null, response: R | null) => {
+        // resolve both response and error to keep type information
+        resolve({ response, error });
+      };
+      apiMethod(request, handler);
+    });
 }
 const metadataServiceClient = new MetadataStoreServiceClient('');
 // TODO: add all other api methods we need here.
 const metadataServicePromiseClient = {
-  getArtifactTypes: makePromiseApi(metadataServiceClient.getArtifactTypes.bind(metadataServiceClient)),
-  getArtifactsByID: makePromiseApi(metadataServiceClient.getArtifactsByID.bind(metadataServiceClient)),
-  getEventsByArtifactIDs: makePromiseApi(metadataServiceClient.getEventsByArtifactIDs.bind(metadataServiceClient)),
-  getEventsByExecutionIDs: makePromiseApi(metadataServiceClient.getEventsByExecutionIDs.bind(metadataServiceClient)),
-  getExecutionsByID: makePromiseApi(metadataServiceClient.getExecutionsByID.bind(metadataServiceClient)),
+  getArtifactTypes: makePromiseApi(
+    metadataServiceClient.getArtifactTypes.bind(metadataServiceClient),
+  ),
+  getArtifactsByID: makePromiseApi(
+    metadataServiceClient.getArtifactsByID.bind(metadataServiceClient),
+  ),
+  getEventsByArtifactIDs: makePromiseApi(
+    metadataServiceClient.getEventsByArtifactIDs.bind(metadataServiceClient),
+  ),
+  getEventsByExecutionIDs: makePromiseApi(
+    metadataServiceClient.getEventsByExecutionIDs.bind(metadataServiceClient),
+  ),
+  getExecutionsByID: makePromiseApi(
+    metadataServiceClient.getExecutionsByID.bind(metadataServiceClient),
+  ),
 };
 
 export class Apis {
-
   public static async areCustomVisualizationsAllowed(): Promise<boolean> {
     // Result is cached to prevent excessive network calls for simple request.
     // The value of customVisualizationsAllowed will only change if the
@@ -110,7 +128,9 @@ export class Apis {
     return customVisualizationsAllowed;
   }
 
-  public static async buildPythonVisualizationConfig(visualizationData: ApiVisualization): Promise<HTMLViewerConfig> {
+  public static async buildPythonVisualizationConfig(
+    visualizationData: ApiVisualization,
+  ): Promise<HTMLViewerConfig> {
     const visualization = await Apis.visualizationServiceApi.createVisualization(visualizationData);
     if (visualization.html) {
       const htmlContent = visualization.html
@@ -198,8 +218,10 @@ export class Apis {
    * Reads file from storage using server.
    */
   public static readFile(path: StoragePath): Promise<string> {
-    return this._fetch('artifacts/get' +
-      `?source=${path.source}&bucket=${path.bucket}&key=${encodeURIComponent(path.key)}`);
+    return this._fetch(
+      'artifacts/get' +
+        `?source=${path.source}&bucket=${path.bucket}&key=${encodeURIComponent(path.key)}`,
+    );
   }
 
   /**
@@ -217,7 +239,7 @@ export class Apis {
       `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
       undefined,
       undefined,
-      { headers: { 'content-type': 'application/json', }, method: 'POST', }
+      { headers: { 'content-type': 'application/json' }, method: 'POST' },
     );
   }
 
@@ -226,7 +248,9 @@ export class Apis {
    * object with its metadata parsed.
    */
   public static async uploadPipeline(
-    pipelineName: string, pipelineData: File): Promise<ApiPipeline> {
+    pipelineName: string,
+    pipelineData: File,
+  ): Promise<ApiPipeline> {
     const fd = new FormData();
     fd.append('uploadfile', pipelineData, pipelineData.name);
     return await this._fetchAndParse<ApiPipeline>(
@@ -237,7 +261,8 @@ export class Apis {
         body: fd,
         cache: 'no-cache',
         method: 'POST',
-      });
+      },
+    );
   }
 
   /*
@@ -274,13 +299,19 @@ export class Apis {
    * This function will call this._fetch() and parse the resulting JSON into an object of type T.
    */
   private static async _fetchAndParse<T>(
-    path: string, apisPrefix?: string, query?: string, init?: RequestInit): Promise<T> {
+    path: string,
+    apisPrefix?: string,
+    query?: string,
+    init?: RequestInit,
+  ): Promise<T> {
     const responseText = await this._fetch(path, apisPrefix, query, init);
     try {
       return JSON.parse(responseText) as T;
     } catch (err) {
-      throw new Error(`Error parsing response for path: ${path}\n\n` +
-        `Response was: ${responseText}\n\nError was: ${JSON.stringify(err)}`);
+      throw new Error(
+        `Error parsing response for path: ${path}\n\n` +
+          `Response was: ${responseText}\n\nError was: ${JSON.stringify(err)}`,
+      );
     }
   }
 
@@ -290,14 +321,20 @@ export class Apis {
    * Use this._fetchAndParse() if you intend to parse the response as JSON into an object.
    */
   private static async _fetch(
-    path: string, apisPrefix?: string, query?: string, init?: RequestInit): Promise<string> {
+    path: string,
+    apisPrefix?: string,
+    query?: string,
+    init?: RequestInit,
+  ): Promise<string> {
     init = Object.assign(init || {}, { credentials: 'same-origin' });
     const response = await fetch((apisPrefix || '') + path + (query ? '?' + query : ''), init);
     const responseText = await response.text();
     if (response.ok) {
       return responseText;
     } else {
-      Utils.logger.error(`Response for path: ${path} was not 'ok'\n\nResponse was: ${responseText}`);
+      Utils.logger.error(
+        `Response for path: ${path} was not 'ok'\n\nResponse was: ${responseText}`,
+      );
       throw new Error(responseText);
     }
   }
@@ -307,7 +344,7 @@ export class Apis {
 // Note that '' and 'created_at' are considered equivalent.
 export enum RunSortKeys {
   CREATED_AT = 'created_at',
-  NAME = 'name'
+  NAME = 'name',
 }
 
 // Valid sortKeys as specified by the backend.
@@ -323,7 +360,7 @@ export enum JobSortKeys {
   CREATED_AT = 'created_at',
   ID = 'id',
   NAME = 'name',
-  PIPELINE_ID = 'pipeline_id'
+  PIPELINE_ID = 'pipeline_id',
 }
 
 // Valid sortKeys as specified by the backend.

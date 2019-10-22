@@ -41,7 +41,7 @@ export const css = stylesheet({
     fontSize: '14px',
     letterSpacing: '0.2px',
     lineHeight: '20px',
-  }
+  },
 });
 
 export enum ResourceType {
@@ -64,7 +64,6 @@ interface ExecutionProps {
 export type ResourceInfoProps = ArtifactProps | ExecutionProps;
 
 export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
-
   public render(): JSX.Element {
     const { resource } = this.props;
     const propertyMap = resource.getPropertiesMap();
@@ -74,38 +73,43 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
         <h1 className={commonCss.header}>Type: {this.props.typeName}</h1>
         {(() => {
           if (this.props.resourceType === ResourceType.ARTIFACT) {
-            return <>
-              <dt className={css.term}>URI</dt>
-              <dd className={css.value}>
-                <GcsLink gcsUri={this.props.resource.getUri()} />
-              </dd>
-            </>;
+            return (
+              <>
+                <dt className={css.term}>URI</dt>
+                <dd className={css.value}>
+                  <GcsLink gcsUri={this.props.resource.getUri()} />
+                </dd>
+              </>
+            );
           }
           return null;
         })()}
         <h2 className={commonCss.header2}>Properties</h2>
         <dl className={css.resourceInfo}>
-          {propertyMap.getEntryList()
+          {propertyMap
+            .getEntryList()
             // TODO: __ALL_META__ is something of a hack, is redundant, and can be ignored
             .filter(k => k[0] !== '__ALL_META__')
-            .map(k =>
+            .map(k => (
               <div className={css.field} key={k[0]}>
                 <dt className={css.term}>{k[0]}</dt>
-                <dd className={css.value}>{propertyMap && prettyPrintJsonValue(getMetadataValue(propertyMap.get(k[0])))}</dd>
+                <dd className={css.value}>
+                  {propertyMap && prettyPrintJsonValue(getMetadataValue(propertyMap.get(k[0])))}
+                </dd>
               </div>
-            )
-          }
+            ))}
         </dl>
         <h2 className={commonCss.header2}>Custom Properties</h2>
         <dl className={css.resourceInfo}>
-          {customPropertyMap.getEntryList().map(k =>
+          {customPropertyMap.getEntryList().map(k => (
             <div className={css.field} key={k[0]}>
               <dt className={css.term}>{k[0]}</dt>
               <dd className={css.value}>
-                {customPropertyMap && prettyPrintJsonValue(getMetadataValue(customPropertyMap.get(k[0])))}
+                {customPropertyMap &&
+                  prettyPrintJsonValue(getMetadataValue(customPropertyMap.get(k[0])))}
               </dd>
             </div>
-          )}
+          ))}
         </dl>
       </section>
     );
