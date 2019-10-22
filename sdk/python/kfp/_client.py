@@ -392,7 +392,7 @@ class Client(object):
       A response object including a list of experiments and next page token.
     """
     if experiment_id is not None:
-      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
     else:
       response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
