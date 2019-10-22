@@ -172,10 +172,18 @@ function buildDag(
       // DAG, in which case we recurse, or a container/resource which can be thought of as a
       // leaf node
       const child = templates.get(task.template);
+      let nodeLabel = task.template;
       if (child) {
         if (child.nodeType === 'dag') {
           buildDag(graph, task.template, templates, alreadyVisited, nodeId);
         } else if (child.nodeType === 'container' || child.nodeType === 'resource') {
+          const metadata = child.template.metadata;
+          if (metadata && metadata.annotations) {
+            const displayName = metadata.annotations['pipelines.kubeflow.org/task_display_name'];
+            if (displayName) {
+              nodeLabel = displayName;
+            }
+          }
           _populateInfoFromTemplate(info, child.template);
         } else {
           throw new Error(
@@ -188,7 +196,7 @@ function buildDag(
         bgColor: task.when ? 'cornsilk' : undefined,
         height: Constants.NODE_HEIGHT,
         info,
-        label: task.template,
+        label: nodeLabel,
         width: Constants.NODE_WIDTH,
       });
 
