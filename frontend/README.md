@@ -79,6 +79,10 @@ To understand more what prettier is: [What is Prettier](https://prettier.io/docs
   ```
 - For others, refer to https://prettier.io/docs/en/editors.html
 
+### Format Code Manually
+
+Run `npm run format`.
+
 ### Escape hatch
 
 If there's some code that you don't want being formatted by prettier, follow

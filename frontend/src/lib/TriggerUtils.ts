@@ -30,8 +30,8 @@ export enum PeriodicInterval {
 }
 
 export const triggers = new Map<TriggerType, { displayName: string }>([
-  [TriggerType.INTERVALED, { displayName: 'Periodic', }],
-  [TriggerType.CRON, { displayName: 'Cron', }],
+  [TriggerType.INTERVALED, { displayName: 'Periodic' }],
+  [TriggerType.CRON, { displayName: 'Cron' }],
 ]);
 
 export function getPeriodInSeconds(interval: PeriodicInterval, count: number): number {
@@ -58,8 +58,11 @@ export function getPeriodInSeconds(interval: PeriodicInterval, count: number): n
   return intervalSeconds * count;
 }
 
-export function buildCron(startDateTime: Date | undefined, intervalCategory: PeriodicInterval,
-  selectedDays: boolean[]): string {
+export function buildCron(
+  startDateTime: Date | undefined,
+  intervalCategory: PeriodicInterval,
+  selectedDays: boolean[],
+): string {
   const isAllDaysChecked = selectedDays.every(d => !!d);
   let targetDayOfMonth = '0';
   let targetHours = '0';
@@ -95,12 +98,14 @@ export function buildCron(startDateTime: Date | undefined, intervalCategory: Per
         dayOfWeek = '*';
       } else {
         // Convert weekdays to array of indices of active days and join them.
-        dayOfWeek = selectedDays.reduce(
-          (result: number[], day, i) => {
-            if (day) { result.push(i); }
+        dayOfWeek = selectedDays
+          .reduce((result: number[], day, i) => {
+            if (day) {
+              result.push(i);
+            }
             return result;
-          },
-          []).join(',');
+          }, [])
+          .join(',');
       }
       break;
     case PeriodicInterval.MONTH:
@@ -115,12 +120,16 @@ export function buildCron(startDateTime: Date | undefined, intervalCategory: Per
   return [second, minute, hour, dayOfMonth, month, dayOfWeek].join(' ').trim();
 }
 
-export function pickersToDate(hasDate: boolean, dateStr: string, timeStr: string): Date | undefined {
+export function pickersToDate(
+  hasDate: boolean,
+  dateStr: string,
+  timeStr: string,
+): Date | undefined {
   if (hasDate && dateStr && timeStr) {
     const [year, month, date] = dateStr.split('-');
     const [hour, minute] = timeStr.split(':');
 
-    const d = new Date(+year, (+month - 1), +date, +hour, +minute);
+    const d = new Date(+year, +month - 1, +date, +hour, +minute);
     if (isNaN(d as any)) {
       throw new Error('Invalid picker format');
     }
@@ -130,8 +139,14 @@ export function pickersToDate(hasDate: boolean, dateStr: string, timeStr: string
   }
 }
 
-export function buildTrigger(intervalCategory: PeriodicInterval, intervalValue: number,
-  startDateTime: Date | undefined, endDateTime: Date | undefined, type: TriggerType, cron: string): ApiTrigger {
+export function buildTrigger(
+  intervalCategory: PeriodicInterval,
+  intervalValue: number,
+  startDateTime: Date | undefined,
+  endDateTime: Date | undefined,
+  type: TriggerType,
+  cron: string,
+): ApiTrigger {
   let trigger: ApiTrigger;
   switch (type) {
     case TriggerType.INTERVALED:
@@ -215,8 +230,8 @@ export function triggerDisplayString(trigger?: ApiTrigger): string {
       // Add 'and' if necessary
       const insertAndLocation = interval.lastIndexOf(', ') + 1;
       if (insertAndLocation > 0) {
-        interval = interval.slice(0, insertAndLocation) +
-          ' and' + interval.slice(insertAndLocation);
+        interval =
+          interval.slice(0, insertAndLocation) + ' and' + interval.slice(insertAndLocation);
       }
       // Remove trailing comma
       return interval.slice(0, -1);

@@ -35,7 +35,9 @@ interface PipelineListState {
   uploadDialogOpen: boolean;
 }
 
-const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props: CustomRendererProps<string>) => {
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
+  props: CustomRendererProps<string>,
+) => {
   return <Descriptoin description={props.value || ''} forceInline={true} />;
 };
 

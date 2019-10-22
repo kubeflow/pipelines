@@ -66,7 +66,6 @@ const css = stylesheet({
 });
 
 class MD2Tabs extends React.Component<MD2TabsProps, any> {
-
   private _rootRef = React.createRef<any>();
   private _indicatorRef = React.createRef<any>();
   private _tabRefs = this.props.tabs.map(t => React.createRef<HTMLSpanElement>());
@@ -80,8 +79,15 @@ class MD2Tabs extends React.Component<MD2TabsProps, any> {
         <div className={css.indicator} ref={this._indicatorRef} />
         <Separator units={20} />
         {this.props.tabs.map((tab, i) => (
-          <Button className={classes(css.button, i === selected ? css.active : '')} key={i}
-            onClick={() => { if (i !== selected) { switchHandler(i); } }}>
+          <Button
+            className={classes(css.button, i === selected ? css.active : '')}
+            key={i}
+            onClick={() => {
+              if (i !== selected) {
+                switchHandler(i);
+              }
+            }}
+          >
             <span ref={this._tabRefs[i]}>{tab}</span>
           </Button>
         ))}
@@ -116,12 +122,13 @@ class MD2Tabs extends React.Component<MD2TabsProps, any> {
     if (!activeLabelElement) {
       return;
     }
-    const leftOffset = activeLabelElement.getBoundingClientRect().left -
+    const leftOffset =
+      activeLabelElement.getBoundingClientRect().left -
       this._rootRef.current.getBoundingClientRect().left;
 
     const tabIndicator = this._indicatorRef.current;
-    tabIndicator.style.left = (leftOffset - 5) + 'px';
-    tabIndicator.style.width = (activeLabelElement.getBoundingClientRect().width + 5) + 'px';
+    tabIndicator.style.left = leftOffset - 5 + 'px';
+    tabIndicator.style.width = activeLabelElement.getBoundingClientRect().width + 5 + 'px';
     tabIndicator.style.display = 'block';
   }
 }
