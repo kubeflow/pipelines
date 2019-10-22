@@ -72,3 +72,9 @@ rules:
   - jobs
   verbs:
   - '*'
+- apiGroups:
+  - machinelearning.seldon.io
+  resources:
+  - seldondeployments
+  verbs:
+  - '*'
