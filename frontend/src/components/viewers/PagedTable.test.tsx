@@ -26,38 +26,44 @@ describe('PagedTable', () => {
   });
 
   it('does not break on empty data', () => {
-    const tree = shallow(<PagedTable configs={[{data: [], labels: [], type: PlotType.TABLE}]} />);
+    const tree = shallow(<PagedTable configs={[{ data: [], labels: [], type: PlotType.TABLE }]} />);
     expect(tree).toMatchSnapshot();
   });
 
-  const data = [
-    ['col1', 'col2', 'col3'],
-    ['col4', 'col5', 'col6'],
-  ];
+  const data = [['col1', 'col2', 'col3'], ['col4', 'col5', 'col6']];
   const labels = ['field1', 'field2', 'field3'];
 
   it('renders simple data', () => {
-    const tree = shallow(<PagedTable configs={[{data, labels, type: PlotType.TABLE}]} />);
+    const tree = shallow(<PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders simple data without labels', () => {
-    const tree = shallow(<PagedTable configs={[{data, labels: [], type: PlotType.TABLE}]} />);
+    const tree = shallow(<PagedTable configs={[{ data, labels: [], type: PlotType.TABLE }]} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('sorts on first column descending', () => {
-    const tree = shallow(<PagedTable configs={[{data, labels, type: PlotType.TABLE}]} />);
-    tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
+    const tree = shallow(<PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />);
+    tree
+      .find('WithStyles(TableSortLabel)')
+      .at(0)
+      .simulate('click');
     expect(tree).toMatchSnapshot();
   });
 
   it('sorts on first column ascending', () => {
-    const tree = shallow(<PagedTable configs={[{data, labels, type: PlotType.TABLE}]} />);
+    const tree = shallow(<PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />);
     // Once for descending
-    tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
+    tree
+      .find('WithStyles(TableSortLabel)')
+      .at(0)
+      .simulate('click');
     // Once for ascending
-    tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
+    tree
+      .find('WithStyles(TableSortLabel)')
+      .at(0)
+      .simulate('click');
     expect(tree).toMatchSnapshot();
   });
 

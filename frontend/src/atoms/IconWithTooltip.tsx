@@ -31,11 +31,13 @@ export default (props: IconWithTooltipProps) => {
 
   return (
     <Tooltip title={tooltip}>
-      <Icon style={{
-        color: iconColor,
-        height: height || 16,
-        width: width || 16
-      }}/>
+      <Icon
+        style={{
+          color: iconColor,
+          height: height || 16,
+          width: width || 16,
+        }}
+      />
     </Tooltip>
   );
 };

@@ -64,12 +64,14 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     }
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        {<ResourceInfo
-          resourceType={ResourceType.ARTIFACT}
-          typeName={this.properTypeName}
-          resource={this.state.artifact}
-        />}
-      </div >
+        {
+          <ResourceInfo
+            resourceType={ResourceType.ARTIFACT}
+            typeName={this.properTypeName}
+            resource={this.state.artifact}
+          />
+        }
+      </div>
     );
   }
 
@@ -77,7 +79,7 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     return {
       actions: {},
       breadcrumbs: [{ displayName: 'Artifacts', href: RoutePage.ARTIFACTS }],
-      pageTitle: `${this.properTypeName} ${this.id} details`
+      pageTitle: `${this.properTypeName} ${this.id} details`,
     };
   }
 
@@ -113,7 +115,7 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
         title += ` (version: ${version})`;
       }
       this.props.updateToolbar({
-        pageTitle: title
+        pageTitle: title,
       });
       this.setState({ artifact });
     });

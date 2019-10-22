@@ -43,12 +43,14 @@ describe('NewRunParameters', () => {
       handleParamChange,
       initialParams: [
         { name: 'testParam1', value: 'testVal1' },
-        { name: 'testParam2', value: 'testVal2' }
+        { name: 'testParam2', value: 'testVal2' },
       ],
       titleMessage: 'Specify parameters required by the pipeline',
     } as NewRunParametersProps;
     const tree = shallow(<NewRunParameters {...props} />);
-    tree.find('#newRunPipelineParam1').simulate('change', { target: { value: 'test param value' } });
+    tree
+      .find('#newRunPipelineParam1')
+      .simulate('change', { target: { value: 'test param value' } });
     expect(handleParamChange).toHaveBeenCalledTimes(1);
     expect(handleParamChange).toHaveBeenLastCalledWith(1, 'test param value');
   });

@@ -103,7 +103,6 @@ export const css = stylesheet({
 });
 
 class PipelineDetails extends Page<{}, PipelineDetailsState> {
-
   constructor(props: any) {
     super(props);
 
@@ -119,25 +118,28 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
-    buttons.newRunFromPipeline(() => this.state.pipeline ? this.state.pipeline.id! : '');
+    buttons.newRunFromPipeline(() => (this.state.pipeline ? this.state.pipeline.id! : ''));
 
     if (fromRunId) {
       return {
         actions: buttons.getToolbarActionMap(),
         breadcrumbs: [
-          { displayName: fromRunId, href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId) }
+          {
+            displayName: fromRunId,
+            href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId),
+          },
         ],
         pageTitle: 'Pipeline details',
       };
     } else {
       // Add buttons for creating experiment and deleting pipeline
       buttons
-        .newExperiment(() => this.state.pipeline ? this.state.pipeline.id! : '')
+        .newExperiment(() => (this.state.pipeline ? this.state.pipeline.id! : ''))
         .delete(
-          () => this.state.pipeline ? [this.state.pipeline.id!] : [],
+          () => (this.state.pipeline ? [this.state.pipeline.id!] : []),
           'pipeline',
           this._deleteCallback.bind(this),
-          true, /* useCurrentResource */
+          true /* useCurrentResource */,
         );
       return {
         actions: buttons.getToolbarActionMap(),
@@ -160,7 +162,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
-
         <div className={commonCss.page}>
           <MD2Tabs
             selectedTab={selectedTab}
@@ -168,65 +169,102 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             tabs={['Graph', 'Source']}
           />
           <div className={commonCss.page}>
-            {selectedTab === 0 && <div className={commonCss.page}>
-              {this.state.graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-                {!!pipeline && summaryShown && (
-                  <Paper className={css.summaryCard}>
-                    <div style={{ alignItems: 'baseline', display: 'flex', justifyContent: 'space-between' }}>
-                      <div className={commonCss.header}>
-                        Summary
+            {selectedTab === 0 && (
+              <div className={commonCss.page}>
+                {this.state.graph && (
+                  <div
+                    className={commonCss.page}
+                    style={{ position: 'relative', overflow: 'hidden' }}
+                  >
+                    {!!pipeline && summaryShown && (
+                      <Paper className={css.summaryCard}>
+                        <div
+                          style={{
+                            alignItems: 'baseline',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <div className={commonCss.header}>Summary</div>
+                          <Button
+                            onClick={() => this.setStateSafe({ summaryShown: false })}
+                            color='secondary'
+                          >
+                            Hide
+                          </Button>
                         </div>
-                      <Button onClick={() => this.setStateSafe({ summaryShown: false })} color='secondary'>
-                        Hide
-                        </Button>
-                    </div>
-                    <div className={css.summaryKey}>ID</div>
-                    <div>{pipeline.id || 'Unable to obtain Pipeline ID'}</div>
-                    <div className={css.summaryKey}>Uploaded on</div>
-                    <div>{formatDateString(pipeline.created_at)}</div>
-                    <div className={css.summaryKey}>Description</div>
-                    <Descriptoin description={pipeline.description || ''} />
-                  </Paper>
-                )}
-
-                <Graph graph={this.state.graph} selectedNodeId={selectedNodeId}
-                  onClick={id => this.setStateSafe({ selectedNodeId: id })} />
-
-                <SidePanel isOpen={!!selectedNodeId}
-                  title={selectedNodeId} onClose={() => this.setStateSafe({ selectedNodeId: '' })}>
-                  <div className={commonCss.page}>
-                    {!selectedNodeInfo && (
-                      <div className={commonCss.absoluteCenter}>Unable to retrieve node info</div>
+                        <div className={css.summaryKey}>ID</div>
+                        <div>{pipeline.id || 'Unable to obtain Pipeline ID'}</div>
+                        <div className={css.summaryKey}>Uploaded on</div>
+                        <div>{formatDateString(pipeline.created_at)}</div>
+                        <div className={css.summaryKey}>Description</div>
+                        <Descriptoin description={pipeline.description || ''} />
+                      </Paper>
                     )}
-                    {!!selectedNodeInfo && <div className={padding(20, 'lr')}>
-                      <StaticNodeDetails nodeInfo={selectedNodeInfo} />
-                    </div>}
+
+                    <Graph
+                      graph={this.state.graph}
+                      selectedNodeId={selectedNodeId}
+                      onClick={id => this.setStateSafe({ selectedNodeId: id })}
+                    />
+
+                    <SidePanel
+                      isOpen={!!selectedNodeId}
+                      title={selectedNodeId}
+                      onClose={() => this.setStateSafe({ selectedNodeId: '' })}
+                    >
+                      <div className={commonCss.page}>
+                        {!selectedNodeInfo && (
+                          <div className={commonCss.absoluteCenter}>
+                            Unable to retrieve node info
+                          </div>
+                        )}
+                        {!!selectedNodeInfo && (
+                          <div className={padding(20, 'lr')}>
+                            <StaticNodeDetails nodeInfo={selectedNodeInfo} />
+                          </div>
+                        )}
+                      </div>
+                    </SidePanel>
+                    <div className={css.footer}>
+                      {!summaryShown && (
+                        <Button
+                          onClick={() => this.setStateSafe({ summaryShown: !summaryShown })}
+                          color='secondary'
+                        >
+                          Show summary
+                        </Button>
+                      )}
+                      <div
+                        className={classes(
+                          commonCss.flex,
+                          summaryShown && !!pipeline && css.footerInfoOffset,
+                        )}
+                      >
+                        <InfoIcon className={commonCss.infoIcon} />
+                        <span className={css.infoSpan}>Static pipeline graph</span>
+                      </div>
+                    </div>
                   </div>
-                </SidePanel>
-                <div className={css.footer}>
-                  {!summaryShown && (
-                    <Button onClick={() => this.setStateSafe({ summaryShown: !summaryShown })} color='secondary'>
-                      Show summary
-                    </Button>
-                  )}
-                  <div className={classes(commonCss.flex, (summaryShown && !!pipeline) && css.footerInfoOffset)}>
-                    <InfoIcon className={commonCss.infoIcon} />
-                    <span className={css.infoSpan}>Static pipeline graph</span>
-                  </div>
-                </div>
-              </div>}
-              {!this.state.graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
-            </div>}
-            {selectedTab === 1 && !!templateString &&
+                )}
+                {!this.state.graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
+              </div>
+            )}
+            {selectedTab === 1 && !!templateString && (
               <div className={css.containerCss}>
                 <Editor
                   value={templateString || ''}
-                  height='100%' width='100%' mode='yaml' theme='github'
+                  height='100%'
+                  width='100%'
+                  mode='yaml'
+                  theme='github'
                   editorProps={{ $blockScrolling: true }}
-                  readOnly={true} highlightActiveLine={true} showGutter={true}
+                  readOnly={true}
+                  highlightActiveLine={true}
+                  showGutter={true}
                 />
               </div>
-            }
+            )}
           </div>
         </div>
       </div>
@@ -248,7 +286,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     let pipeline: ApiPipeline | null = null;
     let templateString = '';
     let template: Workflow | undefined;
-    let breadcrumbs: Array<{ displayName: string, href: string }> = [];
+    let breadcrumbs: Array<{ displayName: string; href: string }> = [];
     const toolbarActions = this.props.toolbarProps.actions;
     let pageTitle = '';
 
@@ -264,15 +302,23 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             templateString = JsYaml.safeDump(pipelineSpec);
           } catch (err) {
             await this.showPageError(
-              `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`, err);
+              `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
+              err,
+            );
             logger.error(
-              `Failed to convert pipeline spec YAML from run with ID: ${runDetails.run!.id}.`, err);
+              `Failed to convert pipeline spec YAML from run with ID: ${runDetails.run!.id}.`,
+              err,
+            );
           }
         } catch (err) {
           await this.showPageError(
-            `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`, err);
+            `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
+            err,
+          );
           logger.error(
-            `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`, err);
+            `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`,
+            err,
+          );
         }
 
         const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetails.run);
@@ -287,12 +333,14 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
             {
               displayName: experiment.name!,
-              href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
-            });
-        } else {
-          breadcrumbs.push(
-            { displayName: 'All runs', href: RoutePage.RUNS }
+              href: RoutePage.EXPERIMENT_DETAILS.replace(
+                ':' + RouteParams.experimentId,
+                experiment.id!,
+              ),
+            },
           );
+        } else {
+          breadcrumbs.push({ displayName: 'All runs', href: RoutePage.RUNS });
         }
         breadcrumbs.push({
           displayName: runDetails.run!.name!,
@@ -350,8 +398,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   private _deleteCallback(_: string[], success: boolean): void {
     if (success) {
       const breadcrumbs = this.props.toolbarProps.breadcrumbs;
-      const previousPage = breadcrumbs.length ?
-        breadcrumbs[breadcrumbs.length - 1].href : RoutePage.PIPELINES;
+      const previousPage = breadcrumbs.length
+        ? breadcrumbs[breadcrumbs.length - 1].href
+        : RoutePage.PIPELINES;
       this.props.history.push(previousPage);
     }
   }

@@ -44,10 +44,7 @@ describe('Description', () => {
     });
 
     it('renders paragraphs', () => {
-      const description =
-        'Paragraph 1\n' +
-        '\n' +
-        'Paragraph 2';
+      const description = 'Paragraph 1\n' + '\n' + 'Paragraph 2';
       const tree = mount(<Descriptoin description={description} />).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
@@ -63,8 +60,7 @@ describe('Description', () => {
 
   describe('When in inline mode', () => {
     it('renders paragraphs separated by space', () => {
-      const description =
-        `
+      const description = `
 Paragraph 1
 
 Paragraph 2
@@ -74,7 +70,9 @@ Paragraph 2
     });
 
     it('renders pure text', () => {
-      const tree = mount(<Descriptoin description='this is a line of pure text' forceInline={true} />).getDOMNode();
+      const tree = mount(
+        <Descriptoin description='this is a line of pure text' forceInline={true} />,
+      ).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
 
@@ -98,5 +96,4 @@ Paragraph 2
       expect(tree).toMatchSnapshot();
     });
   });
-
 });

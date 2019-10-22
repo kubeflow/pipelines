@@ -41,19 +41,32 @@ describe('Banner', () => {
   });
 
   it('shows "Refresh" button when passed a refresh function', () => {
-    const tree = shallow(<Banner message={'Some message'} refresh={() => { /* do nothing */}} />);
+    const tree = shallow(
+      <Banner
+        message={'Some message'}
+        refresh={() => {
+          /* do nothing */
+        }}
+      />,
+    );
     expect(tree).toMatchSnapshot();
   });
 
   it('opens details dialog when button is clicked', () => {
     const tree = shallow(<Banner message='hello' additionalInfo='world' />);
-    tree.find('WithStyles(Button)').at(0).simulate('click');
+    tree
+      .find('WithStyles(Button)')
+      .at(0)
+      .simulate('click');
     expect(tree.state()).toHaveProperty('dialogOpen', true);
   });
 
   it('closes details dialog when cancel button is clicked', () => {
     const tree = shallow(<Banner message='hello' additionalInfo='world' />);
-    tree.find('WithStyles(Button)').at(0).simulate('click');
+    tree
+      .find('WithStyles(Button)')
+      .at(0)
+      .simulate('click');
     expect(tree.state()).toHaveProperty('dialogOpen', true);
     tree.find('#dismissDialogBtn').simulate('click');
     expect(tree.state()).toHaveProperty('dialogOpen', false);
@@ -62,7 +75,10 @@ describe('Banner', () => {
   it('calls refresh callback', () => {
     const spy = jest.fn();
     const tree = shallow(<Banner message='hello' refresh={spy} />);
-    tree.find('.' + css.refreshButton).at(0).simulate('click');
+    tree
+      .find('.' + css.refreshButton)
+      .at(0)
+      .simulate('click');
     expect(spy).toHaveBeenCalled();
   });
 });

@@ -67,7 +67,8 @@ describe('Metric', () => {
       <Metric
         metadata={{ name: 'some metric', count: 1, maxValue: 0, minValue: 0 }}
         metric={{ format: RunMetricFormat.RAW, number_value: 0.54 }}
-      />);
+      />,
+    );
     expect(tree).toMatchSnapshot();
   });
 
@@ -77,7 +78,8 @@ describe('Metric', () => {
       <Metric
         metadata={{ name: 'some metric', count: 1, maxValue: 1, minValue: 0 }}
         metric={{ format: RunMetricFormat.RAW, number_value: 0.54 }}
-      />);
+      />,
+    );
     expect(consoleSpy).toHaveBeenCalledTimes(0);
     expect(tree).toMatchSnapshot();
   });
@@ -88,7 +90,8 @@ describe('Metric', () => {
       <Metric
         metadata={{ name: 'some metric', count: 1, maxValue: 1, minValue: 0 }}
         metric={{ format: RunMetricFormat.RAW, number_value: -0.54 }}
-      />);
+      />,
+    );
     expect(consoleSpy).toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
   });
@@ -99,7 +102,8 @@ describe('Metric', () => {
       <Metric
         metadata={{ name: 'some metric', count: 1, maxValue: 1, minValue: 0 }}
         metric={{ format: RunMetricFormat.RAW, number_value: 2 }}
-      />);
+      />,
+    );
     expect(consoleSpy).toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
   });

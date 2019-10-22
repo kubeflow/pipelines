@@ -29,8 +29,16 @@ describe('Archive', () => {
   let tree: ShallowWrapper;
 
   function generateProps(): PageProps {
-    return TestUtils.generatePageProps(Archive, {} as any, {} as any, historyPushSpy,
-      updateBannerSpy, null, updateToolbarSpy, null);
+    return TestUtils.generatePageProps(
+      Archive,
+      {} as any,
+      {} as any,
+      historyPushSpy,
+      updateBannerSpy,
+      null,
+      updateToolbarSpy,
+      null,
+    );
   }
 
   beforeEach(() => {
