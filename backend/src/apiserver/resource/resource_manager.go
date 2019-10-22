@@ -69,7 +69,7 @@ type ResourceManager struct {
 	dBStatusStore           storage.DBStatusStoreInterface
 	defaultExperimentStore  storage.DefaultExperimentStoreInterface
 	objectStore             storage.ObjectStoreInterface
-	objectPaths         storage.ObjectPathsInterface
+	objectPaths        		storage.ObjectPathsInterface
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient               corev1.PodInterface
@@ -87,7 +87,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		dBStatusStore:           clientManager.DBStatusStore(),
 		defaultExperimentStore:  clientManager.DefaultExperimentStore(),
 		objectStore:             clientManager.ObjectStore(),
-		objectPaths:         clientManager.ObjectPaths(),
+		objectPaths:         	 clientManager.ObjectPaths(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
 		podClient:               clientManager.PodClient(),
@@ -849,7 +849,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 	}
 
 	// Store the pipeline file
-	err = r.objectStore.AddFile(pipelineFile, storage.CreatePipelinePath(fmt.Sprint(version.UUID)))
+	err = r.objectStore.AddFile(pipelineFile, r.objectPaths.GetPipelinePath(fmt.Sprint(version.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
@@ -885,7 +885,7 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 		return util.Wrap(err, "Delete pipeline version failed")
 	}
 
-	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineVersionId)))
+	err = r.objectStore.DeleteFile(r.objectPaths.GetPipelinePath(fmt.Sprint(pipelineVersionId)))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline version %v", pipelineVersionId))
 		return util.Wrap(err, "Delete pipeline version failed")
