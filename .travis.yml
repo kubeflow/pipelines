@@ -23,7 +23,7 @@ matrix:
         # Frontend tests
         - cd $TRAVIS_BUILD_DIR/frontend
         - node -v
-        - npm i
+        - npm ci
         # Comment out next line if coverall has an ongoing outage to unblock.
         - npm run test:ci
     - language: generic
