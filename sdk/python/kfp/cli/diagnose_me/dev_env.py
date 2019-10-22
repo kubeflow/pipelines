@@ -15,7 +15,6 @@
 """Functions for diagnostic data collection from development development."""
 
 import enum
-from typing import Optional
 from . import utility
 
 
@@ -25,6 +24,8 @@ class Commands(enum.Enum):
   PYTHON3PIPLIST = 2
   PIP3VERSION = 3
   PYHYON3PIPVERSION = 4
+  PYHYON3LOCATION = 5
+  PIP3LOCATION = 6
 
 
 _command_string = {
@@ -32,12 +33,14 @@ _command_string = {
     Commands.PYTHON3PIPLIST: 'python3 -m pip list',
     Commands.PIP3VERSION: 'pip3 -V',
     Commands.PYHYON3PIPVERSION: 'python3 -m pip -V',
+    Commands.PYHYON3LOCATION: 'which python3',
+    Commands.PIP3LOCATION: 'which pip3',
 }
 
 
 def get_dev_env_configuration(
     configuration: Commands,
-    human_readable: Optional[bool] = False) -> utility.ExecutorResponse:
+    human_readable: bool = False) -> utility.ExecutorResponse:
   """Captures the specified environment configuration.
 
   Captures the developement environment configuration including PIP version and
@@ -57,8 +60,12 @@ def get_dev_env_configuration(
     command.
   """
   command_list = _command_string[configuration].split(' ')
-  if not human_readable and configuration not in (Commands.PIP3VERSION,
-                                                  Commands.PYHYON3PIPVERSION):
+  if not human_readable and configuration not in (
+      Commands.PIP3VERSION,
+      Commands.PYHYON3PIPVERSION,
+      Commands.PYHYON3LOCATION,
+      Commands.PIP3LOCATION,
+  ):
     command_list.extend(['--format', 'json'])
 
   return utility.ExecutorResponse().execute_command(command_list)
