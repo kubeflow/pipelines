@@ -76,7 +76,7 @@ def wait_for_job_done(ml_client, project_id, job_id, wait_interval, show_tensorb
         project_id: the ID of the project which has the job
         job_id: the ID of the job to wait
         wait_interval: the interval in seconds to wait between polls.
-        show_tensorboard: optional. True to dump Tensorboard metadata.
+        show_tensorboard: True to dump Tensorboard metadata.
 
     Returns:
         The completed job.
