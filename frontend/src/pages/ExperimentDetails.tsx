@@ -258,7 +258,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           undefined,
           100,
           '',
-          ApiResourceType.EXPERIMENT.toString(),
+          'EXPERIMENT',
           experimentId,
         );
         activeRecurringRunsCount =

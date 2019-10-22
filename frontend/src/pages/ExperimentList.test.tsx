@@ -124,7 +124,7 @@ describe('ExperimentList', () => {
       undefined,
       5,
       'created_at desc',
-      ApiResourceType.EXPERIMENT.toString(),
+      'EXPERIMENT',
       'test-experiment-id0',
       encodeURIComponent(JSON.stringify({
         predicates: [{

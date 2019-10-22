@@ -278,7 +278,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           request.pageToken,
           request.pageSize,
           request.sortBy,
-          this.props.experimentIdMask ? ApiResourceType.EXPERIMENT.toString() : undefined,
+          this.props.experimentIdMask ? 'EXPERIMENT' : undefined,
           this.props.experimentIdMask,
           request.filter,
         );

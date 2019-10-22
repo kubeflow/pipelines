@@ -163,7 +163,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
           undefined /* pageToken */,
           5 /* pageSize */,
           RunSortKeys.CREATED_AT + ' desc',
-          ApiResourceType.EXPERIMENT.toString(),
+          'EXPERIMENT',
           experiment.id,
           encodeURIComponent(JSON.stringify({
             predicates: [{

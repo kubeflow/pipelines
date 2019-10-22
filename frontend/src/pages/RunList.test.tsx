@@ -276,7 +276,7 @@ describe('RunList', () => {
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
-      undefined, undefined, undefined, ApiResourceType.EXPERIMENT.toString(), 'experiment1', undefined);
+      undefined, undefined, undefined, 'EXPERIMENT', 'experiment1', undefined);
   });
 
   it('loads given list of runs only', async () => {

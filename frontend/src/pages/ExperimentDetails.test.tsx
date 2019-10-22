@@ -221,7 +221,7 @@ describe('ExperimentDetails', () => {
       undefined,
       100,
       '',
-      ApiResourceType.EXPERIMENT.toString(),
+      'EXPERIMENT',
       MOCK_EXPERIMENT.id,
     );
     expect(tree.state('activeRecurringRunsCount')).toBe(1);
