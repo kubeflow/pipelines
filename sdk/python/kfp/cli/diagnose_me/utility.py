@@ -47,6 +47,7 @@ class ExecutorResponse(object):
     """
 
     try:
+      # TODO() switch to process.run to simplify the code.
       process = subprocess.Popen(
           command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
       stdout, stderr = process.communicate()
