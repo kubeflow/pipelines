@@ -33,7 +33,7 @@ class DevEnvTest(unittest.TestCase):
   @mock.patch.object(utility, 'ExecutorResponse', autospec=True)
   def test_dev_env_configuration(self, mock_executor_response):
     """Tests dev_env command execution."""
-    dev_env.get_dev_env_configuration(dev_env.Commands.PIP3LIST)
+    dev_env.get_dev_env_configuration(dev_env.Commands.PIP3_LIST)
     mock_executor_response().execute_command.assert_called_with(
         ['pip3', 'list', '--format', 'json'])
 
@@ -41,7 +41,7 @@ class DevEnvTest(unittest.TestCase):
   def test_dev_env_configuration_human_readable(self, mock_executor_response):
     """Tests dev_env command execution."""
     dev_env.get_dev_env_configuration(
-        dev_env.Commands.PIP3LIST, human_readable=True)
+        dev_env.Commands.PIP3_LIST, human_readable=True)
     mock_executor_response().execute_command.assert_called_with(
         ['pip3', 'list'])
 
@@ -50,10 +50,10 @@ class DevEnvTest(unittest.TestCase):
     """Tests dev_env command execution."""
     # human readable = false should not set format flag for version calls
     dev_env.get_dev_env_configuration(
-        dev_env.Commands.PIP3VERSION, human_readable=False)
+        dev_env.Commands.PIP3_VERSION, human_readable=False)
     mock_executor_response().execute_command.assert_called_with(['pip3', '-V'])
     dev_env.get_dev_env_configuration(
-        dev_env.Commands.PYHYON3PIPVERSION, human_readable=False)
+        dev_env.Commands.PYHYON3_PIP_VERSION, human_readable=False)
     mock_executor_response().execute_command.assert_called_with(
         ['python3', '-m', 'pip', '-V'])
 

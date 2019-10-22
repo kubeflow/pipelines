@@ -20,21 +20,21 @@ from . import utility
 
 class Commands(enum.Enum):
   """Enum for gcloud and gsutil commands."""
-  PIP3LIST = 1
-  PYTHON3PIPLIST = 2
-  PIP3VERSION = 3
-  PYHYON3PIPVERSION = 4
-  PYHYON3LOCATION = 5
-  PIP3LOCATION = 6
+  PIP3_LIST = 1
+  PYTHON3_PIP_LIST = 2
+  PIP3_VERSION = 3
+  PYHYON3_PIP_VERSION = 4
+  WHICH_PYHYON3 = 5
+  WHICH_PIP3 = 6
 
 
 _command_string = {
-    Commands.PIP3LIST: 'pip3 list',
-    Commands.PYTHON3PIPLIST: 'python3 -m pip list',
-    Commands.PIP3VERSION: 'pip3 -V',
-    Commands.PYHYON3PIPVERSION: 'python3 -m pip -V',
-    Commands.PYHYON3LOCATION: 'which python3',
-    Commands.PIP3LOCATION: 'which pip3',
+    Commands.PIP3_LIST: 'pip3 list',
+    Commands.PYTHON3_PIP_LIST: 'python3 -m pip list',
+    Commands.PIP3_VERSION: 'pip3 -V',
+    Commands.PYHYON3_PIP_VERSION: 'python3 -m pip -V',
+    Commands.WHICH_PYHYON3: 'which python3',
+    Commands.WHICH_PIP3: 'which pip3',
 }
 
 
@@ -61,10 +61,10 @@ def get_dev_env_configuration(
   """
   command_list = _command_string[configuration].split(' ')
   if not human_readable and configuration not in (
-      Commands.PIP3VERSION,
-      Commands.PYHYON3PIPVERSION,
-      Commands.PYHYON3LOCATION,
-      Commands.PIP3LOCATION,
+      Commands.PIP3_VERSION,
+      Commands.PYHYON3_PIP_VERSION,
+      Commands.WHICH_PYHYON3,
+      Commands.WHICH_PIP3,
   ):
     command_list.extend(['--format', 'json'])
 
