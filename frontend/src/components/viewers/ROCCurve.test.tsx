@@ -59,13 +59,20 @@ describe('ROCCurve', () => {
     const tree = shallow(<ROCCurve configs={[config, config, config]} />);
     expect(tree.find('LineSeries').length).toBe(4); // +1 for baseline
     const [line1Color, line2Color, line3Color] = [
-      (tree.find('LineSeries').at(1).props() as any).color,
-      (tree.find('LineSeries').at(2).props() as any).color,
-      (tree.find('LineSeries').at(3).props() as any).color,
+      (tree
+        .find('LineSeries')
+        .at(1)
+        .props() as any).color,
+      (tree
+        .find('LineSeries')
+        .at(2)
+        .props() as any).color,
+      (tree
+        .find('LineSeries')
+        .at(3)
+        .props() as any).color,
     ];
-    expect(line1Color !== line2Color &&
-      line1Color !== line3Color &&
-      line2Color !== line3Color);
+    expect(line1Color !== line2Color && line1Color !== line3Color && line2Color !== line3Color);
   });
 
   it('does not render a legend when there is only one config', () => {
@@ -78,7 +85,10 @@ describe('ROCCurve', () => {
     const config = { data, type: PlotType.ROC };
     const tree = shallow(<ROCCurve configs={[config, config, config]} />);
     expect(tree.find('DiscreteColorLegendItem').length).toBe(1);
-    const legendItems = (tree.find('DiscreteColorLegendItem').at(0).props() as any).items;
+    const legendItems = (tree
+      .find('DiscreteColorLegendItem')
+      .at(0)
+      .props() as any).items;
     expect(legendItems.length).toBe(3);
     legendItems.map((item: any, i: number) => expect(item.title).toBe('Series #' + (i + 1)));
   });

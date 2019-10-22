@@ -108,7 +108,6 @@ interface ExperimentDetailsState {
 }
 
 class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
-
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
@@ -125,11 +124,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           .newRecurringRun(this.props.match.params[RouteParams.experimentId])
           .compareRuns(() => this.state.selectedIds)
           .cloneRun(() => this.state.selectedIds, false)
-          .archive(
-            () => this.state.selectedIds,
-            false,
-            ids => this._selectionChanged(ids),
-          )
+          .archive(() => this.state.selectedIds, false, ids => this._selectionChanged(ids))
           .getToolbarActionMap(),
         breadcrumbs: [],
         pageTitle: 'Runs',
@@ -153,64 +148,107 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
   public render(): JSX.Element {
     const { activeRecurringRunsCount, experiment } = this.state;
-    const description = experiment ? (experiment.description || '') : '';
+    const description = experiment ? experiment.description || '' : '';
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lrt'))}>
-
         {experiment && (
           <div className={commonCss.page}>
             <div className={css.cardRow}>
-              <Paper id='recurringRunsCard' className={classes(
-                css.card,
-                css.recurringRunsCard,
-                !!activeRecurringRunsCount && css.cardActive
-              )} elevation={0}>
+              <Paper
+                id='recurringRunsCard'
+                className={classes(
+                  css.card,
+                  css.recurringRunsCard,
+                  !!activeRecurringRunsCount && css.cardActive,
+                )}
+                elevation={0}
+              >
                 <div>
                   <div className={css.cardTitle}>Recurring run configs</div>
-                  <div className={classes(css.cardContent, !!activeRecurringRunsCount && css.recurringRunsActive)}>
+                  <div
+                    className={classes(
+                      css.cardContent,
+                      !!activeRecurringRunsCount && css.recurringRunsActive,
+                    )}
+                  >
                     {activeRecurringRunsCount + ' active'}
                   </div>
-                  <Button className={css.cardBtn} id='manageExperimentRecurringRunsBtn' disableRipple={true}
-                    onClick={() => this.setState({ recurringRunsManagerOpen: true })}>
+                  <Button
+                    className={css.cardBtn}
+                    id='manageExperimentRecurringRunsBtn'
+                    disableRipple={true}
+                    onClick={() => this.setState({ recurringRunsManagerOpen: true })}
+                  >
                     Manage
                   </Button>
                 </div>
               </Paper>
-              <Paper id='experimentDescriptionCard' className={classes(css.card, css.runStatsCard)} elevation={0}>
+              <Paper
+                id='experimentDescriptionCard'
+                className={classes(css.card, css.runStatsCard)}
+                elevation={0}
+              >
                 <div className={css.cardTitle}>
                   <span>Experiment description</span>
-                  <Button id='expandExperimentDescriptionBtn' onClick={() => this.props.updateDialog({ title: 'Experiment description', content: description })}
-                    className={classes(css.popOutIcon, 'popOutButton')}>
+                  <Button
+                    id='expandExperimentDescriptionBtn'
+                    onClick={() =>
+                      this.props.updateDialog({
+                        content: description,
+                        title: 'Experiment description',
+                      })
+                    }
+                    className={classes(css.popOutIcon, 'popOutButton')}
+                  >
                     <Tooltip title='Read more'>
                       <PopOutIcon style={{ fontSize: 18 }} />
                     </Tooltip>
                   </Button>
                 </div>
-                {description.split('\n').slice(0, 2).map((line, i) =>
-                  <div key={i} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {line}
-                  </div>)
-                }
+                {description
+                  .split('\n')
+                  .slice(0, 2)
+                  .map((line, i) => (
+                    <div
+                      key={i}
+                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    >
+                      {line}
+                    </div>
+                  ))}
                 {description.split('\n').length > 2 ? '...' : ''}
               </Paper>
             </div>
             <Toolbar {...this.state.runListToolbarProps} />
-            <RunList onError={this.showPageError.bind(this)}
-              hideExperimentColumn={true} experimentIdMask={experiment.id} ref={this._runlistRef}
-              selectedIds={this.state.selectedIds} storageState={RunStorageState.AVAILABLE}
-              onSelectionChange={this._selectionChanged.bind(this)} {...this.props} />
+            <RunList
+              onError={this.showPageError.bind(this)}
+              hideExperimentColumn={true}
+              experimentIdMask={experiment.id}
+              ref={this._runlistRef}
+              selectedIds={this.state.selectedIds}
+              storageState={RunStorageState.AVAILABLE}
+              onSelectionChange={this._selectionChanged.bind(this)}
+              {...this.props}
+            />
 
-            <Dialog open={this.state.recurringRunsManagerOpen} classes={{ paper: css.recurringRunsDialog }}
-              onClose={this._recurringRunsManagerClosed.bind(this)}>
+            <Dialog
+              open={this.state.recurringRunsManagerOpen}
+              classes={{ paper: css.recurringRunsDialog }}
+              onClose={this._recurringRunsManagerClosed.bind(this)}
+            >
               <DialogContent>
-                <RecurringRunsManager {...this.props}
-                  experimentId={this.props.match.params[RouteParams.experimentId]} />
+                <RecurringRunsManager
+                  {...this.props}
+                  experimentId={this.props.match.params[RouteParams.experimentId]}
+                />
               </DialogContent>
               <DialogActions>
-                <Button id='closeExperimentRecurringRunManagerBtn'
+                <Button
+                  id='closeExperimentRecurringRunManagerBtn'
                   onClick={this._recurringRunsManagerClosed.bind(this)}
-                  color='secondary'>
+                  color='secondary'
+                >
                   Close
                 </Button>
               </DialogActions>
@@ -261,17 +299,17 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           ApiResourceType.EXPERIMENT.toString(),
           experimentId,
         );
-        activeRecurringRunsCount =
-          (recurringRuns.jobs || []).filter(j => j.enabled === true).length;
-
+        activeRecurringRunsCount = (recurringRuns.jobs || []).filter(j => j.enabled === true)
+          .length;
       } catch (err) {
         await this.showPageError(
-          `Error: failed to retrieve recurring runs for experiment: ${experimentId}.`, err);
+          `Error: failed to retrieve recurring runs for experiment: ${experimentId}.`,
+          err,
+        );
         logger.error(`Error fetching recurring runs for experiment: ${experimentId}`, err);
       }
 
       this.setStateSafe({ activeRecurringRunsCount, experiment });
-
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
       logger.error(`Error loading experiment: ${experimentId}`, err);
@@ -280,7 +318,8 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
   private _selectionChanged(selectedIds: string[]): void {
     const toolbarActions = this.state.runListToolbarProps.actions;
-    toolbarActions[ButtonKeys.COMPARE].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
+    toolbarActions[ButtonKeys.COMPARE].disabled =
+      selectedIds.length <= 1 || selectedIds.length > 10;
     toolbarActions[ButtonKeys.CLONE_RUN].disabled = selectedIds.length !== 1;
     toolbarActions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
     this.setState({

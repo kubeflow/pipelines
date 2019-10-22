@@ -83,7 +83,7 @@ interface ROCCurveProps {
 
 interface ROCCurveState {
   hoveredValues: DisplayPoint[];
-  lastDrawLocation: { left: number, right: number } | null;
+  lastDrawLocation: { left: number; right: number } | null;
 }
 
 class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
@@ -115,60 +115,89 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
 
     const { hoveredValues, lastDrawLocation } = this.state;
 
-    return <div>
-      <XYPlot width={width} height={height} animation={!isSmall}
-        classes={{ root: css.root }}
-        onMouseLeave={() => this.setState({ hoveredValues: new Array(numLines).fill('') })}
-        xDomain={lastDrawLocation && [lastDrawLocation.left, lastDrawLocation.right]}>
-        <VerticalGridLines />
-        <HorizontalGridLines />
+    return (
+      <div>
+        <XYPlot
+          width={width}
+          height={height}
+          animation={!isSmall}
+          classes={{ root: css.root }}
+          onMouseLeave={() => this.setState({ hoveredValues: new Array(numLines).fill('') })}
+          xDomain={lastDrawLocation && [lastDrawLocation.left, lastDrawLocation.right]}
+        >
+          <VerticalGridLines />
+          <HorizontalGridLines />
 
-        {/* Draw the axes from the first config in case there are several */}
-        <XAxis title={'fpr'} className={css.axis} />
-        <YAxis title={'tpr'} className={css.axis} />
+          {/* Draw the axes from the first config in case there are several */}
+          <XAxis title={'fpr'} className={css.axis} />
+          <YAxis title={'tpr'} className={css.axis} />
 
-        {/* Reference line */}
-        <LineSeries color={color.disabledBg} strokeWidth={1} data={baseLineData} strokeStyle='dashed' />
+          {/* Reference line */}
+          <LineSeries
+            color={color.disabledBg}
+            strokeWidth={1}
+            data={baseLineData}
+            strokeStyle='dashed'
+          />
 
-        {/* Lines */}
-        {datasets.map((data, i) =>
-          <LineSeries key={i} color={lineColors[i] || lineColors[lineColors.length - 1]}
-            strokeWidth={2} data={data} onNearestX={(d: any) => this._lineHovered(i, d)}
-            curve='curveBasis' />)}
+          {/* Lines */}
+          {datasets.map((data, i) => (
+            <LineSeries
+              key={i}
+              color={lineColors[i] || lineColors[lineColors.length - 1]}
+              strokeWidth={2}
+              data={data}
+              onNearestX={(d: any) => this._lineHovered(i, d)}
+              curve='curveBasis'
+            />
+          ))}
 
-        {!isSmall && (
-          <Highlight onBrushEnd={(area: any) => this.setState({ lastDrawLocation: area })}
-            enableY={false} onDrag={(area: any) => this.setState({
-              lastDrawLocation: {
-                left: (lastDrawLocation ? lastDrawLocation.left : 0) - (area.right - area.left),
-                right: (lastDrawLocation ? lastDrawLocation.right : 0) - (area.right - area.left),
+          {!isSmall && (
+            <Highlight
+              onBrushEnd={(area: any) => this.setState({ lastDrawLocation: area })}
+              enableY={false}
+              onDrag={(area: any) =>
+                this.setState({
+                  lastDrawLocation: {
+                    left: (lastDrawLocation ? lastDrawLocation.left : 0) - (area.right - area.left),
+                    right:
+                      (lastDrawLocation ? lastDrawLocation.right : 0) - (area.right - area.left),
+                  },
+                })
               }
-            })} />
-        )}
+            />
+          )}
 
-        {/* Hover effect to show labels */}
-        {!isSmall && (
-          <Crosshair values={hoveredValues}>
-            <div className={css.crosshair}>
-              {hoveredValues.map((value, i) => (
-                <div key={i} className={css.crosshairLabel}>{`${labels[i]}: ${value.label}`}</div>))}
+          {/* Hover effect to show labels */}
+          {!isSmall && (
+            <Crosshair values={hoveredValues}>
+              <div className={css.crosshair}>
+                {hoveredValues.map((value, i) => (
+                  <div key={i} className={css.crosshairLabel}>{`${labels[i]}: ${value.label}`}</div>
+                ))}
+              </div>
+            </Crosshair>
+          )}
+        </XYPlot>
+
+        <div className={commonCss.flex}>
+          {/* Legend */}
+          {datasets.length > 1 && (
+            <div style={{ flexGrow: 1 }}>
+              <DiscreteColorLegend
+                items={datasets.map((_, i) => ({
+                  color: lineColors[i],
+                  title: 'Series #' + (i + 1),
+                }))}
+                orientation='horizontal'
+              />
             </div>
-          </Crosshair>
-        )}
-      </XYPlot>
+          )}
 
-      <div className={commonCss.flex}>
-        {/* Legend */}
-        {datasets.length > 1 && <div style={{ flexGrow: 1 }}>
-          <DiscreteColorLegend items={datasets.map((_, i) => ({
-            color: lineColors[i],
-            title: 'Series #' + (i + 1),
-          }))} orientation='horizontal' />
-        </div>}
-
-        {lastDrawLocation && <span>Click to reset zoom</span>}
+          {lastDrawLocation && <span>Click to reset zoom</span>}
+        </div>
       </div>
-    </div >;
+    );
   }
 
   private _lineHovered(lineIdx: number, data: any): void {
@@ -179,4 +208,3 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
 }
 
 export default ROCCurve;
-

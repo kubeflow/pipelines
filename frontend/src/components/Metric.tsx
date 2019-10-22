@@ -43,7 +43,6 @@ interface MetricProps {
 }
 
 class Metric extends React.PureComponent<MetricProps> {
-
   public render(): JSX.Element {
     const { metric, metadata } = this.props;
     if (!metric || metric.number_value === undefined) {
@@ -68,23 +67,25 @@ class Metric extends React.PureComponent<MetricProps> {
       }
 
       if (metric.number_value - metadata.minValue < 0) {
-        logger.error(`Metric ${metadata.name}'s value:`
-          + ` (${metric.number_value}) was lower than the supposed minimum of`
-          + ` (${metadata.minValue})`);
+        logger.error(
+          `Metric ${metadata.name}'s value:` +
+            ` (${metric.number_value}) was lower than the supposed minimum of` +
+            ` (${metadata.minValue})`,
+        );
         return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
       }
 
       if (metadata.maxValue - metric.number_value < 0) {
-        logger.error(`Metric ${metadata.name}'s value:`
-          + ` (${metric.number_value}) was greater than the supposed maximum of`
-          + ` (${metadata.maxValue})`);
+        logger.error(
+          `Metric ${metadata.name}'s value:` +
+            ` (${metric.number_value}) was greater than the supposed maximum of` +
+            ` (${metadata.maxValue})`,
+        );
         return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
       }
 
       const barWidth =
-        (metric.number_value - metadata.minValue)
-        / (metadata.maxValue - metadata.minValue)
-        * 100;
+        ((metric.number_value - metadata.minValue) / (metadata.maxValue - metadata.minValue)) * 100;
 
       width = `calc(${barWidth}%)`;
     }
