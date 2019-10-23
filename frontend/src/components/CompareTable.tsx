@@ -60,7 +60,8 @@ class CompareTable extends React.PureComponent<CompareTableProps> {
     const { rows, xLabels, yLabels } = this.props;
     if (rows.length !== yLabels.length) {
       logger.error(
-        `Number of rows (${rows.length}) should match the number of Y labels (${yLabels.length}).`);
+        `Number of rows (${rows.length}) should match the number of Y labels (${yLabels.length}).`,
+      );
     }
     if (!rows || rows.length === 0) {
       return null;
@@ -73,16 +74,24 @@ class CompareTable extends React.PureComponent<CompareTableProps> {
             <td className={css.labelCell} />
             {/* X labels row */}
             {xLabels.map((label, i) => (
-              <td key={i} className={classes(css.cell, css.labelCell)} title={label}>{label}</td>
+              <td key={i} className={classes(css.cell, css.labelCell)} title={label}>
+                {label}
+              </td>
             ))}
           </tr>
           {rows.map((row, i) => (
             <tr key={i} className={css.row}>
               {/* Y label */}
-              <td className={classes(css.cell, css.labelCell)} title={yLabels[i]}>{yLabels[i]}</td>
+              <td className={classes(css.cell, css.labelCell)} title={yLabels[i]}>
+                {yLabels[i]}
+              </td>
 
               {/* Row cells */}
-              {row.map((cell, j) => <td key={j} className={css.cell} title={cell}>{cell}</td>)}
+              {row.map((cell, j) => (
+                <td key={j} className={css.cell} title={cell}>
+                  {cell}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>

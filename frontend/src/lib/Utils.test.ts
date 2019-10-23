@@ -172,7 +172,7 @@ describe('Utils', () => {
       const workflow = {
         status: {
           finishedAt: 'some end',
-        }
+        },
       } as any;
       expect(getRunDurationFromWorkflow(workflow)).toBe('-');
     });
@@ -181,7 +181,7 @@ describe('Utils', () => {
       const workflow = {
         status: {
           startedAt: 'some end',
-        }
+        },
       } as any;
       expect(getRunDurationFromWorkflow(workflow)).toBe('-');
     });
@@ -191,7 +191,7 @@ describe('Utils', () => {
         status: {
           finishedAt: new Date(2018, 1, 3, 3, 56, 25).toISOString(),
           startedAt: new Date(2018, 1, 3, 3, 55, 30).toISOString(),
-        }
+        },
       } as any;
       expect(getRunDurationFromWorkflow(workflow)).toBe('0:00:55');
     });
@@ -201,7 +201,7 @@ describe('Utils', () => {
         status: {
           finishedAt: new Date(2018, 1, 3, 3, 59, 25).toISOString(),
           startedAt: new Date(2018, 1, 3, 3, 55, 10).toISOString(),
-        }
+        },
       } as any;
       expect(getRunDurationFromWorkflow(workflow)).toBe('0:04:15');
     });
@@ -211,7 +211,7 @@ describe('Utils', () => {
         status: {
           finishedAt: new Date(2018, 1, 3, 4, 55, 10).toISOString(),
           startedAt: new Date(2018, 1, 3, 3, 55, 10).toISOString(),
-        }
+        },
       } as any;
       expect(getRunDurationFromWorkflow(workflow)).toBe('1:00:00');
     });
@@ -221,7 +221,7 @@ describe('Utils', () => {
         status: {
           finishedAt: new Date(2018, 1, 3, 4, 56, 11).toISOString(),
           startedAt: new Date(2018, 1, 3, 3, 55, 10).toISOString(),
-        }
+        },
       } as any;
       expect(getRunDurationFromWorkflow(workflow)).toBe('1:01:01');
     });
@@ -231,7 +231,7 @@ describe('Utils', () => {
         status: {
           finishedAt: new Date(2018, 1, 2, 3, 55, 11).toISOString(),
           startedAt: new Date(2018, 1, 2, 3, 55, 13).toISOString(),
-        }
+        },
       } as any;
       expect(getRunDurationFromWorkflow(workflow)).toBe('-0:00:02');
     });

@@ -72,22 +72,27 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       return {
         error: r.error,
         id: r.id!,
-        otherFields: [
-          r.name,
-          formatDateString(r.created_at),
-          r.enabled,
-        ],
+        otherFields: [r.name, formatDateString(r.created_at), r.enabled],
       };
     });
 
-    return (<React.Fragment>
-      <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle='Recurring runs' />
-      <CustomTable columns={columns} rows={rows} ref={this._tableRef} selectedIds={selectedIds}
-        updateSelection={ids => this.setState({ selectedIds: ids })}
-        initialSortColumn={JobSortKeys.CREATED_AT} reload={this._loadRuns.bind(this)}
-        filterLabel='Filter recurring runs' disableSelection={true}
-        emptyMessage={'No recurring runs found in this experiment.'}/>
-    </React.Fragment>);
+    return (
+      <React.Fragment>
+        <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle='Recurring runs' />
+        <CustomTable
+          columns={columns}
+          rows={rows}
+          ref={this._tableRef}
+          selectedIds={selectedIds}
+          updateSelection={ids => this.setState({ selectedIds: ids })}
+          initialSortColumn={JobSortKeys.CREATED_AT}
+          reload={this._loadRuns.bind(this)}
+          filterLabel='Filter recurring runs'
+          disableSelection={true}
+          emptyMessage={'No recurring runs found in this experiment.'}
+        />
+      </React.Fragment>
+    );
   }
 
   public async refresh(): Promise<void> {
@@ -96,27 +101,42 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     }
   }
 
-  public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (props: CustomRendererProps<string>) => {
-    return <Link className={commonCss.link}
-      to={RoutePage.RECURRING_RUN.replace(':' + RouteParams.runId, props.id)}>{props.value}</Link>;
-  }
+  public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
+    props: CustomRendererProps<string>,
+  ) => {
+    return (
+      <Link
+        className={commonCss.link}
+        to={RoutePage.RECURRING_RUN.replace(':' + RouteParams.runId, props.id)}
+      >
+        {props.value}
+      </Link>
+    );
+  };
 
-  public _enabledCustomRenderer: React.FC<CustomRendererProps<boolean>> = (props: CustomRendererProps<boolean>) => {
+  public _enabledCustomRenderer: React.FC<CustomRendererProps<boolean>> = (
+    props: CustomRendererProps<boolean>,
+  ) => {
     const isBusy = this.state.busyIds.has(props.id);
-    return <BusyButton outlined={props.value} title={props.value === true ? 'Enabled' : 'Disabled'}
-      busy={isBusy} onClick={() => {
-        let busyIds = this.state.busyIds;
-        busyIds.add(props.id);
-        this.setState({ busyIds }, async () => {
-          await this._setEnabledState(props.id, !props.value);
-          busyIds = this.state.busyIds;
-          busyIds.delete(props.id);
-          this.setState({ busyIds });
-          await this.refresh();
-        });
-      }} />;
-  }
-
+    return (
+      <BusyButton
+        outlined={props.value}
+        title={props.value === true ? 'Enabled' : 'Disabled'}
+        busy={isBusy}
+        onClick={() => {
+          let busyIds = this.state.busyIds;
+          busyIds.add(props.id);
+          this.setState({ busyIds }, async () => {
+            await this._setEnabledState(props.id, !props.value);
+            busyIds = this.state.busyIds;
+            busyIds.delete(props.id);
+            this.setState({ busyIds });
+            await this.refresh();
+          });
+        }}
+      />
+    );
+  };
 
   protected async _loadRuns(request: ListRequest): Promise<string> {
     let runs: ApiJob[] = [];

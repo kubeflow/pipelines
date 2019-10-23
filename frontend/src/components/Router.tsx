@@ -100,14 +100,15 @@ export const RoutePage = {
 // tslint:disable-next-line:variable-name
 export const RoutePageFactory = {
   artifactDetails: (artifactType: string, artifactId: number) => {
-    return RoutePage.ARTIFACT_DETAILS
-      .replace(`:${RouteParams.ARTIFACT_TYPE}+`, artifactType)
-      .replace(`:${RouteParams.ID}`, '' + artifactId);
-  }
+    return RoutePage.ARTIFACT_DETAILS.replace(
+      `:${RouteParams.ARTIFACT_TYPE}+`,
+      artifactType,
+    ).replace(`:${RouteParams.ID}`, '' + artifactId);
+  },
 };
 
 export interface DialogProps {
-  buttons?: Array<{ onClick?: () => any, text: string }>;
+  buttons?: Array<{ onClick?: () => any; text: string }>;
   // TODO: This should be generalized to any react component.
   content?: string;
   onClose?: () => any;
@@ -123,7 +124,6 @@ interface RouteComponentState {
 }
 
 class Router extends React.Component<{}, RouteComponentState> {
-
   constructor(props: any) {
     super(props);
 
@@ -144,13 +144,17 @@ class Router extends React.Component<{}, RouteComponentState> {
       updateToolbar: this._updateToolbar.bind(this),
     };
 
-    const routes: Array<{ path: string, Component: React.ComponentClass, view?: any }> = [
+    const routes: Array<{ path: string; Component: React.ComponentClass; view?: any }> = [
       { path: RoutePage.ARCHIVE, Component: Archive },
       { path: RoutePage.ARTIFACTS, Component: ArtifactList },
       { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails },
       { path: RoutePage.EXECUTIONS, Component: ExecutionList },
       { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
-      { path: RoutePage.EXPERIMENTS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.EXPERIMENTS },
+      {
+        Component: ExperimentsAndRuns,
+        path: RoutePage.EXPERIMENTS,
+        view: ExperimentsAndRunsTab.EXPERIMENTS,
+      },
       { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
       { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
       { path: RoutePage.NEW_RUN, Component: NewRun },
@@ -166,24 +170,39 @@ class Router extends React.Component<{}, RouteComponentState> {
       <HashRouter>
         <div className={commonCss.page}>
           <div className={commonCss.flexGrow}>
-            <Route render={({ ...props }) => (<SideNav page={props.location.pathname} {...props} />)} />
+            <Route
+              render={({ ...props }) => <SideNav page={props.location.pathname} {...props} />}
+            />
             <div className={classes(commonCss.page)}>
-              <Route render={({ ...props }) => (<Toolbar {...this.state.toolbarProps} {...props} />)} />
-              {this.state.bannerProps.message
-                && <Banner
+              <Route
+                render={({ ...props }) => <Toolbar {...this.state.toolbarProps} {...props} />}
+              />
+              {this.state.bannerProps.message && (
+                <Banner
                   message={this.state.bannerProps.message}
                   mode={this.state.bannerProps.mode}
                   additionalInfo={this.state.bannerProps.additionalInfo}
-                  refresh={this.state.bannerProps.refresh} />}
+                  refresh={this.state.bannerProps.refresh}
+                />
+              )}
               <Switch>
-                <Route exact={true} path={'/'} render={({ ...props }) => (
-                  <Redirect to={RoutePage.PIPELINES} {...props} />
-                )} />
+                <Route
+                  exact={true}
+                  path={'/'}
+                  render={({ ...props }) => <Redirect to={RoutePage.PIPELINES} {...props} />}
+                />
                 {routes.map((route, i) => {
                   const { path, Component, ...otherProps } = { ...route };
-                  return <Route key={i} exact={true} path={path} render={({ ...props }) => (
-                    <Component {...props} {...childProps} {...otherProps} />
-                  )} />;
+                  return (
+                    <Route
+                      key={i}
+                      exact={true}
+                      path={path}
+                      render={({ ...props }) => (
+                        <Component {...props} {...childProps} {...otherProps} />
+                      )}
+                    />
+                  );
                 })}
 
                 {/* 404 */}
@@ -199,8 +218,12 @@ class Router extends React.Component<{}, RouteComponentState> {
             </div>
           </div>
 
-          <Dialog open={this.state.dialogProps.open !== false} classes={{ paper: css.dialog }}
-            className='dialog' onClose={() => this._handleDialogClosed()}>
+          <Dialog
+            open={this.state.dialogProps.open !== false}
+            classes={{ paper: css.dialog }}
+            className='dialog'
+            onClose={() => this._handleDialogClosed()}
+          >
             {this.state.dialogProps.title && (
               <DialogTitle> {this.state.dialogProps.title}</DialogTitle>
             )}
@@ -211,11 +234,16 @@ class Router extends React.Component<{}, RouteComponentState> {
             )}
             {this.state.dialogProps.buttons && (
               <DialogActions>
-                {this.state.dialogProps.buttons.map((b, i) =>
-                  <Button key={i} onClick={() => this._handleDialogClosed(b.onClick)}
-                    className='dialogButton' color='secondary'>
+                {this.state.dialogProps.buttons.map((b, i) => (
+                  <Button
+                    key={i}
+                    onClick={() => this._handleDialogClosed(b.onClick)}
+                    className='dialogButton'
+                    color='secondary'
+                  >
                     {b.text}
-                  </Button>)}
+                  </Button>
+                ))}
               </DialogActions>
             )}
           </Dialog>

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.compiler._k8s_helper import K8sHelper
+from kfp.compiler._k8s_helper import convert_k8s_obj_to_json
 from kfp.dsl import ArtifactLocation
 from kubernetes.client.models import V1SecretKeySelector
 
@@ -87,8 +87,8 @@ class TestArtifactLocation(unittest.TestCase):
     self.assertEqual(artifact.s3.secret_key_secret.key, "secretkey")
 
   def test_create_artifact_for_s3_with_dict(self):
-    # use the K8sHelper to mimick the compiler
-    artifact_location_dict = K8sHelper.convert_k8s_obj_to_json(ArtifactLocation.s3(
+    # use the convert_k8s_obj_to_json to mimick the compiler
+    artifact_location_dict = convert_k8s_obj_to_json(ArtifactLocation.s3(
         bucket="foo",
         endpoint="s3.amazonaws.com",
         insecure=False,
