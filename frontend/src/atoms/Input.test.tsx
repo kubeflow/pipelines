@@ -20,18 +20,27 @@ import Input from './Input';
 import { shallow } from 'enzyme';
 import toJson from 'enzyme-to-json';
 
-
 describe('Input', () => {
   const handleChange = jest.fn();
   const value = 'some input value';
 
   it('renders with the right styles by default', () => {
-    const tree = shallow(<Input onChange={handleChange('fieldname')} value={value} variant='outlined' />);
+    const tree = shallow(
+      <Input onChange={handleChange('fieldname')} value={value} variant='outlined' />,
+    );
     expect(toJson(tree)).toMatchSnapshot();
   });
 
   it('accepts height and width as prop overrides', () => {
-    const tree = shallow(<Input height={123} width={456} onChange={handleChange('fieldname')} value={value} variant='outlined' />);
+    const tree = shallow(
+      <Input
+        height={123}
+        width={456}
+        onChange={handleChange('fieldname')}
+        value={value}
+        variant='outlined'
+      />,
+    );
     expect(toJson(tree)).toMatchSnapshot();
   });
 });

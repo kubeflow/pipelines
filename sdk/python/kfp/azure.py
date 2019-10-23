@@ -24,8 +24,8 @@ def use_azure_secret(secret_name='azcreds'):
 
     def _use_azure_secret(task):
         from kubernetes import client as k8s_client
-        return (
-            task            
+        (
+            task.container
                 .add_env_variable(
                     k8s_client.V1EnvVar(
                         name='AZ_SUBSCRIPTION_ID',
@@ -71,5 +71,6 @@ def use_azure_secret(secret_name='azcreds'):
                     )
                 )
         )
+        return task
     
     return _use_azure_secret

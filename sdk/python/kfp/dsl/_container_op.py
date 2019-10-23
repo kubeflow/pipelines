@@ -697,7 +697,7 @@ class BaseOp(object):
                     to deploy before the `main` container.
           sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy
                     together with the `main` container.
-          is_exit_handler: Whether it is used as an exit handler.
+          is_exit_handler: Deprecated.
         """
 
         valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
@@ -705,6 +705,9 @@ class BaseOp(object):
             raise ValueError(
                 'Only letters, numbers, spaces, "_", and "-"  are allowed in name. Must begin with letter: %s'
                 % (name))
+
+        if is_exit_handler:
+            warnings.warn('is_exit_handler=True is no longer needed.', DeprecationWarning)
 
         self.is_exit_handler = is_exit_handler
 
@@ -1006,7 +1009,7 @@ class ContainerOp(BaseOp):
           artifact_location: configures the default artifact location for artifacts
                in the argo workflow template. Must be a `V1alpha1ArtifactLocation`
                object.
-          is_exit_handler: Whether it is used as an exit handler.
+          is_exit_handler: Deprecated. This is no longer needed.
           pvolumes: Dictionary for the user to match a path on the op's fs with a
               V1Volume or it inherited type.
               E.g {"/my/path": vol, "/mnt": other_op.pvolumes["/output"]}.

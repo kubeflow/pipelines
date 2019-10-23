@@ -68,7 +68,6 @@ interface BannerState {
 }
 
 class Banner extends React.Component<BannerProps, BannerState> {
-
   constructor(props: any) {
     super(props);
 
@@ -78,20 +77,25 @@ class Banner extends React.Component<BannerProps, BannerState> {
   }
 
   public render(): JSX.Element {
-
     // Default to error styles.
-    let bannerModeCss = stylesheet({ mode: { backgroundColor: color.errorBg, color: color.errorText, } });
+    let bannerModeCss = stylesheet({
+      mode: { backgroundColor: color.errorBg, color: color.errorText },
+    });
     let bannerIcon = <ErrorIcon className={css.icon} />;
     let dialogTitle = 'An error occurred';
 
     switch (this.props.mode) {
       case 'error':
-        bannerModeCss = stylesheet({ mode: { backgroundColor: color.errorBg, color: color.errorText, } });
+        bannerModeCss = stylesheet({
+          mode: { backgroundColor: color.errorBg, color: color.errorText },
+        });
         bannerIcon = <ErrorIcon className={css.icon} />;
         dialogTitle = 'An error occurred';
         break;
       case 'warning':
-        bannerModeCss = stylesheet({ mode: { backgroundColor: color.warningBg, color: color.warningText, } });
+        bannerModeCss = stylesheet({
+          mode: { backgroundColor: color.warningBg, color: color.warningText },
+        });
         bannerIcon = <WarningIcon className={css.icon} />;
         dialogTitle = 'Warning';
         break;
@@ -107,26 +111,32 @@ class Banner extends React.Component<BannerProps, BannerState> {
           {this.props.message}
         </div>
         <div className={commonCss.flex}>
-          {this.props.additionalInfo &&
+          {this.props.additionalInfo && (
             <Button className={css.button} onClick={this._showAdditionalInfo.bind(this)}>
               Details
             </Button>
-          }
-          {this.props.refresh &&
-            <Button className={classes(css.button, css.refreshButton)} onClick={this._refresh.bind(this)}>
+          )}
+          {this.props.refresh && (
+            <Button
+              className={classes(css.button, css.refreshButton)}
+              onClick={this._refresh.bind(this)}
+            >
               Refresh
             </Button>
-          }
+          )}
         </div>
 
-        {this.props.additionalInfo
-          && <Dialog open={this.state.dialogOpen} onClose={this._dialogClosed.bind(this)}>
+        {this.props.additionalInfo && (
+          <Dialog open={this.state.dialogOpen} onClose={this._dialogClosed.bind(this)}>
             <DialogTitle>{dialogTitle}</DialogTitle>
             <DialogContent className={commonCss.prewrap}>{this.props.additionalInfo}</DialogContent>
             <DialogActions>
-              <Button id='dismissDialogBtn' onClick={this._dialogClosed.bind(this)}>Dismiss</Button>
+              <Button id='dismissDialogBtn' onClick={this._dialogClosed.bind(this)}>
+                Dismiss
+              </Button>
             </DialogActions>
-          </Dialog>}
+          </Dialog>
+        )}
       </div>
     );
   }

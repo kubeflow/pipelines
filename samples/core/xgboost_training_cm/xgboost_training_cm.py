@@ -22,20 +22,22 @@ from kfp import gcp
 import os
 import subprocess
 
-# TODO(numerology): add ROC and CM back once UI metadata is enabled in this sample.
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/06401ecc8f1561509ef095901a70b3543c2ca30f/components/local/confusion_matrix/component.yaml')
+
+roc_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/06401ecc8f1561509ef095901a70b3543c2ca30f/components/local/roc/component.yaml')
 
 dataproc_create_cluster_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/677fbaa281125fd604b81eab2488513efee7b600/components/gcp/dataproc/create_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/06401ecc8f1561509ef095901a70b3543c2ca30f/components/gcp/dataproc/create_cluster/component.yaml')
 
 dataproc_delete_cluster_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/delete_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/06401ecc8f1561509ef095901a70b3543c2ca30f/components/gcp/dataproc/delete_cluster/component.yaml')
 
 dataproc_submit_pyspark_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_pyspark_job/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/06401ecc8f1561509ef095901a70b3543c2ca30f/components/gcp/dataproc/submit_pyspark_job/component.yaml'
 )
 
 dataproc_submit_spark_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_spark_job/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/06401ecc8f1561509ef095901a70b3543c2ca30f/components/gcp/dataproc/submit_spark_job/component.yaml'
 )
 
 _PYSRC_PREFIX = 'gs://ml-pipeline-playground/dataproc-example' # Common path to python src.
@@ -211,6 +213,7 @@ def xgb_train_pipeline(
     target='resolution',
     rounds=200,
     workers=2,
+    true_label='ACTION',
 ):
     output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
 
@@ -227,7 +230,7 @@ def xgb_train_pipeline(
         region=region,
         name=cluster_name
     )):
-        create_cluster_op = dataproc_create_cluster_op(
+        _create_cluster_op = dataproc_create_cluster_op(
             project_id=project,
             region=region,
             name=cluster_name,
@@ -238,16 +241,16 @@ def xgb_train_pipeline(
             image_version='1.2'
         )
 
-        analyze_op = dataproc_analyze_op(
+        _analyze_op = dataproc_analyze_op(
             project=project,
             region=region,
             cluster_name=cluster_name,
             schema=schema,
             train_data=train_data,
             output=output_template
-        ).after(create_cluster_op).set_display_name('Analyzer')
+        ).after(_create_cluster_op).set_display_name('Analyzer')
 
-        transform_op = dataproc_transform_op(
+        _transform_op = dataproc_transform_op(
             project=project,
             region=region,
             cluster_name=cluster_name,
@@ -256,9 +259,9 @@ def xgb_train_pipeline(
             target=target,
             analysis=analyze_output,
             output=output_template
-        ).after(analyze_op).set_display_name('Transformer')
+        ).after(_analyze_op).set_display_name('Transformer')
 
-        train_op = dataproc_train_op(
+        _train_op = dataproc_train_op(
             project=project,
             region=region,
             cluster_name=cluster_name,
@@ -269,9 +272,9 @@ def xgb_train_pipeline(
             workers=workers,
             rounds=rounds,
             output=train_output
-        ).after(transform_op).set_display_name('Trainer')
+        ).after(_transform_op).set_display_name('Trainer')
 
-        predict_op = dataproc_predict_op(
+        _predict_op = dataproc_predict_op(
             project=project,
             region=region,
             cluster_name=cluster_name,
@@ -280,7 +283,19 @@ def xgb_train_pipeline(
             target=target,
             analysis=analyze_output,
             output=predict_output
-        ).after(train_op).set_display_name('Predictor')
+        ).after(_train_op).set_display_name('Predictor')
+
+        _cm_op = confusion_matrix_op(
+            predictions=os.path.join(predict_output, 'part-*.csv'),
+            output_dir=output_template
+        ).after(_predict_op)
+
+        _roc_op = roc_op(
+            predictions_dir=os.path.join(predict_output, 'part-*.csv'),
+            true_class=true_label,
+            true_score_column=true_label,
+            output_dir=output_template
+        ).after(_predict_op)
 
     dsl.get_pipeline_conf().add_op_transformer(
         gcp.use_gcp_secret('user-gcp-sa'))

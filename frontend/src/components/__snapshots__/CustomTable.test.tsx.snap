@@ -55,11 +55,11 @@ exports[`CustomTable renders a collapsed row 1`] = `
         indeterminate={false}
         onChange={[Function]}
       />
+      <Component
+        orientation="horizontal"
+        units={40}
+      />
     </div>
-    <Component
-      orientation="horizontal"
-      units={40}
-    />
     <div
       className="columnName"
       key="0"
@@ -68,6 +68,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -90,6 +91,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -277,10 +279,14 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
   <div
     className="header"
   >
-    <Component
-      orientation="horizontal"
-      units={40}
-    />
+    <div
+      className="columnName cell selectionToggle"
+    >
+      <Component
+        orientation="horizontal"
+        units={40}
+      />
+    </div>
     <div
       className="columnName"
       key="0"
@@ -289,6 +295,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -311,6 +318,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -512,10 +520,9 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
           "width": "50%",
         }
       }
+      title="col1"
     >
-      <div>
-        col1
-      </div>
+      col1
     </div>
     <div
       className="columnName"
@@ -525,10 +532,9 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
           "width": "50%",
         }
       }
+      title="col2"
     >
-      <div>
-        col2
-      </div>
+      col2
     </div>
   </div>
   <div
@@ -757,6 +763,7 @@ exports[`CustomTable renders an expanded row 1`] = `
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -779,6 +786,7 @@ exports[`CustomTable renders an expanded row 1`] = `
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -969,11 +977,11 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
         indeterminate={false}
         onChange={[Function]}
       />
+      <Component
+        orientation="horizontal"
+        units={40}
+      />
     </div>
-    <Component
-      orientation="horizontal"
-      units={40}
-    />
     <div
       className="columnName"
       key="0"
@@ -982,6 +990,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1004,6 +1013,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1214,6 +1224,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
           "width": "75%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1236,6 +1247,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
           "width": "25%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1528,6 +1540,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1550,6 +1563,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1748,6 +1762,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1770,6 +1785,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2011,6 +2027,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2034,6 +2051,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2188,6 +2206,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2210,6 +2229,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2364,6 +2384,7 @@ exports[`CustomTable renders some rows 1`] = `
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2386,6 +2407,7 @@ exports[`CustomTable renders some rows 1`] = `
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -3106,6 +3128,7 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -3128,6 +3151,7 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -3353,6 +3377,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -3375,6 +3400,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}

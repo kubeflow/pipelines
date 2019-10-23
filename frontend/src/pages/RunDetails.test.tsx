@@ -93,7 +93,9 @@ describe('RunDetails', () => {
     getProjectIdSpy.mockImplementation(() => Promise.resolve('some-project'));
     getClusterNameSpy.mockImplementation(() => Promise.resolve('some-cluster'));
     getRunSpy.mockImplementation(() => Promise.resolve(testRun));
-    getExperimentSpy.mockImplementation(() => Promise.resolve({ id: 'some-experiment-id', name: 'some experiment' }));
+    getExperimentSpy.mockImplementation(() =>
+      Promise.resolve({ id: 'some-experiment-id', name: 'some experiment' }),
+    );
     isCustomVisualizationsAllowedSpy.mockImplementation(() => Promise.resolve(false));
     getPodLogsSpy.mockImplementation(() => 'test logs');
     pathsParser.mockImplementation(() => []);
@@ -137,7 +139,8 @@ describe('RunDetails', () => {
     await cloneBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
-      RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=${testRun.run!.id}`);
+      RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=${testRun.run!.id}`,
+    );
   });
 
   it('has an Archive button if the run is not archived', async () => {
@@ -152,25 +155,34 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      breadcrumbs: [{ displayName: 'All runs', href: RoutePage.RUNS }],
-    }));
+    expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        breadcrumbs: [{ displayName: 'All runs', href: RoutePage.RUNS }],
+      }),
+    );
   });
 
   it('shows experiment name in breadcrumbs if the run is not archived', async () => {
-    testRun.run!.resource_references = [{ key: { id: 'some-experiment-id', type: ApiResourceType.EXPERIMENT } }];
+    testRun.run!.resource_references = [
+      { key: { id: 'some-experiment-id', type: ApiResourceType.EXPERIMENT } },
+    ];
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      breadcrumbs: [
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        {
-          displayName: 'some experiment',
-          href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, 'some-experiment-id'),
-        },
-      ],
-    }));
+    expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        breadcrumbs: [
+          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+          {
+            displayName: 'some experiment',
+            href: RoutePage.EXPERIMENT_DETAILS.replace(
+              ':' + RouteParams.experimentId,
+              'some-experiment-id',
+            ),
+          },
+        ],
+      }),
+    );
   });
 
   it('has a Restore button if the run is archived', async () => {
@@ -187,9 +199,11 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      breadcrumbs: [{ 'displayName': 'Archive', 'href': RoutePage.ARCHIVE }],
-    }));
+    expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        breadcrumbs: [{ displayName: 'Archive', href: RoutePage.ARCHIVE }],
+      }),
+    );
   });
 
   it('renders an empty run', async () => {
@@ -212,29 +226,43 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      additionalInfo: 'woops',
-      message: 'Error: failed to retrieve run: ' + testRun.run!.id + '. Click Details for more information.',
-      mode: 'error',
-    }));
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'woops',
+        message:
+          'Error: failed to retrieve run: ' +
+          testRun.run!.id +
+          '. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 
   it('shows an error banner if get experiment API fails', async () => {
-    testRun.run!.resource_references = [{ key: { id: 'experiment1', type: ApiResourceType.EXPERIMENT } }];
+    testRun.run!.resource_references = [
+      { key: { id: 'experiment1', type: ApiResourceType.EXPERIMENT } },
+    ];
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops');
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      additionalInfo: 'woops',
-      message: 'Error: failed to retrieve run: ' + testRun.run!.id + '. Click Details for more information.',
-      mode: 'error',
-    }));
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'woops',
+        message:
+          'Error: failed to retrieve run: ' +
+          testRun.run!.id +
+          '. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 
   it('calls the get experiment API once to load it if the run has its reference', async () => {
-    testRun.run!.resource_references = [{ key: { id: 'experiment1', type: ApiResourceType.EXPERIMENT } }];
+    testRun.run!.resource_references = [
+      { key: { id: 'experiment1', type: ApiResourceType.EXPERIMENT } },
+    ];
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
@@ -245,16 +273,23 @@ describe('RunDetails', () => {
   });
 
   it('shows workflow errors as page error', async () => {
-    jest.spyOn(WorkflowParser, 'getWorkflowError').mockImplementationOnce(() => 'some error message');
+    jest
+      .spyOn(WorkflowParser, 'getWorkflowError')
+      .mockImplementationOnce(() => 'some error message');
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear on init, once for error
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      additionalInfo: 'some error message',
-      message: 'Error: found errors when executing run: ' + testRun.run!.id + '. Click Details for more information.',
-      mode: 'error',
-    }));
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'some error message',
+        message:
+          'Error: found errors when executing run: ' +
+          testRun.run!.id +
+          '. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 
   it('switches to run output tab, shows empty message', async () => {
@@ -267,12 +302,14 @@ describe('RunDetails', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('loads the run\'s outputs in the output tab', async () => {
+  it("loads the run's outputs in the output tab", async () => {
     pathsWithStepsParser.mockImplementation(() => [
-      { stepName: 'step1', path: { source: 'gcs', bucket: 'somebucket', key: 'somekey' } }
+      { stepName: 'step1', path: { source: 'gcs', bucket: 'somebucket', key: 'somekey' } },
     ]);
     pathsParser.mockImplementation(() => [{ source: 'gcs', bucket: 'somebucket', key: 'somekey' }]);
-    loaderSpy.mockImplementation(() => Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]));
+    loaderSpy.mockImplementation(() =>
+      Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]),
+    );
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
@@ -298,13 +335,16 @@ describe('RunDetails', () => {
       },
       spec: {
         arguments: {
-          parameters: [{
-            name: 'param1',
-            value: 'value1',
-          }, {
-            name: 'param2',
-            value: 'value2',
-          }],
+          parameters: [
+            {
+              name: 'param1',
+              value: 'value1',
+            },
+            {
+              name: 'param2',
+              value: 'value2',
+            },
+          ],
         },
       },
       status: {
@@ -359,7 +399,7 @@ describe('RunDetails', () => {
 
   it('shows a one-node graph', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1', }, }, },
+      status: { nodes: { node1: { id: 'node1' } } },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
@@ -369,7 +409,7 @@ describe('RunDetails', () => {
 
   it('opens side panel when graph node is clicked', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1', }, }, },
+      status: { nodes: { node1: { id: 'node1' } } },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
@@ -395,20 +435,24 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage',
-      'This step is in ' + testRun.run!.status + ' state with this message: some test message');
+    expect(tree.state('selectedNodeDetails')).toHaveProperty(
+      'phaseMessage',
+      'This step is in ' + testRun.run!.status + ' state with this message: some test message',
+    );
     expect(tree).toMatchSnapshot();
   });
 
   it('shows clicked node output in side pane', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1', }, }, },
+      status: { nodes: { node1: { id: 'node1' } } },
     });
     pathsWithStepsParser.mockImplementation(() => [
-      { stepName: 'step1', path: { source: 'gcs', bucket: 'somebucket', key: 'somekey' } }
+      { stepName: 'step1', path: { source: 'gcs', bucket: 'somebucket', key: 'somekey' } },
     ]);
     pathsParser.mockImplementation(() => [{ source: 'gcs', bucket: 'somebucket', key: 'somekey' }]);
-    loaderSpy.mockImplementation(() => Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]));
+    loaderSpy.mockImplementation(() =>
+      Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]),
+    );
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
@@ -420,7 +464,11 @@ describe('RunDetails', () => {
     expect(pathsParser).toHaveBeenCalledTimes(1);
     expect(pathsParser).toHaveBeenLastCalledWith({ id: 'node1' });
     expect(loaderSpy).toHaveBeenCalledTimes(2);
-    expect(loaderSpy).toHaveBeenLastCalledWith({ bucket: 'somebucket', key: 'somekey', source: 'gcs' });
+    expect(loaderSpy).toHaveBeenLastCalledWith({
+      bucket: 'somebucket',
+      key: 'somekey',
+      source: 'gcs',
+    });
     expect(tree.state('selectedNodeDetails')).toMatchObject({ id: 'node1' });
     expect(tree).toMatchSnapshot();
   });
@@ -432,16 +480,14 @@ describe('RunDetails', () => {
           node1: {
             id: 'node1',
             inputs: {
-              parameters: [
-                { name: 'input1', value: 'val1' },
-              ],
+              parameters: [{ name: 'input1', value: 'val1' }],
             },
             name: 'node1',
             outputs: {
               parameters: [
                 { name: 'output1', value: 'val1' },
                 { name: 'output2', value: 'value2' },
-              ]
+              ],
             },
             phase: 'Succeeded',
           },
@@ -452,7 +498,10 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 1);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', 1);
     await TestUtils.flushPromises();
     expect(tree.state('sidepanelSelectedTab')).toEqual(1);
     expect(tree).toMatchSnapshot();
@@ -460,33 +509,39 @@ describe('RunDetails', () => {
 
   it('switches to volumes tab in side pane', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1', }, }, },
+      status: { nodes: { node1: { id: 'node1' } } },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', 2);
     expect(tree.state('sidepanelSelectedTab')).toEqual(2);
     expect(tree).toMatchSnapshot();
   });
 
   it('switches to manifest tab in side pane', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1', }, }, },
+      status: { nodes: { node1: { id: 'node1' } } },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 3);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', 3);
     expect(tree.state('sidepanelSelectedTab')).toEqual(3);
     expect(tree).toMatchSnapshot();
   });
 
   it('closes side panel when close button is clicked', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1', }, }, },
+      status: { nodes: { node1: { id: 'node1' } } },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
@@ -502,18 +557,21 @@ describe('RunDetails', () => {
 
   it('keeps side pane open and on same tab when page is refreshed', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1', }, }, },
+      status: { nodes: { node1: { id: 'node1' } } },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 4);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', 4);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree.state('sidepanelSelectedTab')).toEqual(4);
 
     await (tree.instance() as RunDetails).refresh();
-    expect (getRunSpy).toHaveBeenCalledTimes(2);
+    expect(getRunSpy).toHaveBeenCalledTimes(2);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree.state('sidepanelSelectedTab')).toEqual(4);
   });
@@ -522,8 +580,8 @@ describe('RunDetails', () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: {
         nodes: {
-          node1: { id: 'node1', },
-          node2: { id: 'node2', },
+          node1: { id: 'node1' },
+          node2: { id: 'node2' },
         },
       },
     });
@@ -531,7 +589,10 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 4);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', 4);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree.state('sidepanelSelectedTab')).toEqual(4);
 
@@ -549,7 +610,10 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 4);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', 4);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree.state('sidepanelSelectedTab')).toEqual(4);
     expect(updateToolbarSpy).toHaveBeenCalledTimes(3);
@@ -571,28 +635,42 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 4);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', 4);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage', undefined);
 
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1', phase: 'Succeeded', message: 'some node message' } } },
+      status: {
+        nodes: { node1: { id: 'node1', phase: 'Succeeded', message: 'some node message' } },
+      },
     });
     await (tree.instance() as RunDetails).refresh();
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage',
-      'This step is in Succeeded state with this message: some node message');
+    expect(tree.state('selectedNodeDetails')).toHaveProperty(
+      'phaseMessage',
+      'This step is in Succeeded state with this message: some node message',
+    );
   });
 
   it('dismisses node message banner if node loses message after refresh', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1', phase: 'Succeeded', message: 'some node message' } } },
+      status: {
+        nodes: { node1: { id: 'node1', phase: 'Succeeded', message: 'some node message' } },
+      },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 4);
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage',
-      'This step is in Succeeded state with this message: some node message');
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', 4);
+    expect(tree.state('selectedNodeDetails')).toHaveProperty(
+      'phaseMessage',
+      'This step is in Succeeded state with this message: some node message',
+    );
 
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1' } } },
@@ -624,28 +702,30 @@ describe('RunDetails', () => {
     });
   });
 
-  [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(finishedStatus => {
-    it(`displays a message indicating there is no graph if graph is not defined and run has status: ${finishedStatus}`, async () => {
-      const unfinishedRun = {
-        pipeline_runtime: {
-          // No graph
-          workflow_manifest: '{}',
-        },
-        run: {
-          id: 'test-run-id',
-          name: 'test run',
-          status: finishedStatus,
-        },
-      };
-      getRunSpy.mockImplementationOnce(() => Promise.resolve(unfinishedRun));
+  [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(
+    finishedStatus => {
+      it(`displays a message indicating there is no graph if graph is not defined and run has status: ${finishedStatus}`, async () => {
+        const unfinishedRun = {
+          pipeline_runtime: {
+            // No graph
+            workflow_manifest: '{}',
+          },
+          run: {
+            id: 'test-run-id',
+            name: 'test run',
+            status: finishedStatus,
+          },
+        };
+        getRunSpy.mockImplementationOnce(() => Promise.resolve(unfinishedRun));
 
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await getRunSpy;
-      await TestUtils.flushPromises();
+        tree = shallow(<RunDetails {...generateProps()} />);
+        await getRunSpy;
+        await TestUtils.flushPromises();
 
-      expect(tree).toMatchSnapshot();
-    });
-  });
+        expect(tree).toMatchSnapshot();
+      });
+    },
+  );
 
   it('shows an error banner if the custom visualizations state API fails', async () => {
     TestUtils.makeErrorResponseOnce(isCustomVisualizationsAllowedSpy, 'woops');
@@ -653,36 +733,45 @@ describe('RunDetails', () => {
     await isCustomVisualizationsAllowedSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      additionalInfo: 'woops',
-      message:'Error: Unable to enable custom visualizations. Click Details for more information.',
-      mode: 'error',
-    }));
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'woops',
+        message:
+          'Error: Unable to enable custom visualizations. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 
   describe('logs tab', () => {
     it('switches to logs tab in side pane', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1', }, }, },
+        status: { nodes: { node1: { id: 'node1' } } },
       });
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
       tree.find('Graph').simulate('click', 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', 4);
       expect(tree.state('sidepanelSelectedTab')).toEqual(4);
       expect(tree).toMatchSnapshot();
     });
 
     it('loads and shows logs in side pane', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1', }, }, },
+        status: { nodes: { node1: { id: 'node1' } } },
       });
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
       tree.find('Graph').simulate('click', 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', 4);
       await getPodLogsSpy;
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
       expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1');
@@ -694,18 +783,22 @@ describe('RunDetails', () => {
       getProjectIdSpy.mockImplementationOnce(() => Promise.resolve('test-project-id'));
       getClusterNameSpy.mockImplementationOnce(() => Promise.resolve('test-cluster-name'));
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1', }, }, },
+        status: { nodes: { node1: { id: 'node1' } } },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
       tree.find('Graph').simulate('click', 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', 4);
       await getPodLogsSpy;
       await TestUtils.flushPromises();
       expect(tree.state()).toMatchObject({
-        logsBannerMessage: 'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
+        logsBannerMessage:
+          'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
         logsBannerMode: 'warning',
       });
       expect(tree).toMatchSnapshot();
@@ -715,19 +808,23 @@ describe('RunDetails', () => {
       // returning an error for getProjectId simulates a cluster running outside of GKE
       TestUtils.makeErrorResponseOnce(getProjectIdSpy, 'getting project ID failed');
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1', }, }, },
+        status: { nodes: { node1: { id: 'node1' } } },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
       tree.find('Graph').simulate('click', 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', 4);
       await getPodLogsSpy;
       await TestUtils.flushPromises();
       expect(tree.state()).toMatchObject({
         logsBannerAdditionalInfo: 'getting logs failed',
-        logsBannerMessage: 'Error: failed to retrieve pod logs. Click Details for more information.',
+        logsBannerMessage:
+          'Error: failed to retrieve pod logs. Click Details for more information.',
         logsBannerMode: 'error',
       });
       expect(tree).toMatchSnapshot();
@@ -737,19 +834,23 @@ describe('RunDetails', () => {
       // returning an error for getClusterName simulates a cluster running outside of GKE
       TestUtils.makeErrorResponseOnce(getClusterNameSpy, 'getting cluster name failed');
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1', }, }, },
+        status: { nodes: { node1: { id: 'node1' } } },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
       tree.find('Graph').simulate('click', 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', 4);
       await getPodLogsSpy;
       await TestUtils.flushPromises();
       expect(tree.state()).toMatchObject({
         logsBannerAdditionalInfo: 'getting logs failed',
-        logsBannerMessage: 'Error: failed to retrieve pod logs. Click Details for more information.',
+        logsBannerMessage:
+          'Error: failed to retrieve pod logs. Click Details for more information.',
         logsBannerMode: 'error',
       });
       expect(tree).toMatchSnapshot();
@@ -770,7 +871,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       tree.find('Graph').simulate('click', 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', 4);
       await getPodLogsSpy;
       await TestUtils.flushPromises();
       expect(getPodLogsSpy).not.toHaveBeenCalled();
@@ -789,7 +893,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       tree.find('Graph').simulate('click', 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', 4);
       expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
       expect(tree.state('sidepanelSelectedTab')).toEqual(4);
 
@@ -809,12 +916,16 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       tree.find('Graph').simulate('click', 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', 4);
       await getPodLogsSpy;
       await TestUtils.flushPromises();
       expect(tree.state()).toMatchObject({
         logsBannerAdditionalInfo: 'getting logs failed',
-        logsBannerMessage: 'Error: failed to retrieve pod logs. Click Details for more information.',
+        logsBannerMessage:
+          'Error: failed to retrieve pod logs. Click Details for more information.',
         logsBannerMode: 'error',
       });
 
@@ -844,7 +955,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await TestUtils.flushPromises();
 
-      const refreshSpy = jest.spyOn((tree.instance() as RunDetails), 'refresh');
+      const refreshSpy = jest.spyOn(tree.instance() as RunDetails, 'refresh');
 
       expect(refreshSpy).toHaveBeenCalledTimes(0);
 
@@ -852,7 +963,6 @@ describe('RunDetails', () => {
       expect(refreshSpy).toHaveBeenCalledTimes(1);
       await TestUtils.flushPromises();
     }, 10000);
-
 
     [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(status => {
       it(`sets \'runFinished\' to true if run has status: ${status}`, async () => {
