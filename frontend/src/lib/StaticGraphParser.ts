@@ -15,9 +15,9 @@
  */
 
 import * as dagre from 'dagre';
-import { Constants } from './Constants';
-import { Workflow, Template } from '../../third_party/argo-ui/argo_template';
+import { Template, Workflow } from '../../third_party/argo-ui/argo_template';
 import { color } from '../Css';
+import { Constants } from './Constants';
 import { logger } from './Utils';
 
 export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
@@ -51,29 +51,31 @@ export class SelectedNodeInfo {
   }
 }
 
-export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Template): SelectedNodeInfo {
+export function _populateInfoFromTemplate(
+  info: SelectedNodeInfo,
+  template?: Template,
+): SelectedNodeInfo {
   if (!template || (!template.container && !template.resource)) {
     return info;
   }
 
   if (template.container) {
     info.nodeType = 'container';
-    info.args = template.container.args || [],
-    info.command = template.container.command || [],
-    info.image = template.container.image || '';
+    (info.args = template.container.args || []),
+      (info.command = template.container.command || []),
+      (info.image = template.container.image || '');
     info.volumeMounts = (template.container.volumeMounts || []).map(v => [v.mountPath, v.name]);
   } else {
     info.nodeType = 'resource';
     if (template.resource && template.resource.action && template.resource.manifest) {
       info.resource = [[template.resource.action, template.resource.manifest]];
     } else {
-    info.resource = [[]];
+      info.resource = [[]];
     }
   }
 
   if (template.inputs) {
-    info.inputs =
-      (template.inputs.parameters || []).map(p => [p.name, p.value || '']);
+    info.inputs = (template.inputs.parameters || []).map(p => [p.name, p.value || '']);
   }
   if (template.outputs) {
     info.outputs = (template.outputs.parameters || []).map(p => {
@@ -81,7 +83,12 @@ export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Tem
       if (p.value) {
         value = p.value;
       } else if (p.valueFrom) {
-        value = p.valueFrom.jqFilter || p.valueFrom.jsonPath || p.valueFrom.parameter || p.valueFrom.path || '';
+        value =
+          p.valueFrom.jqFilter ||
+          p.valueFrom.jsonPath ||
+          p.valueFrom.parameter ||
+          p.valueFrom.path ||
+          '';
       }
       return [p.name, value];
     });
@@ -108,10 +115,10 @@ export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Tem
 function buildDag(
   graph: dagre.graphlib.Graph,
   rootTemplateId: string,
-  templates: Map<string, { nodeType: nodeType, template: Template }>,
+  templates: Map<string, { nodeType: nodeType; template: Template }>,
   alreadyVisited: Map<string, string>,
-  parentFullPath: string): void {
-
+  parentFullPath: string,
+): void {
   const root = templates.get(rootTemplateId);
 
   if (root && root.nodeType === 'dag') {
@@ -119,8 +126,7 @@ function buildDag(
     alreadyVisited.set(rootTemplateId, parentFullPath || '/' + rootTemplateId);
     const template = root.template;
 
-    (template.dag.tasks || []).forEach((task) => {
-
+    (template.dag.tasks || []).forEach(task => {
       const nodeId = parentFullPath + '/' + task.name;
 
       // If the user specifies an exit handler, then the compiler will wrap the entire Pipeline
@@ -166,13 +172,23 @@ function buildDag(
       // DAG, in which case we recurse, or a container/resource which can be thought of as a
       // leaf node
       const child = templates.get(task.template);
+      let nodeLabel = task.template;
       if (child) {
         if (child.nodeType === 'dag') {
           buildDag(graph, task.template, templates, alreadyVisited, nodeId);
         } else if (child.nodeType === 'container' || child.nodeType === 'resource') {
+          const metadata = child.template.metadata;
+          if (metadata && metadata.annotations) {
+            const displayName = metadata.annotations['pipelines.kubeflow.org/task_display_name'];
+            if (displayName) {
+              nodeLabel = displayName;
+            }
+          }
           _populateInfoFromTemplate(info, child.template);
         } else {
-          throw new Error(`Unknown nodetype: ${child.nodeType} on workflow template: ${child.template}`);
+          throw new Error(
+            `Unknown nodetype: ${child.nodeType} on workflow template: ${child.template}`,
+          );
         }
       }
 
@@ -180,7 +196,7 @@ function buildDag(
         bgColor: task.when ? 'cornsilk' : undefined,
         height: Constants.NODE_HEIGHT,
         info,
-        label: task.template,
+        label: nodeLabel,
         width: Constants.NODE_WIDTH,
       });
 
@@ -189,7 +205,7 @@ function buildDag(
       // TODO: The addition of the parent prefix to the dependency here is only valid if nodes only
       // ever directly depend on their siblings. This is true now but may change in the future, and
       // this will need to be updated.
-      (task.dependencies || []).forEach((dep) => graph.setEdge(parentFullPath + '/' + dep, nodeId));
+      (task.dependencies || []).forEach(dep => graph.setEdge(parentFullPath + '/' + dep, nodeId));
     });
   }
 }
@@ -205,7 +221,7 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
 
   const workflowTemplates = workflow.spec.templates;
 
-  const templates = new Map<string, { nodeType: nodeType, template: Template }>();
+  const templates = new Map<string, { nodeType: nodeType; template: Template }>();
 
   // Iterate through the workflow's templates to construct a map which will be used to traverse and
   // construct the graph
@@ -240,7 +256,7 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
   // It is, however, possible for users to upload manually constructed Pipelines, and extremely
   // simple ones may have no steps or DAGs, just an entry point container.
   if (graph.nodeCount() === 0) {
-    const entryPointTemplate = workflowTemplates.find((t) => t.name === workflow.spec.entrypoint);
+    const entryPointTemplate = workflowTemplates.find(t => t.name === workflow.spec.entrypoint);
     if (entryPointTemplate) {
       graph.setNode(entryPointTemplate.name, {
         height: Constants.NODE_HEIGHT,

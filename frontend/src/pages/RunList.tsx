@@ -18,7 +18,13 @@ import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import Metric from '../components/Metric';
 import RunUtils, { MetricMetadata, ExperimentInfo } from '../../src/lib/RunUtils';
-import { ApiRun, ApiResourceType, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
+import {
+  ApiRun,
+  ApiResourceType,
+  ApiRunMetric,
+  RunStorageState,
+  ApiRunDetail,
+} from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
@@ -103,7 +109,11 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     ];
 
     if (!this.props.hideExperimentColumn) {
-      columns.splice(3, 0, { customRenderer: this._experimentCustomRenderer, label: 'Experiment', flex: 1 });
+      columns.splice(3, 0, {
+        customRenderer: this._experimentCustomRenderer,
+        flex: 1,
+        label: 'Experiment',
+      });
     }
 
     if (metricMetadata.length) {
@@ -115,13 +125,15 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         label: '',
       });
 
-      columns.push(...metricMetadata.map((metadata) => {
-        return {
-          customRenderer: this._metricCustomRenderer,
-          flex: 0.5,
-          label: metadata.name!
-        };
-      }));
+      columns.push(
+        ...metricMetadata.map(metadata => {
+          return {
+            customRenderer: this._metricCustomRenderer,
+            flex: 0.5,
+            label: metadata.name!,
+          };
+        }),
+      );
     }
 
     const rows: Row[] = this.state.runs.map(r => {
@@ -152,25 +164,35 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       }
       if (displayMetrics.length) {
         row.otherFields.push(''); // Metric buffer column
-        row.otherFields.push(...displayMetrics as any);
+        row.otherFields.push(...(displayMetrics as any));
       }
       return row;
     });
 
-    return (<div>
-      <CustomTable columns={columns} rows={rows} selectedIds={this.props.selectedIds}
-        initialSortColumn={RunSortKeys.CREATED_AT} ref={this._tableRef} filterLabel='Filter runs'
-        updateSelection={this.props.onSelectionChange} reload={this._loadRuns.bind(this)}
-        disablePaging={this.props.disablePaging} disableSorting={this.props.disableSorting}
-        disableSelection={this.props.disableSelection} noFilterBox={this.props.noFilterBox}
-        emptyMessage={
-          `No` +
-          `${this.props.storageState === RunStorageState.ARCHIVED ? ' archived' : ' available'}` +
-          ` runs found` +
-          `${this.props.experimentIdMask ? ' for this experiment' : ''}.`
-        }
-      />
-    </div>);
+    return (
+      <div>
+        <CustomTable
+          columns={columns}
+          rows={rows}
+          selectedIds={this.props.selectedIds}
+          initialSortColumn={RunSortKeys.CREATED_AT}
+          ref={this._tableRef}
+          filterLabel='Filter runs'
+          updateSelection={this.props.onSelectionChange}
+          reload={this._loadRuns.bind(this)}
+          disablePaging={this.props.disablePaging}
+          disableSorting={this.props.disableSorting}
+          disableSelection={this.props.disableSelection}
+          noFilterBox={this.props.noFilterBox}
+          emptyMessage={
+            `No` +
+            `${this.props.storageState === RunStorageState.ARCHIVED ? ' archived' : ' available'}` +
+            ` runs found` +
+            `${this.props.experimentIdMask ? ' for this experiment' : ''}.`
+          }
+        />
+      </div>
+    );
   }
 
   public async refresh(): Promise<void> {
@@ -179,71 +201,93 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     }
   }
 
-  public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (props: CustomRendererProps<string>) => {
-    return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-      to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}>{props.value}</Link>;
-  }
+  public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
+    props: CustomRendererProps<string>,
+  ) => {
+    return (
+      <Link
+        className={commonCss.link}
+        onClick={e => e.stopPropagation()}
+        to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
+      >
+        {props.value}
+      </Link>
+    );
+  };
 
-  public _pipelineCustomRenderer: React.FC<CustomRendererProps<PipelineInfo>> = (props: CustomRendererProps<PipelineInfo>) => {
+  public _pipelineCustomRenderer: React.FC<CustomRendererProps<PipelineInfo>> = (
+    props: CustomRendererProps<PipelineInfo>,
+  ) => {
     // If the getPipeline call failed or a run has no pipeline, we display a placeholder.
     if (!props.value || (!props.value.usePlaceholder && !props.value.id)) {
       return <div>-</div>;
     }
     const search = new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: props.id });
-    const url = props.value.usePlaceholder ?
-      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') + search :
-      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, props.value.id || '');
+    const url = props.value.usePlaceholder
+      ? RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') + search
+      : RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, props.value.id || '');
     return (
-      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-        to={url}>
+      <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
         {props.value.usePlaceholder ? '[View pipeline]' : props.value.displayName}
       </Link>
     );
-  }
+  };
 
-  public _recurringRunCustomRenderer: React.FC<CustomRendererProps<RecurringRunInfo>> = (props: CustomRendererProps<RecurringRunInfo>) => {
+  public _recurringRunCustomRenderer: React.FC<CustomRendererProps<RecurringRunInfo>> = (
+    props: CustomRendererProps<RecurringRunInfo>,
+  ) => {
     // If the getJob call failed or a run has no job, we display a placeholder.
     if (!props.value || !props.value.id) {
       return <div>-</div>;
     }
     const url = RoutePage.RECURRING_RUN.replace(':' + RouteParams.runId, props.value.id || '');
     return (
-      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-        to={url}>
+      <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
         {props.value.displayName || '[View config]'}
       </Link>
     );
-  }
+  };
 
-  public _experimentCustomRenderer: React.FC<CustomRendererProps<ExperimentInfo>> = (props: CustomRendererProps<ExperimentInfo>) => {
+  public _experimentCustomRenderer: React.FC<CustomRendererProps<ExperimentInfo>> = (
+    props: CustomRendererProps<ExperimentInfo>,
+  ) => {
     // If the getExperiment call failed or a run has no experiment, we display a placeholder.
     if (!props.value || !props.value.id) {
       return <div>-</div>;
     }
     return (
-      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-        to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.value.id)}>
+      <Link
+        className={commonCss.link}
+        onClick={e => e.stopPropagation()}
+        to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.value.id)}
+      >
         {props.value.displayName}
       </Link>
     );
-  }
+  };
 
-  public _statusCustomRenderer: React.FC<CustomRendererProps<NodePhase>> = (props: CustomRendererProps<NodePhase>) => {
+  public _statusCustomRenderer: React.FC<CustomRendererProps<NodePhase>> = (
+    props: CustomRendererProps<NodePhase>,
+  ) => {
     return statusToIcon(props.value);
-  }
+  };
 
-  public _metricBufferCustomRenderer: React.FC<CustomRendererProps<{}>> = (props: CustomRendererProps<{}>) => {
+  public _metricBufferCustomRenderer: React.FC<CustomRendererProps<{}>> = (
+    props: CustomRendererProps<{}>,
+  ) => {
     return <div style={{ borderLeft: `1px solid ${color.divider}`, padding: '20px 0' }} />;
-  }
+  };
 
-  public _metricCustomRenderer: React.FC<CustomRendererProps<DisplayMetric>> = (props: CustomRendererProps<DisplayMetric>) => {
+  public _metricCustomRenderer: React.FC<CustomRendererProps<DisplayMetric>> = (
+    props: CustomRendererProps<DisplayMetric>,
+  ) => {
     const displayMetric = props.value;
     if (!displayMetric) {
       return <div />;
     }
 
     return <Metric metric={displayMetric.metric} metadata={displayMetric.metadata} />;
-  }
+  };
 
   protected async _loadRuns(request: ListRequest): Promise<string> {
     let displayRuns: DisplayRun[] = [];
@@ -259,14 +303,21 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       if (this.props.storageState) {
         try {
           // Augment the request filter with the storage state predicate
-          const filter = JSON.parse(decodeURIComponent(request.filter || '{"predicates": []}')) as ApiFilter;
-          filter.predicates = (filter.predicates || []).concat([{
-            key: 'storage_state',
-            // Use EQUALS ARCHIVED or NOT EQUALS ARCHIVED to account for cases where the field
-            // is missing, in which case it should be counted as available.
-            op: this.props.storageState === RunStorageState.ARCHIVED ? PredicateOp.EQUALS : PredicateOp.NOTEQUALS,
-            string_value: RunStorageState.ARCHIVED.toString(),
-          }]);
+          const filter = JSON.parse(
+            decodeURIComponent(request.filter || '{"predicates": []}'),
+          ) as ApiFilter;
+          filter.predicates = (filter.predicates || []).concat([
+            {
+              key: 'storage_state',
+              // Use EQUALS ARCHIVED or NOT EQUALS ARCHIVED to account for cases where the field
+              // is missing, in which case it should be counted as available.
+              op:
+                this.props.storageState === RunStorageState.ARCHIVED
+                  ? PredicateOp.EQUALS
+                  : PredicateOp.NOTEQUALS,
+              string_value: RunStorageState.ARCHIVED.toString(),
+            },
+          ]);
           request.filter = encodeURIComponent(JSON.stringify(filter));
         } catch (err) {
           logger.error('Could not parse request filter: ', request.filter);
@@ -285,7 +336,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
         displayRuns = (response.runs || []).map(r => ({ run: r }));
         nextPageToken = response.next_page_token || '';
-
       } catch (err) {
         const error = new Error(await errorToMessage(err));
         this.props.onError('Error: failed to fetch runs.', error);
@@ -305,7 +355,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
   private async _setColumns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
     return Promise.all(
-      displayRuns.map(async (displayRun) => {
+      displayRuns.map(async displayRun => {
         this._setRecurringRun(displayRun);
 
         await this._getAndSetPipelineNames(displayRun);
@@ -314,7 +364,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           await this._getAndSetExperimentNames(displayRun);
         }
         return displayRun;
-      })
+      }),
     );
   }
 
@@ -331,16 +381,18 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * For each run ID, fetch its corresponding run, and set it in DisplayRuns
    */
   private _getAndSetRuns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
-    return Promise.all(displayRuns.map(async displayRun => {
-      let getRunResponse: ApiRunDetail;
-      try {
-        getRunResponse = await Apis.runServiceApi.getRun(displayRun.run!.id!);
-        displayRun.run = getRunResponse.run!;
-      } catch (err) {
-        displayRun.error = await errorToMessage(err);
-      }
-      return displayRun;
-    }));
+    return Promise.all(
+      displayRuns.map(async displayRun => {
+        let getRunResponse: ApiRunDetail;
+        try {
+          getRunResponse = await Apis.runServiceApi.getRun(displayRun.run!.id!);
+          displayRun.run = getRunResponse.run!;
+        } catch (err) {
+          displayRun.error = await errorToMessage(err);
+        }
+        return displayRun;
+      }),
+    );
   }
 
   /**
@@ -358,14 +410,14 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           const pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
           pipelineName = pipeline.name || '';
         } catch (err) {
-          displayRun.error = 'Failed to get associated pipeline: ' + await errorToMessage(err);
+          displayRun.error = 'Failed to get associated pipeline: ' + (await errorToMessage(err));
           return;
         }
       }
       displayRun.pipeline = {
         displayName: pipelineName,
         id: pipelineId,
-        usePlaceholder: false
+        usePlaceholder: false,
       };
     } else if (!!RunUtils.getWorkflowManifest(displayRun.run)) {
       displayRun.pipeline = { usePlaceholder: true };
@@ -387,13 +439,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
           experimentName = experiment.name || '';
         } catch (err) {
-          displayRun.error = 'Failed to get associated experiment: ' + await errorToMessage(err);
+          displayRun.error = 'Failed to get associated experiment: ' + (await errorToMessage(err));
           return;
         }
       }
       displayRun.experiment = {
         displayName: experimentName,
-        id: experimentId
+        id: experimentId,
       };
     }
   }

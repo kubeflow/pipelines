@@ -64,11 +64,16 @@ export default class TestUtils {
    * to be set after component initialization.
    */
   // tslint:disable-next-line:variable-name
-  public static generatePageProps(PageElement: new (_: PageProps) => Page<any, any>,
-    location: Location, matchValue: match,
-    historyPushSpy: jest.SpyInstance<unknown> | null, updateBannerSpy: jest.SpyInstance<unknown> | null,
-    updateDialogSpy: jest.SpyInstance<unknown> | null, updateToolbarSpy: jest.SpyInstance<unknown> | null,
-    updateSnackbarSpy: jest.SpyInstance<unknown> | null): PageProps {
+  public static generatePageProps(
+    PageElement: new (_: PageProps) => Page<any, any>,
+    location: Location,
+    matchValue: match,
+    historyPushSpy: jest.SpyInstance<unknown> | null,
+    updateBannerSpy: jest.SpyInstance<unknown> | null,
+    updateDialogSpy: jest.SpyInstance<unknown> | null,
+    updateToolbarSpy: jest.SpyInstance<unknown> | null,
+    updateSnackbarSpy: jest.SpyInstance<unknown> | null,
+  ): PageProps {
     const pageProps = {
       history: { push: historyPushSpy } as any,
       location: location as any,
@@ -88,7 +93,10 @@ export default class TestUtils {
     return pageProps;
   }
 
-  public static getToolbarButton(updateToolbarSpy: jest.SpyInstance<unknown>, buttonKey: string): ToolbarActionConfig {
+  public static getToolbarButton(
+    updateToolbarSpy: jest.SpyInstance<unknown>,
+    buttonKey: string,
+  ): ToolbarActionConfig {
     const lastCallIdx = updateToolbarSpy.mock.calls.length - 1;
     const lastCall = updateToolbarSpy.mock.calls[lastCallIdx][0];
     return lastCall.actions[buttonKey];

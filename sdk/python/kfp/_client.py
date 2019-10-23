@@ -30,7 +30,7 @@ import kfp
 import kfp_server_api
 
 from kfp.compiler import compiler
-from kfp.compiler import _k8s_helper
+from kfp.compiler._k8s_helper import sanitize_k8s_name
 
 from kfp._auth import get_auth_token, get_gcp_access_token
 
@@ -303,7 +303,7 @@ class Client(object):
     if pipeline_package_path:
       pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
       pipeline_json_string = json.dumps(pipeline_obj)
-    api_params = [kfp_server_api.ApiParameter(name=_k8s_helper.K8sHelper.sanitize_k8s_name(k), value=str(v))
+    api_params = [kfp_server_api.ApiParameter(name=sanitize_k8s_name(k), value=str(v))
                   for k,v in params.items()]
     key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_server_api.models.ApiResourceType.EXPERIMENT)

@@ -18,9 +18,7 @@ import MetricUtils from './MetricUtils';
 import { RunMetricFormat } from '../apis/run';
 
 describe('MetricUtils', () => {
-
   describe('getMetricDisplayString', () => {
-
     it('returns an empty string when no metric is provided', () => {
       expect(MetricUtils.getMetricDisplayString()).toEqual('');
     });
@@ -38,22 +36,24 @@ describe('MetricUtils', () => {
     });
 
     it('returns a formatted string when metric has format percentage and has number value', () => {
-      expect(MetricUtils.getMetricDisplayString({
+      expect(
+        MetricUtils.getMetricDisplayString({
           format: RunMetricFormat.PERCENTAGE,
-          number_value: 0.12341234
-        })
+          number_value: 0.12341234,
+        }),
       ).toEqual('12.341%');
     });
 
     it('returns a formatted string to specified decimal places when metric has format percentage', () => {
-      expect(MetricUtils.getMetricDisplayString(
-        {
-          format: RunMetricFormat.PERCENTAGE,
-          number_value: 0.12341234
-        },
-        1)
+      expect(
+        MetricUtils.getMetricDisplayString(
+          {
+            format: RunMetricFormat.PERCENTAGE,
+            number_value: 0.12341234,
+          },
+          1,
+        ),
       ).toEqual('12.3%');
     });
   });
-
 });

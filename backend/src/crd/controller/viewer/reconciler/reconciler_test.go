@@ -178,7 +178,8 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 						Args: []string{
 							"tensorboard",
 							"--logdir=gs://tensorboard/logdir",
-							"--path_prefix=/tensorboard/viewer-123/"},
+							"--path_prefix=/tensorboard/viewer-123/",
+							"--bind_all"},
 						Ports: []corev1.ContainerPort{{ContainerPort: 6006}},
 					}}}}}}}
 
@@ -275,7 +276,8 @@ func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
 						Args: []string{
 							"tensorboard",
 							"--logdir=gs://tensorboard/logdir",
-							"--path_prefix=/tensorboard/viewer-123/"},
+							"--path_prefix=/tensorboard/viewer-123/",
+							"--bind_all"},
 						Ports: []corev1.ContainerPort{{ContainerPort: 6006}},
 						VolumeMounts: []v1.VolumeMount{
 							{Name: "/volume-mount-name", MountPath: "/mount/path"},

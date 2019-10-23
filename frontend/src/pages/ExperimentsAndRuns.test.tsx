@@ -15,7 +15,10 @@
  */
 
 import * as React from 'react';
-import ExperimentsAndRuns, { ExperimentAndRunsProps, ExperimentsAndRunsTab } from './ExperimentsAndRuns';
+import ExperimentsAndRuns, {
+  ExperimentAndRunsProps,
+  ExperimentsAndRunsTab,
+} from './ExperimentsAndRuns';
 import { shallow } from 'enzyme';
 
 function generateProps(): ExperimentAndRunsProps {
@@ -34,20 +37,20 @@ function generateProps(): ExperimentAndRunsProps {
 
 describe('ExperimentsAndRuns', () => {
   it('renders experiments page', () => {
-    expect(shallow(<ExperimentsAndRuns {...generateProps() as any} />)).toMatchSnapshot();
+    expect(shallow(<ExperimentsAndRuns {...(generateProps() as any)} />)).toMatchSnapshot();
   });
 
   it('renders runs page', () => {
     const props = generateProps();
     props.view = ExperimentsAndRunsTab.RUNS;
-    expect(shallow(<ExperimentsAndRuns {...props as any} />)).toMatchSnapshot();
+    expect(shallow(<ExperimentsAndRuns {...(props as any)} />)).toMatchSnapshot();
   });
 
   it('switches to clicked page by pushing to history', () => {
     const spy = jest.fn();
     const props = generateProps();
     props.history.push = spy;
-    const tree = shallow(<ExperimentsAndRuns {...props as any} />);
+    const tree = shallow(<ExperimentsAndRuns {...(props as any)} />);
 
     tree.find('MD2Tabs').simulate('switch', 1);
     expect(spy).toHaveBeenCalledWith('/runs');
