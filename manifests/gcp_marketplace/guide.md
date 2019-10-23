@@ -49,7 +49,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 
 and store the service account credential as a Kubernetes secret `user-gcp-sa` in the cluster
 ```
-gcloud iam service-accounts keys create application_default_credentials.json --iam-account $SA_NAME@$PROJECT.iam.gserviceaccount.com
+gcloud iam service-accounts keys create application_default_credentials.json --iam-account $SA_NAME@$PROJECT_ID.iam.gserviceaccount.com
 
 kubectl create secret generic user-gcp-sa \
   --from-file=user-gcp-sa.json=application_default_credentials.json \
