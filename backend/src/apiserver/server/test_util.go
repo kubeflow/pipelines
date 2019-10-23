@@ -83,24 +83,20 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	assert.Nil(t, err)
 
 	// Create a pipeline and then a pipeline version.
-	_, err = resourceManager.CreatePipeline(
-		"pipeline",
-		"",
-		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	_, err = resourceManager.CreatePipeline("pipeline", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Nil(t, err)
-	_, err = resourceManager.CreatePipelineVersion(
-		&api.PipelineVersion{
-			Name: "pipeline_version",
-			ResourceReferences: []*api.ResourceReference{
-				&api.ResourceReference{
-					Key: &api.ResourceKey{
-						Id:   resource.DefaultFakeUUID,
-						Type: api.ResourceType_PIPELINE,
-					},
-					Relationship: api.Relationship_OWNER,
+	_, err = resourceManager.CreatePipelineVersion(&api.PipelineVersion{
+		Name: "pipeline_version",
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   resource.DefaultFakeUUID,
+					Type: api.ResourceType_PIPELINE,
 				},
+				Relationship: api.Relationship_OWNER,
 			},
 		},
+	},
 		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 
 	return clientManager, resourceManager, experiment
