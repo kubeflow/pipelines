@@ -203,8 +203,8 @@ def dataproc_predict_op(
     description='A trainer that does end-to-end distributed training for XGBoost models.'
 )
 def xgb_train_pipeline(
-    output='gs://your-gcs-bucket',
-    project='your-gcp-project',
+    output,
+    project,
     cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER,
     region='us-central1',
     train_data='gs://ml-pipeline-playground/sfpd/train.csv',
