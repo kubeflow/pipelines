@@ -18,7 +18,6 @@ import * as React from 'react';
 import ExperimentDetails from './ExperimentDetails';
 import TestUtils from '../TestUtils';
 import { ApiExperiment } from '../apis/experiment';
-import { ApiResourceType } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
@@ -243,7 +242,7 @@ describe('ExperimentDetails', () => {
       undefined,
       100,
       '',
-      ApiResourceType.EXPERIMENT.toString(),
+      'EXPERIMENT',
       MOCK_EXPERIMENT.id,
     );
     expect(tree.state('activeRecurringRunsCount')).toBe(1);

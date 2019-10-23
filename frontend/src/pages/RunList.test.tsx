@@ -344,7 +344,7 @@ describe('RunList', () => {
       undefined,
       undefined,
       undefined,
-      ApiResourceType.EXPERIMENT.toString(),
+      'EXPERIMENT',
       'experiment1',
       undefined,
     );
