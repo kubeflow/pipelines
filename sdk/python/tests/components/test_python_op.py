@@ -135,7 +135,9 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_component_using_local_call(op, arguments, expected_output_values_dict)
 
-    def helper_test_component_using_local_call(self, component_task_factory: Callable, arguments: dict, expected_output_values: dict):
+    def helper_test_component_using_local_call(self, component_task_factory: Callable, arguments: dict = None, expected_output_values: dict = None):
+        arguments = arguments or {}
+        expected_output_values = expected_output_values or {}
         with tempfile.TemporaryDirectory() as temp_dir_name:
             # Creating task from the component.
             # We do it in a special context that allows us to control the output file locations.
@@ -439,33 +441,29 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(component_spec.inputs[1].default, '5')
 
     def test_handling_default_value_of_none(self):
-        def assert_is_none(a, b, arg=None) -> int:
+        def assert_is_none(arg=None):
             assert arg is None
-            return 1
 
         func = assert_is_none
         op = comp.func_to_container_op(func)
-        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+        self.helper_test_component_using_local_call(op)
 
 
-    def test_handling_complex_default_values_of_none(self):
+    def test_handling_complex_default_values(self):
         def assert_values_are_default(
-            a, b,
             singleton_param=None,
             function_param=ascii,
-            dict_param={'b': [2, 3, 4]},
+            dict_param: dict = {'b': [2, 3, 4]},
             func_call_param='_'.join(['a', 'b', 'c']),
-        ) -> int:
+        ):
             assert singleton_param is None
             assert function_param is ascii
             assert dict_param == {'b': [2, 3, 4]}
             assert func_call_param == '_'.join(['a', 'b', 'c'])
 
-            return 1
-
         func = assert_values_are_default
         op = comp.func_to_container_op(func)
-        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+        self.helper_test_component_using_local_call(op)
 
 
     def test_handling_boolean_arguments(self):

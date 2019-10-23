@@ -199,7 +199,7 @@ implementation:
                 image: busybox
                 command: [sh, -c, 'echo "$0" > $1; echo "$0" > $2', {inputValue: in1_1}, {outputPath: out1_1}, {outputPath: out1_2}]
         arguments:
-            in1_1: 11
+            in1_1: '11'
       task 2:
         componentRef:
           spec:
@@ -214,7 +214,7 @@ implementation:
                 image: busybox
                 command: [sh, -c, 'cat "$0" "$1" > $2', {inputValue: in2_1}, {inputValue: in2_2}, {outputPath: out2_1}]
         arguments:
-            in2_1: 21
+            in2_1: '21'
             in2_2: {taskOutput: {taskId: task 1, outputName: out1_1}}
       task 3:
         componentRef:
@@ -236,7 +236,7 @@ implementation:
       graph out 1: {taskOutput: {taskId: task 3, outputName: out3_1}}
       graph out 2: {taskOutput: {taskId: task 1, outputName: out1_2}}
       graph out 3: {graphInput: graph in 2}
-      graph out 4: 42
+      graph out 4: '42'
 '''
         op = comp.load_component_from_text(component_text)
         task = op('graph 1', 'graph 2')
@@ -269,7 +269,7 @@ implementation:
                 image: busybox
                 command: [sh, -c, 'echo "$0" > $1; echo "$0" > $2', {inputValue: in1_1}, {outputPath: out1_1}, {outputPath: out1_2}]
         arguments:
-            in1_1: 11
+            in1_1: '11'
       task 2:
         componentRef:
           spec:
@@ -284,7 +284,7 @@ implementation:
                 image: busybox
                 command: [sh, -c, 'cat "$0" "$1" > $2', {inputValue: in2_1}, {inputValue: in2_2}, {outputPath: out2_1}]
         arguments:
-            in2_1: 21
+            in2_1: '21'
             in2_2: {taskOutput: {taskId: task 1, outputName: out1_1}}
       task 3:
         componentRef:
@@ -322,14 +322,14 @@ implementation:
       graph out 1: {taskOutput: {taskId: task 3, outputName: out3_1}}
       graph out 2: {taskOutput: {taskId: task 1, outputName: out1_2}}
       graph out 3: {graphInput: graph in 2}
-      graph out 4: 42
+      graph out 4: '42'
 '''
         op = comp.load_component_from_text(component_text)
         task = op('graph 1', 'graph 2')
         self.assertIn('out3_1', str(task.outputs['graph out 1'])) # Checks that the outputs coming from tasks in nested subgraphs are properly resolved.
         self.assertIn('out1_2', str(task.outputs['graph out 2']))
         self.assertEqual(task.outputs['graph out 3'], 'graph 2')
-        self.assertEqual(task.outputs['graph out 4'], 42)
+        self.assertEqual(task.outputs['graph out 4'], '42')
 
 #TODO: Test task name conversion to Argo-compatible names
 
