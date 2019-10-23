@@ -12,6 +12,7 @@
  * Do not edit the class manually.
  */
 
+import * as url from 'url';
 import * as portableFetch from 'portable-fetch';
 import { Configuration } from './configuration';
 
@@ -88,7 +89,7 @@ export class RequiredError extends Error {
 export interface ApiFilter {
   /**
    * All predicates are AND-ed when this filter is applied.
-   * @type {Array&lt;ApiPredicate&gt;}
+   * @type {Array<ApiPredicate>}
    * @memberof ApiFilter
    */
   predicates?: Array<ApiPredicate>;
@@ -102,7 +103,7 @@ export interface ApiFilter {
 export interface ApiIntValues {
   /**
    *
-   * @type {Array&lt;number&gt;}
+   * @type {Array<number>}
    * @memberof ApiIntValues
    */
   values?: Array<number>;
@@ -116,7 +117,7 @@ export interface ApiIntValues {
 export interface ApiLongValues {
   /**
    *
-   * @type {Array&lt;string&gt;}
+   * @type {Array<string>}
    * @memberof ApiLongValues
    */
   values?: Array<string>;
@@ -192,7 +193,7 @@ export interface ApiPredicate {
 export interface ApiStringValues {
   /**
    *
-   * @type {Array&lt;string&gt;}
+   * @type {Array<string>}
    * @memberof ApiStringValues
    */
   values?: Array<string>;

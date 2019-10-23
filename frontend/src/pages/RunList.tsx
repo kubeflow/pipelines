@@ -18,13 +18,7 @@ import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import Metric from '../components/Metric';
 import RunUtils, { MetricMetadata, ExperimentInfo } from '../../src/lib/RunUtils';
-import {
-  ApiRun,
-  ApiResourceType,
-  ApiRunMetric,
-  RunStorageState,
-  ApiRunDetail,
-} from '../../src/apis/run';
+import { ApiRun, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
@@ -329,7 +323,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           request.pageToken,
           request.pageSize,
           request.sortBy,
-          this.props.experimentIdMask ? ApiResourceType.EXPERIMENT.toString() : undefined,
+          this.props.experimentIdMask ? 'EXPERIMENT' : undefined,
           this.props.experimentIdMask,
           request.filter,
         );

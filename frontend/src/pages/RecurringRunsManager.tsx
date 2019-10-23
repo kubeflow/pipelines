@@ -18,7 +18,7 @@ import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import Toolbar, { ToolbarActionMap } from '../components/Toolbar';
-import { ApiJob, ApiResourceType } from '../apis/job';
+import { ApiJob } from '../apis/job';
 import { Apis, JobSortKeys, ListRequest } from '../lib/Apis';
 import { DialogProps, RoutePage, RouteParams } from '../components/Router';
 import { Link } from 'react-router-dom';
@@ -146,7 +146,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
         request.pageToken,
         request.pageSize,
         request.sortBy,
-        ApiResourceType.EXPERIMENT.toString(),
+        'EXPERIMENT',
         this.props.experimentId,
         request.filter,
       );
