@@ -166,8 +166,7 @@ func TestValidateCreateRunRequest_EmptyPipelineSpecAndEmptyPipelineVersion(t *te
 	}
 	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
-	assert.Contains(
-		t, err.Error(), "Neither pipeline spec nor pipeline version is valid")
+	assert.Contains(t, err.Error(), "Neither pipeline spec nor pipeline version is valid")
 }
 
 func TestValidateCreateRunRequest_TooMuchParameters(t *testing.T) {

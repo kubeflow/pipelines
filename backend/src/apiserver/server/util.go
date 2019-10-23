@@ -245,20 +245,17 @@ func ValidatePipelineSpec(resourceManager *resource.ResourceManager, spec *api.P
 // Verify pipeline version in resource references as creator.
 func VerifyPipelineVersionReferenceAsCreator(resourceManager *resource.ResourceManager, references []*api.ResourceReference) (*string, error) {
 	if references == nil {
-		return nil, util.NewInvalidInputError(
-			"Please specify a pipeline version in Run's resource references")
+		return nil, util.NewInvalidInputError("Please specify a pipeline version in Run's resource references")
 	}
 
 	var pipelineVersionId = ""
 	for _, reference := range references {
-		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION &&
-			reference.Relationship == api.Relationship_CREATOR {
+		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION && reference.Relationship == api.Relationship_CREATOR {
 			pipelineVersionId = reference.Key.Id
 		}
 	}
 	if len(pipelineVersionId) == 0 {
-		return nil, util.NewInvalidInputError(
-			"Please specify a pipeline version in Run's resource references")
+		return nil, util.NewInvalidInputError("Please specify a pipeline version in Run's resource references")
 	}
 
 	// Verify pipeline version exists

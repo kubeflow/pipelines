@@ -124,10 +124,8 @@ func TestValidateApiJob_NoValidPipelineSpecOrPipelineVersion(t *testing.T) {
 		ResourceReferences: validReference,
 	}
 	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
-	assert.Equal(
-		t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(
-		t, err.Error(), "Neither pipeline spec nor pipeline version is valid")
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Neither pipeline spec nor pipeline version is valid")
 }
 
 func TestValidateApiJob_InvalidCron(t *testing.T) {

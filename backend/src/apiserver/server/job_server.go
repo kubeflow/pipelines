@@ -87,12 +87,8 @@ func (s *JobServer) validateCreateJobRequest(request *api.CreateJobRequest) erro
 	job := request.Job
 
 	if err := ValidatePipelineSpec(s.resourceManager, job.PipelineSpec); err != nil {
-		if _, errResourceReference := VerifyPipelineVersionReferenceAsCreator(
-			s.resourceManager, job.ResourceReferences); errResourceReference != nil {
-			return util.Wrap(
-				err,
-				"Neither pipeline spec nor pipeline version is valid."+
-					errResourceReference.Error())
+		if _, errResourceReference := VerifyPipelineVersionReferenceAsCreator(s.resourceManager, job.ResourceReferences); errResourceReference != nil {
+			return util.Wrap(err, "Neither pipeline spec nor pipeline version is valid."+errResourceReference.Error())
 		}
 	}
 

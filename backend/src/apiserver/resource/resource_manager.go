@@ -234,12 +234,9 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
 	var workflowSpecManifestBytes []byte
-	workflowSpecManifestBytes, err :=
-		r.getWorkflowSpecBytes(apiRun.GetPipelineSpec())
+	workflowSpecManifestBytes, err := r.getWorkflowSpecBytes(apiRun.GetPipelineSpec())
 	if err != nil {
-		workflowSpecManifestBytes, err =
-			r.getWorkflowSpecBytesFromPipelineVersion(
-				apiRun.GetResourceReferences())
+		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiRun.GetResourceReferences())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 		}
@@ -454,12 +451,9 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
 	var workflowSpecManifestBytes []byte
-	workflowSpecManifestBytes, err :=
-		r.getWorkflowSpecBytes(apiJob.GetPipelineSpec())
+	workflowSpecManifestBytes, err := r.getWorkflowSpecBytes(apiJob.GetPipelineSpec())
 	if err != nil {
-		workflowSpecManifestBytes, err =
-			r.getWorkflowSpecBytesFromPipelineVersion(
-				apiJob.GetResourceReferences())
+		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiJob.GetResourceReferences())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 		}
@@ -473,8 +467,7 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	}
 
 	// Verify no additional parameter provided
-	err = workflow.VerifyParameters(
-		toParametersMap(apiJob.GetPipelineSpec().GetParameters()))
+	err = workflow.VerifyParameters(toParametersMap(apiJob.GetPipelineSpec().GetParameters()))
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
@@ -493,9 +486,8 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 			MaxConcurrency: &apiJob.MaxConcurrency,
 			Trigger:        *toCRDTrigger(apiJob.Trigger),
 			Workflow: &scheduledworkflow.WorkflowResource{
-				Parameters: toCRDParameter(
-					apiJob.GetPipelineSpec().GetParameters()),
-				Spec: workflow.Spec,
+				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
+				Spec:       workflow.Spec,
 			},
 		},
 	}
@@ -728,8 +720,7 @@ func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, 
 func (r *ResourceManager) getWorkflowSpecBytesFromPipelineVersion(references []*api.ResourceReference) ([]byte, error) {
 	var pipelineVersionId = ""
 	for _, reference := range references {
-		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION &&
-			reference.Relationship == api.Relationship_CREATOR {
+		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION && reference.Relationship == api.Relationship_CREATOR {
 			pipelineVersionId = reference.Key.Id
 		}
 	}
@@ -737,8 +728,7 @@ func (r *ResourceManager) getWorkflowSpecBytesFromPipelineVersion(references []*
 		return nil, util.NewInvalidInputError("No pipeline version.")
 	}
 	var workflow util.Workflow
-	err := r.objectStore.GetFromYamlFile(
-		&workflow, storage.CreatePipelinePath(pipelineVersionId))
+	err := r.objectStore.GetFromYamlFile(&workflow, storage.CreatePipelinePath(pipelineVersionId))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline YAML failed.")
 	}

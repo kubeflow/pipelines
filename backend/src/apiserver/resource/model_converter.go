@@ -41,15 +41,13 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to parse the parameter.")
 	}
-	resourceReferences, err := r.toModelResourceReferences(
-		runId, common.Run, run.GetResourceReferences())
+	resourceReferences, err := r.toModelResourceReferences(runId, common.Run, run.GetResourceReferences())
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to convert resource references.")
 	}
 	var pipelineName string
 	if run.GetPipelineSpec().GetPipelineId() != "" {
-		pipelineName, err = r.getResourceName(
-			common.Pipeline, run.GetPipelineSpec().GetPipelineId())
+		pipelineName, err = r.getResourceName(common.Pipeline, run.GetPipelineSpec().GetPipelineId())
 		if err != nil {
 			return nil, util.Wrap(err, "Error getting the pipeline name")
 		}
@@ -82,15 +80,13 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	if err != nil {
 		return nil, util.Wrap(err, "Error parsing the input job.")
 	}
-	resourceReferences, err := r.toModelResourceReferences(
-		string(swf.UID), common.Job, job.GetResourceReferences())
+	resourceReferences, err := r.toModelResourceReferences(string(swf.UID), common.Job, job.GetResourceReferences())
 	if err != nil {
 		return nil, util.Wrap(err, "Error to convert resource references.")
 	}
 	var pipelineName string
 	if job.GetPipelineSpec().GetPipelineId() != "" {
-		pipelineName, err = r.getResourceName(
-			common.Pipeline, job.GetPipelineSpec().GetPipelineId())
+		pipelineName, err = r.getResourceName(common.Pipeline, job.GetPipelineSpec().GetPipelineId())
 		if err != nil {
 			return nil, util.Wrap(err, "Error getting the pipeline name")
 		}
