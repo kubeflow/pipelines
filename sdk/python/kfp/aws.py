@@ -30,8 +30,8 @@ def use_aws_secret(secret_name='aws-secret', aws_access_key_id_name='AWS_ACCESS_
 
     def _use_aws_secret(task):
         from kubernetes import client as k8s_client
-        return (
-            task
+        (
+            task.container
                 .add_env_variable(
                     k8s_client.V1EnvVar(
                         name='AWS_ACCESS_KEY_ID',
@@ -55,5 +55,6 @@ def use_aws_secret(secret_name='aws-secret', aws_access_key_id_name='AWS_ACCESS_
                     )
                 )
         )
+        return task
 
     return _use_aws_secret
