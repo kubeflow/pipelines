@@ -47,7 +47,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
   # --role=roles/dataflow.admin
 ```
 
-and stores service account credential as a Kubernetes secret in the cluster 
+and store the service account credential as a Kubernetes secret `user-gcp-sa` in the cluster
 ```
 gcloud iam service-accounts keys create application_default_credentials.json --iam-account $SA_NAME@$PROJECT.iam.gserviceaccount.com
 
