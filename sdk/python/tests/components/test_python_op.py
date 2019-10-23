@@ -17,7 +17,7 @@ import tempfile
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Sequence
 
 import kfp
 import kfp.components as comp
@@ -122,9 +122,11 @@ class PythonOpTestCase(unittest.TestCase):
         # ! This function cannot be used when component has output types that use custom serialization since it will compare non-serialized function outputs with serialized component outputs.
         # Evaluating the function to get the expected output values
         expected_output_values_list = func(**arguments)
+        if not isinstance(expected_output_values_list, Sequence) or isinstance(expected_output_values_list, str):
+            expected_output_values_list = [str(expected_output_values_list)]
         expected_output_values_list = [str(value) for value in expected_output_values_list]
 
-        output_names = [output.name for output in op.outputs]
+        output_names = [output.name for output in op.component_spec.outputs]
         from kfp.components._naming import generate_unique_name_conversion_table, _sanitize_python_function_name
         output_name_to_pythonic = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
         pythonic_output_names = [output_name_to_pythonic[name] for name in output_names]
@@ -133,7 +135,9 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_component_using_local_call(op, arguments, expected_output_values_dict)
 
-    def helper_test_component_using_local_call(self, component_task_factory: Callable, arguments: dict, expected_output_values: dict):
+    def helper_test_component_using_local_call(self, component_task_factory: Callable, arguments: dict = None, expected_output_values: dict = None):
+        arguments = arguments or {}
+        expected_output_values = expected_output_values or {}
         with tempfile.TemporaryDirectory() as temp_dir_name:
             # Creating task from the component.
             # We do it in a special context that allows us to control the output file locations.
@@ -401,8 +405,15 @@ class PythonOpTestCase(unittest.TestCase):
         expected_description = 'Sum component description'
         expected_image = 'org/image'
 
-        @python_component(name=expected_name, description=expected_description, base_image=expected_image)
-        def add_two_numbers_decorated(a: float, b: float) -> float:
+        @python_component(
+            name=expected_name,
+            description=expected_description,
+            base_image=expected_image
+        )
+        def add_two_numbers_decorated(
+            a: float,
+            b: float,
+        ) -> float:
             '''Returns sum of two arguments'''
             return a + b
 
@@ -411,6 +422,11 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(component_spec.name, expected_name)
         self.assertEqual(component_spec.description.strip(), expected_description.strip())
         self.assertEqual(component_spec.implementation.container.image, expected_image)
+
+        func = add_two_numbers_decorated
+        op = comp.func_to_container_op(func)
+
+        self.helper_test_component_against_func_using_local_call(func, op, arguments={'a': 3, 'b': 5.0})
 
     def test_saving_default_values(self):
         from typing import NamedTuple
@@ -425,33 +441,29 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(component_spec.inputs[1].default, '5')
 
     def test_handling_default_value_of_none(self):
-        def assert_is_none(a, b, arg=None) -> int:
+        def assert_is_none(arg=None):
             assert arg is None
-            return 1
 
         func = assert_is_none
         op = comp.func_to_container_op(func)
-        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+        self.helper_test_component_using_local_call(op)
 
 
-    def test_handling_complex_default_values_of_none(self):
+    def test_handling_complex_default_values(self):
         def assert_values_are_default(
-            a, b,
             singleton_param=None,
             function_param=ascii,
-            dict_param={'b': [2, 3, 4]},
+            dict_param: dict = {'b': [2, 3, 4]},
             func_call_param='_'.join(['a', 'b', 'c']),
-        ) -> int:
+        ):
             assert singleton_param is None
             assert function_param is ascii
             assert dict_param == {'b': [2, 3, 4]}
             assert func_call_param == '_'.join(['a', 'b', 'c'])
 
-            return 1
-
         func = assert_values_are_default
         op = comp.func_to_container_op(func)
-        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+        self.helper_test_component_using_local_call(op)
 
 
     def test_handling_boolean_arguments(self):

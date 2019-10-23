@@ -127,7 +127,10 @@ describe('Graph', () => {
     graph.setEdge('node2', 'node1');
     const spy = jest.fn();
     const tree = shallow(<Graph graph={graph} onClick={spy} />);
-    tree.find('.node').at(0).simulate('click');
+    tree
+      .find('.node')
+      .at(0)
+      .simulate('click');
     expect(spy).toHaveBeenCalledWith('node1');
   });
 

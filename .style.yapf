@@ -1,0 +1,9 @@
+[style]
+based_on_style = google
+blank_line_before_nested_class_or_def = true
+column_limit = 80
+continuation_indent_width = 4
+dedent_closing_brackets = true
+coalesce_brackets = true
+indent_width = 2
+split_before_first_argument = true

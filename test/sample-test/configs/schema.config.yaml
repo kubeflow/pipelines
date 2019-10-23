@@ -14,7 +14,15 @@
 
 # This is the schema for sample test config yaml file.
 test_name: str()
+# Parameters for python samples.
+# If 'output' is specified, values will be dynamically injected
 arguments: map(required=False)
+# Parameters for notebook samples. 
+# If 'output' is specified, values will be dynamically injected
 notebook_params: map(required=False)
+# Timeout
 test_timeout: int(min=0, required=False)
+# For python samples, run_pipeline means submiting the pipeline
+# run; For notebook samples, run_pipeline means checking the 
+# run results assuming the notebook codes already submit the run.
 run_pipeline: bool(required=False)

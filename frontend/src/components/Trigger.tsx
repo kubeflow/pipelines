@@ -24,8 +24,12 @@ import Separator from '../atoms/Separator';
 import { commonCss } from '../Css';
 import { dateToPickerFormat } from '../lib/TriggerUtils';
 import {
-  PeriodicInterval, TriggerType, triggers, buildCron,
-  pickersToDate, buildTrigger
+  PeriodicInterval,
+  TriggerType,
+  triggers,
+  buildCron,
+  pickersToDate,
+  buildTrigger,
 } from '../lib/TriggerUtils';
 import { ApiTrigger } from '../apis/job';
 import { stylesheet } from 'typestyle';
@@ -52,7 +56,7 @@ interface TriggerState {
 
 const css = stylesheet({
   noMargin: {
-    margin: 0
+    margin: 0,
   },
 });
 
@@ -61,8 +65,13 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     super(props);
 
     const now = new Date();
-    const inAWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7,
-      now.getHours(), now.getMinutes());
+    const inAWeek = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 7,
+      now.getHours(),
+      now.getMinutes(),
+    );
     const [startDate, startTime] = dateToPickerFormat(now);
     const [endDate, endTime] = dateToPickerFormat(inAWeek);
 
@@ -91,114 +100,217 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
   }
 
   public render(): JSX.Element {
-    const { cron, editCron, endDate, endTime, hasEndDate, hasStartDate, intervalCategory,
-      intervalValue, maxConcurrentRuns, selectedDays, startDate, startTime, type } = this.state;
+    const {
+      cron,
+      editCron,
+      endDate,
+      endTime,
+      hasEndDate,
+      hasStartDate,
+      intervalCategory,
+      intervalValue,
+      maxConcurrentRuns,
+      selectedDays,
+      startDate,
+      startTime,
+      type,
+    } = this.state;
 
-    return <div>
-      <Input select={true} label='Trigger type' required={true} onChange={this.handleChange('type')}
-        value={type} variant='outlined'>
-        {Array.from(triggers.entries()).map((trigger, i) => (
-          <MenuItem key={i} value={trigger[0]}>
-            {trigger[1].displayName}
-          </MenuItem>
-        ))}
-      </Input>
-
+    return (
       <div>
-        <Input label='Maximum concurrent runs' required={true}
-          onChange={this.handleChange('maxConcurrentRuns')} value={maxConcurrentRuns}
-          variant='outlined' />
+        <Input
+          select={true}
+          label='Trigger type'
+          required={true}
+          onChange={this.handleChange('type')}
+          value={type}
+          variant='outlined'
+        >
+          {Array.from(triggers.entries()).map((trigger, i) => (
+            <MenuItem key={i} value={trigger[0]}>
+              {trigger[1].displayName}
+            </MenuItem>
+          ))}
+        </Input>
 
-        <div className={commonCss.flex}>
-          <FormControlLabel control={
-            <Checkbox checked={hasStartDate} color='primary'
-              onClick={this.handleChange('hasStartDate')} />}
-            label='Has start date' />
-          <Input label='Start date' type='date' onChange={this.handleChange('startDate')}
-            value={startDate} width={160} variant='outlined'
-            InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
-            style={{ visibility: hasStartDate ? 'visible' : 'hidden' }} />
-          <Separator />
-          <Input label='Start time' type='time' onChange={this.handleChange('startTime')}
-            value={startTime} width={120} variant='outlined'
-            InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
-            style={{ visibility: hasStartDate ? 'visible' : 'hidden' }} />
-        </div>
-
-        <div className={commonCss.flex}>
-          <FormControlLabel control={
-            <Checkbox checked={hasEndDate} color='primary'
-              onClick={this.handleChange('hasEndDate')} />}
-            label='Has end date' />
-          <Input label='End date' type='date' onChange={this.handleChange('endDate')}
-            value={endDate} width={160} style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
-            InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
-            variant='outlined' />
-          <Separator />
-          <Input label='End time' type='time' onChange={this.handleChange('endTime')}
-            value={endTime} width={120} style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
-            InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
-            variant='outlined' />
-        </div>
-
-        <span className={commonCss.flex}>
-          Run every
-          {type === TriggerType.INTERVALED && (
-            <div className={commonCss.flex}>
-              <Separator />
-              <Input required={true} type='number' onChange={this.handleChange('intervalValue')}
-                value={intervalValue} height={30} width={65} error={intervalValue < 1}
-                variant='outlined' />
-            </div>
-          )}
-
-          <Separator />
-          <Input required={true} select={true} onChange={this.handleChange('intervalCategory')}
-            value={intervalCategory} height={30} width={95} variant='outlined' >
-            {Object.keys(PeriodicInterval).map((interval: PeriodicInterval, i) => (
-              <MenuItem key={i} value={PeriodicInterval[interval]}>
-                {PeriodicInterval[interval] + (type === TriggerType.INTERVALED ? 's' : '')}
-              </MenuItem>
-            ))}
-          </Input>
-        </span>
-      </div>
-
-      {type === TriggerType.CRON && (
         <div>
-          {intervalCategory === PeriodicInterval.WEEK && (
-            <div>
-              <span>On:</span>
-              <FormControlLabel control={
-                <Checkbox checked={this._isAllDaysChecked()} color='primary'
-                  onClick={this._toggleCheckAllDays.bind(this)} />
-              } label='All' />
-              <Separator />
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                <Button variant='fab' mini={true} key={i} onClick={() => this._toggleDay(i)}
-                  color={selectedDays[i] ? 'primary' : 'secondary'}>{day}</Button>
-              ))}
-            </div>
-          )}
+          <Input
+            label='Maximum concurrent runs'
+            required={true}
+            onChange={this.handleChange('maxConcurrentRuns')}
+            value={maxConcurrentRuns}
+            variant='outlined'
+          />
 
           <div className={commonCss.flex}>
-            <FormControlLabel control={
-              <Checkbox checked={editCron} color='primary' onClick={this.handleChange('editCron')} />
-            } label={
-              <span>Allow editing cron expression. (
-              format is specified <a href='https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format'>
-                  here</a>
-                )</span>
-            } />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={hasStartDate}
+                  color='primary'
+                  onClick={this.handleChange('hasStartDate')}
+                />
+              }
+              label='Has start date'
+            />
+            <Input
+              label='Start date'
+              type='date'
+              onChange={this.handleChange('startDate')}
+              value={startDate}
+              width={160}
+              variant='outlined'
+              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
+              style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
+            />
+            <Separator />
+            <Input
+              label='Start time'
+              type='time'
+              onChange={this.handleChange('startTime')}
+              value={startTime}
+              width={120}
+              variant='outlined'
+              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
+              style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
+            />
           </div>
 
-          <Input label='cron expression' onChange={this.handleChange('cron')} value={cron}
-            width={300} disabled={!editCron} variant='outlined'/>
+          <div className={commonCss.flex}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={hasEndDate}
+                  color='primary'
+                  onClick={this.handleChange('hasEndDate')}
+                />
+              }
+              label='Has end date'
+            />
+            <Input
+              label='End date'
+              type='date'
+              onChange={this.handleChange('endDate')}
+              value={endDate}
+              width={160}
+              style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
+              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
+              variant='outlined'
+            />
+            <Separator />
+            <Input
+              label='End time'
+              type='time'
+              onChange={this.handleChange('endTime')}
+              value={endTime}
+              width={120}
+              style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
+              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
+              variant='outlined'
+            />
+          </div>
 
-          <div>Note: Start and end dates/times are handled outside of cron.</div>
+          <span className={commonCss.flex}>
+            Run every
+            {type === TriggerType.INTERVALED && (
+              <div className={commonCss.flex}>
+                <Separator />
+                <Input
+                  required={true}
+                  type='number'
+                  onChange={this.handleChange('intervalValue')}
+                  value={intervalValue}
+                  height={30}
+                  width={65}
+                  error={intervalValue < 1}
+                  variant='outlined'
+                />
+              </div>
+            )}
+            <Separator />
+            <Input
+              required={true}
+              select={true}
+              onChange={this.handleChange('intervalCategory')}
+              value={intervalCategory}
+              height={30}
+              width={95}
+              variant='outlined'
+            >
+              {Object.keys(PeriodicInterval).map((interval: PeriodicInterval, i) => (
+                <MenuItem key={i} value={PeriodicInterval[interval]}>
+                  {PeriodicInterval[interval] + (type === TriggerType.INTERVALED ? 's' : '')}
+                </MenuItem>
+              ))}
+            </Input>
+          </span>
         </div>
-      )}
-    </div>;
+
+        {type === TriggerType.CRON && (
+          <div>
+            {intervalCategory === PeriodicInterval.WEEK && (
+              <div>
+                <span>On:</span>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={this._isAllDaysChecked()}
+                      color='primary'
+                      onClick={this._toggleCheckAllDays.bind(this)}
+                    />
+                  }
+                  label='All'
+                />
+                <Separator />
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                  <Button
+                    variant='fab'
+                    mini={true}
+                    key={i}
+                    onClick={() => this._toggleDay(i)}
+                    color={selectedDays[i] ? 'primary' : 'secondary'}
+                  >
+                    {day}
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            <div className={commonCss.flex}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={editCron}
+                    color='primary'
+                    onClick={this.handleChange('editCron')}
+                  />
+                }
+                label={
+                  <span>
+                    Allow editing cron expression. ( format is specified{' '}
+                    <a href='https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format'>
+                      here
+                    </a>
+                    )
+                  </span>
+                }
+              />
+            </div>
+
+            <Input
+              label='cron expression'
+              onChange={this.handleChange('cron')}
+              value={cron}
+              width={300}
+              disabled={!editCron}
+              variant='outlined'
+            />
+
+            <div>Note: Start and end dates/times are handled outside of cron.</div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   public handleChange = (name: string) => (event: any) => {
@@ -206,14 +318,29 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     const value = target.type === 'checkbox' ? target.checked : target.value;
     // Make sure the desired field is set on the state object first, then
     // use the state values to compute the new trigger
-    this.setState({
-      [name]: value,
-    } as any, this._updateTrigger.bind(this));
-  }
+    this.setState(
+      {
+        [name]: value,
+      } as any,
+      this._updateTrigger.bind(this),
+    );
+  };
 
   private _updateTrigger(): void {
-    const { hasStartDate, hasEndDate, startDate, startTime, endDate, endTime, editCron,
-      intervalCategory, intervalValue, type, cron, selectedDays } = this.state;
+    const {
+      hasStartDate,
+      hasEndDate,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
+      editCron,
+      intervalCategory,
+      intervalValue,
+      type,
+      cron,
+      selectedDays,
+    } = this.state;
 
     const startDateTime = pickersToDate(hasStartDate, startDate, startTime);
     const endDateTime = pickersToDate(hasEndDate, endDate, endTime);
@@ -221,16 +348,25 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     // TODO: Why build the cron string unless the TriggerType is not CRON?
     // Unless cron editing is enabled, calculate the new cron string, set it in state,
     // then use it to build new trigger object and notify the parent
-    this.setState({
-      cron: editCron ? cron : buildCron(startDateTime, intervalCategory, selectedDays),
-    }, () => {
-      const trigger = buildTrigger(
-        intervalCategory, intervalValue, startDateTime, endDateTime, type, this.state.cron);
+    this.setState(
+      {
+        cron: editCron ? cron : buildCron(startDateTime, intervalCategory, selectedDays),
+      },
+      () => {
+        const trigger = buildTrigger(
+          intervalCategory,
+          intervalValue,
+          startDateTime,
+          endDateTime,
+          type,
+          this.state.cron,
+        );
 
-      if (this.props.onChange) {
-        this.props.onChange(trigger, trigger ? this.state.maxConcurrentRuns : undefined);
-      }
-    });
+        if (this.props.onChange) {
+          this.props.onChange(trigger, trigger ? this.state.maxConcurrentRuns : undefined);
+        }
+      },
+    );
   }
 
   private _isAllDaysChecked(): boolean {
@@ -250,12 +386,18 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     const newDays = this.state.selectedDays;
     newDays[index] = !newDays[index];
     const startDate = pickersToDate(
-      this.state.hasStartDate, this.state.startDate, this.state.startTime);
+      this.state.hasStartDate,
+      this.state.startDate,
+      this.state.startTime,
+    );
     const cron = buildCron(startDate, this.state.intervalCategory, this.state.selectedDays);
 
-    this.setState({
-      cron,
-      selectedDays: newDays,
-    }, this._updateTrigger.bind(this));
+    this.setState(
+      {
+        cron,
+        selectedDays: newDays,
+      },
+      this._updateTrigger.bind(this),
+    );
   }
 }

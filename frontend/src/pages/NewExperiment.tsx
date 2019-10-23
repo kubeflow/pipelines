@@ -48,7 +48,6 @@ const css = stylesheet({
 });
 
 class NewExperiment extends Page<{}, NewExperimentState> {
-
   private _experimentNameRef = React.createRef<HTMLInputElement>();
 
   constructor(props: any) {
@@ -75,7 +74,6 @@ class NewExperiment extends Page<{}, NewExperimentState> {
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-
         <div className={classes(commonCss.scrollContainer, padding(20, 'lr'))}>
           <div className={commonCss.header}>Experiment details</div>
           {/* TODO: this description needs work. */}
@@ -84,17 +82,38 @@ class NewExperiment extends Page<{}, NewExperimentState> {
             associated runs
           </div>
 
-          <Input id='experimentName' label='Experiment name' inputRef={this._experimentNameRef}
-            required={true} onChange={this.handleChange('experimentName')} value={experimentName}
-            autoFocus={true} variant='outlined' />
-          <Input id='experimentDescription' label='Description (optional)' multiline={true}
-            onChange={this.handleChange('description')} value={description} variant='outlined' />
+          <Input
+            id='experimentName'
+            label='Experiment name'
+            inputRef={this._experimentNameRef}
+            required={true}
+            onChange={this.handleChange('experimentName')}
+            value={experimentName}
+            autoFocus={true}
+            variant='outlined'
+          />
+          <Input
+            id='experimentDescription'
+            label='Description (optional)'
+            multiline={true}
+            onChange={this.handleChange('description')}
+            value={description}
+            variant='outlined'
+          />
 
           <div className={commonCss.flex}>
-            <BusyButton id='createExperimentBtn' disabled={!!validationError} busy={isbeingCreated}
-              className={commonCss.buttonAction} title={'Next'}
-              onClick={this._create.bind(this)} />
-            <Button id='cancelNewExperimentBtn' onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}>
+            <BusyButton
+              id='createExperimentBtn'
+              disabled={!!validationError}
+              busy={isbeingCreated}
+              className={commonCss.buttonAction}
+              title={'Next'}
+              onClick={this._create.bind(this)}
+            />
+            <Button
+              id='cancelNewExperimentBtn'
+              onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}
+            >
               Cancel
             </Button>
             <div className={css.errorMessage}>{validationError}</div>
@@ -121,7 +140,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
   public handleChange = (name: string) => (event: any) => {
     const value = (event.target as TextFieldProps).value;
     this.setState({ [name]: value } as any, this._validate.bind(this));
-  }
+  };
 
   private _create(): void {
     const newExperiment: ApiExperiment = {

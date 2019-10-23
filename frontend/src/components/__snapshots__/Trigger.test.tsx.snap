@@ -285,7 +285,8 @@ exports[`Trigger enables a single day on click 1`] = `
         }
         label={
           <span>
-            Allow editing cron expression. ( format is specified 
+            Allow editing cron expression. ( format is specified
+             
             <a
               href="https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format"
             >
@@ -596,7 +597,8 @@ exports[`Trigger renders all week days enabled 1`] = `
         }
         label={
           <span>
-            Allow editing cron expression. ( format is specified 
+            Allow editing cron expression. ( format is specified
+             
             <a
               href="https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format"
             >
@@ -1038,7 +1040,8 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         }
         label={
           <span>
-            Allow editing cron expression. ( format is specified 
+            Allow editing cron expression. ( format is specified
+             
             <a
               href="https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format"
             >
@@ -1349,7 +1352,8 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         }
         label={
           <span>
-            Allow editing cron expression. ( format is specified 
+            Allow editing cron expression. ( format is specified
+             
             <a
               href="https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format"
             >

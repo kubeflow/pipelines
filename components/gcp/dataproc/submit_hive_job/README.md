@@ -1,16 +1,34 @@
 
 # Name
-Data preparation using Apache Hive on YARN with Cloud Dataproc
+Component: Data preparation using Apache Hive on YARN with Cloud Dataproc
 
 # Label
-Cloud Dataproc, GCP, Cloud Storage, YARN, Hive, Apache
+Cloud Dataproc, YARN, Apache Hive
 
 # Summary
-A Kubeflow Pipeline component to prepare data by submitting an Apache Hive job on YARN to Cloud Dataproc.
+A Kubeflow pipeline component to prepare data by submitting an Apache Hive job on YARN to Cloud Dataproc.
+
+# Facets
+<!--Make sure the asset has data for the following facets:
+Use case
+Technique
+Input data type
+ML workflow
+
+The data must map to the acceptable values for these facets, as documented on the “taxonomy” sheet of go/aihub-facets
+https://gitlab.aihub-content-external.com/aihubbot/kfp-components/commit/fe387ab46181b5d4c7425dcb8032cb43e70411c1
+--->
+Use case:
+
+Technique: 
+
+Input data type:
+
+ML workflow: 
 
 # Details
 ## Intended use
-Use the component to run an Apache Hive job as one preprocessing step in a Kubeflow Pipeline.
+Use the component to run an Apache Hive job as one preprocessing step in a Kubeflow pipeline.
 
 ## Runtime arguments
 | Argument | Description | Optional | Data type | Accepted values | Default |
@@ -19,9 +37,9 @@ Use the component to run an Apache Hive job as one preprocessing step in a Kubef
 | region | The Cloud Dataproc region to handle the request. | No | GCPRegion |  |  |
 | cluster_name | The name of the cluster to run the job. | No | String |  |  |
 | queries | The queries to execute the Hive job. Specify multiple queries in one string by separating them with semicolons. You do not need to terminate queries with semicolons. | Yes | List |  | None |
-| query_file_uri | The HCFS URI of the script that contains the Hive queries. | Yes | GCSPath |  | None |
+| query_file_uri | The Hadoop Compatible Filesystem (HCFS) URI of the script that contains the Hive queries. | Yes | GCSPath |  | None |
 | script_variables | Mapping of the query’s variable names to their values (equivalent to the Hive command: SET name="value";). | Yes | Dict |  | None |
-| hive_job | The payload of a [HiveJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/HiveJob) | Yes | Dict |  | None |
+| hive_job | The payload of a [Hive job](https://cloud.google.com/dataproc/docs/reference/rest/v1/HiveJob) | Yes | Dict |  | None |
 | job | The payload of a [Dataproc job](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs). | Yes | Dict |  | None |
 | wait_interval | The number of seconds to pause between polling the operation. | Yes | Integer |  | 30 |
 
@@ -42,34 +60,30 @@ To use the component, you must:
 *   Grant the Kubeflow user service account the role `roles/dataproc.editor` on the project.
 
 ## Detailed description
-This component creates a Hive job from [Dataproc submit job REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs/submit).
+This component creates a Hive job from the [Dataproc submit job REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs/submit).
 
 Follow these steps to use the component in a pipeline:
-1.  Install the Kubeflow Pipeline SDK:
+1.  Install the Kubeflow pipeline's SDK:
 
+    ```python
+    %%capture --no-stderr
 
+    KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
+    !pip3 install $KFP_PACKAGE --upgrade
+    ```
 
-```python
-%%capture --no-stderr
+2. Load the component using the Kubeflow pipeline's SDK:
 
-KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
-!pip3 install $KFP_PACKAGE --upgrade
-```
+    ```python
+    import kfp.components as comp
 
-2. Load the component using KFP SDK
-
-
-```python
-import kfp.components as comp
-
-dataproc_submit_hive_job_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_hive_job/component.yaml')
-help(dataproc_submit_hive_job_op)
-```
+    dataproc_submit_hive_job_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/06401ecc8f1561509ef095901a70b3543c2ca30f/components/gcp/dataproc/submit_hive_job/component.yaml')
+    help(dataproc_submit_hive_job_op)
+    ```
 
 ### Sample
 
-Note: The following sample code works in an IPython notebook or directly in Python code. See the sample code below to learn how to execute the template.
+The following sample code works in an IPython notebook or directly in Python code. See the sample code below to learn how to execute the template.
 
 
 #### Setup a Dataproc cluster
@@ -78,17 +92,15 @@ Note: The following sample code works in an IPython notebook or directly in Pyth
 
 #### Prepare a Hive query
 
-Put your Hive queries in the queries list, or upload your Hive queries into a file saved in a Cloud Storage bucket and then enter the Cloud Storage bucket’s path  in `query_file_uri.` In this sample, we will use a hard coded query in the queries list to select data from a public CSV file from Cloud Storage.
+You can put your Hive queries in the `queries` list, or you can use `query_file_uri`. In this sample, we will use a hard coded query in the `queries` list to select data from a public CSV file in Cloud Storage.
 
 For more details, see the [Hive language manual.](https://cwiki.apache.org/confluence/display/Hive/LanguageManual)
 
-
 #### Set sample parameters
 
-
 ```python
-PROJECT_ID = '<Please put your project ID here>'
-CLUSTER_NAME = '<Please put your existing cluster name here>'
+PROJECT_ID = '<Put your project ID here>'
+CLUSTER_NAME = '<Put your existing cluster name here>'
 REGION = 'us-central1'
 QUERY = '''
 DROP TABLE IF EXISTS natality_csv;
@@ -160,10 +172,10 @@ compiler.Compiler().compile(pipeline_func, pipeline_filename)
 
 
 ```python
-#Specify pipeline argument values
+#Specify values for the pipeline's arguments
 arguments = {}
 
-#Get or create an experiment and submit a pipeline run
+#Get or create an experiment 
 import kfp
 client = kfp.Client()
 experiment = client.create_experiment(EXPERIMENT_NAME)
@@ -174,8 +186,8 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 ```
 
 ## References
-*   [Component python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_submit_hive_job.py)
-*   [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
+*   [Component Python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_submit_hive_job.py)
+*   [Component Docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
 *   [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataproc/submit_hive_job/sample.ipynb)
 *   [Dataproc HiveJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/HiveJob)
 

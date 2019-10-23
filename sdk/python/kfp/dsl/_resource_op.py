@@ -86,7 +86,7 @@ class ResourceOp(BaseOp):
                 https://github.com/argoproj/argo/blob/master/examples/k8s-jobs.yaml
             attribute_outputs: Maps output labels to resource's json paths,
                 similarly to file_outputs of ContainerOp
-            kwargs: name, sidecars & is_exit_handler. See BaseOp definition
+            kwargs: name, sidecars. See BaseOp definition
         Raises:
         ValueError: if not inside a pipeline
                     if the name is an invalid string

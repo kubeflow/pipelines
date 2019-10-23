@@ -15,7 +15,13 @@
  */
 
 import { ApiJob } from '../apis/job';
-import { ApiRun, ApiResourceType, ApiResourceReference, ApiRunDetail, ApiPipelineRuntime } from '../apis/run';
+import {
+  ApiRun,
+  ApiResourceType,
+  ApiResourceReference,
+  ApiRunDetail,
+  ApiPipelineRuntime,
+} from '../apis/run';
 import { orderBy } from 'lodash';
 import { ApiParameter } from 'src/apis/pipeline';
 import { Workflow } from 'third_party/argo-ui/argo_template';
@@ -70,17 +76,18 @@ function getFirstExperimentReference(run?: ApiRun | ApiJob): ApiResourceReferenc
 
 function getFirstExperimentReferenceId(run?: ApiRun | ApiJob): string | null {
   const reference = getFirstExperimentReference(run);
-  return reference && reference.key && reference.key.id || null;
+  return (reference && reference.key && reference.key.id) || null;
 }
 
 function getFirstExperimentReferenceName(run?: ApiRun | ApiJob): string | null {
   const reference = getFirstExperimentReference(run);
-  return reference && reference.name || null;
+  return (reference && reference.name) || null;
 }
 
 function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference[] {
-  return (run && run.resource_references || [])
-    .filter((ref) => ref.key && ref.key.type && ref.key.type === ApiResourceType.EXPERIMENT || false);
+  return ((run && run.resource_references) || []).filter(
+    ref => (ref.key && ref.key.type && ref.key.type === ApiResourceType.EXPERIMENT) || false,
+  );
 }
 
 /**
@@ -93,7 +100,7 @@ function runsToMetricMetadataMap(runs: ApiRun[]): Map<string, MetricMetadata> {
     if (!run || !run.metrics) {
       return metricMetadatas;
     }
-    run.metrics.forEach((metric) => {
+    run.metrics.forEach(metric => {
       if (!metric.name || metric.number_value === undefined || isNaN(metric.number_value)) {
         return;
       }

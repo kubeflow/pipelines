@@ -532,8 +532,8 @@ implementation:
     def test_command_if_input_value_then(self):
         component_text = '''\
 inputs:
-- {name: Do test, type: boolean, optional: true}
-- {name: Test data, optional: true}
+- {name: Do test, type: Boolean, optional: true}
+- {name: Test data, type: Integer, optional: true}
 - {name: Test parameter 1, optional: true}
 implementation:
   container:
@@ -545,7 +545,7 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
 
-        task_then = task_factory1(True, 'test_data.txt', 42)
+        task_then = task_factory1(True, 'test_data.txt', '42')
         self.assertEqual(task_then.arguments, ['--test-data', 'test_data.txt', '--test-param1', '42'])
         
         task_else = task_factory1()

@@ -68,7 +68,7 @@ def wait_for_operation_done(ml_client, operation_name, action, wait_interval):
         ))
     return operation
 
-def wait_for_job_done(ml_client, project_id, job_id, wait_interval):
+def wait_for_job_done(ml_client, project_id, job_id, wait_interval, show_tensorboard=True):
     """Waits for a CMLE job done.
 
     Args:
@@ -76,6 +76,7 @@ def wait_for_job_done(ml_client, project_id, job_id, wait_interval):
         project_id: the ID of the project which has the job
         job_id: the ID of the job to wait
         wait_interval: the interval in seconds to wait between polls.
+        show_tensorboard: True to dump Tensorboard metadata.
 
     Returns:
         The completed job.
@@ -88,7 +89,7 @@ def wait_for_job_done(ml_client, project_id, job_id, wait_interval):
         job = ml_client.get_job(project_id, job_id)
         print(job)
         if not metadata_dumped:
-            _dump_job_metadata(project_id, job_id, job)
+            _dump_job_metadata(project_id, job_id, job, show_tensorboard=show_tensorboard)
             metadata_dumped = True
         if job.get('state', None) in ['SUCCEEDED', 'FAILED', 'CANCELLED']:
             break
@@ -104,7 +105,7 @@ def wait_for_job_done(ml_client, project_id, job_id, wait_interval):
             job['state'], job.get('errorMessage', '')))
     return job
 
-def _dump_job_metadata(project_id, job_id, job):
+def _dump_job_metadata(project_id, job_id, job, show_tensorboard=True):
     display.display(display.Link(
         'https://console.cloud.google.com/mlengine/jobs/{}?project={}'.format(
             job_id, project_id),
@@ -115,7 +116,7 @@ def _dump_job_metadata(project_id, job_id, job):
             project_id, job_id),
         'Logs'
     ))
-    if 'trainingInput' in job and 'jobDir' in job['trainingInput']:
+    if show_tensorboard and 'trainingInput' in job and 'jobDir' in job['trainingInput']:
         display.display(display.Tensorboard(
             job['trainingInput']['jobDir']))
 

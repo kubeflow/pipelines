@@ -104,15 +104,23 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
           <TableHead>
             <TableRow>
               {labels.map((label, i) => {
-                return <TableCell className={this._css.columnName} key={i}
-                  sortDirection={orderBy === i ? order : false}>
-                  <Tooltip title='Sort' enterDelay={300}>
-                    <TableSortLabel active={orderBy === i} direction={order}
-                      onClick={this._handleSort(i)}>
-                      {label}
-                    </TableSortLabel>
-                  </Tooltip>
-                </TableCell>;
+                return (
+                  <TableCell
+                    className={this._css.columnName}
+                    key={i}
+                    sortDirection={orderBy === i ? order : false}
+                  >
+                    <Tooltip title='Sort' enterDelay={300}>
+                      <TableSortLabel
+                        active={orderBy === i}
+                        direction={order}
+                        onClick={this._handleSort(i)}
+                      >
+                        {label}
+                      </TableSortLabel>
+                    </Tooltip>
+                  </TableCell>
+                );
               }, this)}
             </TableRow>
           </TableHead>
@@ -122,10 +130,15 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
             {this._stableSort(data)
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
               .map(row => {
-                return <TableRow hover={true} tabIndex={-1} key={row[0]} className={this._css.row}>
-                  {row.map((cell, i) =>
-                    <TableCell key={i} className={this._css.cell}>{cell}</TableCell>)}
-                </TableRow>;
+                return (
+                  <TableRow hover={true} tabIndex={-1} key={row[0]} className={this._css.row}>
+                    {row.map((cell, i) => (
+                      <TableCell key={i} className={this._css.cell}>
+                        {cell}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
               })}
             {emptyRows > 0 && (
               <TableRow style={{ height: this._rowHeight * emptyRows }}>
@@ -135,9 +148,14 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
           </TableBody>
         </Table>
 
-        <TablePagination component='div' count={data.length} rowsPerPage={rowsPerPage}
-          page={page} onChangePage={this._handleChangePage}
-          onChangeRowsPerPage={this._handleChangeRowsPerPage} />
+        <TablePagination
+          component='div'
+          count={data.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onChangePage={this._handleChangePage}
+          onChangeRowsPerPage={this._handleChangeRowsPerPage}
+        />
       </div>
     );
   }
@@ -180,7 +198,6 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
     return stabilizedThis.map((el: [string[], number]) => el[0]);
   }
 
-
   private _desc(a: string[], b: string[], orderBy: number): number {
     if (b[orderBy] < a[orderBy]) {
       return -1;
@@ -196,7 +213,6 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
       ? (a: any, b: any) => this._desc(a, b, orderBy)
       : (a: any, b: any) => -this._desc(a, b, orderBy);
   }
-
 }
 
 export default PagedTable;

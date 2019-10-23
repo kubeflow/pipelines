@@ -15,23 +15,13 @@
  */
 
 import * as React from 'react';
-import { mount, ReactWrapper } from 'enzyme';
+import { mount } from 'enzyme';
 import MarkdownViewer, { MarkdownViewerConfig } from './MarkdownViewer';
 import { PlotType } from './Viewer';
 
 describe('MarkdownViewer', () => {
-  let tree: ReactWrapper<any> | null;
-
-  afterEach(() => {
-    if (!tree) {
-      return;
-    }
-    tree.unmount();
-    tree = null;
-  });
-
   it('does not break on empty data', () => {
-    tree = mount(<MarkdownViewer configs={[]} />);
+    const tree = mount(<MarkdownViewer configs={[]} />).getDOMNode();
     expect(tree).toMatchSnapshot();
   });
 
@@ -42,7 +32,7 @@ describe('MarkdownViewer', () => {
       type: PlotType.MARKDOWN,
     };
 
-    tree = mount(<MarkdownViewer configs={[config]} />);
+    const tree = mount(<MarkdownViewer configs={[config]} />).getDOMNode();
     expect(tree).toMatchSnapshot();
   });
 
@@ -56,7 +46,7 @@ describe('MarkdownViewer', () => {
       type: PlotType.MARKDOWN,
     };
 
-    tree = mount(<MarkdownViewer configs={[config]} />);
+    const tree = mount(<MarkdownViewer configs={[config]} />).getDOMNode();
     expect(tree).toMatchSnapshot();
   });
 

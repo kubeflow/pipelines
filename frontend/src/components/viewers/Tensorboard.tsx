@@ -61,25 +61,38 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // incorrectly decoding the address and replacing the protocol's // with /.
     // Pod address (after stripping protocol) is of the format
     // <viewer_service_dns>.kubeflow.svc.cluster.local:6006/tensorboard/<viewer_name>/
-    // We use this pod address without encoding since encoded pod address failed to open the 
-    // tensorboard instance on this pod. 
+    // We use this pod address without encoding since encoded pod address failed to open the
+    // tensorboard instance on this pod.
     // TODO: figure out why the encoded pod address failed to open the tensorboard.
     const podAddress = this.state.podAddress.replace(/(^\w+:|^)\/\//, '');
 
-    return <div>
-      {this.state.podAddress && <div>
-        <div className={padding(20, 'b')}>Tensorboard is running for this output.</div>
-        <a href={'apis/v1beta1/_proxy/' + podAddress} target='_blank' className={commonCss.unstyled}>
-          <Button className={commonCss.buttonAction} disabled={this.state.busy}>Open Tensorboard</Button>
-        </a>
-      </div>}
+    return (
+      <div>
+        {this.state.podAddress && (
+          <div>
+            <div className={padding(20, 'b')}>Tensorboard is running for this output.</div>
+            <a
+              href={'apis/v1beta1/_proxy/' + podAddress}
+              target='_blank'
+              className={commonCss.unstyled}
+            >
+              <Button className={commonCss.buttonAction} disabled={this.state.busy}>
+                Open Tensorboard
+              </Button>
+            </a>
+          </div>
+        )}
 
-      {!this.state.podAddress &&
-        <BusyButton className={commonCss.buttonAction} onClick={this._startTensorboard.bind(this)}
-          busy={this.state.busy}
-          title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`} />
-      }
-    </div>;
+        {!this.state.podAddress && (
+          <BusyButton
+            className={commonCss.buttonAction}
+            onClick={this._startTensorboard.bind(this)}
+            busy={this.state.busy}
+            title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`}
+          />
+        )}
+      </div>
+    );
   }
 
   private _buildUrl(): string {
