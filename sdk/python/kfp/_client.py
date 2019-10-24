@@ -152,7 +152,7 @@ class Client(object):
 
   def _is_inverse_proxy_host(self, host):
     if host:
-      return re.match(r'\S+dot-datalab-vm\S+.googleusercontent.com/{0,1}$', host)
+      return re.match(r'\S+.googleusercontent.com/{0,1}$', host)
     return False
 
   def _is_ipython(self):
