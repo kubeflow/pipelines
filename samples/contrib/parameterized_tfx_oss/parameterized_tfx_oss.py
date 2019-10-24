@@ -53,7 +53,7 @@ _data_root_param = dsl.PipelineParam(
     value='gs://ml-pipeline-playground/tfx_taxi_simple/data')
 
 # Path of pipeline root, should be a GCS path.
-pipeline_root = os.path.join('gs://your-bucket', 'tfx_taxi_simple')
+pipeline_root = os.path.join('gs://your-bucket', 'tfx_taxi_simple', kfp.dsl.RUN_ID_PLACEHOLDER)
 
 def _create_test_pipeline(pipeline_root: Text, csv_input_location: Text,
     taxi_module_file: Text, enable_cache: bool):
