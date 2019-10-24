@@ -76,3 +76,16 @@ Possible reasons are:
 - the new Kubeflow Pipeline instance is under deployment
 
 Wait for a while and then refresh.
+
+### Access Kubeflow Pipelines UI got forbidden
+It's possible you can access [Console](https://console.cloud.google.com/ai-platform/pipelines/clusters)
+but can't `Open Pipelines Dashboard`. It gives you following message:
+
+> forbidden
+
+Reason:
+- Others created the cluster and deployed the instances for you.
+- You don't have corresponding permission to access it.
+
+Please ask admin to give your account `Project Editor` permission. It can be set
+from [IAM](https://console.cloud.google.com/iam-admin/iam).
