@@ -48,14 +48,18 @@ describe('Trigger', () => {
   it('renders week days if the trigger type is CRON and interval is weekly', () => {
     const tree = shallow(<Trigger />);
     (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-    (tree.instance() as Trigger).handleChange('intervalCategory')({ target: { value: PeriodicInterval.WEEK } });
+    (tree.instance() as Trigger).handleChange('intervalCategory')({
+      target: { value: PeriodicInterval.WEEK },
+    });
     expect(tree).toMatchSnapshot();
   });
 
   it('renders all week days enabled', () => {
     const tree = shallow(<Trigger />);
     (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-    (tree.instance() as Trigger).handleChange('intervalCategory')({ target: { value: PeriodicInterval.WEEK } });
+    (tree.instance() as Trigger).handleChange('intervalCategory')({
+      target: { value: PeriodicInterval.WEEK },
+    });
     (tree.instance() as any)._toggleCheckAllDays();
     expect(tree).toMatchSnapshot();
   });
@@ -63,7 +67,9 @@ describe('Trigger', () => {
   it('enables a single day on click', () => {
     const tree = shallow(<Trigger />);
     (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-    (tree.instance() as Trigger).handleChange('intervalCategory')({ target: { value: PeriodicInterval.WEEK } });
+    (tree.instance() as Trigger).handleChange('intervalCategory')({
+      target: { value: PeriodicInterval.WEEK },
+    });
     (tree.instance() as any)._toggleDay(1);
     (tree.instance() as any)._toggleDay(3);
     expect(tree).toMatchSnapshot();
@@ -73,29 +79,41 @@ describe('Trigger', () => {
     it('builds an every-minute trigger by default', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.INTERVALED } });
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
       expect(spy).toHaveBeenLastCalledWith(
-        { periodic_schedule: { end_time: undefined, interval_second: '60', start_time: undefined } },
-        '10'
+        {
+          periodic_schedule: { end_time: undefined, interval_second: '60', start_time: undefined },
+        },
+        '10',
       );
     });
 
     it('builds trigger with a start time if the checkbox is checked', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.INTERVALED } });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({ target: { type: 'checkbox', checked: true } });
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
+      (tree.instance() as Trigger).handleChange('hasStartDate')({
+        target: { type: 'checkbox', checked: true },
+      });
       expect(spy).toHaveBeenLastCalledWith(
         { periodic_schedule: { end_time: undefined, interval_second: '60', start_time: testDate } },
-        '10'
+        '10',
       );
     });
 
     it('builds trigger with the entered start date/time', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.INTERVALED } });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({ target: { type: 'checkbox', checked: true } });
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
+      (tree.instance() as Trigger).handleChange('hasStartDate')({
+        target: { type: 'checkbox', checked: true },
+      });
       (tree.instance() as Trigger).handleChange('startDate')({ target: { value: '2018-11-23' } });
       (tree.instance() as Trigger).handleChange('endTime')({ target: { value: '08:35' } });
       expect(spy).toHaveBeenLastCalledWith(
@@ -103,18 +121,22 @@ describe('Trigger', () => {
           periodic_schedule: {
             end_time: undefined,
             interval_second: '60',
-            start_time: new Date(2018, 10, 23, 8, 35)
-          }
+            start_time: new Date(2018, 10, 23, 8, 35),
+          },
         },
-        '10'
+        '10',
       );
     });
 
     it('builds trigger without the entered start date if no time is entered', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.INTERVALED } });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({ target: { type: 'checkbox', checked: true } });
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
+      (tree.instance() as Trigger).handleChange('hasStartDate')({
+        target: { type: 'checkbox', checked: true },
+      });
       (tree.instance() as Trigger).handleChange('startDate')({ target: { value: '2018-11-23' } });
       (tree.instance() as Trigger).handleChange('startTime')({ target: { value: '' } });
       expect(spy).toHaveBeenLastCalledWith(
@@ -123,17 +145,21 @@ describe('Trigger', () => {
             end_time: undefined,
             interval_second: '60',
             start_time: undefined,
-          }
+          },
         },
-        '10'
+        '10',
       );
     });
 
     it('builds trigger without the entered start time if no date is entered', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.INTERVALED } });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({ target: { type: 'checkbox', checked: true } });
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
+      (tree.instance() as Trigger).handleChange('hasStartDate')({
+        target: { type: 'checkbox', checked: true },
+      });
       (tree.instance() as Trigger).handleChange('startDate')({ target: { value: '' } });
       (tree.instance() as Trigger).handleChange('startTime')({ target: { value: '11:33' } });
       expect(spy).toHaveBeenLastCalledWith(
@@ -142,88 +168,109 @@ describe('Trigger', () => {
             end_time: undefined,
             interval_second: '60',
             start_time: undefined,
-          }
+          },
         },
-        '10'
+        '10',
       );
     });
 
     it('builds trigger with a date if both start and end checkboxes are checked', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.INTERVALED } });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({ target: { type: 'checkbox', checked: true } });
-      (tree.instance() as Trigger).handleChange('hasEndDate')({ target: { type: 'checkbox', checked: true } });
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
+      (tree.instance() as Trigger).handleChange('hasStartDate')({
+        target: { type: 'checkbox', checked: true },
+      });
+      (tree.instance() as Trigger).handleChange('hasEndDate')({
+        target: { type: 'checkbox', checked: true },
+      });
       expect(spy).toHaveBeenLastCalledWith(
         { periodic_schedule: { end_time: testDate, interval_second: '60', start_time: testDate } },
-        '10'
+        '10',
       );
     });
 
     it('resets trigger to no start date if it is added then removed', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.INTERVALED } });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({ target: { type: 'checkbox', checked: true } });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({ target: { type: 'checkbox', checked: false } });
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
+      (tree.instance() as Trigger).handleChange('hasStartDate')({
+        target: { type: 'checkbox', checked: true },
+      });
+      (tree.instance() as Trigger).handleChange('hasStartDate')({
+        target: { type: 'checkbox', checked: false },
+      });
       expect(spy).toHaveBeenLastCalledWith(
-        { periodic_schedule: { end_time: undefined, interval_second: '60', start_time: undefined } },
-        '10'
+        {
+          periodic_schedule: { end_time: undefined, interval_second: '60', start_time: undefined },
+        },
+        '10',
       );
     });
 
     it('builds trigger with a weekly interval', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.INTERVALED } });
-      (tree.instance() as Trigger).handleChange('intervalCategory')({ target: { value: PeriodicInterval.WEEK } });
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
+      (tree.instance() as Trigger).handleChange('intervalCategory')({
+        target: { value: PeriodicInterval.WEEK },
+      });
       expect(spy).toHaveBeenLastCalledWith(
         {
-          periodic_schedule:
-          {
+          periodic_schedule: {
             end_time: undefined,
             interval_second: (7 * 24 * 60 * 60).toString(),
-            start_time: undefined
-          }
+            start_time: undefined,
+          },
         },
-        '10'
+        '10',
       );
     });
 
     it('builds trigger with an every-three-months interval', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.INTERVALED } });
-      (tree.instance() as Trigger).handleChange('intervalCategory')({ target: { value: PeriodicInterval.MONTH } });
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
+      (tree.instance() as Trigger).handleChange('intervalCategory')({
+        target: { value: PeriodicInterval.MONTH },
+      });
       (tree.instance() as Trigger).handleChange('intervalValue')({ target: { value: 3 } });
       expect(spy).toHaveBeenLastCalledWith(
         {
-          periodic_schedule:
-          {
+          periodic_schedule: {
             end_time: undefined,
             interval_second: (3 * 30 * 24 * 60 * 60).toString(),
-            start_time: undefined
-          }
+            start_time: undefined,
+          },
         },
-        '10'
+        '10',
       );
     });
 
     it('builds trigger with the specified max concurrency setting', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.INTERVALED } });
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
       (tree.instance() as Trigger).handleChange('maxConcurrentRuns')({ target: { value: '3' } });
       expect(spy).toHaveBeenLastCalledWith(
         {
-          periodic_schedule:
-          {
+          periodic_schedule: {
             end_time: undefined,
             interval_second: '60',
-            start_time: undefined
-          }
+            start_time: undefined,
+          },
         },
-        '3'
+        '3',
       );
     });
   });
@@ -235,7 +282,7 @@ describe('Trigger', () => {
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
       expect(spy).toHaveBeenLastCalledWith(
         { cron_schedule: { cron: '0 * * * * ?', end_time: undefined, start_time: undefined } },
-        '10'
+        '10',
       );
     });
 
@@ -243,11 +290,13 @@ describe('Trigger', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({ target: { type: 'checkbox', checked: true } });
+      (tree.instance() as Trigger).handleChange('hasStartDate')({
+        target: { type: 'checkbox', checked: true },
+      });
       (tree.instance() as Trigger).handleChange('startDate')({ target: { value: '2018-03-23' } });
       expect(spy).toHaveBeenLastCalledWith(
         { cron_schedule: { cron: '0 * * * * ?', end_time: undefined, start_time: testDate } },
-        '10'
+        '10',
       );
     });
 
@@ -255,11 +304,15 @@ describe('Trigger', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-      (tree.instance() as Trigger).handleChange('hasEndDate')({ target: { type: 'checkbox', checked: true } });
-      (tree.instance() as Trigger).handleChange('intervalCategory')({ target: { value: PeriodicInterval.DAY } });
+      (tree.instance() as Trigger).handleChange('hasEndDate')({
+        target: { type: 'checkbox', checked: true },
+      });
+      (tree.instance() as Trigger).handleChange('intervalCategory')({
+        target: { value: PeriodicInterval.DAY },
+      });
       expect(spy).toHaveBeenLastCalledWith(
         { cron_schedule: { cron: '0 0 0 * * ?', end_time: testDate, start_time: undefined } },
-        '10'
+        '10',
       );
     });
 
@@ -267,14 +320,16 @@ describe('Trigger', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-      (tree.instance() as Trigger).handleChange('intervalCategory')({ target: { value: PeriodicInterval.WEEK } });
+      (tree.instance() as Trigger).handleChange('intervalCategory')({
+        target: { value: PeriodicInterval.WEEK },
+      });
       (tree.instance() as any)._toggleCheckAllDays();
       (tree.instance() as any)._toggleDay(1);
       (tree.instance() as any)._toggleDay(5);
       (tree.instance() as any)._toggleDay(6);
       expect(spy).toHaveBeenLastCalledWith(
         { cron_schedule: { cron: '0 0 0 ? * 1,5,6', end_time: undefined, start_time: undefined } },
-        '10'
+        '10',
       );
     });
 
@@ -282,16 +337,28 @@ describe('Trigger', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-      (tree.instance() as Trigger).handleChange('intervalCategory')({ target: { value: PeriodicInterval.WEEK } });
+      (tree.instance() as Trigger).handleChange('intervalCategory')({
+        target: { value: PeriodicInterval.WEEK },
+      });
       (tree.instance() as any)._toggleCheckAllDays();
       (tree.instance() as any)._toggleDay(1);
       (tree.instance() as any)._toggleDay(5);
       (tree.instance() as any)._toggleDay(6);
-      (tree.instance() as Trigger).handleChange('editCron')({ target: { type: 'checkbox', checked: true } });
-      (tree.instance() as Trigger).handleChange('cron')({ target: { value: 'oops this will break!' } });
+      (tree.instance() as Trigger).handleChange('editCron')({
+        target: { type: 'checkbox', checked: true },
+      });
+      (tree.instance() as Trigger).handleChange('cron')({
+        target: { value: 'oops this will break!' },
+      });
       expect(spy).toHaveBeenLastCalledWith(
-        { cron_schedule: { cron: 'oops this will break!', end_time: undefined, start_time: undefined } },
-        '10'
+        {
+          cron_schedule: {
+            cron: 'oops this will break!',
+            end_time: undefined,
+            start_time: undefined,
+          },
+        },
+        '10',
       );
     });
   });

@@ -43,6 +43,7 @@ export interface ResourceSelectorProps extends RouteComponentProps {
   initialSortColumn: any;
   selectionChanged: (resource: BaseResource) => void;
   title: string;
+  toolbarActionMap?: ToolbarActionMap;
   updateDialog: (dialogProps: DialogProps) => void;
 }
 
@@ -63,21 +64,28 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
       resources: [],
       rows: [],
       selectedIds: [],
-      toolbarActionMap: {},
+      toolbarActionMap: (props && props.toolbarActionMap) || {},
     };
   }
 
   public render(): JSX.Element {
-    const { rows, selectedIds, toolbarActionMap: toolbarActions } = this.state;
+    const { rows, selectedIds, toolbarActionMap } = this.state;
     const { columns, title, filterLabel, emptyMessage, initialSortColumn } = this.props;
 
     return (
       <React.Fragment>
-        <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle={title} />
-        <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
-          updateSelection={this._selectionChanged.bind(this)} filterLabel={filterLabel}
-          initialSortColumn={initialSortColumn} reload={this._load.bind(this)}
-          emptyMessage={emptyMessage} />
+        <Toolbar actions={toolbarActionMap} breadcrumbs={[]} pageTitle={title} />
+        <CustomTable
+          columns={columns}
+          rows={rows}
+          selectedIds={selectedIds}
+          useRadioButtons={true}
+          updateSelection={this._selectionChanged.bind(this)}
+          filterLabel={filterLabel}
+          initialSortColumn={initialSortColumn}
+          reload={this._load.bind(this)}
+          emptyMessage={emptyMessage}
+        />
       </React.Fragment>
     );
   }
@@ -110,12 +118,16 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
   protected async _load(request: ListRequest): Promise<string> {
     let nextPageToken = '';
     try {
-      const response =
-        await this.props.listApi(request.pageToken, request.pageSize, request.sortBy, request.filter);
+      const response = await this.props.listApi(
+        request.pageToken,
+        request.pageSize,
+        request.sortBy,
+        request.filter,
+      );
 
       this.setStateSafe({
         resources: response.resources,
-        rows: this._resourcesToRow(response.resources)
+        rows: this._resourcesToRow(response.resources),
       });
 
       nextPageToken = response.nextPageToken;
@@ -132,17 +144,15 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
   }
 
   protected _resourcesToRow(resources: BaseResource[]): Row[] {
-    return resources.map((r) => ({
-      error: (r as any).error,
-      id: r.id!,
-      otherFields: [
-        r.name,
-        r.description,
-        formatDateString(r.created_at),
-      ],
-    } as Row));
+    return resources.map(
+      r =>
+        ({
+          error: (r as any).error,
+          id: r.id!,
+          otherFields: [r.name, r.description, formatDateString(r.created_at)],
+        } as Row),
+    );
   }
 }
 
 export default ResourceSelector;
-

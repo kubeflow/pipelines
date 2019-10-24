@@ -29,7 +29,7 @@ dsl.ParallelFor._get_unique_id_code = Coder().get_code
 
 
 @dsl.pipeline(name='my-pipeline')
-def pipeline(loopidy_doop=[3, 5, 7, 9]):
+def pipeline(loopidy_doop: list = [3, 5, 7, 9]):
     op0 = dsl.ContainerOp(
         name="my-out-cop0",
         image='python:alpine3.6',

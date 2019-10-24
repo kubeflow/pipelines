@@ -109,8 +109,9 @@ describe('URLParser', () => {
   });
 
   it('can build a search string', () => {
-    expect(new URLParser(routerProps).build({ key1: 'value1', key2: 'value2' }))
-      .toEqual('?key1=value1&key2=value2');
+    expect(new URLParser(routerProps).build({ key1: 'value1', key2: 'value2' })).toEqual(
+      '?key1=value1&key2=value2',
+    );
   });
 
   it('returns empty query string when given an empty object or no object', () => {

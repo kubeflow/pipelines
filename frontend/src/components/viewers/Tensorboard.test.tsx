@@ -87,7 +87,8 @@ describe('Tensorboard', () => {
     expect(getAppMock).toHaveBeenCalledWith(`Series1:${config.url},Series2:${config2.url}`);
     tree.find('BusyButton').simulate('click');
     await startAppMock;
-    const expectedUrl = `Series1${encodeURIComponent(':' + config.url)}` +
+    const expectedUrl =
+      `Series1${encodeURIComponent(':' + config.url)}` +
       `${encodeURIComponent(',')}` +
       `Series2${encodeURIComponent(':' + config2.url)}`;
     expect(startAppMock).toHaveBeenCalledWith(expectedUrl);

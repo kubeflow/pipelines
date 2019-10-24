@@ -31,7 +31,7 @@ export interface PlotMetadata {
   header?: string[];
   labels?: string[];
   predicted_col?: string;
-  schema?: Array<{ type: string, name: string }>;
+  schema?: Array<{ type: string; name: string }>;
   source: string;
   storage?: 'gcs' | 'inline';
   target_col?: string;
@@ -43,7 +43,6 @@ export interface OutputMetadata {
 }
 
 export class OutputArtifactLoader {
-
   public static async load(outputPath: StoragePath): Promise<ViewerConfig[]> {
     let plotMetadataList: PlotMetadata[] = [];
     try {
@@ -68,29 +67,31 @@ export class OutputArtifactLoader {
     const configs: Array<ViewerConfig | null> = await Promise.all(
       plotMetadataList.map(async metadata => {
         switch (metadata.type) {
-          case (PlotType.CONFUSION_MATRIX):
+          case PlotType.CONFUSION_MATRIX:
             return await this.buildConfusionMatrixConfig(metadata);
-          case (PlotType.MARKDOWN):
+          case PlotType.MARKDOWN:
             return await this.buildMarkdownViewerConfig(metadata);
-          case (PlotType.TABLE):
+          case PlotType.TABLE:
             return await this.buildPagedTableConfig(metadata);
-          case (PlotType.TENSORBOARD):
+          case PlotType.TENSORBOARD:
             return await this.buildTensorboardConfig(metadata);
-          case (PlotType.WEB_APP):
+          case PlotType.WEB_APP:
             return await this.buildHtmlViewerConfig(metadata);
-          case (PlotType.ROC):
+          case PlotType.ROC:
             return await this.buildRocCurveConfig(metadata);
           default:
             logger.error('Unknown plot type: ' + metadata.type);
             return null;
         }
-      })
+      }),
     );
 
     return configs.filter(c => !!c) as ViewerConfig[];
   }
 
-  public static async buildConfusionMatrixConfig(metadata: PlotMetadata): Promise<ConfusionMatrixConfig> {
+  public static async buildConfusionMatrixConfig(
+    metadata: PlotMetadata,
+  ): Promise<ConfusionMatrixConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -109,13 +110,14 @@ export class OutputArtifactLoader {
     const labels = metadata.labels;
     const labelIndex: { [label: string]: number } = {};
     let index = 0;
-    labels.forEach((l) => {
+    labels.forEach(l => {
       labelIndex[l] = index++;
     });
 
     if (labels.length ** 2 !== csvRows.length) {
       throw new Error(
-        `Data dimensions ${csvRows.length} do not match the number of labels passed ${labels.length}`);
+        `Data dimensions ${csvRows.length} do not match the number of labels passed ${labels.length}`,
+      );
     }
 
     const data = Array.from(Array(labels.length), () => new Array(labels.length));
@@ -125,7 +127,7 @@ export class OutputArtifactLoader {
       data[i][j] = Number.parseInt(count, 10);
     });
 
-    const columnNames = metadata.schema.map((r) => {
+    const columnNames = metadata.schema.map(r => {
       if (!r.name) {
         throw new Error('Each item in the "schema" array must contain a "name" field');
       }
@@ -170,7 +172,9 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildTensorboardConfig(metadata: PlotMetadata): Promise<TensorboardViewerConfig> {
+  public static async buildTensorboardConfig(
+    metadata: PlotMetadata,
+  ): Promise<TensorboardViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -194,7 +198,9 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildMarkdownViewerConfig(metadata: PlotMetadata): Promise<MarkdownViewerConfig> {
+  public static async buildMarkdownViewerConfig(
+    metadata: PlotMetadata,
+  ): Promise<MarkdownViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }

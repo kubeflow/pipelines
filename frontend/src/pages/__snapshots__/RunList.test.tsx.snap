@@ -2011,6 +2011,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 "width": "25%",
               }
             }
+            title="Run name"
           >
             <WithStyles(Tooltip)
               enterDelay={300}
@@ -2596,6 +2597,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 "width": "8.333333333333332%",
               }
             }
+            title="Status"
           >
             <WithStyles(Tooltip)
               enterDelay={300}
@@ -3180,6 +3182,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 "width": "8.333333333333332%",
               }
             }
+            title="Duration"
           >
             <WithStyles(Tooltip)
               enterDelay={300}
@@ -3764,6 +3767,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 "width": "16.666666666666664%",
               }
             }
+            title="Experiment"
           >
             <WithStyles(Tooltip)
               enterDelay={300}
@@ -4348,6 +4352,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 "width": "16.666666666666664%",
               }
             }
+            title="Pipeline"
           >
             <WithStyles(Tooltip)
               enterDelay={300}
@@ -4932,6 +4937,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 "width": "8.333333333333332%",
               }
             }
+            title="Recurring Run"
           >
             <WithStyles(Tooltip)
               enterDelay={300}
@@ -5516,6 +5522,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 "width": "16.666666666666664%",
               }
             }
+            title="Start time"
           >
             <WithStyles(Tooltip)
               enterDelay={300}
