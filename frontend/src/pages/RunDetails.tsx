@@ -367,12 +367,15 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                     )}
                                     {!this.state.logsBannerMessage &&
                                       this.state.selectedNodeDetails && (
-                                        <LogViewer
-                                          logLines={(
-                                            this.state.selectedNodeDetails.logs || ''
-                                          ).split('\n')}
-                                          classes={commonCss.page}
-                                        />
+                                        // Overflow hidden here, because scroll is handled inside
+                                        // LogViewer.
+                                        <div className={commonCss.pageOverflowHidden}>
+                                          <LogViewer
+                                            logLines={(
+                                              this.state.selectedNodeDetails.logs || ''
+                                            ).split('\n')}
+                                          />
+                                        </div>
                                       )}
                                   </div>
                                 )}
