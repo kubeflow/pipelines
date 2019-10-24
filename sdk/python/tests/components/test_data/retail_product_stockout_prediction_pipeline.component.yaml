@@ -41,11 +41,14 @@ implementation:
           url: https://raw.githubusercontent.com/kubeflow/pipelines/b3179d86b239a08bf4884b50dbf3a9151da96d66/components/gcp/automl/create_dataset_for_tables/component.yaml
         arguments:
           gcp_project_id:
-            graphInput: gcp_project_id
+            graphInput:
+              inputName: gcp_project_id
           gcp_region:
-            graphInput: gcp_region
+            graphInput:
+              inputName: gcp_region
           display_name:
-            graphInput: dataset_display_name
+            graphInput:
+              inputName: dataset_display_name
       Automl import data from bigquery:
         componentRef:
           url: https://raw.githubusercontent.com/kubeflow/pipelines/b3179d86b239a08bf4884b50dbf3a9151da96d66/components/gcp/automl/import_data_from_bigquery/component.yaml
@@ -56,7 +59,8 @@ implementation:
               taskId: Automl create dataset for tables
               type: String
           input_uri:
-            graphInput: dataset_bq_input_uri
+            graphInput:
+              inputName: dataset_bq_input_uri
       Automl split dataset table column names:
         componentRef:
           url: https://raw.githubusercontent.com/kubeflow/pipelines/b3179d86b239a08bf4884b50dbf3a9151da96d66/components/gcp/automl/split_dataset_table_column_names/component.yaml
@@ -67,18 +71,22 @@ implementation:
               taskId: Automl import data from bigquery
               type: String
           target_column_name:
-            graphInput: target_column_name
+            graphInput:
+              inputName: target_column_name
           table_index: '0'
       Automl create model for tables:
         componentRef:
           url: https://raw.githubusercontent.com/kubeflow/pipelines/b3179d86b239a08bf4884b50dbf3a9151da96d66/components/gcp/automl/create_model_for_tables/component.yaml
         arguments:
           gcp_project_id:
-            graphInput: gcp_project_id
+            graphInput:
+              inputName: gcp_project_id
           gcp_region:
-            graphInput: gcp_region
+            graphInput:
+              inputName: gcp_region
           display_name:
-            graphInput: model_display_name
+            graphInput:
+              inputName: model_display_name
           dataset_id:
             taskOutput:
               outputName: dataset_path
@@ -96,7 +104,8 @@ implementation:
               type: JsonArray
           optimization_objective: MAXIMIZE_AU_PRC
           train_budget_milli_node_hours:
-            graphInput: train_budget_milli_node_hours
+            graphInput:
+              inputName: train_budget_milli_node_hours
       Automl prediction service batch predict:
         componentRef:
           url: https://raw.githubusercontent.com/kubeflow/pipelines/b3179d86b239a08bf4884b50dbf3a9151da96d66/components/gcp/automl/prediction_service_batch_predict/component.yaml
@@ -107,9 +116,11 @@ implementation:
               taskId: Automl create model for tables
               type: String
           gcs_output_uri_prefix:
-            graphInput: batch_predict_gcs_output_uri_prefix
+            graphInput:
+              inputName: batch_predict_gcs_output_uri_prefix
           bq_input_uri:
-            graphInput: batch_predict_bq_input_uri
+            graphInput:
+              inputName: batch_predict_bq_input_uri
     outputValues:
       model_path:
         taskOutput:
