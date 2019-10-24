@@ -577,14 +577,17 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
                 <div
                   className="page"
                 >
-                  <LogViewer
-                    classes="page"
-                    logLines={
-                      Array [
-                        "",
-                      ]
-                    }
-                  />
+                  <div
+                    className="pageOverflowHidden"
+                  >
+                    <LogViewer
+                      logLines={
+                        Array [
+                          "",
+                        ]
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -688,14 +691,17 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
                 <div
                   className="page"
                 >
-                  <LogViewer
-                    classes="page"
-                    logLines={
-                      Array [
-                        "new test logs",
-                      ]
-                    }
-                  />
+                  <div
+                    className="pageOverflowHidden"
+                  >
+                    <LogViewer
+                      logLines={
+                        Array [
+                          "new test logs",
+                        ]
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -799,14 +805,17 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
                 <div
                   className="page"
                 >
-                  <LogViewer
-                    classes="page"
-                    logLines={
-                      Array [
-                        "test logs",
-                      ]
-                    }
-                  />
+                  <div
+                    className="pageOverflowHidden"
+                  >
+                    <LogViewer
+                      logLines={
+                        Array [
+                          "test logs",
+                        ]
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1260,14 +1269,17 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
                 <div
                   className="page"
                 >
-                  <LogViewer
-                    classes="page"
-                    logLines={
-                      Array [
-                        "",
-                      ]
-                    }
-                  />
+                  <div
+                    className="pageOverflowHidden"
+                  >
+                    <LogViewer
+                      logLines={
+                        Array [
+                          "",
+                        ]
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             </div>

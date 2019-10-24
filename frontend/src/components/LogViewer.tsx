@@ -48,17 +48,26 @@ const css = stylesheet({
     userSelect: 'none',
   },
   root: {
+    // We cannot easily add padding here without breaking react-virtualized size calculation, for
+    // details: https://github.com/bvaughn/react-virtualized/issues/992
+    // Specifically, a complex solution was proposed in https://github.com/bvaughn/react-virtualized/issues/992#issuecomment-371145943.
+    // We may consider that later.
     backgroundColor: '#222',
     color: '#fff',
     fontFamily: fonts.code,
     fontSize: fontsize.small,
-    padding: '10px 0',
+    // This override and listContainerStyleOverride workarounds to allow horizontal scroll.
+    // Reference: https://github.com/bvaughn/react-virtualized/issues/1248
+    overflow: 'auto !important',
     whiteSpace: 'pre',
   },
 });
 
+const listContainerStyleOverride = {
+  overflow: 'visible',
+};
+
 interface LogViewerProps {
-  classes?: string;
   logLines: string[];
 }
 
@@ -117,6 +126,7 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
         {({ height, width }) => (
           <List
             id='logViewer'
+            containerStyle={listContainerStyleOverride}
             width={width}
             height={height}
             rowCount={this.props.logLines.length}
