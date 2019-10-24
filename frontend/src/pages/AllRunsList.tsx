@@ -28,7 +28,6 @@ interface AllRunsListState {
 }
 
 class AllRunsList extends Page<{}, AllRunsListState> {
-
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
@@ -47,11 +46,9 @@ class AllRunsList extends Page<{}, AllRunsListState> {
         .newExperiment()
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)
-        .archive(
-            () => this.state.selectedIds,
-            false,
-            selectedIds => this._selectionChanged(selectedIds),
-          )
+        .archive(() => this.state.selectedIds, false, selectedIds =>
+          this._selectionChanged(selectedIds),
+        )
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
@@ -60,11 +57,18 @@ class AllRunsList extends Page<{}, AllRunsListState> {
   }
 
   public render(): JSX.Element {
-    return <div className={classes(commonCss.page, padding(20, 'lr'))}>
-      <RunList onError={this.showPageError.bind(this)} selectedIds={this.state.selectedIds}
-        onSelectionChange={this._selectionChanged.bind(this)} ref={this._runlistRef}
-        storageState={RunStorageState.AVAILABLE} {...this.props} />
-    </div>;
+    return (
+      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+        <RunList
+          onError={this.showPageError.bind(this)}
+          selectedIds={this.state.selectedIds}
+          onSelectionChange={this._selectionChanged.bind(this)}
+          ref={this._runlistRef}
+          storageState={RunStorageState.AVAILABLE}
+          {...this.props}
+        />
+      </div>
+    );
   }
 
   public async refresh(): Promise<void> {
@@ -77,10 +81,14 @@ class AllRunsList extends Page<{}, AllRunsListState> {
 
   private _selectionChanged(selectedIds: string[]): void {
     const toolbarActions = this.props.toolbarProps.actions;
-    toolbarActions[ButtonKeys.COMPARE].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
+    toolbarActions[ButtonKeys.COMPARE].disabled =
+      selectedIds.length <= 1 || selectedIds.length > 10;
     toolbarActions[ButtonKeys.CLONE_RUN].disabled = selectedIds.length !== 1;
     toolbarActions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
-    this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
+    this.props.updateToolbar({
+      actions: toolbarActions,
+      breadcrumbs: this.props.toolbarProps.breadcrumbs,
+    });
     this.setState({ selectedIds });
   }
 }

@@ -42,11 +42,7 @@ export default class Archive extends Page<{}, ArchiveState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .restore(
-          () => this.state.selectedIds,
-          false,
-          this._selectionChanged.bind(this),
-        )
+        .restore(() => this.state.selectedIds, false, this._selectionChanged.bind(this))
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
@@ -55,11 +51,18 @@ export default class Archive extends Page<{}, ArchiveState> {
   }
 
   public render(): JSX.Element {
-    return <div className={classes(commonCss.page, padding(20, 'lr'))}>
-      <RunList onError={this.showPageError.bind(this)} selectedIds={this.state.selectedIds}
-        onSelectionChange={this._selectionChanged.bind(this)} ref={this._runlistRef}
-        storageState={RunStorageState.ARCHIVED} {...this.props} />
-    </div>;
+    return (
+      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+        <RunList
+          onError={this.showPageError.bind(this)}
+          selectedIds={this.state.selectedIds}
+          onSelectionChange={this._selectionChanged.bind(this)}
+          ref={this._runlistRef}
+          storageState={RunStorageState.ARCHIVED}
+          {...this.props}
+        />
+      </div>
+    );
   }
 
   public async refresh(): Promise<void> {
@@ -73,7 +76,10 @@ export default class Archive extends Page<{}, ArchiveState> {
   private _selectionChanged(selectedIds: string[]): void {
     const toolbarActions = this.props.toolbarProps.actions;
     toolbarActions[ButtonKeys.RESTORE].disabled = !selectedIds.length;
-    this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
+    this.props.updateToolbar({
+      actions: toolbarActions,
+      breadcrumbs: this.props.toolbarProps.breadcrumbs,
+    });
     this.setState({ selectedIds });
   }
 }

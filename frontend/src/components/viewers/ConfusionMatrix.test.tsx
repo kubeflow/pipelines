@@ -25,11 +25,7 @@ describe('ConfusionMatrix', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  const data = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-  ];
+  const data = [[0, 1, 2], [3, 4, 5], [6, 7, 8]];
   const config: ConfusionMatrixConfig = {
     axes: ['test x axis', 'test y axis'],
     data,
@@ -42,7 +38,7 @@ describe('ConfusionMatrix', () => {
   });
 
   it('does not break on asymetric data', () => {
-    const testConfig = {...config};
+    const testConfig = { ...config };
     testConfig.data = data.slice(1);
     const tree = shallow(<ConfusionMatrix configs={[testConfig]} />);
     expect(tree).toMatchSnapshot();
@@ -60,7 +56,10 @@ describe('ConfusionMatrix', () => {
 
   it('activates row/column on cell hover', () => {
     const tree = shallow(<ConfusionMatrix configs={[config]} />);
-    tree.find('td').at(2).simulate('mouseOver');
+    tree
+      .find('td')
+      .at(2)
+      .simulate('mouseOver');
     expect(tree.state()).toHaveProperty('activeCell', [0, 0]);
   });
 

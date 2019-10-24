@@ -22,7 +22,7 @@ from collections import OrderedDict
 from typing import Callable
 
 from . import _components
-from ._structures import TaskSpec, ComponentSpec, OutputSpec, GraphInputArgument, TaskOutputArgument, GraphImplementation, GraphSpec
+from ._structures import TaskSpec, ComponentSpec, OutputSpec, GraphInputReference, TaskOutputArgument, GraphImplementation, GraphSpec
 from ._naming import _make_name_unique_by_adding_index
 from ._python_op import _extract_component_interface
 
@@ -90,7 +90,7 @@ def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable, embe
 
     # Preparing the pipeline_func arguments
     # TODO: The key should be original parameter name if different
-    pipeline_func_args = {input.name: GraphInputArgument(input_name=input.name) for input in input_specs}
+    pipeline_func_args = {input.name: GraphInputReference(input_name=input.name).as_argument() for input in input_specs}
 
     try:
         #Setting the handler to fix and catch the tasks.
