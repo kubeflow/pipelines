@@ -141,7 +141,8 @@ if __name__ == '__main__':
       enable_cache=enable_cache)
 
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
-      kubeflow_metadata_config=_get_kubeflow_metadata_config())
+      kubeflow_metadata_config=_get_kubeflow_metadata_config(),
+      tfx_image='gcr.io/ml-pipeline/patched-tfx:0.1.32')
 
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(config=config)
   # Make sure kfp_runner recognizes those parameters.
