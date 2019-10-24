@@ -19,7 +19,7 @@ from pathlib import Path
 
 
 import kfp.components as comp
-from kfp.components._structures import ComponentReference, ComponentSpec, ContainerSpec, GraphInputArgument, GraphSpec, InputSpec, InputValuePlaceholder, GraphImplementation, OutputPathPlaceholder, OutputSpec, TaskOutputArgument, TaskSpec
+from kfp.components._structures import ComponentReference, ComponentSpec, ContainerSpec, GraphInputReference, GraphSpec, InputSpec, InputValuePlaceholder, GraphImplementation, OutputPathPlaceholder, OutputSpec, TaskOutputArgument, TaskSpec
 
 from kfp.components._yaml_utils import load_yaml
 
@@ -27,7 +27,7 @@ class GraphComponentTestCase(unittest.TestCase):
     def test_handle_constructing_graph_component(self):
         task1 = TaskSpec(component_ref=ComponentReference(name='comp 1'), arguments={'in1 1': 11})
         task2 = TaskSpec(component_ref=ComponentReference(name='comp 2'), arguments={'in2 1': 21, 'in2 2': TaskOutputArgument.construct(task_id='task 1', output_name='out1 1')})
-        task3 = TaskSpec(component_ref=ComponentReference(name='comp 3'), arguments={'in3 1': TaskOutputArgument.construct(task_id='task 2', output_name='out2 1'), 'in3 2': GraphInputArgument(input_name='graph in 1')})
+        task3 = TaskSpec(component_ref=ComponentReference(name='comp 3'), arguments={'in3 1': TaskOutputArgument.construct(task_id='task 2', output_name='out2 1'), 'in3 2': GraphInputReference(input_name='graph in 1').as_argument()})
 
         graph_component1 = ComponentSpec(
             inputs=[
@@ -75,7 +75,7 @@ implementation:
         componentRef: {name: Comp 3}
         arguments:
             in3 1: {taskOutput: {taskId: task 2, outputName: out2 1}}
-            in3 2: {graphInput: graph in 1}
+            in3 2: {graphInput: {inputName: graph in 1}}
     outputValues:
       graph out 1: {taskOutput: {taskId: task 3, outputName: out3 1}}
       graph out 2: {taskOutput: {taskId: task 1, outputName: out1 2}}
@@ -231,11 +231,11 @@ implementation:
                 command: [sh, -c, 'cat "$0" "$1" > $2', {inputValue: in3_1}, {inputValue: in3_2}, {outputPath: out3_1}]
         arguments:
             in3_1: {taskOutput: {taskId: task 2, outputName: out2_1}}
-            in3_2: {graphInput: graph in 1}
+            in3_2: {graphInput: {inputName: graph in 1}}
     outputValues:
       graph out 1: {taskOutput: {taskId: task 3, outputName: out3_1}}
       graph out 2: {taskOutput: {taskId: task 1, outputName: out1_2}}
-      graph out 3: {graphInput: graph in 2}
+      graph out 3: {graphInput: {inputName: graph in 2}}
       graph out 4: '42'
 '''
         op = comp.load_component_from_text(component_text)
@@ -311,17 +311,17 @@ implementation:
                             image: busybox
                             command: [sh, -c, 'cat "$0" "$1" > $2', {inputValue: in3_1}, {inputValue: in3_2}, {outputPath: out3_1}]
                     arguments:
-                      in3_1: {graphInput: in3_1}
-                      in3_2: {graphInput: in3_1}
+                      in3_1: {graphInput: {inputName: in3_1}}
+                      in3_2: {graphInput: {inputName: in3_1}}
                 outputValues:
                   out3_1: {taskOutput: {taskId: graph subtask, outputName: out3_1}}
         arguments:
           in3_1: {taskOutput: {taskId: task 2, outputName: out2_1}}
-          in3_2: {graphInput: graph in 1}
+          in3_2: {graphInput: {inputName: graph in 1}}
     outputValues:
       graph out 1: {taskOutput: {taskId: task 3, outputName: out3_1}}
       graph out 2: {taskOutput: {taskId: task 1, outputName: out1_2}}
-      graph out 3: {graphInput: graph in 2}
+      graph out 3: {graphInput: {inputName: graph in 2}}
       graph out 4: '42'
 '''
         op = comp.load_component_from_text(component_text)
