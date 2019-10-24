@@ -9,11 +9,13 @@ This sample demonstrates how to author a ML pipeline in TFX and run it on a KFP 
 Please refer to inline comments for the purpose of each step.
 
 In order to successfully compile this sample, you'll need to have a TFX installation at HEAD.
-First, you can clone their repo and
-then point the version tag in `tfx/version.py` to TFX's latest nightly build image of version 
-`0.15.0dev` (e.g., `0.15.0dev20191007`, list of image available can be found [here](https://hub.docker.com/r/tensorflow/tfx/tags)).
-Finally, run `python setup.py install` from `tfx/tfx`. After that, running 
-`chicago_taxi_pipeline_simple.py` compiles the TFX pipeline into KFP pipeline package.
+First, you can clone their repo and run `python setup.py install` from `tfx/tfx`. 
+The image used in the pipeline is specified as `tfx_image` in the 
+`KubeflowDagRunnerConfig`. Currently we're using our own patched version of TFX image containing visualization support.
+List of officially released nightly build image available can be found [here](https://hub.docker.com/r/tensorflow/tfx/tags)).
+
+After that, running 
+`python3 chicago_taxi_pipeline_simple.py` compiles the TFX pipeline into KFP pipeline package.
 This pipeline requires google storage permission to run. 
 
 
