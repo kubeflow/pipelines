@@ -298,7 +298,7 @@ def _resolve_graph_task(graph_task: TaskSpec, graph_component_spec: ComponentSpe
         if isinstance(argument, (str, int, float, bool)):
             return argument
         elif isinstance(argument, GraphInputArgument):
-            return graph_input_arguments[argument.input_name]
+            return graph_input_arguments[argument.graph_input.input_name]
         elif isinstance(argument, TaskOutputArgument):
             upstream_task_output_ref = argument.task_output
             upstream_task_outputs = outputs_of_tasks[upstream_task_output_ref.task_id]
