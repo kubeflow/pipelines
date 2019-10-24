@@ -42,7 +42,7 @@ export PROJECT=<my-project>
 export SA_NAME=<my-account>
 # Create service account
 gcloud iam service-accounts create $SA_NAME --display-name $SA_NAME
-gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:my-account@$PROJECT.iam.gserviceaccount.com --role=roles/storage.admin
+gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:$SA_NAME@$PROJECT.iam.gserviceaccount.com --role=roles/storage.admin
 # Also do this binding for other roles you need. For example, dataproc.admin and dataflow.admin
 gcloud iam service-accounts keys create application_default_credentials.json --iam-account $SA_NAME@$PROJECT.iam.gserviceaccount.com
 export SERVICE_ACCOUNT_TOKEN="$(cat application_default_credentials.json | base64 -w 0)"
@@ -52,8 +52,8 @@ kubectl apply -f secret.yaml
 rm application_default_credentials.json secret.yaml
 ```
 
-Note that the above commands use `base64 -w 0` to disable line wrapping, this could be slightly different
-across platforms.
+Note that the above commands use `base64 -w 0` to disable line wrapping; this usage can differ across platforms.
+E.g., on a Mac, you will probably need to run the command without the `-w` argument.
 
 ## Tips
 
