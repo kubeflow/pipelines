@@ -26,7 +26,7 @@ import RunList from './RunList';
 import produce from 'immer';
 import { ApiFilter, PredicateOp } from '../apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../apis/experiment';
-import { ApiResourceType, ApiRun, RunStorageState } from '../apis/run';
+import { ApiRun, RunStorageState } from '../apis/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
@@ -192,7 +192,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
             undefined /* pageToken */,
             5 /* pageSize */,
             RunSortKeys.CREATED_AT + ' desc',
-            ApiResourceType.EXPERIMENT.toString(),
+            'EXPERIMENT',
             experiment.id,
             encodeURIComponent(
               JSON.stringify({

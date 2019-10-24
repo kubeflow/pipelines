@@ -9,7 +9,8 @@
       "coverage/lcov-report/*.js",
       "backstop_data/**/*.js",
       "generated/**",
-      "src/api/*.ts"
+      "src/api/*.ts",
+      "scripts/**"
     ],
     "format": "verbose"
   },

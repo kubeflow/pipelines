@@ -1,18 +1,8 @@
-FROM selenium/standalone-chrome:3.141.59-oxygen
+FROM gcr.io/ml-pipeline-test/selenium-standalone-chrome-gcloud-nodejs:v20190618-0.1.21-79-g2d40ae68-dirty-9d8d84
+#To build this image: cd selenium-standalone-chrome-gcloud-nodejs.Docker && make push
 
-USER root
+COPY --chown=seluser . /src
 
 WORKDIR /src
-
-COPY . .
-
-RUN apt-get update -y && apt-get install -y curl && \
-    curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
-    apt-get install -y nodejs && \
-    apt-get remove -y curl && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /usr/share/locale/* /usr/share/i18n/locales/* && \
-    chown -R seluser /src && chmod -R 777 /src
-
-USER seluser
 
 ENTRYPOINT [ "./run_test.sh" ]

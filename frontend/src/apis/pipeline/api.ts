@@ -103,7 +103,7 @@ export interface ApiGetTemplateResponse {
 export interface ApiListPipelinesResponse {
   /**
    *
-   * @type {Array&lt;ApiPipeline&gt;}
+   * @type {Array<ApiPipeline>}
    * @memberof ApiListPipelinesResponse
    */
   pipelines?: Array<ApiPipeline>;
@@ -173,7 +173,7 @@ export interface ApiPipeline {
   description?: string;
   /**
    * Output. The input parameters for this pipeline.
-   * @type {Array&lt;ApiParameter&gt;}
+   * @type {Array<ApiParameter>}
    * @memberof ApiPipeline
    */
   parameters?: Array<ApiParameter>;
@@ -211,7 +211,7 @@ export interface ApiStatus {
   code?: number;
   /**
    *
-   * @type {Array&lt;ProtobufAny&gt;}
+   * @type {Array<ProtobufAny>}
    * @memberof ApiStatus
    */
   details?: Array<ProtobufAny>;
@@ -733,7 +733,7 @@ export const PipelineServiceApiFactory = function(
 export class PipelineServiceApi extends BaseAPI {
   /**
    *
-   * @param {} body
+   * @param {ApiPipeline} body
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
@@ -747,7 +747,7 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
-   * @param {} id
+   * @param {string} id
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
@@ -761,7 +761,7 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
-   * @param {} id
+   * @param {string} id
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
@@ -775,7 +775,7 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
-   * @param {} id
+   * @param {string} id
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
@@ -789,10 +789,10 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
-   * @param {} [page_token]
-   * @param {} [page_size]
-   * @param {} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
-   * @param {} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
+   * @param {string} [page_token]
+   * @param {number} [page_size]
+   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+   * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
