@@ -22,38 +22,47 @@ Click `Deploy` to start deploying Kubeflow Pipelines into the cluster you specif
 Deployment might take few minutes, so please be patient. After deployment is complete, go to the [Pipelines Console](http://pantheon.corp.google.com/ai-platform/pipelines) to access the Kubeflow Pipelines instance.
 
 ## GCP Service Account credentials
-After deployment, you can grant KFP proper permission by specifying its service account and binding
-proper role to it.
+If you run pipelines that requires calling any GCP services, such as Cloud Storage, Cloud ML Engine, Dataflow, or Dataproc, you need to set the [application default credential](https://cloud.google.com/docs/authentication/production#providing_credentials_to_your_application) to a pipeline step by mounting the proper [GCP service account](https://cloud.google.com/iam/docs/service-accounts) token as a [Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/).
 
-Usually a functional KFP pipeline requires a [GCP service account](https://cloud.google.com/iam/docs/service-accounts) to use for 
-authentication when calling other GCP services. This includes Cloud Storage as well as other services your pipeline might need, 
-for example Dataflow, Dataproc. Specify the base64-encoded credentials for the service account you want to use.
-
-This can be done through command line using `kubectl`.
+First point your `kubectl` current context to your cluster
 ```
+export PROJECT_ID=<my-project-id>
 export CLUSTER=<cluster-where-kfp-was-installed>
 export ZONE=<zone-where-kfp-was-installed>
 # Configure kubectl to connect with the cluster
-gcloud container clusters get-credentials "$CLUSTER" --zone "$ZONE"
-```
-Then you can create and inject service account credential.
-```
-export PROJECT=<my-project>
-export SA_NAME=<my-account>
-# Create service account
-gcloud iam service-accounts create $SA_NAME --display-name $SA_NAME
-gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:my-account@$PROJECT.iam.gserviceaccount.com --role=roles/storage.admin
-# Also do this binding for other roles you need. For example, dataproc.admin and dataflow.admin
-gcloud iam service-accounts keys create application_default_credentials.json --iam-account $SA_NAME@$PROJECT.iam.gserviceaccount.com
-export SERVICE_ACCOUNT_TOKEN="$(cat application_default_credentials.json | base64 -w 0)"
-echo -e "apiVersion: v1\nkind: Secret\nmetadata:\n  name: \"user-gcp-sa\"\n  namespace: \"${NAMESPACE}\"\n  labels:\n    app: gcp-sa\n    app.kubernetes.io/name: \"${APP_INSTANCE_NAME}\"\ntype: Opaque\ndata:\n  application_default_credentials.json: ${SERVICE_ACCOUNT_TOKEN}\n  user-gcp-sa.json: $SERVICE_ACCOUNT_TOKEN" > secret.yaml
-kubectl apply -f secret.yaml
-# Remove secret files
-rm application_default_credentials.json secret.yaml
+gcloud container clusters get-credentials "$CLUSTER" --zone "$ZONE" --project "$PROJECT_ID"
 ```
 
-Note that the above commands use `base64 -w 0` to disable line wrapping, this could be slightly different
-across platforms.
+Then you can create a service account with the necessary IAM permissions
+```
+export SA_NAME=<my-account>
+export NAMESPACE=<namespace-where-kfp-was-installed>
+# Create service account
+gcloud iam service-accounts create $SA_NAME --display-name $SA_NAME --project "$PROJECT_ID"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member=serviceAccount:$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com \
+  --role=roles/storage.admin \
+  --role=roles/ml.admin
+  # and other roles if needed, such as
+  # --role=roles/dataproc.admin
+  # --role=roles/dataflow.admin
+```
+
+and store the service account credential as a Kubernetes secret `user-gcp-sa` in the cluster
+```
+gcloud iam service-accounts keys create application_default_credentials.json --iam-account $SA_NAME@$PROJECT_ID.iam.gserviceaccount.com
+
+# Make sure the secret is created under the correct namespace.
+kubectl config set-context --current --namespace=$NAMESPACE
+
+kubectl create secret generic user-gcp-sa \
+  --from-file=user-gcp-sa.json=application_default_credentials.json \
+  --dry-run -o yaml  |  kubectl apply -f -
+```
+Remove the private key file if needed
+```
+rm application_default_credentials.json
+```
 
 ## Tips
 
