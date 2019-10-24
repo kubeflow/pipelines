@@ -463,11 +463,11 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
         line = '_parser.add_argument("{param_flag}", dest="{param_var}", type=str, nargs={nargs})'.format(
             param_flag=param_flag,
             param_var=output_param_var,
-            nargs=len(component_spec.outputs),
+            nargs=len(outputs_passed_through_func_return_tuple),
         )
         arg_parse_code_lines.append(line)
         arguments.append(param_flag)
-        arguments.extend(OutputPathPlaceholder(output.name) for output in component_spec.outputs)
+        arguments.extend(OutputPathPlaceholder(output.name) for output in outputs_passed_through_func_return_tuple)
 
     output_serialization_expression_strings = []
     for output in outputs_passed_through_func_return_tuple:
