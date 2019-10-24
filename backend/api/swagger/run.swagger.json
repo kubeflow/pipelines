@@ -29,7 +29,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitiocns/apiStatus"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
