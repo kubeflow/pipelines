@@ -129,7 +129,7 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 	}
 
 	if err := ValidatePipelineSpec(s.resourceManager, run.PipelineSpec); err != nil {
-		if _, errResourceReference := VerifyPipelineVersionReferenceAsCreator(s.resourceManager, run.ResourceReferences); errResourceReference != nil {
+		if _, errResourceReference := CheckPipelineVersionReference(s.resourceManager, run.ResourceReferences); errResourceReference != nil {
 			return util.Wrap(err, "Neither pipeline spec nor pipeline version is valid. "+errResourceReference.Error())
 		}
 		return nil
