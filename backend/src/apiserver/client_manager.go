@@ -226,6 +226,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		initPipelineVersionsFromPipelines(db)
 	}
 
+	response = db.Model(&model.Pipeline{}).ModifyColumn("Description", "longtext")
+	if response.Error != nil {
+		glog.Fatalf("Failed to update pipeline description type. Error: %s", response.Error)
+	}
+
 	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
 }
 
