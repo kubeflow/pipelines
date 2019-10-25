@@ -54,7 +54,7 @@ const optionsForceInline = {
   forceInline: true,
 };
 
-export const Descriptoin: React.FC<{ description: string; forceInline?: boolean }> = ({
+export const Description: React.FC<{ description: string; forceInline?: boolean }> = ({
   description,
   forceInline,
 }) => {
