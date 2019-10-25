@@ -3,7 +3,7 @@ kind: Workflow
 metadata:
   annotations:
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "[{\"a\": 1, \"b\":
-      2}, {\"a\": 10, \"b\": 20}]", "name": "loopidy_doop"}], "name": "my-pipeline"}'
+      2}, {\"a\": 10, \"b\": 20}]", "name": "loopidy_doop", "type": "JsonObject"}], "name": "my-pipeline"}'
   generateName: my-pipeline-
 spec:
   arguments:

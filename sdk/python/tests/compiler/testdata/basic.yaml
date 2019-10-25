@@ -113,8 +113,6 @@ spec:
             value: '{{inputs.parameters.outputpath}}'
         name: exit-handler-1
         template: exit-handler-1
-      - name: exiting
-        template: exiting
     inputs:
       parameters:
       - name: message

@@ -1,5 +1,6 @@
 approvers:
   - IronPan
+  - jingzhang36
   - neuromage
   - bobgy
   - jingzhang36
@@ -7,6 +8,7 @@ approvers:
   - james-jwu
 reviewers:
   - IronPan
+  - jingzhang36
   - neuromage
   - jingzhang36
   - rmgogogo

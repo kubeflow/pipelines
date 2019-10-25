@@ -23,9 +23,9 @@ matrix:
         # Frontend tests
         - cd $TRAVIS_BUILD_DIR/frontend
         - node -v
-        - npm i
+        - npm ci
         # Comment out next line if coverall has an ongoing outage to unblock.
-        - npm run test:coveralls
+        - npm run test:ci
     - language: generic
       env:
         - BAZEL_URL="https://github.com/bazelbuild/bazel/releases/download/0.23.0/bazel-0.23.0-installer-linux-x86_64.sh"
@@ -76,8 +76,7 @@ matrix:
         # Visualization test dependencies
         - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
         - pip3 install -r requirements-test.txt
-      script: &1
-        # DSL tests
+      script: &1 # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - python3 -m pip install -e .
         - cd $TRAVIS_BUILD_DIR # Changing the current directory to the repo root for correct coverall paths

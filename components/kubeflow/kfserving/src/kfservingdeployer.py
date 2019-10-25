@@ -64,7 +64,7 @@ def customEndpointSpec(custom_model_spec):
         image_pull_policy=custom_model_spec.get('image_pull_policy', None),
         working_dir=custom_model_spec.get('working_dir', None)
     )
-    return V1alpha2EndpointSpec(custom=V1alpha2CustomSpec(container=containerSpec))
+    return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(custom=V1alpha2CustomSpec(container=containerSpec)))
 
 
 def InferenceService(metadata, default_model_spec, canary_model_spec=None, canary_model_traffic=None):

@@ -18,7 +18,7 @@ import yaml
 from collections import OrderedDict
 from typing import Union, List, Any, Callable, TypeVar, Dict
 
-from ._k8s_helper import K8sHelper
+from ._k8s_helper import convert_k8s_obj_to_json
 from .. import dsl
 from ..dsl._container_op import BaseOp
 from ..dsl._artifact_location import ArtifactLocation
@@ -73,7 +73,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
         for key in obj.swagger_types.keys():
             setattr(obj, key, _process_obj(getattr(obj, key), map_to_tmpl_var))
         # return json representation of the k8s obj
-        return K8sHelper.convert_k8s_obj_to_json(obj)
+        return convert_k8s_obj_to_json(obj)
 
     # k8s objects (generated from openapi)
     if hasattr(obj, 'openapi_types') and isinstance(obj.openapi_types, dict):
@@ -81,7 +81,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
         for key in obj.openapi_types.keys():
             setattr(obj, key, _process_obj(getattr(obj, key), map_to_tmpl_var))
         # return json representation of the k8s obj
-        return K8sHelper.convert_k8s_obj_to_json(obj)
+        return convert_k8s_obj_to_json(obj)
 
     # do nothing
     return obj
@@ -194,7 +194,7 @@ def _op_to_template(op: BaseOp):
         output_artifact_paths.update(sorted(((param.full_name, processed_op.file_outputs[param.name]) for param in processed_op.outputs.values()), key=lambda x: x[0]))
 
         output_artifacts = [
-             K8sHelper.convert_k8s_obj_to_json(
+             convert_k8s_obj_to_json(
                  ArtifactLocation.create_artifact_for_s3(
                      op.artifact_location, 
                      name=name, 
@@ -206,7 +206,7 @@ def _op_to_template(op: BaseOp):
         # workflow template
         template = {
             'name': processed_op.name,
-            'container': K8sHelper.convert_k8s_obj_to_json(
+            'container': convert_k8s_obj_to_json(
                 processed_op.container
             )
         }
@@ -216,12 +216,12 @@ def _op_to_template(op: BaseOp):
 
         # workflow template
         processed_op.resource["manifest"] = yaml.dump(
-            K8sHelper.convert_k8s_obj_to_json(processed_op.k8s_resource),
+            convert_k8s_obj_to_json(processed_op.k8s_resource),
             default_flow_style=False
         )
         template = {
             'name': processed_op.name,
-            'resource': K8sHelper.convert_k8s_obj_to_json(
+            'resource': convert_k8s_obj_to_json(
                 processed_op.resource
             )
         }
@@ -252,7 +252,7 @@ def _op_to_template(op: BaseOp):
 
     # affinity
     if processed_op.affinity:
-        template['affinity'] = K8sHelper.convert_k8s_obj_to_json(processed_op.affinity)
+        template['affinity'] = convert_k8s_obj_to_json(processed_op.affinity)
 
     # metadata
     if processed_op.pod_annotations or processed_op.pod_labels:
@@ -279,7 +279,7 @@ def _op_to_template(op: BaseOp):
 
     # volumes
     if processed_op.volumes:
-        template['volumes'] = [K8sHelper.convert_k8s_obj_to_json(volume) for volume in processed_op.volumes]
+        template['volumes'] = [convert_k8s_obj_to_json(volume) for volume in processed_op.volumes]
         template['volumes'].sort(key=lambda x: x['name'])
 
     # Display name

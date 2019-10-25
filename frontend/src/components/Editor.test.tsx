@@ -36,7 +36,7 @@ describe('Editor', () => {
     expect(tree.html()).toMatchSnapshot();
   });
 
-  it ('renders a placeholder that contains HTML', () => {
+  it('renders a placeholder that contains HTML', () => {
     const placeholder = 'I am a placeholder with <strong>HTML</strong>.';
     const tree = mount(<Editor placeholder={placeholder} />);
     expect(tree.html()).toMatchSnapshot();

@@ -64,8 +64,14 @@ class HTMLViewer extends Viewer<HTMLViewerProps, any> {
       return null;
     }
 
-    return <iframe ref={this._iframeRef} src='javascript:void(0);'
-      className={this._css.iframe} sandbox='allow-scripts' />;
+    return (
+      <iframe
+        ref={this._iframeRef}
+        src='javascript:void(0);'
+        className={this._css.iframe}
+        sandbox='allow-scripts'
+      />
+    );
   }
 }
 

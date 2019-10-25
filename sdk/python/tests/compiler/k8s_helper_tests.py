@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.compiler._k8s_helper import K8sHelper
+from kfp.compiler._k8s_helper import convert_k8s_obj_to_json
 from datetime import datetime
 import unittest
 
@@ -20,7 +20,7 @@ import unittest
 class TestCompiler(unittest.TestCase):
   def test_convert_k8s_obj_to_dic_accepts_dict(self):
     now = datetime.now()
-    converted = K8sHelper.convert_k8s_obj_to_json({
+    converted = convert_k8s_obj_to_json({
       "ENV": "test",
       "number": 3,
       "list": [1,2,3],
