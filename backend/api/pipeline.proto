@@ -92,7 +92,8 @@ service PipelineService {
     };
   }
 
-  rpc CreatePipelineVersion(CreatePipelineVersionRequest) returns (PipelineVersion) {
+  rpc CreatePipelineVersion(CreatePipelineVersionRequest)
+      returns (PipelineVersion) {
     // TODO(jingzhang36): uncomment when exposing this API method.
     // option (google.api.http) = {
     //   post: "/apis/v1beta1/pipeline_versions"
@@ -107,14 +108,16 @@ service PipelineService {
     // };
   }
 
-  rpc ListPipelineVersions(ListPipelineVersionsRequest) returns (ListPipelineVersionsResponse) {
+  rpc ListPipelineVersions(ListPipelineVersionsRequest)
+      returns (ListPipelineVersionsResponse) {
     // TODO(jingzhang36): uncomment when exposing this API method.
     // option (google.api.http) = {
     //   get: "/apis/v1beta1/pipeline_versions"
     // };
   }
 
-  rpc DeletePipelineVersion(DeletePipelineVersionRequest) returns (google.protobuf.Empty) {
+  rpc DeletePipelineVersion(DeletePipelineVersionRequest)
+      returns (google.protobuf.Empty) {
     // TODO(jingzhang36): uncomment when exposing this API method.
     // option (google.api.http) = {
     //   delete: "/apis/v1beta1/pipeline_versions/{version_id}"
@@ -144,7 +147,7 @@ message ListPipelinesRequest {
   // Ascending by default.
   string sort_by = 3;
 
-  // A base-64 encoded, JSON-serialized Filter protocol buffer (see
+  // A url-encoded, JSON-serialized Filter protocol buffer (see
   // filter.proto).
   string filter = 4;
 }
@@ -167,7 +170,7 @@ message GetTemplateResponse {
   string template = 1;
 }
 
-message GetPipelineVersionTemplateRequest{
+message GetPipelineVersionTemplateRequest {
   string version_id = 1;
 }
 
