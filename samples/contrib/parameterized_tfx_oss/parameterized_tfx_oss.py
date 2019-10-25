@@ -120,14 +120,18 @@ def _create_test_pipeline(pipeline_root: Text, csv_input_location: Text,
       enable_cache=enable_cache,
   )
 
+def _get_mlmd_db_name(pipeline_name: Text):
+  # MySQL DB names must not contain '-' while k8s names must not contain '_'.
+  # So we replace the dashes here for the DB name.
+  valid_mysql_name = pipeline_name.replace('-', '_')
+  # MySQL database name cannot exceed 64 characters.
+  return 'mlmd_{}'.format(valid_mysql_name[-59:])
 
-def _get_kubeflow_metadata_config() -> kubeflow_pb2.KubeflowMetadataConfig:
-  config = kubeflow_pb2.KubeflowMetadataConfig()
-  config.mysql_db_service_host.environment_variable = 'MYSQL_SERVICE_HOST'
-  config.mysql_db_service_port.environment_variable = 'MYSQL_SERVICE_PORT'
-  config.mysql_db_name.value = 'metadb'
-  config.mysql_db_user.value = 'root'
-  config.mysql_db_password.value = ''
+def _get_kubeflow_metadata_config(
+    pipeline_name: Text) -> kubeflow_pb2.KubeflowMetadataConfig:
+  config = kubeflow_dag_runner.get_default_kubeflow_metadata_config()
+  # Overwrite the DB name.
+  config.mysql_db_name.value = _get_mlmd_db_name(pipeline_name)
   return config
 
 
@@ -141,9 +145,9 @@ if __name__ == '__main__':
       enable_cache=enable_cache)
 
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
-      kubeflow_metadata_config=_get_kubeflow_metadata_config(),
+      kubeflow_metadata_config=_get_kubeflow_metadata_config(
+          'parameterized_tfx_oss'),
       tfx_image='gcr.io/ml-pipeline/patched-tfx:0.1.32')
-
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(config=config)
   # Make sure kfp_runner recognizes those parameters.
   kfp_runner._params.extend([_data_root_param, _taxi_module_file_param])
