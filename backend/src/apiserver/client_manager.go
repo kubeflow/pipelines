@@ -204,7 +204,7 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
 
-	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext")
+	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext not null")
 	if response.Error != nil {
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
 	}
@@ -226,7 +226,7 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		initPipelineVersionsFromPipelines(db)
 	}
 
-	response = db.Model(&model.Pipeline{}).ModifyColumn("Description", "longtext")
+	response = db.Model(&model.Pipeline{}).ModifyColumn("Description", "longtext not null")
 	if response.Error != nil {
 		glog.Fatalf("Failed to update pipeline description type. Error: %s", response.Error)
 	}
