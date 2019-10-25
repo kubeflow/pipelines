@@ -102,7 +102,7 @@ message ListExperimentsRequest {
   // Ascending by default.
   string sort_by = 3;
 
-  // A base-64 encoded, JSON-serialized Filter protocol buffer (see
+  // A url-encoded, JSON-serialized Filter protocol buffer (see
   // filter.proto).
   string filter = 4;
 }
@@ -118,7 +118,7 @@ message ListExperimentsResponse {
   string next_page_token = 2;
 }
 
-message DeleteExperimentRequest{
+message DeleteExperimentRequest {
   // The ID of the experiment to be deleted.
   string id = 1;
 }
@@ -131,7 +131,7 @@ message Experiment {
   string name = 2;
 
   // Optional input field. Describing the purpose of the experiment
-  string description =3;
+  string description = 3;
 
   // Output. The time that the experiment created.
   google.protobuf.Timestamp created_at = 4;
