@@ -42,7 +42,7 @@ import 'brace';
 import 'brace/ext/language_tools';
 import 'brace/mode/yaml';
 import 'brace/theme/github';
-import { Descriptoin } from '../components/Description';
+import { Description } from '../components/Description';
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
@@ -198,7 +198,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                         <div className={css.summaryKey}>Uploaded on</div>
                         <div>{formatDateString(pipeline.created_at)}</div>
                         <div className={css.summaryKey}>Description</div>
-                        <Descriptoin description={pipeline.description || ''} />
+                        <Description description={pipeline.description || ''} />
                       </Paper>
                     )}
 
