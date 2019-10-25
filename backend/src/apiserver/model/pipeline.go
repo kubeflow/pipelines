@@ -30,7 +30,7 @@ type Pipeline struct {
 	UUID           string `gorm:"column:UUID; not null; primary_key"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`
 	Name           string `gorm:"column:Name; not null; unique"`
-	Description    string `gorm:"column:Description; not null"`
+	Description    string `gorm:"column:Description; not null; size:65535"` // Same as below, set size to large number so it will be stored as longtext
 	// TODO(jingzhang36): remove Parameters when no code is accessing this
 	// field. Should use PipelineVersion.Parameters instead.
 	/* Set size to 65535 so it will be stored as longtext. https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html */
