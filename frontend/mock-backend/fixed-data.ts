@@ -105,6 +105,14 @@ const pipelines: ApiPipeline[] = [
       },
     ],
   },
+  {
+    created_at: new Date('2019-10-25T20:59:23.000Z'),
+    description:
+      'A pipeline using [markdown](https://en.wikipedia.org/wiki/Markdown) for description.',
+    id: '8fbe3bd6-a01f-11e8-98d0-529269fb1461',
+    name: 'Markdown description',
+    parameters: [],
+  },
 ];
 
 pipelines.push(...generateNPipelines());
