@@ -90,7 +90,7 @@ Reason:
 Actions:
 - Please ask admin to find out the Google Service Account used to create the cluster and then add your account as its `Service Account User` via [Service accounts](https://console.cloud.google.com/iam-admin/serviceaccounts). From the list table, check the
 service account, click the `Info Panel`, you will find a button `Add member` and add it
-as `Service Account User`.
+as `Service Account User`. The Google Service Account is [Compute Engine default service account](https://cloud.google.com/compute/docs/access/service-accounts) if you didn't set it when creating the cluster.
 - Please also add your account as `Project Viewer` via [IAM](https://console.cloud.google.com/iam-admin/iam).
 
 For simplicity but not good for security, adding as `Project Editor` also can work.
