@@ -98,10 +98,11 @@ service RunService {
   }
 
   // ReportRunMetrics reports metrics of a run. Each metric is reported in its
-  // own transaction, so this API accepts partial failures. Metric can be uniquely
-  // identified by (run_id, node_id, name). Duplicate reporting will be
+  // own transaction, so this API accepts partial failures. Metric can be
+  // uniquely identified by (run_id, node_id, name). Duplicate reporting will be
   // ignored by the API. First reporting wins.
-  rpc ReportRunMetrics(ReportRunMetricsRequest) returns (ReportRunMetricsResponse) {
+  rpc ReportRunMetrics(ReportRunMetricsRequest)
+      returns (ReportRunMetricsResponse) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{run_id}:reportMetrics"
       body: "*"
@@ -147,7 +148,7 @@ message ListRunsRequest {
   // resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
   ResourceKey resource_reference_key = 4;
 
-  // A base-64 encoded, JSON-serialized Filter protocol buffer (see
+  // A url-encoded, JSON-serialized Filter protocol buffer (see
   // filter.proto).
   string filter = 5;
 }
@@ -245,14 +246,15 @@ message RunDetail {
 }
 
 message RunMetric {
-  // Required. The user defined name of the metric. It must between 1 and 63 characters
-  // long and must conform to the following regular expression:
+  // Required. The user defined name of the metric. It must between 1 and 63
+  // characters long and must conform to the following regular expression:
   // `[a-z]([-a-z0-9]*[a-z0-9])?`.
   string name = 1;
 
-  // Required. The runtime node ID which reports the metric. The node ID can be found in
-  // the RunDetail.workflow.Status. Metric with same (node_id, name)
-  // are considerd as duplicate. Only the first reporting will be recorded. Max length is 128.
+  // Required. The runtime node ID which reports the metric. The node ID can be
+  // found in the RunDetail.workflow.Status. Metric with same (node_id, name)
+  // are considerd as duplicate. Only the first reporting will be recorded. Max
+  // length is 128.
   string node_id = 2;
 
   oneof value {
