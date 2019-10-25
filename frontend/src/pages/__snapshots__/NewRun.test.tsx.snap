@@ -48,7 +48,8 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -193,7 +194,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -477,7 +478,8 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -626,7 +628,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -914,7 +916,8 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -1068,7 +1071,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -1372,7 +1375,8 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -1522,7 +1526,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -1811,7 +1815,8 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -1956,7 +1961,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -2240,7 +2245,8 @@ exports[`NewRun renders the new run page 1`] = `
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -2389,7 +2395,7 @@ exports[`NewRun renders the new run page 1`] = `
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -2677,7 +2683,8 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -2822,7 +2829,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -3097,7 +3104,8 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -3259,7 +3267,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -3539,7 +3547,8 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -3701,7 +3710,7 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -4011,7 +4020,8 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -4160,7 +4170,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -4448,7 +4458,8 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -4597,7 +4608,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -4896,7 +4907,8 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -5045,7 +5057,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -5333,7 +5345,8 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -5482,7 +5495,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
