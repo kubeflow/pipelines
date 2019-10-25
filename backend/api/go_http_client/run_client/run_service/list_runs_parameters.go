@@ -89,7 +89,7 @@ for the list runs operation typically these are written to a http.Request
 type ListRunsParams struct {
 
 	/*Filter
-	  A base-64 encoded, JSON-serialized Filter protocol buffer (see
+	  A url-encoded, JSON-serialized Filter protocol buffer (see
 	filter.proto).
 
 	*/

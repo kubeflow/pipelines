@@ -1,4 +1,4 @@
-# Parameterized TFX pipeline sample
+# Overview
 
 [Tensorflow Extended (TFX)](https://github.com/tensorflow/tfx) is a Google-production-scale machine
 learning platform based on TensorFlow. It provides a configuration framework to express ML pipelines
@@ -9,13 +9,16 @@ This sample demonstrates how to author a ML pipeline in TFX and run it on a KFP 
 Please refer to inline comments for the purpose of each step.
 
 In order to successfully compile this sample, you'll need to have a TFX installation at HEAD.
-First, you can clone their repo and run `python setup.py install` from `tfx/tfx`. 
+First, you can clone their repo and run `python setup.py install` from `tfx/`. 
 The image used in the pipeline is specified as `tfx_image` in the 
 `KubeflowDagRunnerConfig`. Currently we're using our own patched version of TFX image containing visualization support.
 List of officially released nightly build image available can be found [here](https://hub.docker.com/r/tensorflow/tfx/tags)).
 
 After that, running 
 `python3 chicago_taxi_pipeline_simple.py` compiles the TFX pipeline into KFP pipeline package.
+
+# Requriements
+
 This pipeline requires google storage permission to run. 
 If KFP was deployed through K8S marketplace, please follow instructions in [the guideline](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials)
 to make sure the service account has `storage.admin` role.

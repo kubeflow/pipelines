@@ -41,11 +41,16 @@ export NAMESPACE=<namespace-where-kfp-was-installed>
 gcloud iam service-accounts create $SA_NAME --display-name $SA_NAME --project "$PROJECT_ID"
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member=serviceAccount:$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com \
-  --role=roles/storage.admin \
+  --role=roles/storage.admin
+
+# Note that you can not bind multiple roles in one line.
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member=serviceAccount:$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com \
   --role=roles/ml.admin
-  # and other roles if needed, such as
-  # --role=roles/dataproc.admin
-  # --role=roles/dataflow.admin
+
+# More roles can be binded if your pipeline requires it.
+# --role=roles/dataproc.admin
+# --role=roles/dataflow.admin
 ```
 
 and store the service account credential as a Kubernetes secret `user-gcp-sa` in the cluster
@@ -87,8 +92,13 @@ Reason:
 - Others created the cluster and deployed the instances for you.
 - You don't have corresponding permission to access it.
 
-Please ask admin to give your account `Project Editor` permission. It can be set
-from [IAM](https://console.cloud.google.com/iam-admin/iam).
+Actions:
+- Please ask admin to find out the Google Service Account used to create the cluster and then add your account as its `Service Account User` via [Service accounts](https://console.cloud.google.com/iam-admin/serviceaccounts). From the list table, check the
+service account, click the `Info Panel`, you will find a button `Add member` and add it
+as `Service Account User`. The Google Service Account is [Compute Engine default service account](https://cloud.google.com/compute/docs/access/service-accounts#compute_engine_service_account) if you didn't set it when creating the cluster.
+- Please also add your account as `Project Viewer` via [IAM](https://console.cloud.google.com/iam-admin/iam).
+
+For simplicity but not good for security, adding as `Project Editor` also can work.
 
 ### Pipeline steps got insufficient permission
 Make sure following the procedure in [credential setup](#gcp-service-account-credentials). IAM configuration might take up to 5 mins to propagate.

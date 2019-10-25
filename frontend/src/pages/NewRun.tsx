@@ -52,6 +52,8 @@ import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, color } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
 import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
+import { CustomRendererProps } from '../components/CustomTable';
+import { Description } from '../components/Description';
 
 interface NewRunState {
   description: string;
@@ -89,20 +91,27 @@ const css = stylesheet({
     color: color.secondaryText,
   },
   selectorDialog: {
+    // If screen is small, use calc(100% - 120px). If screen is big, use 1200px.
+    maxWidth: 1200, // override default maxWidth to expand this dialog further
     minWidth: 680,
+    width: 'calc(100% - 120px)',
   },
 });
+
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props => {
+  return <Description description={props.value || ''} forceInline={true} />;
+};
 
 class NewRun extends Page<{}, NewRunState> {
   private pipelineSelectorColumns = [
     { label: 'Pipeline name', flex: 1, sortKey: PipelineSortKeys.NAME },
-    { label: 'Description', flex: 1.5 },
+    { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
     { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
   ];
 
   private experimentSelectorColumns = [
     { label: 'Experiment name', flex: 1, sortKey: ExperimentSortKeys.NAME },
-    { label: 'Description', flex: 1.5 },
+    { label: 'Description', flex: 2 },
     { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
   ];
 
