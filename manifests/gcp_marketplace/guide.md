@@ -41,11 +41,15 @@ export NAMESPACE=<namespace-where-kfp-was-installed>
 gcloud iam service-accounts create $SA_NAME --display-name $SA_NAME --project "$PROJECT_ID"
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member=serviceAccount:$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com \
-  --role=roles/storage.admin \
+  --role=roles/storage.admin
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member=serviceAccount:$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com \
   --role=roles/ml.admin
-  # and other roles if needed, such as
-  # --role=roles/dataproc.admin
-  # --role=roles/dataflow.admin
+
+# More roles can be binded if your pipeline requires it.
+# --role=roles/dataproc.admin
+# --role=roles/dataflow.admin
 ```
 
 and store the service account credential as a Kubernetes secret `user-gcp-sa` in the cluster
