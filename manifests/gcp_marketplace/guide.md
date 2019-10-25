@@ -87,5 +87,10 @@ Reason:
 - Others created the cluster and deployed the instances for you.
 - You don't have corresponding permission to access it.
 
-Please ask admin to give your account `Project Editor` permission. It can be set
-from [IAM](https://console.cloud.google.com/iam-admin/iam).
+Actions:
+- Please ask admin to find out the Google Service Account used to create the cluster and then add your account as its `Service Account User` via [Service accounts](https://console.cloud.google.com/iam-admin/serviceaccounts). From the list table, check the
+service account, click the `Info Panel`, you will find a button `Add member` and add it
+as `Service Account User`.
+- Please also add your account as `Project Viewer` via [IAM](https://console.cloud.google.com/iam-admin/iam).
+
+For simplicity but not good for security, adding as `Project Editor` also can work.
