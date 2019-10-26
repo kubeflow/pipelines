@@ -12,20 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from . import _container_op
 from . import _resource_op
 from . import _ops_group
 from ..components._naming import _make_name_unique_by_adding_index
 import sys
 
-
 # This handler is called whenever the @pipeline decorator is applied.
 # It can be used by command-line DSL compiler to inject code that runs for every pipeline definition.
 _pipeline_decorator_handler = None
 
 
-def pipeline(name : str = None, description : str = None):
+def pipeline(name: str = None, description: str = None):
   """Decorator of pipeline functions.
 
   Usage:
@@ -37,7 +35,9 @@ def pipeline(name : str = None, description : str = None):
   def my_pipeline(a: PipelineParam, b: PipelineParam):
     ...
   ```
+
   """
+
   def _pipeline(func):
     if name:
       func._pipeline_name = name
@@ -51,9 +51,10 @@ def pipeline(name : str = None, description : str = None):
 
   return _pipeline
 
+
 class PipelineConf():
-  """PipelineConf contains pipeline level settings
-  """
+  """PipelineConf contains pipeline level settings."""
+
   def __init__(self):
     self.image_pull_secrets = []
     self.timeout = 0
@@ -62,21 +63,23 @@ class PipelineConf():
     self.op_transformers = []
 
   def set_image_pull_secrets(self, image_pull_secrets):
-    """Configures the pipeline level imagepullsecret
+    """Configures the pipeline level imagepullsecret.
 
     Args:
       image_pull_secrets: a list of Kubernetes V1LocalObjectReference
       For detailed description, check Kubernetes V1LocalObjectReference definition
       https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
+
     """
     self.image_pull_secrets = image_pull_secrets
     return self
 
   def set_timeout(self, seconds: int):
-    """Configures the pipeline level timeout
+    """Configures the pipeline level timeout.
 
     Args:
       seconds: number of seconds for timeout
+
     """
     self.timeout = seconds
     return self
@@ -86,6 +89,7 @@ class PipelineConf():
 
     Args:
       seconds: number of seconds for the workflow to be garbage collected after it is finished.
+
     """
     self.ttl_seconds_after_finished = seconds
     return self
@@ -120,15 +124,18 @@ class PipelineConf():
       For detailed description, check Argo V1alpha1ArtifactLocation definition
       https://github.com/e2fyi/argo-models/blob/release-2.2/argo/models/v1alpha1_artifact_location.py
       https://github.com/argoproj/argo/blob/release-2.2/api/openapi-spec/swagger.json
+
     """
     self.artifact_location = artifact_location
     return self
 
   def add_op_transformer(self, transformer):
-    """Configures the op_transformers which will be applied to all ops in the pipeline.
+    """Configures the op_transformers which will be applied to all ops in the
+    pipeline.
 
     Args:
       transformer: a function that takes a ContainOp as input and returns a ContainerOp
+
     """
     self.op_transformers.append(transformer)
 
@@ -138,6 +145,7 @@ def get_pipeline_conf():
     Note: call the function inside the user defined pipeline function.
   """
   return Pipeline.get_default_pipeline().conf
+
 
 #TODO: Pipeline is in fact an opsgroup, refactor the code.
 class Pipeline():
@@ -154,6 +162,7 @@ class Pipeline():
 
   traverse(p.ops)
   ```
+
   """
 
   # _default_pipeline is set when it (usually a compiler) runs "with Pipeline()"
@@ -161,7 +170,7 @@ class Pipeline():
 
   @staticmethod
   def get_default_pipeline():
-    """Get default pipeline. """
+    """Get default pipeline."""
     return Pipeline._default_pipeline
 
   @staticmethod
@@ -175,6 +184,7 @@ class Pipeline():
 
     Args:
       name: the name of the pipeline. Once deployed, the name will show up in Pipeline System UI.
+
     """
     self.name = name
     self.ops = {}
@@ -209,9 +219,12 @@ class Pipeline():
 
     Returns
       op_name: a unique op name.
+
     """
     #If there is an existing op with this name then generate a new name.
-    op_name = _make_name_unique_by_adding_index(op.human_name, list(self.ops.keys()), ' ')
+    op_name = _make_name_unique_by_adding_index(
+        op.human_name, list(self.ops.keys()), ' '
+    )
 
     self.ops[op_name] = op
     if not define_only:
@@ -224,6 +237,7 @@ class Pipeline():
 
     Args:
       group: An OpsGroup. Typically it is one of ExitHandler, Branch, and Loop.
+
     """
     self.groups[-1].groups.append(group)
     self.groups.append(group)
@@ -237,7 +251,7 @@ class Pipeline():
       group.remove_op_recursive(op)
 
   def get_next_group_id(self):
-    """Get next id for a new group. """
+    """Get next id for a new group."""
 
     self.group_id += 1
     return self.group_id
@@ -248,5 +262,3 @@ class Pipeline():
       metadata (ComponentMeta): component metadata
     '''
     self._metadata = metadata
-
-

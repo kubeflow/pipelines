@@ -18,9 +18,12 @@ from .types import check_types, InconsistentTypeException
 from ._ops_group import Graph
 import kfp
 
-def python_component(name, description=None, base_image=None, target_component_file: str = None):
-  """Decorator for Python component functions.
-  This decorator adds the metadata to the function object itself.
+
+def python_component(
+    name, description=None, base_image=None, target_component_file: str = None
+):
+  """Decorator for Python component functions. This decorator adds the metadata
+  to the function object itself.
 
   Args:
       name: Human-readable name of the component
@@ -41,7 +44,9 @@ def python_component(name, description=None, base_image=None, target_component_f
   def my_component(a: str, b: int) -> str:
     ...
   ```
+
   """
+
   def _python_component(func):
     func._component_human_name = name
     if description:
@@ -54,36 +59,47 @@ def python_component(name, description=None, base_image=None, target_component_f
 
   return _python_component
 
+
 def component(func):
-  """Decorator for component functions that returns a ContainerOp.
-  This is useful to enable type checking in the DSL compiler
+  """Decorator for component functions that returns a ContainerOp. This is
+  useful to enable type checking in the DSL compiler.
 
   Usage:
   ```python
   @dsl.component
   def foobar(model: TFModel(), step: MLStep()):
     return dsl.ContainerOp()
+
   """
   from functools import wraps
+
   @wraps(func)
   def _component(*args, **kargs):
     component_meta = _extract_component_metadata(func)
     if kfp.TYPE_CHECK:
       arg_index = 0
       for arg in args:
-        if isinstance(arg, PipelineParam) and not check_types(arg.param_type, component_meta.inputs[arg_index].type):
-          raise InconsistentTypeException('Component "' + component_meta.name + '" is expecting ' + component_meta.inputs[arg_index].name +
-                                          ' to be type(' + str(component_meta.inputs[arg_index].type) +
-                                          '), but the passed argument is type(' + str(arg.param_type) + ')')
+        if isinstance(arg, PipelineParam) and not check_types(
+            arg.param_type, component_meta.inputs[arg_index].type):
+          raise InconsistentTypeException(
+              'Component "' + component_meta.name + '" is expecting ' +
+              component_meta.inputs[arg_index].name + ' to be type(' +
+              str(component_meta.inputs[arg_index].type) +
+              '), but the passed argument is type(' + str(arg.param_type) + ')'
+          )
         arg_index += 1
       if kargs is not None:
         for key in kargs:
           if isinstance(kargs[key], PipelineParam):
             for input_spec in component_meta.inputs:
-              if input_spec.name == key and not check_types(kargs[key].param_type, input_spec.type):
-                raise InconsistentTypeException('Component "' + component_meta.name + '" is expecting ' + input_spec.name +
-                                                ' to be type(' + str(input_spec.type) +
-                                                '), but the passed argument is type(' + str(kargs[key].param_type) + ')')
+              if input_spec.name == key and not check_types(
+                  kargs[key].param_type, input_spec.type):
+                raise InconsistentTypeException(
+                    'Component "' + component_meta.name + '" is expecting ' +
+                    input_spec.name + ' to be type(' + str(input_spec.type) +
+                    '), but the passed argument is type(' +
+                    str(kargs[key].param_type) + ')'
+                )
 
     container_op = func(*args, **kargs)
     container_op._set_metadata(component_meta)
@@ -91,10 +107,11 @@ def component(func):
 
   return _component
 
+
 #TODO: combine the component and graph_component decorators into one
 def graph_component(func):
-  """Decorator for graph component functions.
-  This decorator returns an ops_group.
+  """Decorator for graph component functions. This decorator returns an
+  ops_group.
 
   Usage:
   ```python
@@ -106,15 +123,19 @@ def graph_component(func):
     with dsl.Condition(flipA.output == 'heads'):
       flip_component(flipA.output)
     return {'flip_result': flipA.output}
+
   """
   from functools import wraps
+
   @wraps(func)
   def _graph_component(*args, **kargs):
     graph_ops_group = Graph(func.__name__)
     graph_ops_group.inputs = list(args) + list(kargs.values())
     for input in graph_ops_group.inputs:
       if not isinstance(input, PipelineParam):
-        raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams.')
+        raise ValueError(
+            'arguments to ' + func.__name__ + ' should be PipelineParams.'
+        )
 
     # Entering the Graph Context
     with graph_ops_group:
@@ -123,4 +144,5 @@ def graph_component(func):
         func(*args, **kargs)
 
     return graph_ops_group
+
   return _graph_component

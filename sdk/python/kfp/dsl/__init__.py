@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from ._pipeline_param import PipelineParam, match_serialized_pipelineparam
 from ._pipeline import Pipeline, pipeline, get_pipeline_conf, PipelineConf
 from ._container_op import ContainerOp, InputArgumentPath, UserContainer, Sidecar

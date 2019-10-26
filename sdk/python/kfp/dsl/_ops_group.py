@@ -23,16 +23,19 @@ from . import _pipeline
 class OpsGroup(object):
   """Represents a logical group of ops and group of OpsGroups.
 
-  This class is the base class for groups of ops, such as ops sharing an exit handler,
-  a condition branch, or a loop. This class is not supposed to be used by pipeline authors.
-  It is useful for implementing a compiler.
+  This class is the base class for groups of ops, such as ops sharing an exit
+  handler, a condition branch, or a loop. This class is not supposed to be used
+  by pipeline authors. It is useful for implementing a compiler.
+
   """
 
-  def __init__(self, group_type: str, name: str=None):
+  def __init__(self, group_type: str, name: str = None):
     """Create a new instance of OpsGroup.
+
     Args:
       group_type (str): one of 'pipeline', 'exit_handler', 'condition', 'for_loop', and 'graph'.
       name (str): name of the opsgroup
+
     """
     #TODO: declare the group_type to be strongly typed
     self.type = group_type
@@ -45,20 +48,24 @@ class OpsGroup(object):
 
     self.loop_args = None
 
-
   @staticmethod
   def _get_matching_opsgroup_already_in_pipeline(group_type, name):
     """retrieves the opsgroup when the pipeline already contains it.
+
     the opsgroup might be already in the pipeline in case of recursive calls.
     Args:
       group_type (str): one of 'pipeline', 'exit_handler', 'condition', and 'graph'.
-      name (str): the name before conversion. """
+      name (str): the name before conversion.
+
+    """
     if not _pipeline.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
     if name is None:
       return None
-    name_pattern = '^' + (group_type + '-' + name + '-').replace('_', '-') + '[\d]+$'
-    for ops_group_already_in_pipeline in _pipeline.Pipeline.get_default_pipeline().groups:
+    name_pattern = '^' + (group_type + '-' + name +
+                          '-').replace('_', '-') + '[\d]+$'
+    for ops_group_already_in_pipeline in _pipeline.Pipeline.get_default_pipeline(
+    ).groups:
       import re
       if ops_group_already_in_pipeline.type == group_type \
               and re.match(name_pattern ,ops_group_already_in_pipeline.name):
@@ -66,19 +73,23 @@ class OpsGroup(object):
     return None
 
   def _make_name_unique(self):
-    """Generate a unique opsgroup name in the pipeline"""
+    """Generate a unique opsgroup name in the pipeline."""
     if not _pipeline.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
 
-    self.name = (self.type + '-' + ('' if self.name is None else self.name + '-') +
-                   str(_pipeline.Pipeline.get_default_pipeline().get_next_group_id()))
+    self.name = (
+        self.type + '-' + ('' if self.name is None else self.name + '-') +
+        str(_pipeline.Pipeline.get_default_pipeline().get_next_group_id())
+    )
     self.name = self.name.replace('_', '-')
 
   def __enter__(self):
     if not _pipeline.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
 
-    self.recursive_ref = self._get_matching_opsgroup_already_in_pipeline(self.type, self.name)
+    self.recursive_ref = self._get_matching_opsgroup_already_in_pipeline(
+        self.type, self.name
+    )
     if not self.recursive_ref:
       self._make_name_unique()
 
@@ -99,6 +110,7 @@ class OpsGroup(object):
     for sub_group in self.groups or []:
       sub_group.remove_op_recursive(op)
 
+
 class ExitHandler(OpsGroup):
   """Represents an exit handler that is invoked upon exiting a group of ops.
 
@@ -109,6 +121,7 @@ class ExitHandler(OpsGroup):
     op1 = ContainerOp(...)
     op2 = ContainerOp(...)
   ```
+
   """
 
   def __init__(self, exit_op: _container_op.ContainerOp):
@@ -141,12 +154,15 @@ class Condition(OpsGroup):
     op1 = ContainerOp(...)
     op2 = ContainerOp(...)
   ```
+
   """
 
   def __init__(self, condition):
     """Create a new instance of Condition.
+
     Args:
       condition (ConditionOperator): the condition.
+
     """
     super(Condition, self).__init__('condition')
     self.condition = condition
@@ -154,8 +170,12 @@ class Condition(OpsGroup):
 
 class Graph(OpsGroup):
   """Graph DAG with inputs, recursive_inputs, and outputs.
-  This is not used directly by the users but auto generated when the graph_component decoration exists
+
+  This is not used directly by the users but auto generated when the
+  graph_component decoration exists
+
   """
+
   def __init__(self, name):
     super(Graph, self).__init__(group_type='graph', name=name)
     self.inputs = []
@@ -173,6 +193,7 @@ class ParallelFor(OpsGroup):
     op2 = ContainerOp(..., args=['echo {}'.format(item.b])
   ```
   and op1 would be executed twice, once with args=['echo 1'] and once with args=['echo 2']
+
   """
   TYPE_NAME = 'for_loop'
 
@@ -180,8 +201,12 @@ class ParallelFor(OpsGroup):
   def _get_unique_id_code():
     return uuid.uuid4().hex[:_for_loop.LoopArguments.NUM_CODE_CHARS]
 
-  def __init__(self, loop_args: Union[_for_loop.ItemList, _pipeline_param.PipelineParam]):
-    self.items_is_pipeline_param = isinstance(loop_args, _pipeline_param.PipelineParam)
+  def __init__(
+      self, loop_args: Union[_for_loop.ItemList, _pipeline_param.PipelineParam]
+  ):
+    self.items_is_pipeline_param = isinstance(
+        loop_args, _pipeline_param.PipelineParam
+    )
 
     # use a random code to uniquely identify this loop
     code = self._get_unique_id_code()
@@ -190,7 +215,8 @@ class ParallelFor(OpsGroup):
 
     if self.items_is_pipeline_param:
       loop_args = _for_loop.LoopArguments.from_pipeline_param(loop_args)
-    elif not self.items_is_pipeline_param and not isinstance(loop_args, _for_loop.LoopArguments):
+    elif not self.items_is_pipeline_param and not isinstance(
+        loop_args, _for_loop.LoopArguments):
       # we were passed a raw list, wrap it in loop args
       loop_args = _for_loop.LoopArguments(loop_args, code)
 

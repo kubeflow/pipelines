@@ -34,7 +34,9 @@ def _annotation_to_typemeta(annotation):
     arg_type = annotation
   elif isinstance(annotation, dict):
     if not _check_valid_type_dict(annotation):
-      raise ValueError('Annotation ' + str(annotation) + ' is not a valid type dictionary.')
+      raise ValueError(
+          'Annotation ' + str(annotation) + ' is not a valid type dictionary.'
+      )
     arg_type = annotation
   else:
     return None
@@ -42,7 +44,8 @@ def _annotation_to_typemeta(annotation):
 
 
 def _extract_component_metadata(func):
-  '''Creates component metadata structure instance based on the function signature.'''
+  """Creates component metadata structure instance based on the function
+  signature."""
 
   # Importing here to prevent circular import failures
   #TODO: Change _pipeline_param to stop importing _metadata
@@ -55,7 +58,8 @@ def _extract_component_metadata(func):
   # defaults
   arg_defaults = {}
   if fullargspec.defaults:
-    for arg, default in zip(reversed(fullargspec.args), reversed(fullargspec.defaults)):
+    for arg, default in zip(reversed(fullargspec.args),
+                            reversed(fullargspec.defaults)):
       arg_defaults[arg] = default
 
   # Inputs
@@ -64,12 +68,16 @@ def _extract_component_metadata(func):
     arg_type = None
     arg_default = arg_defaults[arg] if arg in arg_defaults else None
     if isinstance(arg_default, PipelineParam):
-      warnings.warn('Explicit creation of `kfp.dsl.PipelineParam`s by the users is deprecated. The users should define the parameter type and default values using standard pythonic constructs: def my_func(a: int = 1, b: str = "default"):')
+      warnings.warn(
+          'Explicit creation of `kfp.dsl.PipelineParam`s by the users is deprecated. The users should define the parameter type and default values using standard pythonic constructs: def my_func(a: int = 1, b: str = "default"):'
+      )
       arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])
     if arg_default is not None:
-      arg_default = serialize_value(arg_default, type_name=str(arg_type) if arg_type else None) # TODO: Improve _annotation_to_typemeta or just replace the whole function with kfp.component._python_op._extract_component_interface
+      arg_default = serialize_value(
+          arg_default, type_name=str(arg_type) if arg_type else None
+      )  # TODO: Improve _annotation_to_typemeta or just replace the whole function with kfp.component._python_op._extract_component_interface
     inputs.append(InputSpec(name=arg, type=arg_type, default=arg_default))
   # Outputs
   outputs = []
@@ -85,14 +93,15 @@ def _extract_component_metadata(func):
 
   # Construct the ComponentSpec
   return ComponentSpec(
-    name=func.__name__,
-    inputs=inputs if inputs else None,
-    outputs=outputs if outputs else None,
+      name=func.__name__,
+      inputs=inputs if inputs else None,
+      outputs=outputs if outputs else None,
   )
 
 
 def _extract_pipeline_metadata(func):
-  '''Creates pipeline metadata structure instance based on the function signature.'''
+  """Creates pipeline metadata structure instance based on the function
+  signature."""
 
   # Importing here to prevent circular import failures
   #TODO: Change _pipeline_param to stop importing _metadata
@@ -106,7 +115,8 @@ def _extract_pipeline_metadata(func):
   # defaults
   arg_defaults = {}
   if fullargspec.defaults:
-    for arg, default in zip(reversed(fullargspec.args), reversed(fullargspec.defaults)):
+    for arg, default in zip(reversed(fullargspec.args),
+                            reversed(fullargspec.defaults)):
       arg_defaults[arg] = default
 
   # Inputs
@@ -115,11 +125,14 @@ def _extract_pipeline_metadata(func):
     arg_type = None
     arg_default = arg_defaults[arg] if arg in arg_defaults else None
     if isinstance(arg_default, PipelineParam):
-      warnings.warn('Explicit creation of `kfp.dsl.PipelineParam`s by the users is deprecated. The users should define the parameter type and default values using standard pythonic constructs: def my_func(a: int = 1, b: str = "default"):')
+      warnings.warn(
+          'Explicit creation of `kfp.dsl.PipelineParam`s by the users is deprecated. The users should define the parameter type and default values using standard pythonic constructs: def my_func(a: int = 1, b: str = "default"):'
+      )
       arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])
-    arg_type_properties = list(arg_type.values())[0] if isinstance(arg_type, dict) else {}
+    arg_type_properties = list(arg_type.values()
+                              )[0] if isinstance(arg_type, dict) else {}
     if 'openapi_schema_validator' in arg_type_properties and arg_default is not None:
       from jsonschema import validate
       import json
@@ -130,7 +143,9 @@ def _extract_pipeline_metadata(func):
       # Only validating non-serialized values
       validate(instance=arg_default, schema=schema_object)
     if arg_default is not None:
-      arg_default = serialize_value(arg_default, type_name=str(arg_type) if arg_type else None) # TODO: Improve _annotation_to_typemeta or just replace the whole function with kfp.component._python_op._extract_component_interface
+      arg_default = serialize_value(
+          arg_default, type_name=str(arg_type) if arg_type else None
+      )  # TODO: Improve _annotation_to_typemeta or just replace the whole function with kfp.component._python_op._extract_component_interface
     inputs.append(InputSpec(name=arg, type=arg_type, default=arg_default))
 
   #TODO: add descriptions to the metadata
@@ -140,8 +155,8 @@ def _extract_pipeline_metadata(func):
 
   # Construct the ComponentSpec
   pipeline_meta = ComponentSpec(
-    name=getattr(func, '_pipeline_name', func.__name__),
-    description=getattr(func, '_pipeline_description', func.__doc__),
-    inputs=inputs if inputs else None,
+      name=getattr(func, '_pipeline_name', func.__name__),
+      description=getattr(func, '_pipeline_description', func.__doc__),
+      inputs=inputs if inputs else None,
   )
   return pipeline_meta
