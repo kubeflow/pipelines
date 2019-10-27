@@ -81,7 +81,7 @@ spec:
               - preemptible_tpu_gpu
               - volume_snapshot_ops
               - kubeflow_tf_serving
-              - component_build
+              - container_build
               - loop_output
               - loop_parameter
               - loop_static
