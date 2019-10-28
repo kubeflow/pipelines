@@ -37,17 +37,17 @@ func (r *ResourceManager) ToModelRunMetric(metric *api.RunMetric, runUUID string
 // The input run might not contain workflowSpecManifest, but instead a pipeline ID.
 // The caller would retrieve workflowSpecManifest and pass in.
 func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow *util.Workflow, workflowSpecManifest string) (*model.RunDetail, error) {
-	params, err := toModelParameters(run.PipelineSpec.Parameters)
+	params, err := toModelParameters(run.GetPipelineSpec().GetParameters())
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to parse the parameter.")
 	}
-	resourceReferences, err := r.toModelResourceReferences(runId, common.Run, run.ResourceReferences)
+	resourceReferences, err := r.toModelResourceReferences(runId, common.Run, run.GetResourceReferences())
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to convert resource references.")
 	}
 	var pipelineName string
-	if run.PipelineSpec.GetPipelineId() != "" {
-		pipelineName, err = r.getResourceName(common.Pipeline, run.PipelineSpec.GetPipelineId())
+	if run.GetPipelineSpec().GetPipelineId() != "" {
+		pipelineName, err = r.getResourceName(common.Pipeline, run.GetPipelineSpec().GetPipelineId())
 		if err != nil {
 			return nil, util.Wrap(err, "Error getting the pipeline name")
 		}
@@ -63,7 +63,7 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 			Description:        run.Description,
 			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
-				PipelineId:           run.PipelineSpec.GetPipelineId(),
+				PipelineId:           run.GetPipelineSpec().GetPipelineId(),
 				PipelineName:         pipelineName,
 				WorkflowSpecManifest: workflowSpecManifest,
 				Parameters:           params,
@@ -76,17 +76,17 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 }
 
 func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, workflowSpecManifest string) (*model.Job, error) {
-	params, err := toModelParameters(job.PipelineSpec.Parameters)
+	params, err := toModelParameters(job.GetPipelineSpec().GetParameters())
 	if err != nil {
 		return nil, util.Wrap(err, "Error parsing the input job.")
 	}
-	resourceReferences, err := r.toModelResourceReferences(string(swf.UID), common.Job, job.ResourceReferences)
+	resourceReferences, err := r.toModelResourceReferences(string(swf.UID), common.Job, job.GetResourceReferences())
 	if err != nil {
 		return nil, util.Wrap(err, "Error to convert resource references.")
 	}
 	var pipelineName string
-	if job.PipelineSpec.GetPipelineId() != "" {
-		pipelineName, err = r.getResourceName(common.Pipeline, job.PipelineSpec.GetPipelineId())
+	if job.GetPipelineSpec().GetPipelineId() != "" {
+		pipelineName, err = r.getResourceName(common.Pipeline, job.GetPipelineSpec().GetPipelineId())
 		if err != nil {
 			return nil, util.Wrap(err, "Error getting the pipeline name")
 		}
@@ -103,7 +103,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 		MaxConcurrency:     job.MaxConcurrency,
 		ResourceReferences: resourceReferences,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:           job.PipelineSpec.GetPipelineId(),
+			PipelineId:           job.GetPipelineSpec().GetPipelineId(),
 			PipelineName:         pipelineName,
 			WorkflowSpecManifest: workflowSpecManifest,
 			Parameters:           params,
@@ -238,6 +238,12 @@ func (r *ResourceManager) getResourceName(resourceType common.ResourceType, reso
 			return "", util.Wrap(err, "Referred run not found.")
 		}
 		return run.DisplayName, nil
+	case common.PipelineVersion:
+		version, err := r.GetPipelineVersion(resourceId)
+		if err != nil {
+			return "", util.Wrap(err, "Referred pipeline version not found.")
+		}
+		return version.Name, nil
 	default:
 		return "", util.NewInvalidInputError("Unsupported resource type: %s", string(resourceType))
 	}
