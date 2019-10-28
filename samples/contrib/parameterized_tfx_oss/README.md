@@ -17,7 +17,7 @@ List of officially released nightly build image available can be found [here](ht
 After that, running 
 `python3 chicago_taxi_pipeline_simple.py` compiles the TFX pipeline into KFP pipeline package.
 
-# <a name="permission"></a> Requriements
+# Permission
 
 This pipeline requires Google Cloud Storage permission to run. 
 If KFP was deployed through K8S marketplace, please follow instructions in [the guideline](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials)
@@ -32,8 +32,7 @@ objects `dsl.PipelineParam` and appending them to the `KubeflowDagRunner._params
 KubeflowDagRunner can correctly identify those pipeline parameters and interpret them as Argo
 placeholder correctly when compilation. However, this parameterization approach is a hack and 
 we do not have plan for long-term support. Instead we're working with TFX team to support 
-pipeline parameterization using their [RuntimeParameter](https://github.com/tensorflow/tfx/blob/46bb4f975c36ea1defde4b3c33553e088b3dc5b8/tfx/orchestration/data_types.py#L108).
-
+pipeline parameterization using their [RuntimeParameter](https://github.com/tensorflow/tfx/blob/46bb4f975c36ea1defde4b3c33553e088b3dc5b8/tfx/orchestration/data_types.py#L108). 
 ### Known issues
 * This approach only works for string-typed quantities. For example, you cannot parameterize 
 `num_steps` of `Trainer` in this way.
