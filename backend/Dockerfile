@@ -1,4 +1,5 @@
-FROM l.gcr.io/google/bazel:0.24.0 as builder
+ARG BAZEL_IMAGE=l.gcr.io/google/bazel:0.24.0
+FROM $BAZEL_IMAGE as builder
 
 RUN apt-get update && \
   apt-get install -y cmake clang musl-dev openssl
@@ -50,7 +51,9 @@ ENV COMMIT_SHA=${COMMIT_SHA}
 WORKDIR /bin
 
 COPY third_party/license.txt /bin/license.txt
-COPY --from=builder /go/src/github.com/kubeflow/pipelines/bazel-bin/backend/src/apiserver/linux_amd64_stripped/apiserver  /bin/apiserver
+COPY --from=builder /go/src/github.com/kubeflow/pipelines/bazel-bin/backend/src/apiserver/  /usr/local/apiserver
+RUN cp /usr/local/apiserver/linux_$(dpkg --print-architecture)_stripped/apiserver /bin/apiserver && \
+    rm -rf /usr/local/apiserver
 COPY backend/src/apiserver/config/ /config
 
 COPY --from=compiler /samples/ /samples/
