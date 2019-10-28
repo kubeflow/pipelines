@@ -17,9 +17,9 @@ List of officially released nightly build image available can be found [here](ht
 After that, running 
 `python3 chicago_taxi_pipeline_simple.py` compiles the TFX pipeline into KFP pipeline package.
 
-# Requriements
+# <a name="permission"></a> Requriements
 
-This pipeline requires google storage permission to run. 
+This pipeline requires Google Cloud Storage permission to run. 
 If KFP was deployed through K8S marketplace, please follow instructions in [the guideline](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials)
 to make sure the service account has `storage.admin` role.
 
