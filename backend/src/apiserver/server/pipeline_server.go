@@ -187,3 +187,12 @@ func (s *PipelineServer) DeletePipelineVersion(ctx context.Context, request *api
 
 	return &empty.Empty{}, nil
 }
+
+func (s *PipelineServer) GetPipelineVersionTemplate(ctx context.Context, request *api.GetPipelineVersionTemplateRequest) (*api.GetTemplateResponse, error) {
+	template, err := s.resourceManager.GetPipelineVersionTemplate(request.VersionId)
+	if err != nil {
+		return nil, util.Wrap(err, "Get pipeline template failed.")
+	}
+
+	return &api.GetTemplateResponse{Template: string(template)}, nil
+}
