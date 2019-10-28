@@ -51,8 +51,8 @@ else
   SCOPE_ARG="--scopes=storage-rw,cloud-platform"
   # Machine type and cluster size is the same as kubeflow deployment to
   # easily compare performance. We can reduce usage later.
-  NODE_POOL_CONFIG_ARG="--num-nodes=2 --machine-type=n1-standard-8 \
-    --enable-autoscaling --max-nodes=8 --min-nodes=2"
+  NODE_POOL_CONFIG_ARG="--num-nodes=4 --machine-type=n1-standard-16 \
+    --enable-autoscaling --max-nodes=20 --min-nodes=4"
   gcloud container clusters create ${TEST_CLUSTER} ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG}
 fi
 
