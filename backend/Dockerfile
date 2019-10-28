@@ -1,4 +1,40 @@
-FROM l.gcr.io/google/bazel:0.24.0 as builder
+FROM ubuntu:18.04 as builder
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends software-properties-common \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update \
+    && apt-get install -y curl \
+        openjdk-11-jdk \
+        openjdk-11-jre-headless \
+        pkg-config \
+        zip \
+        g++ \
+        wget \
+        git \
+        zlib1g-dev \
+        unzip \
+        python \
+        python-dev \
+        python-setuptools \
+        python-virtualenv \
+        python3.6 \
+        python3.6-dev \
+        python3-setuptools \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV BAZEL_VERSION=0.24.0
+
+RUN mkdir -p /bazel \
+    && cd /bazel \
+    && curl -fSsL -O https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-dist.zip \
+    && unzip bazel-$BAZEL_VERSION-dist.zip \
+    && ./compile.sh \
+    && cp output/bazel /usr/local/bin \
+    && rm -rf /bazel
 
 RUN apt-get update && \
   apt-get install -y cmake clang musl-dev openssl
@@ -50,7 +86,9 @@ ENV COMMIT_SHA=${COMMIT_SHA}
 WORKDIR /bin
 
 COPY third_party/license.txt /bin/license.txt
-COPY --from=builder /go/src/github.com/kubeflow/pipelines/bazel-bin/backend/src/apiserver/linux_amd64_stripped/apiserver  /bin/apiserver
+COPY --from=builder /go/src/github.com/kubeflow/pipelines/bazel-bin/backend/src/apiserver/  /usr/local/apiserver
+RUN cp /usr/local/apiserver/linux_$(dpkg --print-architecture)_stripped/apiserver /bin/apiserver && \
+    rm -rf /usr/local/apiserver
 COPY backend/src/apiserver/config/ /config
 
 COPY --from=compiler /samples/ /samples/
