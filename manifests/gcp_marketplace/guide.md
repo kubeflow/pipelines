@@ -43,6 +43,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member=serviceAccount:$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com \
   --role=roles/storage.admin
 
+# Note that you can not bind multiple roles in one line.
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member=serviceAccount:$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com \
   --role=roles/ml.admin
@@ -98,3 +99,25 @@ as `Service Account User`. The Google Service Account is [Compute Engine default
 - Please also add your account as `Project Viewer` via [IAM](https://console.cloud.google.com/iam-admin/iam).
 
 For simplicity but not good for security, adding as `Project Editor` also can work.
+
+### Pipeline steps got insufficient permission
+If you see an error message stating that the pipeline got insufficient
+permissions, for example:
+
+```
+ Error executing an HTTP request: HTTP response code 403 with body '{
+ "error": {
+  "errors": [
+   {
+    "domain": "global",
+    "reason": "insufficientPermissions",
+    "message": "Insufficient Permission"
+   }
+  ],
+  "code": 403,
+  "message": "Insufficient Permission"
+ }
+}
+```
+please make sure following the procedure in [credential setup](#gcp-service-account-credentials). IAM configuration and/or
+ API enabling might take up to 5 mins to propagate. 
