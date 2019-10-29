@@ -117,18 +117,22 @@ class ExecutionList extends Page<{}, ExecutionListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
-    Apis.getMetadataServiceClient().getExecutions(new GetExecutionsRequest(), (err, res) => {
+    const {
+      error: err,
+      response: res,
+    } = await Apis.getMetadataServicePromiseClient().getExecutions(new GetExecutionsRequest());
+
+    if (err) {
       // Code === 5 means no record found in backend. This is a temporary workaround.
       // TODO: remove err.code !== 5 check when backend is fixed.
-      if (err && err.code !== 5) {
+      if (err.code !== 5) {
         this.showPageError(serviceErrorToString(err));
-        return;
       }
+      return '';
+    }
 
-      const executions = (res && res.getExecutionsList()) || [];
-      this.getRowsFromExecutions(request, executions);
-      this.clearBanner();
-    });
+    const executions = (res && res.getExecutionsList()) || [];
+    await this.getRowsFromExecutions(request, executions);
     return '';
   }
 
@@ -153,53 +157,58 @@ class ExecutionList extends Page<{}, ExecutionListState> {
    * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
    * @param request
    */
-  private getRowsFromExecutions(request: ListRequest, executions: Execution[]): void {
+  private async getRowsFromExecutions(
+    request: ListRequest,
+    executions: Execution[],
+  ): Promise<void> {
     const executionTypesMap = new Map<number, ExecutionType>();
     // TODO: Consider making an Api method for returning and caching types
-    Apis.getMetadataServiceClient().getExecutionTypes(
+    const {
+      error: err,
+      response: res,
+    } = await Apis.getMetadataServicePromiseClient().getExecutionTypes(
       new GetExecutionTypesRequest(),
-      (err, res) => {
-        if (err) {
-          this.showPageError(serviceErrorToString(err));
-          return;
-        }
-
-        ((res && res.getExecutionTypesList()) || []).forEach(executionType => {
-          executionTypesMap.set(executionType.getId()!, executionType);
-        });
-
-        const collapsedAndExpandedRows = groupRows(
-          executions
-            .map(execution => {
-              // Flattens
-              const typeId = execution.getTypeId();
-              const type =
-                typeId && executionTypesMap && executionTypesMap.get(typeId)
-                  ? executionTypesMap.get(typeId)!.getName()
-                  : typeId;
-              return {
-                id: `${type}:${execution.getId()}`, // Join with colon so we can build the link
-                otherFields: [
-                  getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
-                    getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true),
-                  getResourceProperty(execution, ExecutionProperties.COMPONENT_ID),
-                  getResourceProperty(execution, ExecutionProperties.STATE),
-                  execution.getId(),
-                  type,
-                ],
-              };
-            })
-            .filter(rowFilterFn(request))
-            .sort(rowCompareFn(request, this.state.columns)),
-        );
-
-        this.setState({
-          executions,
-          expandedRows: collapsedAndExpandedRows.expandedRows,
-          rows: collapsedAndExpandedRows.collapsedRows,
-        });
-      },
     );
+
+    if (err) {
+      this.showPageError(serviceErrorToString(err));
+      return;
+    }
+
+    ((res && res.getExecutionTypesList()) || []).forEach(executionType => {
+      executionTypesMap.set(executionType.getId()!, executionType);
+    });
+
+    const collapsedAndExpandedRows = groupRows(
+      executions
+        .map(execution => {
+          // Flattens
+          const typeId = execution.getTypeId();
+          const type =
+            typeId && executionTypesMap && executionTypesMap.get(typeId)
+              ? executionTypesMap.get(typeId)!.getName()
+              : typeId;
+          return {
+            id: `${type}:${execution.getId()}`, // Join with colon so we can build the link
+            otherFields: [
+              getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
+                getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true),
+              getResourceProperty(execution, ExecutionProperties.COMPONENT_ID),
+              getResourceProperty(execution, ExecutionProperties.STATE),
+              execution.getId(),
+              type,
+            ],
+          };
+        })
+        .filter(rowFilterFn(request))
+        .sort(rowCompareFn(request, this.state.columns)),
+    );
+
+    this.setState({
+      executions,
+      expandedRows: collapsedAndExpandedRows.expandedRows,
+      rows: collapsedAndExpandedRows.collapsedRows,
+    });
   }
 
   /**
