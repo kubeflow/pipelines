@@ -206,8 +206,8 @@ func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 				{Name: "param1", Value: "hello"},
 				{Name: "param2"}},
 			ResourceReferences: []*model.APIResourceReference{{
-				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: "PIPELINE"},
-				Relationship: "OWNER"}}},
+				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: model.APIResourceTypePIPELINE},
+				Relationship: model.APIRelationshipOWNER}}},
 	}
 	assert.Equal(t, expected, *pipeline)
 }
