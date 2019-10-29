@@ -120,20 +120,21 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
-    const { response, error } = await Apis.getMetadataServicePromiseClient().getArtifacts(
+    const { response: res, error: err } = await Apis.getMetadataServicePromiseClient().getArtifacts(
       new GetArtifactsRequest(),
     );
 
-    // Code === 5 means no record found in backend. This is a temporary workaround.
-    // TODO: remove err.code !== 5 check when backend is fixed.
-    if (error && error.code !== 5) {
-      this.showPageError(serviceErrorToString(error));
+    if (err) {
+      // Code === 5 means no record found in backend. This is a temporary workaround.
+      // TODO: remove err.code !== 5 check when backend is fixed.
+      if (err.code !== 5) {
+        this.showPageError(serviceErrorToString(err));
+      }
       return '';
     }
 
-    const artifacts = (response && response.getArtifactsList()) || [];
+    const artifacts = (res && res.getArtifactsList()) || [];
     await this.getRowsFromArtifacts(request, artifacts);
-    this.clearBanner();
     return '';
   }
 
