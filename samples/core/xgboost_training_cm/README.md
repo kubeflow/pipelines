@@ -10,7 +10,7 @@ Finally, a delete cluster operation runs to destroy the cluster it creates
 in the beginning. The delete cluster operation is used as an exit handler, meaning it will run regardless of whether the pipeline fails
 or not.
 
-## Permission
+## Requirements
 
 Preprocessing uses Google Cloud DataProc. Therefore, you must enable the 
 [Cloud Dataproc API](https://pantheon.corp.google.com/apis/library/dataproc.googleapis.com?q=dataproc) for the given GCP project. This is the 
