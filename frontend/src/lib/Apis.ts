@@ -102,6 +102,7 @@ const metadataServicePromiseClient = {
   getArtifactTypes: makePromiseApi(
     metadataServiceClient.getArtifactTypes.bind(metadataServiceClient),
   ),
+  getArtifacts: makePromiseApi(metadataServiceClient.getArtifacts.bind(metadataServiceClient)),
   getArtifactsByID: makePromiseApi(
     metadataServiceClient.getArtifactsByID.bind(metadataServiceClient),
   ),
