@@ -16,7 +16,6 @@
 import {Core_v1Api, Custom_objectsApi, KubeConfig} from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
-import * as Utils from './utils';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
@@ -93,6 +92,10 @@ export async function newTensorboardInstance(logdir: string, podTemplateSpec: Ob
       type: 'tensorboard',
       tensorboardSpec: {
         logDir: logdir,
+        // TODO(jingzhang36):
+        // (1) add UI element to specify the tensorflow image used here.
+        // (2) add UI delete button for existing tensorboard instance.
+        tensorflowImage: "tensorflow/tensorflow:1.13.2",
       },
       podTemplateSpec
     }

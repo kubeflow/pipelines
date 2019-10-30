@@ -60,6 +60,8 @@ type TensorboardSpec struct {
 	// LogDir is the location of the log directory to be read by tensorboard, i.e.,
 	// ---log_dir.
 	LogDir string `json:"logDir"`
+	// Tensorflow image used to start TensorBoard instance.
+	TensorflowImage string `json:"tensorflowImage"`
 }
 
 // ViewerSpec is the spec for a Viewer resource.

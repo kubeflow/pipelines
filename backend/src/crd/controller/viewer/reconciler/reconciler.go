@@ -165,7 +165,7 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 
 	c := &s.Containers[0]
 	c.Name = view.Name + "-pod"
-	c.Image = "tensorflow/tensorflow:1.13.2"
+	c.Image = view.Spec.TensorboardSpec.TensorflowImage
 	c.Args = []string{
 		"tensorboard",
 		fmt.Sprintf("--logdir=%s", view.Spec.TensorboardSpec.LogDir),
