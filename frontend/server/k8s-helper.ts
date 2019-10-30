@@ -93,7 +93,7 @@ export async function newTensorboardInstance(logdir: string, podTemplateSpec: Ob
       tensorboardSpec: {
         logDir: logdir,
         // TODO(jingzhang36):
-        // (1) add UI element to specify the tensorflow image used here.
+        // (1) add UI element to specify tensorflow image used here.
         // (2) add UI delete button for existing tensorboard instance.
         tensorflowImage: "tensorflow/tensorflow:1.13.2",
       },
