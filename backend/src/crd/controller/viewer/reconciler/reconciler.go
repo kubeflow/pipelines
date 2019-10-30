@@ -165,12 +165,16 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 
 	c := &s.Containers[0]
 	c.Name = view.Name + "-pod"
-	c.Image = "tensorflow/tensorflow"
+	c.Image = "tensorflow/tensorflow:1.13.2"
 	c.Args = []string{
 		"tensorboard",
 		fmt.Sprintf("--logdir=%s", view.Spec.TensorboardSpec.LogDir),
 		fmt.Sprintf("--path_prefix=/tensorboard/%s/", view.Name),
-		"--bind_all",
+		// --bind_all works with TensorBoard 2.0 and up. It doesn't work with
+		// tensorflow/tensorflow:1.13.2. Uncomment this line when we move to
+		// TensorBoard 2.0.
+		// https://github.com/tensorflow/tensorboard/blob/master/README.md
+		// "--bind_all",
 	}
 	c.Ports = []corev1.ContainerPort{
 		corev1.ContainerPort{ContainerPort: viewerTargetPort},
