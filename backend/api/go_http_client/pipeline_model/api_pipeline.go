@@ -37,6 +37,12 @@ type APIPipeline struct {
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty"`
 
+	// Output only. The default version of the pipeline. As of now, the latest
+	// version is used as default. (In the future, if desired by customers, we
+	// can allow them to set default version.)
+	// Read Only: true
+	DefaultVersion *APIPipelineVersion `json:"default_version,omitempty"`
+
 	// Optional input field. Describing the purpose of the job.
 	Description string `json:"description,omitempty"`
 
@@ -74,6 +80,10 @@ func (m *APIPipeline) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateDefaultVersion(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateParameters(formats); err != nil {
 		res = append(res, err)
 	}
@@ -96,6 +106,24 @@ func (m *APIPipeline) validateCreatedAt(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("created_at", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *APIPipeline) validateDefaultVersion(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.DefaultVersion) { // not required
+		return nil
+	}
+
+	if m.DefaultVersion != nil {
+		if err := m.DefaultVersion.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("default_version")
+			}
+			return err
+		}
 	}
 
 	return nil
