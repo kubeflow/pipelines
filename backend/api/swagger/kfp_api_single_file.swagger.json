@@ -64,7 +64,8 @@
               "UNKNOWN_RESOURCE_TYPE",
               "EXPERIMENT",
               "JOB",
-              "PIPELINE"
+              "PIPELINE",
+              "PIPELINE_VERSION"
             ],
             "default": "UNKNOWN_RESOURCE_TYPE"
           },
@@ -431,7 +432,8 @@
               "UNKNOWN_RESOURCE_TYPE",
               "EXPERIMENT",
               "JOB",
-              "PIPELINE"
+              "PIPELINE",
+              "PIPELINE_VERSION"
             ],
             "default": "UNKNOWN_RESOURCE_TYPE"
           },
@@ -1166,7 +1168,8 @@
         "UNKNOWN_RESOURCE_TYPE",
         "EXPERIMENT",
         "JOB",
-        "PIPELINE"
+        "PIPELINE",
+        "PIPELINE_VERSION"
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },
@@ -1520,6 +1523,11 @@
         "error": {
           "type": "string",
           "description": "In case any error happens retrieving a pipeline field, only pipeline ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle error. This is especially useful during listing call."
+        },
+        "default_version": {
+          "$ref": "#/definitions/apiPipelineVersion",
+          "title": "Output only. The default version of the pipeline. As of now, the latest\nversion is used as default. (In the future, if desired by customers, we\ncan allow them to set default version.)",
+          "readOnly": true
         }
       }
     },
