@@ -39,6 +39,7 @@ export SA_NAME=<my-account>
 export NAMESPACE=<namespace-where-kfp-was-installed>
 # Create service account
 gcloud iam service-accounts create $SA_NAME --display-name $SA_NAME --project "$PROJECT_ID"
+# Grant permissions to the service account by binding roles
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member=serviceAccount:$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com \
   --role=roles/storage.admin
@@ -55,11 +56,13 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 
 and store the service account credential as a Kubernetes secret `user-gcp-sa` in the cluster
 ```
+# Create credential for the service account
 gcloud iam service-accounts keys create application_default_credentials.json --iam-account $SA_NAME@$PROJECT_ID.iam.gserviceaccount.com
 
 # Make sure the secret is created under the correct namespace.
 kubectl config set-context --current --namespace=$NAMESPACE
 
+# Attempt to create a k8s secret. If already exists, override.
 kubectl create secret generic user-gcp-sa \
   --from-file=user-gcp-sa.json=application_default_credentials.json \
   --dry-run -o yaml  |  kubectl apply -f -
