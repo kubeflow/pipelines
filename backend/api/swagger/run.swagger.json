@@ -63,7 +63,8 @@
               "UNKNOWN_RESOURCE_TYPE",
               "EXPERIMENT",
               "JOB",
-              "PIPELINE"
+              "PIPELINE",
+              "PIPELINE_VERSION"
             ],
             "default": "UNKNOWN_RESOURCE_TYPE"
           },
@@ -586,7 +587,8 @@
         "UNKNOWN_RESOURCE_TYPE",
         "EXPERIMENT",
         "JOB",
-        "PIPELINE"
+        "PIPELINE",
+        "PIPELINE_VERSION"
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },

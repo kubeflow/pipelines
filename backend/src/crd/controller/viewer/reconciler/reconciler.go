@@ -165,12 +165,14 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 
 	c := &s.Containers[0]
 	c.Name = view.Name + "-pod"
-	c.Image = "tensorflow/tensorflow"
+	c.Image = "tensorflow/tensorflow:1.13.2"
 	c.Args = []string{
 		"tensorboard",
 		fmt.Sprintf("--logdir=%s", view.Spec.TensorboardSpec.LogDir),
 		fmt.Sprintf("--path_prefix=/tensorboard/%s/", view.Name),
-		"--bind_all",
+		// This is needed for tf 2.0. We need to optionally add it
+		// when https://github.com/kubeflow/pipelines/issues/2514 is done
+		// "--bind_all",
 	}
 	c.Ports = []corev1.ContainerPort{
 		corev1.ContainerPort{ContainerPort: viewerTargetPort},
