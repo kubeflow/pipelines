@@ -3,9 +3,9 @@ import { generateGcsConsoleUri } from '../lib/Utils';
 
 /**
  * A component that renders an artifact URL as clickable link if URL is correct
-  */
+ */
 export const ArtifactLink: React.FC<{ artifactUri?: string }> = ({ artifactUri }) => {
-  let clickableUrl: string | undefined = undefined;
+  let clickableUrl: string | undefined;
   if (artifactUri) {
     if (artifactUri.startsWith('gs:')) {
       const gcsConsoleUrl = generateGcsConsoleUri(artifactUri);
