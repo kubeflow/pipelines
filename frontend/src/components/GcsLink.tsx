@@ -6,11 +6,22 @@ import { generateGcsConsoleUri } from '../lib/Utils';
  * text if it is not a valid gs:// uri.
  */
 export const GcsLink: React.FC<{ gcsUri?: string }> = ({ gcsUri }) => {
-  const gcsConsoleUri = gcsUri ? generateGcsConsoleUri(gcsUri) : undefined;
-  if (gcsConsoleUri) {
+  var clickableUrl: string | undefined = undefined
+  if (gcsUri) {
+    if (gcsUri.startsWith('gs:')) {
+      var gcsConsoleUrl = generateGcsConsoleUri(gcsUri)
+      if (gcsConsoleUrl) {
+        clickableUrl = gcsConsoleUrl
+      }
+    } else if (gcsUri.startsWith('http:') || gcsUri.startsWith('https:')) {
+      clickableUrl = gcsUri
+    }
+  }
+
+  if (clickableUrl) {
     // Opens in new window safely
     return (
-      <a href={gcsConsoleUri} target={'_blank'} rel={'noreferrer noopener'}>
+      <a href={clickableUrl} target={'_blank'} rel={'noreferrer noopener'}>
         {gcsUri}
       </a>
     );
