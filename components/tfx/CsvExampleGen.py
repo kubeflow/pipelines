@@ -6,8 +6,8 @@ def CsvExampleGen(
     #input_base_path: 'ExternalPath', # A Channel of 'ExternalPath' type, which includes one artifact whose uri is an external directory with csv files inside (required).
 
     # Outputs
-    output_examples_path: OutputPath('ExamplesPath'),
-    #output_examples_path: 'ExamplesPath',
+    example_artifacts_path: OutputPath('ExamplesPath'),
+    #example_artifacts_path: 'ExamplesPath',
 
     # Execution properties
     #input_config_splits: {'List' : {'item_type': 'ExampleGen.Input.Split'}},
@@ -69,7 +69,7 @@ def CsvExampleGen(
 
     # Generating paths for output artifacts
     for output_artifact in output_dict['examples']:
-        output_artifact.uri = output_examples_path
+        output_artifact.uri = example_artifacts_path
         if output_artifact.split:
             output_artifact.uri = os.path.join(output_artifact.uri, output_artifact.split)
 

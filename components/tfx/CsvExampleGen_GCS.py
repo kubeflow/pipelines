@@ -6,8 +6,8 @@ def CsvExampleGen_GCS( #
     input_base_path: 'ExternalPath', # A Channel of 'ExternalPath' type, which includes one artifact whose uri is an external directory with csv files inside (required).
 
     # Outputs
-    #output_examples_path: OutputPath('ExamplesPath'),
-    output_examples_path: 'ExamplesPath',
+    #example_artifacts_path: OutputPath('ExamplesPath'),
+    example_artifacts_path: 'ExamplesPath',
 
     # Execution properties
     #input_config_splits: {'List' : {'item_type': 'ExampleGen.Input.Split'}},
@@ -16,7 +16,7 @@ def CsvExampleGen_GCS( #
     output_config: 'ExampleGen.Output' = '{"splitConfig": {"splits": []}}', # JSON-serialized example_gen_pb2.Output instance, providing output configuration. If unset, default splits will be 'train' and 'eval' with size 2:1.
     #custom_config: 'ExampleGen.CustomConfig' = None,
 ) -> NamedTuple('Outputs', [
-    ('examples_path', 'ExamplesPath'),
+    ('example_artifacts', 'ExamplesPath'),
 ]):
     """Executes the CsvExampleGen component.
 
@@ -71,7 +71,7 @@ def CsvExampleGen_GCS( #
 
     # Generating paths for output artifacts
     for output_artifact in output_dict['examples']:
-        output_artifact.uri = output_examples_path
+        output_artifact.uri = example_artifacts_path
         if output_artifact.split:
             output_artifact.uri = os.path.join(output_artifact.uri, output_artifact.split)
 
@@ -82,7 +82,7 @@ def CsvExampleGen_GCS( #
         exec_properties=exec_properties,
     )
 
-    return (output_examples_path,)
+    return (example_artifacts_path,)
 
 if __name__ == '__main__':
     import kfp
