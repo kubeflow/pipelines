@@ -26,6 +26,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	viewerV1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta1"
 	viewerV1beta2 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -72,6 +73,12 @@ func New(cli client.Client, scheme *runtime.Scheme, opts *Options) (*Reconciler,
 // a specific path.
 func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	glog.Infof("Reconcile request: %+v", req)
+
+	// Viewer (with requested key) using old versions will be detected and removed.
+	v1beta1Viewer := &viewerV1beta1.Viewer{}
+	if err := r.Get(context.Background(), req.NamespacedName, v1beta1Viewer); err == nil {
+		r.Client.Delete(context.Background(), v1beta1Viewer, nil)
+	}
 
 	view := &viewerV1beta2.Viewer{}
 	if err := r.Get(context.Background(), req.NamespacedName, view); err != nil {
