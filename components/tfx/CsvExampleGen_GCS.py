@@ -29,11 +29,10 @@ def CsvExampleGen_GCS( #
       output_config: An example_gen_pb2.Output instance, providing output
         configuration. If unset, default splits will be 'train' and 'eval' with
         size 2:1.
-      ??? example_artifacts: Optional channel of 'ExamplesPath' for output train and
-        eval examples.
       ??? input: Forwards compatibility alias for the 'input_base' argument.
-      ??? instance_name: Optional unique instance name. Necessary if multiple
-        CsvExampleGen components are declared in the same pipeline.
+    Returns:
+      example_artifacts: Artifact of type 'ExamplesPath' for output train and
+        eval examples.
     """
 
     import json
