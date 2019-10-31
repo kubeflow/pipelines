@@ -4,16 +4,16 @@ import { generateGcsConsoleUri } from '../lib/Utils';
 /**
  * A component that renders an artifact URL as clickable link if URL is correct
   */
-export const GcsLink: React.FC<{ gcsUri?: string }> = ({ gcsUri }) => {
+export const ArtifactLink: React.FC<{ artifactUri?: string }> = ({ artifactUri }) => {
   let clickableUrl: string | undefined = undefined;
-  if (gcsUri) {
-    if (gcsUri.startsWith('gs:')) {
-      const gcsConsoleUrl = generateGcsConsoleUri(gcsUri);
+  if (artifactUri) {
+    if (artifactUri.startsWith('gs:')) {
+      const gcsConsoleUrl = generateGcsConsoleUri(artifactUri);
       if (gcsConsoleUrl) {
         clickableUrl = gcsConsoleUrl;
       }
-    } else if (gcsUri.startsWith('http:') || gcsUri.startsWith('https:')) {
-      clickableUrl = gcsUri;
+    } else if (artifactUri.startsWith('http:') || artifactUri.startsWith('https:')) {
+      clickableUrl = artifactUri;
     }
   }
 
@@ -21,10 +21,10 @@ export const GcsLink: React.FC<{ gcsUri?: string }> = ({ gcsUri }) => {
     // Opens in new window safely
     return (
       <a href={clickableUrl} target={'_blank'} rel={'noreferrer noopener'}>
-        {gcsUri}
+        {artifactUri}
       </a>
     );
   } else {
-    return <>{gcsUri}</>;
+    return <>{artifactUri}</>;
   }
 };
