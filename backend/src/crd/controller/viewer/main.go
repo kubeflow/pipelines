@@ -25,7 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/viewer/reconciler"
 	"github.com/kubeflow/pipelines/backend/src/crd/pkg/signals"
 
-	viewerV1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta1"
+	viewerV1beta2 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -61,7 +61,7 @@ func main() {
 		log.Fatalf("Failed to build Kubernetes runtime client: %v", err)
 	}
 
-	viewerV1beta1.AddToScheme(scheme.Scheme)
+	viewerV1beta2.AddToScheme(scheme.Scheme)
 	opts := &reconciler.Options{MaxNumViewers: *maxNumViewers}
 	reconciler, err := reconciler.New(cli, scheme.Scheme, opts)
 	if err != nil {
@@ -78,7 +78,7 @@ func main() {
 
 	_, err = builder.SimpleController().
 		WithManager(mgr).
-		ForType(&viewerV1beta1.Viewer{}).
+		ForType(&viewerV1beta2.Viewer{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		WithConfig(cfg).

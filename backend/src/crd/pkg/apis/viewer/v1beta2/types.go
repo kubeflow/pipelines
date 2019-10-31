@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1beta1
+package v1beta2
 
 import (
 	v1 "k8s.io/api/core/v1"
@@ -60,6 +60,8 @@ type TensorboardSpec struct {
 	// LogDir is the location of the log directory to be read by tensorboard, i.e.,
 	// ---log_dir.
 	LogDir string `json:"logDir"`
+	// Tensorflow image used to start TensorBoard instance.
+	TensorflowImage string `json:"tensorflowImage"`
 }
 
 // ViewerSpec is the spec for a Viewer resource.

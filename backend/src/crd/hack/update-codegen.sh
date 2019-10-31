@@ -29,7 +29,7 @@ echo "CODEGEN_PKG is $CODEGEN_PKG"
 ${CODEGEN_PKG}/generate-groups.sh "deepcopy" \
   github.com/kubeflow/pipelines/backend/src/crd/pkg/client \
   github.com/kubeflow/pipelines/backend/src/crd/pkg/apis \
-  "scheduledworkflow:v1beta1 viewer:v1beta1" \
+  "scheduledworkflow:v1beta1 viewer:v1beta1 viewer:v1beta2" \
   --go-header-file ${SCRIPT_ROOT}/custom-boilerplate.go.txt
 
 ${CODEGEN_PKG}/generate-groups.sh "client,informer,lister" \

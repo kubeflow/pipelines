@@ -26,7 +26,7 @@ let k8sV1CustomObjectClient: Custom_objectsApi | null = null;
 
 // Constants for creating customer resource Viewer.
 const viewerGroup = 'kubeflow.org';
-const viewerVersion = 'v1beta1';
+const viewerVersion = 'v1beta2';
 const viewerPlural = 'viewers';
 
 export const defaultPodTemplateSpec = {
