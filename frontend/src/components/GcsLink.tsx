@@ -2,19 +2,18 @@ import * as React from 'react';
 import { generateGcsConsoleUri } from '../lib/Utils';
 
 /**
- * A component that renders a gcs console link when gcsUri is gs:// and pure
- * text if it is not a valid gs:// uri.
- */
+ * A component that renders an artifact URL as clickable link if URL is correct
+  */
 export const GcsLink: React.FC<{ gcsUri?: string }> = ({ gcsUri }) => {
-  var clickableUrl: string | undefined = undefined
+  let clickableUrl: string | undefined = undefined;
   if (gcsUri) {
     if (gcsUri.startsWith('gs:')) {
-      var gcsConsoleUrl = generateGcsConsoleUri(gcsUri)
+      const gcsConsoleUrl = generateGcsConsoleUri(gcsUri);
       if (gcsConsoleUrl) {
-        clickableUrl = gcsConsoleUrl
+        clickableUrl = gcsConsoleUrl;
       }
     } else if (gcsUri.startsWith('http:') || gcsUri.startsWith('https:')) {
-      clickableUrl = gcsUri
+      clickableUrl = gcsUri;
     }
   }
 
