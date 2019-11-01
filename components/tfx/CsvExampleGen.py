@@ -62,8 +62,11 @@ def CsvExampleGen(
         output_config=output_config_obj,
     )
 
-    input_dict = {name: channel.artifacts for name, channel in component_class_instance.inputs.items()}
-    output_dict = {name: channel.artifacts for name, channel in component_class_instance.outputs.items()}
+    # component_class_instance.inputs/outputs are wrappers that do not behave like real dictionaries. The underlying dict can be accessed using .get_all()
+    # Channel artifacts can be accessed by calling .get()
+    input_dict = {name: channel.get() for name, channel in component_class_instance.inputs.get_all().items()}
+    output_dict = {name: channel.get() for name, channel in component_class_instance.outputs.get_all().items()}
+
     exec_properties = component_class_instance.exec_properties
 
     # Generating paths for output artifacts

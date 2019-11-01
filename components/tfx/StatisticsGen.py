@@ -46,8 +46,8 @@ def StatisticsGen(
         input_data=input_data_channel,
     )
 
-    input_dict = {name: channel.artifacts for name, channel in component_class_instance.inputs.items()}
-    output_dict = {name: channel.artifacts for name, channel in component_class_instance.outputs.items()}
+    input_dict = {name: channel.get() for name, channel in component_class_instance.inputs.get_all().items()}
+    output_dict = {name: channel.get() for name, channel in component_class_instance.outputs.get_all().items()}
     exec_properties = component_class_instance.exec_properties
 
     # Generating paths for output artifacts
