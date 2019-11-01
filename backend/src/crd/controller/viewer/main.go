@@ -83,13 +83,16 @@ func main() {
 		Owns(&corev1.Service{}).
 		WithConfig(cfg).
 		Build(reconciler)
+	glog.Infof("Jing 6")
 
 	if err != nil {
 		log.Fatal(err)
 	}
+	glog.Infof("Jing 7")
 
 	glog.Info("Starting controller for the Viewer CRD")
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+		glog.Infof("Jing 8")
 		log.Fatalf("Failed to start controller: %v", err)
 	}
 }

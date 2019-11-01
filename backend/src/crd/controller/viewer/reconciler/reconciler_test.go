@@ -23,7 +23,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	_ "github.com/google/go-cmp/cmp/cmpopts"
-	viewerV1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta2"
+	viewerV1beta2 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -41,7 +41,7 @@ const tensorflowImage = "tensorflow/tensorflow"
 var viewer *Reconciler
 
 func TestMain(m *testing.M) {
-	viewerV1beta1.AddToScheme(scheme.Scheme)
+	viewerV1beta2.AddToScheme(scheme.Scheme)
 	os.Exit(m.Run())
 }
 
@@ -75,14 +75,14 @@ func getServices(t *testing.T, c client.Client) []*corev1.Service {
 	return svcs
 }
 
-func getViewers(t *testing.T, c client.Client) []*viewerV1beta1.Viewer {
-	list := &viewerV1beta1.ViewerList{}
+func getViewers(t *testing.T, c client.Client) []*viewerV1beta2.Viewer {
+	list := &viewerV1beta2.ViewerList{}
 
 	if err := c.List(context.Background(), &client.ListOptions{}, list); err != nil {
 		t.Fatalf("Failed to list viewers with fake client: %v", err)
 	}
 
-	var items []*viewerV1beta1.Viewer
+	var items []*viewerV1beta2.Viewer
 	for _, i := range list.Items {
 		i := i
 		items = append(items, &i)
@@ -108,7 +108,7 @@ func serviceNames(svcs []*corev1.Service) []string {
 	return ns
 }
 
-func viewerNames(items []*viewerV1beta1.Viewer) []string {
+func viewerNames(items []*viewerV1beta2.Viewer) []string {
 	var ns []string
 
 	for _, s := range items {
@@ -122,14 +122,14 @@ func boolRef(val bool) *bool {
 }
 
 func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
-	viewer := &viewerV1beta1.Viewer{
+	viewer := &viewerV1beta2.Viewer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "viewer-123",
 			Namespace: "kubeflow",
 		},
-		Spec: viewerV1beta1.ViewerSpec{
-			Type: viewerV1beta1.ViewerTypeTensorboard,
-			TensorboardSpec: viewerV1beta1.TensorboardSpec{
+		Spec: viewerV1beta2.ViewerSpec{
+			Type: viewerV1beta2.ViewerTypeTensorboard,
+			TensorboardSpec: viewerV1beta2.TensorboardSpec{
 				LogDir:          "gs://tensorboard/logdir",
 				TensorflowImage: tensorflowImage,
 			},
@@ -153,7 +153,7 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 			Name:      "viewer-123-deployment",
 			Namespace: "kubeflow",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion:         "kubeflow.org/v1beta1",
+				APIVersion:         "kubeflow.org/v1beta2",
 				Name:               "viewer-123",
 				Kind:               "Viewer",
 				Controller:         boolRef(true),
@@ -195,14 +195,14 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 }
 
 func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
-	viewer := &viewerV1beta1.Viewer{
+	viewer := &viewerV1beta2.Viewer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "viewer-123",
 			Namespace: "kubeflow",
 		},
-		Spec: viewerV1beta1.ViewerSpec{
-			Type: viewerV1beta1.ViewerTypeTensorboard,
-			TensorboardSpec: viewerV1beta1.TensorboardSpec{
+		Spec: viewerV1beta2.ViewerSpec{
+			Type: viewerV1beta2.ViewerTypeTensorboard,
+			TensorboardSpec: viewerV1beta2.TensorboardSpec{
 				LogDir:          "gs://tensorboard/logdir",
 				TensorflowImage: tensorflowImage,
 			},
@@ -251,7 +251,7 @@ func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
 			Name:      "viewer-123-deployment",
 			Namespace: "kubeflow",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion:         "kubeflow.org/v1beta1",
+				APIVersion:         "kubeflow.org/v1beta2",
 				Name:               "viewer-123",
 				Kind:               "Viewer",
 				Controller:         boolRef(true),
@@ -307,14 +307,14 @@ func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
 }
 
 func TestReconcile_EachViewerCreatesAService(t *testing.T) {
-	viewer := &viewerV1beta1.Viewer{
+	viewer := &viewerV1beta2.Viewer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "viewer-123",
 			Namespace: "kubeflow",
 		},
-		Spec: viewerV1beta1.ViewerSpec{
-			Type: viewerV1beta1.ViewerTypeTensorboard,
-			TensorboardSpec: viewerV1beta1.TensorboardSpec{
+		Spec: viewerV1beta2.ViewerSpec{
+			Type: viewerV1beta2.ViewerTypeTensorboard,
+			TensorboardSpec: viewerV1beta2.TensorboardSpec{
 				LogDir:          "gs://tensorboard/logdir",
 				TensorflowImage: tensorflowImage,
 			},
@@ -346,7 +346,7 @@ func TestReconcile_EachViewerCreatesAService(t *testing.T) {
 					"rewrite: /tensorboard/viewer-123/\n" +
 					"service: viewer-123-service"},
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion:         "kubeflow.org/v1beta1",
+				APIVersion:         "kubeflow.org/v1beta2",
 				Kind:               "Viewer",
 				Name:               "viewer-123",
 				Controller:         boolRef(true),
@@ -378,14 +378,14 @@ func TestReconcile_EachViewerCreatesAService(t *testing.T) {
 }
 
 func TestReconcile_UnknownViewerTypesAreIgnored(t *testing.T) {
-	viewer := &viewerV1beta1.Viewer{
+	viewer := &viewerV1beta2.Viewer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "viewer-123",
 			Namespace: "kubeflow",
 		},
-		Spec: viewerV1beta1.ViewerSpec{
+		Spec: viewerV1beta2.ViewerSpec{
 			Type: "unknownType",
-			TensorboardSpec: viewerV1beta1.TensorboardSpec{
+			TensorboardSpec: viewerV1beta2.TensorboardSpec{
 				LogDir:          "gs://tensorboard/logdir",
 				TensorflowImage: tensorflowImage,
 			},
@@ -447,16 +447,16 @@ func TestReconcile_UnknownViewerDoesNothing(t *testing.T) {
 	}
 }
 
-func makeViewer(id int) (*types.NamespacedName, *viewerV1beta1.Viewer) {
-	v := &viewerV1beta1.Viewer{
+func makeViewer(id int) (*types.NamespacedName, *viewerV1beta2.Viewer) {
+	v := &viewerV1beta2.Viewer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              fmt.Sprintf("viewer-%d", id),
 			Namespace:         "kubeflow",
 			CreationTimestamp: metav1.Time{Time: time.Unix(int64(id), 0)},
 		},
-		Spec: viewerV1beta1.ViewerSpec{
-			Type: viewerV1beta1.ViewerTypeTensorboard,
-			TensorboardSpec: viewerV1beta1.TensorboardSpec{
+		Spec: viewerV1beta2.ViewerSpec{
+			Type: viewerV1beta2.ViewerTypeTensorboard,
+			TensorboardSpec: viewerV1beta2.TensorboardSpec{
 				LogDir:          "gs://tensorboard/logdir",
 				TensorflowImage: tensorflowImage,
 			},

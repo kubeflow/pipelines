@@ -16,5 +16,8 @@ spec:
   scope: Namespaced
   versions:
   - name: v1beta1
+    served: false
+    storage: false
+  - name: v1beta2
     served: true
     storage: true
