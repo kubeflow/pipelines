@@ -71,7 +71,6 @@ if __name__ == '__main__':
     import kfp
     kfp.components.func_to_container_op(
         SchemaGen,
-        base_image='tensorflow/tensorflow:1.14.0-py3',
-        packages_to_install=['tfx==0.14', 'six>=1.12.0'],
+        base_image='tensorflow/tfx:0.15.0rc0',
         output_component_file='SchemaGen.component.yaml'
     )
