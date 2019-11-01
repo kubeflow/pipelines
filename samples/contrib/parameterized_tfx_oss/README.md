@@ -11,7 +11,7 @@ Please refer to inline comments for the purpose of each step.
 In order to successfully compile this sample, you'll need to have a TFX installation at HEAD.
 First, you can clone their repo and run `python setup.py install` from `tfx/`. 
 The image used in the pipeline is specified as `tfx_image` in the 
-`KubeflowDagRunnerConfig`. Currently we're using our own patched version of TFX image containing visualization support.
+`KubeflowDagRunnerConfig`. Please make sure you use the latest TFX build so that visualization support is included.
 List of officially released nightly build image available can be found [here](https://hub.docker.com/r/tensorflow/tfx/tags)).
 
 After that, running 
