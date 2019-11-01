@@ -34,7 +34,6 @@ class TestCompare extends Compare {
 }
 
 describe('Compare', () => {
-
   let tree: ReactWrapper | ShallowWrapper;
 
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
@@ -48,14 +47,21 @@ describe('Compare', () => {
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
   const outputArtifactLoaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
 
-
   function generateProps(): PageProps {
     const location = {
       pathname: RoutePage.COMPARE,
-      search: `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID},${MOCK_RUN_2_ID},${MOCK_RUN_3_ID}`
+      search: `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID},${MOCK_RUN_2_ID},${MOCK_RUN_3_ID}`,
     } as any;
-    return TestUtils.generatePageProps(Compare, location, {} as any, historyPushSpy,
-      updateBannerSpy, updateDialogSpy, updateToolbarSpy, updateSnackbarSpy);
+    return TestUtils.generatePageProps(
+      Compare,
+      location,
+      {} as any,
+      historyPushSpy,
+      updateBannerSpy,
+      updateDialogSpy,
+      updateToolbarSpy,
+      updateSnackbarSpy,
+    );
   }
 
   const MOCK_RUN_1_ID = 'mock-run-1-id';
@@ -72,7 +78,7 @@ describe('Compare', () => {
       run: {
         id: id || 'test-run-id',
         name: 'test run ' + id,
-      }
+      },
     };
   }
 
@@ -81,7 +87,6 @@ describe('Compare', () => {
    * and a tensorboard viewer.
    */
   async function setUpViewersAndShallowMount(): Promise<void> {
-
     // Simulate returning a tensorboard and table viewer
     outputArtifactLoaderSpy.mockImplementation(() => [
       { type: PlotType.TENSORBOARD, url: 'gs://path' },
@@ -93,14 +98,16 @@ describe('Compare', () => {
         nodes: {
           node1: {
             outputs: {
-              artifacts: [{
-                name: 'mlpipeline-ui-metadata',
-                s3: { bucket: 'test bucket', key: 'test key' }
-              }]
-            }
-          }
-        }
-      }
+              artifacts: [
+                {
+                  name: 'mlpipeline-ui-metadata',
+                  s3: { bucket: 'test bucket', key: 'test key' },
+                },
+              ],
+            },
+          },
+        },
+      },
     };
     const run1 = newMockRun('run-with-workflow-1');
     run1.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
@@ -130,7 +137,7 @@ describe('Compare', () => {
 
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
 
-    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
   });
 
   afterEach(async () => {
@@ -161,8 +168,7 @@ describe('Compare', () => {
   it('renders a page with multiple runs', async () => {
     const props = generateProps();
     // Ensure there are run IDs in the query
-    props.location.search =
-      `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID},${MOCK_RUN_2_ID},${MOCK_RUN_3_ID}`;
+    props.location.search = `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID},${MOCK_RUN_2_ID},${MOCK_RUN_3_ID}`;
 
     tree = shallow(<Compare {...props} />);
     await TestUtils.flushPromises();
@@ -189,11 +195,13 @@ describe('Compare', () => {
     tree = shallow(<Compare {...generateProps()} />);
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      additionalInfo: 'test error',
-      message: 'Error: failed loading 1 runs. Click Details for more information.',
-      mode: 'error',
-    }));
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'test error',
+        message: 'Error: failed loading 1 runs. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 
   it('shows an error banner indicating the number of getRun calls that failed', async () => {
@@ -206,11 +214,13 @@ describe('Compare', () => {
     tree = shallow(<Compare {...generateProps()} />);
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      additionalInfo: 'test error',
-      message: `Error: failed loading ${runs.length} runs. Click Details for more information.`,
-      mode: 'error',
-    }));
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'test error',
+        message: `Error: failed loading ${runs.length} runs. Click Details for more information.`,
+        mode: 'error',
+      }),
+    );
   });
 
   it('clears the error banner on refresh', async () => {
@@ -228,11 +238,11 @@ describe('Compare', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
-  it('displays run\'s parameters if the run has any', async () => {
+  it("displays run's parameters if the run has any", async () => {
     const workflow = {
       spec: {
         arguments: {
-          parameters: [{ name: 'param1', value: 'value1', }, { name: 'param2', value: 'value2', }],
+          parameters: [{ name: 'param1', value: 'value1' }, { name: 'param2', value: 'value2' }],
         },
       },
     } as Workflow;
@@ -251,7 +261,7 @@ describe('Compare', () => {
     expect(tree.state('paramsCompareProps')).toEqual({
       rows: [['value1'], ['value2']],
       xLabels: ['test run run-with-parameters'],
-      yLabels: ['param1', 'param2']
+      yLabels: ['param1', 'param2'],
     });
     expect(tree).toMatchSnapshot();
   });
@@ -262,7 +272,7 @@ describe('Compare', () => {
         arguments: {
           parameters: [
             { name: 'r1-unique-param', value: 'r1-unique-val1' },
-            { name: 'shared-param', value: 'r1-shared-val2' }
+            { name: 'shared-param', value: 'r1-shared-val2' },
           ],
         },
       },
@@ -272,7 +282,7 @@ describe('Compare', () => {
         arguments: {
           parameters: [
             { name: 'r2-unique-param1', value: 'r2-unique-val1' },
-            { name: 'shared-param', value: 'r2-shared-val2' }
+            { name: 'shared-param', value: 'r2-shared-val2' },
           ],
         },
       },
@@ -294,7 +304,7 @@ describe('Compare', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('displays a run\'s metrics if the run has any', async () => {
+  it("displays a run's metrics if the run has any", async () => {
     const run = newMockRun('run-with-metrics');
     run.run!.metrics = [
       { name: 'some-metric', number_value: 0.33 },
@@ -312,7 +322,7 @@ describe('Compare', () => {
     expect(tree.state('metricsCompareProps')).toEqual({
       rows: [['0.330'], ['0.554']],
       xLabels: ['test run run-with-metrics'],
-      yLabels: ['some-metric', 'another-metric']
+      yLabels: ['some-metric', 'another-metric'],
     });
     expect(tree).toMatchSnapshot();
   });
@@ -324,9 +334,7 @@ describe('Compare', () => {
       { name: 'another-metric', number_value: 0.554 },
     ];
     const run2 = newMockRun('run2');
-    run2.run!.metrics = [
-      { name: 'some-metric', number_value: 0.67 },
-    ];
+    run2.run!.metrics = [{ name: 'some-metric', number_value: 0.67 }];
     runs.push(run1, run2);
 
     const props = generateProps();
@@ -351,14 +359,16 @@ describe('Compare', () => {
         nodes: {
           node1: {
             outputs: {
-              artifacts: [{
-                name: 'mlpipeline-ui-metadata',
-                s3: { bucket: 'test bucket', key: 'test key' }
-              }]
-            }
-          }
-        }
-      }
+              artifacts: [
+                {
+                  name: 'mlpipeline-ui-metadata',
+                  s3: { bucket: 'test bucket', key: 'test key' },
+                },
+              ],
+            },
+          },
+        },
+      },
     };
     const run = newMockRun('run-with-workflow');
     run.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
@@ -373,23 +383,28 @@ describe('Compare', () => {
     const expectedViewerMap = new Map([
       [
         PlotType.TABLE,
-        [{
-          config: { data: [['test']], labels: ['col1, col2'], type: PlotType.TABLE },
-          runId: run.run!.id,
-          runName: run.run!.name
-        } as TaggedViewerConfig],
+        [
+          {
+            config: { data: [['test']], labels: ['col1, col2'], type: PlotType.TABLE },
+            runId: run.run!.id,
+            runName: run.run!.name,
+          } as TaggedViewerConfig,
+        ],
       ],
       [
         PlotType.TENSORBOARD,
-        [{
-          config: { type: PlotType.TENSORBOARD, url: 'gs://path' },
-          runId: run.run!.id,
-          runName: run.run!.name
-        } as TaggedViewerConfig]
+        [
+          {
+            config: { type: PlotType.TENSORBOARD, url: 'gs://path' },
+            runId: run.run!.id,
+            runName: run.run!.name,
+          } as TaggedViewerConfig,
+        ],
       ],
     ]);
-    expect((tree.state('viewersMap') as Map<PlotType, TaggedViewerConfig>))
-      .toEqual(expectedViewerMap);
+    expect(tree.state('viewersMap') as Map<PlotType, TaggedViewerConfig>).toEqual(
+      expectedViewerMap,
+    );
 
     expect(tree).toMatchSnapshot();
   });
@@ -404,11 +419,11 @@ describe('Compare', () => {
     collapseBtn!.action();
 
     expect(tree.state('collapseSections')).toEqual({
-      'Metrics': true,
-      'Parameters': true,
+      Metrics: true,
+      Parameters: true,
       'Run overview': true,
-      'Table': true,
-      'Tensorboard': true
+      Table: true,
+      Tensorboard: true,
     });
 
     expect(tree).toMatchSnapshot();
@@ -425,11 +440,11 @@ describe('Compare', () => {
     collapseBtn!.action();
 
     expect(tree.state('collapseSections')).toEqual({
-      'Metrics': true,
-      'Parameters': true,
+      Metrics: true,
+      Parameters: true,
       'Run overview': true,
-      'Table': true,
-      'Tensorboard': true
+      Table: true,
+      Tensorboard: true,
     });
 
     expandBtn!.action();
@@ -446,24 +461,40 @@ describe('Compare', () => {
     expect(tree.state('collapseSections')).toEqual({});
 
     // Collapse run overview
-    tree.find('CollapseButton').at(0).find('button').simulate('click');
+    tree
+      .find('CollapseButton')
+      .at(0)
+      .find('button')
+      .simulate('click');
 
     expect(tree.state('collapseSections')).toEqual({ 'Run overview': true });
 
     // Collapse run parameters
-    tree.find('CollapseButton').at(1).find('button').simulate('click');
+    tree
+      .find('CollapseButton')
+      .at(1)
+      .find('button')
+      .simulate('click');
 
     expect(tree.state('collapseSections')).toEqual({
-      'Parameters': true,
+      Parameters: true,
       'Run overview': true,
     });
 
     // Re-expand run overview and parameters
-    tree.find('CollapseButton').at(0).find('button').simulate('click');
-    tree.find('CollapseButton').at(1).find('button').simulate('click');
+    tree
+      .find('CollapseButton')
+      .at(0)
+      .find('button')
+      .simulate('click');
+    tree
+      .find('CollapseButton')
+      .at(1)
+      .find('button')
+      .simulate('click');
 
     expect(tree.state('collapseSections')).toEqual({
-      'Parameters': false,
+      Parameters: false,
       'Run overview': false,
     });
   });
@@ -475,12 +506,24 @@ describe('Compare', () => {
 
     expect(tree.state('selectedIds')).toEqual(['mock-run-1-id', 'mock-run-2-id', 'mock-run-3-id']);
 
-    tree.find('RunList').find('.tableRow').at(0).simulate('click');
-    tree.find('RunList').find('.tableRow').at(2).simulate('click');
+    tree
+      .find('RunList')
+      .find('.tableRow')
+      .at(0)
+      .simulate('click');
+    tree
+      .find('RunList')
+      .find('.tableRow')
+      .at(2)
+      .simulate('click');
 
     expect(tree.state('selectedIds')).toEqual(['mock-run-2-id']);
 
-    tree.find('RunList').find('.tableRow').at(0).simulate('click');
+    tree
+      .find('RunList')
+      .find('.tableRow')
+      .at(0)
+      .simulate('click');
 
     expect(tree.state('selectedIds')).toEqual(['mock-run-2-id', 'mock-run-1-id']);
   });
@@ -500,21 +543,23 @@ describe('Compare', () => {
     // Tensorboard and ROC curves are the only viewers that currently support aggregation
     outputArtifactLoaderSpy.mockImplementation(() => [
       { type: PlotType.TENSORBOARD, url: 'gs://path' },
-      { data: [], type: PlotType.ROC }
+      { data: [], type: PlotType.ROC },
     ]);
     const workflow = {
       status: {
         nodes: {
           node1: {
             outputs: {
-              artifacts: [{
-                name: 'mlpipeline-ui-metadata',
-                s3: { bucket: 'test bucket', key: 'test key' }
-              }]
-            }
-          }
-        }
-      }
+              artifacts: [
+                {
+                  name: 'mlpipeline-ui-metadata',
+                  s3: { bucket: 'test bucket', key: 'test key' },
+                },
+              ],
+            },
+          },
+        },
+      },
     };
     const run1 = newMockRun('run1-id');
     run1.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);

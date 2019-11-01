@@ -66,8 +66,8 @@ interface CustomTableRowProps {
 }
 
 function calculateColumnWidths(columns: Column[]): number[] {
-  const totalFlex = columns.reduce((total, c) => total += (c.flex || 1), 0);
-  return columns.map(c => (c.flex || 1) / totalFlex * 100);
+  const totalFlex = columns.reduce((total, c) => (total += c.flex || 1), 0);
+  return columns.map(c => ((c.flex || 1) / totalFlex) * 100);
 }
 
 // tslint:disable-next-line:variable-name
@@ -76,17 +76,18 @@ export const CustomTableRow: React.FC<CustomTableRowProps> = (props: CustomTable
   const widths = calculateColumnWidths(columns);
   return (
     <React.Fragment>
-      {
-        row.otherFields.map((cell, i) => (
-          <div key={i} style={{ width: widths[i] + '%' }} className={css.cell}>
-            {i === 0 && row.error && (
-              <Tooltip title={row.error}><WarningIcon className={css.icon} /></Tooltip>
-            )}
-            {columns[i].customRenderer ?
-              columns[i].customRenderer!({ value: cell, id: row.id }) : cell}
-          </div>
-        ))
-      }
+      {row.otherFields.map((cell, i) => (
+        <div key={i} style={{ width: widths[i] + '%' }} className={css.cell}>
+          {i === 0 && row.error && (
+            <Tooltip title={row.error}>
+              <WarningIcon className={css.icon} />
+            </Tooltip>
+          )}
+          {columns[i].customRenderer
+            ? columns[i].customRenderer!({ value: cell, id: row.id })
+            : cell}
+        </div>
+      ))}
     </React.Fragment>
   );
 };

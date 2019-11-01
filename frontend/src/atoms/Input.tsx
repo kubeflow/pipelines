@@ -27,12 +27,17 @@ interface InputProps extends OutlinedTextFieldProps {
 export default (props: InputProps) => {
   const { height, maxWidth, variant, width, ...rest } = props;
   return (
-    <TextField variant={variant} className={commonCss.textField} spellCheck={false}
-        style={{
-          height: !!props.multiline ? 'auto' : (height || 40),
-          maxWidth: maxWidth || 600,
-          width: width || '100%' }}
-        {...rest}>
+    <TextField
+      variant={variant}
+      className={commonCss.textField}
+      spellCheck={false}
+      style={{
+        height: !!props.multiline ? 'auto' : height || 40,
+        maxWidth: maxWidth || 600,
+        width: width || '100%',
+      }}
+      {...rest}
+    >
       {props.children}
     </TextField>
   );

@@ -30,27 +30,28 @@ export default class CompareUtils {
    * runs and workflowObjects are required to be in the same order, so workflowObject[i]
    * is run[i]'s parsed workflow object
    */
-  public static getParamsCompareProps(runs: ApiRunDetail[], workflowObjects: Workflow[]): CompareTableProps {
+  public static getParamsCompareProps(
+    runs: ApiRunDetail[],
+    workflowObjects: Workflow[],
+  ): CompareTableProps {
     if (runs.length !== workflowObjects.length) {
       // Should never happen
       logger.error('Numbers of passed in runs and workflows do not match');
     }
 
-    const yLabels = chain(flatten(workflowObjects
-      .map(w => WorkflowParser.getParameters(w))))
-      .countBy(p => p.name)                         // count by parameter name
-      .map((k, v) => ({ name: v, count: k }))       // convert to counter objects
-      .orderBy('count', 'desc')                     // sort on count field, descending
+    const yLabels = chain(flatten(workflowObjects.map(w => WorkflowParser.getParameters(w))))
+      .countBy(p => p.name) // count by parameter name
+      .map((k, v) => ({ name: v, count: k })) // convert to counter objects
+      .orderBy('count', 'desc') // sort on count field, descending
       .map(o => o.name)
       .value();
 
     const rows = yLabels.map(name => {
-      return workflowObjects
-        .map(w => {
-          const params = WorkflowParser.getParameters(w);
-          const param = params.find(p => p.name === name);
-          return param ? param.value || '' : '';
-        });
+      return workflowObjects.map(w => {
+        const params = WorkflowParser.getParameters(w);
+        const param = params.find(p => p.name === name);
+        return param ? param.value || '' : '';
+      });
     });
 
     return {
@@ -65,14 +66,13 @@ export default class CompareUtils {
 
     const yLabels = Array.from(metricMetadataMap.keys());
 
-    const rows =
-      yLabels.map(name =>
-        runs.map(r =>
-          // TODO(rjbauer): This logic isn't quite right. A single run can have multiple metrics
-          // with the same name, but here we're stopping once we find one.
-          MetricUtils.getMetricDisplayString((r.metrics || []).find(m => m.name === name))
-        )
-      );
+    const rows = yLabels.map(name =>
+      runs.map(r =>
+        // TODO(rjbauer): This logic isn't quite right. A single run can have multiple metrics
+        // with the same name, but here we're stopping once we find one.
+        MetricUtils.getMetricDisplayString((r.metrics || []).find(m => m.name === name)),
+      ),
+    );
 
     return {
       rows,
@@ -89,7 +89,10 @@ export default class CompareUtils {
    * rows: an array of arrays, each representing all of the metrics produced by a given step of the
    * execution.
    */
-  public static singleRunToMetricsCompareProps(run?: ApiRun, workflow?: Workflow): CompareTableProps {
+  public static singleRunToMetricsCompareProps(
+    run?: ApiRun,
+    workflow?: Workflow,
+  ): CompareTableProps {
     let rows: string[][] = [];
     let xLabels: string[] = [];
     const yLabels: string[] = [];
@@ -98,7 +101,12 @@ export default class CompareUtils {
       const nodeIds: Set<string> = new Set();
 
       (run.metrics || []).forEach(metric => {
-        if (!metric.name || !metric.node_id || metric.number_value === undefined || isNaN(metric.number_value)) {
+        if (
+          !metric.name ||
+          !metric.node_id ||
+          metric.number_value === undefined ||
+          isNaN(metric.number_value)
+        ) {
           return;
         }
         const nodeToValue = namesToNodesToValues.get(metric.name) || new Map();
@@ -109,13 +117,10 @@ export default class CompareUtils {
 
       xLabels = Array.from(namesToNodesToValues.keys());
 
-      rows =
-        Array.from(nodeIds.keys()).map(nodeId => {
-          yLabels.push((workflow && workflow.status.nodes[nodeId].displayName) || nodeId);
-          return xLabels.map(metricName =>
-            namesToNodesToValues.get(metricName)!.get(nodeId) || ''
-          );
-        });
+      rows = Array.from(nodeIds.keys()).map(nodeId => {
+        yLabels.push((workflow && workflow.status.nodes[nodeId].displayName) || nodeId);
+        return xLabels.map(metricName => namesToNodesToValues.get(metricName)!.get(nodeId) || '');
+      });
     }
 
     return {

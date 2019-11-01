@@ -89,7 +89,7 @@ const css = stylesheet({
     margin: 10,
     position: 'absolute',
     // TODO: can this be calculated?
-    transform: 'translate(71px, 14px)'
+    transform: 'translate(71px, 14px)',
   },
   root: {
     backgroundColor: color.graphBg,
@@ -133,13 +133,12 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     const displayEdges: Edge[] = [];
 
     // Creates the lines that constitute the edges connecting the graph.
-    graph.edges().forEach((edgeInfo) => {
+    graph.edges().forEach(edgeInfo => {
       const edge = graph.edge(edgeInfo);
       const segments: Segment[] = [];
 
       if (edge.points.length > 1) {
         for (let i = 1; i < edge.points.length; i++) {
-
           let xStart = edge.points[i - 1].x;
           let yStart = edge.points[i - 1].y;
           let xEnd = edge.points[i].x;
@@ -157,8 +156,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
             // Set the edge's first segment to start at the bottom or top of the source node.
             yStart = downwardPointingSegment
-              ? sourceNode.y + (sourceNode.height / 2) - 3
-              : sourceNode.y - (sourceNode.height / 2);
+              ? sourceNode.y + sourceNode.height / 2 - 3
+              : sourceNode.y - sourceNode.height / 2;
 
             xStart = this._ensureXIsWithinNode(sourceNode, xStart);
           }
@@ -184,7 +183,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
               // node.
               yEnd = downwardPointingSegment
                 ? destinationNode.y - this.TOP_OFFSET + 5
-                : destinationNode.y + (destinationNode.height / 2) + 3;
+                : destinationNode.y + destinationNode.height / 2 + 3;
 
               xEnd = this._ensureXIsWithinNode(destinationNode, xEnd);
             }
@@ -226,7 +225,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         from: edgeInfo.v,
         isPlaceholder: edge.isPlaceholder,
         segments,
-        to: edgeInfo.w
+        to: edgeInfo.w,
       });
     });
 
@@ -235,36 +234,50 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
     return (
       <div className={css.root}>
-        {graph.nodes().map(id => Object.assign(graph.node(id), { id })).map((node, i) => (
-          <div className={classes(node.isPlaceholder ? css.placeholderNode : css.node, 'graphNode',
-            node.id === this.props.selectedNodeId ? css.nodeSelected : '')} key={i}
-            onMouseEnter={() => {
-              if (!this.props.selectedNodeId) {
-                this.setState({ hoveredNode: node.id });
+        {graph
+          .nodes()
+          .map(id => Object.assign(graph.node(id), { id }))
+          .map((node, i) => (
+            <div
+              className={classes(
+                node.isPlaceholder ? css.placeholderNode : css.node,
+                'graphNode',
+                node.id === this.props.selectedNodeId ? css.nodeSelected : '',
+              )}
+              key={i}
+              onMouseEnter={() => {
+                if (!this.props.selectedNodeId) {
+                  this.setState({ hoveredNode: node.id });
+                }
+              }}
+              onMouseLeave={() => {
+                if (this.state.hoveredNode === node.id) {
+                  this.setState({ hoveredNode: undefined });
+                }
+              }}
+              onClick={() =>
+                !node.isPlaceholder && this.props.onClick && this.props.onClick(node.id)
               }
-            }}
-            onMouseLeave={() => {
-              if (this.state.hoveredNode === node.id) {
-                this.setState({ hoveredNode: undefined });
-              }
-            }}
-            onClick={() => (!node.isPlaceholder && this.props.onClick) && this.props.onClick(node.id)}
-            style={{
-              backgroundColor: node.bgColor, left: node.x,
-              maxHeight: node.height,
-              minHeight: node.height,
-              top: node.y,
-              transition: 'left 0.5s, top 0.5s',
-              width: node.width,
-            }}>
-            {!node.isPlaceholder && (
-              <Tooltip title={node.label} enterDelay={300}>
-                <div className={css.label}>{node.label}</div>
-              </Tooltip>
-            )}
-            <div className={css.icon} style={{ background: node.statusColoring }}>{node.icon}</div>
-          </div>
-        ))}
+              style={{
+                backgroundColor: node.bgColor,
+                left: node.x,
+                maxHeight: node.height,
+                minHeight: node.height,
+                top: node.y,
+                transition: 'left 0.5s, top 0.5s',
+                width: node.width,
+              }}
+            >
+              {!node.isPlaceholder && (
+                <Tooltip title={node.label} enterDelay={300}>
+                  <div className={css.label}>{node.label}</div>
+                </Tooltip>
+              )}
+              <div className={css.icon} style={{ background: node.statusColoring }}>
+                {node.icon}
+              </div>
+            </div>
+          ))}
 
         {displayEdges.map((edge, i) => {
           const edgeColor = this._getEdgeColor(edge, highlightNode);
@@ -272,8 +285,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           return (
             <div key={i}>
               {edge.segments.map((segment, l) => (
-                <div className={css.line}
-                  key={l} style={{
+                <div
+                  className={css.line}
+                  key={l}
+                  style={{
                     backgroundColor: edgeColor,
                     height: this.EDGE_THICKNESS,
                     left: segment.x1 + this.LEFT_OFFSET,
@@ -281,16 +296,20 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
                     transform: `rotate(${segment.angle}deg)`,
                     transition: 'left 0.5s, top 0.5s',
                     width: segment.length,
-                  }} />
+                  }}
+                />
               ))}
               {/* Arrowhead */}
               {!edge.isPlaceholder && lastSegment.x2 !== undefined && lastSegment.y2 !== undefined && (
-                <div className={css.arrowHead} style={{
-                  borderTopColor: edgeColor,
-                  left: lastSegment.x2 + this.LEFT_OFFSET - 6,
-                  top: lastSegment.y2 + this.TOP_OFFSET - 3,
-                  transform: `rotate(${lastSegment.angle + 90}deg)`,
-                }} />
+                <div
+                  className={css.arrowHead}
+                  style={{
+                    borderTopColor: edgeColor,
+                    left: lastSegment.x2 + this.LEFT_OFFSET - 6,
+                    top: lastSegment.y2 + this.TOP_OFFSET - 3,
+                    transform: `rotate(${lastSegment.angle + 90}deg)`,
+                  }}
+                />
               )}
             </div>
           );
@@ -300,17 +319,18 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   }
 
   private _addDiagonalSegment(
-      segments: Segment[],
-      xStart: number,
-      yStart: number,
-      xEnd: number,
-      yEnd: number): void {
+    segments: Segment[],
+    xStart: number,
+    yStart: number,
+    xEnd: number,
+    yEnd: number,
+  ): void {
     const xMid = (xStart + xEnd) / 2;
     // The + 0.5 at the end of 'length' helps fill out the elbows of the edges.
     const length = Math.sqrt(Math.pow(xStart - xEnd, 2) + Math.pow(yStart - yEnd, 2)) + 0.5;
-    const x1 = xMid - (length / 2);
+    const x1 = xMid - length / 2;
     const y1 = (yStart + yEnd) / 2;
-    const angle = Math.atan2(yStart - yEnd, xStart - xEnd) * 180 / Math.PI;
+    const angle = (Math.atan2(yStart - yEnd, xStart - xEnd) * 180) / Math.PI;
     segments.push({
       angle,
       length,

@@ -62,7 +62,9 @@
             "enum": [
               "UNKNOWN_RESOURCE_TYPE",
               "EXPERIMENT",
-              "JOB"
+              "JOB",
+              "PIPELINE",
+              "PIPELINE_VERSION"
             ],
             "default": "UNKNOWN_RESOURCE_TYPE"
           },
@@ -75,7 +77,7 @@
           },
           {
             "name": "filter",
-            "description": "A base-64 encoded, JSON-serialized Filter protocol buffer (see\nfilter.proto).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\nfilter.proto).",
             "in": "query",
             "required": false,
             "type": "string"
@@ -266,7 +268,7 @@
         },
         "cron": {
           "type": "string",
-          "title": "The cron string. For details how to compose a cron, visit ttps://en.wikipedia.org/wiki/Cron"
+          "title": "The cron string. For details how to compose a cron, visit\nttps://en.wikipedia.org/wiki/Cron"
         }
       },
       "title": "CronSchedule allow scheduling the job with unix-like cron"
@@ -456,7 +458,9 @@
       "enum": [
         "UNKNOWN_RESOURCE_TYPE",
         "EXPERIMENT",
-        "JOB"
+        "JOB",
+        "PIPELINE",
+        "PIPELINE_VERSION"
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },

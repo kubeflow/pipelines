@@ -31,7 +31,8 @@ import (
 // swagger:model apiCronSchedule
 type APICronSchedule struct {
 
-	// The cron string. For details how to compose a cron, visit ttps://en.wikipedia.org/wiki/Cron
+	// The cron string. For details how to compose a cron, visit
+	// ttps://en.wikipedia.org/wiki/Cron
 	Cron string `json:"cron,omitempty"`
 
 	// The end time of the cron job

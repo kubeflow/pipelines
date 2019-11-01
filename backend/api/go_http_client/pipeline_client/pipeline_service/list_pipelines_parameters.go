@@ -77,7 +77,7 @@ for the list pipelines operation typically these are written to a http.Request
 type ListPipelinesParams struct {
 
 	/*Filter
-	  A base-64 encoded, JSON-serialized Filter protocol buffer (see
+	  A url-encoded, JSON-serialized Filter protocol buffer (see
 	filter.proto).
 
 	*/

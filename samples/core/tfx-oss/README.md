@@ -50,5 +50,5 @@ Configure
 ## Compile and run the pipeline
 Run the notebook.
 
-This will generate a file named chicago_taxi_pipeline_kubeflow.tar.gz
+This will generate a file named `chicago_taxi_pipeline_kubeflow.tar.gz`.
 Upload this file to the Pipelines Cluster and create a run.

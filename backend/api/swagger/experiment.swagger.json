@@ -55,7 +55,7 @@
           },
           {
             "name": "filter",
-            "description": "A base-64 encoded, JSON-serialized Filter protocol buffer (see\nfilter.proto).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\nfilter.proto).",
             "in": "query",
             "required": false,
             "type": "string"

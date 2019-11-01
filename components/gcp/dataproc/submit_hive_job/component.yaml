@@ -75,7 +75,7 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:57d9f7f1cfd458e945d297957621716062d89a49
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:e9b96de317989a9673ef88d88fb9dab9dac3005f
     args: [
       kfp_component.google.dataproc, submit_hive_job,
       --project_id, {inputValue: project_id},

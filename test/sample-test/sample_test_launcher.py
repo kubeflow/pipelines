@@ -195,7 +195,7 @@ class ComponentTest(SampleTest):
   include xgboost_training_cm
   """
   def __init__(self, test_name, results_gcs_dir,
-               dataproc_gcp_image,
+               gcp_image,
                local_confusionmatrix_image,
                local_roc_image,
                target_image_prefix='',
@@ -208,7 +208,7 @@ class ComponentTest(SampleTest):
     )
     self._local_confusionmatrix_image = local_confusionmatrix_image
     self._local_roc_image = local_roc_image
-    self._dataproc_gcp_image = dataproc_gcp_image
+    self._dataproc_gcp_image = gcp_image
 
   def _injection(self):
     """Sample-specific image injection into yaml file."""

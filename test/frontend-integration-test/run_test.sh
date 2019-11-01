@@ -49,24 +49,15 @@ if [ -z "$RESULTS_GCS_DIR" ]; then
     exit 1
 fi
 
-# Setup Google Cloud SDK, and use it to install kubectl so it gets the right context
-wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip
-unzip -qq google-cloud-sdk.zip -d tools
-rm google-cloud-sdk.zip
-tools/google-cloud-sdk/install.sh --usage-reporting=false \
-  --path-update=false --bash-completion=false \
-  --disable-installation-options
-tools/google-cloud-sdk/bin/gcloud -q components install kubectl
-
 if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
-  tools/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
 
 npm install
 
 # Port forward the UI so tests can work against localhost
-POD=`/src/tools/google-cloud-sdk/bin/kubectl get pods -n ${NAMESPACE} -l app=ml-pipeline-ui -o jsonpath='{.items[0].metadata.name}'`
-/src/tools/google-cloud-sdk/bin/kubectl port-forward -n ${NAMESPACE} ${POD} 3000:3000 &
+POD=`kubectl get pods -n ${NAMESPACE} -l app=ml-pipeline-ui -o jsonpath='{.items[0].metadata.name}'`
+kubectl port-forward -n ${NAMESPACE} ${POD} 3000:3000 &
 
 # Run Selenium server
 /opt/bin/entry_point.sh &
@@ -83,6 +74,6 @@ set -e
 JUNIT_TEST_RESULT=junit_FrontendIntegrationTestOutput.xml
 
 echo "Copy test result to GCS ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}"
-tools/google-cloud-sdk/bin/gsutil cp ${JUNIT_TEST_RESULT} ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}
+gsutil cp ${JUNIT_TEST_RESULT} ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}
 
 exit $TEST_EXIT_CODE

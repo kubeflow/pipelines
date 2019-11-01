@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test_name: component_build
+test_name: container_build
 notebook_params:
   PROJECT_NAME: ml-pipeline-test
