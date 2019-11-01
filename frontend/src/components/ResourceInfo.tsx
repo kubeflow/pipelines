@@ -18,7 +18,7 @@ import { stylesheet } from 'typestyle';
 import { color, commonCss } from '../Css';
 import { getMetadataValue } from '../lib/Utils';
 import { Artifact, Execution } from '../generated/src/apis/metadata/metadata_store_pb';
-import { GcsLink } from './GcsLink';
+import { ArtifactLink } from './ArtifactLink';
 
 export const css = stylesheet({
   field: {
@@ -77,7 +77,7 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
               <>
                 <dt className={css.term}>URI</dt>
                 <dd className={css.value}>
-                  <GcsLink gcsUri={this.props.resource.getUri()} />
+                  <ArtifactLink artifactUri={this.props.resource.getUri()} />
                 </dd>
               </>
             );
