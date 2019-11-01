@@ -85,6 +85,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	if len(view.Spec.TensorboardSpec.TensorflowImage) == 0 {
 		glog.Infof("Jing delete viewer")
 		r.Client.Delete(context.Background(), view)
+		return reconcile.Result{}, nil
 	}
 
 	// Ignore other viewer types for now.
