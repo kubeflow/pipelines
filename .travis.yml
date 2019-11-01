@@ -109,7 +109,8 @@ matrix:
         - cd $TRAVIS_BUILD_DIR/tfx/tfx/orchestration/kubeflow
         - python3 kubeflow_dag_runner_test.py
         - cd $TRAVIS_BUILD_DIR/tfx/tfx/examples/chicago_taxi_pipeline
-        - python3 taxi_pipeline_kubeflow_test.py
+        - python3 taxi_pipeline_kubeflow_gcp_test.py
+        - python3 taxi_pipeline_kubeflow_local_test.py
 
         # Visualization test
         - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
@@ -139,31 +140,7 @@ matrix:
       before_install:
         - export PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python3.7/site-packages/
       install: *0
-      script:
-        # DSL tests
-        - cd $TRAVIS_BUILD_DIR/sdk/python
-        - python3 setup.py develop
-        - cd $TRAVIS_BUILD_DIR # Changing the current directory to the repo root for correct coverall paths
-        - coverage run --source=kfp --append sdk/python/tests/dsl/main.py
-        - coverage run --source=kfp --append sdk/python/tests/compiler/main.py
-        - coverage run --source=kfp --append -m unittest discover --verbose --start-dir sdk/python/tests --top-level-directory=sdk/python
-        - coveralls
-        # Currently TFX kubeflow test is not compatible with Python 3.7
-        # Visualization test
-        - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
-        - python3 test_exporter.py
-        - python3 test_server.py
-
-        # Test loading all component.yaml definitions
-        - $TRAVIS_BUILD_DIR/components/test_load_all_components.sh
-
-        # Component SDK tests
-        - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
-        - ./run_test.sh
-
-        # Sample test unittests.
-        - cd $TRAVIS_BUILD_DIR/test/sample-test/unittests
-        - python3 -m unittest utils_tests.py
+      script: *1
     - name: "Lint Python code with flake8"
       language: python
       python: "3.7"
