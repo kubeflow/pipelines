@@ -26,7 +26,6 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	viewerV1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta1"
 	viewerV1beta2 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -73,17 +72,6 @@ func New(cli client.Client, scheme *runtime.Scheme, opts *Options) (*Reconciler,
 // a specific path.
 func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	glog.Infof("Reconcile request: %+v", req)
-	glog.Infof("Jing a")
-
-	// Viewer (with requested key) using old versions will be detected and removed.
-	v1beta1Viewer := &viewerV1beta1.Viewer{}
-	if err := r.Get(context.Background(), req.NamespacedName, v1beta1Viewer); err == nil {
-		glog.Infof("Jing get v1beta1 viewer: %+v", v1beta1Viewer)
-		// r.Client.Delete(context.Background(), v1beta1Viewer, nil)
-	} else {
-		glog.Infof("Jing try v1beta1 err %+v", err)
-	}
-	glog.Infof("Jing b")
 
 	view := &viewerV1beta2.Viewer{}
 	if err := r.Get(context.Background(), req.NamespacedName, view); err != nil {
@@ -96,7 +84,14 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		return reconcile.Result{}, err
 	}
 	glog.Infof("Got instance: %+v", view)
-	glog.Infof("Jing c")
+
+	// Since an existing viewer resource is found, let's check if its version is
+	// up-to-date. If not, delete this existing viewer (and its deployment and
+	// service), so a new viewer can be started again from FE.
+	if len(view.Spec.TensorboardSpec.TensorflowImage) == 0 {
+		r.Client.Delete(context.Background(), view)
+		return reconcile.Result{}, nil
+	}
 
 	// Ignore other viewer types for now.
 	if view.Spec.Type != viewerV1beta2.ViewerTypeTensorboard {
@@ -104,14 +99,12 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		// Return nil to indicate nothing more to do here.
 		return reconcile.Result{}, nil
 	}
-	glog.Infof("Jing d")
 
 	// Check and maybe delete the oldest viewer before creating the next one.
 	if err := r.maybeDeleteOldestViewer(view.Spec.Type, view.Namespace); err != nil {
 		// Couldn't delete. Requeue.
 		return reconcile.Result{Requeue: true}, err
 	}
-	glog.Infof("Jing e")
 
 	// Set up potential deployment.
 	dpl, err := deploymentFrom(view)
@@ -120,7 +113,6 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		// User error, don't requeue key.
 		return reconcile.Result{}, nil
 	}
-	glog.Infof("Jing f")
 
 	// Set the deployment to be owned by the view instance. This ensures that
 	// deleting the viewer instance will delete the deployment as well.
@@ -129,7 +121,6 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		utilruntime.HandleError(err)
 		return reconcile.Result{}, err
 	}
-	glog.Infof("Jing g")
 
 	foundDpl := &appsv1.Deployment{}
 	nsn := types.NamespacedName{Name: dpl.Name, Namespace: dpl.Namespace}
@@ -139,34 +130,18 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 			glog.Infof("Jing get deployment not found")
 			// Create a new instance.
 			if createErr := r.Client.Create(context.Background(), dpl); createErr != nil {
-				glog.Infof("Jing create deployment error %+v", err)
 				utilruntime.HandleError(fmt.Errorf("error creating deployment: %v", createErr))
 				return reconcile.Result{}, createErr
 			}
 			glog.Infof("Created new deployment with spec: %+v", dpl)
 		} else {
 			// Some other error.
-			glog.Infof("Jing get deployment error %+v", err)
 			utilruntime.HandleError(err)
 			return reconcile.Result{}, err
 		}
 	} else {
-		// Found existing deployment for the viewer.
-		// Let's check if this deployment's version is up-to-date.
-		// If not, delete existing viewer (and its deployment and service), so a new
-		// viewer can be started again from FE.
-		for _, ownerReference := range foundDpl.GetOwnerReferences() {
-			if ownerReference.APIVersion != viewerGroup+"/"+viewerVersion {
-				if r.Client.Delete(context.Background(), view) != nil {
-					glog.Infof("Detected viewer CRD of no longer supported version and failed to remove it")
-				}
-				glog.Infof("Detected viewer CRD of no longer supported version and removed it")
-				return reconcile.Result{}, nil
-			}
-		}
 		glog.Infof("Found existing deployment with spec: %+v", foundDpl)
 	}
-	glog.Infof("Jing h")
 
 	// Set up a service for the deployment above.
 	svc := serviceFrom(view, dpl.Name)
