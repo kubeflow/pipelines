@@ -11,9 +11,9 @@ def CsvExampleGen_GCS( #
 
     # Execution properties
     #input_config_splits: {'List' : {'item_type': 'ExampleGen.Input.Split'}},
-    input_config: 'ExampleGen.Input' = '{"splits": []}', # JSON-serialized example_gen_pb2.Input instance, providing input configuration. If unset, the files under input_base will be treated as a single split.
+    input_config: 'ExampleGen.Input' = None, # = '{"splits": []}', # JSON-serialized example_gen_pb2.Input instance, providing input configuration. If unset, the files under input_base will be treated as a single split.
     #output_config_splits: {'List' : {'item_type': 'ExampleGen.SplitConfig'}},
-    output_config: 'ExampleGen.Output' = '{"splitConfig": {"splits": []}}', # JSON-serialized example_gen_pb2.Output instance, providing output configuration. If unset, default splits will be 'train' and 'eval' with size 2:1.
+    output_config: 'ExampleGen.Output' = None, # = '{"splitConfig": {"splits": []}}', # JSON-serialized example_gen_pb2.Output instance, providing output configuration. If unset, default splits will be 'train' and 'eval' with size 2:1.
     #custom_config: 'ExampleGen.CustomConfig' = None,
 ) -> NamedTuple('Outputs', [
     ('example_artifacts', 'ExamplesPath'),
