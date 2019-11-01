@@ -131,7 +131,7 @@ if __name__ == '__main__':
     enable_cache=enable_cache)
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
     kubeflow_metadata_config=kubeflow_dag_runner.get_default_kubeflow_metadata_config(),
-    tfx_image='gcr.io/ml-pipeline/patched-tfx:0.1.32')
+    tfx_image='tensorflow/tfx:0.16.0.dev20191101')
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(config=config)
   # Make sure kfp_runner recognizes those parameters.
   kfp_runner._params.extend([_data_root_param, _taxi_module_file_param])
