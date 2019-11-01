@@ -82,6 +82,10 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		return reconcile.Result{}, err
 	}
 	glog.Infof("Got instance: %+v", view)
+	if len(view.Spec.TensorboardSpec.TensorflowImage) == 0 {
+		glog.Infof("Jing delete viewer")
+		r.Client.Delete(context.Background(), view, nil)
+	}
 
 	// Ignore other viewer types for now.
 	if view.Spec.Type != viewerV1beta1.ViewerTypeTensorboard {
@@ -165,7 +169,7 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 
 	c := &s.Containers[0]
 	c.Name = view.Name + "-pod"
-	c.Image = "tensorflow/tensorflow:1.13.2"
+	c.Image = view.Spec.TensorboardSpec.TensorflowImage
 	c.Args = []string{
 		"tensorboard",
 		fmt.Sprintf("--logdir=%s", view.Spec.TensorboardSpec.LogDir),
