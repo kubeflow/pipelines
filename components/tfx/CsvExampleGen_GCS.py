@@ -76,6 +76,8 @@ def CsvExampleGen_GCS( #
         if output_artifact.split:
             output_artifact.uri = os.path.join(output_artifact.uri, output_artifact.split)
 
+    print('component instance: ' + str(component_class_instance))
+
     executor = CsvExampleGen.EXECUTOR_SPEC.executor_class()
     executor.Do(
         input_dict=input_dict,
