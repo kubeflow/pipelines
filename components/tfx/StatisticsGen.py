@@ -32,12 +32,15 @@ def StatisticsGen(
     from tfx.types import channel_utils
 
     # Create input dict.
+    input_base_path = input_data_path
+    input_artifact_class = standard_artifacts.Examples
     # Recovering splits
     splits = sorted(os.listdir(input_data_path))
     input_data_artifacts = []
     for split in splits:
-        artifact = standard_artifacts.Examples()
-        artifact.uri = os.path.join(input_data_path, split)
+        artifact = input_artifact_class()
+        artifact.split = split
+        artifact.uri = os.path.join(input_base_path, split) + '/'
         input_data_artifacts.append(artifact)
     input_data_channel = channel_utils.as_channel(input_data_artifacts)
 
@@ -53,6 +56,8 @@ def StatisticsGen(
     # Generating paths for output artifacts
     for output_artifact in output_dict['output']:
         output_artifact.uri = os.path.join(output_path, output_artifact.split) # Default split is ''
+
+    print('Component instance: ' + str(component_class_instance))
 
     executor = component_class_instance.executor_spec.executor_class()
     executor.Do(
