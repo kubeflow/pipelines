@@ -339,3 +339,23 @@ ADDED tfx-pipeline-lmbw6-2473736504
 New execution id: 4 for pod tfx-pipeline-lmbw6-2473736504.
 {'execution_id': '4', 'output_name': 'output', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-2473736504/schemagen-output.tgz', 'type': 'Schema'}
 {'execution_id': '4', 'component_name': 'Schemagen', 'output_artifacts': [{'output_name': 'output', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-2473736504/schemagen-output.tgz', 'type': 'Schema'}]} """
+
+
+
+
+"""
+#kubectl create -n kubeflow -f - <<EOF
+kubectl create -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sleeper
+spec:
+  containers:
+  - name: main
+    image: python:3.7
+    command:
+    - sleep
+    - '100000'
+EOF
+"""
