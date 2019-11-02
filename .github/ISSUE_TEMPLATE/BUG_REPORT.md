@@ -1,5 +1,5 @@
 ---
-name: Bug Report
+name: Bug Repor
 about: Report a bug encountered with Kubeflow Pipelines
 
 ---
