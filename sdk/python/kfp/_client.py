@@ -145,7 +145,7 @@ class Client(object):
       return config
 
     if config.host:
-      config.host = os.path.join(config.host, Client.KUBE_PROXY_PATH.format(namespace))
+      config.host = config.host + '/' + Client.KUBE_PROXY_PATH.format(namespace)
     return config
 
   def _is_iap_host(self, host, client_id):
