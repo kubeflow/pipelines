@@ -92,6 +92,7 @@ export async function newTensorboardInstance(logdir: string, podTemplateSpec: Ob
       type: 'tensorboard',
       tensorboardSpec: {
         logDir: logdir,
+        // TODO(jingzhang36): tensorflow image version read from input textbox.
         tensorflowImage: 'tensorflow/tensorflow:1.13.2',
       },
       podTemplateSpec
