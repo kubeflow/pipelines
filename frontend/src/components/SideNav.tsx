@@ -109,6 +109,13 @@ export const css = stylesheet({
   collapsedSeparator: {
     margin: '20px !important',
   },
+  icon: {
+    height: 20,
+    width: 20,
+  },
+  iconImage: {
+    opacity: 0.6, // Images are too colorful there by default, reduce their color.
+  },
   indicator: {
     borderBottom: '3px solid transparent',
     borderLeft: `3px solid ${sideNavColors.fgActive}`,
@@ -140,13 +147,6 @@ export const css = stylesheet({
   },
   link: {
     color: '#77abda',
-  },
-  icon: {
-    height: 20,
-    width: 20,
-  },
-  iconImage: {
-    opacity: 0.6, // Images are too colorful there, reduce their color.
   },
   openInNewTabIcon: {
     height: 12,
