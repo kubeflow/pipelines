@@ -53,7 +53,7 @@ def _add_generated_apis(target_struct, api_module, api_client):
       short_api_name = camel_case_to_snake_case(api_name[0:-len('ServiceApi')]) + 's'
       api_struct = Struct()
       setattr(target_struct, short_api_name, api_struct)
-      service_api = getattr(api_module, api_name)
+      service_api = getattr(api_module.api, api_name)
       initialized_service_api = service_api(api_client)
       for member_name in dir(initialized_service_api):
           if member_name.startswith('_') or member_name.endswith('_with_http_info'):
@@ -61,6 +61,11 @@ def _add_generated_apis(target_struct, api_module, api_client):
 
           bound_member = getattr(initialized_service_api, member_name)
           setattr(api_struct, member_name, bound_member)
+  models_struct = Struct()
+  for member_name in dir(api_module.models):
+      if not member_name[0].islower():
+          setattr(models_struct, member_name, getattr(api_module.models, member_name))
+  target_struct.api_models = models_struct
 
 
 KF_PIPELINES_ENDPOINT_ENV = 'KF_PIPELINES_ENDPOINT'
@@ -93,7 +98,7 @@ class Client(object):
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
     config = self._load_config(host, client_id, namespace)
     api_client = kfp_server_api.api_client.ApiClient(config)
-    _add_generated_apis(self, kfp_server_api.api, api_client)
+    _add_generated_apis(self, kfp_server_api, api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
@@ -140,7 +145,7 @@ class Client(object):
       return config
 
     if config.host:
-      config.host = os.path.join(config.host, Client.KUBE_PROXY_PATH.format(namespace))
+      config.host = config.host + '/' + Client.KUBE_PROXY_PATH.format(namespace)
     return config
 
   def _is_iap_host(self, host, client_id):

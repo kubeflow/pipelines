@@ -42,7 +42,7 @@ import {
   GetArtifactsRequest,
 } from '../generated/src/apis/metadata/metadata_store_service_pb';
 import { getArtifactCreationTime } from '../lib/MetadataUtils';
-import { GcsLink } from '../components/GcsLink';
+import { ArtifactLink } from '../components/ArtifactLink';
 
 interface ArtifactListState {
   artifacts: Artifact[];
@@ -154,7 +154,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   };
 
   private uriCustomRenderer: React.FC<CustomRendererProps<string>> = ({ value }) => (
-    <GcsLink gcsUri={value} />
+    <ArtifactLink artifactUri={value} />
   );
 
   /**
