@@ -84,9 +84,13 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	glog.Infof("Got instance: %+v", view)
 
 	if len(view.Spec.TensorboardSpec.TensorflowImage) == 0 {
-		glog.Infof("Delete viewer CRD that is missing tensorflow image.")
-		r.Client.Delete(context.Background(), view)
-		return reconcile.Result{}, nil
+		if err := r.Client.Delete(context.Background(), view); err != nil {
+			glog.Infof("Error in deleting viewer CRD: %+v", err)
+			return reconcile.Result{}, err
+		} else {
+			glog.Infof("Deleted viewer CRD that is missing tensorflow image.")
+			return reconcile.Result{}, nil
+		}
 	}
 
 	// Ignore other viewer types for now.
