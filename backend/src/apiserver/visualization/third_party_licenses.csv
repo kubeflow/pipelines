@@ -69,7 +69,7 @@ monotonic,https://github.com/atdt/monotonic/blob/master/LICENSE,Apache 2.0
 more-itertools,https://github.com/erikrose/more-itertools/blob/master/LICENSE,MIT
 nbconvert,https://github.com/jupyter/nbconvert/blob/master/LICENSE,BSD-3
 nbformat,https://github.com/jupyter/nbformat/blob/master/COPYING.md,BSD-3
-notebook,https://github.com/jupyter/notebook/blob/master/COPYING.md,BSD-3
+notebook,https://github.com/jupyter/notebook/blob/master/LICENSE,BSD-3
 numpy,https://github.com/numpy/numpy/blob/master/LICENSE.txt,BSD-3
 oauth2client,https://github.com/googleapis/oauth2client/blob/master/LICENSE,Apache 2.0
 oauthlib,https://github.com/oauthlib/oauthlib/blob/master/LICENSE,BSD-3
