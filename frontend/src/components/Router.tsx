@@ -106,7 +106,7 @@ export const RoutePageFactory = {
   },
 };
 
-export const ExternalLink = {
+export const ExternalLinks = {
   AI_HUB: 'https://aihub.cloud.google.com/u/0/s?category=pipeline',
   DOCUMENTATION: 'https://www.kubeflow.org/docs/pipelines/',
   GITHUB: 'https://github.com/kubeflow/pipelines',

@@ -16,33 +16,14 @@
 
 import React from 'react';
 import Markdown from 'markdown-to-jsx';
-import { stylesheet } from 'typestyle';
-import { color } from '../Css';
+import { ExternalLink } from '../atoms/ExternalLink';
 
 function preventEventBubbling(e: React.MouseEvent): void {
   e.stopPropagation();
 }
 
-const css = stylesheet({
-  link: {
-    $nest: {
-      '&:hover': {
-        textDecoration: 'underline',
-      },
-    },
-    color: color.theme,
-    textDecoration: 'none',
-  },
-});
-
 const renderExternalLink = (props: {}) => (
-  <a
-    {...props}
-    className={css.link}
-    target='_blank'
-    rel='noreferrer noopener'
-    onClick={preventEventBubbling}
-  />
+  <ExternalLink {...props} onClick={preventEventBubbling} />
 );
 
 const options = {

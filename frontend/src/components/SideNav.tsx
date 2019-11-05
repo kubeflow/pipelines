@@ -31,7 +31,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import { Apis } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
-import { RoutePage, RoutePrefix, ExternalLink } from '../components/Router';
+import { RoutePage, RoutePrefix, ExternalLinks } from '../components/Router';
 import { RouterProps } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, commonCss } from '../Css';
@@ -425,13 +425,13 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
           <ExternalUri
             title={'Documentation'}
-            to={ExternalLink.DOCUMENTATION}
+            to={ExternalLinks.DOCUMENTATION}
             collapsed={collapsed}
             icon={className => <DescriptionIcon className={className} />}
           />
           <ExternalUri
             title={'Github Repo'}
-            to={ExternalLink.GITHUB}
+            to={ExternalLinks.GITHUB}
             collapsed={collapsed}
             icon={className => (
               <img src={GitHubIcon} className={classes(className, css.iconImage)} />
@@ -439,7 +439,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
           />
           <ExternalUri
             title={'AI Hub Samples'}
-            to={ExternalLink.AI_HUB}
+            to={ExternalLinks.AI_HUB}
             collapsed={collapsed}
             icon={className => (
               <img
