@@ -118,7 +118,14 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
-    buttons.newRunFromPipeline(() => (this.state.pipeline ? this.state.pipeline.id! : ''));
+    buttons.newRunFromPipeline(() => {
+      const pipelineIdFromParams = this.props.match.params[RouteParams.pipelineId];
+      return this.state.pipeline
+        ? this.state.pipeline.id!
+        : pipelineIdFromParams
+        ? pipelineIdFromParams
+        : '';
+    });
 
     if (fromRunId) {
       return {
