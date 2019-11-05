@@ -48,6 +48,7 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
     >
       URL must be publicly accessible.
     </div>
+    <DocumentationCompilePipeline />
     <Component
       label="URL"
       onChange={[Function]}
@@ -161,6 +162,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
         <br />
         You can also drag and drop the file here.
       </div>
+      <DocumentationCompilePipeline />
       <Component
         InputProps={
           Object {
@@ -292,6 +294,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
         <br />
         You can also drag and drop the file here.
       </div>
+      <DocumentationCompilePipeline />
       <Component
         InputProps={
           Object {
@@ -423,6 +426,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
         <br />
         You can also drag and drop the file here.
       </div>
+      <DocumentationCompilePipeline />
       <Component
         InputProps={
           Object {
@@ -554,6 +558,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
         <br />
         You can also drag and drop the file here.
       </div>
+      <DocumentationCompilePipeline />
       <Component
         InputProps={
           Object {
