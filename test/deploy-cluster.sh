@@ -27,6 +27,17 @@ SHOULD_CLEANUP_CLUSTER=false
 function clean_up {
   set +e # the following clean up commands shouldn't exit on error
 
+  echo "Describe pods with unhealthy status:"
+  UNHEALTHY_PODS=($(kubectl get pods --field-selector=status.phase!=Running,status.phase!=Succeeded -o=custom-columns=:metadata.name -n $NAMESPACE))
+  for POD_NAME in "${UNHEALTHY_PODS[@]}"; do
+    echo ""
+    echo "For pod $POD_NAME:"
+    kubectl describe pod $POD_NAME -n $NAMESPACE
+  done
+  echo "============================================================="
+  echo "The above is output of describing pods with unhealthy status."
+  echo "============================================================="
+
   echo "Status of pods before clean up:"
   kubectl get pods --all-namespaces
 
