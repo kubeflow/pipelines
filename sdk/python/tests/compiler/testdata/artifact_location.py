@@ -28,7 +28,7 @@ def foo_pipeline(tag: str, namespace: str = "kubeflow", bucket: str = "foobar"):
                             secret_key_secret=V1SecretKeySelector(name="minio", key="secretkey"))
 
     # configures artifact location using AWS IAM role (no access key provided)
-    artifact_location = dsl.ArtifactLocation.s3(
+    aws_artifact_location = dsl.ArtifactLocation.s3(
                             bucket=bucket,
                             endpoint="s3.amazonaws.com",
                             region="ap-southeast-1",
@@ -45,12 +45,3 @@ def foo_pipeline(tag: str, namespace: str = "kubeflow", bucket: str = "foobar"):
             'out_art': '/tmp/out_art.txt',
         },
     )
-
-    # op level artifact location (to s3 bucket)
-    op2 = dsl.ContainerOp(name='foo',
-                          image='busybox:%s' % tag,
-                          output_artifact_paths={
-                              'out_art': '/tmp/out_art.txt',
-                          },
-                          # configures artifact location
-                          artifact_location=artifact_location)
