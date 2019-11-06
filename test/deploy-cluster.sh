@@ -32,7 +32,7 @@ function clean_up {
   for POD_NAME in "${UNHEALTHY_PODS[@]}"; do
     echo ""
     echo "For pod $POD_NAME:"
-    describe pod $POD_NAME -n $NAMESPACE
+    kubectl describe pod $POD_NAME -n $NAMESPACE
   done
   echo "============================================================="
   echo "The above is output of describing pods with unhealthy status."
