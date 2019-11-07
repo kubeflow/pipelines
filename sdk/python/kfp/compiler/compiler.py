@@ -489,13 +489,15 @@ class Compiler(object):
         else:
           # Need to sanitize the dict keys for consistency.
           loop_tasks = sub_group.loop_args.to_list_for_task_yaml()
-          isinstance(loop_tasks[0], dict)
           sanitized_tasks = []
-          for item in loop_tasks:
-            c_dict = {}
-            for k, v in item.items():
-              c_dict[sanitize_k8s_name(k)] = v
-            sanitized_tasks.append(c_dict)
+          if isinstance(loop_tasks[0], dict):
+            for item in loop_tasks:
+              c_dict = {}
+              for k, v in item.items():
+                c_dict[sanitize_k8s_name(k)] = v
+              sanitized_tasks.append(c_dict)
+          else:
+            sanitized_tasks = loop_tasks
           task['withItems'] = sanitized_tasks
 
       tasks.append(task)
