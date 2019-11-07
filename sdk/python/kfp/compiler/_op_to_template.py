@@ -18,7 +18,7 @@ import yaml
 from collections import OrderedDict
 from typing import Union, List, Any, Callable, TypeVar, Dict
 
-from ._k8s_helper import K8sHelper
+from ._k8s_helper import convert_k8s_obj_to_json
 from .. import dsl
 from ..dsl._container_op import BaseOp
 from ..dsl._artifact_location import ArtifactLocation
@@ -73,7 +73,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
         for key in obj.swagger_types.keys():
             setattr(obj, key, _process_obj(getattr(obj, key), map_to_tmpl_var))
         # return json representation of the k8s obj
-        return K8sHelper.convert_k8s_obj_to_json(obj)
+        return convert_k8s_obj_to_json(obj)
 
     # k8s objects (generated from openapi)
     if hasattr(obj, 'openapi_types') and isinstance(obj.openapi_types, dict):
@@ -81,7 +81,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
         for key in obj.openapi_types.keys():
             setattr(obj, key, _process_obj(getattr(obj, key), map_to_tmpl_var))
         # return json representation of the k8s obj
-        return K8sHelper.convert_k8s_obj_to_json(obj)
+        return convert_k8s_obj_to_json(obj)
 
     # do nothing
     return obj
@@ -130,6 +130,7 @@ def _parameters_to_json(params: List[dsl.PipelineParam]):
 def _inputs_to_json(
     inputs_params: List[dsl.PipelineParam],
     input_artifact_paths: Dict[str, str] = None,
+    artifact_arguments: Dict[str, str] = None,
 ) -> Dict[str, Dict]:
     """Converts a list of PipelineParam into an argo `inputs` JSON obj."""
     parameters = _parameters_to_json(inputs_params)
@@ -138,6 +139,8 @@ def _inputs_to_json(
     artifacts = []
     for name, path in (input_artifact_paths or {}).items():
         artifact = {'name': name, 'path': path}
+        if name in artifact_arguments: # The arguments should be compiled as DAG task arguments, not template's default values, but in the current DSL-compiler implementation it's too hard to make that work when passing artifact references.
+            artifact['raw'] = {'data': str(artifact_arguments[name])}
         artifacts.append(artifact)
     artifacts.sort(key=lambda x: x['name']) #Stabilizing the input artifact ordering
 
@@ -187,11 +190,11 @@ def _op_to_template(op: BaseOp):
     if isinstance(op, dsl.ContainerOp):
         # default output artifacts
         output_artifact_paths = OrderedDict(op.output_artifact_paths)
-        output_artifact_paths.setdefault('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json')
-        output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
+        # This should have been as easy as output_artifact_paths.update(op.file_outputs), but the _outputs_to_json function changes the output names and we must do the same here, so that the names are the same
+        output_artifact_paths.update(sorted(((param.full_name, processed_op.file_outputs[param.name]) for param in processed_op.outputs.values()), key=lambda x: x[0]))
 
         output_artifacts = [
-             K8sHelper.convert_k8s_obj_to_json(
+             convert_k8s_obj_to_json(
                  ArtifactLocation.create_artifact_for_s3(
                      op.artifact_location, 
                      name=name, 
@@ -200,14 +203,10 @@ def _op_to_template(op: BaseOp):
             for name, path in output_artifact_paths.items()
         ]
 
-        for output_artifact in output_artifacts:
-            if output_artifact['name'] in ['mlpipeline-ui-metadata', 'mlpipeline-metrics']:
-                output_artifact['optional'] = True
-
         # workflow template
         template = {
             'name': processed_op.name,
-            'container': K8sHelper.convert_k8s_obj_to_json(
+            'container': convert_k8s_obj_to_json(
                 processed_op.container
             )
         }
@@ -217,19 +216,20 @@ def _op_to_template(op: BaseOp):
 
         # workflow template
         processed_op.resource["manifest"] = yaml.dump(
-            K8sHelper.convert_k8s_obj_to_json(processed_op.k8s_resource),
+            convert_k8s_obj_to_json(processed_op.k8s_resource),
             default_flow_style=False
         )
         template = {
             'name': processed_op.name,
-            'resource': K8sHelper.convert_k8s_obj_to_json(
+            'resource': convert_k8s_obj_to_json(
                 processed_op.resource
             )
         }
 
     # inputs
     input_artifact_paths = processed_op.input_artifact_paths if isinstance(processed_op, dsl.ContainerOp) else None
-    inputs = _inputs_to_json(processed_op.inputs, input_artifact_paths)
+    artifact_arguments = processed_op.artifact_arguments if isinstance(processed_op, dsl.ContainerOp) else None
+    inputs = _inputs_to_json(processed_op.inputs, input_artifact_paths, artifact_arguments)
     if inputs:
         template['inputs'] = inputs
 
@@ -238,8 +238,9 @@ def _op_to_template(op: BaseOp):
         param_outputs = processed_op.file_outputs
     elif isinstance(op, dsl.ResourceOp):
         param_outputs = processed_op.attribute_outputs
-    template['outputs'] = _outputs_to_json(op, processed_op.outputs,
-                                           param_outputs, output_artifacts)
+    outputs_dict = _outputs_to_json(op, processed_op.outputs, param_outputs, output_artifacts)
+    if outputs_dict:
+        template['outputs'] = outputs_dict
 
     # node selector
     if processed_op.node_selector:
@@ -251,7 +252,7 @@ def _op_to_template(op: BaseOp):
 
     # affinity
     if processed_op.affinity:
-        template['affinity'] = K8sHelper.convert_k8s_obj_to_json(processed_op.affinity)
+        template['affinity'] = convert_k8s_obj_to_json(processed_op.affinity)
 
     # metadata
     if processed_op.pod_annotations or processed_op.pod_labels:
@@ -276,8 +277,17 @@ def _op_to_template(op: BaseOp):
     if processed_op.sidecars:
         template['sidecars'] = processed_op.sidecars
 
+    # volumes
+    if processed_op.volumes:
+        template['volumes'] = [convert_k8s_obj_to_json(volume) for volume in processed_op.volumes]
+        template['volumes'].sort(key=lambda x: x['name'])
+
     # Display name
     if processed_op.display_name:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/task_display_name'] = processed_op.display_name
+
+    if isinstance(op, dsl.ContainerOp) and op._metadata:
+        import json
+        template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)
 
     return template

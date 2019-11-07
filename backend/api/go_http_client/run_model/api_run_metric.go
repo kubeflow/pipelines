@@ -33,14 +33,15 @@ type APIRunMetric struct {
 	// The display format of metric.
 	Format RunMetricFormat `json:"format,omitempty"`
 
-	// Required. The user defined name of the metric. It must between 1 and 63 characters
-	// long and must conform to the following regular expression:
+	// Required. The user defined name of the metric. It must between 1 and 63
+	// characters long and must conform to the following regular expression:
 	// `[a-z]([-a-z0-9]*[a-z0-9])?`.
 	Name string `json:"name,omitempty"`
 
-	// Required. The runtime node ID which reports the metric. The node ID can be found in
-	// the RunDetail.workflow.Status. Metric with same (node_id, name)
-	// are considerd as duplicate. Only the first reporting will be recorded. Max length is 128.
+	// Required. The runtime node ID which reports the metric. The node ID can be
+	// found in the RunDetail.workflow.Status. Metric with same (node_id, name)
+	// are considerd as duplicate. Only the first reporting will be recorded. Max
+	// length is 128.
 	NodeID string `json:"node_id,omitempty"`
 
 	// The number value of the metric.

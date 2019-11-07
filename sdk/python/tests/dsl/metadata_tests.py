@@ -12,43 +12,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.dsl._metadata import ComponentMeta, ParameterMeta
+from kfp.components._structures import ComponentSpec, InputSpec, OutputSpec
 import unittest
 
 
 class TestComponentMeta(unittest.TestCase):
 
   def test_to_dict(self):
-    component_meta = ComponentMeta(name='foobar',
+    component_meta = ComponentSpec(name='foobar',
                                    description='foobar example',
-                                   inputs=[ParameterMeta(name='input1',
+                                   inputs=[InputSpec(name='input1',
                                                          description='input1 desc',
-                                                         param_type={'GCSPath': {
+                                                         type={'GCSPath': {
                                                              'bucket_type': 'directory',
                                                              'file_type': 'csv'
                                                          }},
                                                          default='default1'
                                                          ),
-                                           ParameterMeta(name='input2',
+                                           InputSpec(name='input2',
                                                          description='input2 desc',
-                                                         param_type={'TFModel': {
+                                                         type={'TFModel': {
                                                             'input_data': 'tensor',
                                                             'version': '1.8.0'
                                                          }},
                                                          default='default2'
                                                          ),
-                                           ParameterMeta(name='input3',
+                                           InputSpec(name='input3',
                                                          description='input3 desc',
-                                                         param_type='Integer',
+                                                         type='Integer',
                                                          default='default3'
                                                          ),
                                            ],
-                                   outputs=[ParameterMeta(name='output1',
+                                   outputs=[OutputSpec(name='output1',
                                                           description='output1 desc',
-                                                          param_type={'Schema': {
+                                                          type={'Schema': {
                                                               'file_type': 'tsv'
                                                           }},
-                                                          default='default_output1'
                                                           )
                                             ]
                                    )
@@ -94,7 +93,6 @@ class TestComponentMeta(unittest.TestCase):
                         'file_type': 'tsv'
                     }
                 },
-                'default': 'default_output1'
             }
         ]
     }

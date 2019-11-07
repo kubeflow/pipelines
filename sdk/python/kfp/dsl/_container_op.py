@@ -25,7 +25,7 @@ from kubernetes.client.models import (
 )
 
 from . import _pipeline_param
-from ._metadata import ComponentMeta
+from ..components._structures import ComponentSpec
 
 # generics
 T = TypeVar('T')
@@ -697,7 +697,7 @@ class BaseOp(object):
                     to deploy before the `main` container.
           sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy
                     together with the `main` container.
-          is_exit_handler: Whether it is used as an exit handler.
+          is_exit_handler: Deprecated.
         """
 
         valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
@@ -705,6 +705,9 @@ class BaseOp(object):
             raise ValueError(
                 'Only letters, numbers, spaces, "_", and "-"  are allowed in name. Must begin with letter: %s'
                 % (name))
+
+        if is_exit_handler:
+            warnings.warn('is_exit_handler=True is no longer needed.', DeprecationWarning)
 
         self.is_exit_handler = is_exit_handler
 
@@ -925,14 +928,6 @@ class ContainerOp(BaseOp):
             description='hello world')
         def foo_pipeline(tag: str, pull_image_policy: str):
 
-            # configures artifact location
-            artifact_location = dsl.ArtifactLocation.s3(
-                                    bucket="foobar",
-                                    endpoint="minio-service:9000",
-                                    insecure=True,
-                                    access_key_secret=V1SecretKeySelector(name="minio", key="accesskey"),
-                                    secret_key_secret=V1SecretKeySelector(name="minio", key="secretkey"))
-
             # any attributes can be parameterized (both serialized string or actual PipelineParam)
             op = dsl.ContainerOp(name='foo', 
                                 image='busybox:%s' % tag,
@@ -942,8 +937,7 @@ class ContainerOp(BaseOp):
                                 sidecars=[dsl.Sidecar('print', 'busybox:latest', command='echo "hello"')],
                                 # pass in k8s container kwargs
                                 container_kwargs={'env': [V1EnvVar('foo', 'bar')]},
-                                # configures artifact location
-                                artifact_location=artifact_location)
+            )
 
             # set `imagePullPolicy` property for `container` with `PipelineParam` 
             op.container.set_pull_image_policy(pull_image_policy)
@@ -970,7 +964,7 @@ class ContainerOp(BaseOp):
       container_kwargs: Dict = None,
       artifact_argument_paths: List[InputArgumentPath] = None,
       file_outputs: Dict[str, str] = None,
-      output_artifact_paths : Dict[str, str]=None,
+      output_artifact_paths: Dict[str, str]=None,
       artifact_location: V1alpha1ArtifactLocation=None,
       is_exit_handler=False,
       pvolumes: Dict[str, V1Volume] = None,
@@ -1003,20 +997,22 @@ class ContainerOp(BaseOp):
               It has the following default artifact paths during compile time.
               {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json',
                'mlpipeline-metrics': '/mlpipeline-metrics.json'}
-          artifact_location: configures the default artifact location for artifacts
+          artifact_location: Deprecated. Configures the default artifact location for artifacts
                in the argo workflow template. Must be a `V1alpha1ArtifactLocation`
                object.
-          is_exit_handler: Whether it is used as an exit handler.
+          is_exit_handler: Deprecated. This is no longer needed.
           pvolumes: Dictionary for the user to match a path on the op's fs with a
               V1Volume or it inherited type.
               E.g {"/my/path": vol, "/mnt": other_op.pvolumes["/output"]}.
         """
 
         super().__init__(name=name, init_containers=init_containers, sidecars=sidecars, is_exit_handler=is_exit_handler)
-        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location'] #Copying the BaseOp class variable!
+        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location', 'artifact_arguments'] #Copying the BaseOp class variable!
 
         input_artifact_paths = {}
         artifact_arguments = {}
+        file_outputs = dict(file_outputs or {}) # Making a copy
+        output_artifact_paths = dict(output_artifact_paths or {}) # Making a copy
 
         def resolve_artifact_argument(artarg):
             from ..components._components import _generate_input_file_name
@@ -1025,10 +1021,7 @@ class ContainerOp(BaseOp):
             input_name = getattr(artarg.input, 'name', artarg.input) or ('input-' + str(len(artifact_arguments)))
             input_path = artarg.path or _generate_input_file_name(input_name)
             input_artifact_paths[input_name] = input_path
-            if not isinstance(artarg.argument, str):
-                raise TypeError('Argument "{}" was passed to the artifact input "{}", but only constant strings are supported at this moment.'.format(str(artarg.argument), input_name))
-
-            artifact_arguments[input_name] = artarg.argument
+            artifact_arguments[input_name] = str(artarg.argument)
             return input_path
 
         for artarg in artifact_argument_paths or []:
@@ -1076,12 +1069,23 @@ class ContainerOp(BaseOp):
                 # only proxy public callables
                 setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
 
+        # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics outputs that should always be saved as artifacts
+        # TODO: Remove when outputs are always saved as artifacts
+        for output_name, path in dict(file_outputs).items():
+            normalized_output_name = re.sub('[^a-zA-Z0-9]', '-', output_name.lower())
+            if normalized_output_name in ['mlpipeline-ui-metadata', 'mlpipeline-metrics']:
+                output_artifact_paths[normalized_output_name] = path
+                del file_outputs[output_name]
+
         # attributes specific to `ContainerOp`
         self.input_artifact_paths = input_artifact_paths
         self.artifact_arguments = artifact_arguments
         self.file_outputs = file_outputs
         self.output_artifact_paths = output_artifact_paths or {}
         self.artifact_location = artifact_location
+
+        if artifact_location:
+            warnings.warn('Setting per-ContainerOp artifact_location is deprecated since SDK v0.1.32. Please configure the artifact location in the cluster configMap: https://github.com/argoproj/argo/blob/master/ARTIFACT_REPO.md#configure-the-default-artifact-repository . For short-term workaround use the pipeline-wide kfp.dsl.PipelineConf().set_artifact_location, but it can also be deprecated in future.', PendingDeprecationWarning)
 
         self._metadata = None
 
@@ -1092,9 +1096,10 @@ class ContainerOp(BaseOp):
                 for name in file_outputs.keys()
             }
 
-        self.output = None
         if len(self.outputs) == 1:
             self.output = list(self.outputs.values())[0]
+        else:
+            self.output = _MultipleOutputsError()
 
         self.pvolumes = {}
         self.add_pvolumes(pvolumes)
@@ -1141,10 +1146,10 @@ class ContainerOp(BaseOp):
         '''_set_metadata passes the containerop the metadata information
         and configures the right output
         Args:
-          metadata (ComponentMeta): component metadata
+          metadata (ComponentSpec): component metadata
         '''
-        if not isinstance(metadata, ComponentMeta):
-            raise ValueError('_set_medata is expecting ComponentMeta.')
+        if not isinstance(metadata, ComponentSpec):
+            raise ValueError('_set_metadata is expecting ComponentSpec.')
 
         self._metadata = metadata
 
@@ -1153,10 +1158,9 @@ class ContainerOp(BaseOp):
                 output_type = self.outputs[output].param_type
                 for output_meta in self._metadata.outputs:
                     if output_meta.name == output:
-                        output_type = output_meta.param_type
+                        output_type = output_meta.type
                 self.outputs[output].param_type = output_type
 
-            self.output = None
             if len(self.outputs) == 1:
                 self.output = list(self.outputs.values())[0]
 
@@ -1175,7 +1179,8 @@ class ContainerOp(BaseOp):
                     self.dependent_names.extend(pvolume.dependent_names)
                 else:
                     pvolume = PipelineVolume(volume=pvolume)
-                self.pvolumes[mount_path] = pvolume.after(self)
+                pvolume = pvolume.after(self)
+                self.pvolumes[mount_path] = pvolume
                 self.add_volume(pvolume)
                 self._container.add_volume_mount(V1VolumeMount(
                     name=pvolume.name,
@@ -1191,3 +1196,15 @@ class ContainerOp(BaseOp):
 # proxy old ContainerOp properties to ContainerOp.container
 # with PendingDeprecationWarning.
 ContainerOp = _proxy_container_op_props(ContainerOp)
+
+
+class _MultipleOutputsError:
+    @staticmethod
+    def raise_error():
+        raise RuntimeError('This task has multiple outputs. Use `task.outputs[<output name>]` dictionary to refer to the one you need.')
+
+    def __getattribute__(self, name):
+        _MultipleOutputsError.raise_error()
+
+    def __str__(self):
+        _MultipleOutputsError.raise_error()

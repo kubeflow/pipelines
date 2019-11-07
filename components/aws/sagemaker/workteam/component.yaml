@@ -17,6 +17,9 @@ inputs:
   - name: sns_topic
     description: 'The ARN for the SNS topic to which notifications should be published.'
     default: ''
+  - name: endpoint_url
+    description: 'The endpoint URL for the private link VPC endpoint.'
+    default: ''
   - name: tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
@@ -24,11 +27,12 @@ outputs:
   - {name: workteam_arn, description: 'The ARN of the workteam.'}
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190809-02
+    image: redbackthomson/aws-kubeflow-sagemaker:20191003
     command: ['python']
     args: [
       workteam.py,
       --region, {inputValue: region},
+      --endpoint_url, {inputValue: endpoint_url},
       --team_name, {inputValue: team_name},
       --description, {inputValue: description},
       --user_pool, {inputValue: user_pool},

@@ -31,6 +31,7 @@ __all__ = [
 
     'ComponentReference',
 
+    'GraphInputReference',
     'GraphInputArgument',
     'TaskOutputReference',
     'TaskOutputArgument',
@@ -306,8 +307,15 @@ class ComponentSpec(ModelBase):
                 for task in graph.tasks.values():
                     if task.arguments is not None:
                         for argument in task.arguments.values():
-                            if isinstance(argument, GraphInputArgument) and argument.input_name not in self._inputs_dict:
+                            if isinstance(argument, GraphInputArgument) and argument.graph_input.input_name not in self._inputs_dict:
                                 raise TypeError('Argument "{}" references non-existing input.'.format(argument))
+
+    def save(self, file_path: str):
+        '''Saves the component definition to file. It can be shared online and later loaded using the load_component function.'''
+        from ._yaml_utils import dump_yaml
+        component_yaml = dump_yaml(self.to_dict())
+        with open(file_path, 'w') as f:
+            f.write(component_yaml)
 
 
 class ComponentReference(ModelBase):
@@ -327,14 +335,38 @@ class ComponentReference(ModelBase):
             raise TypeError('Need at least one argument.')
 
 
-class GraphInputArgument(ModelBase):
-    '''Represents the component argument value that comes from the graph component input.'''
+class GraphInputReference(ModelBase):
+    '''References the input of the graph (the scope is a single graph).'''
     _serialized_names = {
-        'input_name': 'graphInput',
+        'input_name': 'inputName',
     }
 
     def __init__(self,
         input_name: str,
+        type: Optional[TypeSpecType] = None,    # Can be used to override the reference data type
+    ):
+        super().__init__(locals())
+
+    def as_argument(self) -> 'GraphInputArgument':
+        return GraphInputArgument(graph_input=self)
+
+    def with_type(self, type_spec: TypeSpecType) -> 'GraphInputReference':
+        return GraphInputReference(
+            input_name=self.input_name,
+            type=type_spec,
+        )
+
+    def without_type(self) -> 'GraphInputReference':
+        return self.with_type(None)
+
+class GraphInputArgument(ModelBase):
+    '''Represents the component argument value that comes from the graph component input.'''
+    _serialized_names = {
+        'graph_input': 'graphInput',
+    }
+
+    def __init__(self,
+        graph_input: GraphInputReference,
     ):
         super().__init__(locals())
 
@@ -489,21 +521,57 @@ class OrPredicate(ModelBase):
         super().__init__(locals())
 
 
+class RetryStrategySpec(ModelBase):
+    _serialized_names = {
+        'max_retries': 'maxRetries',
+    }
+
+    def __init__(self,
+        max_retries: int,
+    ):
+        super().__init__(locals())
+
+
+class KubernetesExecutionOptionsSpec(ModelBase):
+    _serialized_names = {
+        'main_container': 'mainContainer',
+        'pod_spec': 'podSpec',
+    }
+
+    def __init__(self,
+        metadata: Optional[v1.ObjectMetaArgoSubset] = None,
+        main_container: Optional[v1.Container] = None,
+        pod_spec: Optional[v1.PodSpecArgoSubset] = None,
+    ):
+        super().__init__(locals())
+
+
+class ExecutionOptionsSpec(ModelBase):
+    _serialized_names = {
+        'retry_strategy': 'retryStrategy',
+        'kubernetes_options': 'kubernetesOptions',
+    }
+
+    def __init__(self,
+        retry_strategy: Optional[RetryStrategySpec] = None,
+        kubernetes_options: Optional[KubernetesExecutionOptionsSpec] = None,
+    ):
+        super().__init__(locals())
+
+
 class TaskSpec(ModelBase):
     '''Task specification. Task is a "configured" component - a component supplied with arguments and other applied configuration changes.'''
     _serialized_names = {
         'component_ref': 'componentRef',
         'is_enabled': 'isEnabled',
-        'k8s_container_options': 'k8sContainerOptions',
-        'k8s_pod_options': 'k8sPodOptions',
+        'execution_options': 'executionOptions'
     }
 
     def __init__(self,
         component_ref: ComponentReference,
         arguments: Optional[Mapping[str, ArgumentType]] = None,
         is_enabled: Optional[PredicateType] = None,
-        k8s_container_options: Optional[v1.Container] = None,
-        k8s_pod_options: Optional[v1.PodArgoSubset] = None,
+        execution_options: Optional[ExecutionOptionsSpec] = None,
     ):
         super().__init__(locals())
         #TODO: If component_ref is resolved to component spec, then check that the arguments correspond to the inputs

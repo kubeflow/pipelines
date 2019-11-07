@@ -71,18 +71,18 @@ def component(func):
     if kfp.TYPE_CHECK:
       arg_index = 0
       for arg in args:
-        if isinstance(arg, PipelineParam) and not check_types(arg.param_type, component_meta.inputs[arg_index].param_type):
+        if isinstance(arg, PipelineParam) and not check_types(arg.param_type, component_meta.inputs[arg_index].type):
           raise InconsistentTypeException('Component "' + component_meta.name + '" is expecting ' + component_meta.inputs[arg_index].name +
-                                          ' to be type(' + str(component_meta.inputs[arg_index].param_type) +
+                                          ' to be type(' + str(component_meta.inputs[arg_index].type) +
                                           '), but the passed argument is type(' + str(arg.param_type) + ')')
         arg_index += 1
       if kargs is not None:
         for key in kargs:
           if isinstance(kargs[key], PipelineParam):
             for input_spec in component_meta.inputs:
-              if input_spec.name == key and not check_types(kargs[key].param_type, input_spec.param_type):
+              if input_spec.name == key and not check_types(kargs[key].param_type, input_spec.type):
                 raise InconsistentTypeException('Component "' + component_meta.name + '" is expecting ' + input_spec.name +
-                                                ' to be type(' + str(input_spec.param_type) +
+                                                ' to be type(' + str(input_spec.type) +
                                                 '), but the passed argument is type(' + str(kargs[key].param_type) + ')')
 
     container_op = func(*args, **kargs)

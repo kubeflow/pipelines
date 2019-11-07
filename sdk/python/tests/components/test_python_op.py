@@ -17,7 +17,9 @@ import tempfile
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Callable, NamedTuple, Sequence
 
+import kfp
 import kfp.components as comp
 
 def add_two_numbers(a: float, b: float) -> float:
@@ -35,6 +37,21 @@ def components_local_output_dir_context(output_dir: str):
         comp._components._outputs_dir = old_dir
 
 
+@contextmanager
+def components_override_input_output_dirs_context(inputs_dir: str, outputs_dir: str):
+    old_inputs_dir = comp._components._inputs_dir
+    old_outputs_dir = comp._components._outputs_dir
+    try:
+        if inputs_dir:
+            comp._components._inputs_dir = inputs_dir
+        if outputs_dir:
+            comp._components._outputs_dir = outputs_dir
+        yield
+    finally:
+        comp._components._inputs_dir = old_inputs_dir
+        comp._components._outputs_dir = old_outputs_dir
+
+
 module_level_variable = 10
 
 
@@ -49,6 +66,10 @@ def module_func(a: float) -> float:
 
 def module_func_with_deps(a: float, b: float) -> float:
     return ModuleLevelClass().class_method(a) + module_func(b)
+
+
+def dummy_in_0_out_0():
+    pass
 
 
 class PythonOpTestCase(unittest.TestCase):
@@ -93,9 +114,74 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(float(actual1_str), float(expected1_str))
         self.assertEqual(float(actual2_str), float(expected2_str))
 
+    def helper_test_component_created_from_func_using_local_call(self, func: Callable, arguments: dict):
+        task_factory = comp.func_to_container_op(func)
+        self.helper_test_component_against_func_using_local_call(func, task_factory, arguments)
+
+    def helper_test_component_against_func_using_local_call(self, func: Callable, op: Callable, arguments: dict):
+        # ! This function cannot be used when component has output types that use custom serialization since it will compare non-serialized function outputs with serialized component outputs.
+        # Evaluating the function to get the expected output values
+        expected_output_values_list = func(**arguments)
+        if not isinstance(expected_output_values_list, Sequence) or isinstance(expected_output_values_list, str):
+            expected_output_values_list = [str(expected_output_values_list)]
+        expected_output_values_list = [str(value) for value in expected_output_values_list]
+
+        output_names = [output.name for output in op.component_spec.outputs]
+        from kfp.components._naming import generate_unique_name_conversion_table, _sanitize_python_function_name
+        output_name_to_pythonic = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
+        pythonic_output_names = [output_name_to_pythonic[name] for name in output_names]
+        from collections import OrderedDict
+        expected_output_values_dict = OrderedDict(zip(pythonic_output_names, expected_output_values_list))
+
+        self.helper_test_component_using_local_call(op, arguments, expected_output_values_dict)
+
+    def helper_test_component_using_local_call(self, component_task_factory: Callable, arguments: dict = None, expected_output_values: dict = None):
+        arguments = arguments or {}
+        expected_output_values = expected_output_values or {}
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            # Creating task from the component.
+            # We do it in a special context that allows us to control the output file locations.
+            inputs_path = Path(temp_dir_name) / 'inputs'
+            outputs_path = Path(temp_dir_name) / 'outputs'
+            with components_override_input_output_dirs_context(str(inputs_path), str(outputs_path)):
+                task = component_task_factory(**arguments)
+
+            # Preparing input files
+            for input_name, input_file_path in (task.input_artifact_paths or {}).items():
+                Path(input_file_path).parent.mkdir(parents=True, exist_ok=True)
+                Path(input_file_path).write_text(str(arguments[input_name]))
+
+            # Constructing the full command-line from resolved command+args
+            full_command = task.command + task.arguments
+
+            # Executing the command-line locally
+            subprocess.run(full_command, check=True)
+
+            actual_output_values_dict = {output_name: Path(output_path).read_text() for output_name, output_path in task.file_outputs.items()}
+
+        self.assertEqual(actual_output_values_dict, expected_output_values)
+
     def test_func_to_container_op_local_call(self):
         func = add_two_numbers
         op = comp.func_to_container_op(func)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_container_op_output_component_file(self):
+        func = add_two_numbers
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            component_path = str(Path(temp_dir_name) / 'component.yaml')
+            comp.func_to_container_op(func, output_component_file=component_path)
+            op = comp.load_component_from_file(component_path)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_component_file(self):
+        func = add_two_numbers
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            component_path = str(Path(temp_dir_name) / 'component.yaml')
+            comp._python_op.func_to_component_file(func, output_component_file=component_path)
+            op = comp.load_component_from_file(component_path)
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
@@ -319,8 +405,15 @@ class PythonOpTestCase(unittest.TestCase):
         expected_description = 'Sum component description'
         expected_image = 'org/image'
 
-        @python_component(name=expected_name, description=expected_description, base_image=expected_image)
-        def add_two_numbers_decorated(a: float, b: float) -> float:
+        @python_component(
+            name=expected_name,
+            description=expected_description,
+            base_image=expected_image
+        )
+        def add_two_numbers_decorated(
+            a: float,
+            b: float,
+        ) -> float:
             '''Returns sum of two arguments'''
             return a + b
 
@@ -329,6 +422,11 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(component_spec.name, expected_name)
         self.assertEqual(component_spec.description.strip(), expected_description.strip())
         self.assertEqual(component_spec.implementation.container.image, expected_image)
+
+        func = add_two_numbers_decorated
+        op = comp.func_to_container_op(func)
+
+        self.helper_test_component_against_func_using_local_call(func, op, arguments={'a': 3, 'b': 5.0})
 
     def test_saving_default_values(self):
         from typing import NamedTuple
@@ -343,33 +441,29 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(component_spec.inputs[1].default, '5')
 
     def test_handling_default_value_of_none(self):
-        def assert_is_none(a, b, arg=None) -> int:
+        def assert_is_none(arg=None):
             assert arg is None
-            return 1
 
         func = assert_is_none
-        op = comp.func_to_container_op(func, output_component_file='comp.yaml')
-        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+        op = comp.func_to_container_op(func)
+        self.helper_test_component_using_local_call(op)
 
 
-    def test_handling_complex_default_values_of_none(self):
+    def test_handling_complex_default_values(self):
         def assert_values_are_default(
-            a, b,
             singleton_param=None,
             function_param=ascii,
-            dict_param={'b': [2, 3, 4]},
+            dict_param: dict = {'b': [2, 3, 4]},
             func_call_param='_'.join(['a', 'b', 'c']),
-        ) -> int:
+        ):
             assert singleton_param is None
             assert function_param is ascii
             assert dict_param == {'b': [2, 3, 4]}
             assert func_call_param == '_'.join(['a', 'b', 'c'])
 
-            return 1
-
         func = assert_values_are_default
         op = comp.func_to_container_op(func)
-        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+        self.helper_test_component_using_local_call(op)
 
 
     def test_handling_boolean_arguments(self):
@@ -405,6 +499,19 @@ class PythonOpTestCase(unittest.TestCase):
         ])
 
 
+    def test_handling_list_arguments_containing_pipelineparam(self):
+        '''Checks that lists containing PipelineParam can be properly serialized'''
+        def consume_list(list_param: list) -> int:
+            pass
+
+        import kfp
+        task_factory = comp.func_to_container_op(consume_list)
+        task = task_factory([1, 2, 3, kfp.dsl.PipelineParam("aaa"), 4, 5, 6])
+        full_command_line = task.command + task.arguments
+        for arg in full_command_line:
+            self.assertNotIn('PipelineParam', arg)
+
+
     def test_handling_base64_pickle_arguments(self):
         def assert_values_are_same(
             obj1: 'Base64Pickle', # noqa: F821
@@ -424,6 +531,274 @@ class PythonOpTestCase(unittest.TestCase):
             recursive_obj,
             open,
         ])
+
+
+    def test_handling_list_dict_output_values(self):
+        def produce_list() -> list:
+            return (["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}], )
+        
+        # ! JSON map keys are always strings. Python converts all keys to strings without warnings
+        task_factory = comp.func_to_container_op(produce_list)
+
+        import json
+        expected_output = json.dumps(["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}])
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'output': expected_output})
+
+
+    def test_input_path(self):
+        from kfp.components import InputPath
+        def consume_file_path(number_file_path: InputPath(int)) -> int:
+            with open(number_file_path) as f:
+                string_data = f.read()
+            return int(string_data)
+
+        task_factory = comp.func_to_container_op(consume_file_path)
+
+        self.assertEqual(task_factory.component_spec.inputs[0].type, 'Integer')
+
+        self.helper_test_component_using_local_call(task_factory, arguments={'number': "42"}, expected_output_values={'output': '42'})
+
+
+    def test_input_text_file(self):
+        from kfp.components import InputTextFile
+        def consume_file_path(number_file: InputTextFile(int)) -> int:
+            string_data = number_file.read()
+            assert isinstance(string_data, str)
+            return int(string_data)
+
+        task_factory = comp.func_to_container_op(consume_file_path)
+
+        self.assertEqual(task_factory.component_spec.inputs[0].type, 'Integer')
+
+        self.helper_test_component_using_local_call(task_factory, arguments={'number': "42"}, expected_output_values={'output': '42'})
+
+
+    def test_input_binary_file(self):
+        from kfp.components import InputBinaryFile
+        def consume_file_path(number_file: InputBinaryFile(int)) -> int:
+            bytes_data = number_file.read()
+            assert isinstance(bytes_data, bytes)
+            return int(bytes_data)
+
+        task_factory = comp.func_to_container_op(consume_file_path)
+
+        self.assertEqual(task_factory.component_spec.inputs[0].type, 'Integer')
+
+        self.helper_test_component_using_local_call(task_factory, arguments={'number': "42"}, expected_output_values={'output': '42'})
+
+
+    def test_output_path(self):
+        from kfp.components import OutputPath
+        def write_to_file_path(number_file_path: OutputPath(int)):
+            with open(number_file_path, 'w') as f:
+                f.write(str(42))
+
+        task_factory = comp.func_to_container_op(write_to_file_path)
+
+        self.assertFalse(task_factory.component_spec.inputs)
+        self.assertEqual(len(task_factory.component_spec.outputs), 1)
+        self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number': '42'})
+
+
+    def test_output_text_file(self):
+        from kfp.components import OutputTextFile
+        def write_to_file_path(number_file: OutputTextFile(int)):
+            number_file.write(str(42))
+
+        task_factory = comp.func_to_container_op(write_to_file_path)
+
+        self.assertFalse(task_factory.component_spec.inputs)
+        self.assertEqual(len(task_factory.component_spec.outputs), 1)
+        self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number': '42'})
+
+
+    def test_output_binary_file(self):
+        from kfp.components import OutputBinaryFile
+        def write_to_file_path(number_file: OutputBinaryFile(int)):
+            number_file.write(b'42')
+
+        task_factory = comp.func_to_container_op(write_to_file_path)
+
+        self.assertFalse(task_factory.component_spec.inputs)
+        self.assertEqual(len(task_factory.component_spec.outputs), 1)
+        self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number': '42'})
+
+
+    def test_output_path_plus_return_value(self):
+        from kfp.components import OutputPath
+        def write_to_file_path(number_file_path: OutputPath(int)) -> str:
+            with open(number_file_path, 'w') as f:
+                f.write(str(42))
+            return 'Hello'
+
+        task_factory = comp.func_to_container_op(write_to_file_path)
+
+        self.assertFalse(task_factory.component_spec.inputs)
+        self.assertEqual(len(task_factory.component_spec.outputs), 2)
+        self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
+        self.assertEqual(task_factory.component_spec.outputs[1].type, 'String')
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number': '42', 'output': 'Hello'})
+
+
+    def test_all_data_passing_ways(self):
+        from kfp.components import InputTextFile, InputPath, OutputTextFile, OutputPath
+        def write_to_file_path(
+            file_input1_path: InputPath(str),
+            file_input2_file: InputTextFile(str),
+            file_output1_path: OutputPath(str),
+            file_output2_file: OutputTextFile(str),
+            value_input1: str = 'foo',
+            value_input2: str = 'foo',
+        ) -> NamedTuple(
+            'Outputs', [
+                ('return_output1', str),
+                ('return_output2', str),
+            ]
+        ):
+            with open(file_input1_path, 'r') as file_input1_file:
+                with open(file_output1_path, 'w') as file_output1_file:
+                    file_output1_file.write(file_input1_file.read())
+            
+            file_output2_file.write(file_input2_file.read())
+
+            return (value_input1, value_input2)
+
+        task_factory = comp.func_to_container_op(write_to_file_path)
+
+        self.assertEqual(set(input.name for input in task_factory.component_spec.inputs), {'file_input1', 'file_input2', 'value_input1', 'value_input2'})
+        self.assertEqual(set(output.name for output in task_factory.component_spec.outputs), {'file_output1', 'file_output2', 'return_output1', 'return_output2'})
+
+        self.helper_test_component_using_local_call(
+            task_factory,
+            arguments={
+                'file_input1': 'file_input1_value',
+                'file_input2': 'file_input2_value',
+                'value_input1': 'value_input1_value',
+                'value_input2': 'value_input2_value',
+            },
+            expected_output_values={
+                'file_output1': 'file_input1_value',
+                'file_output2': 'file_input2_value',
+                'return_output1': 'value_input1_value',
+                'return_output2': 'value_input2_value',
+            },
+        )
+
+
+    def test_file_input_name_conversion(self):
+        # Checking the input name conversion rules for file inputs:
+        # For InputPath, the "_path" suffix is removed
+        # For Input*, the "_file" suffix is removed
+
+        from kfp.components import InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile
+        def consume_file_path(
+            number: int,
+
+            number_1a_path: str,
+            number_1b_file: str,
+            number_1c_file_path: str,
+            number_1d_path_file: str,
+
+            number_2a_path: InputPath(str),
+            number_2b_file: InputPath(str),
+            number_2c_file_path: InputPath(str),
+            number_2d_path_file: InputPath(str),
+
+            number_3a_path: InputTextFile(str),
+            number_3b_file: InputTextFile(str),
+            number_3c_file_path: InputTextFile(str),
+            number_3d_path_file: InputTextFile(str),
+
+            number_4a_path: InputBinaryFile(str),
+            number_4b_file: InputBinaryFile(str),
+            number_4c_file_path: InputBinaryFile(str),
+            number_4d_path_file: InputBinaryFile(str),
+
+            output_number_2a_path: OutputPath(str),
+            output_number_2b_file: OutputPath(str),
+            output_number_2c_file_path: OutputPath(str),
+            output_number_2d_path_file: OutputPath(str),
+
+            output_number_3a_path: OutputTextFile(str),
+            output_number_3b_file: OutputTextFile(str),
+            output_number_3c_file_path: OutputTextFile(str),
+            output_number_3d_path_file: OutputTextFile(str),
+
+            output_number_4a_path: OutputBinaryFile(str),
+            output_number_4b_file: OutputBinaryFile(str),
+            output_number_4c_file_path: OutputBinaryFile(str),
+            output_number_4d_path_file: OutputBinaryFile(str),
+        ):
+            pass
+
+        task_factory = comp.func_to_container_op(consume_file_path)
+        actual_input_names = [input.name for input in task_factory.component_spec.inputs]
+        actual_output_names = [output.name for output in task_factory.component_spec.outputs]
+
+        self.assertEqual(
+            [
+                'number',
+
+                'number_1a_path',
+                'number_1b_file',
+                'number_1c_file_path',
+                'number_1d_path_file',
+
+                'number_2a',
+                'number_2b',
+                'number_2c',
+                'number_2d_path',
+
+                'number_3a_path',
+                'number_3b',
+                'number_3c_file_path',
+                'number_3d_path',
+
+                'number_4a_path',
+                'number_4b',
+                'number_4c_file_path',
+                'number_4d_path',
+            ],
+            actual_input_names
+        )
+
+        self.assertEqual(
+            [
+                'output_number_2a',
+                'output_number_2b',
+                'output_number_2c',
+                'output_number_2d_path',
+
+                'output_number_3a_path',
+                'output_number_3b',
+                'output_number_3c_file_path',
+                'output_number_3d_path',
+
+                'output_number_4a_path',
+                'output_number_4b',
+                'output_number_4c_file_path',
+                'output_number_4d_path',
+            ],
+            actual_output_names
+        )
+
+
+    def test_packages_to_install_feature(self):
+        task_factory = comp.func_to_container_op(dummy_in_0_out_0, packages_to_install=['six', 'pip'])
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={})
+
+        task_factory2 = comp.func_to_container_op(dummy_in_0_out_0, packages_to_install=['bad-package-0ee7cf93f396cd5072603dec154425cd53bf1c681c7c7605c60f8faf7799b901'])
+        with self.assertRaises(Exception):
+            self.helper_test_component_using_local_call(task_factory2, arguments={}, expected_output_values={})
 
 
     def test_end_to_end_python_component_pipeline_compilation(self):

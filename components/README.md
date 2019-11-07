@@ -7,11 +7,11 @@ as input and may produce one or more
 
 
 **Example: XGBoost DataProc components**
-* [Set up cluster](dataproc/create_cluster/src/create_cluster.py)
-* [Analyze](dataproc/analyze/src/analyze.py)
-* [Transform](dataproc/transform/src/transform.py)
-* [Distributed train](dataproc/train/src/train.py)
-* [Delete cluster](dataproc/delete_cluster/src/delete_cluster.py)
+* [Set up cluster](deprecated/dataproc/create_cluster/src/create_cluster.py)
+* [Analyze](deprecated/dataproc/analyze/src/analyze.py)
+* [Transform](deprecated/dataproc/transform/src/transform.py)
+* [Distributed train](deprecated/dataproc/train/src/train.py)
+* [Delete cluster](deprecated/dataproc/delete_cluster/src/delete_cluster.py)
 
 Each task usually includes two parts:
 

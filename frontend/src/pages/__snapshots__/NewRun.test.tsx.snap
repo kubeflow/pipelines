@@ -48,7 +48,8 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -77,6 +78,21 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           match=""
           selectionChanged={[Function]}
           title="Choose a pipeline"
+          toolbarActionMap={
+            Object {
+              "uploadPipeline": Object {
+                "action": [Function],
+                "icon": [Function],
+                "id": "uploadBtn",
+                "outlined": true,
+                "style": Object {
+                  "minWidth": 160,
+                },
+                "title": "Upload pipeline",
+                "tooltip": "Upload pipeline",
+              },
+            }
+          }
           toolbarProps={
             Object {
               "actions": Object {},
@@ -150,6 +166,10 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <UploadPipelineDialog
+      onClose={[Function]}
+      open={false}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -174,7 +194,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -376,6 +396,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -457,7 +478,8 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -486,6 +508,21 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           match=""
           selectionChanged={[Function]}
           title="Choose a pipeline"
+          toolbarActionMap={
+            Object {
+              "uploadPipeline": Object {
+                "action": [Function],
+                "icon": [Function],
+                "id": "uploadBtn",
+                "outlined": true,
+                "style": Object {
+                  "minWidth": 160,
+                },
+                "title": "Upload pipeline",
+                "tooltip": "Upload pipeline",
+              },
+            }
+          }
           toolbarProps={
             Object {
               "actions": Object {},
@@ -563,6 +600,10 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <UploadPipelineDialog
+      onClose={[Function]}
+      open={false}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -587,7 +628,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -793,6 +834,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
         Skip this step
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -874,7 +916,8 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -903,6 +946,21 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           match=""
           selectionChanged={[Function]}
           title="Choose a pipeline"
+          toolbarActionMap={
+            Object {
+              "uploadPipeline": Object {
+                "action": [Function],
+                "icon": [Function],
+                "id": "uploadBtn",
+                "outlined": true,
+                "style": Object {
+                  "minWidth": 160,
+                },
+                "title": "Upload pipeline",
+                "tooltip": "Upload pipeline",
+              },
+            }
+          }
           toolbarProps={
             Object {
               "actions": Object {},
@@ -985,6 +1043,10 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <UploadPipelineDialog
+      onClose={[Function]}
+      open={false}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -1009,7 +1071,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -1231,6 +1293,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -1312,7 +1375,8 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -1341,6 +1405,21 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           match=""
           selectionChanged={[Function]}
           title="Choose a pipeline"
+          toolbarActionMap={
+            Object {
+              "uploadPipeline": Object {
+                "action": [Function],
+                "icon": [Function],
+                "id": "uploadBtn",
+                "outlined": true,
+                "style": Object {
+                  "minWidth": 160,
+                },
+                "title": "Upload pipeline",
+                "tooltip": "Upload pipeline",
+              },
+            }
+          }
           toolbarProps={
             Object {
               "actions": Object {},
@@ -1419,6 +1498,10 @@ exports[`NewRun changes title and form to default state if the new run is a one-
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <UploadPipelineDialog
+      onClose={[Function]}
+      open={false}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -1443,7 +1526,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -1650,6 +1733,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -1731,7 +1815,8 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -1760,6 +1845,21 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           match=""
           selectionChanged={[Function]}
           title="Choose a pipeline"
+          toolbarActionMap={
+            Object {
+              "uploadPipeline": Object {
+                "action": [Function],
+                "icon": [Function],
+                "id": "uploadBtn",
+                "outlined": true,
+                "style": Object {
+                  "minWidth": 160,
+                },
+                "title": "Upload pipeline",
+                "tooltip": "Upload pipeline",
+              },
+            }
+          }
           toolbarProps={
             Object {
               "actions": Object {},
@@ -1833,6 +1933,10 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <UploadPipelineDialog
+      onClose={[Function]}
+      open={false}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -1857,7 +1961,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -2059,6 +2163,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -2140,7 +2245,8 @@ exports[`NewRun renders the new run page 1`] = `
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -2169,6 +2275,21 @@ exports[`NewRun renders the new run page 1`] = `
           match=""
           selectionChanged={[Function]}
           title="Choose a pipeline"
+          toolbarActionMap={
+            Object {
+              "uploadPipeline": Object {
+                "action": [Function],
+                "icon": [Function],
+                "id": "uploadBtn",
+                "outlined": true,
+                "style": Object {
+                  "minWidth": 160,
+                },
+                "title": "Upload pipeline",
+                "tooltip": "Upload pipeline",
+              },
+            }
+          }
           toolbarProps={
             Object {
               "actions": Object {},
@@ -2246,6 +2367,10 @@ exports[`NewRun renders the new run page 1`] = `
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <UploadPipelineDialog
+      onClose={[Function]}
+      open={false}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -2270,7 +2395,7 @@ exports[`NewRun renders the new run page 1`] = `
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -2476,6 +2601,7 @@ exports[`NewRun renders the new run page 1`] = `
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -2557,7 +2683,8 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -2586,6 +2713,21 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           match=""
           selectionChanged={[Function]}
           title="Choose a pipeline"
+          toolbarActionMap={
+            Object {
+              "uploadPipeline": Object {
+                "action": [Function],
+                "icon": [Function],
+                "id": "uploadBtn",
+                "outlined": true,
+                "style": Object {
+                  "minWidth": 160,
+                },
+                "title": "Upload pipeline",
+                "tooltip": "Upload pipeline",
+              },
+            }
+          }
           toolbarProps={
             Object {
               "actions": Object {},
@@ -2659,6 +2801,10 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <UploadPipelineDialog
+      onClose={[Function]}
+      open={false}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -2683,7 +2829,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -2896,6 +3042,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -2957,7 +3104,8 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -2992,6 +3140,21 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
           match=""
           selectionChanged={[Function]}
           title="Choose a pipeline"
+          toolbarActionMap={
+            Object {
+              "uploadPipeline": Object {
+                "action": [Function],
+                "icon": [Function],
+                "id": "uploadBtn",
+                "outlined": true,
+                "style": Object {
+                  "minWidth": 160,
+                },
+                "title": "Upload pipeline",
+                "tooltip": "Upload pipeline",
+              },
+            }
+          }
           toolbarProps={
             Object {
               "actions": Object {},
@@ -3076,6 +3239,10 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <UploadPipelineDialog
+      onClose={[Function]}
+      open={false}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -3100,7 +3267,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -3300,6 +3467,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -3379,7 +3547,8 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -3414,6 +3583,21 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
           match=""
           selectionChanged={[Function]}
           title="Choose a pipeline"
+          toolbarActionMap={
+            Object {
+              "uploadPipeline": Object {
+                "action": [Function],
+                "icon": [Function],
+                "id": "uploadBtn",
+                "outlined": true,
+                "style": Object {
+                  "minWidth": 160,
+                },
+                "title": "Upload pipeline",
+                "tooltip": "Upload pipeline",
+              },
+            }
+          }
           toolbarProps={
             Object {
               "actions": Object {},
@@ -3498,6 +3682,10 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <UploadPipelineDialog
+      onClose={[Function]}
+      open={false}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -3522,7 +3710,7 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -3752,6 +3940,7 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -3831,7 +4020,8 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -3860,6 +4050,21 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           match=""
           selectionChanged={[Function]}
           title="Choose a pipeline"
+          toolbarActionMap={
+            Object {
+              "uploadPipeline": Object {
+                "action": [Function],
+                "icon": [Function],
+                "id": "uploadBtn",
+                "outlined": true,
+                "style": Object {
+                  "minWidth": 160,
+                },
+                "title": "Upload pipeline",
+                "tooltip": "Upload pipeline",
+              },
+            }
+          }
           toolbarProps={
             Object {
               "actions": Object {},
@@ -3937,6 +4142,10 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <UploadPipelineDialog
+      onClose={[Function]}
+      open={false}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -3961,7 +4170,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -4167,6 +4376,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -4248,7 +4458,8 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -4277,6 +4488,21 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           match=""
           selectionChanged={[Function]}
           title="Choose a pipeline"
+          toolbarActionMap={
+            Object {
+              "uploadPipeline": Object {
+                "action": [Function],
+                "icon": [Function],
+                "id": "uploadBtn",
+                "outlined": true,
+                "style": Object {
+                  "minWidth": 160,
+                },
+                "title": "Upload pipeline",
+                "tooltip": "Upload pipeline",
+              },
+            }
+          }
           toolbarProps={
             Object {
               "actions": Object {},
@@ -4354,6 +4580,10 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <UploadPipelineDialog
+      onClose={[Function]}
+      open={false}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -4378,7 +4608,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -4595,6 +4825,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -4676,7 +4907,8 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -4705,6 +4937,21 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           match=""
           selectionChanged={[Function]}
           title="Choose a pipeline"
+          toolbarActionMap={
+            Object {
+              "uploadPipeline": Object {
+                "action": [Function],
+                "icon": [Function],
+                "id": "uploadBtn",
+                "outlined": true,
+                "style": Object {
+                  "minWidth": 160,
+                },
+                "title": "Upload pipeline",
+                "tooltip": "Upload pipeline",
+              },
+            }
+          }
           toolbarProps={
             Object {
               "actions": Object {},
@@ -4782,6 +5029,10 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <UploadPipelineDialog
+      onClose={[Function]}
+      open={false}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -4806,7 +5057,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -5012,6 +5263,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -5093,7 +5345,8 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -5122,6 +5375,21 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           match=""
           selectionChanged={[Function]}
           title="Choose a pipeline"
+          toolbarActionMap={
+            Object {
+              "uploadPipeline": Object {
+                "action": [Function],
+                "icon": [Function],
+                "id": "uploadBtn",
+                "outlined": true,
+                "style": Object {
+                  "minWidth": 160,
+                },
+                "title": "Upload pipeline",
+                "tooltip": "Upload pipeline",
+              },
+            }
+          }
           toolbarProps={
             Object {
               "actions": Object {},
@@ -5199,6 +5467,10 @@ exports[`NewRun updates the run's state with the associated experiment if one is
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <UploadPipelineDialog
+      onClose={[Function]}
+      open={false}
+    />
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -5223,7 +5495,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                 "sortKey": "name",
               },
               Object {
-                "flex": 1.5,
+                "flex": 2,
                 "label": "Description",
               },
               Object {
@@ -5429,6 +5701,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",

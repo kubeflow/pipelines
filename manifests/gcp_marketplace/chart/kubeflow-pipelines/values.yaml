@@ -1,33 +1,31 @@
 images:
-  mysql: gcr.io/ml-pipeline/mysql:5.6
-  cloudsqlProxy: gcr.io/cloudsql-docker/gce-proxy:1.14
-  minio: gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z
-  apiServer: gcr.io/ml-pipeline/api-server:0.1.27
-  persistenceagent: gcr.io/ml-pipeline/persistenceagent:0.1.27
-  scheduledworkflow: gcr.io/ml-pipeline/scheduledworkflow:0.1.27
-  frontend: gcr.io/ml-pipeline/frontend:0.1.27
-  viewerCrd: gcr.io/ml-pipeline/viewer-crd-controller:0.1.27
-  visualizationServer: gcr.io/ml-pipeline/visualization-server:0.1.27
-  metadataServer: gcr.io/kubeflow-images-public/metadata:v0.1.8
-  proxyAgent: gcr.io/ml-pipeline/inverse-proxy-agent:0.1.27
-  argoExecutor: gcr.io/ml-pipeline/argoexec:v2.3.0
-  argoWorkflowController: gcr.io/ml-pipeline/workflow-controller:v2.3.0
+  apiserver: gcr.io/ml-pipeline/google/pipelines/apiserver:0.1.31
+  argoexecutor: gcr.io/ml-pipeline/google/pipelines/argoexecutor:0.1.31
+  argoworkflowcontroller: gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:0.1.31
+  cloudsqlproxy: gcr.io/ml-pipeline/google/pipelines/cloudsqlproxy:0.1.31
+  frontend: gcr.io/ml-pipeline/google/pipelines/frontend:0.1.31
+  metadataserver: gcr.io/ml-pipeline/google/pipelines/metadataserver:0.1.31
+  minio: gcr.io/ml-pipeline/google/pipelines/minio:0.1.31
+  mysql: gcr.io/ml-pipeline/google/pipelines/mysql:0.1.31
+  persistenceagent: gcr.io/ml-pipeline/google/pipelines/persistenceagent:0.1.31
+  proxyagent: gcr.io/ml-pipeline/google/pipelines/proxyagent:0.1.31
+  scheduledworkflow: gcr.io/ml-pipeline/google/pipelines/scheduledworkflow:0.1.31
+  viewercrd: gcr.io/ml-pipeline/google/pipelines/viewercrd:0.1.31
+  visualizationserver: gcr.io/ml-pipeline/google/pipelines/visualizationserver:0.1.31
+  metadataenvoy: gcr.io/ml-pipeline/google/pipelines/metadataenvoy:0.1.31
 
-serviceAccount:
-  proxyAgentRunner: null
-  mlPipelinePersistenceAgent: null
-  mlPipelineScheduledWorkflow: null
-  mlPipelineUI: null
-  mlPipelineViewerCrd: null
-  mlPipeline: null
-  pipelineRunner: null
-  argo: null
+gcpSecretName: "user-gcp-sa"
+serviceAccountCredential: ""
 
 managedstorage:
   enabled: false
-  cloudsqlInstanceName: null
-  cloudsqlZone: null
-  dbPassword: null
-  gcpProject: null
-  gcpSecretName: null
+  cloudsqlInstanceConnectionName: null
+  # gcsBucketName should be determined by cloudsqlInstanceConnectionName to make
+  # sure user is always using a valid pair of connection name + gcs bucket name.
+  #
+  # gcsBucketName is used in two places, so I wrote a template string here that
+  # can be evaluated in each place.
+  gcsBucketName: '{{ if .Values.managedstorage.databaseNamePrefix }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Values.managedstorage.databaseNamePrefix | replace ":" "-" | trunc 50 }}{{ else }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Release.Name | replace ":" "-" | trunc 50 }}{{ end }}'
   databaseNamePrefix: null
+  dbUsername: 'root'
+  dbPassword: ''

@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import google
 import os
 import re
 import subprocess
 
-from google.cloud import storage
 from minio import Minio
 from junit_xml import TestSuite, TestCase
 
@@ -87,20 +85,3 @@ def file_injection(file_in, tmp_file_out, subs):
         fout.write(tmp_line)
 
   os.rename(tmp_file_out, file_in)
-
-def upload_blob(bucket_name, source_file_name, destination_blob_name):
-  """Uploads a file to the bucket."""
-  storage_client = storage.Client()
-  try:
-    bucket = storage_client.get_bucket(bucket_name)
-    blob = bucket.blob(destination_blob_name)
-    blob.upload_from_filename(source_file_name)
-  except google.cloud.exceptions.GoogleCloudError as google_cloud_error:
-    raise RuntimeError(
-        'Failure when uploading {}\n'.format(str(google_cloud_error)))
-  except google.cloud.exceptions.NotFound as not_found:
-    raise RuntimeError("Bucket not found: {}\n".format(str(not_found)))
-  else:
-    print('File {} uploaded to {}.'.format(
-        source_file_name,
-        destination_blob_name))

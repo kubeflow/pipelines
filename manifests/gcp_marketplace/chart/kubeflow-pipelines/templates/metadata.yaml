@@ -34,14 +34,109 @@ spec:
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
-        - command:
-            - ./server/server
-            - --http_port=8080
-            - --mysql_service_host=mysql
-            - --mysql_service_port=3306
-            - --mlmd_db_name={{ .Values.managedstorage.databaseNamePrefix }}_metadata
-          image: {{ .Values.images.metadataServer }}
-          name: container
+      - name: container
+        image: {{ .Values.images.metadataserver }}
+        imagePullPolicy: 'Always'
+        env:
+        {{ if .Values.managedstorage.enabled }}
+        - name: DBCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credential
+              key: username
+        - name: DBCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credential
+              key: password
+        {{ else }}
+        - name: DBCONFIG_USER
+          value: 'root'
+        - name: DBCONFIG_PASSWORD
+          value: ''
+        {{ end }}
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: metadata-configmap
+              key: mysql_database
+        - name: MYSQL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: metadata-configmap
+              key: mysql_host
+        - name: MYSQL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: metadata-configmap
+              key: mysql_port
+        command: ["/bin/metadata_store_server"]
+        args: ["--grpc_port=8080",
+                 "--mysql_config_database=$(MYSQL_DATABASE)",
+                 "--mysql_config_host=$(MYSQL_HOST)",
+                 "--mysql_config_port=$(MYSQL_PORT)",
+                 "--mysql_config_user=$(DBCONFIG_USER)",
+                 "--mysql_config_password=$(DBCONFIG_PASSWORD)"
+                ]
+        ports:
+        - containerPort: 8080
+          name: md-backendapi
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: metadata
+    app.kubernetes.io/name: {{ .Release.Name }}
+  name: metadata-envoy-service
+spec:
+  selector:
+    component: metadata-envoy
+  type: ClusterIP
+  ports:
+    - port: 9090
+      protocol: TCP
+      name: md-envoy
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: metadata-envoy
+  labels:
+    component: metadata-envoy
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: metadata-envoy
+  template:
+    metadata:
+      labels:
+        component: metadata-envoy
+    spec:
+      containers:
+        - name: container
+          image: {{ .Values.images.metadataenvoy }}
           ports:
-            - containerPort: 8080
-              name: md-backendapi
+            - name: md-envoy
+              containerPort: 9090
+            - name: envoy-admin
+              containerPort: 9901
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metadata-configmap
+  labels:
+    component: metadata-server
+data:
+  {{ if .Values.managedstorage.databaseNamePrefix }}
+  mysql_database: '{{ .Values.managedstorage.databaseNamePrefix }}_metadata'
+  {{ else }}
+  mysql_database: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_metadata'
+  {{ end }}
+  mysql_host: "mysql"
+  mysql_port: "3306"
+  username: "root"
+  password: ""

@@ -64,7 +64,7 @@ class PipelineVolume(V1Volume):
                 raise ValueError("You can only pass 'name' along with 'pvc'.")
             elif pvc and not kwargs:
                 pvc_volume_source = V1PersistentVolumeClaimVolumeSource(
-                    claim_name=pvc
+                    claim_name=str(pvc)
                 )
                 init_volume["persistent_volume_claim"] = pvc_volume_source
         super().__init__(**init_volume, **kwargs)

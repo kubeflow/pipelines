@@ -19,7 +19,6 @@ import { statusToIcon } from './Status';
 import { NodePhase } from '../lib/StatusUtils';
 import { shallow } from 'enzyme';
 
-
 describe('Status', () => {
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
@@ -30,7 +29,7 @@ describe('Status', () => {
 
   beforeEach(() => {
     formatDateStringSpy.mockImplementation((date: Date) => {
-      return (date === startDate) ? '1/2/2019, 9:10:11 AM' : '1/3/2019, 10:11:12 AM';
+      return date === startDate ? '1/2/2019, 9:10:11 AM' : '1/3/2019, 10:11:12 AM';
     });
   });
 
@@ -69,11 +68,11 @@ describe('Status', () => {
       expect(tree).toMatchSnapshot();
     });
 
-    Object.keys(NodePhase).map(status => (
+    Object.keys(NodePhase).map(status =>
       it('renders an icon with tooltip for phase: ' + status, () => {
         const tree = shallow(statusToIcon(NodePhase[status]));
         expect(tree).toMatchSnapshot();
-      })
-    ));
+      }),
+    );
   });
 });

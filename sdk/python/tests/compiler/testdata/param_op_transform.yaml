@@ -23,14 +23,6 @@ spec:
       labels:
         param: '{{inputs.parameters.param}}'
     name: cop
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - dag:
       tasks:
       - arguments:

@@ -38,7 +38,6 @@ interface ExperimentAndRunsState {
 }
 
 class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsState> {
-
   public getInitialToolbarState(): ToolbarProps {
     return { actions: {}, breadcrumbs: [], pageTitle: '' };
   }
@@ -46,15 +45,14 @@ class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsS
   public render(): JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
-        <MD2Tabs tabs={['All experiments', 'All runs']} selectedTab={this.props.view}
-          onSwitch={this._tabSwitched.bind(this)} />
-        {this.props.view === 0 && (
-          <ExperimentList {...this.props} />
-        )}
+        <MD2Tabs
+          tabs={['All experiments', 'All runs']}
+          selectedTab={this.props.view}
+          onSwitch={this._tabSwitched.bind(this)}
+        />
+        {this.props.view === 0 && <ExperimentList {...this.props} />}
 
-        {this.props.view === 1 && (
-          <AllRunsList {...this.props} />
-        )}
+        {this.props.view === 1 && <AllRunsList {...this.props} />}
       </div>
     );
   }
@@ -65,7 +63,8 @@ class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsS
 
   private _tabSwitched(newTab: ExperimentsAndRunsTab): void {
     this.props.history.push(
-      newTab === ExperimentsAndRunsTab.EXPERIMENTS ? RoutePage.EXPERIMENTS : RoutePage.RUNS);
+      newTab === ExperimentsAndRunsTab.EXPERIMENTS ? RoutePage.EXPERIMENTS : RoutePage.RUNS,
+    );
   }
 }
 

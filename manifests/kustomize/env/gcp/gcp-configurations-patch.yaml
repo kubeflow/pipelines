@@ -25,10 +25,6 @@ spec:
       containers:
         - name: cloudsqlproxy
           env:
-            - name: GCP_PROJECT
-              value: ''
-            - name: CLOUDSQL_ZONE
-              # E.g. us-central1
-              value: ''
-            - name: CLOUDSQL_INSTANCE_NAME
+            - name: CLOUD_SQL_INSTANCE_CONNECTION_NAME
+              # E.g. project-id:us-central1:instance-name
               value: ''

@@ -14,11 +14,11 @@
 from typing import Union
 import uuid
 
-from kfp.dsl import _for_loop
+from kfp.dsl import _for_loop, _pipeline_param
 
 from . import _container_op
 from . import _pipeline
-from ._pipeline_param import ConditionOperator
+
 
 class OpsGroup(object):
   """Represents a logical group of ops and group of OpsGroups.
@@ -93,6 +93,12 @@ class OpsGroup(object):
     self.dependencies.append(dependency)
     return self
 
+  def remove_op_recursive(self, op):
+    if self.ops and op in self.ops:
+      self.ops.remove(op)
+    for sub_group in self.groups or []:
+      sub_group.remove_op_recursive(op)
+
 class ExitHandler(OpsGroup):
   """Represents an exit handler that is invoked upon exiting a group of ops.
 
@@ -116,6 +122,12 @@ class ExitHandler(OpsGroup):
     super(ExitHandler, self).__init__('exit_handler')
     if exit_op.dependent_names:
       raise ValueError('exit_op cannot depend on any other ops.')
+
+    # Removing exit_op form any group
+    _pipeline.Pipeline.get_default_pipeline().remove_op_from_groups(exit_op)
+
+    # Setting is_exit_handler since the compiler might be using this attribute. TODO: Check that it's needed
+    exit_op.is_exit_handler = True
 
     self.exit_op = exit_op
 
@@ -168,13 +180,18 @@ class ParallelFor(OpsGroup):
   def _get_unique_id_code():
     return uuid.uuid4().hex[:_for_loop.LoopArguments.NUM_CODE_CHARS]
 
-  def __init__(self, loop_args: _for_loop.ItemList):
-    # random code to id this loop
+  def __init__(self, loop_args: Union[_for_loop.ItemList, _pipeline_param.PipelineParam]):
+    self.items_is_pipeline_param = isinstance(loop_args, _pipeline_param.PipelineParam)
+
+    # use a random code to uniquely identify this loop
     code = self._get_unique_id_code()
     group_name = 'for-loop-{}'.format(code)
     super().__init__(self.TYPE_NAME, name=group_name)
 
-    if not isinstance(loop_args, _for_loop.LoopArguments):
+    if self.items_is_pipeline_param:
+      loop_args = _for_loop.LoopArguments.from_pipeline_param(loop_args)
+    elif not self.items_is_pipeline_param and not isinstance(loop_args, _for_loop.LoopArguments):
+      # we were passed a raw list, wrap it in loop args
       loop_args = _for_loop.LoopArguments(loop_args, code)
 
     self.loop_args = loop_args

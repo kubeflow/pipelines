@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -128,7 +129,10 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 	}
 
 	if err := ValidatePipelineSpec(s.resourceManager, run.PipelineSpec); err != nil {
-		return util.Wrap(err, "The pipeline spec is invalid.")
+		if _, errResourceReference := CheckPipelineVersionReference(s.resourceManager, run.ResourceReferences); errResourceReference != nil {
+			return util.Wrap(err, "Neither pipeline spec nor pipeline version is valid. "+errResourceReference.Error())
+		}
+		return nil
 	}
 	return nil
 }

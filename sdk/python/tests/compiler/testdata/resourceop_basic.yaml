@@ -27,14 +27,10 @@ spec:
       parameters:
       - name: create-my-secret-name
     name: cop
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
+    volumes:
+    - name: my-secret
+      secret:
+        secretName: '{{inputs.parameters.create-my-secret-name}}'
   - inputs:
       parameters:
       - name: password
@@ -76,7 +72,3 @@ spec:
       - name: password
       - name: username
     name: resourceop-basic
-  volumes:
-  - name: my-secret
-    secret:
-      secretName: '{{inputs.parameters.create-my-secret-name}}'

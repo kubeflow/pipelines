@@ -232,6 +232,10 @@ class Pipeline():
     """Remove the current OpsGroup from the stack."""
     del self.groups[-1]
 
+  def remove_op_from_groups(self, op):
+    for group in self.groups:
+      group.remove_op_recursive(op)
+
   def get_next_group_id(self):
     """Get next id for a new group. """
 
@@ -243,8 +247,6 @@ class Pipeline():
     Args:
       metadata (ComponentMeta): component metadata
     '''
-    if not isinstance(metadata, PipelineMeta):  # noqa: F821 TODO
-      raise ValueError('_set_medata is expecting PipelineMeta.')
     self._metadata = metadata
 
 

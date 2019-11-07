@@ -24,7 +24,10 @@ from kubernetes.client import V1SecretKeySelector
     location for all the ops in the pipeline.""",
 )
 def custom_artifact_location(
-    tag: str, namespace: str = "kubeflow", bucket: str = "somebucket"
+    secret_name: str = "mlpipeline-minio-artifact",
+    tag: str = '1.31.0',
+    namespace: str = "kubeflow",
+    bucket: str = "mlpipeline"
 ):
 
     # configures artifact location
@@ -32,15 +35,17 @@ def custom_artifact_location(
         bucket=bucket,
         endpoint="minio-service.%s:9000" % namespace,  # parameterize minio-service endpoint
         insecure=True,
-        access_key_secret=V1SecretKeySelector(name="minio", key="accesskey"),
-        secret_key_secret={"name": "minio", "key": "secretkey"},  # accepts dict also
+        access_key_secret=V1SecretKeySelector(name=secret_name, key="accesskey"),
+        secret_key_secret={"name": secret_name, "key": "secretkey"},  # accepts dict also
     )
 
     # set pipeline level artifact location
     dsl.get_pipeline_conf().set_artifact_location(pipeline_artifact_location)
 
     # artifacts in this op are stored to endpoint `minio-service.<namespace>:9000`
-    op = dsl.ContainerOp(name="foo", image="busybox:%s" % tag)
+    op = dsl.ContainerOp(name="foo", image="busybox:%s" % tag,
+                         command=['sh', '-c', 'echo hello > /tmp/output.txt'],
+                         file_outputs={'output': '/tmp/output.txt'})
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(custom_artifact_location, __file__ + '.zip')

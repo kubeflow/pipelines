@@ -1,273 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
-<div
-  className="pageOverflowHidden"
->
-  <div>
-    <Component
-      InputLabelProps={
-        Object {
-          "classes": Object {
-            "root": "noMargin",
-          },
-        }
-      }
-      InputProps={
-        Object {
-          "classes": Object {
-            "notchedOutline": "filterBorderRadius",
-            "root": "noLeftPadding",
-          },
-          "startAdornment": <WithStyles(InputAdornment)
-            position="end"
-          >
-            <pure(FilterListIcon)
-              style={
-                Object {
-                  "color": "#80868b",
-                  "paddingRight": 16,
-                }
-              }
-            />
-          </WithStyles(InputAdornment)>,
-        }
-      }
-      className="filterBox"
-      height={48}
-      id="tableFilterBox"
-      label="Filter"
-      maxWidth="100%"
-      onChange={[Function]}
-      value=""
-      variant="outlined"
-    />
-  </div>
-  <div
-    className="header"
-  >
-    <div
-      className="columnName cell selectionToggle"
-    >
-      <WithStyles(Checkbox)
-        checked={false}
-        color="primary"
-        indeterminate={false}
-        onChange={[Function]}
-      />
-    </div>
-    <div
-      className="columnName"
-      key="0"
-      style={
-        Object {
-          "width": "50%",
-        }
-      }
-    >
-      <WithStyles(Tooltip)
-        enterDelay={300}
-        title="Cannot sort by this column"
-      >
-        <WithStyles(TableSortLabel)
-          active={false}
-          className="ellipsis"
-          onClick={[Function]}
-        >
-          col1
-        </WithStyles(TableSortLabel)>
-      </WithStyles(Tooltip)>
-    </div>
-    <div
-      className="columnName"
-      key="1"
-      style={
-        Object {
-          "width": "50%",
-        }
-      }
-    >
-      <WithStyles(Tooltip)
-        enterDelay={300}
-        title="Cannot sort by this column"
-      >
-        <WithStyles(TableSortLabel)
-          active={false}
-          className="ellipsis"
-          onClick={[Function]}
-        >
-          col2
-        </WithStyles(TableSortLabel)>
-      </WithStyles(Tooltip)>
-    </div>
-  </div>
-  <div
-    className="scrollContainer"
-    style={
-      Object {
-        "minHeight": 60,
-      }
-    }
-  >
-    <div
-      className="expandableContainer"
-      key="0"
-    >
-      <div
-        className="tableRow row"
-        onClick={[Function]}
-        role="checkbox"
-        tabIndex={-1}
-      >
-        <div
-          className="cell selectionToggle"
-        >
-          <WithStyles(Checkbox)
-            checked={false}
-            color="primary"
-          />
-        </div>
-        <div
-          className="cell"
-          key="0"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          <WithStyles(Tooltip)
-            title="dummy error"
-          >
-            <pure(WarningRoundedIcon)
-              className="icon"
-            />
-          </WithStyles(Tooltip)>
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
-      </div>
-    </div>
-    <div
-      className="expandableContainer"
-      key="1"
-    >
-      <div
-        className="tableRow row"
-        onClick={[Function]}
-        role="checkbox"
-        tabIndex={-1}
-      >
-        <div
-          className="cell selectionToggle"
-        >
-          <WithStyles(Checkbox)
-            checked={false}
-            color="primary"
-          />
-        </div>
-        <div
-          className="cell"
-          key="0"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
-      </div>
-    </div>
-  </div>
-  <div
-    className="footer"
-  >
-    <span
-      className=""
-    >
-      Rows per page:
-    </span>
-    <TextField
-      InputProps={
-        Object {
-          "disableUnderline": true,
-        }
-      }
-      className="rowsPerPage"
-      classes={
-        Object {
-          "root": "verticalAlignInitial",
-        }
-      }
-      onChange={[Function]}
-      required={false}
-      select={true}
-      value={10}
-      variant="standard"
-    >
-      <WithStyles(MenuItem)
-        key="0"
-        value={10}
-      >
-        10
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="1"
-        value={20}
-      >
-        20
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="2"
-        value={50}
-      >
-        50
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="3"
-        value={100}
-      >
-        100
-      </WithStyles(MenuItem)>
-    </TextField>
-    <WithStyles(IconButton)
-      disabled={true}
-      onClick={[Function]}
-    >
-      <pure(ChevronLeftIcon) />
-    </WithStyles(IconButton)>
-    <WithStyles(IconButton)
-      disabled={true}
-      onClick={[Function]}
-    >
-      <pure(ChevronRightIcon) />
-    </WithStyles(IconButton)>
-  </div>
-</div>
-`;
-
 exports[`CustomTable renders a collapsed row 1`] = `
 <div
   className="pageOverflowHidden"
@@ -323,11 +55,11 @@ exports[`CustomTable renders a collapsed row 1`] = `
         indeterminate={false}
         onChange={[Function]}
       />
+      <Component
+        orientation="horizontal"
+        units={40}
+      />
     </div>
-    <Component
-      orientation="horizontal"
-      units={40}
-    />
     <div
       className="columnName"
       key="0"
@@ -336,6 +68,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -358,6 +91,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -405,28 +139,30 @@ exports[`CustomTable renders a collapsed row 1`] = `
             <pure(ArrowRightIcon) />
           </WithStyles(IconButton)>
         </div>
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "expandState": 0,
+              "id": "row1",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
   </div>
@@ -543,10 +279,14 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
   <div
     className="header"
   >
-    <Component
-      orientation="horizontal"
-      units={40}
-    />
+    <div
+      className="columnName cell selectionToggle"
+    >
+      <Component
+        orientation="horizontal"
+        units={40}
+      />
+    </div>
     <div
       className="columnName"
       key="0"
@@ -555,6 +295,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -577,6 +318,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -620,28 +362,30 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
             <pure(ArrowRightIcon) />
           </WithStyles(IconButton)>
         </div>
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "expandState": 0,
+              "id": "row1",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
   </div>
@@ -776,10 +520,9 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
           "width": "50%",
         }
       }
+      title="col1"
     >
-      <div>
-        col1
-      </div>
+      col1
     </div>
     <div
       className="columnName"
@@ -789,10 +532,9 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
           "width": "50%",
         }
       }
+      title="col2"
     >
-      <div>
-        col2
-      </div>
+      col2
     </div>
   </div>
   <div
@@ -821,28 +563,29 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
             color="primary"
           />
         </div>
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "id": "row1",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
     <div
@@ -863,28 +606,29 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
             color="primary"
           />
         </div>
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "id": "row2",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
   </div>
@@ -1019,6 +763,7 @@ exports[`CustomTable renders an expanded row 1`] = `
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1041,6 +786,7 @@ exports[`CustomTable renders an expanded row 1`] = `
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1082,28 +828,30 @@ exports[`CustomTable renders an expanded row 1`] = `
             color="primary"
           />
         </div>
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "expandState": 1,
+              "id": "row1",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
   </div>
@@ -1229,11 +977,11 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
         indeterminate={false}
         onChange={[Function]}
       />
+      <Component
+        orientation="horizontal"
+        units={40}
+      />
     </div>
-    <Component
-      orientation="horizontal"
-      units={40}
-    />
     <div
       className="columnName"
       key="0"
@@ -1242,6 +990,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1264,6 +1013,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1311,32 +1061,32 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
             <pure(ArrowRightIcon) />
           </WithStyles(IconButton)>
         </div>
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "expandState": 1,
+              "id": "row1",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
-      <div
-        className=""
-      >
+      <div>
         <span>
           Hello World
         </span>
@@ -1474,6 +1224,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
           "width": "75%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1496,6 +1247,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
           "width": "25%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1788,6 +1540,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1810,6 +1563,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -1851,28 +1605,29 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
             color="primary"
           />
         </div>
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "id": "row2",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
   </div>
@@ -2007,6 +1762,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2029,6 +1785,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2070,28 +1827,29 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
             color="primary"
           />
         </div>
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "id": "row1",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
     <div
@@ -2112,28 +1870,29 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
             color="primary"
           />
         </div>
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "id": "row2",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
   </div>
@@ -2268,6 +2027,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2291,6 +2051,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2445,6 +2206,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2467,6 +2229,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2621,6 +2384,7 @@ exports[`CustomTable renders some rows 1`] = `
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2643,6 +2407,7 @@ exports[`CustomTable renders some rows 1`] = `
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -2684,28 +2449,29 @@ exports[`CustomTable renders some rows 1`] = `
             color="primary"
           />
         </div>
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "id": "row1",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
     <div
@@ -2726,293 +2492,29 @@ exports[`CustomTable renders some rows 1`] = `
             color="primary"
           />
         </div>
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "id": "row2",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
-      </div>
-    </div>
-  </div>
-  <div
-    className="footer"
-  >
-    <span
-      className=""
-    >
-      Rows per page:
-    </span>
-    <TextField
-      InputProps={
-        Object {
-          "disableUnderline": true,
-        }
-      }
-      className="rowsPerPage"
-      classes={
-        Object {
-          "root": "verticalAlignInitial",
-        }
-      }
-      onChange={[Function]}
-      required={false}
-      select={true}
-      value={10}
-      variant="standard"
-    >
-      <WithStyles(MenuItem)
-        key="0"
-        value={10}
-      >
-        10
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="1"
-        value={20}
-      >
-        20
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="2"
-        value={50}
-      >
-        50
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="3"
-        value={100}
-      >
-        100
-      </WithStyles(MenuItem)>
-    </TextField>
-    <WithStyles(IconButton)
-      disabled={true}
-      onClick={[Function]}
-    >
-      <pure(ChevronLeftIcon) />
-    </WithStyles(IconButton)>
-    <WithStyles(IconButton)
-      disabled={true}
-      onClick={[Function]}
-    >
-      <pure(ChevronRightIcon) />
-    </WithStyles(IconButton)>
-  </div>
-</div>
-`;
-
-exports[`CustomTable renders some rows using a custom renderer 1`] = `
-<div
-  className="pageOverflowHidden"
->
-  <div>
-    <Component
-      InputLabelProps={
-        Object {
-          "classes": Object {
-            "root": "noMargin",
-          },
-        }
-      }
-      InputProps={
-        Object {
-          "classes": Object {
-            "notchedOutline": "filterBorderRadius",
-            "root": "noLeftPadding",
-          },
-          "startAdornment": <WithStyles(InputAdornment)
-            position="end"
-          >
-            <pure(FilterListIcon)
-              style={
-                Object {
-                  "color": "#80868b",
-                  "paddingRight": 16,
-                }
-              }
-            />
-          </WithStyles(InputAdornment)>,
-        }
-      }
-      className="filterBox"
-      height={48}
-      id="tableFilterBox"
-      label="Filter"
-      maxWidth="100%"
-      onChange={[Function]}
-      value=""
-      variant="outlined"
-    />
-  </div>
-  <div
-    className="header"
-  >
-    <div
-      className="columnName cell selectionToggle"
-    >
-      <WithStyles(Checkbox)
-        checked={false}
-        color="primary"
-        indeterminate={false}
-        onChange={[Function]}
-      />
-    </div>
-    <div
-      className="columnName"
-      key="0"
-      style={
-        Object {
-          "width": "50%",
-        }
-      }
-    >
-      <WithStyles(Tooltip)
-        enterDelay={300}
-        title="Cannot sort by this column"
-      >
-        <WithStyles(TableSortLabel)
-          active={false}
-          className="ellipsis"
-          onClick={[Function]}
-        >
-          col1
-        </WithStyles(TableSortLabel)>
-      </WithStyles(Tooltip)>
-    </div>
-    <div
-      className="columnName"
-      key="1"
-      style={
-        Object {
-          "width": "50%",
-        }
-      }
-    >
-      <WithStyles(Tooltip)
-        enterDelay={300}
-        title="Cannot sort by this column"
-      >
-        <WithStyles(TableSortLabel)
-          active={false}
-          className="ellipsis"
-          onClick={[Function]}
-        >
-          col2
-        </WithStyles(TableSortLabel)>
-      </WithStyles(Tooltip)>
-    </div>
-  </div>
-  <div
-    className="scrollContainer"
-    style={
-      Object {
-        "minHeight": 60,
-      }
-    }
-  >
-    <div
-      className="expandableContainer"
-      key="0"
-    >
-      <div
-        className="tableRow row"
-        onClick={[Function]}
-        role="checkbox"
-        tabIndex={-1}
-      >
-        <div
-          className="cell selectionToggle"
-        >
-          <WithStyles(Checkbox)
-            checked={false}
-            color="primary"
-          />
-        </div>
-        <div
-          className="cell"
-          key="0"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          <span>
-            this is custom output
-          </span>
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
-      </div>
-    </div>
-    <div
-      className="expandableContainer"
-      key="1"
-    >
-      <div
-        className="tableRow row"
-        onClick={[Function]}
-        role="checkbox"
-        tabIndex={-1}
-      >
-        <div
-          className="cell selectionToggle"
-        >
-          <WithStyles(Checkbox)
-            checked={false}
-            color="primary"
-          />
-        </div>
-        <div
-          className="cell"
-          key="0"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          <span>
-            this is custom output
-          </span>
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
   </div>
@@ -3626,6 +3128,7 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -3648,6 +3151,7 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -3681,28 +3185,29 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
         role="checkbox"
         tabIndex={-1}
       >
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "id": "row1",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
     <div
@@ -3715,28 +3220,29 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
         role="checkbox"
         tabIndex={-1}
       >
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "id": "row2",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
   </div>
@@ -3871,6 +3377,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
           "width": "50%",
         }
       }
+      title="col1"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -3893,6 +3400,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
           "width": "50%",
         }
       }
+      title="col2"
     >
       <WithStyles(Tooltip)
         enterDelay={300}
@@ -3934,28 +3442,29 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
             color="primary"
           />
         </div>
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "id": "row1",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
     <div
@@ -3976,28 +3485,29 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
             color="primary"
           />
         </div>
-        <div
-          className="cell"
-          key="0"
-          style={
+        <Component
+          columns={
+            Array [
+              Object {
+                "customRenderer": undefined,
+                "label": "col1",
+              },
+              Object {
+                "customRenderer": undefined,
+                "label": "col2",
+              },
+            ]
+          }
+          row={
             Object {
-              "width": "50%",
+              "id": "row2",
+              "otherFields": Array [
+                "cell1",
+                "cell2",
+              ],
             }
           }
-        >
-          cell1
-        </div>
-        <div
-          className="cell"
-          key="1"
-          style={
-            Object {
-              "width": "50%",
-            }
-          }
-        >
-          cell2
-        </div>
+        />
       </div>
     </div>
   </div>

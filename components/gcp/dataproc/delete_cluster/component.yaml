@@ -36,7 +36,7 @@ inputs:
     type: Integer
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:151c5349f13bea9d626c988563c04c0a86210c21
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:d6d9d8da19f7110fff3a5ba713710402edaeee65
     args: [
       kfp_component.google.dataproc, delete_cluster,
       --project_id, {inputValue: project_id},

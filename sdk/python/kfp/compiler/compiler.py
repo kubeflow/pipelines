@@ -11,22 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
+import json
 from collections import defaultdict
+from deprecated import deprecated
 import inspect
 import tarfile
 import zipfile
-from typing import Set, List, Text, Dict
+from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
 import yaml
-from kfp.dsl import _container_op, _for_loop
+from kfp.dsl import _for_loop
 
 from .. import dsl
-from ._k8s_helper import K8sHelper
+from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
 from ._op_to_template import _op_to_template
 from ._default_transformers import add_pod_env
 
+from ..components._structures import InputSpec
 from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
@@ -40,8 +41,8 @@ class Compiler(object):
     name='name',
     description='description'
   )
-  def my_pipeline(a: dsl.PipelineParam, b: dsl.PipelineParam):
-    pass
+  def my_pipeline(a: int = 1, b: str = "default value"):
+    ...
 
   Compiler().compile(my_pipeline, 'path/to/workflow.yaml')
   ```
@@ -339,17 +340,16 @@ class Compiler(object):
           upstream_op_names.add(param.op_name)
       upstream_op_names |= set(op.dependent_names)
 
-      for op_name in upstream_op_names:
+      for upstream_op_name in upstream_op_names:
         # the dependent op could be either a BaseOp or an opsgroup
-        if op_name in pipeline.ops:
-          upstream_op = pipeline.ops[op_name]
-        elif op_name in opsgroups:
-          upstream_op = opsgroups[op_name]
+        if upstream_op_name in pipeline.ops:
+          upstream_op = pipeline.ops[upstream_op_name]
+        elif upstream_op_name in opsgroups:
+          upstream_op = opsgroups[upstream_op_name]
         else:
-          raise ValueError('compiler cannot find the ' + op_name)
+          raise ValueError('compiler cannot find the ' + upstream_op_name)
 
-        upstream_groups, downstream_groups = \
-          self._get_uncommon_ancestors(op_groups, opsgroups_groups, upstream_op, op)
+        upstream_groups, downstream_groups = self._get_uncommon_ancestors(op_groups, opsgroups_groups, upstream_op, op)
         dependencies[downstream_groups[0]].add(upstream_groups[0])
 
     # Generate dependencies based on the recursive opsgroups
@@ -450,6 +450,9 @@ class Compiler(object):
         condition = sub_group.condition
         operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
         operand2_value = self._resolve_value_or_reference(condition.operand2, subgroup_inputs)
+        if condition.operator in ['==', '!=']:
+          operand1_value = '"' + operand1_value + '"'
+          operand2_value = '"' + operand2_value + '"'
         task['when'] = '{} {} {}'.format(operand1_value, condition.operator, operand2_value)
 
       # Generate dependencies section for this task.
@@ -460,77 +463,76 @@ class Compiler(object):
 
       # Generate arguments section for this task.
       if inputs.get(sub_group.name, None):
-        arguments = []
-        for param_name, dependent_name in inputs[sub_group.name]:
-          if dependent_name:
-            # The value comes from an upstream sibling.
-            # Special handling for recursive subgroup: argument name comes from the existing opsgroup
-            if is_recursive_subgroup:
-              for index, input in enumerate(sub_group.inputs):
-                if param_name == self._pipelineparam_full_name(input):
-                  break
-              referenced_input = sub_group.recursive_ref.inputs[index]
-              full_name = self._pipelineparam_full_name(referenced_input)
-              arguments.append({
-                  'name': full_name,
-                  'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
-              })
-            else:
-              arguments.append({
-                'name': param_name,
-                'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
-              })
+        task['arguments'] = {'parameters': self.get_arguments_for_sub_group(sub_group, is_recursive_subgroup, inputs)}
+
+      # additional task modifications for withItems and withParam
+      if isinstance(sub_group, dsl.ParallelFor):
+        if sub_group.items_is_pipeline_param:
+          # these loop args are a 'withParam' rather than 'withItems'.
+          # i.e., rather than a static list, they are either the output of another task or were input
+          # as global pipeline parameters
+
+          pipeline_param = sub_group.loop_args
+          if pipeline_param.op_name is None:
+            withparam_value = '{{workflow.parameters.%s}}' % pipeline_param.name
           else:
-            # The value comes from its parent.
-            # Special handling for recursive subgroup: argument name comes from the existing opsgroup
-            if is_recursive_subgroup:
-              for index, input in enumerate(sub_group.inputs):
-                if param_name == self._pipelineparam_full_name(input):
-                  break
-              referenced_input = sub_group.recursive_ref.inputs[index]
-              full_name = self._pipelineparam_full_name(referenced_input)
-              arguments.append({
-                  'name': full_name,
-                  'value': '{{inputs.parameters.%s}}' % param_name
-              })
-            else:
-              if isinstance(sub_group, dsl.ParallelFor):
-                if sub_group.loop_args.name in param_name:
-                  if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
-                    subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(param_name)
-                    value = '{{item.%s}}' % subvar_name
-                  elif _for_loop.LoopArguments.name_is_loop_arguments(param_name):
-                    value = '{{item}}'
-                  else:
-                    raise ValueError("Failed to match loop args with param. param_name: {}, ".format(param_name) +
-                                     "sub_group.loop_args.name: {}.".format(sub_group.loop_args.name))
-                else:
-                  value = '{{inputs.parameters.%s}}' % param_name
-                task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
-              else:
-                value = '{{inputs.parameters.%s}}' % param_name
-              arguments.append({
-                'name': param_name,
-                'value': value,
-              })
-        arguments.sort(key=lambda x: x['name'])
-        task['arguments'] = {'parameters': arguments}
-      
-      if isinstance(sub_group, dsl.ContainerOp) and sub_group.artifact_arguments:
-        artifact_argument_structs = []
-        for input_name, argument in sub_group.artifact_arguments.items():
-          artifact_argument_dict = {'name': input_name}
-          if isinstance(argument, str):
-            artifact_argument_dict['raw'] = {'data': str(argument)}
-          else:
-            raise TypeError('Argument "{}" was passed to the artifact input "{}", but only constant strings are supported at this moment.'.format(str(argument), input_name))
-          artifact_argument_structs.append(artifact_argument_dict)
-        task.setdefault('arguments', {})['artifacts'] = artifact_argument_structs
+            param_name = '%s-%s' % (pipeline_param.op_name, pipeline_param.name)
+            withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (pipeline_param.op_name, param_name)
+
+            # these loop args are the output of another task
+            if 'dependencies' not in task or task['dependencies'] is None:
+              task['dependencies'] = []
+            if pipeline_param.op_name not in task['dependencies']:
+              task['dependencies'].append(pipeline_param.op_name)
+
+          task['withParam'] = withparam_value
+        else:
+          task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
 
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
     template['dag'] = {'tasks': tasks}
     return template
+
+  def get_arguments_for_sub_group(
+          self,
+          sub_group: Union[OpsGroup, dsl._container_op.BaseOp],
+          is_recursive_subgroup: Optional[bool],
+          inputs: Dict[Text, Tuple[Text, Text]],
+  ):
+    arguments = []
+    for param_name, dependent_name in inputs[sub_group.name]:
+      if is_recursive_subgroup:
+        for index, input in enumerate(sub_group.inputs):
+          if param_name == self._pipelineparam_full_name(input):
+            break
+        referenced_input = sub_group.recursive_ref.inputs[index]
+        argument_name = self._pipelineparam_full_name(referenced_input)
+      else:
+        argument_name = param_name
+
+      # default argument_value + special cases
+      argument_value = '{{inputs.parameters.%s}}' % param_name
+      if isinstance(sub_group, dsl.ParallelFor):
+        if sub_group.loop_args.name in param_name:
+          if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
+            subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(param_name)
+            argument_value = '{{item.%s}}' % subvar_name
+          elif _for_loop.LoopArguments.name_is_loop_arguments(param_name) or sub_group.items_is_pipeline_param:
+            argument_value = '{{item}}'
+          else:
+            raise ValueError("Failed to match loop args with parameter. param_name: {}, ".format(param_name))
+      elif dependent_name:
+        argument_value = '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
+
+      arguments.append({
+        'name': argument_name,
+        'value': argument_value,
+      })
+
+    arguments.sort(key=lambda x: x['name'])
+
+    return arguments
 
   def _create_dag_templates(self, pipeline, op_transformers=None, op_to_templates_handler=None):
     """Create all groups and ops templates in the pipeline.
@@ -589,24 +591,10 @@ class Compiler(object):
 
     for op in pipeline.ops.values():
       templates.extend(op_to_templates_handler(op))
+
     return templates
 
-  def _create_volumes(self, pipeline):
-    """Create volumes required for the templates"""
-    volumes = []
-    volume_name_set = set()
-    for op in pipeline.ops.values():
-      if op.volumes:
-        for v in op.volumes:
-          # Remove volume duplicates which have the same name
-          #TODO: check for duplicity based on the serialized volumes instead of just name.
-          if v['name'] not in volume_name_set:
-            volume_name_set.add(v['name'])
-            volumes.append(v)
-    volumes.sort(key=lambda x: x['name'])
-    return volumes
-
-  def _create_pipeline_workflow(self, args, pipeline, op_transformers=None):
+  def _create_pipeline_workflow(self, args, pipeline, op_transformers=None, pipeline_conf=None):
     """Create workflow for the pipeline."""
 
     # Input Parameters
@@ -614,7 +602,10 @@ class Compiler(object):
     for arg in args:
       param = {'name': arg.name}
       if arg.value is not None:
-        param['value'] = str(arg.value)
+        if isinstance(arg.value, (list, tuple)):
+          param['value'] = json.dumps(arg.value, sort_keys=True)
+        else:
+          param['value'] = str(arg.value)
       input_params.append(param)
 
     # Templates
@@ -627,9 +618,6 @@ class Compiler(object):
       first_group = pipeline.groups[0].groups[0]
       if first_group.type == 'exit_handler':
         exit_handler = first_group.exit_op
-
-    # Volumes
-    volumes = self._create_volumes(pipeline)
 
     # The whole pipeline workflow
     pipeline_name = pipeline.name or 'Pipeline'
@@ -645,22 +633,20 @@ class Compiler(object):
       }
     }
     # set ttl after workflow finishes
-    if pipeline.conf.ttl_seconds_after_finished >= 0:
-      workflow['spec']['ttlSecondsAfterFinished'] = pipeline.conf.ttl_seconds_after_finished
+    if pipeline_conf.ttl_seconds_after_finished >= 0:
+      workflow['spec']['ttlSecondsAfterFinished'] = pipeline_conf.ttl_seconds_after_finished
 
-    if len(pipeline.conf.image_pull_secrets) > 0:
+    if len(pipeline_conf.image_pull_secrets) > 0:
       image_pull_secrets = []
-      for image_pull_secret in pipeline.conf.image_pull_secrets:
-        image_pull_secrets.append(K8sHelper.convert_k8s_obj_to_json(image_pull_secret))
+      for image_pull_secret in pipeline_conf.image_pull_secrets:
+        image_pull_secrets.append(convert_k8s_obj_to_json(image_pull_secret))
       workflow['spec']['imagePullSecrets'] = image_pull_secrets
 
-    if pipeline.conf.timeout:
-      workflow['spec']['activeDeadlineSeconds'] = pipeline.conf.timeout
+    if pipeline_conf.timeout:
+      workflow['spec']['activeDeadlineSeconds'] = pipeline_conf.timeout
 
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
-    if volumes:
-      workflow['spec']['volumes'] = volumes
     return workflow
 
   def _validate_exit_handler(self, pipeline):
@@ -683,121 +669,242 @@ class Compiler(object):
 
     return _validate_exit_handler_helper(pipeline.groups[0], [], False)
 
-  def _compile(self, pipeline_func):
-    """Compile the given pipeline function into workflow."""
+  def _sanitize_and_inject_artifact(self, pipeline: dsl.Pipeline, pipeline_conf=None):
+    """Sanitize operator/param names and inject pipeline artifact location."""
 
+    # Sanitize operator names and param names
+    sanitized_ops = {}
+    # pipeline level artifact location
+    artifact_location = pipeline_conf.artifact_location
+
+    for op in pipeline.ops.values():
+      # inject pipeline level artifact location into if the op does not have
+      # an artifact location config already.
+      if hasattr(op, "artifact_location"):
+        if artifact_location and not op.artifact_location:
+          op.artifact_location = artifact_location
+
+      sanitized_name = sanitize_k8s_name(op.name)
+      op.name = sanitized_name
+      for param in op.outputs.values():
+        param.name = sanitize_k8s_name(param.name)
+        if param.op_name:
+          param.op_name = sanitize_k8s_name(param.op_name)
+      if op.output is not None and not isinstance(op.output, dsl._container_op._MultipleOutputsError):
+        op.output.name = sanitize_k8s_name(op.output.name)
+        op.output.op_name = sanitize_k8s_name(op.output.op_name)
+      if op.dependent_names:
+        op.dependent_names = [sanitize_k8s_name(name) for name in op.dependent_names]
+      if isinstance(op, dsl.ContainerOp) and op.file_outputs is not None:
+        sanitized_file_outputs = {}
+        for key in op.file_outputs.keys():
+          sanitized_file_outputs[sanitize_k8s_name(key)] = op.file_outputs[key]
+        op.file_outputs = sanitized_file_outputs
+      elif isinstance(op, dsl.ResourceOp) and op.attribute_outputs is not None:
+        sanitized_attribute_outputs = {}
+        for key in op.attribute_outputs.keys():
+          sanitized_attribute_outputs[sanitize_k8s_name(key)] = \
+            op.attribute_outputs[key]
+        op.attribute_outputs = sanitized_attribute_outputs
+      sanitized_ops[sanitized_name] = op
+    pipeline.ops = sanitized_ops
+
+  def _create_workflow(self,
+      pipeline_func: Callable,
+      pipeline_name: Text=None,
+      pipeline_description: Text=None,
+      params_list: List[dsl.PipelineParam]=None,
+      pipeline_conf: dsl.PipelineConf = None,
+      ) -> Dict[Text, Any]:
+    """ Internal implementation of create_workflow."""
+    params_list = params_list or []
     argspec = inspect.getfullargspec(pipeline_func)
 
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
     pipeline_meta = _extract_pipeline_metadata(pipeline_func)
-    pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_meta.name)
+    pipeline_meta.name = pipeline_name or pipeline_meta.name
+    pipeline_meta.description = pipeline_description or pipeline_meta.description
+    pipeline_name = sanitize_k8s_name(pipeline_meta.name)
+
+    # Need to first clear the default value of dsl.PipelineParams. Otherwise, it
+    # will be resolved immediately in place when being to each component.
+    default_param_values = {}
+    for param in params_list:
+      default_param_values[param.name] = param.value
+      param.value = None
+
+    # Currently only allow specifying pipeline params at one place.
+    if params_list and pipeline_meta.inputs:
+      raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
+
 
     args_list = []
     for arg_name in argspec.args:
       arg_type = None
-      for input in pipeline_meta.inputs:
+      for input in pipeline_meta.inputs or []:
         if arg_name == input.name:
-          arg_type = input.param_type
+          arg_type = input.type
           break
-      args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
+      args_list.append(dsl.PipelineParam(sanitize_k8s_name(arg_name), param_type=arg_type))
 
-    with dsl.Pipeline(pipeline_name) as p:
+    with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list)
 
-    # Remove when argo supports local exit handler.
-    self._validate_exit_handler(p)
+    pipeline_conf = pipeline_conf or dsl_pipeline.conf # Configuration passed to the compiler is overriding. Unfortunately, it's not trivial to detect whether the dsl_pipeline.conf was ever modified.
+
+    self._validate_exit_handler(dsl_pipeline)
+    self._sanitize_and_inject_artifact(dsl_pipeline, pipeline_conf)
 
     # Fill in the default values.
-    args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
-                               for arg_name in argspec.args]
-    if argspec.defaults:
-      for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
-        arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
+    args_list_with_defaults = []
+    if pipeline_meta.inputs:
+      args_list_with_defaults = [dsl.PipelineParam(sanitize_k8s_name(arg_name))
+                                 for arg_name in argspec.args]
+      if argspec.defaults:
+        for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
+          arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
+    elif params_list:
+      # Or, if args are provided by params_list, fill in pipeline_meta.
+      for param in params_list:
+        param.value = default_param_values[param.name]
 
-    # Sanitize operator names and param names
-    sanitized_ops = {}
-    # pipeline level artifact location
-    artifact_location = p.conf.artifact_location
-
-    for op in p.ops.values():
-      # inject pipeline level artifact location into if the op does not have
-      # an artifact location config already.
-      if artifact_location and not op.artifact_location:
-        op.artifact_location = artifact_location
-
-      sanitized_name = K8sHelper.sanitize_k8s_name(op.name)
-      op.name = sanitized_name
-      for param in op.outputs.values():
-        param.name = K8sHelper.sanitize_k8s_name(param.name)
-        if param.op_name:
-          param.op_name = K8sHelper.sanitize_k8s_name(param.op_name)
-      if op.output is not None:
-        op.output.name = K8sHelper.sanitize_k8s_name(op.output.name)
-        op.output.op_name = K8sHelper.sanitize_k8s_name(op.output.op_name)
-      if op.dependent_names:
-        op.dependent_names = [K8sHelper.sanitize_k8s_name(name) for name in op.dependent_names]
-      if isinstance(op, dsl.ContainerOp) and op.file_outputs is not None:
-        sanitized_file_outputs = {}
-        for key in op.file_outputs.keys():
-          sanitized_file_outputs[K8sHelper.sanitize_k8s_name(key)] = op.file_outputs[key]
-        op.file_outputs = sanitized_file_outputs
-      elif isinstance(op, dsl.ResourceOp) and op.attribute_outputs is not None:
-        sanitized_attribute_outputs = {}
-        for key in op.attribute_outputs.keys():
-          sanitized_attribute_outputs[K8sHelper.sanitize_k8s_name(key)] = \
-            op.attribute_outputs[key]
-        op.attribute_outputs = sanitized_attribute_outputs
-      sanitized_ops[sanitized_name] = op
-    p.ops = sanitized_ops
+      args_list_with_defaults = params_list
+      pipeline_meta.inputs = [
+        InputSpec(
+            name=param.name,
+            type=param.param_type,
+            default=param.value) for param in params_list]
 
     op_transformers = [add_pod_env]
-    op_transformers.extend(p.conf.op_transformers)
-    workflow = self._create_pipeline_workflow(args_list_with_defaults, p, op_transformers)
+    op_transformers.extend(pipeline_conf.op_transformers)
+
+    workflow = self._create_pipeline_workflow(
+        args_list_with_defaults,
+        dsl_pipeline,
+        op_transformers,
+        pipeline_conf,
+    )
+
+    from ._data_passing_rewriter import fix_big_data_passing
+    workflow = fix_big_data_passing(workflow)
 
     import json
     workflow.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
 
     return workflow
 
-  def compile(self, pipeline_func, package_path, type_check=True):
+  # For now (0.1.31) this function is only used by TFX's KubeflowDagRunner.
+  # See https://github.com/tensorflow/tfx/blob/811e4c1cc0f7903d73d151b9d4f21f79f6013d4a/tfx/orchestration/kubeflow/kubeflow_dag_runner.py#L238
+  @deprecated(
+      version='0.1.32',
+      reason='Workflow spec is not intended to be handled by user, please '
+             'switch to _create_workflow')
+  def create_workflow(self,
+                      pipeline_func: Callable,
+                      pipeline_name: Text=None,
+                      pipeline_description: Text=None,
+                      params_list: List[dsl.PipelineParam]=None,
+                      pipeline_conf: dsl.PipelineConf = None) -> Dict[Text, Any]:
+    """ Create workflow spec from pipeline function and specified pipeline
+    params/metadata. Currently, the pipeline params are either specified in
+    the signature of the pipeline function or by passing a list of
+    dsl.PipelineParam. Conflict will cause ValueError.
+
+    :param pipeline_func: pipeline function where ContainerOps are invoked.
+    :param pipeline_name:
+    :param pipeline_description:
+    :param params_list: list of pipeline params to append to the pipeline.
+    :param pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
+    :return: workflow dict.
+    """
+    return self._create_workflow(pipeline_func, pipeline_name, pipeline_description, params_list, pipeline_conf)
+
+  @deprecated(
+      version='0.1.32',
+      reason='Switch to _create_workflow.')
+  def _compile(self, pipeline_func, pipeline_conf: dsl.PipelineConf = None):
+    """Compile the given pipeline function into workflow."""
+    return self._create_workflow(pipeline_func=pipeline_func, pipeline_conf=pipeline_conf)
+
+  def compile(self, pipeline_func, package_path, type_check=True, pipeline_conf: dsl.PipelineConf = None):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
       pipeline_func: pipeline functions with @dsl.pipeline decorator.
       package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
       type_check: whether to enable the type check or not, default: False.
+      pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
     """
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
     try:
       kfp.TYPE_CHECK = type_check
-      workflow = self._compile(pipeline_func)
-      yaml.Dumper.ignore_aliases = lambda *args : True
-      yaml_text = yaml.dump(workflow, default_flow_style=False)
+      self._create_and_write_workflow(
+          pipeline_func=pipeline_func,
+          pipeline_conf=pipeline_conf,
+          package_path=package_path)
+    finally:
+      kfp.TYPE_CHECK = type_check_old_value
 
-      if package_path is None:
-        return yaml_text
+  @staticmethod
+  def _write_workflow(workflow: Dict[Text, Any], package_path: Text = None):
+    """Dump pipeline workflow into yaml spec and write out in the format specified by the user.
 
-      if package_path.endswith('.tar.gz') or package_path.endswith('.tgz'):
-        from contextlib import closing
-        from io import BytesIO
-        with tarfile.open(package_path, "w:gz") as tar:
+    Args:
+      workflow: Workflow spec of the pipline, dict.
+      package_path: file path to be written. If not specified, a yaml_text string
+        will be returned.
+    """
+    yaml.Dumper.ignore_aliases = lambda *args : True
+    yaml_text = yaml.dump(workflow, default_flow_style=False)
+
+    if '{{pipelineparam' in yaml_text:
+      raise RuntimeError(
+          'Internal compiler error: Found unresolved PipelineParam. '
+          'Please create a new issue at https://github.com/kubeflow/pipelines/issues '
+          'attaching the pipeline code and the pipeline package.' )
+
+    if package_path is None:
+      return yaml_text
+
+    if package_path.endswith('.tar.gz') or package_path.endswith('.tgz'):
+      from contextlib import closing
+      from io import BytesIO
+      with tarfile.open(package_path, "w:gz") as tar:
           with closing(BytesIO(yaml_text.encode())) as yaml_file:
             tarinfo = tarfile.TarInfo('pipeline.yaml')
             tarinfo.size = len(yaml_file.getvalue())
             tar.addfile(tarinfo, fileobj=yaml_file)
-      elif package_path.endswith('.zip'):
-        with zipfile.ZipFile(package_path, "w") as zip:
-          zipinfo = zipfile.ZipInfo('pipeline.yaml')
-          zipinfo.compress_type = zipfile.ZIP_DEFLATED
-          zip.writestr(zipinfo, yaml_text)
-      elif package_path.endswith('.yaml') or package_path.endswith('.yml'):
-          with open(package_path, 'w') as yaml_file:
-            yaml_file.write(yaml_text)
-      else:
-        raise ValueError('The output path '+ package_path + ' should ends with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
-    finally:
-      kfp.TYPE_CHECK = type_check_old_value
+    elif package_path.endswith('.zip'):
+      with zipfile.ZipFile(package_path, "w") as zip:
+        zipinfo = zipfile.ZipInfo('pipeline.yaml')
+        zipinfo.compress_type = zipfile.ZIP_DEFLATED
+        zip.writestr(zipinfo, yaml_text)
+    elif package_path.endswith('.yaml') or package_path.endswith('.yml'):
+      with open(package_path, 'w') as yaml_file:
+        yaml_file.write(yaml_text)
+    else:
+      raise ValueError(
+          'The output path '+ package_path +
+          ' should ends with one of the following formats: '
+          '[.tar.gz, .tgz, .zip, .yaml, .yml]')
 
+  def _create_and_write_workflow(
+      self,
+      pipeline_func: Callable,
+      pipeline_name: Text=None,
+      pipeline_description: Text=None,
+      params_list: List[dsl.PipelineParam]=None,
+      pipeline_conf: dsl.PipelineConf=None,
+      package_path: Text=None
+  ) -> None:
+    """Compile the given pipeline function and dump it to specified file format."""
+    workflow = self._create_workflow(
+        pipeline_func,
+        pipeline_name,
+        pipeline_description,
+        params_list,
+        pipeline_conf)
+    self._write_workflow(workflow, package_path)
 

@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import helloWorldRun from './hello-world-runtime';
-import helloWorldWithStepsRun from './hello-world-with-steps-runtime';
-import coinflipRun from './mock-coinflip-runtime';
-import errorRun from './mock-error-runtime';
-import xgboostRun from './mock-xgboost-runtime';
-import jsonRun from './json-runtime';
 import { ApiExperiment } from '../src/apis/experiment';
 import { ApiJob } from '../src/apis/job';
 import { ApiPipeline } from '../src/apis/pipeline';
-import { ApiRunDetail, ApiResourceType, ApiRelationship, RunMetricFormat } from '../src/apis/run';
+import { ApiRelationship, ApiResourceType, ApiRunDetail, RunMetricFormat } from '../src/apis/run';
+import helloWorldRun from './hello-world-runtime';
+import helloWorldWithStepsRun from './hello-world-with-steps-runtime';
+import jsonRun from './json-runtime';
+import coinflipRun from './mock-coinflip-runtime';
+import errorRun from './mock-error-runtime';
+import xgboostRun from './mock-xgboost-runtime';
 
 function padStartTwoZeroes(str: string): string {
   let padded = str || '';
@@ -51,8 +51,8 @@ const pipelines: ApiPipeline[] = [
       },
       {
         name: 'output',
-      }
-    ]
+      },
+    ],
   },
   {
     created_at: new Date('2018-04-02T20:59:29.000Z'),
@@ -71,8 +71,8 @@ const pipelines: ApiPipeline[] = [
       },
       {
         name: 'output',
-      }
-    ]
+      },
+    ],
   },
   {
     created_at: new Date('2018-04-03T20:58:23.000Z'),
@@ -102,8 +102,16 @@ const pipelines: ApiPipeline[] = [
       },
       {
         name: 'output',
-      }
-    ]
+      },
+    ],
+  },
+  {
+    created_at: new Date('2019-10-25T20:59:23.000Z'),
+    description:
+      'A pipeline using [markdown](https://en.wikipedia.org/wiki/Markdown) for description.',
+    id: '8fbe3bd6-a01f-11e8-98d0-529269fb1461',
+    name: 'Markdown description',
+    parameters: [],
   },
 ];
 
@@ -134,25 +142,27 @@ const jobs: ApiJob[] = [
         {
           name: 'output',
           value: 'gs://path-to-my-project',
-        }
+        },
       ],
       pipeline_id: pipelines[0].id,
       pipeline_name: pipelines[0].name,
     },
-    resource_references: [{
-      key: {
-        id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
-        type: ApiResourceType.EXPERIMENT,
+    resource_references: [
+      {
+        key: {
+          id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
+          type: ApiResourceType.EXPERIMENT,
+        },
+        relationship: ApiRelationship.OWNER,
       },
-      relationship: ApiRelationship.OWNER,
-    }],
+    ],
     status: 'Failed:Succeeded',
     trigger: {
       cron_schedule: {
         cron: '30 1 * * * ?',
         end_time: new Date('2018-04-01T21:58:23.000Z'),
         start_time: new Date('2018-03-01T21:58:23.000Z'),
-      }
+      },
     },
     updated_at: new Date('2018-03-01T21:58:23.000Z'),
   },
@@ -176,18 +186,20 @@ const jobs: ApiJob[] = [
         {
           name: 'output',
           value: 'some-output-path',
-        }
+        },
       ],
       pipeline_id: pipelines[1].id,
       pipeline_name: pipelines[1].name,
     },
-    resource_references: [{
-      key: {
-        id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
-        type: ApiResourceType.EXPERIMENT,
+    resource_references: [
+      {
+        key: {
+          id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
+          type: ApiResourceType.EXPERIMENT,
+        },
+        relationship: ApiRelationship.OWNER,
       },
-      relationship: ApiRelationship.OWNER,
-    }],
+    ],
     status: 'Succeeded',
     trigger: {
       cron_schedule: {
@@ -221,24 +233,26 @@ const jobs: ApiJob[] = [
         {
           name: 'output',
           value: 'gs://path-to-my-other-project',
-        }
+        },
       ],
       pipeline_id: pipelines[2].id,
       pipeline_name: pipelines[2].name,
     },
-    resource_references: [{
-      key: {
-        id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
-        type: ApiResourceType.EXPERIMENT,
+    resource_references: [
+      {
+        key: {
+          id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
+          type: ApiResourceType.EXPERIMENT,
+        },
+        relationship: ApiRelationship.OWNER,
       },
-      relationship: ApiRelationship.OWNER,
-    }],
+    ],
     status: 'Succeeded',
     trigger: {
       periodic_schedule: {
         end_time: new Date('2018-03-03T23:58:23.000Z'),
         interval_second: '439652',
-      }
+      },
     },
     updated_at: new Date('2018-03-03T23:58:23.000Z'),
   },
@@ -258,7 +272,8 @@ const experiments: ApiExperiment[] = [
     name: 'Kubeflow Pipelines Experiment',
   },
   {
-    description: 'A different Pipeline experiment used to group runs. ' +
+    description:
+      'A different Pipeline experiment used to group runs. ' +
       'This experiment also has a very long description, which should overflow the container card.',
     id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
     name: 'Experiment Number 2',
@@ -287,7 +302,7 @@ const runs: ApiRunDetail[] = [
           name: 'log_loss',
           node_id: 'coinflip-recursive-q7dqb',
           number_value: -0.573,
-        }
+        },
       ],
       name: 'coinflip-recursive-run-lknlfs3',
       pipeline_spec: {
@@ -298,13 +313,15 @@ const runs: ApiRunDetail[] = [
         pipeline_id: pipelines[0].id,
         pipeline_name: pipelines[0].name,
       },
-      resource_references: [{
-        key: {
-          id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
-          type: ApiResourceType.EXPERIMENT,
+      resource_references: [
+        {
+          key: {
+            id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
         },
-        relationship: ApiRelationship.OWNER,
-      }],
+      ],
       scheduled_at: new Date('2018-03-17T20:58:23.000Z'),
       status: 'Failed:Succeeded',
     },
@@ -337,13 +354,15 @@ const runs: ApiRunDetail[] = [
         pipeline_id: pipelines[0].id,
         pipeline_name: pipelines[0].name,
       },
-      resource_references: [{
-        key: {
-          id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
-          type: ApiResourceType.EXPERIMENT,
+      resource_references: [
+        {
+          key: {
+            id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
         },
-        relationship: ApiRelationship.OWNER,
-      }],
+      ],
       scheduled_at: new Date('2018-04-17T21:00:00.000Z'),
       status: 'Error',
     },
@@ -356,12 +375,14 @@ const runs: ApiRunDetail[] = [
       created_at: new Date('2018-05-17T21:58:23.000Z'),
       description: 'A simple run with json input',
       id: '183ac01f-dc26-4ebf-b817-7b3f96fdc3ac',
-      metrics: [{
-        format: RunMetricFormat.PERCENTAGE,
-        name: 'accuracy',
-        node_id: 'json-12abc',
-        number_value: 0.5423,
-      }],
+      metrics: [
+        {
+          format: RunMetricFormat.PERCENTAGE,
+          name: 'accuracy',
+          node_id: 'json-12abc',
+          number_value: 0.5423,
+        },
+      ],
       name: 'json-12abc',
       pipeline_spec: {
         parameters: [
@@ -371,16 +392,18 @@ const runs: ApiRunDetail[] = [
         pipeline_id: pipelines[2].id,
         pipeline_name: pipelines[2].name,
       },
-      resource_references: [{
-        key: {
-          id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
-          type: ApiResourceType.EXPERIMENT,
+      resource_references: [
+        {
+          key: {
+            id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
         },
-        relationship: ApiRelationship.OWNER,
-      }],
+      ],
       scheduled_at: new Date('2018-05-17T21:58:23.000Z'),
       status: 'Running',
-    }
+    },
   },
   {
     pipeline_runtime: {
@@ -390,12 +413,14 @@ const runs: ApiRunDetail[] = [
       created_at: new Date('2018-05-17T21:58:23.000Z'),
       description: 'A simple hello world run',
       id: 'fa5d897e-88d3-4dfc-b189-9dea6947c9bc',
-      metrics: [{
-        format: RunMetricFormat.PERCENTAGE,
-        name: 'accuracy',
-        node_id: 'hello-world-7sm94',
-        number_value: 0.5423,
-      }],
+      metrics: [
+        {
+          format: RunMetricFormat.PERCENTAGE,
+          name: 'accuracy',
+          node_id: 'hello-world-7sm94',
+          number_value: 0.5423,
+        },
+      ],
       name: 'hello-world-7sm94',
       pipeline_spec: {
         parameters: [
@@ -405,13 +430,15 @@ const runs: ApiRunDetail[] = [
         pipeline_id: pipelines[2].id,
         pipeline_name: pipelines[2].name,
       },
-      resource_references: [{
-        key: {
-          id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
-          type: ApiResourceType.EXPERIMENT,
+      resource_references: [
+        {
+          key: {
+            id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
         },
-        relationship: ApiRelationship.OWNER,
-      }],
+      ],
       scheduled_at: new Date('2018-05-17T21:58:23.000Z'),
       status: 'Running',
     },
@@ -425,12 +452,14 @@ const runs: ApiRunDetail[] = [
       description: 'A simple hello world run, but with steps. Not attached to any experiment',
       finished_at: new Date('2018-06-18T21:00:33.000Z'),
       id: '21afb688-7597-47e9-b6c3-35d3145fe5e1',
-      metrics: [{
-        format: RunMetricFormat.PERCENTAGE,
-        name: 'accuracy',
-        node_id: 'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c',
-        number_value: 0.43,
-      }],
+      metrics: [
+        {
+          format: RunMetricFormat.PERCENTAGE,
+          name: 'accuracy',
+          node_id: 'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c',
+          number_value: 0.43,
+        },
+      ],
       name: 'hello-world-with-steps-kajnkv4',
       pipeline_spec: {
         parameters: [
@@ -487,13 +516,15 @@ const runs: ApiRunDetail[] = [
         pipeline_id: pipelines[1].id,
         pipeline_name: pipelines[1].name,
       },
-      resource_references: [{
-        key: {
-          id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
-          type: ApiResourceType.EXPERIMENT,
+      resource_references: [
+        {
+          key: {
+            id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
         },
-        relationship: ApiRelationship.OWNER,
-      }],
+      ],
       scheduled_at: new Date('2018-07-17T23:58:23.000Z'),
       status: 'Pending',
     },
@@ -504,14 +535,15 @@ const runs: ApiRunDetail[] = [
     },
     run: {
       created_at: new Date('2018-08-18T20:58:23.000Z'),
-      description: 'An xgboost evaluation run with a very long description that includes:'
-        + ' Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent fermentum commodo'
-        + ' libero, a imperdiet ipsum cursus id. Nullam odio sem, ornare id sollicitudin ac,'
-        + ' rutrum in dolor. Integer interdum lacus in ex rutrum elementum. Mauris gravida feugiat'
-        + ' enim, ac dapibus augue rhoncus in. Integer vel tempus nulla. Cras sed ultrices dolor.'
-        + ' Ut nec dapibus eros, vitae iaculis nunc. In aliquet accumsan rhoncus. Donec vitae'
-        + ' ipsum a tellus fermentum pharetra in in neque. Pellentesque consequat felis non est'
-        + ' vulputate pellentesque. Aliquam eget cursus enim.',
+      description:
+        'An xgboost evaluation run with a very long description that includes:' +
+        ' Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent fermentum commodo' +
+        ' libero, a imperdiet ipsum cursus id. Nullam odio sem, ornare id sollicitudin ac,' +
+        ' rutrum in dolor. Integer interdum lacus in ex rutrum elementum. Mauris gravida feugiat' +
+        ' enim, ac dapibus augue rhoncus in. Integer vel tempus nulla. Cras sed ultrices dolor.' +
+        ' Ut nec dapibus eros, vitae iaculis nunc. In aliquet accumsan rhoncus. Donec vitae' +
+        ' ipsum a tellus fermentum pharetra in in neque. Pellentesque consequat felis non est' +
+        ' vulputate pellentesque. Aliquam eget cursus enim.',
       finished_at: new Date('2018-08-20T21:01:23.000Z'),
       id: '7fc01714-4a13-4c05-8044-a8a72c14253b',
       metrics: [
@@ -526,9 +558,10 @@ const runs: ApiRunDetail[] = [
           name: 'log_loss',
           node_id: 'xgboost-training-gzkm9-2365787662',
           number_value: -0.123,
-        }
+        },
       ],
-      name: 'xgboost-run-with-a-veeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeery-' +
+      name:
+        'xgboost-run-with-a-veeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeery-' +
         'loooooooooooooooooooooooooooong-name-aifk298',
       pipeline_spec: {
         parameters: [
@@ -538,13 +571,15 @@ const runs: ApiRunDetail[] = [
         pipeline_id: pipelines[1].id,
         pipeline_name: pipelines[1].name,
       },
-      resource_references: [{
-        key: {
-          id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
-          type: ApiResourceType.EXPERIMENT,
+      resource_references: [
+        {
+          key: {
+            id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
         },
-        relationship: ApiRelationship.OWNER,
-      }],
+      ],
       scheduled_at: new Date('2018-08-18T20:58:23.000Z'),
       status: 'Succeeded',
     },
@@ -570,7 +605,7 @@ const runs: ApiRunDetail[] = [
           name: 'log_loss',
           node_id: 'hello-world-7sm94',
           number_value: -0.223,
-        }
+        },
       ],
       name: 'hello-world-with-pipeline',
       pipeline_spec: {
@@ -580,13 +615,15 @@ const runs: ApiRunDetail[] = [
         ],
         workflow_manifest: JSON.stringify(helloWorldRun),
       },
-      resource_references: [{
-        key: {
-          id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
-          type: ApiResourceType.EXPERIMENT,
+      resource_references: [
+        {
+          key: {
+            id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
         },
-        relationship: ApiRelationship.OWNER,
-      }],
+      ],
       scheduled_at: new Date('2018-08-18T20:58:23.000Z'),
       status: 'Succeeded',
     },
@@ -624,7 +661,9 @@ function generateNRuns(): ApiRunDetail[] {
       run: {
         created_at: new Date('2018-02-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
         description: 'The description of a dummy run',
-        finished_at: new Date('2018-02-12T20:' + padStartTwoZeroes(((2 * i) % 60).toString()) + ':25.000Z'),
+        finished_at: new Date(
+          '2018-02-12T20:' + padStartTwoZeroes(((2 * i) % 60).toString()) + ':25.000Z',
+        ),
         id: 'Some-run-id-' + i,
         metrics: [
           {
@@ -655,13 +694,15 @@ function generateNRuns(): ApiRunDetail[] {
           pipeline_id: 'Some-pipeline-id-' + i,
           pipeline_name: 'Kubeflow Pipeline number ' + i,
         },
-        resource_references: [{
-          key: {
-            id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
-            type: ApiResourceType.EXPERIMENT,
+        resource_references: [
+          {
+            key: {
+              id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
+              type: ApiResourceType.EXPERIMENT,
+            },
+            relationship: ApiRelationship.OWNER,
           },
-          relationship: ApiRelationship.OWNER,
-        }],
+        ],
         scheduled_at: new Date('2018-02-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
         status: 'Succeeded',
       },
@@ -697,17 +738,19 @@ function generateNJobs(): ApiJob[] {
           {
             name: 'output',
             value: 'gs://path-to-my-project',
-          }
+          },
         ],
         pipeline_id: pipelines[i % pipelines.length].id,
       },
-      resource_references: [{
-        key: {
-          id: '7fc01714-4a13-4c05-5902-a8a72c14253b',
-          type: ApiResourceType.EXPERIMENT,
+      resource_references: [
+        {
+          key: {
+            id: '7fc01714-4a13-4c05-5902-a8a72c14253b',
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
         },
-        relationship: ApiRelationship.OWNER,
-      }],
+      ],
       status: 'Succeeded',
       trigger: undefined,
       updated_at: new Date('2018-02-01T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),

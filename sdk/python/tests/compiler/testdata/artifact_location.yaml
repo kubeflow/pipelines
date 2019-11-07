@@ -40,14 +40,6 @@ spec:
             value: '{{inputs.parameters.tag}}'
         name: foo
         template: foo
-      - arguments:
-          parameters:
-          - name: bucket
-            value: '{{inputs.parameters.bucket}}'
-          - name: tag
-            value: '{{inputs.parameters.tag}}'
-        name: foo-2
-        template: foo-2
     inputs:
       parameters:
       - name: bucket
@@ -64,9 +56,8 @@ spec:
     name: foo
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
+      - name: out_art
+        path: /tmp/out_art.txt
         s3:
           accessKeySecret:
             key: 'accesskey'
@@ -74,60 +65,7 @@ spec:
           bucket: '{{inputs.parameters.bucket}}'
           endpoint: minio-service.{{inputs.parameters.namespace}}:9000
           insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          key: runs/{{workflow.uid}}/{{pod.name}}/out_art.tgz
           secretKeySecret:
             key: 'secretkey'
             name: 'minio'
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
-        s3:
-          accessKeySecret:
-            key: 'accesskey'
-            name: 'minio'
-          bucket: '{{inputs.parameters.bucket}}'
-          endpoint: minio-service.{{inputs.parameters.namespace}}:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: 'secretkey'
-            name: 'minio'
-  - container:
-      image: busybox:{{inputs.parameters.tag}}
-    inputs:
-      parameters:
-      - name: bucket
-      - name: tag
-    name: foo-2
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: ''
-            optional: true
-          bucket: '{{inputs.parameters.bucket}}'
-          endpoint: s3.amazonaws.com
-          insecure: false
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          region: ap-southeast-1
-          secretKeySecret:
-            key: ''
-            optional: true
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
-        s3:
-          accessKeySecret:
-            key: ''
-            optional: true
-          bucket: '{{inputs.parameters.bucket}}'
-          endpoint: s3.amazonaws.com
-          insecure: false
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          region: ap-southeast-1
-          secretKeySecret:
-            key: ''
-            optional: true

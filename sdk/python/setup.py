@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import re
 from setuptools import setup
 
 NAME = 'kfp'
-VERSION = '0.1.27'
+#VERSION = .... Change the version in kfp/__init__.py
 
 REQUIRES = [
     'urllib3>=1.15,<1.25',  #Fixing the version conflict with the "requests" package
@@ -29,7 +31,7 @@ REQUIRES = [
     'cryptography>=2.4.2',
     'google-auth>=1.6.1',
     'requests_toolbelt>=0.8.0',
-    'cloudpickle',
+    'cloudpickle==1.1.1',
     'kfp-server-api >= 0.1.18, <= 0.1.25',  #Update the upper version whenever a new version of the kfp-server-api package is released. Update the lower version when there is a breaking change in kfp-server-api.
     'argo-models == 2.2.1a',  #2.2.1a is equivalent to argo 2.2.1
     'jsonschema >= 3.0.1',
@@ -38,9 +40,24 @@ REQUIRES = [
     'Deprecated',
 ]
 
+def find_version(*file_path_parts):
+    here = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(here, *file_path_parts), 'r') as fp:
+        version_file_text = fp.read()
+
+    version_match = re.search(
+        r"^__version__ = ['\"]([^'\"]*)['\"]",
+        version_file_text,
+        re.M,
+    )
+    if version_match:
+        return version_match.group(1)
+
+    raise RuntimeError("Unable to find version string.")
+
 setup(
     name=NAME,
-    version=VERSION,
+    version=find_version("kfp", "__init__.py"),
     description='KubeFlow Pipelines SDK',
     author='google',
     install_requires=REQUIRES,
@@ -51,6 +68,7 @@ setup(
         'kfp.components',
         'kfp.components.structures',
         'kfp.components.structures.kubernetes',
+        'kfp.containers',
         'kfp.dsl',
         'kfp.notebook',
     ],

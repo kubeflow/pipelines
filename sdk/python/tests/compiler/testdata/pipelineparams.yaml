@@ -17,7 +17,7 @@ metadata:
   annotations:
     pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with multiple
       pipeline params.", "inputs": [{"default": "latest", "name":
-      "tag"}, {"default": 10, "name": "sleep_ms"}], "name": "PipelineParams"}'
+      "tag"}, {"default": "10", "name": "sleep_ms"}], "name": "PipelineParams"}'
   generateName: pipelineparams-
 spec:
   entrypoint: pipelineparams
@@ -42,12 +42,8 @@ spec:
       - "-c"
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: "/mlpipeline-ui-metadata.json"
-        optional: true
-      - name: mlpipeline-metrics
-        path: "/mlpipeline-metrics.json"
-        optional: true
+      - name: download-downloaded
+        path: "/tmp/results.txt"
       parameters:
       - name: download-downloaded
         valueFrom:
@@ -71,14 +67,6 @@ spec:
       env:
       - name: MSG
         value: 'pipelineParams: '
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: "/mlpipeline-ui-metadata.json"
-        optional: true
-      - name: mlpipeline-metrics
-        path: "/mlpipeline-metrics.json"
-        optional: true
   - name: pipelineparams
     inputs:
       parameters:

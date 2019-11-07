@@ -29,6 +29,17 @@ SHOULD_CLEANUP_CLUSTER=false
 function clean_up {
   set +e # the following clean up commands shouldn't exit on error
 
+  echo "Describe pods with unhealthy status:"
+  UNHEALTHY_PODS=($(kubectl get pods --field-selector=status.phase!=Running,status.phase!=Succeeded -o=custom-columns=:metadata.name -n $NAMESPACE))
+  for POD_NAME in "${UNHEALTHY_PODS[@]}"; do
+    echo ""
+    echo "For pod $POD_NAME:"
+    kubectl describe pod $POD_NAME -n $NAMESPACE
+  done
+  echo "============================================================="
+  echo "The above is output of describing pods with unhealthy status."
+  echo "============================================================="
+
   echo "Status of pods before clean up:"
   kubectl get pods --all-namespaces
 
@@ -50,7 +61,7 @@ else
   SHOULD_CLEANUP_CLUSTER=true
   # "storage-rw" is needed to allow VMs to push to gcr.io
   # reference: https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam
-  SCOPE_ARG="--scopes=storage-rw"
+  SCOPE_ARG="--scopes=storage-rw,cloud-platform"
   # Machine type and cluster size is the same as kubeflow deployment to
   # easily compare performance. We can reduce usage later.
   NODE_POOL_CONFIG_ARG="--num-nodes=2 --machine-type=n1-standard-8 \

@@ -20,7 +20,7 @@ import kfp.dsl as dsl
     name="pipeline_with_sidecar", 
     description="A pipeline that demonstrates how to add a sidecar to an operation."
 )
-def pipeline_with_sidecar(sleep_ms: int = 10):
+def pipeline_with_sidecar(sleep_sec: int = 30):
 
     # sidecar with sevice that reply "hello world" to any GET request
     echo = dsl.Sidecar(
@@ -35,7 +35,7 @@ def pipeline_with_sidecar(sleep_ms: int = 10):
         image="busybox:latest",
         command=["sh", "-c"],
         arguments=[
-            "sleep %s; wget localhost:5678 -O /tmp/results.txt" % sleep_ms
+            "sleep %s; wget localhost:5678 -O /tmp/results.txt" % sleep_sec
         ],  # sleep for X sec and call the sidecar and save results to output
         sidecars=[echo],
         file_outputs={"downloaded": "/tmp/results.txt"},

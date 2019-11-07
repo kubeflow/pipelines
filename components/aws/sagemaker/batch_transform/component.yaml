@@ -64,6 +64,9 @@ inputs:
   - name: resource_encryption_key
     description: 'The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).'
     default: ''
+  - name: endpoint_url
+    description: 'The endpoint URL for the private link VPC endpoint.'
+    default: ''
   - name: tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
@@ -71,11 +74,12 @@ outputs:
   - {name: output_location,    description: 'S3 URI of the transform job results.'}
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190809-02
+    image: redbackthomson/aws-kubeflow-sagemaker:20191003
     command: ['python']
     args: [
       batch_transform.py,
       --region, {inputValue: region},
+      --endpoint_url, {inputValue: endpoint_url},
       --job_name, {inputValue: job_name},
       --model_name, {inputValue: model_name},
       --max_concurrent, {inputValue: max_concurrent},

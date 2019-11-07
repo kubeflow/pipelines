@@ -24,10 +24,6 @@
 set -xe
 
 images=(
-  "ml-pipeline-dataflow-tf-predict"
-  "ml-pipeline-dataflow-tfdv"
-  "ml-pipeline-dataflow-tft"
-  "ml-pipeline-dataflow-tfma"
   "ml-pipeline-kubeflow-deployer"
   "ml-pipeline-kubeflow-tf-trainer"
   "ml-pipeline-kubeflow-tf-trainer-gpu"
@@ -58,8 +54,8 @@ clone_dir=$(mktemp -d)
 git clone "git@github.com:${REPO}.git" "$clone_dir"
 cd "$clone_dir"
 branch="release-$COMMIT_SHA"
-# Currently the release is based on master
-release_head=master
+# Creating the release branch from the specified commit
+release_head=$COMMIT_SHA
 git checkout "$release_head" -b "$branch"
 
 # Releasing the container images to public. Updating components and samples.

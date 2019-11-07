@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -239,4 +240,31 @@ func ValidatePipelineSpec(resourceManager *resource.ResourceManager, spec *api.P
 		return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
 	}
 	return nil
+}
+
+// Verify that
+// (1) a pipeline version is specified in references as a creator.
+// (2) the above pipeline version does exists in pipeline version store and is
+// in ready status.
+func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, references []*api.ResourceReference) (*string, error) {
+	if references == nil {
+		return nil, util.NewInvalidInputError("Please specify a pipeline version in Run's resource references")
+	}
+
+	var pipelineVersionId = ""
+	for _, reference := range references {
+		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION && reference.Relationship == api.Relationship_CREATOR {
+			pipelineVersionId = reference.Key.Id
+		}
+	}
+	if len(pipelineVersionId) == 0 {
+		return nil, util.NewInvalidInputError("Please specify a pipeline version in Run's resource references")
+	}
+
+	// Verify pipeline version exists
+	if _, err := resourceManager.GetPipelineVersion(pipelineVersionId); err != nil {
+		return nil, util.Wrap(err, "Please specify a  valid pipeline version in Run's resource references.")
+	}
+
+	return &pipelineVersionId, nil
 }

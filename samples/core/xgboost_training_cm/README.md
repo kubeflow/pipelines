@@ -1,16 +1,22 @@
 ## Overview
 
-The `xgboost-training-cm.py` pipeline creates XGBoost models on structured data in CSV format. Both classification and regression are supported.
+The `xgboost_training_cm.py` pipeline creates XGBoost models on structured data in CSV format. Both classification and regression are supported.
 
 The pipeline starts by creating an Google DataProc cluster, and then running analysis, transformation, distributed training and 
-prediction in the created cluster. Then a single node confusion-matrix aggregator is used (for classification case) to
-provide the confusion matrix data to the front end. Finally, a delete cluster operation runs to destroy the cluster it creates
+prediction in the created cluster. 
+Then a single node confusion-matrix and ROC aggregator is used (for classification case) to	
+provide the confusion matrix data, and ROC data to the front end, respectively.
+Finally, a delete cluster operation runs to destroy the cluster it creates
 in the beginning. The delete cluster operation is used as an exit handler, meaning it will run regardless of whether the pipeline fails
 or not.
 
 ## Requirements
 
-Preprocessing uses Google Cloud DataProc. Therefore, you must enable the [DataProc API](https://cloud.google.com/endpoints/docs/openapi/enable-api) for the given GCP project.
+Preprocessing uses Google Cloud DataProc. Therefore, you must enable the 
+[Cloud Dataproc API](https://pantheon.corp.google.com/apis/library/dataproc.googleapis.com?q=dataproc) for the given GCP project. This is the 
+general [guideline](https://cloud.google.com/endpoints/docs/openapi/enable-api) for enabling GCP APIs.
+If KFP was deployed through K8S marketplace, please follow instructions in [the guideline](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials)
+to make sure the service account used has the role `storage.admin` and `dataproc.admin`.
 
 ## Compile
 
@@ -31,37 +37,25 @@ pipeline run results. Note that each pipeline run will create a unique directory
 ## Components source
 
 Create Cluster:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/create_cluster/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/create_cluster)
+  [source code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_create_cluster.py) 
 
-Analyze (step one for preprocessing):
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/analyze/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/analyze)
+Analyze (step one for preprocessing), Transform (step two for preprocessing) are using pyspark job
+submission component, with
+  [source code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_submit_pyspark_job.py) 
 
-Transform (step two for preprocessing):
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/transform/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/transform)
-
-Distributed Training:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/train/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/train)
-
-Distributed Predictions:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/predict/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/predict)
-
-Confusion Matrix:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix)
- 
-
-ROC:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/roc/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/roc)
-
+Distributed Training and predictions are using spark job submission component, with
+  [source code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_submit_spark_job.py) 
 
 Delete Cluster:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/delete_cluster/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/delete_cluster)
+  [source code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_delete_cluster.py) 
 
+The container file is located [here](https://github.com/kubeflow/pipelines/tree/master/components/gcp/container) 
+
+For visualization, we use confusion matrix and ROC.
+Confusion Matrix:	
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix/src),
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix)
+and ROC: 
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/roc/src), 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/roc)
 

@@ -35,6 +35,9 @@ inputs:
   - name: network_isolation
     description: 'Isolates the training container.'
     default: 'True'
+  - name: endpoint_url
+    description: 'The endpoint URL for the private link VPC endpoint.'
+    default: ''
   - name: tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
@@ -42,11 +45,12 @@ outputs:
   - {name: model_name,          description: 'The model name Sagemaker created'}
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190809-02
+    image: redbackthomson/aws-kubeflow-sagemaker:20191003
     command: ['python']
     args: [
       create_model.py,
       --region, {inputValue: region},
+      --endpoint_url, {inputValue: endpoint_url},
       --model_name, {inputValue: model_name},
       --role, {inputValue: role},
       --container_host_name, {inputValue: container_host_name},
