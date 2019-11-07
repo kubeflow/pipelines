@@ -18,13 +18,13 @@ import kfp
 
 @dsl.pipeline(name='my-pipeline')
 def pipeline(my_pipe_param=10):
-    loop_args = [{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]
+    loop_args = [{'a_a': 1, 'b': 2}, {'a_a': 10, 'b': 20}]
     with dsl.ParallelFor(loop_args) as item:
         op1 = dsl.ContainerOp(
             name="my-in-coop1",
             image="library/bash:4.4.23",
             command=["sh", "-c"],
-            arguments=["echo op1 %s %s" % (item.a, my_pipe_param)],
+            arguments=["echo op1 %s %s" % (item.a_a, my_pipe_param)],
         )
 
         op2 = dsl.ContainerOp(
@@ -43,4 +43,4 @@ def pipeline(my_pipe_param=10):
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(pipeline, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(pipeline, __file__ + '.yaml')

@@ -22,14 +22,14 @@ from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 import yaml
 from kfp.dsl import _for_loop
 
-from .. import dsl
+from kfp import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
 from ._op_to_template import _op_to_template
 from ._default_transformers import add_pod_env
 
-from ..components._structures import InputSpec
-from ..dsl._metadata import _extract_pipeline_metadata
-from ..dsl._ops_group import OpsGroup
+from kfp.components._structures import InputSpec
+from kfp.dsl._metadata import _extract_pipeline_metadata
+from kfp.dsl._ops_group import OpsGroup
 
 
 class Compiler(object):
@@ -487,7 +487,18 @@ class Compiler(object):
 
           task['withParam'] = withparam_value
         else:
-          task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
+          # Need to sanitize the dict keys for consistency.
+          loop_tasks = sub_group.loop_args.to_list_for_task_yaml()
+          isinstance(loop_tasks[0], dict)
+          sanitized_tasks = []
+          for item in loop_tasks:
+            c_dict = {}
+            for k, v in item.items():
+              c_dict[sanitize_k8s_name(k)] = v
+            sanitized_tasks.append(c_dict)
+          task['withItems'] = sanitized_tasks
+          print('-------------begin loop tasks-----------------')
+          print(task['withItems'])
 
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
