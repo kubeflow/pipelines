@@ -3,8 +3,10 @@
 FROM google/cloud-sdk:236.0.0
 
 RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q python3-pip default-jdk python3-setuptools python3-dev && \
+    apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev && \
     apt-get install --no-install-recommends -y -q libssl-dev libffi-dev wget ssh
+
+RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 
 RUN pip3 install wheel
 RUN pip3 install junit-xml
