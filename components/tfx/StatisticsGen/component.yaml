@@ -1,7 +1,7 @@
 name: Statisticsgen
 inputs:
 - name: input_data
-  type: ExamplesPath
+  type: Examples
 outputs:
 - name: output
   type: ExampleStatistics

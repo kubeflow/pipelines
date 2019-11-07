@@ -4,7 +4,7 @@ inputs:
 - {name: input_config, optional: true, type: ExampleGen.Input}
 - {name: output_config, optional: true, type: ExampleGen.Output}
 outputs:
-- {name: example_artifacts, type: ExamplesPath}
+- {name: example_artifacts, type: Examples}
 description: |
   Executes the CsvExampleGen component.
 
@@ -19,7 +19,7 @@ description: |
           size 2:1.
         ??? input: Forwards compatibility alias for the 'input_base' argument.
       Returns:
-        example_artifacts: Artifact of type 'ExamplesPath' for output train and
+        example_artifacts: Artifact of type 'Examples' for output train and
           eval examples.
 implementation:
   container:

@@ -6,7 +6,7 @@ def CsvExampleGen(
     #input_base_path: 'ExternalPath', # A Channel of 'ExternalPath' type, which includes one artifact whose uri is an external directory with csv files inside (required).
 
     # Outputs
-    example_artifacts_path: OutputPath('ExamplesPath'),
+    example_artifacts_path: OutputPath('Examples'),
     #example_artifacts_path: 'ExamplesPath',
 
     # Execution properties
@@ -29,7 +29,7 @@ def CsvExampleGen(
         size 2:1.
       ??? input: Forwards compatibility alias for the 'input_base' argument.
     Returns:
-      example_artifacts: Artifact of type 'ExamplesPath' for output train and
+      example_artifacts: Artifact of type 'Examples' for output train and
         eval examples.
     """
 
