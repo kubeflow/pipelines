@@ -21,7 +21,7 @@ steps:
     waitFor: ["-"]
   - name: "gcr.io/cloud-builders/docker"
     args:
-      ["build", "-t", "$_GCR_BASE/inverse-proxy-agent", "-f", "proxy/Dockerfile", "."]
+      ["build", "-t", "$_GCR_BASE/inverse-proxy-agent", "-f", "proxy/Dockerfile", "./proxy"]
     waitFor: ["-"]
 options:
   machineType: N1_HIGHCPU_8 # use a fast machine to build because there a lot of work
