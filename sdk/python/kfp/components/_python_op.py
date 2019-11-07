@@ -483,7 +483,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
         '_output_files = _parsed_args.pop("_output_paths", [])',
     ])
 
-    output_serialization_code = ''.join('    ' + s + ',' + '\n' for s in output_serialization_expression_strings)
+    output_serialization_code = ''.join('    {},\n'.format(s) for s in output_serialization_expression_strings)
 
     full_source = \
 '''\
