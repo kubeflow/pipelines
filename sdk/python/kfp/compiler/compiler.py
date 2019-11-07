@@ -491,9 +491,9 @@ class Compiler(object):
           loop_tasks = sub_group.loop_args.to_list_for_task_yaml()
           sanitized_tasks = []
           if isinstance(loop_tasks[0], dict):
-            for item in loop_tasks:
+            for argument_set in loop_tasks:
               c_dict = {}
-              for k, v in item.items():
+              for k, v in argument_set.items():
                 c_dict[sanitize_k8s_name(k)] = v
               sanitized_tasks.append(c_dict)
           else:
