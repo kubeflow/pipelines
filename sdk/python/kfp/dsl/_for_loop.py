@@ -112,7 +112,6 @@ class LoopArgumentVariable(dsl.PipelineParam):
                 this subvariable.
         """
         super().__init__(name=self.get_name(loop_args_name=loop_args_name, this_variable_name=this_variable_name))
-        print(self.name)
 
     @classmethod
     def get_name(cls, loop_args_name: Text, this_variable_name: Text) -> Text:
