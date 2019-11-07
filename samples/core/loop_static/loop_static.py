@@ -24,7 +24,7 @@ def pipeline(my_pipe_param=10):
             name="my-in-coop1",
             image="library/bash:4.4.23",
             command=["sh", "-c"],
-            arguments=["echo op1 %s %s" % (item.a_a, my_pipe_param)],
+            arguments=["echo op1 %s %s" % (item.a, my_pipe_param)],
         )
 
         op2 = dsl.ContainerOp(
