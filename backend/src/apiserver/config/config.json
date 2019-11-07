@@ -2,7 +2,8 @@
   "DBConfig": {
     "DriverName": "mysql",
     "DataSourceName": "",
-    "DBName": "mlpipeline"
+    "DBName": "mlpipeline",
+    "GroupConcatMaxLen": "4194304"
   },
   "ObjectStoreConfig":{
     "AccessKey": "minio",

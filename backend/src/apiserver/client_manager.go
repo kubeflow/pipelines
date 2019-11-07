@@ -44,6 +44,7 @@ const (
 	mysqlUser        = "DBConfig.User"
 	mysqlPassword    = "DBConfig.Password"
 	mysqlDBName      = "DBConfig.DBName"
+	mysqlGroupConcatMaxLen 	= "DBConfig.GroupConcatMaxLen"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -242,7 +243,9 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 		common.GetStringConfigWithDefault(mysqlPassword, ""),
 		common.GetStringConfigWithDefault(mysqlServiceHost, "mysql"),
 		common.GetStringConfigWithDefault(mysqlServicePort, "3306"),
-		"")
+		"",
+		common.GetStringConfigWithDefault(mysqlGroupConcatMaxLen, "1024"),
+	)
 
 	var db *sql.DB
 	var err error
