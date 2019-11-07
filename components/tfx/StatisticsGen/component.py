@@ -73,5 +73,5 @@ if __name__ == '__main__':
     kfp.components.func_to_container_op(
         StatisticsGen,
         base_image='tensorflow/tfx:0.15.0rc0',
-        output_component_file='StatisticsGen.component.yaml'
+        output_component_file='component.yaml'
     )
