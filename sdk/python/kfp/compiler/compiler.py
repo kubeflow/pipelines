@@ -497,8 +497,6 @@ class Compiler(object):
               c_dict[sanitize_k8s_name(k)] = v
             sanitized_tasks.append(c_dict)
           task['withItems'] = sanitized_tasks
-          print('-------------begin loop tasks-----------------')
-          print(task['withItems'])
 
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
