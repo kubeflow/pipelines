@@ -13,10 +13,11 @@
 // limitations under the License.
 
 // @ts-ignore
-import {Core_v1Api, Custom_objectsApi, KubeConfig} from '@kubernetes/client-node';
+import {Core_v1Api, Custom_objectsApi, KubeConfig, V1ConfigMapKeySelector} from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import * as Utils from './utils';
+import {IPartialArgoWorkflow} from './workflow-helper';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
@@ -30,6 +31,12 @@ const viewerGroup = 'kubeflow.org';
 const viewerVersion = 'v1beta1';
 const viewerPlural = 'viewers';
 
+// Constants for argo workflow
+const workflowGroup = 'argoproj.io'
+const workflowVersion = 'v1alpha1'
+const workflowPlural = 'workflows'
+
+/** Default pod template spec used to create tensorboard viewer. */
 export const defaultPodTemplateSpec = {
   spec: {
     containers: [{
@@ -155,4 +162,38 @@ export function getPodLogs(podName: string): Promise<string> {
       (response: any) => (response && response.body) ? response.body.toString() : '',
       (error: any) => {throw new Error(JSON.stringify(error.body));}
     );
+}
+
+/**
+ * Retrieves the argo workflow CRD.
+ * @param workflowName name of the argo workflow
+ */
+export async function getArgoWorkflow(workflowName: string): Promise<IPartialArgoWorkflow> {
+  if (!k8sV1CustomObjectClient) {
+    throw new Error('Cannot access kubernetes Custom Object API');
+  }
+
+  const res = await k8sV1CustomObjectClient.getNamespacedCustomObject(
+    workflowGroup, workflowVersion, namespace, workflowPlural, workflowName)
+  
+  if (res.response.statusCode >= 400) {
+    throw new Error(`Unable to query workflow:${workflowName}: Access denied.`);
+  }
+  return res.body;
+}
+  
+/**
+ * Retrieves k8s secret by key and decode from base64.
+ * @param name name of the secret 
+ * @param key key in the secret
+ */
+export async function getK8sSecret(name: string, key: string) {
+  if (!k8sV1Client) {
+    throw new Error('Cannot access kubernetes API');
+  }
+
+  const k8sSecret = await k8sV1Client.readNamespacedSecret(name, namespace);
+  const secretb64 = k8sSecret.body.data[key];
+  const buff = new Buffer(secretb64, 'base64');
+  return buff.toString('ascii');  
 }
