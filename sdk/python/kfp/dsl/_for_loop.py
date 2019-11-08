@@ -20,14 +20,14 @@ class LoopArguments(dsl.PipelineParam):
         return re.match(cls.LEGAL_SUBVAR_NAME_REGEX, proposed_variable_name) is not None
 
     def __init__(self, items: Union[ItemList, dsl.PipelineParam], code: Text, name_override: Optional[Text]=None, op_name: Optional[Text]=None, *args, **kwargs):
-        """_LoopArguments represent the set of items to loop over in a ParallelFor loop.  This class shoudn't be
+        """LoopArguments represent the set of items to loop over in a ParallelFor loop.  This class shouldn't be
         instantiated by the user but rather is created by _ops_group.ParallelFor.
 
         Args:
             items: List of items to loop over.  If a list of dicts then, all dicts must have the same keys and every
                 key must be a legal Python variable name.
             code: A unique code used to identify these loop arguments.  Should match the code for the ParallelFor
-                ops_group which created these _LoopArguments.  This prevents parameter name collissions.
+                ops_group which created these _LoopArguments.  This prevents parameter name collisions.
         """
         if name_override is None:
             super().__init__(name=self._make_name(code), *args, **kwargs)
