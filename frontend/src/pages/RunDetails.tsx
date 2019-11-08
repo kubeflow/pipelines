@@ -168,14 +168,35 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
+    const runIdFromParams = this.props.match.params[RouteParams.runId];
     return {
       actions: buttons
-        .retryRun(() => (this.state.runMetadata ? [this.state.runMetadata!.id!] : []), true, () =>
-          this.retry(),
+        .retryRun(
+          () =>
+            this.state.runMetadata
+              ? [this.state.runMetadata!.id!]
+              : runIdFromParams
+              ? [runIdFromParams]
+              : [],
+          true,
+          () => this.retry(),
         )
-        .cloneRun(() => (this.state.runMetadata ? [this.state.runMetadata!.id!] : []), true)
+        .cloneRun(
+          () =>
+            this.state.runMetadata
+              ? [this.state.runMetadata!.id!]
+              : runIdFromParams
+              ? [runIdFromParams]
+              : [],
+          true,
+        )
         .terminateRun(
-          () => (this.state.runMetadata ? [this.state.runMetadata!.id!] : []),
+          () =>
+            this.state.runMetadata
+              ? [this.state.runMetadata!.id!]
+              : runIdFromParams
+              ? [runIdFromParams]
+              : [],
           true,
           () => this.refresh(),
         )
