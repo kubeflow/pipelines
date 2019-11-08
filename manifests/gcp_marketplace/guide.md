@@ -60,9 +60,9 @@ and store the service account credential as a Kubernetes secret `user-gcp-sa` in
 gcloud iam service-accounts keys create application_default_credentials.json --iam-account $SA_NAME@$PROJECT_ID.iam.gserviceaccount.com
 
 # Attempt to create a k8s secret. If already exists, override.
-kubectl create secret generic user-gcp-sa -n $NAMESPACE\
+kubectl create secret generic user-gcp-sa \
   --from-file=user-gcp-sa.json=application_default_credentials.json \
-  --dry-run -o yaml  |  kubectl apply -f -
+  -n $NAMESPACE --dry-run -o yaml  |  kubectl apply -f -
 ```
 Remove the private key file if needed
 ```
