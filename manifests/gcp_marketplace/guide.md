@@ -38,7 +38,8 @@ Then you can create a service account with the necessary IAM permissions
 export SA_NAME=<my-account>
 export NAMESPACE=<namespace-where-kfp-was-installed>
 # Create service account
-gcloud iam service-accounts create $SA_NAME --display-name $SA_NAME --project "$PROJECT_ID"
+gcloud iam service-accounts create $SA_NAME \
+  --display-name $SA_NAME --project "$PROJECT_ID"
 # Grant permissions to the service account by binding roles
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member=serviceAccount:$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com \
