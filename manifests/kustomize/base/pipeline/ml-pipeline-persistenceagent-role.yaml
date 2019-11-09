@@ -2,6 +2,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: ml-pipeline-persistenceagent-role
+  labels:
+    application-crd-id: kubeflow-pipelines
 rules:
 - apiGroups:
   - argoproj.io

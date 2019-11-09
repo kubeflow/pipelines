@@ -3,6 +3,7 @@ kind: ConfigMap
 metadata:
   name: metadata-configmap
   labels:
+    application-crd-id: kubeflow-pipelines
     component: metadata-server
 data:
   mysql_database: "metadb"

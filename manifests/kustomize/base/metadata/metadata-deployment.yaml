@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: metadata-deployment
   labels:
+    application-crd-id: kubeflow-pipelines
     component: metadata-server
 spec:
   replicas: 1

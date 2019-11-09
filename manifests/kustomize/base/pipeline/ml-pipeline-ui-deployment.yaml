@@ -2,6 +2,7 @@ apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
   labels:
+    application-crd-id: kubeflow-pipelines
     app: ml-pipeline-ui
   name: ml-pipeline-ui
 spec:

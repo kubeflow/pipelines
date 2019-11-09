@@ -9,6 +9,9 @@ bases:
 - proxy
 - metadata
 
+resources:
+  - pipeline-application.yaml
+
 images:
 - name: gcr.io/ml-pipeline/api-server
   newTag: 0.1.33

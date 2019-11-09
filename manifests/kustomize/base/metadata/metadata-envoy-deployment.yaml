@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: metadata-envoy
   labels:
+    application-crd-id: kubeflow-pipelines
     component: metadata-envoy
 spec:
   replicas: 1

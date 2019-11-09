@@ -3,6 +3,7 @@ kind: RoleBinding
 metadata:
   labels:
     app: proxy-agent-runner
+    application-crd-id: kubeflow-pipelines
   name: proxy-agent-runner
 roleRef:
   apiGroup: rbac.authorization.k8s.io

@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: cloudsqlproxy
   labels:
+    application-crd-id: kubeflow-pipelines
     app: cloudsqlproxy
 spec:
   selector:

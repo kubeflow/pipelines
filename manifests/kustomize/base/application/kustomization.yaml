@@ -7,4 +7,3 @@ resources:
   - application-controller-sa.yaml
   - application-controller-service.yaml
   - application-controller-statefulset.yaml
-  - pipeline-application.yaml

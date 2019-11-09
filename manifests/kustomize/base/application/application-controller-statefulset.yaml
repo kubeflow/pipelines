@@ -1,8 +1,9 @@
-apiVersion: apps/v1
-kind: StatefulSet
+apiVersion: apps/v1beta2
+kind: Deployment
 metadata:
   name: controller-manager
   labels:
+    application-crd-id: kubeflow-pipelines
     control-plane: controller-manager
     controller-tools.k8s.io: "1.0"
 spec:
@@ -21,7 +22,7 @@ spec:
         - command:
             - /root/manager
           image: gcr.io/ml-pipeline/application-crd-controller:1.0-beta
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           name: manager
           env:
             - name: POD_NAMESPACE
