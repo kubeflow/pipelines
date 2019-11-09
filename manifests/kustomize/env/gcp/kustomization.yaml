@@ -10,7 +10,7 @@ bases:
 namespace: kubeflow
 
 patchesStrategicMerge:
-  - gcp-configurations-pipeline-application.yaml
+  - gcp-configurations-patch.yaml
 
 images:
   - name: gcr.io/cloudsql-docker/gce-proxy
