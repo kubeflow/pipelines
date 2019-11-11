@@ -235,9 +235,9 @@ describe('RunDetails', () => {
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        title: 'Terminate this run?',
         message:
           'Do you want to terminate this run? This action cannot be undone. This will terminate any running pods, but they will not be deleted.',
+        title: 'Terminate this run?',
       }),
     );
   });
