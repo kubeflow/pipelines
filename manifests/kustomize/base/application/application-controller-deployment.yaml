@@ -19,11 +19,12 @@ spec:
       containers:
         - command:
             - /root/manager
-          image: gcr.io/ml-pipeline/application-crd-controller:1.0-beta
+          # A customized image with https://github.com/kubernetes-sigs/application/pull/127
+          image: gcr.io/ml-pipeline/application-crd-controller:1.0-beta-non-cluster-role
           imagePullPolicy: IfNotPresent
           name: manager
           env:
-            - name: POD_NAMESPACE
+            - name: NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
