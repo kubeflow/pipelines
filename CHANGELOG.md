@@ -1,5 +1,34 @@
 # Change Log
 
+## [0.1.34](https://github.com/kubeflow/pipelines/tree/0.1.34) (2019-11-07)
+
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.33...0.1.34)
+
+**Merged pull requests:**
+
+- Fix inverse-proxy test cloudbuild yaml [\#2568](https://github.com/kubeflow/pipelines/pull/2568) ([Bobgy](https://github.com/Bobgy))
+- Increase kfp version in kustomize and sdk init [\#2567](https://github.com/kubeflow/pipelines/pull/2567) ([jingzhang36](https://github.com/jingzhang36))
+- Fix inverse proxy agent in e2e tests [\#2566](https://github.com/kubeflow/pipelines/pull/2566) ([Bobgy](https://github.com/Bobgy))
+- Increase kfp version in component sdk [\#2565](https://github.com/kubeflow/pipelines/pull/2565) ([jingzhang36](https://github.com/jingzhang36))
+- Fixes test flakiness caused by "unsupported operand type\(s\) for -=: 'Retry' and 'int'" [\#2563](https://github.com/kubeflow/pipelines/pull/2563) ([Bobgy](https://github.com/Bobgy))
+- Fix postsubmit test which times out [\#2557](https://github.com/kubeflow/pipelines/pull/2557) ([Bobgy](https://github.com/Bobgy))
+- \[Testing\] Describe unhealthy pods when tests clean up. [\#2554](https://github.com/kubeflow/pipelines/pull/2554) ([Bobgy](https://github.com/Bobgy))
+- Release d6d9d8da19f7110fff3a5ba713710402edaeee65 [\#2553](https://github.com/kubeflow/pipelines/pull/2553) ([jingzhang36](https://github.com/jingzhang36))
+- Fix more notebook license issues [\#2552](https://github.com/kubeflow/pipelines/pull/2552) ([Bobgy](https://github.com/Bobgy))
+- Fix wrong kfserving url [\#2551](https://github.com/kubeflow/pipelines/pull/2551) ([hougangliu](https://github.com/hougangliu))
+- \[Misc\] Add releasing note [\#2549](https://github.com/kubeflow/pipelines/pull/2549) ([numerology](https://github.com/numerology))
+- \[Frontend\] Fix run id not populated in NewRun page when clicked too fast bug [\#2547](https://github.com/kubeflow/pipelines/pull/2547) ([Bobgy](https://github.com/Bobgy))
+- Fix broken license link for jupyter notebook [\#2546](https://github.com/kubeflow/pipelines/pull/2546) ([Bobgy](https://github.com/Bobgy))
+- Adding diagnose\_me to CLI tool [\#2543](https://github.com/kubeflow/pipelines/pull/2543) ([SinaChavoshi](https://github.com/SinaChavoshi))
+- Update CHANGELOG.md [\#2541](https://github.com/kubeflow/pipelines/pull/2541) ([IronPan](https://github.com/IronPan))
+- Frontend format check should be before linting. [\#2525](https://github.com/kubeflow/pipelines/pull/2525) ([Bobgy](https://github.com/Bobgy))
+- SDK - Client - Fixed client on Windows [\#2524](https://github.com/kubeflow/pipelines/pull/2524) ([Ark-kun](https://github.com/Ark-kun))
+- Set DB GroupConcatMaxLen config to default of 4MB [\#2497](https://github.com/kubeflow/pipelines/pull/2497) ([krajasek](https://github.com/krajasek))
+- SDK - Client - Added API models to the generated API [\#2418](https://github.com/kubeflow/pipelines/pull/2418) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - DSL - Deprecated ArtifactLocation [\#2326](https://github.com/kubeflow/pipelines/pull/2326) ([Ark-kun](https://github.com/Ark-kun))
+- Add external links that make some content easier to discover [\#2068](https://github.com/kubeflow/pipelines/pull/2068) ([Bobgy](https://github.com/Bobgy))
+
+
 ## [0.1.33](https://github.com/kubeflow/pipelines/tree/0.1.33) (2019-11-02)
 
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.32...0.1.33)
