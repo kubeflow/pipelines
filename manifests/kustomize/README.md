@@ -6,8 +6,8 @@ This folder contains Kubeflow Pipelines Kustomize manifests for a light weight d
 
 Deploy latest version of Kubeflow Pipelines
 ```
-export PIPELINE_VERSION=0.1.31
-kubectl apply --validate=false -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
+export PIPELINE_VERSION=0.1.34
+for i in {1..2}; do `kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml` && break || sleep 1; done
 ```
 
 Then get the Pipeline URL
@@ -29,9 +29,9 @@ To deploy Kubeflow Pipelines in namespace FOO,
 - Edit [dev/kustomization.yaml](env/dev/kustomization.yaml) or [gcp/kustomization.yaml](env/gcp/kustomization.yaml) namespace section to FOO
 - Then run 
 ```
-kubectl kustomize env/dev | kubectl apply --validate=false -f -
+kubectl kustomize env/dev | kubectl apply -f -
 # or 
-kubectl kustomize env/gcp | kubectl apply --validate=false -f -
+kubectl kustomize env/gcp | kubectl apply -f -
 ```
 
 ### Disable the public endpoint
