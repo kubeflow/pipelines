@@ -59,7 +59,7 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:e9b96de317989a9673ef88d88fb9dab9dac3005f
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:d6d9d8da19f7110fff3a5ba713710402edaeee65
     args: [
       kfp_component.google.bigquery, query,
       --query, {inputValue: query},

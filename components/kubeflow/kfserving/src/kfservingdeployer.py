@@ -182,7 +182,9 @@ if __name__ == "__main__":
         print('Sample test commands: ')
         print('# Note: If Istio Ingress gateway is not served with LoadBalancer, use $CLUSTER_NODE_IP:31380 as the ISTIO_INGRESS_ENDPOINT')
         print('ISTIO_INGRESS_ENDPOINT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath=\'{.status.loadBalancer.ingress[0].ip}\')')
-        print('curl -X GET -H "Host: ' + url.sub('', model_status['status']['url']) + '" $ISTIO_INGRESS_ENDPOINT')
+        # model_status['status']['url'] is like http://flowers-sample.kubeflow.example.com/v1/models/flowers-sample
+        host, path = url.sub('', model_status['status']['url']).split("/", 1)
+        print('curl -X GET -H "Host: ' + host + '" http://$ISTIO_INGRESS_ENDPOINT/' + path)
     except:
         print('Model is not ready, check the logs for the Knative URL status.')
     if not os.path.exists(os.path.dirname(output_path)):

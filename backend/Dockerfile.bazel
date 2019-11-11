@@ -1,0 +1,30 @@
+FROM ubuntu:18.04 as builder
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends software-properties-common \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update \
+    && apt-get install -y curl \
+        openjdk-11-jdk \
+        openjdk-11-jre-headless \
+        pkg-config \
+        zip \
+        g++ \
+        git \
+        zlib1g-dev \
+        unzip \
+        python \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV BAZEL_VERSION=0.24.0
+
+RUN mkdir -p /bazel \
+    && cd /bazel \
+    && curl -fSsL -O https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-dist.zip \
+    && unzip bazel-$BAZEL_VERSION-dist.zip \
+    && ./compile.sh \
+    && cp output/bazel /usr/local/bin \
+    && rm -rf /bazel

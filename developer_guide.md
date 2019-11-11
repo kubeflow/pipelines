@@ -11,10 +11,21 @@ The Pipeline system is included in kubeflow. See [Getting Started Guide](https:/
 ### GKE
 To be able to use GKE, the Docker images need to be uploaded to a public Docker repository, such as [GCR](https://cloud.google.com/container-registry/)
 
-To build the API server image and upload it to GCR:
+To build the API server image and upload it to GCR on x86_64 machines:
 ```bash
 # Run in the repository root directory
 $ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f backend/Dockerfile .
+# Push to GCR
+$ gcloud auth configure-docker
+$ docker push gcr.io/<your-gcp-project>/api-server:latest
+```
+
+To build the API server image and upload it to GCR on non-x86_64 machines (such as aarch64 machines):
+```bash
+# Build bazel (e.g. version 0.24.0) image firstly
+$ docker build -t bazel:0.24.0 -f backend/Dockerfile.bazel .
+# Run in the repository root directory
+$ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f backend/Dockerfile --build-arg BAZEL_IMAGE=bazel:0.24.0 .
 # Push to GCR
 $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/api-server:latest

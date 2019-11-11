@@ -1,0 +1,27 @@
+name: Download from GCS
+inputs:
+- {name: GCS path, type: URI}
+outputs:
+- {name: Data}
+implementation:
+    container:
+        image: google/cloud-sdk
+        command:
+        - bash # Pattern comparison only works in Bash
+        - -ex
+        - -c
+        - |
+            if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+                gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+            fi
+            
+            stat_result=$(gsutil ls -d "$0")
+            if [[ "$stat_result" == */ ]]; then
+                mkdir -p "$1" # When source path is a directory, gsutil requires the destination to also be a directory
+            else
+                mkdir -p "$(dirname "$1")"
+            fi
+            
+            gsutil -m rsync -r "$0" "$1" # gsutil cp has different path handling than Linux cp. It always puts the source directory (name) inside the destination directory. gsutil rsync does not have that problem.
+        - inputValue: GCS path
+        - outputPath: Data

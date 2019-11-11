@@ -416,6 +416,20 @@ describe('PipelineDetails', () => {
     );
   });
 
+  it('clicking new run button when viewing half-loaded page navigates to the new run page with run ID', async () => {
+    tree = shallow(<PipelineDetails {...generateProps(false)} />);
+    // Intentionally don't wait until all network requests finish.
+    const instance = tree.instance() as PipelineDetails;
+    const newRunFromPipelineBtn = instance.getInitialToolbarState().actions[
+      ButtonKeys.NEW_RUN_FROM_PIPELINE
+    ];
+    newRunFromPipelineBtn.action();
+    expect(historyPushSpy).toHaveBeenCalledTimes(1);
+    expect(historyPushSpy).toHaveBeenLastCalledWith(
+      RoutePage.NEW_RUN + `?${QUERY_PARAMS.pipelineId}=${testPipeline.id}`,
+    );
+  });
+
   it('clicking new experiment button navigates to new experiment page', async () => {
     tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;

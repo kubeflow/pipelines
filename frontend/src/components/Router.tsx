@@ -97,7 +97,6 @@ export const RoutePage = {
   RUN_DETAILS: `/runs/details/:${RouteParams.runId}`,
 };
 
-// tslint:disable-next-line:variable-name
 export const RoutePageFactory = {
   artifactDetails: (artifactType: string, artifactId: number) => {
     return RoutePage.ARTIFACT_DETAILS.replace(
@@ -105,6 +104,12 @@ export const RoutePageFactory = {
       artifactType,
     ).replace(`:${RouteParams.ID}`, '' + artifactId);
   },
+};
+
+export const ExternalLinks = {
+  AI_HUB: 'https://aihub.cloud.google.com/u/0/s?category=pipeline',
+  DOCUMENTATION: 'https://www.kubeflow.org/docs/pipelines/',
+  GITHUB: 'https://github.com/kubeflow/pipelines',
 };
 
 export interface DialogProps {

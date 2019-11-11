@@ -59,7 +59,9 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   }
 };
 
+//Initiate a run.
 service RunService {
+  // Creates a new run.
   rpc CreateRun(CreateRunRequest) returns (RunDetail) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs"
@@ -67,30 +69,35 @@ service RunService {
     };
   }
 
+  //Finds a specific run by ID.
   rpc GetRun(GetRunRequest) returns (RunDetail) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs/{run_id}"
     };
   }
 
+  //Finds all runs.
   rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs"
     };
   }
 
+  //Archives a run.
   rpc ArchiveRun(ArchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{id}:archive"
     };
   }
 
+  //Restores an archived run.
   rpc UnarchiveRun(UnarchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{id}:unarchive"
     };
   }
 
+  //Deletes a run.
   rpc DeleteRun(DeleteRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/runs/{id}"
@@ -109,18 +116,21 @@ service RunService {
     };
   }
 
+  //Finds a run's artifact data.
   rpc ReadArtifact(ReadArtifactRequest) returns (ReadArtifactResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
     };
   }
 
+  //Terminates an active run.
   rpc TerminateRun(TerminateRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{run_id}/terminate"
     };
   }
 
+  //Re-initiates a failed or terminated run.
   rpc RetryRun(RetryRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{run_id}/retry"
@@ -140,7 +150,7 @@ message ListRunsRequest {
   string page_token = 1;
   int32 page_size = 2;
   // Can be format of "field_name", "field_name asc" or "field_name des"
-  // Ascending by default.
+  // (Example, "name asc" or "id des"). Ascending by default.
   string sort_by = 3;
 
   // What resource reference to filter on.
@@ -149,7 +159,8 @@ message ListRunsRequest {
   ResourceKey resource_reference_key = 4;
 
   // A url-encoded, JSON-serialized Filter protocol buffer (see
-  // filter.proto).
+  // [filter.proto](https://github.com/kubeflow/pipelines/
+  // blob/master/backend/api/filter.proto)).
   string filter = 5;
 }
 

@@ -51,19 +51,19 @@ class ContainerBuilder(object):
   """
   ContainerBuilder helps build a container image
   """
-  def __init__(self, gcs_staging=None, gcr_image_tag=None, namespace=None):
+  def __init__(self, gcs_staging=None, default_image_name=None, namespace=None):
     """
     Args:
       gcs_staging (str): GCS bucket/blob that can store temporary build files,
           default is gs://PROJECT_ID/kfp_container_build_staging.
-      gcr_image_tag (str): GCR image tag where the target image is pushed
+      default_image_name (str): Target container image name that will be used by the build method if the target_image argument is not specified.
       namespace (str): kubernetes namespace where the pod is launched,
           default is the same namespace as the notebook service account in cluster
               or 'kubeflow' if not in cluster
     """
     self._gcs_staging = gcs_staging
     self._gcs_staging_checked = False
-    self._default_image_name = gcr_image_tag
+    self._default_image_name = default_image_name
     self._namespace = namespace
 
   def _get_namespace(self):
@@ -164,7 +164,7 @@ class ContainerBuilder(object):
     Args:
       local_dir (str): local directory that stores all the necessary build files
       docker_filename (str): the path of the Dockerfile relative to the local_dir
-      target_image (str): the target image tag to push the final image.
+      target_image (str): The container image name where the data will be pushed. Can include tag. If not specified, the function will use the default_image_name specified when creating ContainerBuilder.
       timeout (int): time out in seconds. Default: 1000
     """
     target_image = target_image or self._get_default_image_name()
