@@ -83,6 +83,13 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	}
 	glog.Infof("Got instance: %+v", view)
 
+	// Ignore other viewer types for now.
+	if view.Spec.Type != viewerV1beta1.ViewerTypeTensorboard {
+		glog.Infof("Unsupported spec type: %q", view.Spec.Type)
+		// Return nil to indicate nothing more to do here.
+		return reconcile.Result{}, nil
+	}
+
 	if len(view.Spec.TensorboardSpec.TensorflowImage) == 0 {
 		if err := r.Client.Delete(context.Background(), view); err != nil {
 			glog.Infof("Error in deleting viewer CRD: %+v", err)
@@ -91,13 +98,6 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 			glog.Infof("Deleted viewer CRD that is missing tensorflow image.")
 			return reconcile.Result{}, nil
 		}
-	}
-
-	// Ignore other viewer types for now.
-	if view.Spec.Type != viewerV1beta1.ViewerTypeTensorboard {
-		glog.Infof("Unsupported spec type: %q", view.Spec.Type)
-		// Return nil to indicate nothing more to do here.
-		return reconcile.Result{}, nil
 	}
 
 	// Check and maybe delete the oldest viewer before creating the next one.
