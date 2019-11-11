@@ -48,7 +48,8 @@ kustomize edit set image gcr.io/ml-pipeline/visualization-server=${GCR_IMAGE_BAS
 kustomize edit set image gcr.io/ml-pipeline/inverse-proxy-agent=${GCR_IMAGE_BASE_DIR}/inverse-proxy-agent:${GCR_IMAGE_TAG}
 cat kustomization.yaml
 
-kustomize build . | kubectl apply --validate=false -f -
+for i in {1..2}; do kustomize build . | kubectl apply -f - && break || sleep 1; done
+
 # show current info
 echo "Status of pods after kubectl apply"
 kubectl get pods -n ${NAMESPACE}

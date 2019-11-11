@@ -7,7 +7,7 @@ This folder contains Kubeflow Pipelines Kustomize manifests for a light weight d
 Deploy latest version of Kubeflow Pipelines
 ```
 export PIPELINE_VERSION=0.1.34
-for i in {1..2}; do `kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml` && break || sleep 1; done
+for i in {1..2}; do kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml && break || sleep 1; done
 ```
 
 Then get the Pipeline URL
@@ -29,9 +29,9 @@ To deploy Kubeflow Pipelines in namespace FOO,
 - Edit [dev/kustomization.yaml](env/dev/kustomization.yaml) or [gcp/kustomization.yaml](env/gcp/kustomization.yaml) namespace section to FOO
 - Then run 
 ```
-kubectl kustomize env/dev | kubectl apply -f -
+for i in {1..2}; do kubectl kustomize env/dev | kubectl apply -f - && break || sleep 1; done
 # or 
-kubectl kustomize env/gcp | kubectl apply -f -
+for i in {1..2}; do kubectl kustomize env/gcp | kubectl apply -f - && break || sleep 1; done
 ```
 
 ### Disable the public endpoint
@@ -39,7 +39,7 @@ By default, the deployment install an [invert proxy agent](https://github.com/go
 - Comment out the proxy component in the [kustomization.yaml](base/kustomization.yaml).
 - Then run 
 ```
-kubectl kustomize . | kubectl apply --validate=false -f -
+for i in {1..2}; do kubectl kustomize . | kubectl apply -f - && break || sleep 1; done
 ```
 
 The UI is still accessible by port-forwarding
@@ -53,7 +53,7 @@ and open http://localhost:8080/
 ## Uninstall
 You can uninstall Kubeflow Pipelines by running
 ```
-export PIPELINE_VERSION=0.1.31
+export PIPELINE_VERSION=0.1.34
 kubectl delete -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/kustomize/namespaced-install.yaml
 ```
 
