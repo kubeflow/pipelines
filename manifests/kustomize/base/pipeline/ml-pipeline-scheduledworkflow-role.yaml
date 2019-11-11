@@ -2,7 +2,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
-    application-crd-id: kubeflow-pipelines
     app: ml-pipeline-scheduledworkflow-role
   name: ml-pipeline-scheduledworkflow-role
 rules:

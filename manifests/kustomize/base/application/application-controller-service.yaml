@@ -3,7 +3,6 @@ kind: Service
 metadata:
   name: controller-manager-service
   labels:
-    application-crd-id: kubeflow-pipelines
     control-plane: controller-manager
     controller-tools.k8s.io: "1.0"
 spec:

@@ -2,7 +2,6 @@ kind: Service
 apiVersion: v1
 metadata:
   labels:
-    application-crd-id: kubeflow-pipelines
     app: metadata
   name: metadata-service
 spec:

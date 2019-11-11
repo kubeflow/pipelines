@@ -3,7 +3,6 @@ kind: Deployment
 metadata:
   name: mysql
   labels:
-    application-crd-id: kubeflow-pipelines
     app: mysql
 spec:
   selector:

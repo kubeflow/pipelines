@@ -2,5 +2,3 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ml-pipeline-viewer-crd-service-account
-  labels:
-    application-crd-id: kubeflow-pipelines

@@ -2,7 +2,6 @@ apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
   labels:
-    application-crd-id: kubeflow-pipelines
     app: ml-pipeline-persistenceagent
   name: ml-pipeline-persistenceagent
 spec:

@@ -2,5 +2,3 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: pipeline-runner
-  labels:
-    application-crd-id: kubeflow-pipelines
