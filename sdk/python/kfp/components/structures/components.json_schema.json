@@ -5,10 +5,10 @@
   "$ref": "#/definitions/PipelineRunSpec",
 
   "definitions": {
-    "TypeType": {
+    "TypeSpecType": {
       "oneOf": [
         {"type": "string"},
-        {"type": "object", "additionalProperties": {"$ref": "#/definitions/TypeType"}}
+        {"type": "object", "additionalProperties": {"$ref": "#/definitions/TypeSpecType"}}
       ]
     },
 
@@ -18,7 +18,7 @@
       "required": ["name"],
       "properties": {
         "name": {"type": "string"},
-        "type": {"$ref": "#/definitions/TypeType"},
+        "type": {"$ref": "#/definitions/TypeSpecType"},
         "description": {"type": "string"},
         "default": {"type": "string"},
         "optional": {"type": "boolean", "default": false}
@@ -32,7 +32,7 @@
       "required": ["name"],
       "properties": {
         "name": {"type": "string"},
-        "type": {"$ref": "#/definitions/TypeType"},
+        "type": {"$ref": "#/definitions/TypeSpecType"},
         "description": {"type": "string"}
       },
       "additionalProperties": false

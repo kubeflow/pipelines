@@ -7,14 +7,14 @@
     inputs: #InputSpec[]
         <InputSpec[]>:
             name: string
-            type: TypeType
+            type: TypeSpecType
             description: string
             default: string
             optional: boolean
     outputs: #OutputSpec[]
         <OutputSpec[]>:
             name: string
-            type: TypeType
+            type: TypeSpecType
             description: string
     implementation: #ImplementationType
         <oneOf>:
