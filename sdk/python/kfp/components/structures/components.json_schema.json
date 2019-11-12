@@ -232,8 +232,13 @@
       "required": ["graphInput"],
       "properties": {
         "graphInput": {
-          "description": "Input name",
-          "type": "string"
+          "description": "References the input of the graph/pipeline.",
+          "type": "object",
+          "required": ["inputName"],
+          "properties": {
+            "inputName": {"type": "string"}
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

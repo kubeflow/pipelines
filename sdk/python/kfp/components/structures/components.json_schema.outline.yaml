@@ -56,7 +56,8 @@
                                     <oneOf>:
                                         string:
                                         <GraphInputArgument>:
-                                            graphInput: string
+                                            graphInput:
+                                                inputName: string
                                         <TaskOutputArgument>:
                                             taskOutput:
                                                 taskId: string
