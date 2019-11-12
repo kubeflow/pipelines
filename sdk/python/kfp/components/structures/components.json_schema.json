@@ -8,7 +8,6 @@
     "TypeType": {
       "oneOf": [
         {"type": "string"},
-        {"type": "array", "items": {"$ref": "#/definitions/TypeType"}},
         {"type": "object", "additionalProperties": {"$ref": "#/definitions/TypeType"}}
       ]
     },
