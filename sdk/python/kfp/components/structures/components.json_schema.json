@@ -311,29 +311,6 @@
       ]
     },
 
-    "ObjectMetaArgoSubset": {
-      "description": "Subset of io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta structure supported by Argo",
-      "type": "object",
-      "properties": {
-        "annotations": {"type": "object", "additionalItems": {"type": "string"}},
-        "labels": {"type": "object", "additionalItems": {"type": "string"}}
-      },
-      "additionalProperties": false
-    },
-
-    "PodSpecArgoSubset": {
-      "description": "Subset of Kubernetes PodSpec structure supported by Argo",
-      "type": "object",
-      "properties": {
-        "activeDeadlineSeconds": {"type": "integer"},
-        "affinity": {"$ref": "https://raw.githubusercontent.com/garethr/kubernetes-json-schema/master/v1.11.2/_definitions.json#/definitions/io.k8s.api.core.v1.Affinity"},
-        "tolerations": {"type": "array", "items": {"$ref": "https://raw.githubusercontent.com/garethr/kubernetes-json-schema/master/v1.11.2/_definitions.json#/definitions/io.k8s.api.core.v1.Toleration"}},
-        "volumes": {"type": "array", "items": {"$ref": "https://raw.githubusercontent.com/garethr/kubernetes-json-schema/master/v1.11.2/_definitions.json#/definitions/io.k8s.api.core.v1.Volume"}},
-        "nodeSelector": {"type": "object", "additionalItems": {"type": "string"}}
-      },
-      "additionalProperties": false
-    },
-
     "RetryStrategySpec": {
       "description": "Optional configuration that specifies how the task should be retried if it fails.",
       "type": "object",
@@ -347,9 +324,9 @@
       "description": "When running on Kubernetes, KubernetesExecutionOptionsSpec describes changes to the configuration of a Kubernetes Pod that will execute the task.",
       "type": "object",
       "properties": {
-        "metadata": {"$ref": "#/definitions/ObjectMetaArgoSubset"},
-        "mainContainer": {"$ref": "https://raw.githubusercontent.com/garethr/kubernetes-json-schema/master/v1.11.2/_definitions.json#/definitions/io.k8s.api.core.v1.Container"},
-        "podSpec": {"$ref": "#/definitions/PodSpecArgoSubset"}
+        "metadata": {"$ref": "#https://kubernetesjsonschema.dev/v1.14.0/_definitions.json/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"},
+        "mainContainer": {"$ref": "https://kubernetesjsonschema.dev/v1.14.0/_definitions.json#/definitions/io.k8s.api.core.v1.Container"},
+        "podSpec": {"$ref": "https://kubernetesjsonschema.dev/v1.14.0/_definitions.json#/definitions/io.k8s.api.core.v1.PodSpec"}
       },
       "additionalProperties": false
     },
