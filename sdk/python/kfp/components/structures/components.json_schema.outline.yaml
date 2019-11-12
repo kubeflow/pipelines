@@ -10,6 +10,7 @@
             type: TypeType
             description: string
             default: string
+            optional: boolean
     outputs: #OutputSpec[]
         <OutputSpec[]>:
             name: string
@@ -31,33 +32,44 @@
                                 outputPath: string
                             <ConcatPlaceholder>:
                                 concat: StringOrPlaceholder[]
+                            <IfPlaceholder>:
+                                if:
+                                    cond: IfConditionArgumentType
+                                    then: StringOrPlaceholder[]
+                                    else: StringOrPlaceholder[]
                     args: StringOrPlaceholder[]
                     env: Map[str, StringOrPlaceholder]
                     unconfigurableOutputPaths: Map[str, str]
-
-<TaskSpec>:
-    componentRef: #ComponentReference
-        name: string
-        digest: string
-        tag: string
-        url: string
-        spec: ComponentSpec
-    arguments: #Map str -> ArgumentType
-        <Map str -> ArgumentType>:
-            <oneOf>:
-                string:
-                <TaskOutputArgument>:
-                    taskOutput:
-                        taskId: string
-                        outputName: string
-    k8sContainerOptions: io.k8s.api.core.v1.Container
-    k8sPodOptions: #PodArgoSubset
-        metadata: #ObjectMetaArgoSubset
-            annotations: Map str -> str
-            labels: Map str -> str
-        spec: #PodSpecArgoSubset
-            activeDeadlineSeconds: integer
-            affinity: io.k8s.api.core.v1.Affinity
-            tolerations: io.k8s.api.core.v1.Toleration[]
-            volumes: io.k8s.api.core.v1.Volume[]
-            nodeSelector: Map str -> str
+            <GraphImplementation>:
+                graph: #GraphSpec
+                    outputValues: Map str -> TaskOutputArgument
+                    tasks: #Map str -> TaskSpec
+                        <Map str -> TaskSpec>:
+                            componentRef: #ComponentReference
+                                name: string
+                                digest: string
+                                tag: string
+                                url: string
+                                spec: ComponentSpec
+                            arguments: #Map str -> ArgumentType
+                                <Map str -> ArgumentType>:
+                                    <oneOf>:
+                                        string:
+                                        <GraphInputArgument>:
+                                            graphInput: string
+                                        <TaskOutputArgument>:
+                                            taskOutput:
+                                                taskId: string
+                                                outputName: string
+                            isEnabled: PredicateType
+                            k8sContainerOptions: io.k8s.api.core.v1.Container
+                            k8sPodOptions: #PodArgoSubset
+                                metadata: #ObjectMetaArgoSubset
+                                    annotations: Map str -> str
+                                    labels: Map str -> str
+                                spec: #PodSpecArgoSubset
+                                    activeDeadlineSeconds: integer
+                                    affinity: io.k8s.api.core.v1.Affinity
+                                    tolerations: io.k8s.api.core.v1.Toleration[]
+                                    volumes: io.k8s.api.core.v1.Volume[]
+                                    nodeSelector: Map str -> str

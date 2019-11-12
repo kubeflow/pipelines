@@ -8,7 +8,8 @@
     "TypeType": {
       "oneOf": [
         {"type": "string"},
-        {"type": "object", "additionalProperties": {"type": "string"}}
+        {"type": "array", "items": {"$ref": "#/definitions/TypeType"}},
+        {"type": "object", "additionalProperties": {"$ref": "#/definitions/TypeType"}}
       ]
     },
 
@@ -20,7 +21,8 @@
         "name": {"type": "string"},
         "type": {"$ref": "#/definitions/TypeType"},
         "description": {"type": "string"},
-        "default": {"type": "string"}
+        "default": {"type": "string"},
+        "optional": {"type": "boolean", "default": false}
       },
       "additionalProperties": false
     },
@@ -82,7 +84,8 @@
         {"$ref": "#/definitions/InputValuePlaceholder"},
         {"$ref": "#/definitions/InputPathPlaceholder"},
         {"$ref": "#/definitions/OutputPathPlaceholder"},
-        {"$ref": "#/definitions/ConcatPlaceholder"}
+        {"$ref": "#/definitions/ConcatPlaceholder"},
+        {"$ref": "#/definitions/IfPlaceholder"}
       ]
     },
 
@@ -98,6 +101,44 @@
         }
       },
       "additionalProperties": false
+    },
+
+    "IsPresentPlaceholder": {
+      "description": "Represents the command-line argument placeholder that will be replaced at run-time by a boolean value specifying whether the caller has passed an argument for the specified optional input.",
+      "type": "object",
+      "properties": {
+        "isPresent": {
+          "description": "Name of the input.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "IfConditionArgumentType": {
+      "oneOf": [
+        {"$ref": "#/definitions/IsPresentPlaceholder"},
+        {"type": "boolean"},
+        {"type": "string"},
+        {"$ref": "#/definitions/InputValuePlaceholder"}
+      ]
+    },
+
+    "IfPlaceholder": {
+      "description": "Represents the command-line argument placeholder that will be replaced at run-time by a boolean value specifying whether the caller has passed an argument for the specified optional input.",
+      "type": "object",
+      "required": ["if"],
+      "properties": {
+        "if" : {
+          "type": "object",
+          "required": ["cond", "then"],
+          "properties": {
+            "cond": {"$ref": "#/definitions/IfConditionArgumentType"},
+            "then": {"$ref": "#/definitions/CommandlineArgumentOrArrayType"},
+            "else": {"$ref": "#/definitions/CommandlineArgumentOrArrayType"}
+          }
+        }
+      }
     },
 
     "ContainerSpec": {
@@ -143,7 +184,8 @@
 
     "ImplementationType": {
       "oneOf": [
-        {"$ref": "#/definitions/ContainerImplementation"}
+        {"$ref": "#/definitions/ContainerImplementation"},
+        {"$ref": "#/definitions/GraphImplementation"}
       ]
     },
 
@@ -185,6 +227,19 @@
       "additionalProperties": false
     },
 
+    "GraphInputArgument": {
+      "description": "Represents the component argument value that comes from the graph component input.",
+      "type": "object",
+      "required": ["graphInput"],
+      "properties": {
+        "graphInput": {
+          "description": "Input name",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+
     "TaskOutputArgument": {
       "description": "Represents the component argument value that comes from the output of a sibling task.",
       "type": "object",
@@ -207,7 +262,46 @@
     "ArgumentType": {
       "oneOf": [
         {"type": "string"},
+        {"$ref": "#/definitions/GraphInputArgument"},
         {"$ref": "#/definitions/TaskOutputArgument"}
+      ]
+    },
+
+    "TwoArgumentOperands": {
+      "description": "Pair of operands for a binary operation.",
+      "type": "object",
+      "required": ["op1", "op2"],
+      "properties": {
+        "op1":  {"$ref": "#/definitions/ArgumentType"},
+        "op2":  {"$ref": "#/definitions/ArgumentType"}
+      },
+      "additionalProperties": false
+    },
+
+    "TwoLogicalOperands": {
+      "description": "Pair of operands for a binary logical operation.",
+      "type": "object",
+      "required": ["op1", "op2"],
+      "properties": {
+        "op1":  {"$ref": "#/definitions/PredicateType"},
+        "op2":  {"$ref": "#/definitions/PredicateType"}
+      },
+      "additionalProperties": false
+    },
+
+    "PredicateType": {
+      "oneOf": [
+        {"type": "object", "required": ["=="], "properties": {"==":  {"$ref": "#/definitions/TwoArgumentOperands"}}},
+        {"type": "object", "required": ["!="], "properties": {"!=":  {"$ref": "#/definitions/TwoArgumentOperands"}}},
+        {"type": "object", "required": [">"], "properties": {">":  {"$ref": "#/definitions/TwoArgumentOperands"}}},
+        {"type": "object", "required": [">="], "properties": {">=":  {"$ref": "#/definitions/TwoArgumentOperands"}}},
+        {"type": "object", "required": ["<"], "properties": {"<":  {"$ref": "#/definitions/TwoArgumentOperands"}}},
+        {"type": "object", "required": ["<="], "properties": {"<=":  {"$ref": "#/definitions/TwoArgumentOperands"}}},
+
+        {"type": "object", "required": ["and"], "properties": {"and":  {"$ref": "#/definitions/TwoLogicalOperands"}}},
+        {"type": "object", "required": ["or"], "properties": {"or":  {"$ref": "#/definitions/TwoLogicalOperands"}}},
+
+        {"type": "object", "required": ["not"], "properties": {"not":  {"$ref": "#/definitions/PredicateType"}}}
       ]
     },
 
@@ -251,8 +345,30 @@
       "properties": {
         "componentRef": {"$ref": "#/definitions/ComponentReference"},
         "arguments": {"type": "object", "additionalProperties": {"$ref": "#/definitions/ArgumentType"}},
+        "isEnabled": {"$ref": "#/definitions/PredicateType"},
         "k8sContainerOptions": {"$ref": "https://raw.githubusercontent.com/garethr/kubernetes-json-schema/master/v1.11.2/_definitions.json#/definitions/io.k8s.api.core.v1.Container"},
         "k8sPodOptions": {"$ref": "#/definitions/PodArgoSubset"}
+      },
+      "additionalProperties": false
+    },
+
+    "GraphSpec": {
+      "description": "Describes the graph component implementation. It represents a graph of component tasks connected to the upstream sources of data using the argument specifications. It also describes the sources of graph output values.",
+      "type": "object",
+      "required": ["tasks"],
+      "properties": {
+        "tasks": {"type": "object", "additionalProperties": {"$ref": "#/definitions/TaskSpec"}},
+        "outputValues": {"type": "object", "additionalProperties": {"$ref": "#/definitions/TaskOutputArgument"}}
+      },
+      "additionalProperties": false
+    },
+
+    "GraphImplementation": {
+      "description": "Represents the graph component implementation.",
+      "type": "object",
+      "required": ["graph"],
+      "properties": {
+        "graph": {"$ref": "#/definitions/GraphSpec"}
       },
       "additionalProperties": false
     },
