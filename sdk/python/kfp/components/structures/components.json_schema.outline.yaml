@@ -58,10 +58,12 @@
                                         <GraphInputArgument>:
                                             graphInput:
                                                 inputName: string
+                                                type: TypeSpecType
                                         <TaskOutputArgument>:
                                             taskOutput:
                                                 taskId: string
                                                 outputName: string
+                                                type: TypeSpecType
                             isEnabled: PredicateType
                             k8sContainerOptions: io.k8s.api.core.v1.Container
                             k8sPodOptions: #PodArgoSubset

@@ -236,7 +236,8 @@
           "type": "object",
           "required": ["inputName"],
           "properties": {
-            "inputName": {"type": "string"}
+            "inputName": {"type": "string"},
+            "type": {"$ref": "#/definitions/TypeSpecType"}
           },
           "additionalProperties": false
         }
@@ -255,7 +256,8 @@
           "required": ["taskId", "outputName"],
           "properties": {
             "taskId": {"type": "string"},
-            "outputName": {"type": "string"}
+            "outputName": {"type": "string"},
+            "type": {"$ref": "#/definitions/TypeSpecType"}
           },
           "additionalProperties": false
         }
