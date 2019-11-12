@@ -74,15 +74,15 @@ def _create_test_pipeline(
   example_gen = CsvExampleGen(input_base=examples)
   statistics_gen = StatisticsGen(input_data=example_gen.outputs.examples)
   infer_schema = SchemaGen(
-      stats=statistics_gen.outputs.output, infer_feature_shape=False
+      stats=statistics_gen.outputs.output, infer_feature_shape=False,
   )
   validate_stats = ExampleValidator(
-      stats=statistics_gen.outputs.output, schema=infer_schema.outputs.output
+      stats=statistics_gen.outputs.output, schema=infer_schema.outputs.output,
   )
   transform = Transform(
       input_data=example_gen.outputs.examples,
       schema=infer_schema.outputs.output,
-      module_file=taxi_module_file
+      module_file=taxi_module_file,
   )
   trainer = Trainer(
       module_file=taxi_module_file,
@@ -90,7 +90,7 @@ def _create_test_pipeline(
       schema=infer_schema.outputs.output,
       transform_output=transform.outputs.transform_output,
       train_args=trainer_pb2.TrainArgs(num_steps=10),
-      eval_args=trainer_pb2.EvalArgs(num_steps=5)
+      eval_args=trainer_pb2.EvalArgs(num_steps=5),
   )
   model_analyzer = Evaluator(
       examples=example_gen.outputs.examples,
@@ -101,7 +101,7 @@ def _create_test_pipeline(
                   column_for_slicing=['trip_start_hour']
               )
           ]
-      )
+      ),
   )
   model_validator = ModelValidator(
       examples=example_gen.outputs.examples, model=trainer.outputs.output
@@ -120,7 +120,7 @@ def _create_test_pipeline(
               base_directory=os.path.
               join(str(_pipeline_root_param), 'model_serving')
           )
-      )
+      ),
   )
 
   return pipeline.Pipeline(
@@ -141,12 +141,12 @@ if __name__ == '__main__':
       pipeline_root,
       str(_data_root_param),
       str(_taxi_module_file_param),
-      enable_cache=enable_cache
+      enable_cache=enable_cache,
   )
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
-      tfx_image='tensorflow/tfx:0.16.0.dev20191101'
+      tfx_image='tensorflow/tfx:0.16.0.dev20191101',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(config=config)
   # Make sure kfp_runner recognizes those parameters.
