@@ -334,16 +334,36 @@
       "additionalProperties": false
     },
 
-    "PodArgoSubset": {
-      "description": "Subset of io.k8s.api.core.v1.Pod structure supported by Argo",
+    "RetryStrategySpec": {
+      "description": "Optional configuration that specifies how the task should be retried if it fails.",
       "type": "object",
       "properties": {
-        "metadata": {"$ref": "#/definitions/ObjectMetaArgoSubset"},
-        "spec": {"$ref": "#/definitions/PodSpecArgoSubset"}
+        "maxRetries": {"type": "integer"}
       },
       "additionalProperties": false
     },
 
+    "KubernetesExecutionOptionsSpec": {
+      "description": "When running on Kubernetes, KubernetesExecutionOptionsSpec describes changes to the configuration of a Kubernetes Pod that will execute the task.",
+      "type": "object",
+      "properties": {
+        "metadata": {"$ref": "#/definitions/ObjectMetaArgoSubset"},
+        "mainContainer": {"$ref": "https://raw.githubusercontent.com/garethr/kubernetes-json-schema/master/v1.11.2/_definitions.json#/definitions/io.k8s.api.core.v1.Container"},
+        "podSpec": {"$ref": "#/definitions/PodSpecArgoSubset"}
+      },
+      "additionalProperties": false
+    },
+
+    "ExecutionOptionsSpec": {
+      "description": "Optional configuration that specifies how the task should be executed. Can be used to set some platform-specific options.",
+      "type": "object",
+      "properties": {
+        "retryStrategy": {"$ref": "#/definitions/RetryStrategySpec"},
+        "kubernetesOptions": {"$ref": "#/definitions/KubernetesExecutionOptionsSpec"}
+      },
+      "additionalProperties": false
+    },
+    
     "TaskSpec": {
       "description": "'Task specification. Task is a configured component - a component supplied with arguments and other applied configuration changes.",
       "type": "object",
@@ -352,8 +372,7 @@
         "componentRef": {"$ref": "#/definitions/ComponentReference"},
         "arguments": {"type": "object", "additionalProperties": {"$ref": "#/definitions/ArgumentType"}},
         "isEnabled": {"$ref": "#/definitions/PredicateType"},
-        "k8sContainerOptions": {"$ref": "https://raw.githubusercontent.com/garethr/kubernetes-json-schema/master/v1.11.2/_definitions.json#/definitions/io.k8s.api.core.v1.Container"},
-        "k8sPodOptions": {"$ref": "#/definitions/PodArgoSubset"}
+        "executionOptions": {"$ref": "#/definitions/ExecutionOptionsSpec"}
       },
       "additionalProperties": false
     },
