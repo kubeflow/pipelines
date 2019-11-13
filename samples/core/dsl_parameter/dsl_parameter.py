@@ -12,7 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""This sample demonstrates how to use pipeline parameter in TFX DSL."""
+"""This sample demonstrates how to use pipeline parameter in TFX DSL.
+
+In this sample, we'll walk through the process of authoring a pipeline with only
+one ExampleGen component in TFX DSL. This pipeline consumes an external csv file
+whose uri is runtime-parameterized and output an artifact with one split. The
+split name is also runtime-parameterized.
+"""
 
 import os
 
