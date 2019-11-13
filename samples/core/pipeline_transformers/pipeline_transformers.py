@@ -30,13 +30,13 @@ def add_annotation(op):
   return op
 
 @dsl.pipeline(
-    name='Retry random failures',
-    description='The pipeline includes two steps which fail randomly. It shows how to use ContainerOp(...).set_retry(...).'
+    name='Pipeline transformer',
+    description='The pipeline shows how to apply functions to all ops in the pipeline by pipeline transformers'
 )
-def retry_sample_pipeline():
+def transform_pipeline():
   op1 = print_op('hey, what are you up to?')
   op2 = print_op('train my model.')
   dsl.get_pipeline_conf().add_op_transformer(add_annotation)
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(retry_sample_pipeline, __file__ + '.zip')
+  kfp.compiler.Compiler().compile(transform_pipeline, __file__ + '.zip')
