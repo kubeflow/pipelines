@@ -81,10 +81,18 @@ def create_artifact_with_type(
     store,
     uri: str,
     type_name: str,
+    properties: dict = None,
+    type_properties: dict = None,
 ) -> metadata_store_pb2.Artifact:
+    artifact_type = get_or_create_artifact_type(
+        store=store,
+        type_name=type_name,
+        properties=type_properties,
+    )
     artifact = metadata_store_pb2.Artifact(
         uri=uri,
-        type_id=get_or_create_artifact_type(store, type_name).id,
+        type_id=artifact_type.id,
+        properties=properties,
     )
     artifact.id = store.put_artifacts([artifact])[0]
     return artifact
@@ -93,9 +101,17 @@ def create_artifact_with_type(
 def create_execution_with_type(
     store,
     type_name: str,
+    properties: dict = None,
+    type_properties: dict = None,
 ) -> metadata_store_pb2.Execution:
+    execution_type = get_or_create_execution_type(
+        store=store,
+        type_name=type_name,
+        properties=type_properties,
+    )
     execution = metadata_store_pb2.Execution(
-        type_id=get_or_create_execution_type(store, type_name).id,
+        type_id=execution_type.id,
+        properties=properties,
     )
     execution.id = store.put_executions([execution])[0]
     return execution
@@ -105,11 +121,19 @@ def create_context_with_type(
     store,
     context_name: str,
     type_name: str,
+    properties: dict = None,
+    type_properties: dict = None,
 ) -> metadata_store_pb2.Context:
     # ! Context_name must be unique
+    context_type = get_or_create_context_type(
+        store=store,
+        type_name=type_name,
+        properties=type_properties,
+    )
     context = metadata_store_pb2.Context(
         name=context_name,
-        type_id=get_or_create_context_type(store, type_name).id,
+        type_id=context_type.id,
+        properties=properties,
     )
     context.id = store.put_contexts([context])[0]
     return context
@@ -125,93 +149,168 @@ def get_context_by_name(
     assert len(matching_contexts) <= 1
     if len(matching_contexts) == 0:
         raise ValueError('Context with name "{}" was not found'.format(context_name))
-    return matching_contexts[0]    
+    return matching_contexts[0]
 
 
 def get_or_create_context_with_type(
     store,
     context_name: str,
     type_name: str,
+    properties: dict = None,
+    type_properties: dict = None,
 ) -> metadata_store_pb2.Context:
     try:
-        context = create_context_with_type(store, context_name, type_name)
-        return context
-    except:
         context = get_context_by_name(store, context_name)
         context_types = store.get_context_types_by_id([context.type_id])
         assert len(context_types) == 1
         assert context_types[0].name == type_name
         return context
+    except:
+        context = create_context_with_type(
+            store=store,
+            context_name=context_name,
+            type_name=type_name,
+            properties=properties,
+            type_properties=type_properties,
+        )
+        return context
 
 
-def create_new_execution_with_context(
+def create_new_execution_in_existing_context(
     store,
     execution_type_name: str,
-    context_name: str,
-    context_type_name: str,
+    context_id: int,
+    properties: dict = None,
+    execution_type_properties: dict = None,
 ) -> metadata_store_pb2.Execution:
     execution = create_execution_with_type(
         store=store,
+        properties=properties,
         type_name=execution_type_name,
-    )
-    context = get_or_create_context_with_type(
-        store=store,
-        context_name=context_name,
-        type_name=context_type_name,
+        type_properties=execution_type_properties,
     )
     association = metadata_store_pb2.Association(
         execution_id=execution.id,
-        context_id=context.id,
+        context_id=context_id,
     )
 
     store.put_attributions_and_associations([], [association])
     return execution
 
 
-def create_new_execution_with_run_context(
+RUN_CONTEXT_TYPE_NAME = "KfpRun"
+ARTIFACT_IO_NAME_PROPERTY_NAME = "name"
+EXECUTION_COMPONENT_ID_PROPERTY_NAME = "component_id"# ~= Task ID
+
+#TODO: Get rid of these when https://github.com/tensorflow/tfx/issues/905 and https://github.com/kubeflow/pipelines/issues/2562 are fixed
+ARTIFACT_PIPELINE_NAME_PROPERTY_NAME = "pipeline_name"
+EXECUTION_PIPELINE_NAME_PROPERTY_NAME = "pipeline_name"
+CONTEXT_PIPELINE_NAME_PROPERTY_NAME = "pipeline_name"
+ARTIFACT_RUN_ID_PROPERTY_NAME = "run_id"
+EXECUTION_RUN_ID_PROPERTY_NAME = "run_id"
+CONTEXT_RUN_ID_PROPERTY_NAME = "run_id"
+
+
+def get_or_create_run_context(
+    store,
+    run_id: str,
+) -> metadata_store_pb2.Context:
+    context = get_or_create_context_with_type(
+        store=store,
+        context_name=run_id,
+        type_name=RUN_CONTEXT_TYPE_NAME,
+        type_properties={
+            CONTEXT_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
+            CONTEXT_RUN_ID_PROPERTY_NAME: metadata_store_pb2.STRING,
+        },
+        properties={
+            CONTEXT_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
+            CONTEXT_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
+        },
+    )
+    return context
+
+
+def create_new_execution_in_existing_run_context(
     store,
     execution_type_name: str,
-    run_name: str,
+    context_id: int,
 ) -> metadata_store_pb2.Execution:
-    RUN_CONTEXT_TYPE_NAME = "KfpRun"
-    return create_new_execution_with_context(
+    return create_new_execution_in_existing_context(
         store=store,
         execution_type_name=execution_type_name,
-        context_name=run_name,
-        context_type_name=RUN_CONTEXT_TYPE_NAME,
+        context_id=context_id,
+        execution_type_properties={
+            EXECUTION_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
+            EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.STRING,
+            EXECUTION_COMPONENT_ID_PROPERTY_NAME: metadata_store_pb2.STRING,
+        },
+        properties={
+            #EXECUTION_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id), # Mistakenly used for grouping in the UX
+            #EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
+            EXECUTION_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value='Context_' + str(context_id) + '_pipeline'), # Mistakenly used for grouping in the UX
+            EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value='Context_' + str(context_id) + '_run'),
+            EXECUTION_COMPONENT_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=execution_type_name), # should set to task ID, not component ID
+        },
     )
 
 
-def create_new_artifact_and_event(
+def create_new_artifact_event_and_attribution(
     store,
     execution_id: int,
+    context_id: int,
     uri: str,
     type_name: str,
     event_type: metadata_store_pb2.Event.Type,
+    properties: dict = None,
+    artifact_type_properties: dict = None,
     artifact_name_path: metadata_store_pb2.Event.Path = None,
+    milliseconds_since_epoch: int = None,
 ) -> metadata_store_pb2.Artifact:
-    artifact = create_artifact_with_type(store, uri, type_name)
+    artifact = create_artifact_with_type(
+        store=store,
+        uri=uri,
+        type_name=type_name,
+        type_properties=artifact_type_properties,
+        properties=properties,
+    )
     event = metadata_store_pb2.Event(
         execution_id=execution_id,
         artifact_id=artifact.id,
         type=event_type,
         path=artifact_name_path,
+        milliseconds_since_epoch=milliseconds_since_epoch,
     )
-
     store.put_events([event])
+
+    attribution = metadata_store_pb2.Attribution(
+        context_id=context_id,
+        artifact_id=artifact.id,
+    )
+    store.put_attributions_and_associations([attribution], [])
+
     return artifact
 
 
-def create_new_input_artifact_and_event(
+def create_new_input_artifact(
     store,
     execution_id: int,
+    context_id: int,
     uri: str,
     type_name: str,
     input_name: str,
+    run_id: str = None,
 ) -> metadata_store_pb2.Artifact:
-    return create_new_artifact_and_event(
+    properties = {
+        ARTIFACT_IO_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=input_name),
+    }
+    if run_id:
+        properties[ARTIFACT_PIPELINE_NAME_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
+        properties[ARTIFACT_RUN_ID_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
+    return create_new_artifact_event_and_attribution(
         store=store,
         execution_id=execution_id,
+        context_id=context_id,
         uri=uri,
         type_name=type_name,
         event_type=metadata_store_pb2.Event.INPUT,
@@ -223,19 +322,35 @@ def create_new_input_artifact_and_event(
                 ),
             ]
         ),
+        properties=properties,
+        artifact_type_properties={
+            ARTIFACT_IO_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
+            ARTIFACT_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
+            ARTIFACT_RUN_ID_PROPERTY_NAME: metadata_store_pb2.STRING,
+        },
+        #milliseconds_since_epoch=int(datetime.now(timezone.utc).timestamp() * 1000), # Happens automatically
     )
 
 
-def create_new_output_artifact_and_event(
+def create_new_output_artifact(
     store,
     execution_id: int,
+    context_id: int,
     uri: str,
     type_name: str,
     output_name: str,
+    run_id: str = None,
 ) -> metadata_store_pb2.Artifact:
-    return create_new_artifact_and_event(
+    properties = {
+        ARTIFACT_IO_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=output_name),
+    }
+    if run_id:
+        properties[ARTIFACT_PIPELINE_NAME_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
+        properties[ARTIFACT_RUN_ID_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
+    return create_new_artifact_event_and_attribution(
         store=store,
         execution_id=execution_id,
+        context_id=context_id,
         uri=uri,
         type_name=type_name,
         event_type=metadata_store_pb2.Event.OUTPUT,
@@ -247,6 +362,13 @@ def create_new_output_artifact_and_event(
                 ),
             ]
         ),
+        properties=properties,
+        artifact_type_properties={
+            ARTIFACT_IO_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
+            ARTIFACT_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
+            ARTIFACT_RUN_ID_PROPERTY_NAME: metadata_store_pb2.STRING,
+        },
+        #milliseconds_since_epoch=int(datetime.now(timezone.utc).timestamp() * 1000), # Happens automatically
     )
 
 # End metadata helpers
@@ -328,8 +450,9 @@ ARGO_OUTPUTS_ANNOTATION_KEY = 'workflows.argoproj.io/outputs'
 ARGO_TEMPLATE_ANNOTATION_KEY = 'workflows.argoproj.io/template'
 KFP_COMPONENT_SPEC_ANNOTATION_KEY = 'pipelines.kubeflow.org/component_spec'
 #KFP_PIPELINE_SPEC_ANNOTATION_KEY = 'pipelines.kubeflow.org/pipeline_spec'
-METADATA_EXECUTION_ID_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_execution_id'
+#METADATA_EXECUTION_ID_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_execution_id'
 METADATA_EXECUTION_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_execution_id'
+METADATA_CONTEXT_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_context_id'
 METADATA_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_artifact_ids'
 METADATA_INPUT_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_input_artifact_ids'
 METADATA_OUTPUT_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_output_artifact_ids'
@@ -350,7 +473,7 @@ def cleanup_pods():
             pod_name=pod.metadata.name,
             patch={
                 'annotations': {
-                    METADATA_EXECUTION_ID_ANNOTATION_KEY: None,
+                    #METADATA_EXECUTION_ID_ANNOTATION_KEY: None,
                     METADATA_ARTIFACT_IDS_ANNOTATION_KEY: None,
                     METADATA_INPUT_ARTIFACT_IDS_ANNOTATION_KEY: None,
                     METADATA_OUTPUT_ARTIFACT_IDS_ANNOTATION_KEY: None,
@@ -358,6 +481,7 @@ def cleanup_pods():
                 'labels': {
                     METADATA_EXECUTION_ID_LABEL_KEY: None,
                     METADATA_WRITTEN_LABEL_KEY: None,
+                    METADATA_CONTEXT_ID_LABEL_KEY: None,
                 }
             },
         )
@@ -407,7 +531,9 @@ exit(0)
 
 #%%
 
+# Caches (not expected to be persistent)
 pod_name_to_execution_id = {} # Updates happen fast. I've seen new ID being assigned to an execution 3 times.
+workflow_name_to_context_id = {}
 pods_with_written_metadata = set()
 
 #while True:
@@ -447,36 +573,54 @@ for event in k8s_watch.stream(
 
         if obj.metadata.name in pod_name_to_execution_id:
             execution_id = pod_name_to_execution_id[obj.metadata.name]
+            context_id = workflow_name_to_context_id[argo_workflow_name]
+
         elif METADATA_EXECUTION_ID_LABEL_KEY in obj.metadata.labels:
         #if METADATA_EXECUTION_ID_LABEL_KEY in obj.metadata.labels:
             execution_id = int(obj.metadata.labels[METADATA_EXECUTION_ID_LABEL_KEY])
-            print('Found execution id: {} for pod {}.'.format(execution_id, obj.metadata.name))
+            context_id = int(obj.metadata.labels[METADATA_CONTEXT_ID_LABEL_KEY])
+            print('Found execution id: {}, context id: {} for pod {}.'.format(execution_id, context_id, obj.metadata.name))
         else:
             #if event['type'] != 'ADDED':
             #    continue # Only add execution ID once
 
-            # Adding new execution to the database
-            execution = create_new_execution_with_run_context(
+            run_context = get_or_create_run_context(
                 store=mlmd_store,
+                run_id=argo_workflow_name, # We can switch to internal run IDs once backend starts adding them
+            )
+
+            # Adding new execution to the database
+            execution = create_new_execution_in_existing_run_context(
+                store=mlmd_store,
+                context_id=run_context.id,
                 execution_type_name=component_name,
-                run_name=argo_workflow_name, # We can switch to internal run IDs once backend starts adding them
                 #?? execution_name = obj.metadata.name,
             )
             execution_id = execution.id
+            context_id = run_context.id
 
             obj.metadata.labels[METADATA_EXECUTION_ID_LABEL_KEY] = execution_id
-            add_pod_metadata(
+            obj.metadata.labels[METADATA_CONTEXT_ID_LABEL_KEY] = context_id
+
+            metadata_to_add = {
+                'labels': {
+                    METADATA_EXECUTION_ID_LABEL_KEY: str(execution_id),
+                    METADATA_CONTEXT_ID_LABEL_KEY: str(context_id),
+                },
+            }
+
+            patch_pod_metadata(
                 namespace=obj.metadata.namespace,
                 pod_name=obj.metadata.name,
-                field='labels',
-                key=METADATA_EXECUTION_ID_LABEL_KEY,
-                value=execution_id,
+                patch=metadata_to_add,
             )
             pod_name_to_execution_id[obj.metadata.name] = execution_id
+            workflow_name_to_context_id[argo_workflow_name] = context_id
 
-            print('New execution id: {} for pod {}.'.format(execution_id, obj.metadata.name))
+            print('New execution id: {}, context id: {} for pod {}.'.format(execution_id, context_id, obj.metadata.name))
 
             print('Execution: ' + str(dict(
+                context_id=context_id,
                 context_name=argo_workflow_name,
                 execution_id=execution_id,
                 execution_name=obj.metadata.name,
@@ -510,12 +654,14 @@ for event in k8s_watch.stream(
                         type=artifact_type_name,
                     )))
 
-                    artifact = create_new_output_artifact_and_event(
+                    artifact = create_new_output_artifact(
                         store=mlmd_store,
                         execution_id=execution_id,
+                        context_id=context_id,
                         uri=artifact_uri,
                         type_name=artifact_type_name,
                         output_name=name,
+                        run_id='Context_' + str(context_id) + '_run',
                     )
 
                     artifact_ids.append(dict(
