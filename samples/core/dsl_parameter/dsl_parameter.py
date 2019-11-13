@@ -23,7 +23,7 @@ from kfp import dsl
 
 from tfx.components.example_gen.csv_example_gen.component import CsvExampleGen
 from tfx.orchestration import pipeline
-from tfx.orchestration.experimental.parameter import runtime_parameter
+from tfx.orchestration.experimental.parameter import runtime_string_parameter
 from tfx.orchestration.kubeflow import kubeflow_dag_runner
 from tfx.utils.dsl_utils import csv_input
 from tfx.proto import example_gen_pb2
@@ -41,7 +41,7 @@ _data_root_param = dsl.PipelineParam(
     value='gs://ml-pipeline-playground/tfx_taxi_simple/data')
 
 # Name of the output split from ExampleGen. Specified as a RuntimeParameter.
-_example_split_name = runtime_parameter.RuntimeParameter(
+_example_split_name = runtime_string_parameter.RuntimeParameter(
     name='split-name', default='train'
 )
 
@@ -61,7 +61,7 @@ def _create_one_step_pipeline(
   Returns:
     A logical TFX pipeline.Pipeline object.
   """
-  example_split_name = runtime_parameter.RuntimeParameter(
+  example_split_name = runtime_string_parameter.RuntimeParameter(
       name='split-name', default='train'
   )
   examples = csv_input(str(_data_root_param))
