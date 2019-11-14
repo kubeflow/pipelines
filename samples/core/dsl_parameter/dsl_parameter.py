@@ -46,11 +46,6 @@ _data_root_param = dsl.PipelineParam(
     name='data-root',
     value='gs://ml-pipeline-playground/tfx_taxi_simple/data')
 
-# Name of the output split from ExampleGen. Specified as a RuntimeParameter.
-_example_split_name = runtime_string_parameter.RuntimeStringParameter(
-    name='split-name', default='train'
-)
-
 
 def _create_one_step_pipeline(
     pipeline_name: Text,
@@ -67,6 +62,7 @@ def _create_one_step_pipeline(
   Returns:
     A logical TFX pipeline.Pipeline object.
   """
+  # Name of the output split from ExampleGen. Specified as a RuntimeParameter.
   example_split_name = runtime_string_parameter.RuntimeStringParameter(
       name='split-name', default='train'
   )
