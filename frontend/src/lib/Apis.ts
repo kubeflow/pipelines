@@ -14,23 +14,11 @@
 
 import * as portableFetch from 'portable-fetch';
 import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
-import {
-  Configuration as ExperimentApiConfig,
-  ExperimentServiceApi,
-  FetchAPI,
-} from '../apis/experiment';
-import { Configuration as JobApiConfig, JobServiceApi } from '../apis/job';
-import {
-  ApiPipeline,
-  Configuration as PipelineApiConfig,
-  PipelineServiceApi,
-} from '../apis/pipeline';
-import { Configuration as RunApiConfig, RunServiceApi } from '../apis/run';
-import {
-  ApiVisualization,
-  Configuration as VisualizationApiConfig,
-  VisualizationServiceApi,
-} from '../apis/visualization';
+import { ExperimentServiceApi, FetchAPI } from '../apis/experiment';
+import { JobServiceApi } from '../apis/job';
+import { ApiPipeline, PipelineServiceApi } from '../apis/pipeline';
+import { RunServiceApi } from '../apis/run';
+import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization';
 import { PlotType } from '../components/viewers/Viewer';
 import {
   MetadataStoreServiceClient,
@@ -139,37 +127,6 @@ const metadataServicePromiseClient = {
 const crossBrowserFetch: FetchAPI = (url, init) =>
   portableFetch(url, { credentials: 'same-origin', ...init });
 
-// There's no better way to do this, ref: https://github.com/swagger-api/swagger-codegen/pull/4038#issuecomment-257844811
-class ExperimentServiceApiPatch extends ExperimentServiceApi {
-  constructor(configuration?: ExperimentApiConfig) {
-    super(configuration, undefined, crossBrowserFetch);
-  }
-}
-
-class JobServiceApiPatch extends JobServiceApi {
-  constructor(configuration?: JobApiConfig) {
-    super(configuration, undefined, crossBrowserFetch);
-  }
-}
-
-class RunServiceApiPatch extends RunServiceApi {
-  constructor(configuration?: RunApiConfig) {
-    super(configuration, undefined, crossBrowserFetch);
-  }
-}
-
-class VisualizationServiceApiPatch extends VisualizationServiceApi {
-  constructor(configuration?: VisualizationApiConfig) {
-    super(configuration, undefined, crossBrowserFetch);
-  }
-}
-
-class PipelineServiceApiPatch extends PipelineServiceApi {
-  constructor(configuration?: PipelineApiConfig) {
-    super(configuration, undefined, crossBrowserFetch);
-  }
-}
-
 export class Apis {
   public static async areCustomVisualizationsAllowed(): Promise<boolean> {
     // Result is cached to prevent excessive network calls for simple request.
@@ -220,35 +177,55 @@ export class Apis {
 
   public static get experimentServiceApi(): ExperimentServiceApi {
     if (!this._experimentServiceApi) {
-      this._experimentServiceApi = new ExperimentServiceApiPatch({ basePath: this.basePath });
+      this._experimentServiceApi = new ExperimentServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._experimentServiceApi;
   }
 
   public static get jobServiceApi(): JobServiceApi {
     if (!this._jobServiceApi) {
-      this._jobServiceApi = new JobServiceApiPatch({ basePath: this.basePath });
+      this._jobServiceApi = new JobServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._jobServiceApi;
   }
 
   public static get pipelineServiceApi(): PipelineServiceApi {
     if (!this._pipelineServiceApi) {
-      this._pipelineServiceApi = new PipelineServiceApiPatch({ basePath: this.basePath });
+      this._pipelineServiceApi = new PipelineServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._pipelineServiceApi;
   }
 
   public static get runServiceApi(): RunServiceApi {
     if (!this._runServiceApi) {
-      this._runServiceApi = new RunServiceApiPatch({ basePath: this.basePath });
+      this._runServiceApi = new RunServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._runServiceApi;
   }
 
   public static get visualizationServiceApi(): VisualizationServiceApi {
     if (!this._visualizationServiceApi) {
-      this._visualizationServiceApi = new VisualizationServiceApiPatch({ basePath: this.basePath });
+      this._visualizationServiceApi = new VisualizationServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._visualizationServiceApi;
   }
