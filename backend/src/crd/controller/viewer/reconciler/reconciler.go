@@ -42,6 +42,8 @@ import (
 
 const viewerTargetPort = 6006
 
+const defaultTensorflowImage = "tensorflow/tensorflow:1.13.2"
+
 // Reconciler implements reconcile.Reconciler for the Viewer CRD.
 type Reconciler struct {
 	client.Client
@@ -91,13 +93,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	}
 
 	if len(view.Spec.TensorboardSpec.TensorflowImage) == 0 {
-		if err := r.Client.Delete(context.Background(), view); err != nil {
-			glog.Infof("Error in deleting viewer CRD: %+v", err)
-			return reconcile.Result{}, err
-		} else {
-			glog.Infof("Deleted viewer CRD that is missing tensorflow image.")
-			return reconcile.Result{}, nil
-		}
+		view.Spec.TensorboardSpec.TensorflowImage = defaultTensorflowImage
 	}
 
 	// Check and maybe delete the oldest viewer before creating the next one.
