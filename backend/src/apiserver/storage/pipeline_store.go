@@ -715,6 +715,7 @@ func (s *PipelineStore) DeletePipelineVersion(versionId string) error {
 				err.Error())
 		}
 	}
+	r.Close()
 	if len(pipelineId) == 0 {
 		// The deleted version is not used as a default version. So no extra
 		// work is needed. We commit the deletion now.
@@ -724,6 +725,7 @@ func (s *PipelineStore) DeletePipelineVersion(versionId string) error {
 				"Failed to delete pipeline version: %v",
 				err.Error())
 		}
+		return nil
 	}
 
 	// (3) find a new default version.
@@ -751,11 +753,12 @@ func (s *PipelineStore) DeletePipelineVersion(versionId string) error {
 				err.Error())
 		}
 	}
+	r.Close()
 	if len(newDefaultVersionId) == 0 {
 		// No new default version. The pipeline's default version id will be
 		// null.
 		_, err = tx.Exec(
-			"update pipelines set DefaultVerionId = null where UUID = ?",
+			"update pipelines set DefaultVersionId = null where UUID = ?",
 			pipelineId)
 		if err != nil {
 			tx.Rollback()
