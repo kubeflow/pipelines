@@ -14,16 +14,13 @@
 FROM ubuntu:16.04
 
 RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget unzip git && \
+    apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget && \
     easy_install pip && \
-    pip install pyyaml==3.12 six==1.11.0 requests==2.18.4 grpcio gcloud google-api-python-client protobuf kubernetes && \
-    wget https://github.com/kubeflow/katib/archive/master.zip && unzip master.zip
-
-ENV PYTHONPATH $PYTHONPATH:/katib-master/pkg/api/v1alpha1/python:/katib-master/py
+    pip install pyyaml==3.12 kubernetes
 
 ADD build /ml
 
 RUN mkdir /usr/licenses && \
     /ml/license.sh /ml/third_party_licenses.csv /usr/licenses
 
-ENTRYPOINT ["python", "/ml/launch_study_job.py"]
+ENTRYPOINT ["python", "/ml/launch_experiment.py"]
