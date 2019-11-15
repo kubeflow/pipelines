@@ -21,14 +21,15 @@ steps:
     waitFor: ["-"]
   - name: "gcr.io/cloud-builders/docker"
     args:
-      ["build", "-t", "$_GCR_BASE/inverse-proxy-agent", "-f", "proxy/Dockerfile", "."]
+      ["build", "-t", "$_GCR_BASE/inverse-proxy-agent", "-f", "proxy/Dockerfile", "./proxy"]
     waitFor: ["-"]
 options:
   machineType: N1_HIGHCPU_8 # use a fast machine to build because there a lot of work
 images:
-  - "$_GCR_BASE/frontend"
-  - "$_GCR_BASE/scheduledworkflow"
   - "$_GCR_BASE/persistenceagent"
+  - "$_GCR_BASE/scheduledworkflow"
+  - "$_GCR_BASE/frontend"
   - "$_GCR_BASE/viewer-crd-controller"
   - "$_GCR_BASE/visualization-server"
+  - "$_GCR_BASE/inverse-proxy-agent"
 timeout: 1800s # 30min

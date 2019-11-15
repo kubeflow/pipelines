@@ -22,6 +22,7 @@ enum ResourceType {
   EXPERIMENT = 1;
   JOB = 2;
   PIPELINE = 3;
+  PIPELINE_VERSION = 4;
 }
 
 enum Relationship {

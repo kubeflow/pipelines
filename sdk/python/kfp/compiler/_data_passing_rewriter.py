@@ -57,6 +57,9 @@ def fix_big_data_passing(workflow: dict) -> dict:
                     template_input_to_parent_constant_arguments.setdefault((task_template_name, task_input_name), set()).add(argument_value)
 
                 placeholder_type = argument_placeholder_parts[0]
+                if placeholder_type not in ('inputs', 'outputs', 'tasks', 'steps', 'workflow', 'pod', 'item'):
+                    # Do not fail on Jinja or other double-curly-brace templates
+                    continue
                 if placeholder_type == 'inputs':
                     assert argument_placeholder_parts[1] == 'parameters'
                     dag_input_name = argument_placeholder_parts[2]
@@ -135,6 +138,9 @@ def fix_big_data_passing(workflow: dict) -> dict:
             for placeholder in placeholders:
                 parts = placeholder.split('.')
                 placeholder_type = parts[0]
+                if placeholder_type not in ('inputs', 'outputs', 'tasks', 'steps', 'workflow', 'pod', 'item'):
+                    # Do not fail on Jinja or other double-curly-brace templates
+                    continue
                 if placeholder_type == 'inputs':
                     if parts[1] == 'parameters':
                         input_name = parts[2]
@@ -162,6 +168,10 @@ def fix_big_data_passing(workflow: dict) -> dict:
         for placeholder in placeholders:
             parts = placeholder.split('.')
             placeholder_type = parts[0]
+            if placeholder_type not in ('inputs', 'outputs', 'tasks', 'steps', 'workflow', 'pod', 'item'):
+                # Do not fail on Jinja or other double-curly-brace templates
+                continue
+
             if placeholder_type == 'workflow' or placeholder_type == 'pod':
                 pass
             elif placeholder_type == 'inputs':
@@ -169,13 +179,11 @@ def fix_big_data_passing(workflow: dict) -> dict:
                     input_name = parts[2]
                     inputs_directly_consumed_as_parameters.add((template_name, input_name))
                 elif parts[1] == 'artifacts':
-                    raise AssertionError # Should not happen in container templates
+                    raise AssertionError('Found unexpected Argo input artifact placeholder in container template: {}'.format(placeholder))
                 else:
-                    raise AssertionError
-            elif placeholder_type == 'outputs':
-                raise AssertionError # Should not happen in container templates
+                    raise AssertionError('Found unexpected Argo input placeholder in container template: {}'.format(placeholder))
             else:
-                raise AssertionError
+                raise AssertionError('Found unexpected Argo placeholder in container template: {}'.format(placeholder))
 
     # Finished indexing data consumers
 

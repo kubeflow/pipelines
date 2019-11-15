@@ -17,35 +17,35 @@
 import * as React from 'react';
 
 import { mount } from 'enzyme';
-import { Descriptoin } from './Description';
+import { Description } from './Description';
 
 describe('Description', () => {
   describe('When in normal mode', () => {
     it('renders empty string', () => {
-      const tree = mount(<Descriptoin description='' />).getDOMNode();
+      const tree = mount(<Description description='' />).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
 
     it('renders pure text', () => {
-      const tree = mount(<Descriptoin description='this is a line of pure text' />).getDOMNode();
+      const tree = mount(<Description description='this is a line of pure text' />).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
 
     it('renders raw link', () => {
       const description = 'https://www.google.com';
-      const tree = mount(<Descriptoin description={description} />).getDOMNode();
+      const tree = mount(<Description description={description} />).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
 
     it('renders markdown link', () => {
       const description = '[google](https://www.google.com)';
-      const tree = mount(<Descriptoin description={description} />).getDOMNode();
+      const tree = mount(<Description description={description} />).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
 
     it('renders paragraphs', () => {
       const description = 'Paragraph 1\n' + '\n' + 'Paragraph 2';
-      const tree = mount(<Descriptoin description={description} />).getDOMNode();
+      const tree = mount(<Description description={description} />).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
 
@@ -53,7 +53,7 @@ describe('Description', () => {
       const description = `
 * abc
 * def`;
-      const tree = mount(<Descriptoin description={description} />).getDOMNode();
+      const tree = mount(<Description description={description} />).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
   });
@@ -65,26 +65,26 @@ Paragraph 1
 
 Paragraph 2
 `;
-      const tree = mount(<Descriptoin description={description} forceInline={true} />).getDOMNode();
+      const tree = mount(<Description description={description} forceInline={true} />).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
 
     it('renders pure text', () => {
       const tree = mount(
-        <Descriptoin description='this is a line of pure text' forceInline={true} />,
+        <Description description='this is a line of pure text' forceInline={true} />,
       ).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
 
     it('renders raw link', () => {
       const description = 'https://www.google.com';
-      const tree = mount(<Descriptoin description={description} forceInline={true} />).getDOMNode();
+      const tree = mount(<Description description={description} forceInline={true} />).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
 
     it('renders markdown link', () => {
       const description = '[google](https://www.google.com)';
-      const tree = mount(<Descriptoin description={description} forceInline={true} />).getDOMNode();
+      const tree = mount(<Description description={description} forceInline={true} />).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
 
@@ -92,7 +92,7 @@ Paragraph 2
       const description = `
 * abc
 * def`;
-      const tree = mount(<Descriptoin description={description} forceInline={true} />).getDOMNode();
+      const tree = mount(<Description description={description} forceInline={true} />).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
   });

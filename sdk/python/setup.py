@@ -64,6 +64,7 @@ setup(
     packages=[
         'kfp',
         'kfp.cli',
+        'kfp.cli.diagnose_me',
         'kfp.compiler',
         'kfp.components',
         'kfp.components.structures',

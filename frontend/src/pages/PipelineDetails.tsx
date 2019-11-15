@@ -42,7 +42,7 @@ import 'brace';
 import 'brace/ext/language_tools';
 import 'brace/mode/yaml';
 import 'brace/theme/github';
-import { Descriptoin } from '../components/Description';
+import { Description } from '../components/Description';
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
@@ -118,7 +118,14 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
-    buttons.newRunFromPipeline(() => (this.state.pipeline ? this.state.pipeline.id! : ''));
+    const pipelineIdFromParams = this.props.match.params[RouteParams.pipelineId];
+    buttons.newRunFromPipeline(() => {
+      return this.state.pipeline
+        ? this.state.pipeline.id!
+        : pipelineIdFromParams
+        ? pipelineIdFromParams
+        : '';
+    });
 
     if (fromRunId) {
       return {
@@ -134,9 +141,20 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     } else {
       // Add buttons for creating experiment and deleting pipeline
       buttons
-        .newExperiment(() => (this.state.pipeline ? this.state.pipeline.id! : ''))
+        .newExperiment(() =>
+          this.state.pipeline
+            ? this.state.pipeline.id!
+            : pipelineIdFromParams
+            ? pipelineIdFromParams
+            : '',
+        )
         .delete(
-          () => (this.state.pipeline ? [this.state.pipeline.id!] : []),
+          () =>
+            this.state.pipeline
+              ? [this.state.pipeline.id!]
+              : pipelineIdFromParams
+              ? [pipelineIdFromParams]
+              : [],
           'pipeline',
           this._deleteCallback.bind(this),
           true /* useCurrentResource */,
@@ -198,7 +216,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                         <div className={css.summaryKey}>Uploaded on</div>
                         <div>{formatDateString(pipeline.created_at)}</div>
                         <div className={css.summaryKey}>Description</div>
-                        <Descriptoin description={pipeline.description || ''} />
+                        <Description description={pipeline.description || ''} />
                       </Paper>
                     )}
 

@@ -416,10 +416,36 @@ describe('PipelineDetails', () => {
     );
   });
 
+  it('clicking new run button when viewing half-loaded page navigates to the new run page with pipeline ID', async () => {
+    tree = shallow(<PipelineDetails {...generateProps(false)} />);
+    // Intentionally don't wait until all network requests finish.
+    const instance = tree.instance() as PipelineDetails;
+    const newRunFromPipelineBtn = instance.getInitialToolbarState().actions[
+      ButtonKeys.NEW_RUN_FROM_PIPELINE
+    ];
+    newRunFromPipelineBtn.action();
+    expect(historyPushSpy).toHaveBeenCalledTimes(1);
+    expect(historyPushSpy).toHaveBeenLastCalledWith(
+      RoutePage.NEW_RUN + `?${QUERY_PARAMS.pipelineId}=${testPipeline.id}`,
+    );
+  });
+
   it('clicking new experiment button navigates to new experiment page', async () => {
     tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
+    const instance = tree.instance() as PipelineDetails;
+    const newExperimentBtn = instance.getInitialToolbarState().actions[ButtonKeys.NEW_EXPERIMENT];
+    await newExperimentBtn.action();
+    expect(historyPushSpy).toHaveBeenCalledTimes(1);
+    expect(historyPushSpy).toHaveBeenLastCalledWith(
+      RoutePage.NEW_EXPERIMENT + `?${QUERY_PARAMS.pipelineId}=${testPipeline.id}`,
+    );
+  });
+
+  it('clicking new experiment button when viewing half-loaded page navigates to the new experiment page with the pipeline ID', async () => {
+    tree = shallow(<PipelineDetails {...generateProps()} />);
+    // Intentionally don't wait until all network requests finish.
     const instance = tree.instance() as PipelineDetails;
     const newExperimentBtn = instance.getInitialToolbarState().actions[ButtonKeys.NEW_EXPERIMENT];
     await newExperimentBtn.action();
@@ -438,7 +464,7 @@ describe('PipelineDetails', () => {
     expect(deleteBtn).toBeDefined();
   });
 
-  it('shows delete confirmation dialog when delete buttin is clicked', async () => {
+  it('shows delete confirmation dialog when delete button is clicked', async () => {
     tree = shallow(<PipelineDetails {...generateProps()} />);
     const deleteBtn = (tree.instance() as PipelineDetails).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
@@ -468,6 +494,20 @@ describe('PipelineDetails', () => {
     tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
+    const deleteBtn = (tree.instance() as PipelineDetails).getInitialToolbarState().actions[
+      ButtonKeys.DELETE_RUN
+    ];
+    await deleteBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    await confirmBtn.onClick();
+    expect(deletePipelineSpy).toHaveBeenCalledTimes(1);
+    expect(deletePipelineSpy).toHaveBeenLastCalledWith(testPipeline.id);
+  });
+
+  it('calls delete API when delete dialog is confirmed and page is half-loaded', async () => {
+    tree = shallow(<PipelineDetails {...generateProps()} />);
+    // Intentionally don't wait until all network requests finish.
     const deleteBtn = (tree.instance() as PipelineDetails).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];

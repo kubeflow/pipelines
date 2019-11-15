@@ -463,11 +463,11 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
         line = '_parser.add_argument("{param_flag}", dest="{param_var}", type=str, nargs={nargs})'.format(
             param_flag=param_flag,
             param_var=output_param_var,
-            nargs=len(component_spec.outputs),
+            nargs=len(outputs_passed_through_func_return_tuple),
         )
         arg_parse_code_lines.append(line)
         arguments.append(param_flag)
-        arguments.extend(OutputPathPlaceholder(output.name) for output in component_spec.outputs)
+        arguments.extend(OutputPathPlaceholder(output.name) for output in outputs_passed_through_func_return_tuple)
 
     output_serialization_expression_strings = []
     for output in outputs_passed_through_func_return_tuple:
@@ -482,6 +482,8 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
         '_parsed_args = vars(_parser.parse_args())',
         '_output_files = _parsed_args.pop("_output_paths", [])',
     ])
+
+    output_serialization_code = ''.join('    {},\n'.format(s) for s in output_serialization_expression_strings)
 
     full_source = \
 '''\
@@ -499,7 +501,7 @@ if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
     _outputs = [_outputs]
 
 _output_serializers = [
-    {output_serialization_code}
+{output_serialization_code}
 ]
 
 import os
@@ -516,7 +518,7 @@ for idx, output_file in enumerate(_output_files):
         pre_func_code=pre_func_code,
         extra_code=extra_code,
         arg_parse_code='\n'.join(arg_parse_code_lines),
-        output_serialization_code=',\n    '.join(output_serialization_expression_strings),
+        output_serialization_code=output_serialization_code,
     )
 
     #Removing consecutive blank lines

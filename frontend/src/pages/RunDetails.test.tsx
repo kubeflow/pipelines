@@ -45,6 +45,8 @@ describe('RunDetails', () => {
   const pathsParser = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths');
   const pathsWithStepsParser = jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames');
   const loaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
+  const retryRunSpy = jest.spyOn(Apis.runServiceApi, 'retryRun');
+  const terminateRunSpy = jest.spyOn(Apis.runServiceApi, 'terminateRun');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test environments
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
@@ -141,6 +143,139 @@ describe('RunDetails', () => {
     expect(historyPushSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=${testRun.run!.id}`,
     );
+  });
+
+  it('clicking the clone button when the page is half-loaded navigates to new run page with run id', async () => {
+    tree = shallow(<RunDetails {...generateProps()} />);
+    // Intentionally don't wait until all network requests finish.
+    const instance = tree.instance() as RunDetails;
+    const cloneBtn = instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RUN];
+    expect(cloneBtn).toBeDefined();
+    await cloneBtn!.action();
+    expect(historyPushSpy).toHaveBeenCalledTimes(1);
+    expect(historyPushSpy).toHaveBeenLastCalledWith(
+      RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=${testRun.run!.id}`,
+    );
+  });
+
+  it('has a retry button', async () => {
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as RunDetails;
+    const retryBtn = instance.getInitialToolbarState().actions[ButtonKeys.RETRY];
+    expect(retryBtn).toBeDefined();
+  });
+
+  it('shows retry confirmation dialog when retry button is clicked', async () => {
+    tree = shallow(<RunDetails {...generateProps()} />);
+    const instance = tree.instance() as RunDetails;
+    const retryBtn = instance.getInitialToolbarState().actions[ButtonKeys.RETRY];
+    await retryBtn!.action();
+    expect(updateDialogSpy).toHaveBeenCalledTimes(1);
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        title: 'Retry this run?',
+      }),
+    );
+  });
+
+  it('does not call retry API for selected run when retry dialog is canceled', async () => {
+    tree = shallow(<RunDetails {...generateProps()} />);
+    const instance = tree.instance() as RunDetails;
+    const retryBtn = instance.getInitialToolbarState().actions[ButtonKeys.RETRY];
+    await retryBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const cancelBtn = call.buttons.find((b: any) => b.text === 'Cancel');
+    await cancelBtn.onClick();
+    expect(retryRunSpy).not.toHaveBeenCalled();
+  });
+
+  it('calls retry API when retry dialog is confirmed', async () => {
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as RunDetails;
+    const retryBtn = instance.getInitialToolbarState().actions[ButtonKeys.RETRY];
+    await retryBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Retry');
+    await confirmBtn.onClick();
+    expect(retryRunSpy).toHaveBeenCalledTimes(1);
+    expect(retryRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
+  });
+
+  it('calls retry API when retry dialog is confirmed and page is half-loaded', async () => {
+    tree = shallow(<RunDetails {...generateProps()} />);
+    // Intentionally don't wait until all network requests finish.
+    const instance = tree.instance() as RunDetails;
+    const retryBtn = instance.getInitialToolbarState().actions[ButtonKeys.RETRY];
+    await retryBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Retry');
+    await confirmBtn.onClick();
+    expect(retryRunSpy).toHaveBeenCalledTimes(1);
+    expect(retryRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
+  });
+
+  it('has a terminate button', async () => {
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as RunDetails;
+    const terminateBtn = instance.getInitialToolbarState().actions[ButtonKeys.TERMINATE_RUN];
+    expect(terminateBtn).toBeDefined();
+  });
+
+  it('shows terminate confirmation dialog when terminate button is clicked', async () => {
+    tree = shallow(<RunDetails {...generateProps()} />);
+    const instance = tree.instance() as RunDetails;
+    const terminateBtn = instance.getInitialToolbarState().actions[ButtonKeys.TERMINATE_RUN];
+    await terminateBtn!.action();
+    expect(updateDialogSpy).toHaveBeenCalledTimes(1);
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        title: 'Terminate this run?',
+      }),
+    );
+  });
+
+  it('does not call terminate API for selected run when terminate dialog is canceled', async () => {
+    tree = shallow(<RunDetails {...generateProps()} />);
+    const instance = tree.instance() as RunDetails;
+    const terminateBtn = instance.getInitialToolbarState().actions[ButtonKeys.TERMINATE_RUN];
+    await terminateBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const cancelBtn = call.buttons.find((b: any) => b.text === 'Cancel');
+    await cancelBtn.onClick();
+    expect(terminateRunSpy).not.toHaveBeenCalled();
+  });
+
+  it('calls terminate API when terminate dialog is confirmed', async () => {
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as RunDetails;
+    const terminateBtn = instance.getInitialToolbarState().actions[ButtonKeys.TERMINATE_RUN];
+    await terminateBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Terminate');
+    await confirmBtn.onClick();
+    expect(terminateRunSpy).toHaveBeenCalledTimes(1);
+    expect(terminateRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
+  });
+
+  it('calls terminate API when terminate dialog is confirmed and page is half-loaded', async () => {
+    tree = shallow(<RunDetails {...generateProps()} />);
+    // Intentionally don't wait until all network requests finish.
+    const instance = tree.instance() as RunDetails;
+    const terminateBtn = instance.getInitialToolbarState().actions[ButtonKeys.TERMINATE_RUN];
+    await terminateBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Terminate');
+    await confirmBtn.onClick();
+    expect(terminateRunSpy).toHaveBeenCalledTimes(1);
+    expect(terminateRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
   });
 
   it('has an Archive button if the run is not archived', async () => {

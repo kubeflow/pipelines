@@ -1,8 +1,13 @@
 [
   {
     "name": "[Sample] ML - XGBoost - Training with Confusion Matrix",
-    "description": "[GCP Permission requirements](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm#requirements) A trainer that does end-to-end distributed training for XGBoost models. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)",
+    "description": "[GCP Permission requirements](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm#requirements). A trainer that does end-to-end distributed training for XGBoost models. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)",
     "file": "/samples/core/xgboost_training_cm/xgboost_training_cm.py.tar.gz"
+  },
+  {
+    "name": "[Sample] Unified DSL - Taxi Tip Prediction Model Trainer",
+    "description": "[GCP Permission requirements](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/parameterized_tfx_oss#permission). Example pipeline that does classification with model analysis based on a public tax cab BigQuery dataset. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/parameterized_tfx_oss)",
+    "file": "/samples/contrib/parameterized_tfx_oss/parameterized_tfx_oss.tar.gz"
   },
   {
     "name": "[Sample] Basic - Sequential execution",
@@ -23,10 +28,5 @@
     "name": "[Sample] Basic - Exit Handler",
     "description": "A pipeline that downloads a message and prints it out. Exit Handler will run at the end. [source code](https://github.com/kubeflow/pipelines/blob/master/samples/core/exit_handler/exit_handler.py)",
     "file": "/samples/core/exit_handler/exit_handler.py.tar.gz"
-  },
-  {
-    "name": "[Sample] ML - TFX - Taxi Tip Prediction Model Trainer",
-    "description": "[GCP Permission requirements](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/parameterized_tfx_oss#permission). Example pipeline that does classification with model analysis based on a public tax cab BigQuery dataset. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/parameterized_tfx_oss)",
-    "file": "/samples/contrib/parameterized_tfx_oss/parameterized_tfx_oss.tar.gz"
   }
 ]

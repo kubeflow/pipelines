@@ -39,6 +39,7 @@ frontend/test/ui/visual-regression/screenshots/screen
 
 *.pyc
 .DS_Store
+build
 
 .ipynb_checkpoints
 *.egg-info
@@ -64,3 +65,4 @@ _artifacts
 
 # Generated Python SDK documentation
 docs/_build
+

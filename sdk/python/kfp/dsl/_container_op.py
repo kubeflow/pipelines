@@ -928,14 +928,6 @@ class ContainerOp(BaseOp):
             description='hello world')
         def foo_pipeline(tag: str, pull_image_policy: str):
 
-            # configures artifact location
-            artifact_location = dsl.ArtifactLocation.s3(
-                                    bucket="foobar",
-                                    endpoint="minio-service:9000",
-                                    insecure=True,
-                                    access_key_secret=V1SecretKeySelector(name="minio", key="accesskey"),
-                                    secret_key_secret=V1SecretKeySelector(name="minio", key="secretkey"))
-
             # any attributes can be parameterized (both serialized string or actual PipelineParam)
             op = dsl.ContainerOp(name='foo', 
                                 image='busybox:%s' % tag,
@@ -945,8 +937,7 @@ class ContainerOp(BaseOp):
                                 sidecars=[dsl.Sidecar('print', 'busybox:latest', command='echo "hello"')],
                                 # pass in k8s container kwargs
                                 container_kwargs={'env': [V1EnvVar('foo', 'bar')]},
-                                # configures artifact location
-                                artifact_location=artifact_location)
+            )
 
             # set `imagePullPolicy` property for `container` with `PipelineParam` 
             op.container.set_pull_image_policy(pull_image_policy)
@@ -1006,7 +997,7 @@ class ContainerOp(BaseOp):
               It has the following default artifact paths during compile time.
               {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json',
                'mlpipeline-metrics': '/mlpipeline-metrics.json'}
-          artifact_location: configures the default artifact location for artifacts
+          artifact_location: Deprecated. Configures the default artifact location for artifacts
                in the argo workflow template. Must be a `V1alpha1ArtifactLocation`
                object.
           is_exit_handler: Deprecated. This is no longer needed.
@@ -1092,6 +1083,9 @@ class ContainerOp(BaseOp):
         self.file_outputs = file_outputs
         self.output_artifact_paths = output_artifact_paths or {}
         self.artifact_location = artifact_location
+
+        if artifact_location:
+            warnings.warn('Setting per-ContainerOp artifact_location is deprecated since SDK v0.1.32. Please configure the artifact location in the cluster configMap: https://github.com/argoproj/argo/blob/master/ARTIFACT_REPO.md#configure-the-default-artifact-repository . For short-term workaround use the pipeline-wide kfp.dsl.PipelineConf().set_artifact_location, but it can also be deprecated in future.', PendingDeprecationWarning)
 
         self._metadata = None
 

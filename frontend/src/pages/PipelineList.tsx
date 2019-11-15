@@ -27,7 +27,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { formatDateString, errorToMessage } from '../lib/Utils';
-import { Descriptoin } from '../components/Description';
+import { Description } from '../components/Description';
 
 interface PipelineListState {
   pipelines: ApiPipeline[];
@@ -38,7 +38,7 @@ interface PipelineListState {
 const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
   props: CustomRendererProps<string>,
 ) => {
-  return <Descriptoin description={props.value || ''} forceInline={true} />;
+  return <Description description={props.value || ''} forceInline={true} />;
 };
 
 class PipelineList extends Page<{}, PipelineListState> {

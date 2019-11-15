@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import * as portableFetch from 'portable-fetch';
 import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
-import { ExperimentServiceApi } from '../apis/experiment';
+import { ExperimentServiceApi, FetchAPI } from '../apis/experiment';
 import { JobServiceApi } from '../apis/job';
 import { ApiPipeline, PipelineServiceApi } from '../apis/pipeline';
 import { RunServiceApi } from '../apis/run';
@@ -102,6 +103,7 @@ const metadataServicePromiseClient = {
   getArtifactTypes: makePromiseApi(
     metadataServiceClient.getArtifactTypes.bind(metadataServiceClient),
   ),
+  getArtifacts: makePromiseApi(metadataServiceClient.getArtifacts.bind(metadataServiceClient)),
   getArtifactsByID: makePromiseApi(
     metadataServiceClient.getArtifactsByID.bind(metadataServiceClient),
   ),
@@ -111,10 +113,19 @@ const metadataServicePromiseClient = {
   getEventsByExecutionIDs: makePromiseApi(
     metadataServiceClient.getEventsByExecutionIDs.bind(metadataServiceClient),
   ),
+  getExecutionTypes: makePromiseApi(
+    metadataServiceClient.getExecutionTypes.bind(metadataServiceClient),
+  ),
+  getExecutions: makePromiseApi(metadataServiceClient.getExecutions.bind(metadataServiceClient)),
   getExecutionsByID: makePromiseApi(
     metadataServiceClient.getExecutionsByID.bind(metadataServiceClient),
   ),
 };
+
+// For cross browser support, fetch should use 'same-origin' as default. This fixes firefox auth issues.
+// Refrence: https://github.com/github/fetch#sending-cookies
+const crossBrowserFetch: FetchAPI = (url, init) =>
+  portableFetch(url, { credentials: 'same-origin', ...init });
 
 export class Apis {
   public static async areCustomVisualizationsAllowed(): Promise<boolean> {
@@ -166,35 +177,55 @@ export class Apis {
 
   public static get experimentServiceApi(): ExperimentServiceApi {
     if (!this._experimentServiceApi) {
-      this._experimentServiceApi = new ExperimentServiceApi({ basePath: this.basePath });
+      this._experimentServiceApi = new ExperimentServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._experimentServiceApi;
   }
 
   public static get jobServiceApi(): JobServiceApi {
     if (!this._jobServiceApi) {
-      this._jobServiceApi = new JobServiceApi({ basePath: this.basePath });
+      this._jobServiceApi = new JobServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._jobServiceApi;
   }
 
   public static get pipelineServiceApi(): PipelineServiceApi {
     if (!this._pipelineServiceApi) {
-      this._pipelineServiceApi = new PipelineServiceApi({ basePath: this.basePath });
+      this._pipelineServiceApi = new PipelineServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._pipelineServiceApi;
   }
 
   public static get runServiceApi(): RunServiceApi {
     if (!this._runServiceApi) {
-      this._runServiceApi = new RunServiceApi({ basePath: this.basePath });
+      this._runServiceApi = new RunServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._runServiceApi;
   }
 
   public static get visualizationServiceApi(): VisualizationServiceApi {
     if (!this._visualizationServiceApi) {
-      this._visualizationServiceApi = new VisualizationServiceApi({ basePath: this.basePath });
+      this._visualizationServiceApi = new VisualizationServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._visualizationServiceApi;
   }

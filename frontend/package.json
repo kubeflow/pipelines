@@ -57,7 +57,7 @@
     "test": "react-scripts-ts test --env=jsdom",
     "test:coverage": "npm test -- --env=jsdom --coverage",
     "test:coveralls": "npm run test:coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js",
-    "test:ci": "npm run lint && npm run format:check && npm run test:coveralls",
+    "test:ci": "npm run format:check && npm run lint && npm run test:coveralls",
     "vr-approve": "backstop approve",
     "vr-test": "ts-node -O '{\"module\": \"commonjs\"}' backstop.ts"
   },

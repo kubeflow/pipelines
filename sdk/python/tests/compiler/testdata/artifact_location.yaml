@@ -40,14 +40,6 @@ spec:
             value: '{{inputs.parameters.tag}}'
         name: foo
         template: foo
-      - arguments:
-          parameters:
-          - name: bucket
-            value: '{{inputs.parameters.bucket}}'
-          - name: tag
-            value: '{{inputs.parameters.tag}}'
-        name: foo-2
-        template: foo-2
     inputs:
       parameters:
       - name: bucket
@@ -77,26 +69,3 @@ spec:
           secretKeySecret:
             key: 'secretkey'
             name: 'minio'
-  - container:
-      image: busybox:{{inputs.parameters.tag}}
-    inputs:
-      parameters:
-      - name: bucket
-      - name: tag
-    name: foo-2
-    outputs:
-      artifacts:
-      - name: out_art
-        path: /tmp/out_art.txt
-        s3:
-          accessKeySecret:
-            key: ''
-            optional: true
-          bucket: '{{inputs.parameters.bucket}}'
-          endpoint: s3.amazonaws.com
-          insecure: false
-          key: runs/{{workflow.uid}}/{{pod.name}}/out_art.tgz
-          region: ap-southeast-1
-          secretKeySecret:
-            key: ''
-            optional: true

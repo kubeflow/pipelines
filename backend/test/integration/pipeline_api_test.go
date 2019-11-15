@@ -195,6 +195,19 @@ func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 			{Name: "param1", Value: "hello"}, // Default value in the pipeline template
 			{Name: "param2"},                 // No default value in the pipeline
 		},
+		// TODO(jingzhang36): after version API launch, remove the following field.
+		// This is because after the version API launch, we won't have defautl
+		// version produced automatically when creating pipeline.
+		DefaultVersion: &model.APIPipelineVersion{
+			CreatedAt: pipeline.CreatedAt,
+			ID:        pipeline.ID,
+			Name:      "arguments-parameters.yaml",
+			Parameters: []*model.APIParameter{
+				{Name: "param1", Value: "hello"},
+				{Name: "param2"}},
+			ResourceReferences: []*model.APIResourceReference{{
+				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: model.APIResourceTypePIPELINE},
+				Relationship: model.APIRelationshipOWNER}}},
 	}
 	assert.Equal(t, expected, *pipeline)
 }
