@@ -1,4 +1,31 @@
-# Change Log
+# Changelog
+
+## [0.1.35](https://github.com/kubeflow/pipelines/tree/0.1.35) (2019-11-13)
+
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.34...0.1.35)
+
+**Merged pull requests:**
+
+- Release 9670cc1aadfbbed9c52b84ea859ea97aa81213ad [\#2599](https://github.com/kubeflow/pipelines/pull/2599) ([Bobgy](https://github.com/Bobgy))
+- Bump version to 0.1.35 [\#2598](https://github.com/kubeflow/pipelines/pull/2598) ([Bobgy](https://github.com/Bobgy))
+- \[Sample\] Lint and clean up parameterized TFX sample [\#2594](https://github.com/kubeflow/pipelines/pull/2594) ([numerology](https://github.com/numerology))
+- Fix transformer sample message [\#2592](https://github.com/kubeflow/pipelines/pull/2592) ([hougangliu](https://github.com/hougangliu))
+- \[UI\] Simplify firefox fix in pull/2580 [\#2587](https://github.com/kubeflow/pipelines/pull/2587) ([Bobgy](https://github.com/Bobgy))
+- 0.1.34 changelog [\#2586](https://github.com/kubeflow/pipelines/pull/2586) ([jingzhang36](https://github.com/jingzhang36))
+- Fix missing run and pipeline id when buttons are clicked before content load [\#2584](https://github.com/kubeflow/pipelines/pull/2584) ([drewbutlerbb4](https://github.com/drewbutlerbb4))
+- Add a minimum sample to print hello world [\#2583](https://github.com/kubeflow/pipelines/pull/2583) ([IronPan](https://github.com/IronPan))
+- \[UI\] Fix firefox compatibility [\#2580](https://github.com/kubeflow/pipelines/pull/2580) ([Bobgy](https://github.com/Bobgy))
+- \[Doc\] Minor fix to MKP secret setup guide [\#2576](https://github.com/kubeflow/pipelines/pull/2576) ([numerology](https://github.com/numerology))
+- \[SDK\] Fix withItem loop [\#2572](https://github.com/kubeflow/pipelines/pull/2572) ([numerology](https://github.com/numerology))
+- fix slow query when get runs [\#2559](https://github.com/kubeflow/pipelines/pull/2559) ([wstian](https://github.com/wstian))
+- MDez patch 1 [\#2550](https://github.com/kubeflow/pipelines/pull/2550) ([OfficePop](https://github.com/OfficePop))
+- Components - Google Cloud Storage [\#2532](https://github.com/kubeflow/pipelines/pull/2532) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Components - Fixed YAML formatting for some components [\#2529](https://github.com/kubeflow/pipelines/pull/2529) ([Ark-kun](https://github.com/Ark-kun))
+- Add arm64 support for ml-pipeline [\#2507](https://github.com/kubeflow/pipelines/pull/2507) ([MrXinWang](https://github.com/MrXinWang))
+- SDK - Containers - Renamed constructor parameter in the private ContainerBuilder class [\#2261](https://github.com/kubeflow/pipelines/pull/2261) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Containers  - Getting rid of \_get\_default\_image\_builder [\#2255](https://github.com/kubeflow/pipelines/pull/2255) ([Ark-kun](https://github.com/Ark-kun))
+- \[pipeline-ui\] Retrieve pod logs from argo archive [\#2081](https://github.com/kubeflow/pipelines/pull/2081) ([eterna2](https://github.com/eterna2))
+- SDK/Components  - Added Json Schema spec for the component format [\#669](https://github.com/kubeflow/pipelines/pull/669) ([Ark-kun](https://github.com/Ark-kun))
 
 ## [0.1.34](https://github.com/kubeflow/pipelines/tree/0.1.34) (2019-11-07)
 
