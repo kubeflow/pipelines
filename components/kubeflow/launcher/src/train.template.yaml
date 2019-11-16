@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: kubeflow.org/v1alpha2
+apiVersion: kubeflow.org/v1
 kind: TFJob
 metadata:
   generateName: tfjob
