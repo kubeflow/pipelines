@@ -38,6 +38,7 @@ eval set -- "$PARSED"
 
 USE_REMOTE_BUILD=true
 GCP_CREDENTIALS_FILE="gs://ml-pipeline-test-bazel/ml-pipeline-test-bazel-builder-credentials.json"
+MACHINE_ARCH=`uname -m`
 
 while true; do
   case $1 in
@@ -76,16 +77,43 @@ if [[ ${USE_REMOTE_BUILD} == true ]]; then
   fi
 
   GCP_CREDENTIALS="$(gsutil cat ${GCP_CREDENTIALS_FILE})"
-  docker build \
-    -t "${IMAGE_TAG}" \
-    -f backend/Dockerfile \
-    . \
-    --build-arg use_remote_build=true \
-    --build-arg google_application_credentials="${GCP_CREDENTIALS}"
+  if [ $MACHINE_ARCH == "aarch64" ]; then
+    docker build \
+      -t bazel:0.24.0 \
+      -f backend/Dockerfile.bazel .
+
+    docker build \
+      -t "${IMAGE_TAG}" \
+      -f backend/Dockerfile \
+      . \
+      --build-arg use_remote_build=true \
+      --build-arg google_application_credentials="${GCP_CREDENTIALS}" \
+      --build-arg BAZEL_IMAGE=bazel:0.24.0
+  else
+    docker build \
+      -t "${IMAGE_TAG}" \
+      -f backend/Dockerfile \
+      . \
+      --build-arg use_remote_build=true \
+      --build-arg google_application_credentials="${GCP_CREDENTIALS}"
+  fi
+
 else
   echo "Building API Server with local execution..."
-  docker build \
-    -t "${IMAGE_TAG}" \
-    -f backend/Dockerfile \
-    .
+  if [ $MACHINE_ARCH == "aarch64" ]; then
+    docker build \
+      -t bazel:0.24.0 \
+      -f backend/Dockerfile.bazel .
+
+    docker build \
+      -t "${IMAGE_TAG}" \
+      -f backend/Dockerfile \
+      . \
+      --build-arg BAZEL_IMAGE=bazel:0.24.0
+  else
+    docker build \
+      -t "${IMAGE_TAG}" \
+      -f backend/Dockerfile \
+      .
+  fi
 fi

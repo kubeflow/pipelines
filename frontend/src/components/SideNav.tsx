@@ -24,12 +24,14 @@ import ExperimentsIcon from '../icons/experiments';
 import IconButton from '@material-ui/core/IconButton';
 import JupyterhubIcon from '@material-ui/icons/Code';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
+import DescriptionIcon from '@material-ui/icons/Description';
+import GitHubIcon from '../icons/GitHub-Mark-120px-plus.png';
 import PipelinesIcon from '../icons/pipelines';
 import Tooltip from '@material-ui/core/Tooltip';
 import { Apis } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
-import { RoutePage, RoutePrefix } from '../components/Router';
+import { RoutePage, RoutePrefix, ExternalLinks } from '../components/Router';
 import { RouterProps } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, commonCss } from '../Css';
@@ -91,6 +93,12 @@ export const css = stylesheet({
   collapsedChevron: {
     transform: 'rotate(180deg)',
   },
+  collapsedExternalLabel: {
+    // Hide text when collapsing, but do it with a transition of both height and
+    // opacity
+    height: 0,
+    opacity: 0,
+  },
   collapsedLabel: {
     // Hide text when collapsing, but do it with a transition
     opacity: 0,
@@ -100,6 +108,13 @@ export const css = stylesheet({
   },
   collapsedSeparator: {
     margin: '20px !important',
+  },
+  icon: {
+    height: 20,
+    width: 20,
+  },
+  iconImage: {
+    opacity: 0.6, // Images are too colorful there by default, reduce their color.
   },
   indicator: {
     borderBottom: '3px solid transparent',
@@ -408,6 +423,32 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
             </Link>
           </Tooltip>
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
+          <ExternalUri
+            title={'Documentation'}
+            to={ExternalLinks.DOCUMENTATION}
+            collapsed={collapsed}
+            icon={className => <DescriptionIcon className={className} />}
+          />
+          <ExternalUri
+            title={'Github Repo'}
+            to={ExternalLinks.GITHUB}
+            collapsed={collapsed}
+            icon={className => (
+              <img src={GitHubIcon} className={classes(className, css.iconImage)} />
+            )}
+          />
+          <ExternalUri
+            title={'AI Hub Samples'}
+            to={ExternalLinks.AI_HUB}
+            collapsed={collapsed}
+            icon={className => (
+              <img
+                src='https://www.gstatic.com/aihub/aihub_favicon.png'
+                className={classes(className, css.iconImage)}
+              />
+            )}
+          />
+          <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
           <IconButton
             className={classes(css.chevron, collapsed && css.collapsedChevron)}
             onClick={this._toggleNavClicked.bind(this)}
@@ -485,3 +526,30 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
     }
   }
 }
+
+interface ExternalUriProps {
+  title: string;
+  to: string;
+  collapsed: boolean;
+  icon: (className: string) => React.ReactNode;
+}
+
+// tslint:disable-next-line:variable-name
+const ExternalUri: React.FC<ExternalUriProps> = ({ title, to, collapsed, icon }) => (
+  <Tooltip
+    title={title}
+    enterDelay={300}
+    placement={'right-start'}
+    disableFocusListener={!collapsed}
+    disableHoverListener={!collapsed}
+    disableTouchListener={!collapsed}
+  >
+    <a href={to} className={commonCss.unstyled} target='_blank' rel='noopener noreferrer'>
+      <Button className={classes(css.button, collapsed && css.collapsedButton)}>
+        {icon(css.icon)}
+        <span className={classes(collapsed && css.collapsedLabel, css.label)}>{title}</span>
+        <OpenInNewIcon className={css.openInNewTabIcon} />
+      </Button>
+    </a>
+  </Tooltip>
+);

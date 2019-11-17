@@ -16,6 +16,14 @@ RUN if [ "$(uname -m)" = "ppc64le" ]; then \
         && ln -s /usr/local/phantomjs-2.1.1-linux-ppc64/bin/phantomjs /usr/bin/phantomjs; \
     fi
 
+# Workaround for aarch64 since phantomjs does not support aarch64
+RUN if [ "$(uname -m)" = "aarch64" ]; then \
+        wget --no-verbose -O /tmp/phantomjs_2.1.1_arm64.tgz https://github.com/fg2it/phantomjs-on-raspberry/releases/download/v2.1.1-jessie-stretch-arm64/phantomjs_2.1.1_arm64.tgz \
+        && tar zxvf /tmp/phantomjs_2.1.1_arm64.tgz -C /usr/local/bin \
+        && cp /usr/local/bin/phantomjs /usr/bin/phantomjs \
+        && chmod +x /usr/bin/phantomjs; \
+    fi
+
 RUN npm install && npm run postinstall
 RUN npm run build
 

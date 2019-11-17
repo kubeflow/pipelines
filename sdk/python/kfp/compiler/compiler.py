@@ -487,7 +487,18 @@ class Compiler(object):
 
           task['withParam'] = withparam_value
         else:
-          task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
+          # Need to sanitize the dict keys for consistency.
+          loop_tasks = sub_group.loop_args.to_list_for_task_yaml()
+          sanitized_tasks = []
+          if isinstance(loop_tasks[0], dict):
+            for argument_set in loop_tasks:
+              c_dict = {}
+              for k, v in argument_set.items():
+                c_dict[sanitize_k8s_name(k)] = v
+              sanitized_tasks.append(c_dict)
+          else:
+            sanitized_tasks = loop_tasks
+          task['withItems'] = sanitized_tasks
 
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])

@@ -28,6 +28,7 @@ import Radio from '@material-ui/core/Radio';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import { padding, commonCss, zIndex, color } from '../Css';
 import { stylesheet, classes } from 'typestyle';
+import { ExternalLink } from '../atoms/ExternalLink';
 
 const css = stylesheet({
   dropOverlay: {
@@ -154,6 +155,7 @@ class UploadPipelineDialog extends React.Component<
                   <br />
                   You can also drag and drop the file here.
                 </div>
+                <DocumentationCompilePipeline />
                 <Input
                   onChange={this.handleChange('fileName')}
                   value={fileName}
@@ -182,6 +184,7 @@ class UploadPipelineDialog extends React.Component<
           {importMethod === ImportMethod.URL && (
             <React.Fragment>
               <div className={padding(10, 'b')}>URL must be publicly accessible.</div>
+              <DocumentationCompilePipeline />
               <Input
                 onChange={this.handleChange('fileUrl')}
                 value={fileUrl}
@@ -277,3 +280,13 @@ class UploadPipelineDialog extends React.Component<
 }
 
 export default UploadPipelineDialog;
+
+const DocumentationCompilePipeline: React.FC = () => (
+  <div className={padding(10, 'b')}>
+    For expected file format, refer to{' '}
+    <ExternalLink href='https://www.kubeflow.org/docs/pipelines/sdk/build-component/#compile-the-pipeline'>
+      Compile Pipeline Documentation
+    </ExternalLink>
+    .
+  </div>
+);
