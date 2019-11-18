@@ -57,8 +57,10 @@ echo "Status of pods after kubectl apply"
 kubectl get pods -n ${NAMESPACE}
 
 if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
-  export SYSTEM_GSA="$TEST_CLUSTER-kfp-system"
-  export USER_GSA="$TEST_CLUSTER-kfp-user"
+  # Use static GSAs for testing, so we don't need to GC them.
+  export SYSTEM_GSA="test-kfp-system"
+  export USER_GSA="test-kfp-user"
+
   yes | PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
     ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
 
