@@ -49,8 +49,12 @@ function clean_up {
     yes | gcloud container clusters delete ${TEST_CLUSTER} --async
   fi
 
-  if [ -n $SYSTEM_GSA ]; then gcloud iam service-accounts delete $SYSTEM_GSA; fi
-  if [ -n $USER_GSA ]; then gcloud iam service-accounts delete $USER_GSA; fi
+  if [ -n $SYSTEM_GSA ]; then
+    gcloud iam service-accounts delete $SYSTEM_GSA@$PROJECT.iam.gserviceaccount.com
+  fi
+  if [ -n $USER_GSA ]; then
+    gcloud iam service-accounts delete $USER_GSA@$PROJECT.iam.gserviceaccount.com
+  fi
 }
 trap clean_up EXIT SIGINT SIGTERM
 

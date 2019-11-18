@@ -57,8 +57,10 @@ echo "Status of pods after kubectl apply"
 kubectl get pods -n ${NAMESPACE}
 
 if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
-  PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
-    source ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
+  export SYSTEM_GSA="$TEST_CLUSTER-kfp-system"
+  export USER_GSA="$TEST_CLUSTER-kfp-user"
+  yes | PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
+    ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
 
   gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$SYSTEM_GSA@$PROJECT.iam.gserviceaccount.com" \
