@@ -177,7 +177,7 @@ const Router: React.FC<RouterProps> = props => {
             key={i}
             exact={true}
             path={path}
-            render={props => <RouterImp key={props.location.key} configs={routes} />}
+            render={props => <RoutedPage key={props.location.key} route={route} />}
           ></Route>
         );
       })}
@@ -185,14 +185,14 @@ const Router: React.FC<RouterProps> = props => {
       {/* 404 */}
       {
         <Route>
-          <RouterImp configs={routes} />
+          <RoutedPage />
         </Route>
       }
     </Switch>
   );
 };
 
-class RouterImp extends React.Component<{ configs: RouteConfig[] }, RouteComponentState> {
+class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponentState> {
   constructor(props: any) {
     super(props);
 
@@ -212,6 +212,7 @@ class RouterImp extends React.Component<{ configs: RouteConfig[] }, RouteCompone
       updateSnackbar: this._updateSnackbar.bind(this),
       updateToolbar: this._updateToolbar.bind(this),
     };
+    const route = this.props.route;
 
     return (
       <div className={commonCss.page}>
@@ -228,22 +229,24 @@ class RouterImp extends React.Component<{ configs: RouteConfig[] }, RouteCompone
               />
             )}
             <Switch>
-              {this.props.configs.map((route, i) => {
-                const { path, Component, ...otherProps } = { ...route };
-                return (
-                  <Route
-                    key={i}
-                    exact={true}
-                    path={path}
-                    render={({ ...props }) => (
-                      <Component {...props} {...childProps} {...otherProps} />
-                    )}
-                  />
-                );
-              })}
+              {route &&
+                (() => {
+                  const { path, Component, ...otherProps } = { ...route };
+                  return (
+                    <Route
+                      exact={true}
+                      path={path}
+                      render={({ ...props }) => (
+                        <Component {...props} {...childProps} {...otherProps} />
+                      )}
+                    />
+                  );
+                })()}
 
               {/* 404 */}
-              {<Route render={({ ...props }) => <Page404 {...props} {...childProps} />} />}
+              {!!route && (
+                <Route render={({ ...props }) => <Page404 {...props} {...childProps} />} />
+              )}
             </Switch>
 
             <Snackbar

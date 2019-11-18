@@ -98,74 +98,7 @@ exports[`Router initial render 1`] = `
     render={[Function]}
   />
   <Route>
-    <RouterImp
-      configs={
-        Array [
-          Object {
-            "Component": [Function],
-            "path": "/archive",
-          },
-          Object {
-            "Component": [Function],
-            "path": "/artifacts",
-          },
-          Object {
-            "Component": [Function],
-            "path": "/artifact_types/:artifactType+/artifacts/:id",
-          },
-          Object {
-            "Component": [Function],
-            "path": "/executions",
-          },
-          Object {
-            "Component": [Function],
-            "path": "/execution_types/:executionType+/executions/:id",
-          },
-          Object {
-            "Component": [Function],
-            "path": "/experiments",
-            "view": 0,
-          },
-          Object {
-            "Component": [Function],
-            "path": "/experiments/details/:eid",
-          },
-          Object {
-            "Component": [Function],
-            "path": "/experiments/new",
-          },
-          Object {
-            "Component": [Function],
-            "path": "/runs/new",
-          },
-          Object {
-            "Component": [Function],
-            "path": "/pipelines",
-          },
-          Object {
-            "Component": [Function],
-            "path": "/pipelines/details/:pid?",
-          },
-          Object {
-            "Component": [Function],
-            "path": "/runs",
-            "view": 1,
-          },
-          Object {
-            "Component": [Function],
-            "path": "/recurringrun/details/:rid",
-          },
-          Object {
-            "Component": [Function],
-            "path": "/runs/details/:rid",
-          },
-          Object {
-            "Component": [Function],
-            "path": "/compare",
-          },
-        ]
-      }
-    />
+    <RoutedPage />
   </Route>
 </Switch>
 `;
