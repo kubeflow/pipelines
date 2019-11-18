@@ -135,8 +135,8 @@ export interface RouterProps {
 }
 
 // This component is made as a wrapper to separate toolbar state for different pages.
-const Router: React.FC<RouterProps> = props => {
-  const routes: RouteConfig[] = props.configs || [
+const Router: React.FC<RouterProps> = ({ configs }) => {
+  const routes: RouteConfig[] = configs || [
     { path: RoutePage.ARCHIVE, Component: Archive },
     { path: RoutePage.ARTIFACTS, Component: ArtifactList },
     { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails },
@@ -178,7 +178,7 @@ const Router: React.FC<RouterProps> = props => {
             exact={true}
             path={path}
             render={props => <RoutedPage key={props.location.key} route={route} />}
-          ></Route>
+          />
         );
       })}
 
