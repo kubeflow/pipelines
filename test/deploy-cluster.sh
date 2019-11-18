@@ -58,16 +58,18 @@ if gcloud container clusters describe ${TEST_CLUSTER} &>/dev/null; then
 else
   echo "Creating a new test cluster: ${TEST_CLUSTER}"
   SHOULD_CLEANUP_CLUSTER=true
-  # "storage-rw" is needed to allow VMs to push to gcr.io
-  # reference: https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam
-  SCOPE_ARG="--scopes=storage-rw,cloud-platform"
   # Machine type and cluster size is the same as kubeflow deployment to
   # easily compare performance. We can reduce usage later.
   NODE_POOL_CONFIG_ARG="--num-nodes=2 --machine-type=n1-standard-8 \
     --enable-autoscaling --max-nodes=8 --min-nodes=2"
-  WI_ARG=
   if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
     WI_ARG="--identity-namespace=$PROJECT.svc.id.goog"
+    SCOPE_ARG=
+  else
+    WI_ARG=
+    # "storage-rw" is needed to allow VMs to push to gcr.io when using default GCE service account.
+    # reference: https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam
+    SCOPE_ARG="--scopes=storage-rw,cloud-platform"
   fi
   gcloud beta container clusters create ${TEST_CLUSTER} ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
 fi
