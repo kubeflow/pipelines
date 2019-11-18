@@ -19,7 +19,9 @@ set -ex
 # Env inputs:
 # * $GCR_IMAGE_BASE_DIR
 # * $GCR_IMAGE_TAG
+# * ENABLE_WORKLOAD_IDENTITY
 GCR_IMAGE_TAG=${GCR_IMAGE_TAG:-latest}
+ENABLE_WORKLOAD_IDENTITY=${ENABLE_WORKLOAD_IDENTITY:-false}
 
 if ! which kustomize; then
   # Download kustomize cli tool
@@ -49,8 +51,21 @@ kustomize edit set image gcr.io/ml-pipeline/inverse-proxy-agent=${GCR_IMAGE_BASE
 cat kustomization.yaml
 
 kustomize build . | kubectl apply -f -
+
 # show current info
 echo "Status of pods after kubectl apply"
 kubectl get pods -n ${NAMESPACE}
+
+if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
+  PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
+    source ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
+
+  gcloud projects add-iam-policy-binding $PROJECT \
+    --member="serviceAccount:$SYSTEM_GSA@$PROJECT.iam.gserviceaccount.com" \
+    --role="roles/editor"
+  gcloud projects add-iam-policy-binding $PROJECT \
+    --member="serviceAccount:$USER_GSA@$PROJECT.iam.gserviceaccount.com" \
+    --role="roles/editor"
+fi
 
 popd

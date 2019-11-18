@@ -35,6 +35,7 @@ GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test
 TARGET_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_BASE_SHA}
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
+ENABLE_WORKLOAD_IDENTITY=true
 
 while [ "$1" != "" ]; do
     case $1 in
