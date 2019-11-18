@@ -19,9 +19,7 @@ const app = express();
 const port = process.argv[2] || 3001;
 
 // Uncomment the following line to get 1000ms delay to all requests
-app.use((req, res, next) => {
-  setTimeout(next, 1000);
-});
+// app.use((req, res, next) => { setTimeout(next, 1000); });
 
 app.use((_, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
