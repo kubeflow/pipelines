@@ -17,6 +17,7 @@
   "paths": {
     "/apis/v1beta1/runs": {
       "get": {
+        "summary": "Finds all runs.",
         "operationId": "ListRuns",
         "responses": {
           "200": {
@@ -48,7 +49,7 @@
           },
           {
             "name": "sort_by",
-            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\nAscending by default.",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\n(Example, \"name asc\" or \"id des\"). Ascending by default.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -77,7 +78,7 @@
           },
           {
             "name": "filter",
-            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\nfilter.proto).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/\nblob/master/backend/api/filter.proto)).",
             "in": "query",
             "required": false,
             "type": "string"
@@ -88,6 +89,7 @@
         ]
       },
       "post": {
+        "summary": "Creates a new run.",
         "operationId": "CreateRun",
         "responses": {
           "200": {
@@ -120,6 +122,7 @@
     },
     "/apis/v1beta1/runs/{id}": {
       "delete": {
+        "summary": "Deletes a run.",
         "operationId": "DeleteRun",
         "responses": {
           "200": {
@@ -150,6 +153,7 @@
     },
     "/apis/v1beta1/runs/{id}:archive": {
       "post": {
+        "summary": "Archives a run.",
         "operationId": "ArchiveRun",
         "responses": {
           "200": {
@@ -180,6 +184,7 @@
     },
     "/apis/v1beta1/runs/{id}:unarchive": {
       "post": {
+        "summary": "Restores an archived run.",
         "operationId": "UnarchiveRun",
         "responses": {
           "200": {
@@ -210,6 +215,7 @@
     },
     "/apis/v1beta1/runs/{run_id}": {
       "get": {
+        "summary": "Finds a specific run by ID.",
         "operationId": "GetRun",
         "responses": {
           "200": {
@@ -240,6 +246,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
       "get": {
+        "summary": "Finds a run's artifact data.",
         "operationId": "ReadArtifact",
         "responses": {
           "200": {
@@ -285,6 +292,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/retry": {
       "post": {
+        "summary": "Re-initiates a failed or terminated run.",
         "operationId": "RetryRun",
         "responses": {
           "200": {
@@ -315,6 +323,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/terminate": {
       "post": {
+        "summary": "Terminates an active run.",
         "operationId": "TerminateRun",
         "responses": {
           "200": {

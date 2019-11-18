@@ -39,7 +39,7 @@ type Client struct {
 }
 
 /*
-ArchiveRun archive run API
+ArchiveRun archives a run
 */
 func (a *Client) ArchiveRun(params *ArchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*ArchiveRunOK, error) {
 	// TODO: Validate the params before sending
@@ -68,7 +68,7 @@ func (a *Client) ArchiveRun(params *ArchiveRunParams, authInfo runtime.ClientAut
 }
 
 /*
-CreateRun create run API
+CreateRun creates a new run
 */
 func (a *Client) CreateRun(params *CreateRunParams, authInfo runtime.ClientAuthInfoWriter) (*CreateRunOK, error) {
 	// TODO: Validate the params before sending
@@ -97,7 +97,7 @@ func (a *Client) CreateRun(params *CreateRunParams, authInfo runtime.ClientAuthI
 }
 
 /*
-DeleteRun delete run API
+DeleteRun deletes a run
 */
 func (a *Client) DeleteRun(params *DeleteRunParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteRunOK, error) {
 	// TODO: Validate the params before sending
@@ -126,7 +126,7 @@ func (a *Client) DeleteRun(params *DeleteRunParams, authInfo runtime.ClientAuthI
 }
 
 /*
-GetRun get run API
+GetRun finds a specific run by ID
 */
 func (a *Client) GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWriter) (*GetRunOK, error) {
 	// TODO: Validate the params before sending
@@ -155,7 +155,7 @@ func (a *Client) GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWri
 }
 
 /*
-ListRuns list runs API
+ListRuns finds all runs
 */
 func (a *Client) ListRuns(params *ListRunsParams, authInfo runtime.ClientAuthInfoWriter) (*ListRunsOK, error) {
 	// TODO: Validate the params before sending
@@ -184,7 +184,7 @@ func (a *Client) ListRuns(params *ListRunsParams, authInfo runtime.ClientAuthInf
 }
 
 /*
-ReadArtifact read artifact API
+ReadArtifact finds a run s artifact data
 */
 func (a *Client) ReadArtifact(params *ReadArtifactParams, authInfo runtime.ClientAuthInfoWriter) (*ReadArtifactOK, error) {
 	// TODO: Validate the params before sending
@@ -242,7 +242,7 @@ func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runti
 }
 
 /*
-RetryRun retry run API
+RetryRun res initiates a failed or terminated run
 */
 func (a *Client) RetryRun(params *RetryRunParams, authInfo runtime.ClientAuthInfoWriter) (*RetryRunOK, error) {
 	// TODO: Validate the params before sending
@@ -271,7 +271,7 @@ func (a *Client) RetryRun(params *RetryRunParams, authInfo runtime.ClientAuthInf
 }
 
 /*
-TerminateRun terminate run API
+TerminateRun terminates an active run
 */
 func (a *Client) TerminateRun(params *TerminateRunParams, authInfo runtime.ClientAuthInfoWriter) (*TerminateRunOK, error) {
 	// TODO: Validate the params before sending
@@ -300,7 +300,7 @@ func (a *Client) TerminateRun(params *TerminateRunParams, authInfo runtime.Clien
 }
 
 /*
-UnarchiveRun unarchive run API
+UnarchiveRun restores an archived run
 */
 func (a *Client) UnarchiveRun(params *UnarchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*UnarchiveRunOK, error) {
 	// TODO: Validate the params before sending
