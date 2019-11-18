@@ -21,6 +21,7 @@ import MuiThemeProvider from '@material-ui/core/styles/MuiThemeProvider';
 import Router from './components/Router';
 import { cssRule } from 'typestyle';
 import { theme, fonts } from './Css';
+import { HashRouter } from 'react-router-dom';
 
 // TODO: license headers
 
@@ -36,7 +37,9 @@ cssRule('html, body, #root', {
 
 ReactDOM.render(
   <MuiThemeProvider theme={theme}>
-    <Router />
+    <HashRouter>
+      <Router />
+    </HashRouter>
   </MuiThemeProvider>,
   document.getElementById('root'),
 );

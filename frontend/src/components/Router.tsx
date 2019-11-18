@@ -43,6 +43,8 @@ import { Route, Switch, Redirect, HashRouter } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss } from '../Css';
 
+export type RouteConfig = { path: string; Component: React.ComponentType<any>; view?: any };
+
 const css = stylesheet({
   dialog: {
     minWidth: 250,
@@ -128,7 +130,11 @@ interface RouteComponentState {
   toolbarProps: ToolbarProps;
 }
 
-class Router extends React.Component<{}, RouteComponentState> {
+export interface RouterProps {
+  configs?: RouteConfig[]; // only used in tests
+}
+
+class Router extends React.Component<RouterProps, RouteComponentState> {
   constructor(props: any) {
     super(props);
 
@@ -149,7 +155,7 @@ class Router extends React.Component<{}, RouteComponentState> {
       updateToolbar: this._updateToolbar.bind(this),
     };
 
-    const routes: Array<{ path: string; Component: React.ComponentClass; view?: any }> = [
+    const routes: RouteConfig[] = this.props.configs || [
       { path: RoutePage.ARCHIVE, Component: Archive },
       { path: RoutePage.ARTIFACTS, Component: ArtifactList },
       { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails },
@@ -172,88 +178,82 @@ class Router extends React.Component<{}, RouteComponentState> {
     ];
 
     return (
-      <HashRouter>
-        <div className={commonCss.page}>
-          <div className={commonCss.flexGrow}>
-            <Route
-              render={({ ...props }) => <SideNav page={props.location.pathname} {...props} />}
-            />
-            <div className={classes(commonCss.page)}>
+      <div className={commonCss.page}>
+        <div className={commonCss.flexGrow}>
+          <Route render={({ ...props }) => <SideNav page={props.location.pathname} {...props} />} />
+          <div className={classes(commonCss.page)}>
+            <Route render={({ ...props }) => <Toolbar {...this.state.toolbarProps} {...props} />} />
+            {this.state.bannerProps.message && (
+              <Banner
+                message={this.state.bannerProps.message}
+                mode={this.state.bannerProps.mode}
+                additionalInfo={this.state.bannerProps.additionalInfo}
+                refresh={this.state.bannerProps.refresh}
+              />
+            )}
+            <Switch>
               <Route
-                render={({ ...props }) => <Toolbar {...this.state.toolbarProps} {...props} />}
+                exact={true}
+                path={'/'}
+                render={({ ...props }) => <Redirect to={RoutePage.PIPELINES} {...props} />}
               />
-              {this.state.bannerProps.message && (
-                <Banner
-                  message={this.state.bannerProps.message}
-                  mode={this.state.bannerProps.mode}
-                  additionalInfo={this.state.bannerProps.additionalInfo}
-                  refresh={this.state.bannerProps.refresh}
-                />
-              )}
-              <Switch>
-                <Route
-                  exact={true}
-                  path={'/'}
-                  render={({ ...props }) => <Redirect to={RoutePage.PIPELINES} {...props} />}
-                />
-                {routes.map((route, i) => {
-                  const { path, Component, ...otherProps } = { ...route };
-                  return (
-                    <Route
-                      key={i}
-                      exact={true}
-                      path={path}
-                      render={({ ...props }) => (
-                        <Component {...props} {...childProps} {...otherProps} />
-                      )}
-                    />
-                  );
-                })}
-
-                {/* 404 */}
-                {<Route render={({ ...props }) => <Page404 {...props} {...childProps} />} />}
-              </Switch>
-
-              <Snackbar
-                autoHideDuration={this.state.snackbarProps.autoHideDuration}
-                message={this.state.snackbarProps.message}
-                open={this.state.snackbarProps.open}
-                onClose={this._handleSnackbarClose.bind(this)}
-              />
-            </div>
-          </div>
-
-          <Dialog
-            open={this.state.dialogProps.open !== false}
-            classes={{ paper: css.dialog }}
-            className='dialog'
-            onClose={() => this._handleDialogClosed()}
-          >
-            {this.state.dialogProps.title && (
-              <DialogTitle> {this.state.dialogProps.title}</DialogTitle>
-            )}
-            {this.state.dialogProps.content && (
-              <DialogContent className={commonCss.prewrap}>
-                {this.state.dialogProps.content}
-              </DialogContent>
-            )}
-            {this.state.dialogProps.buttons && (
-              <DialogActions>
-                {this.state.dialogProps.buttons.map((b, i) => (
-                  <Button
+              {routes.map((route, i) => {
+                const { path, Component, ...otherProps } = { ...route };
+                return (
+                  <Route
                     key={i}
-                    onClick={() => this._handleDialogClosed(b.onClick)}
-                    className='dialogButton'
-                    color='secondary'
-                  >
-                    {b.text}
-                  </Button>
-                ))}
-              </DialogActions>
-            )}
-          </Dialog>
+                    exact={true}
+                    path={path}
+                    render={({ ...props }) => (
+                      <Component {...props} {...childProps} {...otherProps} />
+                    )}
+                  />
+                );
+              })}
+
+              {/* 404 */}
+              {<Route render={({ ...props }) => <Page404 {...props} {...childProps} />} />}
+            </Switch>
+
+            <Snackbar
+              autoHideDuration={this.state.snackbarProps.autoHideDuration}
+              message={this.state.snackbarProps.message}
+              open={this.state.snackbarProps.open}
+              onClose={this._handleSnackbarClose.bind(this)}
+            />
+          </div>
         </div>
-      </HashRouter>
+
+        <Dialog
+          open={this.state.dialogProps.open !== false}
+          classes={{ paper: css.dialog }}
+          className='dialog'
+          onClose={() => this._handleDialogClosed()}
+        >
+          {this.state.dialogProps.title && (
+            <DialogTitle> {this.state.dialogProps.title}</DialogTitle>
+          )}
+          {this.state.dialogProps.content && (
+            <DialogContent className={commonCss.prewrap}>
+              {this.state.dialogProps.content}
+            </DialogContent>
+          )}
+          {this.state.dialogProps.buttons && (
+            <DialogActions>
+              {this.state.dialogProps.buttons.map((b, i) => (
+                <Button
+                  key={i}
+                  onClick={() => this._handleDialogClosed(b.onClick)}
+                  className='dialogButton'
+                  color='secondary'
+                >
+                  {b.text}
+                </Button>
+              ))}
+            </DialogActions>
+          )}
+        </Dialog>
+      </div>
     );
   }
 
