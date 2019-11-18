@@ -24,6 +24,16 @@ See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/pipelines/ref
 
 Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/latest/) when writing pipelines using the Python SDK.
 
+## Kubeflow Pipelines Community Meeting
+
+The meeting is happening every other Wed 10-11AM (PST) 
+[Calendar Invite](https://calendar.google.com/event?action=TEMPLATE&tmeid=NTdoNG5uMDBtcnJlYmdlOWt1c2lkY25jdmlfMjAxOTExMTNUMTgwMDAwWiBqZXNzaWV6aHVAZ29vZ2xlLmNvbQ&tmsrc=jessiezhu%40google.com&scp=ALL) or [Join Meeting Directly](https://meet.google.com/phd-ixfj-kcr/)
+
+[Meeting notes](http://bit.ly/kfp-meeting-notes)
+
+## Kubeflow Pipelines Slack Channel
+[#kubeflow-pipelines](https://kubeflow.slack.com)
+
 ## Blog posts
 
 * [Getting started with Kubeflow Pipelines](https://cloud.google.com/blog/products/ai-machine-learning/getting-started-kubeflow-pipelines) (By Amy Unruh)
