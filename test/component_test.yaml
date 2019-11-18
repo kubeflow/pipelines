@@ -18,10 +18,6 @@ metadata:
   generateName: sample-test-
 spec:
   entrypoint: sample-test
-  volumes:
-  - name: gcp-credentials
-    secret:
-      secretName: user-gcp-sa
   arguments:
     parameters:
     - name: image-build-context-gcs-uri
@@ -107,11 +103,6 @@ spec:
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials
     sidecars:
     - name: dind
       image: docker:17.10-dind
@@ -142,10 +133,3 @@ spec:
         "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
       ]
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials
-

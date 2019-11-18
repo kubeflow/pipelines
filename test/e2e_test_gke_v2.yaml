@@ -18,10 +18,6 @@ metadata:
   generateName: integration-test-
 spec:
   entrypoint: integration-test
-  volumes:
-  - name: gcp-credentials
-    secret:
-      secretName: user-gcp-sa
   arguments:
     parameters:
     - name: image-build-context-gcs-uri
@@ -168,11 +164,6 @@ spec:
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials
     sidecars:
     - name: dind
       image: docker:17.10-dind
@@ -190,12 +181,6 @@ spec:
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials
 
   - name: run-api-integration-tests
     inputs:
@@ -207,12 +192,6 @@ spec:
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials
 
   - name: run-frontend-integration-tests
     inputs:
@@ -224,12 +203,6 @@ spec:
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials
 
   - name: run-basic-e2e-tests
     inputs:
@@ -246,9 +219,3 @@ spec:
         "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
       ]
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials
