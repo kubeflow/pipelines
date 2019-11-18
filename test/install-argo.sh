@@ -55,6 +55,7 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   create_gsa_if_not_present $ARGO_GSA
   gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$ARGO_GSA@$PROJECT.iam.gserviceaccount.com" \
-    --role="roles/editor"
-  bind_gsa_and_ksa $ARGO_GSA $ARGO_KSA
+    --role="roles/editor" \
+    > /dev/null # hide verbose output
+  bind_gsa_and_ksa $ARGO_GSA $ARGO_KSA $PROJECT $NAMESPACE
 fi

@@ -29,15 +29,18 @@ function create_gsa_if_not_present {
 function bind_gsa_and_ksa {
   local gsa=${1}
   local ksa=${2}
+  local project=${3:-$PROJECT_ID}
+  local gsa_full="$gsa@$project.iam.gserviceaccount.com"
+  local namespace=${4:-$NAMESPACE}
 
-  gcloud iam service-accounts add-iam-policy-binding $gsa@$PROJECT_ID.iam.gserviceaccount.com \
-    --member="serviceAccount:$PROJECT_ID.svc.id.goog[$NAMESPACE/$ksa]" \
+  gcloud iam service-accounts add-iam-policy-binding $gsa_full \
+    --member="serviceAccount:$project.svc.id.goog[$namespace/$ksa]" \
     --role="roles/iam.workloadIdentityUser" \
     > /dev/null # hide verbose output
   kubectl annotate serviceaccount \
-    --namespace $NAMESPACE \
+    --namespace $namespace \
     --overwrite \
     $ksa \
-    iam.gke.io/gcp-service-account=$gsa@$PROJECT_ID.iam.gserviceaccount.com
-  echo "* Bound KSA $ksa to GSA $gsa"
+    iam.gke.io/gcp-service-account=$gsa_full
+  echo "* Bound KSA $ksa in namespace $namespace to GSA $gsa_full"
 }
