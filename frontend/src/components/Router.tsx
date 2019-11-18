@@ -39,7 +39,7 @@ import RunDetails from '../pages/RunDetails';
 import SideNav from './SideNav';
 import Snackbar, { SnackbarProps } from '@material-ui/core/Snackbar';
 import Toolbar, { ToolbarProps } from './Toolbar';
-import { Route, Switch, Redirect, HashRouter } from 'react-router-dom';
+import { Route, Switch, Redirect } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss } from '../Css';
 
@@ -134,7 +134,65 @@ export interface RouterProps {
   configs?: RouteConfig[]; // only used in tests
 }
 
-class Router extends React.Component<RouterProps, RouteComponentState> {
+// This component is made as a wrapper to separate toolbar state for different pages.
+const Router: React.FC<RouterProps> = props => {
+  const routes: RouteConfig[] = props.configs || [
+    { path: RoutePage.ARCHIVE, Component: Archive },
+    { path: RoutePage.ARTIFACTS, Component: ArtifactList },
+    { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails },
+    { path: RoutePage.EXECUTIONS, Component: ExecutionList },
+    { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
+    {
+      Component: ExperimentsAndRuns,
+      path: RoutePage.EXPERIMENTS,
+      view: ExperimentsAndRunsTab.EXPERIMENTS,
+    },
+    { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
+    { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
+    { path: RoutePage.NEW_RUN, Component: NewRun },
+    { path: RoutePage.PIPELINES, Component: PipelineList },
+    { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
+    { path: RoutePage.RUNS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.RUNS },
+    { path: RoutePage.RECURRING_RUN, Component: RecurringRunDetails },
+    { path: RoutePage.RUN_DETAILS, Component: RunDetails },
+    { path: RoutePage.COMPARE, Component: Compare },
+  ];
+
+  return (
+    <Switch>
+      <Route
+        exact={true}
+        path={'/'}
+        render={({ ...props }) => <Redirect to={RoutePage.PIPELINES} {...props} />}
+      />
+
+      {/* Normal routes */}
+      {routes.map((route, i) => {
+        const { path } = { ...route };
+        return (
+          // Setting a key here, so that two different routes are considered two instances from
+          // react. Therefore, they don't share toolbar state. This avoids many bugs like dangling
+          // network response handlers.
+          <Route
+            key={i}
+            exact={true}
+            path={path}
+            render={props => <RouterImp key={props.location.key} configs={routes} />}
+          ></Route>
+        );
+      })}
+
+      {/* 404 */}
+      {
+        <Route>
+          <RouterImp configs={routes} />
+        </Route>
+      }
+    </Switch>
+  );
+};
+
+class RouterImp extends React.Component<{ configs: RouteConfig[] }, RouteComponentState> {
   constructor(props: any) {
     super(props);
 
@@ -155,28 +213,6 @@ class Router extends React.Component<RouterProps, RouteComponentState> {
       updateToolbar: this._updateToolbar.bind(this),
     };
 
-    const routes: RouteConfig[] = this.props.configs || [
-      { path: RoutePage.ARCHIVE, Component: Archive },
-      { path: RoutePage.ARTIFACTS, Component: ArtifactList },
-      { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails },
-      { path: RoutePage.EXECUTIONS, Component: ExecutionList },
-      { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
-      {
-        Component: ExperimentsAndRuns,
-        path: RoutePage.EXPERIMENTS,
-        view: ExperimentsAndRunsTab.EXPERIMENTS,
-      },
-      { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
-      { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
-      { path: RoutePage.NEW_RUN, Component: NewRun },
-      { path: RoutePage.PIPELINES, Component: PipelineList },
-      { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
-      { path: RoutePage.RUNS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.RUNS },
-      { path: RoutePage.RECURRING_RUN, Component: RecurringRunDetails },
-      { path: RoutePage.RUN_DETAILS, Component: RunDetails },
-      { path: RoutePage.COMPARE, Component: Compare },
-    ];
-
     return (
       <div className={commonCss.page}>
         <div className={commonCss.flexGrow}>
@@ -192,12 +228,7 @@ class Router extends React.Component<RouterProps, RouteComponentState> {
               />
             )}
             <Switch>
-              <Route
-                exact={true}
-                path={'/'}
-                render={({ ...props }) => <Redirect to={RoutePage.PIPELINES} {...props} />}
-              />
-              {routes.map((route, i) => {
+              {this.props.configs.map((route, i) => {
                 const { path, Component, ...otherProps } = { ...route };
                 return (
                   <Route

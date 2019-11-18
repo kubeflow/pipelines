@@ -66,10 +66,8 @@ describe('Router', () => {
     expect(tree.getDOMNode().querySelector('[data-testid=page-title]')!.textContent).toEqual(
       'Apple',
     );
-    // When visiting the second page, page title should be reset automatically, but it remains.
+    // When visiting the second page, page title should be reset automatically.
     history.push('/pear');
-    expect(tree.getDOMNode().querySelector('[data-testid=page-title]')!.textContent).toEqual(
-      'Apple',
-    );
+    expect(tree.getDOMNode().querySelector('[data-testid=page-title]')!.textContent).toEqual('');
   });
 });
