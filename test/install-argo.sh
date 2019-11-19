@@ -53,6 +53,9 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   # Util library including create_gsa_if_not_present and bind_gsa_and_ksa functions.
   source "$DIR/../manifests/kustomize/wi-utils.sh"
   create_gsa_if_not_present $ARGO_GSA
+
+  # Adding iam policy binding takes some time to take effect. However, in tests we are reusing
+  # service accounts, so we don't need to explicitly wait for anything.
   gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$ARGO_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor" \
