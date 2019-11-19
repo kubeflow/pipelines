@@ -10,12 +10,15 @@
       "backstop_data/**/*.js",
       "generated/**",
       "src/api/*.ts",
-      "scripts/**"
+      "scripts/**",
+      "src/**/*.test.ts",
+      "src/**/*.test.tsx"
     ],
     "format": "verbose"
   },
   "rules": {
     "interface-name": [true, "never-prefix"],
+    "interface-over-type-literal": false,
     "jsx-no-bind": false,
     "jsx-no-lambda": false,
     "max-classes-per-file": false,
