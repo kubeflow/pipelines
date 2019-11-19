@@ -29,6 +29,7 @@ spec:
           python3 -m pip install kubernetes 'ml-metadata==0.14' --upgrade --quiet --user --no-warn-script-location
           #wget --quiet -O /tmp/metadata_writer.py https://raw.githubusercontent.com/Ark-kun/pipelines/Metadata-Writer-0.1/sdk/metadata_writer/metadata_writer.py
           curl --silent --show-error https://raw.githubusercontent.com/Ark-kun/pipelines/Metadata-Writer-0.1/sdk/metadata_writer/metadata_writer.py >/tmp/metadata_writer.py
+          echo "Starting the Metadata writer"
           python3 /tmp/metadata_writer.py
 EOF
 """
@@ -473,7 +474,7 @@ mlmd_connection_config = metadata_store_pb2.ConnectionConfig(
     ),
 )
 mlmd_store = metadata_store.MetadataStore(mlmd_connection_config)
-
+print("Connected to the metadata store")
 
 #%%
 
