@@ -39,13 +39,6 @@ pipeline_root = os.path.join(
     'gs://your-bucket', 'tfx_taxi_simple', kfp.dsl.RUN_ID_PLACEHOLDER
 )
 
-# Path to the CSV data file, under which their should be a data.csv file.
-# Note: this is still digested as raw PipelineParam b/c parameterization of
-# ExternalArtifact attributes has not been implemented yet in TFX.
-_data_root_param = dsl.PipelineParam(
-    name='data-root',
-    value='gs://ml-pipeline-playground/tfx_taxi_simple/data')
-
 
 def _create_one_step_pipeline(
     pipeline_name: Text,
@@ -62,11 +55,18 @@ def _create_one_step_pipeline(
   Returns:
     A logical TFX pipeline.Pipeline object.
   """
+  # Path to the CSV data file, under which their should be a data.csv file.
+  # Note: this is still digested as raw PipelineParam b/c parameterization of
+  # ExternalArtifact attributes has not been implemented yet in TFX.
+  _data_root_param = runtime_string_parameter.RuntimeStringParameter(
+      name='data-root',
+      default='gs://ml-pipeline-playground/tfx_taxi_simple/data')
+
   # Name of the output split from ExampleGen. Specified as a RuntimeParameter.
   example_split_name = runtime_string_parameter.RuntimeStringParameter(
       name='split-name', default='train'
   )
-  examples = csv_input(str(_data_root_param))
+  examples = csv_input(_data_root_param)
   example_gen = CsvExampleGen(
       input=examples,
       output_config=example_gen_pb2.Output(
@@ -98,7 +98,5 @@ if __name__ == '__main__':
       tfx_image='tensorflow/tfx:latest'
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(config=config)
-  # Make sure kfp_runner recognizes those parameters.
-  kfp_runner._params.extend([_data_root_param])
 
   kfp_runner.run(pipeline)
