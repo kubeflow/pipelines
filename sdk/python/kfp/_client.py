@@ -93,6 +93,9 @@ class Client(object):
           If you connect to an IAP enabled cluster, set it to
           https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
       client_id: The client ID used by Identity-Aware Proxy.
+      namespace: the namespace where the kubeflow pipeline system is run.
+      other_client_id: The client ID used to obtain the auth codes and refresh tokens.
+      other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
