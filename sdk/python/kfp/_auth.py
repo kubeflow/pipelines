@@ -22,6 +22,10 @@ from google.auth.transport.requests import Request
 import google.oauth2.credentials
 import google.oauth2.service_account
 import requests_toolbelt.adapters.appengine
+from webbrowser import open_new_tab
+from time import sleep
+import requests
+import json
 
 IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
@@ -117,3 +121,32 @@ def get_google_open_id_connect_token(service_account_credentials):
     token_response = google.oauth2._client._token_endpoint_request(
         request, OAUTH_TOKEN_URI, body)
     return token_response['id_token']
+
+def get_id_token(client_id, client_secret, audience):
+    """Obtain the ID token for provided Client ID with user accounts.
+        Flow: get authorization code -> exchange for refresh token -> obtain and return ID token
+    """
+    auth_code = get_auth_code(client_id)
+    refresh_token = get_refresh_token_from_code(auth_code, client_id, client_secret)
+    return id_token_from_refresh_token(client_id, client_secret, refresh_token, audience)
+
+def get_auth_code(client_id):
+    auth_url = "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&response_type=code&scope=openid%%20email&access_type=offline&redirect_uri=urn:ietf:wg:oauth:2.0:oob"%client_id
+    open_new_tab(auth_url)
+    sleep(1)
+    return input("Authorization code: ")
+
+def get_refresh_token_from_code(auth_code, client_id, client_secret):
+    oauth_token_base_URL = 'https://www.googleapis.com/oauth2/v4/token'
+    payload = {"code": auth_code, "client_id": client_id, "client_secret": client_secret,
+               "redirect_uri": "urn:ietf:wg:oauth:2.0:oob", "grant_type": "authorization_code"}
+    res = requests.post(oauth_token_base_URL, data=payload)
+    return (str(json.loads(res.text)[u"refresh_token"]))
+
+def id_token_from_refresh_token(client_id, client_secret, refresh_token, audience):
+    oauth_token_base_URL = "https://www.googleapis.com/oauth2/v4/token"
+    payload = {"client_id": client_id, "client_secret": client_secret,
+               "refresh_token": refresh_token, "grant_type": "refresh_token",
+               "audience": audience}
+    res = requests.post(oauth_token_base_URL, data=payload)
+    return (str(json.loads(res.text)[u"id_token"]))

@@ -32,7 +32,7 @@ import kfp_server_api
 from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 
-from kfp._auth import get_auth_token, get_gcp_access_token
+from kfp._auth import get_auth_token, get_gcp_access_token, get_id_token
 
 
 
@@ -81,7 +81,7 @@ class Client(object):
   IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
-  def __init__(self, host=None, client_id=None, namespace='kubeflow'):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None):
     """Create a new instance of kfp client.
 
     Args:
@@ -96,7 +96,7 @@ class Client(object):
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
-    config = self._load_config(host, client_id, namespace)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret)
     api_client = kfp_server_api.api_client.ApiClient(config)
     _add_generated_apis(self, kfp_server_api, api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
@@ -104,7 +104,7 @@ class Client(object):
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
 
-  def _load_config(self, host, client_id, namespace):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret):
     config = kfp_server_api.configuration.Configuration()
     if host:
       config.host = host
@@ -114,8 +114,12 @@ class Client(object):
     if self._is_inverse_proxy_host(host):
       token = get_gcp_access_token()
     if self._is_iap_host(host,client_id):
-      # fetch IAP auth token
-      token = get_auth_token(client_id)
+      if other_client_id is None or other_client_secret is None:
+        # fetch IAP auth token: service accounts
+        token = get_auth_token(client_id)
+      else:
+        # fetch IAP auth token: user account
+        token = get_id_token(other_client_id, other_client_secret, client_id)
 
     if token:
       config.api_key['authorization'] = token
