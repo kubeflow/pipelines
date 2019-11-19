@@ -199,6 +199,8 @@ def create_new_execution_in_existing_context(
 
 
 RUN_CONTEXT_TYPE_NAME = "KfpRun"
+KFP_EXECUTION_TYPE_NAME_PREFIX = 'components.'
+
 ARTIFACT_IO_NAME_PROPERTY_NAME = "name"
 EXECUTION_COMPONENT_ID_PROPERTY_NAME = "component_id"# ~= Task ID
 
@@ -238,7 +240,7 @@ def create_new_execution_in_existing_run_context(
 ) -> metadata_store_pb2.Execution:
     return create_new_execution_in_existing_context(
         store=store,
-        execution_type_name=execution_type_name,
+        execution_type_name=KFP_EXECUTION_TYPE_NAME_PREFIX + execution_type_name,
         context_id=context_id,
         execution_type_properties={
             EXECUTION_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
