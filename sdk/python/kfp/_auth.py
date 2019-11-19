@@ -23,7 +23,6 @@ import google.oauth2.credentials
 import google.oauth2.service_account
 import requests_toolbelt.adapters.appengine
 from webbrowser import open_new_tab
-from time import sleep
 import requests
 import json
 
@@ -132,8 +131,8 @@ def get_id_token(client_id, client_secret, audience):
 
 def get_auth_code(client_id):
     auth_url = "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&response_type=code&scope=openid%%20email&access_type=offline&redirect_uri=urn:ietf:wg:oauth:2.0:oob"%client_id
+    print(auth_url)
     open_new_tab(auth_url)
-    sleep(1)
     return input("Authorization code: ")
 
 def get_refresh_token_from_code(auth_code, client_id, client_secret):
