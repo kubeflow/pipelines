@@ -923,12 +923,12 @@ spec:
         app: metadata-writer
     containers:
     - name: main
-        image: tensorflow/tensorflow:1.15.0-py3
-        command:
-        - sh
-        - -e
-        - -c
-        - |
+      image: tensorflow/tensorflow:1.15.0-py3
+      command:
+      - sh
+      - -e
+      - -c
+      - |
         python3 -m pip install kubernetes 'ml-metadata==0.14' --upgrade --quiet --user
         sleep 100000
 EOF
