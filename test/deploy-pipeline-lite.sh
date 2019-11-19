@@ -72,7 +72,7 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
     --role="roles/editor"
 
   # Waits until IAM policies take effect.
-  sleep 120
+  sleep 600
 fi
 
 popd
