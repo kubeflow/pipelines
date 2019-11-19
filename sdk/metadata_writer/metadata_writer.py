@@ -533,6 +533,15 @@ exit(0)
 
 #%%
 
+def is_tfx_pod(pod) -> bool:
+    main_containers = [container for container in pod.spec.containers if container.name == 'main']
+    if len(main_containers) != 1:
+        return False
+    main_container = main_containers[0]
+    return main_container.command and main_container.command[-1].endswith('tfx/orchestration/kubeflow/container_entrypoint.py')
+
+#%%
+
 # Caches (not expected to be persistent)
 pod_name_to_execution_id = {} # Updates happen fast. I've seen new ID being assigned to an execution 3 times.
 workflow_name_to_context_id = {}
@@ -559,6 +568,10 @@ for event in k8s_watch.stream(
         assert obj.kind == 'Pod'
 
         if METADATA_WRITTEN_LABEL_KEY in obj.metadata.labels:
+            continue
+
+        # Skip TFX pods - they have their own metadata writers
+        if is_tfx_pod(obj):
             continue
 
         argo_workflow_name = obj.metadata.labels[ARGO_WORKFLOW_LABEL_KEY] # Should exist due to initial filtering
