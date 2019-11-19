@@ -168,7 +168,11 @@ class Toolbar extends React.Component<ToolbarProps> {
               </Tooltip>
             )}
             {/* Resource Name */}
-            <span className={classes(css.pageName, commonCss.ellipsis)} title={pageTitleTooltip}>
+            <span
+              className={classes(css.pageName, commonCss.ellipsis)}
+              title={pageTitleTooltip}
+              data-testid='page-title' // TODO: use a proper h1 tag for page titles and let tests query this by h1.
+            >
               {pageTitle}
             </span>
           </div>
