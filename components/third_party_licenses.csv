@@ -5,9 +5,9 @@ msgpack,https://raw.githubusercontent.com/msgpack/msgpack/python-0.1.7/python/CO
 Mako,https://raw.githubusercontent.com/zzzeek/mako/master/LICENSE,MIT
 python-editor,https://raw.githubusercontent.com/fmoo/python-editor/master/LICENSE,Apache v2
 tzlocal,https://raw.githubusercontent.com/regebro/tzlocal/master/LICENSE.txt,MIT
-itsdangerous,https://raw.githubusercontent.com/pallets/itsdangerous/master/LICENSE,3-Clause BSD
-Werkzeug,https://raw.githubusercontent.com/pallets/werkzeug/master/LICENSE,3-Clause BSD
-click,https://raw.githubusercontent.com/pallets/click/master/LICENSE,3-Clause BSD
+itsdangerous,https://raw.githubusercontent.com/pallets/itsdangerous/master/LICENSE.rst,3-Clause BSD
+Werkzeug,https://raw.githubusercontent.com/pallets/werkzeug/master/LICENSE.rst,3-Clause BSD
+click,https://raw.githubusercontent.com/pallets/click/master/LICENSE.rst,3-Clause BSD
 alembic,https://raw.githubusercontent.com/zzzeek/alembic/master/LICENSE,MIT
 sqlalchemy,https://raw.githubusercontent.com/zzzeek/sqlalchemy/master/LICENSE,MIT
 APScheduler,https://raw.githubusercontent.com/agronholm/apscheduler/master/LICENSE.txt,MIT
@@ -41,7 +41,7 @@ setuptools,https://raw.githubusercontent.com/pypa/setuptools/master/LICENSE,MIT
 tornado,https://raw.githubusercontent.com/tornadoweb/tornado/stable/LICENSE,Apache Software License 2.0
 traitlets,https://raw.githubusercontent.com/ipython/traitlets/master/COPYING.md,BSD
 subprocess32,https://raw.githubusercontent.com/google/python-subprocess32/master/LICENSE,Python Software Foundation License
-jinja2,https://raw.githubusercontent.com/pallets/jinja/master/LICENSE,BSD
+jinja2,https://raw.githubusercontent.com/pallets/jinja/master/LICENSE.rst,BSD
 html5lib,https://raw.githubusercontent.com/html5lib/html5lib-python/master/LICENSE,MIT
 opencv-python,https://raw.githubusercontent.com/skvark/opencv-python/master/LICENSE.txt,MIT
 httplib2,https://raw.githubusercontent.com/httplib2/httplib2/master/LICENSE,MIT
@@ -88,6 +88,7 @@ gapic-google-cloud-pubsub-v1,https://raw.githubusercontent.com/googleapis/api-cl
 google-apitools,https://raw.githubusercontent.com/google/apitools/master/LICENSE,Apache 2.0
 google-auth-library-python-httplib2,https://raw.githubusercontent.com/GoogleCloudPlatform/google-auth-library-python-httplib2/master/LICENSE,Apache 2.0
 google-cloud-bigquery,https://raw.githubusercontent.com/GoogleCloudPlatform/google-cloud-python/master/bigquery/LICENSE,Apache 2.0
+google-cloud-bigtable,https://raw.githubusercontent.com/GoogleCloudPlatform/google-cloud-python/master/bigtable/LICENSE,Apache 2.0
 google-cloud-core,https://raw.githubusercontent.com/GoogleCloudPlatform/google-cloud-python/master/core/LICENSE,Apache 2.0
 google-cloud-pubsub,https://raw.githubusercontent.com/GoogleCloudPlatform/google-cloud-python/master/pubsub/LICENSE,Apache 2.0
 google-gax,https://raw.githubusercontent.com/googleapis/gax-python/master/LICENSE,Apache 2.0
@@ -134,10 +135,10 @@ functools32,https://raw.githubusercontent.com/michilu/python-functools32/master/
 grpc-google-iam-v1,https://raw.githubusercontent.com/googleapis/googleapis/master/LICENSE,Apache 2.0
 ipython-genutils,https://raw.githubusercontent.com/ipython/ipython_genutils/master/COPYING.md,BSD
 ipywidgets,https://raw.githubusercontent.com/jupyter-widgets/ipywidgets/master/LICENSE,3-Clause BSD
-Jinja2,https://raw.githubusercontent.com/pallets/jinja/master/LICENSE,BSD
+Jinja2,https://raw.githubusercontent.com/pallets/jinja/master/LICENSE.rst,BSD
 jsonschema,https://raw.githubusercontent.com/Julian/jsonschema/master/COPYING,MIT
-jupyter,https://raw.githubusercontent.com/jupyter/notebook/master/COPYING.md,BSD
-notebook,https://raw.githubusercontent.com/jupyter/notebook/master/COPYING.md,BSD
+jupyter,https://raw.githubusercontent.com/jupyter/notebook/master/LICENSE,BSD
+notebook,https://raw.githubusercontent.com/jupyter/notebook/master/LICENSE,BSD
 jupyter-client,https://raw.githubusercontent.com/jupyter/jupyter_client/master/COPYING.md,BSD
 jupyter-console,https://raw.githubusercontent.com/jupyter/jupyter_console/master/COPYING.md,BSD
 jupyter-core,https://raw.githubusercontent.com/jupyter/jupyter_core/master/COPYING.md,BSD
@@ -179,4 +180,17 @@ tensorflow-gpu,https://raw.githubusercontent.com/tensorflow/tensorflow/master/LI
 webencodings,https://raw.githubusercontent.com/gsnedders/python-webencodings/master/LICENSE,BSD
 google-api-core,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
 google-resumable-media,https://raw.githubusercontent.com/googleapis/google-resumable-media-python/master/LICENSE,Apache 2.0
-
+trainer,https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE,Apache 2.0
+pyarrow,https://raw.githubusercontent.com/apache/arrow/master/LICENSE.txt,Apache 2.0
+attrs,https://raw.githubusercontent.com/python-attrs/attrs/master/LICENSE,MIT
+pyrsistent,https://raw.githubusercontent.com/tobgu/pyrsistent/master/LICENCE.mit,MIT
+fire,https://raw.githubusercontent.com/google/python-fire/master/LICENSE,Apache 2.0
+kfp-component,https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE,Apache 2.0
+google-cloud-storage,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
+gcloud,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
+gax-google-logging-v2,https://raw.githubusercontent.com/googleapis/googleapis/master/LICENSE,Apache 2.0
+gax-google-pubsub-v1,https://raw.githubusercontent.com/googleapis/googleapis/master/LICENSE,Apache 2.0
+grpc-google-logging-v2,https://raw.githubusercontent.com/googleapis/googleapis/master/LICENSE,Apache 2.0
+grpc-google-pubsub-v1,https://raw.githubusercontent.com/googleapis/googleapis/master/LICENSE,Apache 2.0
+google-cloud-datastore,https://raw.githubusercontent.com/GoogleCloudPlatform/google-cloud-datastore/master/LICENSE,Apache 2.0
+pymongo,https://raw.githubusercontent.com/mongodb/mongo-python-driver/master/LICENSE,Apache 2.0

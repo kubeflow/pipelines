@@ -1,971 +1,2970 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`SideNav renders Pipelines as active page 1`] = `
+exports[`SideNav populates the display build information using the response from the healthz endpoint 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <div
+      className="indicator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      Kubeflow
-    </span>
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <PipelinesIcon
+            color="#0d6de7"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <ExperimentsIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
+  <div
+    className="infoVisible"
   >
-    <WithStyles(Button)
-      className="button active"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Build date: 10/23/2018"
     >
-      <PipelinesIcon
-        color="#fff"
-      />
-      <span
-        className="label"
+      <div
+        className="buildInfo"
       >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
+        <span>
+          Build commit: 
+        </span>
+        <a
+          className="link unstyled"
+          href="https://www.github.com/kubeflow/pipelines/commit/0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5"
+          target="_blank"
+        >
+          0a7b9e3
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
+</div>
+`;
+
+exports[`SideNav renders Pipelines as active page 1`] = `
+<div
+  className="root flexColumn noShrink"
+  id="sideNav"
+>
+  <div
+    style={
+      Object {
+        "flexGrow": 1,
+      }
+    }
   >
-    <WithStyles(Button)
-      className="button"
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      <ExperimentsIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
       >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
+        <WithStyles(Button)
+          className="button active"
+        >
+          <PipelinesIcon
+            color="#0d6de7"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <ExperimentsIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+  </div>
+  <div
+    className="infoVisible"
   />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <div
+      className="indicator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      Kubeflow
-    </span>
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <PipelinesIcon
+            color="#0d6de7"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <ExperimentsIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <PipelinesIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <ExperimentsIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
+  <div
+    className="infoVisible"
   />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders collapsed state 1`] = `
 <div
-  className="root noShrink collapsedRoot"
+  className="root flexColumn noShrink collapsedRoot"
   id="sideNav"
 >
   <div
-    className="button collapsedButton logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <div
+      className="indicator"
     />
-    <span
-      className="collapsedLabel label logoLabel"
+    <WithStyles(Tooltip)
+      disableFocusListener={false}
+      disableHoverListener={false}
+      disableTouchListener={false}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      Kubeflow
-    </span>
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button active collapsedButton"
+        >
+          <PipelinesIcon
+            color="#0d6de7"
+          />
+          <span
+            className="collapsedLabel label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={false}
+      disableHoverListener={false}
+      disableTouchListener={false}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button collapsedButton"
+        >
+          <ExperimentsIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="collapsedLabel label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={false}
+      disableHoverListener={false}
+      disableTouchListener={false}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button collapsedButton"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="collapsedLabel label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={false}
+      disableHoverListener={false}
+      disableTouchListener={false}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button collapsedButton"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="collapsedLabel label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator collapsedSeparator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={false}
+      disableHoverListener={false}
+      disableTouchListener={false}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button collapsedButton"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="collapsedLabel label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator collapsedSeparator"
+    />
+    <ExternalUri
+      collapsed={true}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={true}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={true}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator collapsedSeparator"
+    />
+    <WithStyles(IconButton)
+      className="chevron collapsedChevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button active collapsedButton"
-    >
-      <PipelinesIcon
-        color="#fff"
-      />
-      <span
-        className="collapsedLabel label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button collapsedButton"
-    >
-      <ExperimentsIcon
-        color="#87a1b8"
-      />
-      <span
-        className="collapsedLabel label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator collapsedSeparator"
+  <div
+    className="infoHidden"
   />
-  <WithStyles(IconButton)
-    className="chevron collapsedChevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders expanded state 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <div
+      className="indicator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      Kubeflow
-    </span>
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <PipelinesIcon
+            color="#0d6de7"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <ExperimentsIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <PipelinesIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <ExperimentsIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
+  <div
+    className="infoVisible"
   />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <div
+      className="indicator indicatorHidden"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      Kubeflow
-    </span>
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#0d6de7"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
+  <div
+    className="infoVisible"
   />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <div
+      className="indicator indicatorHidden"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      Kubeflow
-    </span>
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#0d6de7"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
+  <div
+    className="infoVisible"
   />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page when on Compare page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <div
+      className="indicator indicatorHidden"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      Kubeflow
-    </span>
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#0d6de7"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
+  <div
+    className="infoVisible"
   />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page when on NewExperiment page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <div
+      className="indicator indicatorHidden"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      Kubeflow
-    </span>
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#0d6de7"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
+  <div
+    className="infoVisible"
   />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <div
+      className="indicator indicatorHidden"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      Kubeflow
-    </span>
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#0d6de7"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
+  <div
+    className="infoVisible"
   />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page when on RecurringRunDetails page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <div
+      className="indicator indicatorHidden"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      Kubeflow
-    </span>
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#0d6de7"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
+  <div
+    className="infoVisible"
   />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page when on RunDetails page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <div
+      className="indicator indicatorHidden"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      Kubeflow
-    </span>
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#0d6de7"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
+  <div
+    className="infoVisible"
   />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active when on ExperimentDetails page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <div
+      className="indicator indicatorHidden"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      Kubeflow
-    </span>
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#0d6de7"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
+  <div
+    className="infoVisible"
   />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav show jupyterhub link if accessible 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <div
+      className="indicator indicatorHidden"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
     >
-      Kubeflow
-    </span>
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#9aa0a6"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#0d6de7"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Executions List"
+    >
+      <Link
+        className="unstyled"
+        id="executionsBtn"
+        replace={false}
+        to="/executions"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(PlayArrowIcon) />
+          <span
+            className="label"
+          >
+            Executions
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Open Jupyter Notebook"
+    >
+      <a
+        className="unstyled"
+        href="/hub/"
+        id="jupyterhubBtn"
+        target="_blank"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(CodeIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Notebooks
+          </span>
+          <pure(OpenInNewIcon)
+            className="openInNewTabIcon"
+          />
+        </WithStyles(Button)>
+      </a>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Documentation"
+      to="https://www.kubeflow.org/docs/pipelines/"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="Github Repo"
+      to="https://github.com/kubeflow/pipelines"
+    />
+    <ExternalUri
+      collapsed={false}
+      icon={[Function]}
+      title="AI Hub Samples"
+      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
+    />
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <a
-    className="unstyled"
-    href="/hub/"
-    id="jupyterhubBtn"
-    target="_blank"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <pure(CodeIcon)
-        style={
-          Object {
-            "height": 20,
-            "width": 20,
-          }
-        }
-      />
-      <span
-        className="label"
-      >
-        Notebooks
-      </span>
-      <pure(OpenInNewIcon)
-        style={
-          Object {
-            "height": 12,
-            "marginBottom": 8,
-            "marginLeft": 5,
-            "width": 12,
-          }
-        }
-      />
-    </WithStyles(Button)>
-  </a>
-  <hr
-    className="separator"
+  <div
+    className="infoVisible"
   />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;

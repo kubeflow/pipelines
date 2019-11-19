@@ -20,17 +20,13 @@ import TestUtils from '../TestUtils';
 import { ApiJob, ApiResourceType } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
-import { RouteParams, RoutePage } from '../components/Router';
-import { ToolbarActionConfig } from '../components/Toolbar';
-import { shallow } from 'enzyme';
-
-class TestRecurringRunDetails extends RecurringRunDetails {
-  public async _deleteDialogClosed(confirmed: boolean): Promise<void> {
-    super._deleteDialogClosed(confirmed);
-  }
-}
+import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
+import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
+import { ButtonKeys } from '../lib/Buttons';
 
 describe('RecurringRunDetails', () => {
+  let tree: ReactWrapper<any> | ShallowWrapper<any>;
+
   const updateBannerSpy = jest.fn();
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
@@ -45,16 +41,22 @@ describe('RecurringRunDetails', () => {
   let fullTestJob: ApiJob = {};
 
   function generateProps(): PageProps {
-    return {
-      history: { push: historyPushSpy } as any,
-      location: '' as any,
-      match: { params: { [RouteParams.runId]: fullTestJob.id }, isExact: true, path: '', url: '' },
-      toolbarProps: RecurringRunDetails.prototype.getInitialToolbarState(),
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
+    const match = {
+      isExact: true,
+      params: { [RouteParams.runId]: fullTestJob.id },
+      path: '',
+      url: '',
     };
+    return TestUtils.generatePageProps(
+      RecurringRunDetails,
+      '' as any,
+      match,
+      historyPushSpy,
+      updateBannerSpy,
+      updateDialogSpy,
+      updateToolbarSpy,
+      updateSnackbarSpy,
+    );
   }
 
   beforeEach(() => {
@@ -74,7 +76,7 @@ describe('RecurringRunDetails', () => {
           end_time: new Date(2018, 10, 9, 8, 7, 6),
           interval_second: '3600',
           start_time: new Date(2018, 9, 8, 7, 6),
-        }
+        },
       },
     } as ApiJob;
 
@@ -95,11 +97,12 @@ describe('RecurringRunDetails', () => {
     getExperimentSpy.mockClear();
   });
 
+  afterEach(() => tree.unmount());
+
   it('renders a recurring run with periodic schedule', async () => {
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('renders a recurring run with cron schedule', async () => {
@@ -108,243 +111,268 @@ describe('RecurringRunDetails', () => {
         cron: '* * * 0 0 !',
         end_time: new Date(2018, 10, 9, 8, 7, 6),
         start_time: new Date(2018, 9, 8, 7, 6),
-      }
+      },
     };
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('loads the recurring run given its id in query params', async () => {
     // The run id is in the router match object, defined inside generateProps
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(getJobSpy).toHaveBeenLastCalledWith(fullTestJob.id);
     expect(getExperimentSpy).not.toHaveBeenCalled();
-    tree.unmount();
   });
 
   it('shows All runs -> run name when there is no experiment', async () => {
     // The run id is in the router match object, defined inside generateProps
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
-    expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      breadcrumbs: [{ displayName: 'All runs', href: RoutePage.RUNS }],
-      pageTitle: fullTestJob.name,
-    }));
-    tree.unmount();
+    expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        breadcrumbs: [{ displayName: 'All runs', href: RoutePage.RUNS }],
+        pageTitle: fullTestJob.name,
+      }),
+    );
   });
 
   it('loads the recurring run and its experiment if it has one', async () => {
-    fullTestJob.resource_references = [{ key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } }];
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    fullTestJob.resource_references = [
+      { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
+    ];
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(getJobSpy).toHaveBeenLastCalledWith(fullTestJob.id);
     expect(getExperimentSpy).toHaveBeenLastCalledWith('test-experiment-id');
-    tree.unmount();
   });
 
   it('shows Experiments -> Experiment name -> run name when there is an experiment', async () => {
-    fullTestJob.resource_references = [{ key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } }];
+    fullTestJob.resource_references = [
+      { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
+    ];
     getExperimentSpy.mockImplementation(id => ({ id, name: 'test experiment name' }));
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
-    expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      breadcrumbs: [
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        {
-          displayName: 'test experiment name',
-          href: RoutePage.EXPERIMENT_DETAILS.replace(
-            ':' + RouteParams.experimentId, 'test-experiment-id'),
-        },
-      ],
-      pageTitle: fullTestJob.name,
-    }));
-    tree.unmount();
+    expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        breadcrumbs: [
+          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+          {
+            displayName: 'test experiment name',
+            href: RoutePage.EXPERIMENT_DETAILS.replace(
+              ':' + RouteParams.experimentId,
+              'test-experiment-id',
+            ),
+          },
+        ],
+        pageTitle: fullTestJob.name,
+      }),
+    );
   });
 
   it('shows error banner if run cannot be fetched', async () => {
     TestUtils.makeErrorResponseOnce(getJobSpy, 'woops!');
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear, once to show error
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      additionalInfo: 'woops!',
-      message: `Error: failed to retrieve recurring run: ${fullTestJob.id}. Click Details for more information.`,
-      mode: 'error',
-    }));
-    tree.unmount();
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'woops!',
+        message: `Error: failed to retrieve recurring run: ${fullTestJob.id}. Click Details for more information.`,
+        mode: 'error',
+      }),
+    );
   });
 
   it('shows warning banner if has experiment but experiment cannot be fetched. still loads run', async () => {
-    fullTestJob.resource_references = [{ key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } }];
+    fullTestJob.resource_references = [
+      { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
+    ];
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops!');
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear, once to show error
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      additionalInfo: 'woops!',
-      message: `Error: failed to retrieve this recurring run\'s experiment. Click Details for more information.`,
-      mode: 'warning',
-    }));
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'woops!',
+        message: `Error: failed to retrieve this recurring run\'s experiment. Click Details for more information.`,
+        mode: 'warning',
+      }),
+    );
     expect(tree.state('run')).toEqual(fullTestJob);
-    tree.unmount();
   });
 
   it('has a Refresh button, clicking it refreshes the run details', async () => {
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     const instance = tree.instance() as RecurringRunDetails;
-    const refreshBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Refresh');
+    const refreshBtn = instance.getInitialToolbarState().actions[ButtonKeys.REFRESH];
     expect(refreshBtn).toBeDefined();
     expect(getJobSpy).toHaveBeenCalledTimes(1);
     await refreshBtn!.action();
     expect(getJobSpy).toHaveBeenCalledTimes(2);
-    tree.unmount();
+  });
+
+  it('has a clone button, clicking it navigates to new run page', async () => {
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as RecurringRunDetails;
+    const cloneBtn = instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RECURRING_RUN];
+    expect(cloneBtn).toBeDefined();
+    await cloneBtn!.action();
+    expect(historyPushSpy).toHaveBeenCalledTimes(1);
+    expect(historyPushSpy).toHaveBeenLastCalledWith(
+      RoutePage.NEW_RUN +
+        `?${QUERY_PARAMS.cloneFromRecurringRun}=${fullTestJob!.id}` +
+        `&${QUERY_PARAMS.isRecurring}=1`,
+    );
   });
 
   it('shows enabled Disable, and disabled Enable buttons if the run is enabled', async () => {
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
-    const lastToolbarButtons = updateToolbarSpy.mock.calls[1][0].actions as ToolbarActionConfig[];
-    const enableBtn = lastToolbarButtons.find(b => b.title === 'Enable');
+    const enableBtn = TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ENABLE_RECURRING_RUN);
     expect(enableBtn).toBeDefined();
     expect(enableBtn!.disabled).toBe(true);
-    const disableBtn = lastToolbarButtons.find(b => b.title === 'Disable');
+    const disableBtn = TestUtils.getToolbarButton(
+      updateToolbarSpy,
+      ButtonKeys.DISABLE_RECURRING_RUN,
+    );
     expect(disableBtn).toBeDefined();
     expect(disableBtn!.disabled).toBe(false);
-    tree.unmount();
   });
 
   it('shows enabled Disable, and disabled Enable buttons if the run is disabled', async () => {
     fullTestJob.enabled = false;
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
-    const lastToolbarButtons = updateToolbarSpy.mock.calls[1][0].actions as ToolbarActionConfig[];
-    const enableBtn = lastToolbarButtons.find(b => b.title === 'Enable');
+    const enableBtn = TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ENABLE_RECURRING_RUN);
     expect(enableBtn).toBeDefined();
     expect(enableBtn!.disabled).toBe(false);
-    const disableBtn = lastToolbarButtons.find(b => b.title === 'Disable');
+    const disableBtn = TestUtils.getToolbarButton(
+      updateToolbarSpy,
+      ButtonKeys.DISABLE_RECURRING_RUN,
+    );
     expect(disableBtn).toBeDefined();
     expect(disableBtn!.disabled).toBe(true);
-    tree.unmount();
   });
 
   it('shows enabled Disable, and disabled Enable buttons if the run is undefined', async () => {
     fullTestJob.enabled = undefined;
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
-    const lastToolbarButtons = updateToolbarSpy.mock.calls[1][0].actions as ToolbarActionConfig[];
-    const enableBtn = lastToolbarButtons.find(b => b.title === 'Enable');
+    const enableBtn = TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ENABLE_RECURRING_RUN);
     expect(enableBtn).toBeDefined();
     expect(enableBtn!.disabled).toBe(false);
-    const disableBtn = lastToolbarButtons.find(b => b.title === 'Disable');
+    const disableBtn = TestUtils.getToolbarButton(
+      updateToolbarSpy,
+      ButtonKeys.DISABLE_RECURRING_RUN,
+    );
     expect(disableBtn).toBeDefined();
     expect(disableBtn!.disabled).toBe(true);
-    tree.unmount();
   });
 
   it('calls disable API when disable button is clicked, refreshes the page', async () => {
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const disableBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Disable');
+    const disableBtn = instance.getInitialToolbarState().actions[ButtonKeys.DISABLE_RECURRING_RUN];
     await disableBtn!.action();
     expect(disableJobSpy).toHaveBeenCalledTimes(1);
     expect(disableJobSpy).toHaveBeenLastCalledWith('test-job-id');
     expect(getJobSpy).toHaveBeenCalledTimes(2);
     expect(getJobSpy).toHaveBeenLastCalledWith('test-job-id');
-    tree.unmount();
   });
 
   it('shows error dialog if disable fails', async () => {
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     TestUtils.makeErrorResponseOnce(disableJobSpy, 'could not disable');
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const disableBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Disable');
+    const disableBtn = instance.getInitialToolbarState().actions[ButtonKeys.DISABLE_RECURRING_RUN];
     await disableBtn!.action();
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
-    expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      content: 'could not disable',
-      title: 'Failed to disable recurring run',
-    }));
-    tree.unmount();
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        content: 'could not disable',
+        title: 'Failed to disable recurring run',
+      }),
+    );
   });
 
   it('shows error dialog if enable fails', async () => {
     fullTestJob.enabled = false;
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     TestUtils.makeErrorResponseOnce(enableJobSpy, 'could not enable');
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const enableBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Enable');
+    const enableBtn = instance.getInitialToolbarState().actions[ButtonKeys.ENABLE_RECURRING_RUN];
     await enableBtn!.action();
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
-    expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      content: 'could not enable',
-      title: 'Failed to enable recurring run',
-    }));
-    tree.unmount();
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        content: 'could not enable',
+        title: 'Failed to enable recurring run',
+      }),
+    );
   });
 
   it('calls enable API when enable button is clicked, refreshes the page', async () => {
     fullTestJob.enabled = false;
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const enableBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Enable');
+    const enableBtn = instance.getInitialToolbarState().actions[ButtonKeys.ENABLE_RECURRING_RUN];
     await enableBtn!.action();
     expect(enableJobSpy).toHaveBeenCalledTimes(1);
     expect(enableJobSpy).toHaveBeenLastCalledWith('test-job-id');
     expect(getJobSpy).toHaveBeenCalledTimes(2);
     expect(getJobSpy).toHaveBeenLastCalledWith('test-job-id');
-    tree.unmount();
   });
 
   it('shows a delete button', async () => {
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const deleteBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Refresh');
+    const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     expect(deleteBtn).toBeDefined();
-    tree.unmount();
   });
 
   it('shows delete dialog when delete button is clicked', async () => {
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const deleteBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Delete');
+    const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
-    expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      title: 'Delete this recurring run?',
-    }));
-    tree.unmount();
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        title: 'Delete this recurring run config?',
+      }),
+    );
   });
 
   it('calls delete API when delete confirmation dialog button is clicked', async () => {
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const deleteBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Delete');
+    const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
     expect(deleteJobSpy).toHaveBeenCalledTimes(1);
     expect(deleteJobSpy).toHaveBeenLastCalledWith('test-job-id');
-    tree.unmount();
   });
 
   it('does not call delete API when delete cancel dialog button is clicked', async () => {
-    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const deleteBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Delete');
+    const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Cancel');
@@ -352,50 +380,64 @@ describe('RecurringRunDetails', () => {
     expect(deleteJobSpy).not.toHaveBeenCalled();
     // Should not reroute
     expect(historyPushSpy).not.toHaveBeenCalled();
-    tree.unmount();
   });
 
   // TODO: need to test the dismiss path too--when the dialog is dismissed using ESC
   // or clicking outside it, it should be treated the same way as clicking Cancel.
 
   it('redirects back to parent experiment after delete', async () => {
-    const tree = shallow(<TestRecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
-    const instance = tree.instance() as TestRecurringRunDetails;
-    await instance._deleteDialogClosed(true);
+    const deleteBtn = (tree.instance() as RecurringRunDetails).getInitialToolbarState().actions[
+      ButtonKeys.DELETE_RUN
+    ];
+    await deleteBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    await confirmBtn.onClick();
+    expect(deleteJobSpy).toHaveBeenLastCalledWith('test-job-id');
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.EXPERIMENTS);
-    tree.unmount();
   });
 
   it('shows snackbar after successful deletion', async () => {
-    const tree = shallow(<TestRecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
-    const instance = tree.instance() as TestRecurringRunDetails;
-    await instance._deleteDialogClosed(true);
+    const deleteBtn = (tree.instance() as RecurringRunDetails).getInitialToolbarState().actions[
+      ButtonKeys.DELETE_RUN
+    ];
+    await deleteBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    await confirmBtn.onClick();
     expect(updateSnackbarSpy).toHaveBeenCalledTimes(1);
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-      message: 'Successfully deleted recurring run: ' + fullTestJob.name,
+      message: 'Delete succeeded for this recurring run config',
       open: true,
     });
-    tree.unmount();
   });
 
   it('shows error dialog after failing deletion', async () => {
     TestUtils.makeErrorResponseOnce(deleteJobSpy, 'could not delete');
-    const tree = shallow(<TestRecurringRunDetails {...generateProps()} />);
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
-    const instance = tree.instance() as TestRecurringRunDetails;
-    await instance._deleteDialogClosed(true);
+    const deleteBtn = (tree.instance() as RecurringRunDetails).getInitialToolbarState().actions[
+      ButtonKeys.DELETE_RUN
+    ];
+    await deleteBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    await confirmBtn.onClick();
     await TestUtils.flushPromises();
-    expect(updateDialogSpy).toHaveBeenCalledTimes(1);
-    expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      content: 'could not delete',
-      title: 'Failed to delete recurring run',
-    }));
+    expect(updateDialogSpy).toHaveBeenCalledTimes(2);
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        content:
+          'Failed to delete recurring run config: test-job-id with error: "could not delete"',
+        title: 'Failed to delete recurring run config',
+      }),
+    );
     // Should not reroute
     expect(historyPushSpy).not.toHaveBeenCalled();
-    tree.unmount();
   });
-
 });

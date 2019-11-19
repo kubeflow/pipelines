@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ package experiment_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"net/http"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
@@ -78,7 +77,10 @@ for the create experiment operation typically these are written to a http.Reques
 */
 type CreateExperimentParams struct {
 
-	/*Body*/
+	/*Body
+	  The experiment to be created
+
+	*/
 	Body *experiment_model.APIExperiment
 
 	timeout    time.Duration

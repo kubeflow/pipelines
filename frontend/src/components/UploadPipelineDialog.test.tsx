@@ -22,8 +22,10 @@ import TestUtils from '../TestUtils';
 describe('UploadPipelineDialog', () => {
   let tree: ReactWrapper | ShallowWrapper;
 
-  afterEach(() => {
-    tree.unmount();
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    await tree.unmount();
   });
 
   it('renders closed', () => {
@@ -72,9 +74,19 @@ describe('UploadPipelineDialog', () => {
     const spy = jest.fn();
     tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     (tree.instance() as any)._dropzoneRef = { current: { open: () => null } };
-    (tree.instance() as UploadPipelineDialog).handleChange('uploadPipelineName')({ target: { value: 'test name' } });
+    (tree.instance() as UploadPipelineDialog).handleChange('uploadPipelineName')({
+      target: { value: 'test name' },
+    });
     tree.find('#confirmUploadBtn').simulate('click');
     expect(spy).toHaveBeenLastCalledWith(true, 'test name', null, '', ImportMethod.LOCAL, '');
+  });
+
+  it('trims file extension for pipeline name suggestion', () => {
+    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
+    const file = { name: 'test_upload_file.tar.gz' };
+    tree.find('#dropZone').simulate('drop', [file]);
+    expect(tree.state()).toHaveProperty('dropzoneActive', false);
+    expect(tree.state()).toHaveProperty('uploadPipelineName', 'test_upload_file');
   });
 
   it('sets the import method based on which radio button is toggled', () => {

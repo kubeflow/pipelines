@@ -23,18 +23,20 @@ interface SeparatorProps {
 }
 
 const style = (orientation: Orientation, units: number) => {
-  return orientation === 'horizontal' ? {
-    display: 'inline-block',
-    minWidth: units,
-    width: units,
-  } : {
-      display: 'block',
-      flexShrink: 0,
-      height: units,
-      minHeight: units,
-    };
+  return orientation === 'horizontal'
+    ? {
+        display: 'inline-block',
+        minWidth: units,
+        width: units,
+      }
+    : {
+        display: 'block',
+        flexShrink: 0,
+        height: units,
+        minHeight: units,
+      };
 };
 
-export default (props: SeparatorProps) => <span style={
-  style(props.orientation || 'horizontal', props.units || 10)
-} />;
+export default (props: SeparatorProps) => (
+  <span style={style(props.orientation || 'horizontal', props.units || 10)} />
+);

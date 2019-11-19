@@ -19,7 +19,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -50,13 +49,7 @@ func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*ap
 }
 
 func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) (*api.ListRunsResponse, error) {
-	var opts *list.Options
-	var err error
-	if request.PageToken != "" {
-		opts, err = list.NewOptionsFromToken(request.PageToken, int(request.PageSize))
-	} else {
-		opts, err = list.NewOptions(&model.Pipeline{}, int(request.PageSize), request.SortBy, request.Filter)
-	}
+	opts, err := validatedListOptions(&model.Run{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
 
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
@@ -66,11 +59,11 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
-	runs, nextPageToken, err := s.resourceManager.ListRuns(filterContext, opts)
+	runs, total_size, nextPageToken, err := s.resourceManager.ListRuns(filterContext, opts)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list runs.")
 	}
-	return &api.ListRunsResponse{Runs: ToApiRuns(runs), NextPageToken: nextPageToken}, nil
+	return &api.ListRunsResponse{Runs: ToApiRuns(runs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
 }
 
 func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunRequest) (*empty.Empty, error) {
@@ -136,9 +129,29 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 	}
 
 	if err := ValidatePipelineSpec(s.resourceManager, run.PipelineSpec); err != nil {
-		return util.Wrap(err, "The pipeline spec is invalid.")
+		if _, errResourceReference := CheckPipelineVersionReference(s.resourceManager, run.ResourceReferences); errResourceReference != nil {
+			return util.Wrap(err, "Neither pipeline spec nor pipeline version is valid. "+errResourceReference.Error())
+		}
+		return nil
 	}
 	return nil
+}
+
+func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.TerminateRun(request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
+func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.RetryRun(request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+
 }
 
 func NewRunServer(resourceManager *resource.ResourceManager) *RunServer {

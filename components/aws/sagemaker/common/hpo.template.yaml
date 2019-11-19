@@ -1,0 +1,47 @@
+HyperParameterTuningJobName: ''
+HyperParameterTuningJobConfig:
+  Strategy: ''
+  HyperParameterTuningJobObjective:
+    Type: ''
+    MetricName: ''
+  ResourceLimits:
+    MaxNumberOfTrainingJobs: 0
+    MaxParallelTrainingJobs: 0
+  ParameterRanges:
+    IntegerParameterRanges: []
+    ContinuousParameterRanges: []
+    CategoricalParameterRanges: []
+  TrainingJobEarlyStoppingType: ''
+TrainingJobDefinition:
+  StaticHyperParameters: {}
+  AlgorithmSpecification:
+    TrainingImage: ''
+    TrainingInputMode: ''
+    AlgorithmName: ''
+    MetricDefinitions: []
+  RoleArn: ''
+  InputDataConfig: []
+  VpcConfig:
+    SecurityGroupIds: []
+    Subnets: []
+  OutputDataConfig:
+    KmsKeyId: ''
+    S3OutputPath: ''
+  ResourceConfig:
+    InstanceType: ''
+    InstanceCount: 1
+    VolumeSizeInGB: 1
+    VolumeKmsKeyId: ''
+  StoppingCondition:
+    MaxRuntimeInSeconds: 86400
+    MaxWaitTimeInSeconds: 86400
+  CheckpointConfig:
+    S3Uri: ''
+    LocalPath: ''
+  EnableNetworkIsolation: True
+  EnableInterContainerTrafficEncryption: False
+  EnableManagedSpotTraining: False
+WarmStartConfig:
+  ParentHyperParameterTuningJobs: []
+  WarmStartType: ''
+Tags: []

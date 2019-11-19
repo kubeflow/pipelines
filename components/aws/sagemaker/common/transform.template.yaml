@@ -1,0 +1,28 @@
+TransformJobName: ''
+ModelName: ''
+MaxConcurrentTransforms: 0
+MaxPayloadInMB: 6
+BatchStrategy: ''
+Environment: {}
+TransformInput:
+  DataSource:
+    S3DataSource:
+      S3DataType: 'S3Prefix'
+      S3Uri: ''
+  ContentType: ''
+  CompressionType: 'None'
+  SplitType: 'None'
+TransformOutput:
+  S3OutputPath: ''
+  Accept: ''
+  AssembleWith: 'None'
+  KmsKeyId: ''
+TransformResources:
+  InstanceType: ''
+  InstanceCount: 1
+  VolumeKmsKeyId: ''
+DataProcessing:
+  InputFilter: ''
+  OutputFilter: ''
+  JoinSource: 'None'
+Tags: []

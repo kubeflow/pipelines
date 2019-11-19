@@ -44,12 +44,12 @@ type PersistenceAgent struct {
 
 // NewPersistenceAgent returns a new persistence agent.
 func NewPersistenceAgent(
-	swfInformerFactory swfinformers.SharedInformerFactory,
-	workflowInformerFactory workflowinformers.SharedInformerFactory,
-	pipelineClient *client.PipelineClient,
-	time util.TimeInterface) *PersistenceAgent {
+		swfInformerFactory swfinformers.SharedInformerFactory,
+		workflowInformerFactory workflowinformers.SharedInformerFactory,
+		pipelineClient *client.PipelineClient,
+		time util.TimeInterface) *PersistenceAgent {
 	// obtain references to shared informers
-	swfInformer := swfInformerFactory.Scheduledworkflow().V1alpha1().ScheduledWorkflows()
+	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
 	workflowInformer := workflowInformerFactory.Argoproj().V1alpha1().Workflows()
 
 	// Add controller types to the default Kubernetes Scheme so Events can be
@@ -64,7 +64,7 @@ func NewPersistenceAgent(
 
 	workflowWorker := worker.NewPersistenceWorker(time, workflowregister.Kind,
 		workflowInformer.Informer(), true,
-		worker.NewWorkflowSaver(workflowClient, pipelineClient))
+		worker.NewWorkflowSaver(workflowClient, pipelineClient, ttlSecondsAfterWorkflowFinish))
 
 	agent := &PersistenceAgent{
 		swfClient:      swfClient,

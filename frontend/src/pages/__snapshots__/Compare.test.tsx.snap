@@ -7,6 +7,7 @@ exports[`Compare collapses all sections 1`] = `
   <CollapseButton
     collapseSections={
       Object {
+        "Metrics": true,
         "Parameters": true,
         "Run overview": true,
         "Table": true,
@@ -22,6 +23,7 @@ exports[`Compare collapses all sections 1`] = `
   <CollapseButton
     collapseSections={
       Object {
+        "Metrics": true,
         "Parameters": true,
         "Run overview": true,
         "Table": true,
@@ -30,6 +32,19 @@ exports[`Compare collapses all sections 1`] = `
     }
     compareSetState={[Function]}
     sectionName="Parameters"
+  />
+  <CollapseButton
+    collapseSections={
+      Object {
+        "Metrics": true,
+        "Parameters": true,
+        "Run overview": true,
+        "Table": true,
+        "Tensorboard": true,
+      }
+    }
+    compareSetState={[Function]}
+    sectionName="Metrics"
   />
   <Component
     orientation="vertical"
@@ -40,6 +55,7 @@ exports[`Compare collapses all sections 1`] = `
     <CollapseButton
       collapseSections={
         Object {
+          "Metrics": true,
           "Parameters": true,
           "Run overview": true,
           "Table": true,
@@ -59,6 +75,7 @@ exports[`Compare collapses all sections 1`] = `
     <CollapseButton
       collapseSections={
         Object {
+          "Metrics": true,
           "Parameters": true,
           "Run overview": true,
           "Table": true,
@@ -100,11 +117,7 @@ exports[`Compare creates a map of viewers 1`] = `
           "search": "?runlist=run-with-workflow",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
@@ -119,22 +132,28 @@ exports[`Compare creates a map of viewers 1`] = `
       }
       toolbarProps={
         Object {
-          "actions": Array [
-            Object {
-              "action": [Function],
-              "icon": [Function],
-              "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
-            },
-            Object {
+          "actions": Object {
+            "collapse": Object {
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
               "title": "Collapse all",
               "tooltip": "Collapse all sections",
             },
-          ],
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
           "breadcrumbs": Array [
             Object {
               "displayName": "Experiments",
@@ -160,22 +179,28 @@ exports[`Compare creates a map of viewers 1`] = `
           "calls": Array [
             Array [
               Object {
-                "actions": Array [
-                  Object {
-                    "action": [Function],
-                    "icon": [Function],
-                    "id": "expandBtn",
-                    "title": "Expand all",
-                    "tooltip": "Expand all sections",
-                  },
-                  Object {
+                "actions": Object {
+                  "collapse": Object {
                     "action": [Function],
                     "icon": [Function],
                     "id": "collapseBtn",
                     "title": "Collapse all",
                     "tooltip": "Collapse all sections",
                   },
-                ],
+                  "expand": Object {
+                    "action": [Function],
+                    "icon": [Function],
+                    "id": "expandBtn",
+                    "title": "Expand all",
+                    "tooltip": "Expand all sections",
+                  },
+                  "refresh": Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh the list",
+                  },
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -197,6 +222,28 @@ exports[`Compare creates a map of viewers 1`] = `
     collapseSections={Object {}}
     compareSetState={[Function]}
     sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Component
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run-with-workflow",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Component />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
   />
   <div
     className="noShrink outputsRow"
@@ -315,11 +362,7 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
           "search": "?runlist=run1-id,run2-id",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
@@ -336,22 +379,28 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
       }
       toolbarProps={
         Object {
-          "actions": Array [
-            Object {
-              "action": [Function],
-              "icon": [Function],
-              "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
-            },
-            Object {
+          "actions": Object {
+            "collapse": Object {
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
               "title": "Collapse all",
               "tooltip": "Collapse all sections",
             },
-          ],
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
           "breadcrumbs": Array [
             Object {
               "displayName": "Experiments",
@@ -377,22 +426,28 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
           "calls": Array [
             Array [
               Object {
-                "actions": Array [
-                  Object {
-                    "action": [Function],
-                    "icon": [Function],
-                    "id": "expandBtn",
-                    "title": "Expand all",
-                    "tooltip": "Expand all sections",
-                  },
-                  Object {
+                "actions": Object {
+                  "collapse": Object {
                     "action": [Function],
                     "icon": [Function],
                     "id": "collapseBtn",
                     "title": "Collapse all",
                     "tooltip": "Collapse all sections",
                   },
-                ],
+                  "expand": Object {
+                    "action": [Function],
+                    "icon": [Function],
+                    "id": "expandBtn",
+                    "title": "Expand all",
+                    "tooltip": "Expand all sections",
+                  },
+                  "refresh": Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh the list",
+                  },
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -414,6 +469,29 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
     collapseSections={Object {}}
     compareSetState={[Function]}
     sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Component
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run1-id",
+          "test run run2-id",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Component />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
   />
   <div
     className="noShrink outputsRow"
@@ -559,7 +637,7 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
 </div>
 `;
 
-exports[`Compare displays parameters from multiple runs 1`] = `
+exports[`Compare displays a run's metrics if the run has any 1`] = `
 <div
   className="page"
 >
@@ -581,46 +659,46 @@ exports[`Compare displays parameters from multiple runs 1`] = `
       location={
         Object {
           "pathname": "/compare",
-          "search": "?runlist=run1,run2",
+          "search": "?runlist=run-with-metrics",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
         Array [
-          "run1",
-          "run2",
+          "run-with-metrics",
         ]
       }
       selectedIds={
         Array [
-          "run1",
-          "run2",
+          "run-with-metrics",
         ]
       }
       toolbarProps={
         Object {
-          "actions": Array [
-            Object {
-              "action": [Function],
-              "icon": [Function],
-              "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
-            },
-            Object {
+          "actions": Object {
+            "collapse": Object {
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
               "title": "Collapse all",
               "tooltip": "Collapse all sections",
             },
-          ],
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
           "breadcrumbs": Array [
             Object {
               "displayName": "Experiments",
@@ -646,22 +724,416 @@ exports[`Compare displays parameters from multiple runs 1`] = `
           "calls": Array [
             Array [
               Object {
-                "actions": Array [
-                  Object {
-                    "action": [Function],
-                    "icon": [Function],
-                    "id": "expandBtn",
-                    "title": "Expand all",
-                    "tooltip": "Expand all sections",
-                  },
-                  Object {
+                "actions": Object {
+                  "collapse": Object {
                     "action": [Function],
                     "icon": [Function],
                     "id": "collapseBtn",
                     "title": "Collapse all",
                     "tooltip": "Collapse all sections",
                   },
+                  "expand": Object {
+                    "action": [Function],
+                    "icon": [Function],
+                    "id": "expandBtn",
+                    "title": "Expand all",
+                    "tooltip": "Expand all sections",
+                  },
+                  "refresh": Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh the list",
+                  },
+                },
+                "breadcrumbs": Array [
+                  Object {
+                    "displayName": "Experiments",
+                    "href": "/experiments",
+                  },
                 ],
+                "pageTitle": "Compare runs",
+              },
+            ],
+          ],
+        }
+      }
+    />
+  </div>
+  <Component
+    orientation="vertical"
+  />
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Component
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run-with-metrics",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Component />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Component
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={
+        Array [
+          Array [
+            "0.330",
+          ],
+          Array [
+            "0.554",
+          ],
+        ]
+      }
+      xLabels={
+        Array [
+          "test run run-with-metrics",
+        ]
+      }
+      yLabels={
+        Array [
+          "some-metric",
+          "another-metric",
+        ]
+      }
+    />
+    <Component />
+  </div>
+  <Component
+    orientation="vertical"
+  />
+</div>
+`;
+
+exports[`Compare displays metrics from multiple runs 1`] = `
+<div
+  className="page"
+>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Run overview"
+  />
+  <div
+    className="noShrink"
+  >
+    <RunList
+      disablePaging={true}
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location={
+        Object {
+          "pathname": "/compare",
+          "search": "?runlist=run1,run2",
+        }
+      }
+      match={Object {}}
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      runIdListMask={
+        Array [
+          "run1",
+          "run2",
+        ]
+      }
+      selectedIds={
+        Array [
+          "run1",
+          "run2",
+        ]
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {
+            "collapse": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "collapseBtn",
+              "title": "Collapse all",
+              "tooltip": "Collapse all sections",
+            },
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Compare runs",
+        }
+      }
+      updateBanner={
+        [MockFunction] {
+          "calls": Array [
+            Array [
+              Object {},
+            ],
+          ],
+        }
+      }
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={
+        [MockFunction] {
+          "calls": Array [
+            Array [
+              Object {
+                "actions": Object {
+                  "collapse": Object {
+                    "action": [Function],
+                    "icon": [Function],
+                    "id": "collapseBtn",
+                    "title": "Collapse all",
+                    "tooltip": "Collapse all sections",
+                  },
+                  "expand": Object {
+                    "action": [Function],
+                    "icon": [Function],
+                    "id": "expandBtn",
+                    "title": "Expand all",
+                    "tooltip": "Expand all sections",
+                  },
+                  "refresh": Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh the list",
+                  },
+                },
+                "breadcrumbs": Array [
+                  Object {
+                    "displayName": "Experiments",
+                    "href": "/experiments",
+                  },
+                ],
+                "pageTitle": "Compare runs",
+              },
+            ],
+          ],
+        }
+      }
+    />
+  </div>
+  <Component
+    orientation="vertical"
+  />
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Component
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run1",
+          "test run run2",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Component />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Component
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={
+        Array [
+          Array [
+            "0.330",
+            "0.670",
+          ],
+          Array [
+            "0.554",
+            "",
+          ],
+        ]
+      }
+      xLabels={
+        Array [
+          "test run run1",
+          "test run run2",
+        ]
+      }
+      yLabels={
+        Array [
+          "some-metric",
+          "another-metric",
+        ]
+      }
+    />
+    <Component />
+  </div>
+  <Component
+    orientation="vertical"
+  />
+</div>
+`;
+
+exports[`Compare displays parameters from multiple runs 1`] = `
+<div
+  className="page"
+>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Run overview"
+  />
+  <div
+    className="noShrink"
+  >
+    <RunList
+      disablePaging={true}
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location={
+        Object {
+          "pathname": "/compare",
+          "search": "?runlist=run1,run2",
+        }
+      }
+      match={Object {}}
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      runIdListMask={
+        Array [
+          "run1",
+          "run2",
+        ]
+      }
+      selectedIds={
+        Array [
+          "run1",
+          "run2",
+        ]
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {
+            "collapse": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "collapseBtn",
+              "title": "Collapse all",
+              "tooltip": "Collapse all sections",
+            },
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Compare runs",
+        }
+      }
+      updateBanner={
+        [MockFunction] {
+          "calls": Array [
+            Array [
+              Object {},
+            ],
+          ],
+        }
+      }
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={
+        [MockFunction] {
+          "calls": Array [
+            Array [
+              Object {
+                "actions": Object {
+                  "collapse": Object {
+                    "action": [Function],
+                    "icon": [Function],
+                    "id": "collapseBtn",
+                    "title": "Collapse all",
+                    "tooltip": "Collapse all sections",
+                  },
+                  "expand": Object {
+                    "action": [Function],
+                    "icon": [Function],
+                    "id": "expandBtn",
+                    "title": "Expand all",
+                    "tooltip": "Expand all sections",
+                  },
+                  "refresh": Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh the list",
+                  },
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -723,6 +1195,29 @@ exports[`Compare displays parameters from multiple runs 1`] = `
     />
     <Component />
   </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Component
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run1",
+          "test run run2",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Component />
+  </div>
   <Component
     orientation="vertical"
   />
@@ -754,11 +1249,7 @@ exports[`Compare displays run's parameters if the run has any 1`] = `
           "search": "?runlist=run-with-parameters",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
@@ -773,22 +1264,28 @@ exports[`Compare displays run's parameters if the run has any 1`] = `
       }
       toolbarProps={
         Object {
-          "actions": Array [
-            Object {
-              "action": [Function],
-              "icon": [Function],
-              "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
-            },
-            Object {
+          "actions": Object {
+            "collapse": Object {
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
               "title": "Collapse all",
               "tooltip": "Collapse all sections",
             },
-          ],
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
           "breadcrumbs": Array [
             Object {
               "displayName": "Experiments",
@@ -814,22 +1311,28 @@ exports[`Compare displays run's parameters if the run has any 1`] = `
           "calls": Array [
             Array [
               Object {
-                "actions": Array [
-                  Object {
-                    "action": [Function],
-                    "icon": [Function],
-                    "id": "expandBtn",
-                    "title": "Expand all",
-                    "tooltip": "Expand all sections",
-                  },
-                  Object {
+                "actions": Object {
+                  "collapse": Object {
                     "action": [Function],
                     "icon": [Function],
                     "id": "collapseBtn",
                     "title": "Collapse all",
                     "tooltip": "Collapse all sections",
                   },
-                ],
+                  "expand": Object {
+                    "action": [Function],
+                    "icon": [Function],
+                    "id": "expandBtn",
+                    "title": "Expand all",
+                    "tooltip": "Expand all sections",
+                  },
+                  "refresh": Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh the list",
+                  },
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -883,6 +1386,28 @@ exports[`Compare displays run's parameters if the run has any 1`] = `
     />
     <Component />
   </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Component
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run-with-parameters",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Component />
+  </div>
   <Component
     orientation="vertical"
   />
@@ -914,11 +1439,7 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
           "search": "?runlist=run-with-workflow-1,run-with-workflow-2",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
@@ -930,22 +1451,28 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
       selectedIds={Array []}
       toolbarProps={
         Object {
-          "actions": Array [
-            Object {
-              "action": [Function],
-              "icon": [Function],
-              "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
-            },
-            Object {
+          "actions": Object {
+            "collapse": Object {
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
               "title": "Collapse all",
               "tooltip": "Collapse all sections",
             },
-          ],
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
           "breadcrumbs": Array [
             Object {
               "displayName": "Experiments",
@@ -971,22 +1498,28 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
           "calls": Array [
             Array [
               Object {
-                "actions": Array [
-                  Object {
-                    "action": [Function],
-                    "icon": [Function],
-                    "id": "expandBtn",
-                    "title": "Expand all",
-                    "tooltip": "Expand all sections",
-                  },
-                  Object {
+                "actions": Object {
+                  "collapse": Object {
                     "action": [Function],
                     "icon": [Function],
                     "id": "collapseBtn",
                     "title": "Collapse all",
                     "tooltip": "Collapse all sections",
                   },
-                ],
+                  "expand": Object {
+                    "action": [Function],
+                    "icon": [Function],
+                    "id": "expandBtn",
+                    "title": "Expand all",
+                    "tooltip": "Expand all sections",
+                  },
+                  "refresh": Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh the list",
+                  },
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -1022,45 +1555,27 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
     />
     <Component />
   </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Component
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={Array []}
+      yLabels={Array []}
+    />
+    <Component />
+  </div>
   <Component
     orientation="vertical"
   />
-  <div
-    key="0"
-  >
-    <CollapseButton
-      collapseSections={Object {}}
-      compareSetState={[Function]}
-      sectionName="Tensorboard"
-    />
-    <div
-      className="flex outputsRow"
-    >
-      <Component />
-    </div>
-    <Component />
-    <Component
-      orientation="vertical"
-    />
-  </div>
-  <div
-    key="1"
-  >
-    <CollapseButton
-      collapseSections={Object {}}
-      compareSetState={[Function]}
-      sectionName="Table"
-    />
-    <div
-      className="flex outputsRow"
-    >
-      <Component />
-    </div>
-    <Component />
-    <Component
-      orientation="vertical"
-    />
-  </div>
 </div>
 `;
 
@@ -1089,11 +1604,7 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
           "search": "?runlist=run-with-workflow-1,run-with-workflow-2",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
@@ -1110,22 +1621,28 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
       }
       toolbarProps={
         Object {
-          "actions": Array [
-            Object {
-              "action": [Function],
-              "icon": [Function],
-              "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
-            },
-            Object {
+          "actions": Object {
+            "collapse": Object {
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
               "title": "Collapse all",
               "tooltip": "Collapse all sections",
             },
-          ],
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
           "breadcrumbs": Array [
             Object {
               "displayName": "Experiments",
@@ -1151,22 +1668,28 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
           "calls": Array [
             Array [
               Object {
-                "actions": Array [
-                  Object {
-                    "action": [Function],
-                    "icon": [Function],
-                    "id": "expandBtn",
-                    "title": "Expand all",
-                    "tooltip": "Expand all sections",
-                  },
-                  Object {
+                "actions": Object {
+                  "collapse": Object {
                     "action": [Function],
                     "icon": [Function],
                     "id": "collapseBtn",
                     "title": "Collapse all",
                     "tooltip": "Collapse all sections",
                   },
-                ],
+                  "expand": Object {
+                    "action": [Function],
+                    "icon": [Function],
+                    "id": "expandBtn",
+                    "title": "Expand all",
+                    "tooltip": "Expand all sections",
+                  },
+                  "refresh": Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh the list",
+                  },
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -1188,6 +1711,29 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
     collapseSections={Object {}}
     compareSetState={[Function]}
     sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Component
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run-with-workflow-1",
+          "test run run-with-workflow-2",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Component />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
   />
   <div
     className="noShrink outputsRow"
@@ -1352,11 +1898,7 @@ exports[`Compare renders a page with multiple runs 1`] = `
           "search": "?runlist=mock-run-1-id,mock-run-2-id,mock-run-3-id",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
@@ -1375,22 +1917,28 @@ exports[`Compare renders a page with multiple runs 1`] = `
       }
       toolbarProps={
         Object {
-          "actions": Array [
-            Object {
-              "action": [Function],
-              "icon": [Function],
-              "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
-            },
-            Object {
+          "actions": Object {
+            "collapse": Object {
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
               "title": "Collapse all",
               "tooltip": "Collapse all sections",
             },
-          ],
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
           "breadcrumbs": Array [
             Object {
               "displayName": "Experiments",
@@ -1416,22 +1964,28 @@ exports[`Compare renders a page with multiple runs 1`] = `
           "calls": Array [
             Array [
               Object {
-                "actions": Array [
-                  Object {
-                    "action": [Function],
-                    "icon": [Function],
-                    "id": "expandBtn",
-                    "title": "Expand all",
-                    "tooltip": "Expand all sections",
-                  },
-                  Object {
+                "actions": Object {
+                  "collapse": Object {
                     "action": [Function],
                     "icon": [Function],
                     "id": "collapseBtn",
                     "title": "Collapse all",
                     "tooltip": "Collapse all sections",
                   },
-                ],
+                  "expand": Object {
+                    "action": [Function],
+                    "icon": [Function],
+                    "id": "expandBtn",
+                    "title": "Expand all",
+                    "tooltip": "Expand all sections",
+                  },
+                  "refresh": Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh the list",
+                  },
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -1453,6 +2007,30 @@ exports[`Compare renders a page with multiple runs 1`] = `
     collapseSections={Object {}}
     compareSetState={[Function]}
     sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Component
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run mock-run-1-id",
+          "test run mock-run-2-id",
+          "test run mock-run-3-id",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Component />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
   />
   <div
     className="noShrink outputsRow"
@@ -1504,33 +2082,35 @@ exports[`Compare renders a page with no runs 1`] = `
           "search": "",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={Array []}
       selectedIds={Array []}
       toolbarProps={
         Object {
-          "actions": Array [
-            Object {
-              "action": [Function],
-              "icon": [Function],
-              "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
-            },
-            Object {
+          "actions": Object {
+            "collapse": Object {
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
               "title": "Collapse all",
               "tooltip": "Collapse all sections",
             },
-          ],
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
           "breadcrumbs": Array [
             Object {
               "displayName": "Experiments",
@@ -1556,22 +2136,28 @@ exports[`Compare renders a page with no runs 1`] = `
           "calls": Array [
             Array [
               Object {
-                "actions": Array [
-                  Object {
-                    "action": [Function],
-                    "icon": [Function],
-                    "id": "expandBtn",
-                    "title": "Expand all",
-                    "tooltip": "Expand all sections",
-                  },
-                  Object {
+                "actions": Object {
+                  "collapse": Object {
                     "action": [Function],
                     "icon": [Function],
                     "id": "collapseBtn",
                     "title": "Collapse all",
                     "tooltip": "Collapse all sections",
                   },
-                ],
+                  "expand": Object {
+                    "action": [Function],
+                    "icon": [Function],
+                    "id": "expandBtn",
+                    "title": "Expand all",
+                    "tooltip": "Expand all sections",
+                  },
+                  "refresh": Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh the list",
+                  },
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -1593,6 +2179,24 @@ exports[`Compare renders a page with no runs 1`] = `
     collapseSections={Object {}}
     compareSetState={[Function]}
     sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Component
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={Array []}
+      yLabels={Array []}
+    />
+    <Component />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
   />
   <div
     className="noShrink outputsRow"

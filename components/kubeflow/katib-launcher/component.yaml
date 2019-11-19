@@ -1,0 +1,38 @@
+name: Kubeflow - Launch Experiment
+description: Kubeflow Experiment launcher
+inputs:
+- {name: Experiment Name,           type: String,                       description: 'Experiment name.'}
+- {name: Experiment Namespace,      type: String,   default: kubeflow,  description: 'Experiment namespace.'}
+- {name: Experiment Version,        type: String,   default: v1alpha3,  description: 'Experiment version.'}
+- {name: Max Trial Count,           type: Integer,                      description: 'How many trials can be executed at most.'}
+- {name: Max Failed Trial Count,    type: Integer,  default: 3,         description: 'How many trials can fail at most.'}
+- {name: Parallel Trial Count,      type: Integer,  default: 3,         description: 'How many trials can be running in parallel at most.'}
+- {name: Objective,                 type: JSON,                         description: 'Experiment objective.'}
+- {name: Algorithm,                 type: JSON,                         description: 'Experiment algorithm.'}
+- {name: Trial Template,            type: JSON,                         description: 'Experiment trialTemplate.'}
+- {name: Parameters,                type: JSON,                         description: 'Experiment Parameter configuration.'}
+- {name: Metrics Collector,         type: JSON,   default: '{}',        description: 'Experiment metricsCollector.'}
+- {name: Experiment Timeout Minutes, type: Integer,  default: 1440,     description: 'Time in minutes to wait for the Experiment to complete.'}
+- {name: Delete Finished Experiment, type: Bool,     default: 'True',   description: 'Whether to delete the experiment after it is finished.'}
+outputs:
+- {name: Best Parameter Set,        type: JSON,                         description: 'The parameter set of the best Experiment trial.'}
+implementation:
+  container:
+    image: liuhougangxa/katib-experiment-launcher:latest
+    command: [python, /ml/launch_experiment.py]
+    args: [
+      --name,                     {inputValue: Experiment Name},
+      --namespace,                {inputValue: Experiment Namespace},
+      --version,                  {inputValue: Experiment Version},
+      --maxTrialCount,            {inputValue: Max Trial Count},
+      --maxFailedTrialCount,      {inputValue: Max Failed Trial Count},
+      --parallelTrialCount,       {inputValue: Parallel Trial Count},
+      --objectiveConfig,          {inputValue: Objective},
+      --algorithmConfig,          {inputValue: Algorithm},
+      --trialTemplate,            {inputValue: Trial Template},
+      --parameters,               {inputValue: Parameters},
+      --metricsCollector,         {inputValue: Metrics Collector},
+      --experimentTimeoutMinutes, {inputValue: Experiment Timeout Minutes},
+      --deleteAfterDone,          {inputValue: Delete Finished Experiment},
+      --outputFile,               {outputPath: Best Parameter Set},
+    ]

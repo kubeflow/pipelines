@@ -15,10 +15,11 @@
 all: build
 
 build:
-	# Dependency management for Go. You need to install Go Dep to run this.
-	# See https://github.com/golang/dep for more details.
-	dep ensure
+  # Create vendor directories with all dependencies.
+	go mod vendor
 	# Extract go licenses into a single file. This assume licext is install globally through
 	# npm install -g license-extractor
 	# See https://github.com/arei/license-extractor
 	licext --mode merge --source vendor/ --target third_party/license.txt --overwrite
+	# Delete vendor directory
+	rm -rf vendor

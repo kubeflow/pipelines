@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume='/user-gcp-sa.json', volume_name='gcp-credentials', secret_volume_mount_path='/secret/gcp-credentials'):
+from kubernetes.client import V1Toleration, V1Affinity, V1NodeAffinity, \
+  V1NodeSelector, V1NodeSelectorTerm, V1NodeSelectorRequirement, V1PreferredSchedulingTerm
+
+def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume=None, volume_name=None, secret_volume_mount_path='/secret/gcp-credentials'):
     """An operator that configures the container to use GCP service account.
 
         The user-gcp-sa secret is created as part of the kubeflow deployment that
@@ -29,31 +32,48 @@ def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume='/user-
         service account access permission.
     """
 
+    # permitted values for secret_name = ['admin-gcp-sa', 'user-gcp-sa']
+    if secret_file_path_in_volume is None:
+        secret_file_path_in_volume = '/' + secret_name + '.json'
+
+    if volume_name is None:
+        volume_name = 'gcp-credentials-' + secret_name
+
+    else:
+        import warnings
+        warnings.warn('The volume_name parameter is deprecated and will be removed in next release. The volume names are now generated automatically.', DeprecationWarning)
+    
     def _use_gcp_secret(task):
         from kubernetes import client as k8s_client
-        return (
-            task
-                .add_volume(
-                    k8s_client.V1Volume(
-                        name=volume_name,
-                        secret=k8s_client.V1SecretVolumeSource(
-                            secret_name=secret_name,
-                        )
-                    )
+        task = task.add_volume(
+            k8s_client.V1Volume(
+                name=volume_name,
+                secret=k8s_client.V1SecretVolumeSource(
+                    secret_name=secret_name,
                 )
-                .add_volume_mount(
+            )
+        )
+        task.container \
+            .add_volume_mount(
                     k8s_client.V1VolumeMount(
                         name=volume_name,
                         mount_path=secret_volume_mount_path,
                     )
+                ) \
+            .add_env_variable(
+                k8s_client.V1EnvVar(
+                    name='GOOGLE_APPLICATION_CREDENTIALS',
+                    value=secret_volume_mount_path + secret_file_path_in_volume,
                 )
-                .add_env_variable(
-                    k8s_client.V1EnvVar(
-                        name='GOOGLE_APPLICATION_CREDENTIALS',
-                        value=secret_volume_mount_path + secret_file_path_in_volume,
-                    )
+            ) \
+            .add_env_variable(
+                k8s_client.V1EnvVar(
+                    name='CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE',
+                    value=secret_volume_mount_path + secret_file_path_in_volume,
                 )
-        )
+            ) # Set GCloud Credentials by using the env var override.
+              # TODO: Is there a better way for GCloud to pick up the credential?
+        return task
     
     return _use_gcp_secret
 
@@ -78,3 +98,35 @@ def use_tpu(tpu_cores: int, tpu_resource: str, tf_version: str):
         return task
 
     return _set_tpu_spec
+
+def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(effect='NoSchedule',
+                                                             key='preemptible',
+                                                             operator='Equal',
+                                                             value='true'),
+                              hard_constraint: bool = False):
+  """An operator that configures the GKE preemptible in a container op.
+  Args:
+    toleration (V1Toleration): toleration to pods, default is the preemptible label.
+    hard_constraint (bool): the constraint of scheduling the pods on preemptible
+        nodepools is hard. (Default: False)
+  """
+
+  def _set_preemptible(task):
+    task.add_toleration(toleration)
+    node_selector_term = V1NodeSelectorTerm(match_expressions=[
+        V1NodeSelectorRequirement(key='cloud.google.com/gke-preemptible',
+                                  operator='In',
+                                  values=['true'])]
+    )
+    if hard_constraint:
+      node_affinity = V1NodeAffinity(required_during_scheduling_ignored_during_execution=
+                        V1NodeSelector(node_selector_terms=[node_selector_term]))
+    else:
+      node_affinity = V1NodeAffinity(preferred_during_scheduling_ignored_during_execution=
+                        V1PreferredSchedulingTerm(preference=node_selector_term,
+                                                  weight=50))
+    affinity = V1Affinity(node_affinity=node_affinity)
+    task.add_affinity(affinity=affinity)
+    return task
+
+  return _set_preemptible

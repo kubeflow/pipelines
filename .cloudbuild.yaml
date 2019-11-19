@@ -15,10 +15,11 @@
 steps:
 
 # Build the Python SDK
-- name: 'debian'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'apt-get update -y; apt-get install --no-install-recommends -y -q default-jdk wget python python-setuptools; wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar;cd /workspace/sdk/python;./build.sh /workspace/kfp.tar.gz']
+- name: 'python:3-alpine'
+  entrypoint: '/bin/sh'
+  args: ['-c', 'cd /workspace/sdk/python/; python3 setup.py sdist --format=gztar; cp dist/*.tar.gz /workspace/kfp.tar.gz']
   id:   'preparePythonSDK'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', '/workspace/kfp.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz']
   id:   'copyPythonSDK'
@@ -28,11 +29,27 @@ steps:
   id:   'copyPythonSDKToLatest'
   waitFor: ['preparePythonSDK']
 
-# Build the pipeline system images and bootstrapper
+# Build the Python Component SDK
+- name: 'python:2-alpine'
+  entrypoint: '/bin/sh'
+  args: ['-c', 'cd /workspace/components/gcp/container/component_sdk/python;python setup.py sdist --format=gztar; cp dist/*.tar.gz /workspace/kfp-component.tar.gz']
+  id:   'preparePythonComponentSDK'
+  waitFor: ["-"]
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp-component.tar.gz']
+  id:   'copyPythonComponentSDK'
+  waitFor: ['preparePythonComponentSDK']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://$PROJECT_ID/builds/latest/kfp-component.tar.gz']
+  id:   'copyPythonComponentSDKToLatest'
+  waitFor: ['preparePythonComponentSDK']
+
+# Build the pipeline system images
 - name: 'debian'
   entrypoint: '/bin/bash'
   args: ['-c', 'sed -i -e "s/ARG DATE/ENV DATE \"$(date -u)\"/" /workspace/frontend/Dockerfile']
   id:   'prepareFrontend'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA',
          '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
@@ -45,146 +62,106 @@ steps:
          '/workspace/backend/Dockerfile', '/workspace']
   id:   'buildApiServer'
   waitFor: ['copyPythonSDK']
+
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA', '-f',
          '/workspace/backend/Dockerfile.scheduledworkflow', '/workspace']
   id:   'buildScheduledWorkflow'
+  waitFor: ["-"]
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA', '-f',
+         '/workspace/backend/Dockerfile.viewercontroller', '/workspace']
+  id:   'buildViewerCrdController'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA', '-f',
          '/workspace/backend/Dockerfile.persistenceagent', '/workspace']
   id:   'buildPersistenceAgent'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--build-arg', 'RELEASE_VERSION=$COMMIT_SHA',
-         '--build-arg', 'API_SERVER_IMAGE=gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA',
-         '--build-arg', 'SCHEDULED_WORKFLOW_IMAGE=gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA',
-         '--build-arg', 'PERSISTENCE_AGENT_IMAGE=gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA',
-         '--build-arg', 'UI_IMAGE=gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA',
-         '-t', 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA', '/workspace/pipeline']
-  id:   'buildBootstrapper'
-- name: 'debian'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'sed -i -e "s/gcr.io\/ml-pipeline\/bootstrapper:\([a-zA-Z0-9_.-]\)\+/gcr.io\/$PROJECT_ID\/bootstrapper:$COMMIT_SHA/g" /workspace/bootstrapper.yaml']
-  id:   'prepareBootstrapperYAML'
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/bootstrapper.yaml', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/bootstrapper.yaml']
-  id:   'copyBootstrapperYAML'
-  waitFor: ['prepareBootstrapperYAML']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/bootstrapper.yaml', 'gs://$PROJECT_ID/builds/latest/bootstrapper.yaml']
-  id:   'copyBootstrapperYAMLToLatest'
-  waitFor: ['prepareBootstrapperYAML']
-
-# Copy the uninstaller config
-- name: 'debian'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'sed -i -e "s/gcr.io\/ml-pipeline\/bootstrapper:\([a-zA-Z0-9_.-]\)\+/gcr.io\/$PROJECT_ID\/bootstrapper:$COMMIT_SHA/g" /workspace/uninstaller.yaml']
-  id:   'prepareUninstallerYAML'
-- name: 'debian'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'sed -i -e "s/args: \[/args: [\n          \"--api_image\", \"gcr.io\/$PROJECT_ID\/api-server:$COMMIT_SHA\",\n          \"--scheduled_workflow_image\", \"gcr.io\/$PROJECT_ID\/scheduledworkflow:$COMMIT_SHA\",\n          \"--persistence_agent_image\", \"gcr.io\/$PROJECT_ID\/persistenceagent:$COMMIT_SHA\",\n          \"--ui_image\", \"gcr.io\/$PROJECT_ID\/frontend:$COMMIT_SHA\"\n/g" /workspace/uninstaller.yaml']
-  id:   'updateUninstallerYAMLImage'
-  waitFor: ['prepareUninstallerYAML']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/uninstaller.yaml', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/uninstaller.yaml']
-  id:   'copyUninstallerYAML'
-  waitFor: ['updateUninstallerYAMLImage']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/uninstaller.yaml', 'gs://$PROJECT_ID/builds/latest/uninstaller.yaml']
-  id:   'copyUninstallerYAMLToLatest'
-  waitFor: ['prepareUninstallerYAML']
-
-
-# Build the Dataflow-based pipeline component images
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA', '-f',
+         '/workspace/proxy/Dockerfile', '/workspace/proxy']
+  id:   'buildInverseProxyAgent'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataflow/predict && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildPredictComponent'
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataflow/tfdv && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildTFDVComponent'
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataflow/tft && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildTFTComponent'
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataflow/tfma && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildTMAComponent'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA',
+         '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
+         '/workspace/backend/Dockerfile.visualization', '/workspace']
+  id: 'buildVisualizationServer'
+  waitFor: ["-"]
 
 # Build the Kubeflow-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$COMMIT_SHA',
          '/workspace/components/kubeflow/deployer']
   id: 'buildDeployer'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash' 
+  entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/kubeflow/launcher && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildLauncher'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash' 
+  entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/kubeflow/dnntrainer && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA -l ml-pipeline-kubeflow-tf-trainer-gpu -b 1.6.0-gpu']
   id: 'buildGpuTrainer'
+  waitFor: ["-"]
 
 # Build the Dataproc-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/analyze && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/deprecated/dataproc/analyze && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocAnalyze'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/create_cluster && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/deprecated/dataproc/create_cluster && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocCreateCluster'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/delete_cluster && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/deprecated/dataproc/delete_cluster && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocDeleteCluster'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/predict && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/deprecated/dataproc/predict && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocPredict'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/transform && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/deprecated/dataproc/transform && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocTransform'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/train && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/deprecated/dataproc/train && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocTrain'
+  waitFor: ["-"]
 
-# Build the ResNet-CMLE sample pipeline component images
+# Build the Generic GCP component image
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/resnet-cmle/containers/deploy && ./build.sh $PROJECT_ID $COMMIT_SHA']
-  id: 'buildResnetCMLEDeployComponent'
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/resnet-cmle/containers/preprocess && ./build.sh $PROJECT_ID $COMMIT_SHA']
-  id: 'buildResnetCMLEPreprocessComponent'
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/resnet-cmle/containers/train && ./build.sh $PROJECT_ID $COMMIT_SHA']
-  id: 'buildResnetCMLETrainComponent'
+  args: ['-c', 'cd /workspace/components/gcp/container/ && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  id: 'buildGcpGenericComponent'
+  waitFor: ["-"]
 
 # Build the local pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/local/confusion_matrix && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildConfusionMatrix'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/local/roc && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildROC'
+  waitFor: ["-"]
 
-# Build the tagged samples
-- name: 'debian'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'sed -i -e "s/gcr.io\/ml-pipeline\/\([^\/:]\+\):\([a-zA-Z0-9_.-]\)\+/gcr.io\/$PROJECT_ID\/\\1:$COMMIT_SHA/g" samples/*/*.py']
-  id:   'prepareVersionedSamples'
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '-r', '/workspace/samples/', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/samples']
-  id:   'copyVersionedSamples'
-  waitFor: ['prepareVersionedSamples']
+# Build third_party images
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA', '-f',
+         '/workspace/third_party/metadata_envoy/Dockerfile', '/workspace']
+  id:   'buildMetadataEnvoy'
 
 images:
 # Images for the pipeline system itself
@@ -192,13 +169,9 @@ images:
 - 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA'
-
-# Images for the Dataflow-based pipeline components
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfdv:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA'
 
 # Images for the Kubeflow-based pipeline components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$COMMIT_SHA'
@@ -214,13 +187,17 @@ images:
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-transform:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-train:$COMMIT_SHA'
 
-# Images for the ResNet CMLE sample  pipeline components
-- 'gcr.io/$PROJECT_ID/resnet-deploy:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/resnet-preprocess:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/resnet-train:$COMMIT_SHA'
+# Images for the GCP generic pipeline components
+- 'gcr.io/$PROJECT_ID/ml-pipeline-gcp:$COMMIT_SHA'
 
 # Images for the local components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-local-confusion-matrix:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-local-roc:$COMMIT_SHA'
 
+# Images for the third_party components
+- 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA'
+
 timeout: '3600s'
+options:
+ diskSizeGb: 300
+ machineType: 'N1_HIGHCPU_8'

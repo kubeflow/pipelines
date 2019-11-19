@@ -39,16 +39,17 @@ func initializeRunStore() (*DB, *RunStore) {
 		Run: model.Run{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -60,6 +61,7 @@ func initializeRunStore() (*DB, *RunStore) {
 		Run: model.Run{
 			UUID:             "2",
 			Name:             "run2",
+			DisplayName:      "run2",
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
@@ -68,8 +70,8 @@ func initializeRunStore() (*DB, *RunStore) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -81,6 +83,7 @@ func initializeRunStore() (*DB, *RunStore) {
 		Run: model.Run{
 			UUID:             "3",
 			Name:             "run3",
+			DisplayName:      "run3",
 			Namespace:        "n3",
 			CreatedAtInSec:   3,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -89,8 +92,8 @@ func initializeRunStore() (*DB, *RunStore) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "3", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpIdTwo, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -112,16 +115,17 @@ func TestListRuns_Pagination(t *testing.T) {
 		{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		}}
@@ -129,6 +133,7 @@ func TestListRuns_Pagination(t *testing.T) {
 		{
 			UUID:             "2",
 			Name:             "run2",
+			DisplayName:      "run2",
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
@@ -137,8 +142,8 @@ func TestListRuns_Pagination(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		}}
@@ -146,19 +151,58 @@ func TestListRuns_Pagination(t *testing.T) {
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	assert.Nil(t, err)
 
-	runs, nextPageToken, err := runStore.ListRuns(
+	runs, total_size, nextPageToken, err := runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, nextPageToken, err = runStore.ListRuns(
+	runs, total_size, nextPageToken, err = runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
+}
+
+func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
+
+	// No filter
+	runs, total_size, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(runs))
+	assert.Equal(t, 3, total_size)
+}
+
+func TestListRuns_TotalSizeWithFilter(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	// Add a filter
+	opts, _ := list.NewOptions(&model.Run{}, 4, "", &api.Filter{
+		Predicates: []*api.Predicate{
+			{
+				Key: "name",
+				Op:  api.Predicate_IN,
+				Value: &api.Predicate_StringValues{
+					StringValues: &api.StringValues{
+						Values: []string{"run1", "run3"},
+					},
+				},
+			},
+		},
+	})
+	runs, total_size, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(runs))
+	assert.Equal(t, 2, total_size)
 }
 
 func TestListRuns_Pagination_Descend(t *testing.T) {
@@ -169,6 +213,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 		{
 			UUID:             "2",
 			Name:             "run2",
+			DisplayName:      "run2",
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
@@ -177,8 +222,8 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		}}
@@ -186,34 +231,37 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 		{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		}}
 
 	opts, err := list.NewOptions(&model.Run{}, 1, "id desc", nil)
 	assert.Nil(t, err)
-	runs, nextPageToken, err := runStore.ListRuns(
+	runs, total_size, nextPageToken, err := runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 
 	assert.Nil(t, err)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, nextPageToken, err = runStore.ListRuns(
+	runs, total_size, nextPageToken, err = runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
 }
@@ -226,22 +274,24 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 		{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
 		{
 			UUID:             "2",
 			Name:             "run2",
+			DisplayName:      "run2",
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
@@ -250,17 +300,18 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		}}
 
 	opts, err := list.NewOptions(&model.Run{}, 10, "", nil)
 	assert.Nil(t, err)
-	runs, nextPageToken, err := runStore.ListRuns(
+	runs, total_size, nextPageToken, err := runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
 }
@@ -270,7 +321,7 @@ func TestListRunsError(t *testing.T) {
 	db.Close()
 
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
-	_, _, err = runStore.ListRuns(
+	_, _, _, err = runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
@@ -284,16 +335,17 @@ func TestGetRun(t *testing.T) {
 		Run: model.Run{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -331,16 +383,17 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 		Run: model.Run{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -367,6 +420,7 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 		Run: model.Run{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
@@ -375,8 +429,8 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -412,6 +466,7 @@ func TestCreateOrUpdateRun_CreateSuccess(t *testing.T) {
 					ResourceUUID:  "2000",
 					ResourceType:  common.Run,
 					ReferenceUUID: defaultFakeExpId,
+					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
@@ -438,6 +493,7 @@ func TestCreateOrUpdateRun_CreateSuccess(t *testing.T) {
 					ResourceUUID:  "2000",
 					ResourceType:  common.Run,
 					ReferenceUUID: defaultFakeExpId,
+					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
@@ -478,7 +534,7 @@ func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Conditions:       "running",
+			Conditions:       "Running",
 		},
 		PipelineRuntime: model.PipelineRuntime{
 			WorkflowRuntimeManifest: "workflow1",
@@ -502,12 +558,12 @@ func TestCreateOrUpdateRun_BadStorageStateValue(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -525,7 +581,58 @@ func TestUpdateRun_RunNotExist(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
-	err := runStore.UpdateRun("not-exist", "done", "workflow_done")
+	err := runStore.UpdateRun("not-exist", "done", 1, "workflow_done")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Row not found")
+}
+
+func TestTerminateRun(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	err := runStore.TerminateRun("1")
+	assert.Nil(t, err)
+
+	expectedRun := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "1",
+			Name:             "run1",
+			DisplayName:      "run1",
+			Namespace:        "n1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			Conditions:       "Terminating",
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID: "1", ResourceType: common.Run,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow1"},
+	}
+
+	runDetail, err := runStore.GetRun("1")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRun, runDetail)
+}
+
+func TestTerminateRun_RunDoesNotExist(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	err := runStore.TerminateRun("does-not-exist")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Row not found")
+}
+
+func TestTerminateRun_RunHasAlreadyFinished(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	err := runStore.TerminateRun("2")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Row not found")
 }
@@ -624,16 +731,17 @@ func TestListRuns_WithMetrics(t *testing.T) {
 		{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 			Metrics: []*model.RunMetric{metric1, metric2},
@@ -641,6 +749,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 		{
 			UUID:             "2",
 			Name:             "run2",
+			DisplayName:      "run2",
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
@@ -649,8 +758,8 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 			Metrics: []*model.RunMetric{metric3},
@@ -659,7 +768,8 @@ func TestListRuns_WithMetrics(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 2, "", nil)
 	assert.Nil(t, err)
-	runs, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
+	runs, total_size, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
+	assert.Equal(t, 3, total_size)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
 }
@@ -750,23 +860,25 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 		{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_ARCHIVED.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		}}
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
-	runs, nextPageToken, err := runStore.ListRuns(
+	runs, total_size, nextPageToken, err := runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedRuns, runs)
 	assert.NotEmpty(t, nextPageToken)
 }

@@ -1,0 +1,14 @@
+ModelName: ''
+PrimaryContainer:
+  ContainerHostname: ''
+  Image: ''
+  ModelDataUrl: ''
+  Environment: {}
+  ModelPackageName: ''
+Containers: []
+ExecutionRoleArn: ''
+Tags: []
+VpcConfig:
+  SecurityGroupIds: []
+  Subnets: []
+EnableNetworkIsolation: True

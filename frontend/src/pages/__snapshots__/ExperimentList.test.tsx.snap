@@ -26,6 +26,7 @@ exports[`ExperimentList renders a list of one experiment 1`] = `
     }
     disableSelection={true}
     emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    filterLabel="Filter experiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
@@ -74,6 +75,7 @@ exports[`ExperimentList renders a list of one experiment with error 1`] = `
     }
     disableSelection={true}
     emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    filterLabel="Filter experiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
@@ -109,6 +111,7 @@ exports[`ExperimentList renders a list of one experiment with no description 1`]
     }
     disableSelection={true}
     emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    filterLabel="Filter experiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
@@ -144,6 +147,7 @@ exports[`ExperimentList renders an empty list with empty state message 1`] = `
     }
     disableSelection={true}
     emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    filterLabel="Filter experiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
@@ -160,13 +164,7 @@ exports[`ExperimentList renders experiment names as links to their details pages
   replace={false}
   to="/experiments/details/experiment-id"
 >
-  <a
-    className="link"
-    href="/experiments/details/experiment-id"
-    onClick={[Function]}
-  >
-    experiment name
-  </a>
+  experiment name
 </Link>
 `;
 
@@ -175,7 +173,6 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
   className="flex"
 >
   <span
-    key="0"
     style={
       Object {
         "margin": "0 1px",
@@ -183,7 +180,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     }
   >
     <WithStyles(Tooltip)
-      title="Executed successfully"
+      title={
+        <div>
+          <div>
+            Executed successfully
+          </div>
+        </div>
+      }
     >
       <span
         style={
@@ -205,7 +208,6 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     </WithStyles(Tooltip)>
   </span>
   <span
-    key="1"
     style={
       Object {
         "margin": "0 1px",
@@ -213,7 +215,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     }
   >
     <WithStyles(Tooltip)
-      title="Pending execution"
+      title={
+        <div>
+          <div>
+            Pending execution
+          </div>
+        </div>
+      }
     >
       <span
         style={
@@ -225,7 +233,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         <pure(ScheduleIcon)
           style={
             Object {
-              "color": "#999",
+              "color": "#9aa0a6",
               "height": 18,
               "width": 18,
             }
@@ -235,7 +243,6 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     </WithStyles(Tooltip)>
   </span>
   <span
-    key="2"
     style={
       Object {
         "margin": "0 1px",
@@ -243,7 +250,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     }
   >
     <WithStyles(Tooltip)
-      title="Resource failed to execute"
+      title={
+        <div>
+          <div>
+            Resource failed to execute
+          </div>
+        </div>
+      }
     >
       <span
         style={
@@ -255,7 +268,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         <pure(ErrorIcon)
           style={
             Object {
-              "color": "#D50000",
+              "color": "#d50000",
               "height": 18,
               "width": 18,
             }
@@ -265,7 +278,6 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     </WithStyles(Tooltip)>
   </span>
   <span
-    key="3"
     style={
       Object {
         "margin": "0 1px",
@@ -273,7 +285,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     }
   >
     <WithStyles(Tooltip)
-      title="Unknown status"
+      title={
+        <div>
+          <div>
+            Unknown status
+          </div>
+        </div>
+      }
     >
       <span
         style={
@@ -285,7 +303,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         <pure(HelpIcon)
           style={
             Object {
-              "color": "#5F6368",
+              "color": "#5f6368",
               "height": 18,
               "width": 18,
             }
@@ -295,7 +313,6 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     </WithStyles(Tooltip)>
   </span>
   <span
-    key="4"
     style={
       Object {
         "margin": "0 1px",
@@ -303,7 +320,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     }
   >
     <WithStyles(Tooltip)
-      title="Executed successfully"
+      title={
+        <div>
+          <div>
+            Executed successfully
+          </div>
+        </div>
+      }
     >
       <span
         style={

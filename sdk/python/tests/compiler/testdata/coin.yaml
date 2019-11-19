@@ -14,6 +14,8 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use dsl.Condition.", "name": "pipeline flip coin"}'
   generateName: pipeline-flip-coin-
 spec:
   arguments:
@@ -27,49 +29,42 @@ spec:
           parameters:
           - name: flip-again-output
             value: '{{tasks.flip-again.outputs.parameters.flip-again-output}}'
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
         dependencies:
         - flip-again
         name: condition-2
         template: condition-2
-        when: '{{tasks.flip-again.outputs.parameters.flip-again-output}} == tails'
-      - arguments:
-          parameters:
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
-        name: flip-again
+        when: '"{{tasks.flip-again.outputs.parameters.flip-again-output}}" == "tails"'
+      - name: flip-again
         template: flip-again
-    inputs:
-      parameters:
-      - name: flip-output
     name: condition-1
+    outputs:
+      parameters:
+      - name: flip-again-output
+        valueFrom:
+          parameter: '{{tasks.flip-again.outputs.parameters.flip-again-output}}'
   - dag:
       tasks:
       - arguments:
           parameters:
           - name: flip-again-output
             value: '{{inputs.parameters.flip-again-output}}'
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
         name: print1
         template: print1
     inputs:
       parameters:
       - name: flip-again-output
-      - name: flip-output
     name: condition-2
   - dag:
       tasks:
       - arguments:
           parameters:
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
+          - name: flip-again-output
+            value: '{{inputs.parameters.flip-again-output}}'
         name: print2
         template: print2
     inputs:
       parameters:
-      - name: flip-output
+      - name: flip-again-output
     name: condition-3
   - container:
       args:
@@ -82,32 +77,8 @@ spec:
     name: flip
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
+      - name: flip-output
+        path: /tmp/output
       parameters:
       - name: flip-output
         valueFrom:
@@ -123,124 +94,47 @@ spec:
     name: flip-again
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
+      - name: flip-again-output
+        path: /tmp/output
       parameters:
       - name: flip-again-output
         valueFrom:
           path: /tmp/output
   - dag:
       tasks:
-      - arguments:
-          parameters:
-          - name: flip-output
-            value: '{{tasks.flip.outputs.parameters.flip-output}}'
-        dependencies:
+      - dependencies:
         - flip
         name: condition-1
         template: condition-1
-        when: '{{tasks.flip.outputs.parameters.flip-output}} == heads'
+        when: '"{{tasks.flip.outputs.parameters.flip-output}}" == "heads"'
       - arguments:
           parameters:
-          - name: flip-output
-            value: '{{tasks.flip.outputs.parameters.flip-output}}'
+          - name: flip-again-output
+            value: '{{tasks.condition-1.outputs.parameters.flip-again-output}}'
         dependencies:
+        - condition-1
         - flip
         name: condition-3
         template: condition-3
-        when: '{{tasks.flip.outputs.parameters.flip-output}} == tails'
+        when: '"{{tasks.flip.outputs.parameters.flip-output}}" == "tails"'
       - name: flip
         template: flip
     name: pipeline-flip-coin
   - container:
       command:
       - echo
-      - '"it was tail"'
+      - '{{inputs.parameters.flip-again-output}}'
       image: alpine:3.6
+    inputs:
+      parameters:
+      - name: flip-again-output
     name: print1
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
   - container:
       command:
       - echo
-      - '"it was tail"'
+      - '{{inputs.parameters.flip-again-output}}'
       image: alpine:3.6
+    inputs:
+      parameters:
+      - name: flip-again-output
     name: print2
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact

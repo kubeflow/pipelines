@@ -21,9 +21,13 @@ __all__ = [
 
 import sys
 from collections import OrderedDict
+from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from ._structures import ComponentSpec
-
+from ._structures import *
+from ._data_passing import serialize_value, type_name_to_type
+from kfp.dsl import PipelineParam
+from kfp.dsl.types import verify_type_compatibility
 
 _default_component_name = 'Component'
 
@@ -72,10 +76,17 @@ def load_component_from_url(url):
     '''
     if url is None:
         raise TypeError
+
+    #Handling Google Cloud Storage URIs
+    if url.startswith('gs://'):
+        #Replacing the gs:// URI with https:// URI (works for public objects)
+        url = 'https://storage.googleapis.com/' + url[len('gs://'):]
+
     import requests
     resp = requests.get(url)
     resp.raise_for_status()
-    return _create_task_factory_from_component_text(resp.content, url)
+    component_ref = ComponentReference(url=url)
+    return _load_component_from_yaml_or_zip_bytes(resp.content, url, component_ref)
 
 
 def load_component_from_file(filename):
@@ -91,8 +102,8 @@ def load_component_from_file(filename):
     '''
     if filename is None:
         raise TypeError
-    with open(filename, 'r') as yaml_file:
-        return _create_task_factory_from_component_text(yaml_file, filename)
+    with open(filename, 'rb') as component_stream:
+        return _load_component_from_yaml_or_zip_stream(component_stream, filename)
 
 
 def load_component_from_text(text):
@@ -111,261 +122,211 @@ def load_component_from_text(text):
     return _create_task_factory_from_component_text(text, None)
 
 
-def _create_task_factory_from_component_text(text_or_file, component_filename=None):
+_COMPONENT_FILE_NAME_IN_ARCHIVE = 'component.yaml'
+
+
+def _load_component_from_yaml_or_zip_bytes(bytes, component_filename=None, component_ref: ComponentReference = None):
+    import io
+    component_stream = io.BytesIO(bytes)
+    return _load_component_from_yaml_or_zip_stream(component_stream, component_filename, component_ref)
+
+
+def _load_component_from_yaml_or_zip_stream(stream, component_filename=None, component_ref: ComponentReference = None):
+    '''Loads component from a stream and creates a task factory function.
+    The stream can be YAML or a zip file with a component.yaml file inside.
+    '''
+    import zipfile
+    stream.seek(0)
+    if zipfile.is_zipfile(stream):
+        stream.seek(0)
+        with zipfile.ZipFile(stream) as zip_obj:
+            with zip_obj.open(_COMPONENT_FILE_NAME_IN_ARCHIVE) as component_stream:
+                return _create_task_factory_from_component_text(component_stream, component_filename, component_ref)
+    else:
+        stream.seek(0)
+        return _create_task_factory_from_component_text(stream, component_filename, component_ref)
+
+
+def _create_task_factory_from_component_text(text_or_file, component_filename=None, component_ref: ComponentReference = None):
     component_dict = load_yaml(text_or_file)
-    return _create_task_factory_from_component_dict(component_dict, component_filename)
+    return _create_task_factory_from_component_dict(component_dict, component_filename, component_ref)
 
 
-def _create_task_factory_from_component_dict(component_dict, component_filename=None):
-    component_spec = ComponentSpec.from_struct(component_dict)
-    return _create_task_factory_from_component_spec(component_spec, component_filename)
+def _create_task_factory_from_component_dict(component_dict, component_filename=None, component_ref: ComponentReference = None):
+    component_spec = ComponentSpec.from_dict(component_dict)
+    return _create_task_factory_from_component_spec(component_spec, component_filename, component_ref)
 
 
-def _normalize_identifier_name(name):
-    import re
-    normalized_name = name.lower()
-    normalized_name = re.sub(r'[\W_]', ' ', normalized_name)           #No non-word characters
-    normalized_name = re.sub(' +', ' ', normalized_name).strip()    #No double spaces, leading or trailing spaces
-    if re.match(r'\d', normalized_name):
-        normalized_name = 'n' + normalized_name                     #No leading digits
-    return normalized_name
-
-
-def _sanitize_kubernetes_resource_name(name):
-    return _normalize_identifier_name(name).replace(' ', '-')
-
-
-def _sanitize_python_function_name(name):
-    return _normalize_identifier_name(name).replace(' ', '_')
-
-
-def _sanitize_file_name(name):
-    import re
-    return re.sub('[^-_.0-9a-zA-Z]+', '_', name)
-
-
-def _generate_unique_suffix(data):
-    import time
-    import hashlib
-    string_data = str( (data, time.time()) )
-    return hashlib.sha256(string_data.encode()).hexdigest()[0:8]
-
-_inputs_dir = '/inputs'
-_outputs_dir = '/outputs'
+_inputs_dir = '/tmp/inputs'
+_outputs_dir = '/tmp/outputs'
+_single_io_file_name = 'data'
 
 
 def _generate_input_file_name(port_name):
-    return _inputs_dir + '/' + _sanitize_file_name(port_name)
+    return _inputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
 
 
 def _generate_output_file_name(port_name):
-    return _outputs_dir + '/' + _sanitize_file_name(port_name)
+    return _outputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
 
 
-def _try_get_object_by_name(obj_name):
-    '''Locates any Python object (type, module, function, global variable) by name'''
-    try:
-        ##Might be heavy since locate searches all Python modules
-        #from pydoc import locate
-        #return locate(obj_name) or obj_name
-        import builtins
-        return builtins.__dict__.get(obj_name, obj_name)
-    except:
-        pass
-    return obj_name
+#Holds the transformation functions that are called each time TaskSpec instance is created from a component. If there are multiple handlers, the last one is used.
+_created_task_transformation_handler = []
 
 
-def _make_name_unique_by_adding_index(name:str, collection, delimiter:str):
-    unique_name = name
-    if unique_name in collection:
-        for i in range(2, sys.maxsize**10):
-            unique_name = name + delimiter + str(i)
-            if unique_name not in collection:
-                break
-    return unique_name
+#TODO: Move to the dsl.Pipeline context class
+from . import _dsl_bridge
+_created_task_transformation_handler.append(_dsl_bridge.create_container_op_from_task)
+
+
+class _DefaultValue:
+    def __init__(self, value):
+        self.value = value
+
+    def __repr__(self):
+        return repr(self.value)
 
 
 #TODO: Refactor the function to make it shorter
-def _create_task_factory_from_component_spec(component_spec:ComponentSpec, component_filename=None):
+def _create_task_factory_from_component_spec(component_spec:ComponentSpec, component_filename=None, component_ref: ComponentReference = None):
     name = component_spec.name or _default_component_name
-    description = component_spec.description
+
+    func_docstring_lines = []
+    if component_spec.name:
+        func_docstring_lines.append(component_spec.name)
+    if component_spec.description:
+        func_docstring_lines.append(component_spec.description)
     
     inputs_list = component_spec.inputs or [] #List[InputSpec]
-    outputs_list = component_spec.outputs or [] #List[OutputSpec]
+    input_names = [input.name for input in inputs_list]
 
-    inputs_dict = {port.name: port for port in inputs_list}
+    #Creating the name translation tables : Original <-> Pythonic 
+    input_name_to_pythonic = generate_unique_name_conversion_table(input_names, _sanitize_python_function_name)
+    pythonic_name_to_input_name = {v: k for k, v in input_name_to_pythonic.items()}
 
-    input_name_to_pythonic = {}
-    pythonic_name_to_input_name = {}
+    if component_ref is None:
+        component_ref = ComponentReference(spec=component_spec, url=component_filename)
+    else:
+        component_ref.spec = component_spec
 
-    input_name_to_kubernetes = {}
-    output_name_to_kubernetes = {}
-    kubernetes_name_to_input_name = {}
-    kubernetes_name_to_output_name = {}
+    def create_task_from_component_and_arguments(pythonic_arguments):
+        arguments = {}
+        # Not checking for missing or extra arguments since the dynamic factory function checks that
+        for argument_name, argument_value in pythonic_arguments.items():
+            if isinstance(argument_value, _DefaultValue): # Skipping passing arguments for optional values that have not been overridden.
+                continue
+            input_name = pythonic_name_to_input_name[argument_name]
+            input_type = component_spec._inputs_dict[input_name].type
 
-    for io_port in inputs_list:
-        pythonic_name = _sanitize_python_function_name(io_port.name)
-        pythonic_name = _make_name_unique_by_adding_index(pythonic_name, pythonic_name_to_input_name, '_')
-        input_name_to_pythonic[io_port.name] = pythonic_name
-        pythonic_name_to_input_name[pythonic_name] = io_port.name
+            if isinstance(argument_value, (GraphInputArgument, TaskOutputArgument, PipelineParam)):
+                # argument_value is a reference 
 
-        kubernetes_name = _sanitize_kubernetes_resource_name(io_port.name)
-        kubernetes_name = _make_name_unique_by_adding_index(kubernetes_name, kubernetes_name_to_input_name, '-')
-        input_name_to_kubernetes[io_port.name] = kubernetes_name
-        kubernetes_name_to_input_name[kubernetes_name] = io_port.name
+                if isinstance(argument_value, PipelineParam):
+                    reference_type = argument_value.param_type
+                    argument_value = str(argument_value)
+                elif isinstance(argument_value, TaskOutputArgument):
+                    reference_type = argument_value.task_output.type
+                else:
+                    reference_type = None
 
-    for io_port in outputs_list:
-        kubernetes_name = _sanitize_kubernetes_resource_name(io_port.name)
-        kubernetes_name = _make_name_unique_by_adding_index(kubernetes_name, kubernetes_name_to_output_name, '-')
-        output_name_to_kubernetes[io_port.name] = kubernetes_name
-        kubernetes_name_to_output_name[kubernetes_name] = io_port.name
+                verify_type_compatibility(reference_type, input_type, 'Incompatible argument passed to the input "{}" of component "{}": '.format(input_name, component_spec.name))
 
-    container_spec = component_spec.implementation.container
-    container_image = container_spec.image
-
-    file_inputs={}
-    file_outputs_from_def = OrderedDict()
-    if container_spec.file_outputs != None:
-        for param, path in container_spec.file_outputs.items():
-            output_key = output_name_to_kubernetes[param]
-            file_outputs_from_def[output_key] = path
-
-    def create_container_op_with_expanded_arguments(pythonic_input_argument_values):
-        file_outputs = file_outputs_from_def.copy()
-        
-        def expand_command_part(arg): #input values with original names
-            #(Union[str,Mapping[str, Any]]) -> Union[str,List[str]]
-            if arg is None:
-                return None
-            if isinstance(arg, (str, int, float, bool)):
-                return str(arg)
-            elif isinstance(arg, dict):
-                if len(arg) != 1:
-                    raise ValueError('Failed to parse argument dict: "{}"'.format(arg))
-                (func_name, func_argument) = list(arg.items())[0]
-                func_name=func_name.lower()
-
-                if func_name == 'value':
-                    assert isinstance(func_argument, str)
-                    port_name = func_argument
-                    input_value = pythonic_input_argument_values[input_name_to_pythonic[port_name]]
-                    if input_value is not None:
-                        return str(input_value)
-                    else:
-                        input_spec = inputs_dict[port_name]
-                        if input_spec.optional:
-                            #Even when we support default values there is no need to check for a default here.
-                            #In current execution flow (called by python task factory), the missing argument would be replaced with the default value by python itself.
-                            return None
-                        else:
-                            raise ValueError('No value provided for input {}'.format(port_name))
-
-                elif func_name == 'file':
-                    assert isinstance(func_argument, str)
-                    port_name = func_argument
-                    input_filename = _generate_input_file_name(port_name)
-                    input_key = input_name_to_kubernetes[port_name]
-                    input_value = pythonic_input_argument_values[input_name_to_pythonic[port_name]]
-                    if input_value is not None:
-                        file_inputs[input_key] = {'local_path': input_filename, 'data_source': input_value}
-                        return input_filename
-                    else:
-                        input_spec = inputs_dict[port_name]
-                        if input_spec.optional:
-                            #Even when we support default values there is no need to check for a default here.
-                            #In current execution flow (called by python task factory), the missing argument would be replaced with the default value by python itself.
-                            return None
-                        else:
-                            raise ValueError('No value provided for input {}'.format(port_name))
-
-                elif func_name == 'output':
-                    assert isinstance(func_argument, str)
-                    port_name = func_argument
-                    output_filename = _generate_output_file_name(port_name)
-                    output_key = output_name_to_kubernetes[port_name]
-                    if output_key in file_outputs:
-                        if file_outputs[output_key] != output_filename:
-                            raise ValueError('Conflicting output files specified for port {}: {} and {}'.format(port_name, file_outputs[output_key], output_filename))
-                    else:
-                        file_outputs[output_key] = output_filename
-                    
-                    return output_filename
-
-                elif func_name == 'concat':
-                    assert isinstance(func_argument, list)
-                    items_to_concatenate = func_argument
-                    expanded_argument_strings = expand_argument_list(items_to_concatenate)
-                    return ''.join(expanded_argument_strings)
-                
-                elif func_name == 'if':
-                    assert isinstance(func_argument, dict)
-                    condition_node = func_argument['cond']
-                    then_node = func_argument['then']
-                    else_node = func_argument.get('else', None)
-                    condition_result = expand_command_part(condition_node)
-                    from distutils.util import strtobool
-                    condition_result_bool = condition_result and strtobool(condition_result) #Python gotcha: bool('False') == True; Need to use strtobool; Also need to handle None and []
-                    result_node = then_node if condition_result_bool else else_node
-                    if result_node is None:
-                        return []
-                    if isinstance(result_node, list):
-                        expanded_result = expand_argument_list(result_node)
-                    else:
-                        expanded_result = expand_command_part(result_node)
-                    return expanded_result
-
-                elif func_name == 'ispresent':
-                    assert isinstance(func_argument, str)
-                    input_name = func_argument
-                    pythonic_input_name = input_name_to_pythonic[input_name]
-                    argument_is_present = pythonic_input_argument_values[pythonic_input_name] is not None
-                    return str(argument_is_present)
+                arguments[input_name] = argument_value
             else:
-                raise TypeError('Unrecognized argument type: {}'.format(arg))
-        
-        def expand_argument_list(argument_list):
-            expanded_list = []
-            if argument_list is not None:
-                for part in argument_list:
-                    expanded_part = expand_command_part(part)
-                    if expanded_part is not None:
-                        if isinstance(expanded_part, list):
-                            expanded_list.extend(expanded_part)
-                        else:
-                            expanded_list.append(str(expanded_part))
-            return expanded_list
+                # argument_value is a constant value
+                serialized_argument_value = serialize_value(argument_value, input_type)
+                arguments[input_name] = serialized_argument_value
 
-        expanded_command = expand_argument_list(container_spec.command)
-        expanded_args = expand_argument_list(container_spec.args)
-
-        #Working around Python's variable scoping. Do not write to variable from global scope as that makes the variable local.
-
-        file_outputs_to_pass = file_outputs 
-        if file_outputs_to_pass == {}:
-            file_outputs_to_pass = None
-        
-        from . import _dsl_bridge
-        return _dsl_bridge._task_object_factory(
-            name=name,
-            container_image=container_image,
-            command=expanded_command,
-            arguments=expanded_args,
-            file_inputs=file_inputs,
-            file_outputs=file_outputs_to_pass,
+        task = TaskSpec(
+            component_ref=component_ref,
+            arguments=arguments,
         )
+        task._init_outputs()
+        
+        if isinstance(component_spec.implementation, GraphImplementation):
+            return _resolve_graph_task(task, component_spec)
+
+        if _created_task_transformation_handler:
+            task = _created_task_transformation_handler[-1](task)
+        return task
 
     import inspect
     from . import _dynamic
 
-    #Reordering the inputs since in Python optional parameters must come after reuired parameters
-    reordered_input_list = [input for input in inputs_list if not input.optional] + [input for input in inputs_list if input.optional]
-    input_parameters  = [_dynamic.KwParameter(input_name_to_pythonic[port.name], annotation=(_try_get_object_by_name(str(port.type)) if port.type else inspect.Parameter.empty), default=(None if port.optional else inspect.Parameter.empty)) for port in reordered_input_list]
+    #Reordering the inputs since in Python optional parameters must come after required parameters
+    reordered_input_list = [input for input in inputs_list if input.default is None and not input.optional] + [input for input in inputs_list if not (input.default is None and not input.optional)]
+
+    def component_default_to_func_default(component_default: str, is_optional: bool):
+        if is_optional:
+            return _DefaultValue(component_default)
+        if component_default is not None:
+            return component_default
+        return inspect.Parameter.empty
+
+    input_parameters = [
+        _dynamic.KwParameter(
+            input_name_to_pythonic[port.name],
+            annotation=(type_name_to_type.get(str(port.type), str(port.type)) if port.type else inspect.Parameter.empty),
+            default=component_default_to_func_default(port.default, port.optional),
+        )
+        for port in reordered_input_list
+    ]
     factory_function_parameters = input_parameters #Outputs are no longer part of the task factory function signature. The paths are always generated by the system.
     
-    return _dynamic.create_function_from_parameters(
-        create_container_op_with_expanded_arguments,        
+    task_factory = _dynamic.create_function_from_parameters(
+        create_task_from_component_and_arguments,        
         factory_function_parameters,
-        documentation=description,
+        documentation='\n'.join(func_docstring_lines),
         func_name=name,
-        func_filename=component_filename
+        func_filename=component_filename if (component_filename and (component_filename.endswith('.yaml') or component_filename.endswith('.yml'))) else None,
     )
+    task_factory.component_spec = component_spec
+    return task_factory
+
+
+def _resolve_graph_task(graph_task: TaskSpec, graph_component_spec: ComponentSpec) -> TaskSpec:
+    from ..components import ComponentStore
+    component_store = ComponentStore.default_store
+
+    graph = graph_component_spec.implementation.graph
+
+    graph_input_arguments = {input.name: input.default for input in graph_component_spec.inputs if input.default is not None}
+    graph_input_arguments.update(graph_task.arguments)
+
+    outputs_of_tasks = {}
+    def resolve_argument(argument):
+        if isinstance(argument, (str, int, float, bool)):
+            return argument
+        elif isinstance(argument, GraphInputArgument):
+            return graph_input_arguments[argument.graph_input.input_name]
+        elif isinstance(argument, TaskOutputArgument):
+            upstream_task_output_ref = argument.task_output
+            upstream_task_outputs = outputs_of_tasks[upstream_task_output_ref.task_id]
+            upstream_task_output = upstream_task_outputs[upstream_task_output_ref.output_name]
+            return upstream_task_output
+        else:
+            raise TypeError('Argument for input has unexpected type "{}".'.format(type(argument)))
+
+    for task_id, task_spec in graph._toposorted_tasks.items(): # Cannot use graph.tasks here since they might be listed not in dependency order. Especially on python <3.6 where the dicts do not preserve ordering
+        task_factory = component_store._load_component_from_ref(task_spec.component_ref)
+        # TODO: Handle the case when optional graph component input is passed to optional task component input
+        task_arguments = {input_name: resolve_argument(argument) for input_name, argument in task_spec.arguments.items()}
+        task_component_spec = task_factory.component_spec
+
+        input_name_to_pythonic = generate_unique_name_conversion_table([input.name for input in task_component_spec.inputs or []], _sanitize_python_function_name)
+        output_name_to_pythonic = generate_unique_name_conversion_table([output.name for output in task_component_spec.outputs or []], _sanitize_python_function_name)
+        pythonic_output_name_to_original = {pythonic_name: original_name for original_name, pythonic_name in output_name_to_pythonic.items()}
+        pythonic_task_arguments = {input_name_to_pythonic[input_name]: argument for input_name, argument in task_arguments.items()}
+
+        task_obj = task_factory(**pythonic_task_arguments)
+        task_outputs_with_pythonic_names = task_obj.outputs
+        task_outputs_with_original_names = {pythonic_output_name_to_original[pythonic_output_name]: output_value for pythonic_output_name, output_value in task_outputs_with_pythonic_names.items()}
+        outputs_of_tasks[task_id] = task_outputs_with_original_names
+
+    resolved_graph_outputs = OrderedDict([(output_name, resolve_argument(argument)) for output_name, argument in graph.output_values.items()])
+
+    # For resolved graph component tasks task.outputs point to the actual tasks that originally produced the output that is later returned from the graph
+    graph_task.output_references = graph_task.outputs
+    graph_task.outputs = resolved_graph_outputs
+    
+    return graph_task

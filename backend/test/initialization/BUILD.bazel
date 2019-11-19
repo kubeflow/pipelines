@@ -1,0 +1,22 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_test(
+    name = "go_default_test",
+    srcs = ["initialization_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//backend/api/go_http_client/experiment_client/experiment_service:go_default_library",
+        "//backend/src/common/client/api_server:go_default_library",
+        "//backend/test:go_default_library",
+        "@com_github_golang_glog//:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+        "@com_github_stretchr_testify//suite:go_default_library",
+    ],
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = ["flags.go"],
+    importpath = "github.com/kubeflow/pipelines/backend/test/initialization",
+    visibility = ["//visibility:public"],
+)

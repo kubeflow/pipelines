@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ type APIJob struct {
 	// Optional input field. Describing the purpose of the job
 	Description string `json:"description,omitempty"`
 
-	// enabled
+	// Input. Whether the job is enabled or not.
 	Enabled bool `json:"enabled,omitempty"`
 
 	// In case any error happens retrieving a job field, only job ID

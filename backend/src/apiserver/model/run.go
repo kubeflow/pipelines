@@ -20,9 +20,10 @@ type Run struct {
 	Name               string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
 	StorageState       string `gorm:"column:StorageState; not null;"`
 	Namespace          string `gorm:"column:Namespace; not null;"`
-	Description        string `gorm:"column:Description; not null"`
-	CreatedAtInSec     int64  `gorm:"column:CreatedAtInSec; not null"`
-	ScheduledAtInSec   int64  `gorm:"column:ScheduledAtInSec;"`
+	Description        string `gorm:"column:Description; not null;"`
+	CreatedAtInSec     int64  `gorm:"column:CreatedAtInSec; not null;"`
+	ScheduledAtInSec   int64  `gorm:"column:ScheduledAtInSec; default:0;"`
+	FinishedAtInSec    int64  `gorm:"column:FinishedAtInSec; default:0;"`
 	Conditions         string `gorm:"column:Conditions; not null"`
 	Metrics            []*RunMetric
 	ResourceReferences []*ResourceReference
@@ -68,14 +69,22 @@ func (r *Run) DefaultSortField() string {
 }
 
 var runAPIToModelFieldMap = map[string]string{
-	"id":           "UUID",
-	"name":         "DisplayName",
-	"created_at":   "CreatedAtInSec",
-	"description":  "Description",
-	"scheduled_at": "ScheduledAtInSec",
+	"id":            "UUID",
+	"name":          "DisplayName",
+	"created_at":    "CreatedAtInSec",
+	"description":   "Description",
+	"scheduled_at":  "ScheduledAtInSec",
+	"storage_state": "StorageState",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Run.
 func (r *Run) APIToModelFieldMap() map[string]string {
 	return runAPIToModelFieldMap
+}
+
+// GetModelName returns table name used as sort field prefix
+func (r *Run) GetModelName() string {
+	// TODO(jingzhang36): return run_details here, and use model name as alias
+	// and thus as prefix in sorting fields.
+	return ""
 }

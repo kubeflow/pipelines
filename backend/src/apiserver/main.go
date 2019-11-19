@@ -18,22 +18,26 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"github.com/fsnotify/fsnotify"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"fmt"
+	"os"
+
 	"github.com/golang/glog"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
-	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"os"
 )
 
 var (
@@ -47,20 +51,18 @@ type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.Serv
 
 func main() {
 	flag.Parse()
-	glog.Infof("starting API server")
 
 	initConfig()
 	clientManager := newClientManager()
 	resourceManager := resource.NewResourceManager(&clientManager)
+	err := loadSamples(resourceManager)
+	if err != nil {
+		glog.Fatalf("Failed to load samples. Err: %v", err)
+	}
 
-	// If sample config path is not empty, this is a one time job to load samples to the system
-	// Load samples and terminate.
-	if *sampleConfigPath != "" {
-		err := loadSamples(resourceManager)
-		if err != nil {
-			glog.Fatalf("Failed to load samples. Err: %v", err.Error())
-		}
-		return
+	_, err = resourceManager.CreateDefaultExperiment()
+	if err != nil {
+		glog.Fatalf("Failed to create default experiment. Err: %v", err)
 	}
 
 	go startRpcServer(resourceManager)
@@ -81,6 +83,13 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager))
 	api.RegisterJobServiceServer(s, server.NewJobServer(resourceManager))
 	api.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
+	api.RegisterVisualizationServiceServer(
+		s,
+		server.NewVisualizationServer(
+			resourceManager,
+			common.GetStringConfig(visualizationServiceHost),
+			common.GetStringConfig(visualizationServicePort),
+		))
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -104,6 +113,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	registerHttpHandlerFromEndpoint(api.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, mux)
+	registerHttpHandlerFromEndpoint(api.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization", ctx, mux)
 
 	// Create a top level mux to include both pipeline upload server and gRPC servers.
 	topMux := http.NewServeMux()
@@ -114,7 +124,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	pipelineUploadServer := server.NewPipelineUploadServer(resourceManager)
 	topMux.HandleFunc("/apis/v1beta1/pipelines/upload", pipelineUploadServer.UploadPipeline)
 	topMux.HandleFunc("/apis/v1beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, `{"commit_sha":"`+getStringConfig("COMMIT_SHA")+`"}`)
+		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfig("COMMIT_SHA")+`"}`)
 	})
 
 	topMux.Handle("/apis/", mux)
@@ -133,10 +143,22 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 }
 
 // Preload a bunch of pipeline samples
+// Samples are only loaded once when the pipeline system is initially installed.
+// They won't be loaded when upgrade or pod restart, to prevent them reappear if user explicitly
+// delete the samples.
 func loadSamples(resourceManager *resource.ResourceManager) error {
+	// Check if sample has being loaded already and skip loading if true.
+	haveSamplesLoaded, err := resourceManager.HaveSamplesLoaded()
+	if err != nil {
+		return err
+	}
+	if haveSamplesLoaded {
+		glog.Infof("Samples already loaded in the past. Skip loading.")
+		return nil
+	}
 	configBytes, err := ioutil.ReadFile(*sampleConfigPath)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to read sample configurations file. Err: %v", err.Error()))
+		return fmt.Errorf("Failed to read sample configurations file. Err: %v", err)
 	}
 	type config struct {
 		Name        string
@@ -144,23 +166,23 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		File        string
 	}
 	var configs []config
-	if err := json.Unmarshal(configBytes, &configs); err != nil {
-		return errors.New(fmt.Sprintf("Failed to read sample configurations. Err: %v", err.Error()))
+	if err = json.Unmarshal(configBytes, &configs); err != nil {
+		return fmt.Errorf("Failed to read sample configurations. Err: %v", err)
 	}
 	for _, config := range configs {
-		reader, err := os.Open(config.File)
-		if err != nil {
-			return errors.New(fmt.Sprintf("Failed to load sample %s. Error: %v", config.Name, err.Error()))
+		reader, configErr := os.Open(config.File)
+		if configErr != nil {
+			return fmt.Errorf("Failed to load sample %s. Error: %v", config.Name, configErr)
 		}
-		pipelineFile, err := server.ReadPipelineFile(config.File, reader, server.MaxFileLength)
-		if err != nil {
-			return errors.New(fmt.Sprintf("Failed to decompress the file %s. Error: %v", config.Name, err.Error()))
+		pipelineFile, configErr := server.ReadPipelineFile(config.File, reader, server.MaxFileLength)
+		if configErr != nil {
+			return fmt.Errorf("Failed to decompress the file %s. Error: %v", config.Name, configErr)
 		}
-		_, err = resourceManager.CreatePipeline(config.Name, config.Description, pipelineFile)
-		if err != nil {
+		_, configErr = resourceManager.CreatePipeline(config.Name, config.Description, pipelineFile)
+		if configErr != nil {
 			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
 			// In the future, we might consider loading samples during deployment, instead of when API server starts.
-			glog.Warningf(fmt.Sprintf("Failed to create pipeline for %s. Error: %v", config.Name, err.Error()))
+			glog.Warningf(fmt.Sprintf("Failed to create pipeline for %s. Error: %v", config.Name, configErr))
 			continue
 		}
 
@@ -168,6 +190,33 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		// Sleep one second makes sure the samples are showing up in the same order as they are added.
 		time.Sleep(1 * time.Second)
 	}
+	// Mark sample as loaded
+	err = resourceManager.MarkSampleLoaded()
+	if err != nil {
+		return err
+	}
 	glog.Info("All samples are loaded.")
 	return nil
+}
+
+func initConfig() {
+	// Import environment variable, support nested vars e.g. OBJECTSTORECONFIG_ACCESSKEY
+	replacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(replacer)
+	viper.AutomaticEnv()
+
+	// Set configuration file name. The format is auto detected in this case.
+	viper.SetConfigName("config")
+	viper.AddConfigPath(*configPath)
+	err := viper.ReadInConfig()
+	if err != nil {
+		glog.Fatalf("Fatal error config file: %s", err)
+	}
+
+	// Watch for configuration change
+	viper.WatchConfig()
+	viper.OnConfigChange(func(e fsnotify.Event) {
+		// Read in config again
+		viper.ReadInConfig()
+	})
 }

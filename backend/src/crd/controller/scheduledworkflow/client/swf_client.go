@@ -17,7 +17,7 @@ package client
 import (
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
-	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow/v1alpha1"
+	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow/v1beta1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/cache"
 )
@@ -25,12 +25,12 @@ import (
 // ScheduledWorkflowClient is a client to call the ScheduledWorkflow API.
 type ScheduledWorkflowClient struct {
 	clientSet swfclientset.Interface
-	informer  v1alpha1.ScheduledWorkflowInformer
+	informer  v1beta1.ScheduledWorkflowInformer
 }
 
 // NewScheduledWorkflowClient creates an instance of the client.
 func NewScheduledWorkflowClient(clientSet swfclientset.Interface,
-	informer v1alpha1.ScheduledWorkflowInformer) *ScheduledWorkflowClient {
+	informer v1beta1.ScheduledWorkflowInformer) *ScheduledWorkflowClient {
 	return &ScheduledWorkflowClient{
 		clientSet: clientSet,
 		informer:  informer,
@@ -60,7 +60,7 @@ func (p *ScheduledWorkflowClient) Get(namespace string, name string) (*util.Sche
 // Update Updates a ScheduledWorkflow in the Kubernetes API server.
 func (p *ScheduledWorkflowClient) Update(namespace string,
 	schedule *util.ScheduledWorkflow) error {
-	_, err := p.clientSet.ScheduledworkflowV1alpha1().ScheduledWorkflows(namespace).
+	_, err := p.clientSet.ScheduledworkflowV1beta1().ScheduledWorkflows(namespace).
 		Update(schedule.Get())
 	return err
 }

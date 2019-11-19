@@ -15,23 +15,29 @@
  */
 
 import * as React from 'react';
-import TextField, { TextFieldProps } from '@material-ui/core/TextField';
+import TextField, { OutlinedTextFieldProps } from '@material-ui/core/TextField';
 import { commonCss } from '../Css';
 
-interface InputProps extends TextFieldProps {
+interface InputProps extends OutlinedTextFieldProps {
   height?: number | string;
+  maxWidth?: number | string;
   width?: number;
 }
 
 export default (props: InputProps) => {
-  const { height, width, ...rest } = props;
+  const { height, maxWidth, variant, width, ...rest } = props;
   return (
-    <TextField variant='outlined' className={commonCss.textField} spellCheck={false}
-        style={{
-          height: !!props.multiline ? 'auto' : (height || 40),
-          maxWidth: 600,
-          width: width || '100%' }}
-        {...rest}>
+    <TextField
+      variant={variant}
+      className={commonCss.textField}
+      spellCheck={false}
+      style={{
+        height: !!props.multiline ? 'auto' : height || 40,
+        maxWidth: maxWidth || 600,
+        width: width || '100%',
+      }}
+      {...rest}
+    >
       {props.children}
     </TextField>
   );

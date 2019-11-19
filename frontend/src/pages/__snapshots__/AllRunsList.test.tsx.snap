@@ -1,213 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`AllRunsList disables clone button and enables compare button when multiple runs are selected 1`] = `
-<div
-  className="page"
->
-  <RunList
-    history={
-      Object {
-        "push": [MockFunction],
-      }
-    }
-    location=""
-    match=""
-    onError={[Function]}
-    onSelectionChange={[Function]}
-    selectedIds={Array []}
-    toolbarProps={Object {}}
-    updateBanner={[MockFunction]}
-    updateDialog={[MockFunction]}
-    updateSnackbar={[MockFunction]}
-    updateToolbar={
-      [MockFunction] {
-        "calls": Array [
-          Array [
-            Object {
-              "actions": Array [
-                Object {
-                  "action": [Function],
-                  "icon": [Function],
-                  "id": "newExperimentBtn",
-                  "outlined": true,
-                  "title": "Create experiment",
-                  "tooltip": "Create a new experiment",
-                },
-                Object {
-                  "action": [Function],
-                  "disabled": false,
-                  "disabledTitle": "Select multiple runs to compare",
-                  "id": "compareBtn",
-                  "title": "Compare runs",
-                  "tooltip": "Compare up to 10 selected runs",
-                },
-                Object {
-                  "action": [Function],
-                  "disabled": true,
-                  "disabledTitle": "Select a run to clone",
-                  "id": "cloneBtn",
-                  "title": "Clone run",
-                  "tooltip": "Create a copy from this runs initial state",
-                },
-                Object {
-                  "action": [Function],
-                  "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list of runs",
-                },
-              ],
-              "breadcrumbs": Array [],
-            },
-          ],
-          Array [
-            Object {
-              "actions": Array [
-                Object {
-                  "action": [Function],
-                  "icon": [Function],
-                  "id": "newExperimentBtn",
-                  "outlined": true,
-                  "title": "Create experiment",
-                  "tooltip": "Create a new experiment",
-                },
-                Object {
-                  "action": [Function],
-                  "disabled": true,
-                  "disabledTitle": "Select multiple runs to compare",
-                  "id": "compareBtn",
-                  "title": "Compare runs",
-                  "tooltip": "Compare up to 10 selected runs",
-                },
-                Object {
-                  "action": [Function],
-                  "disabled": true,
-                  "disabledTitle": "Select a run to clone",
-                  "id": "cloneBtn",
-                  "title": "Clone run",
-                  "tooltip": "Create a copy from this runs initial state",
-                },
-                Object {
-                  "action": [Function],
-                  "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list of runs",
-                },
-              ],
-              "breadcrumbs": Array [],
-              "pageTitle": "Experiments",
-            },
-          ],
-        ],
-      }
-    }
-  />
-</div>
-`;
-
-exports[`AllRunsList enables clone button when one run is selected 1`] = `
-<div
-  className="page"
->
-  <RunList
-    history={
-      Object {
-        "push": [MockFunction],
-      }
-    }
-    location=""
-    match=""
-    onError={[Function]}
-    onSelectionChange={[Function]}
-    selectedIds={Array []}
-    toolbarProps={Object {}}
-    updateBanner={[MockFunction]}
-    updateDialog={[MockFunction]}
-    updateSnackbar={[MockFunction]}
-    updateToolbar={
-      [MockFunction] {
-        "calls": Array [
-          Array [
-            Object {
-              "actions": Array [
-                Object {
-                  "action": [Function],
-                  "icon": [Function],
-                  "id": "newExperimentBtn",
-                  "outlined": true,
-                  "title": "Create experiment",
-                  "tooltip": "Create a new experiment",
-                },
-                Object {
-                  "action": [Function],
-                  "disabled": true,
-                  "disabledTitle": "Select multiple runs to compare",
-                  "id": "compareBtn",
-                  "title": "Compare runs",
-                  "tooltip": "Compare up to 10 selected runs",
-                },
-                Object {
-                  "action": [Function],
-                  "disabled": false,
-                  "disabledTitle": "Select a run to clone",
-                  "id": "cloneBtn",
-                  "title": "Clone run",
-                  "tooltip": "Create a copy from this runs initial state",
-                },
-                Object {
-                  "action": [Function],
-                  "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list of runs",
-                },
-              ],
-              "breadcrumbs": Array [],
-            },
-          ],
-          Array [
-            Object {
-              "actions": Array [
-                Object {
-                  "action": [Function],
-                  "icon": [Function],
-                  "id": "newExperimentBtn",
-                  "outlined": true,
-                  "title": "Create experiment",
-                  "tooltip": "Create a new experiment",
-                },
-                Object {
-                  "action": [Function],
-                  "disabled": true,
-                  "disabledTitle": "Select multiple runs to compare",
-                  "id": "compareBtn",
-                  "title": "Compare runs",
-                  "tooltip": "Compare up to 10 selected runs",
-                },
-                Object {
-                  "action": [Function],
-                  "disabled": true,
-                  "disabledTitle": "Select a run to clone",
-                  "id": "cloneBtn",
-                  "title": "Clone run",
-                  "tooltip": "Create a copy from this runs initial state",
-                },
-                Object {
-                  "action": [Function],
-                  "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list of runs",
-                },
-              ],
-              "breadcrumbs": Array [],
-              "pageTitle": "Experiments",
-            },
-          ],
-        ],
-      }
-    }
-  />
-</div>
-`;
-
 exports[`AllRunsList renders all runs 1`] = `
 <div
   className="page"
@@ -223,45 +15,83 @@ exports[`AllRunsList renders all runs 1`] = `
     onError={[Function]}
     onSelectionChange={[Function]}
     selectedIds={Array []}
+    storageState="STORAGESTATE_AVAILABLE"
     toolbarProps={
       Object {
-        "actions": Array [
-          Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "newExperimentBtn",
-            "outlined": true,
-            "title": "Create experiment",
-            "tooltip": "Create a new experiment",
-          },
-          Object {
+        "actions": Object {
+          "archive": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
-            "id": "compareBtn",
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
+            "disabledTitle": "Select at least one resource to archive",
+            "id": "archiveBtn",
+            "title": "Archive",
+            "tooltip": "Archive",
           },
-          Object {
+          "cloneRun": Object {
             "action": [Function],
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
+            "style": Object {
+              "minWidth": 100,
+            },
             "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
-          Object {
+          "compare": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select multiple runs to compare",
+            "id": "compareBtn",
+            "style": Object {
+              "minWidth": 125,
+            },
+            "title": "Compare runs",
+            "tooltip": "Compare up to 10 selected runs",
+          },
+          "newExperiment": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "newExperimentBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 185,
+            },
+            "title": "Create experiment",
+            "tooltip": "Create a new experiment",
+          },
+          "newRun": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "createNewRunBtn",
+            "outlined": true,
+            "primary": true,
+            "style": Object {
+              "minWidth": 130,
+            },
+            "title": "Create run",
+            "tooltip": "Create a new run",
+          },
+          "refresh": Object {
             "action": [Function],
             "id": "refreshBtn",
             "title": "Refresh",
-            "tooltip": "Refresh the list of runs",
+            "tooltip": "Refresh the list",
           },
-        ],
+        },
         "breadcrumbs": Array [],
         "pageTitle": "Experiments",
       }
     }
-    updateBanner={[MockFunction]}
+    updateBanner={
+      [MockFunction] {
+        "calls": Array [
+          Array [
+            Object {},
+          ],
+        ],
+      }
+    }
     updateDialog={[MockFunction]}
     updateSnackbar={[MockFunction]}
     updateToolbar={[MockFunction]}

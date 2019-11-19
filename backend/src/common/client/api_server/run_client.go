@@ -18,9 +18,10 @@ import (
 type RunInterface interface {
 	Archive(params *params.ArchiveRunParams) error
 	Get(params *params.GetRunParams) (*model.APIRunDetail, *workflowapi.Workflow, error)
-	List(params *params.ListRunsParams) ([]*model.APIRun, string, error)
+	List(params *params.ListRunsParams) ([]*model.APIRun, int, string, error)
 	ListAll(params *params.ListRunsParams, maxResultSize int) ([]*model.APIRun, error)
 	Unarchive(params *params.UnarchiveRunParams) error
+	Terminate(params *params.TerminateRunParams) error
 }
 
 type RunClient struct {
@@ -184,7 +185,7 @@ func (c *RunClient) Delete(parameters *params.DeleteRunParams) error {
 }
 
 func (c *RunClient) List(parameters *params.ListRunsParams) (
-	[]*model.APIRun, string, error) {
+	[]*model.APIRun, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
@@ -200,12 +201,12 @@ func (c *RunClient) List(parameters *params.ListRunsParams) (
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
-		return nil, "", util.NewUserError(err,
+		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list runs. Params: '%+v'", parameters),
 			fmt.Sprintf("Failed to list runs"))
 	}
 
-	return response.Payload.Runs, response.Payload.NextPageToken, nil
+	return response.Payload.Runs, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
 }
 
 func (c *RunClient) ListAll(parameters *params.ListRunsParams, maxResultSize int) (
@@ -223,7 +224,7 @@ func listAllForRun(client RunInterface, parameters *params.ListRunsParams, maxRe
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {
-		results, pageToken, err := client.List(parameters)
+		results, _, pageToken, err := client.List(parameters)
 		if err != nil {
 			return nil, err
 		}
@@ -236,4 +237,19 @@ func listAllForRun(client RunInterface, parameters *params.ListRunsParams, maxRe
 	}
 
 	return allResults, nil
+}
+
+func (c *RunClient) Terminate(parameters *params.TerminateRunParams) error {
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.RunService.TerminateRun(parameters, PassThroughAuth)
+	if err != nil {
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to terminate run. Params: %+v", parameters),
+			fmt.Sprintf("Failed to terminate run %v", parameters.RunID))
+	}
+	return nil
 }

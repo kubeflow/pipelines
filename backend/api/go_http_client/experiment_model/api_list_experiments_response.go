@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,11 +32,14 @@ import (
 // swagger:model apiListExperimentsResponse
 type APIListExperimentsResponse struct {
 
-	// experiments
+	// A list of experiments returned.
 	Experiments []*APIExperiment `json:"experiments"`
 
-	// next page token
+	// The token to list the next page of experiments.
 	NextPageToken string `json:"next_page_token,omitempty"`
+
+	// The total number of experiments for the given query.
+	TotalSize int32 `json:"total_size,omitempty"`
 }
 
 // Validate validates this api list experiments response

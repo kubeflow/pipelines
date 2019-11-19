@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,6 +42,12 @@ const (
 
 	// APIResourceTypeJOB captures enum value "JOB"
 	APIResourceTypeJOB APIResourceType = "JOB"
+
+	// APIResourceTypePIPELINE captures enum value "PIPELINE"
+	APIResourceTypePIPELINE APIResourceType = "PIPELINE"
+
+	// APIResourceTypePIPELINEVERSION captures enum value "PIPELINE_VERSION"
+	APIResourceTypePIPELINEVERSION APIResourceType = "PIPELINE_VERSION"
 )
 
 // for schema
@@ -49,7 +55,7 @@ var apiResourceTypeEnum []interface{}
 
 func init() {
 	var res []APIResourceType
-	if err := json.Unmarshal([]byte(`["UNKNOWN_RESOURCE_TYPE","EXPERIMENT","JOB"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["UNKNOWN_RESOURCE_TYPE","EXPERIMENT","JOB","PIPELINE","PIPELINE_VERSION"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

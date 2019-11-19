@@ -14,6 +14,18 @@ exports[`ViewerContainer renders a viewer of type CONFUSION_MATRIX 1`] = `
 />
 `;
 
+exports[`ViewerContainer renders a viewer of type MARKDOWN 1`] = `
+<MarkdownViewer
+  configs={
+    Array [
+      Object {
+        "type": "markdown",
+      },
+    ]
+  }
+/>
+`;
+
 exports[`ViewerContainer renders a viewer of type ROC 1`] = `
 <ROCCurve
   configs={
@@ -44,6 +56,18 @@ exports[`ViewerContainer renders a viewer of type TENSORBOARD 1`] = `
     Array [
       Object {
         "type": "tensorboard",
+      },
+    ]
+  }
+/>
+`;
+
+exports[`ViewerContainer renders a viewer of type VISUALIZATION_CREATOR 1`] = `
+<VisualizationCreator
+  configs={
+    Array [
+      Object {
+        "type": "visualization-creator",
       },
     ]
   }

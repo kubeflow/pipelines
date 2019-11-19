@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/kubeflow/pipelines.svg?branch=master)](https://travis-ci.org/kubeflow/pipelines)
 [![Coverage Status](https://coveralls.io/repos/github/kubeflow/pipelines/badge.svg?branch=master)](https://coveralls.io/github/kubeflow/pipelines?branch=master)
+SDK: [![Documentation Status](https://readthedocs.org/projects/kubeflow-pipelines/badge/?version=latest)](https://kubeflow-pipelines.readthedocs.io/en/latest/?badge=latest)
 
 ## Overview of the Kubeflow pipelines service
 
@@ -15,7 +16,23 @@ The Kubeflow pipelines service has the following goals:
 
 ## Documentation
 
-Get started with your first pipeline and read further information in the [Kubeflow Pipelines documentation](https://www.kubeflow.org/docs/guides/pipelines/pipelines-overview/).
+Get started with your first pipeline and read further information in the [Kubeflow Pipelines overview](https://www.kubeflow.org/docs/pipelines/overview/pipelines-overview/).
+
+See the various ways you can [use the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/sdk/sdk-overview/).
+
+See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/pipelines/reference/api/kubeflow-pipeline-api-spec/) for API specification.
+
+Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/latest/) when writing pipelines using the Python SDK.
+
+## Kubeflow Pipelines Community Meeting
+
+The meeting is happening every other Wed 10-11AM (PST) 
+[Calendar Invite](https://calendar.google.com/event?action=TEMPLATE&tmeid=NTdoNG5uMDBtcnJlYmdlOWt1c2lkY25jdmlfMjAxOTExMTNUMTgwMDAwWiBqZXNzaWV6aHVAZ29vZ2xlLmNvbQ&tmsrc=jessiezhu%40google.com&scp=ALL) or [Join Meeting Directly](https://meet.google.com/phd-ixfj-kcr/)
+
+[Meeting notes](http://bit.ly/kfp-meeting-notes)
+
+## Kubeflow Pipelines Slack Channel
+[#kubeflow-pipelines](https://kubeflow.slack.com)
 
 ## Blog posts
 

@@ -1,0 +1,39 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ovms-{{ SERVER_NAME }}
+  labels:
+    app: ovms-{{ SERVER_NAME }}
+spec:
+  selector:
+    matchLabels:
+       app: ovms-{{ SERVER_NAME }}
+  replicas: {{ REPLICAS }}
+  template:
+    metadata:
+      labels:
+        app: ovms-{{ SERVER_NAME }}
+    spec:
+      containers:
+      - name: ovms-{{ SERVER_NAME }}
+        image: intelaipg/openvino-model-server:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: LOG_LEVEL
+          value: "{{ LOG_LEVEL }}"
+        command: ["/ie-serving-py/start_server.sh"]
+        args: ["ie_serving", "model", "--model_path", "{{ MODEL_EXPORT_PATH }}", "--model_name", "{{ SERVER_NAME }}", "--port", "80", "--batch_size", "{{ BATCH_SIZE }}"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ovms-{{ SERVER_NAME }}
+spec:
+  selector:
+    app: ovms-{{ SERVER_NAME }}
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

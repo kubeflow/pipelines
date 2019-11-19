@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,18 +27,18 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// APIPeriodicSchedule api periodic schedule
+// APIPeriodicSchedule PeriodicSchedule allow scheduling the job periodically with certain interval
 // swagger:model apiPeriodicSchedule
 type APIPeriodicSchedule struct {
 
-	// end time
+	// The end time of the periodic job
 	// Format: date-time
 	EndTime strfmt.DateTime `json:"end_time,omitempty"`
 
-	// interval second
+	// The time interval between the starting time of consecutive jobs
 	IntervalSecond int64 `json:"interval_second,omitempty,string"`
 
-	// start time
+	// The start time of the periodic job
 	// Format: date-time
 	StartTime strfmt.DateTime `json:"start_time,omitempty"`
 }

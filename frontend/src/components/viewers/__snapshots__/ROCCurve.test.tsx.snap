@@ -10,9 +10,9 @@ exports[`ROCCurve does not break on empty data 1`] = `
         "root": "root",
       }
     }
-    height={390}
+    height={520}
     onMouseLeave={[Function]}
-    width={600}
+    width={800}
     xDomain={null}
   >
     <VerticalGridLines
@@ -519,9 +519,9 @@ exports[`ROCCurve does not break on no config 1`] = `
         "root": "root",
       }
     }
-    height={390}
+    height={520}
     onMouseLeave={[Function]}
-    width={600}
+    width={800}
     xDomain={null}
   >
     <VerticalGridLines
@@ -1003,9 +1003,9 @@ exports[`ROCCurve renders a simple ROC curve given one config 1`] = `
         "root": "root",
       }
     }
-    height={390}
+    height={520}
     onMouseLeave={[Function]}
-    width={600}
+    width={800}
     xDomain={null}
   >
     <VerticalGridLines
@@ -1540,9 +1540,9 @@ exports[`ROCCurve renders an ROC curve using three configs 1`] = `
         "root": "root",
       }
     }
-    height={390}
+    height={520}
     onMouseLeave={[Function]}
-    width={600}
+    width={800}
     xDomain={null}
   >
     <VerticalGridLines

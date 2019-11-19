@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	addressTemp = "%s.%s.svc.cluster.local:%s"
+	addressTemp = "%s:%s"
 )
 
 type PipelineClientInterface interface {
@@ -48,15 +48,14 @@ type PipelineClient struct {
 }
 
 func NewPipelineClient(
-		namespace string,
-		initializeTimeout time.Duration,
-		timeout time.Duration,
-		basePath string,
-		mlPipelineServiceName string,
-		mlPipelineServiceHttpPort string,
-		mlPipelineServiceGRPCPort string) (*PipelineClient, error) {
-	httpAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, namespace, mlPipelineServiceHttpPort)
-	grpcAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, namespace, mlPipelineServiceGRPCPort)
+	initializeTimeout time.Duration,
+	timeout time.Duration,
+	basePath string,
+	mlPipelineServiceName string,
+	mlPipelineServiceHttpPort string,
+	mlPipelineServiceGRPCPort string) (*PipelineClient, error) {
+	httpAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, mlPipelineServiceHttpPort)
+	grpcAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, mlPipelineServiceGRPCPort)
 	err := util.WaitForAPIAvailable(initializeTimeout, basePath, httpAddress)
 	if err != nil {
 		return nil, errors.Wrapf(err,

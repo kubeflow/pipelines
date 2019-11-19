@@ -3,18 +3,23 @@
 This component takes the following parameters:
 * path to the model in Intermediate Representation format ( xml and bin files)
 * numpy file with the input dataset. Input shape should fit to the used model definition.
+* classification labels which can be used to calculate model accuracy
+* input data can be scaled using parameters scale_div and scale_sub 
 * path to the folder where the inference results in numpy format should be uploaded
 
 In the component logs are included inference performance details.
 
-It is a generic component which can be used to process arbitrary data and any OpenVINO model.
-It can be also considered as an example how to create more customized version.
+This component is tuned for classification models but can be considered as exemplary for arbitrary OpenVINO models.
+
+There are generated 2 metrics including inference latency and accuracy
 
 ```bash
-python3 predict.py --help
-usage: predict.py [-h] [--model_bin MODEL_BIN] [--model_xml MODEL_XML]
-                  [--input_numpy_file INPUT_NUMPY_FILE]
-                  [--output_folder OUTPUT_FOLDER]
+predict.py --help
+usage: predict.py [-h] --model_bin MODEL_BIN --model_xml MODEL_XML
+                  --input_numpy_file INPUT_NUMPY_FILE --label_numpy_file
+                  LABEL_NUMPY_FILE --output_folder OUTPUT_FOLDER
+                  [--batch_size BATCH_SIZE] [--scale_div SCALE_DIV]
+                  [--scale_sub SCALE_SUB]
 
 Component executing inference operation
 
@@ -26,8 +31,16 @@ optional arguments:
                         GCS or local path to model graph (.xml)
   --input_numpy_file INPUT_NUMPY_FILE
                         GCS or local path to input dataset numpy file
+  --label_numpy_file LABEL_NUMPY_FILE
+                        GCS or local path to numpy file with labels
   --output_folder OUTPUT_FOLDER
                         GCS or local path to results upload folder
+  --batch_size BATCH_SIZE
+                        batch size to be used for inference
+  --scale_div SCALE_DIV
+                        scale the np input by division of by the value
+  --scale_sub SCALE_SUB
+                        scale the np input by substraction of the value
 ```
 
 

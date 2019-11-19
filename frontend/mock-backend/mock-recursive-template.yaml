@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: entry-point-test-
+spec:
+  arguments:
+    parameters: []
+  entrypoint: entry-point-test
+  templates:
+  - dag:
+      tasks:
+      - name: recurse-1
+        template: recurse-1
+      - name: leaf-1
+        template: leaf-1
+    name: start
+  - dag:
+      tasks:
+      - name: start
+        template: start
+      - name: recurse-2
+        template: recurse-2
+    name: recurse-1
+  - dag:
+      tasks:
+      - name: start
+        template: start
+      - name: leaf-2
+        template: leaf-2
+      - name: recurse-3
+        template: recurse-3
+    name: recurse-2
+  - dag:
+      tasks:
+      - name: start
+        template: start
+      - name: recurse-1
+        template: recurse-1
+      - name: recurse-2
+        template: recurse-2
+    name: recurse-3
+  - dag:
+      tasks:
+      - name: start
+        template: start
+    name: entry-point-test
+  - container:
+    name: leaf-1
+  - container:
+    name: leaf-2
+  
+  

@@ -14,21 +14,65 @@
  * limitations under the License.
  */
 
+import * as Utils from '../lib/Utils';
+import { statusToIcon } from './Status';
+import { NodePhase } from '../lib/StatusUtils';
 import { shallow } from 'enzyme';
-import { statusToIcon, NodePhase } from './Status';
 
 describe('Status', () => {
-  it('handles an unknown phase', () => {
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
-    const tree = shallow(statusToIcon('bad phase' as any));
-    expect(tree).toMatchSnapshot();
-    expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
+  // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
+  // test enviroments
+  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
+
+  const startDate = new Date('Wed Jan 2 2019 9:10:11 GMT-0800');
+  const endDate = new Date('Thu Jan 3 2019 10:11:12 GMT-0800');
+
+  beforeEach(() => {
+    formatDateStringSpy.mockImplementation((date: Date) => {
+      return date === startDate ? '1/2/2019, 9:10:11 AM' : '1/3/2019, 10:11:12 AM';
+    });
   });
 
-  Object.keys(NodePhase).map(status => (
-    it('renders an icon with tooltip for phase: ' + status, () => {
-      const tree = shallow(statusToIcon(NodePhase[status]));
+  describe('statusToIcon', () => {
+    it('handles an unknown phase', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
+      const tree = shallow(statusToIcon('bad phase' as any));
       expect(tree).toMatchSnapshot();
-    })
-  ));
+      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
+    });
+
+    it('handles an undefined phase', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
+      const tree = shallow(statusToIcon(/* no phase */));
+      expect(tree).toMatchSnapshot();
+      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
+    });
+
+    it('displays start and end dates if both are provided', () => {
+      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, startDate, endDate));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('does not display a end date if none was provided', () => {
+      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, startDate));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('does not display a start date if none was provided', () => {
+      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, undefined, endDate));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('does not display any dates if neither was provided', () => {
+      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED /* No dates */));
+      expect(tree).toMatchSnapshot();
+    });
+
+    Object.keys(NodePhase).map(status =>
+      it('renders an icon with tooltip for phase: ' + status, () => {
+        const tree = shallow(statusToIcon(NodePhase[status]));
+        expect(tree).toMatchSnapshot();
+      }),
+    );
+  });
 });

@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/kubeflow/pipelines/backend/src/crd/controller/viewer",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//backend/src/crd/controller/viewer/reconciler:go_default_library",
+        "//backend/src/crd/pkg/apis/viewer/v1beta1:go_default_library",
+        "//backend/src/crd/pkg/signals:go_default_library",
+        "@com_github_golang_glog//:go_default_library",
+        "@io_k8s_api//apps/v1:go_default_library",
+        "@io_k8s_api//core/v1:go_default_library",
+        "@io_k8s_client_go//kubernetes/scheme:go_default_library",
+        "@io_k8s_client_go//plugin/pkg/client/auth/gcp:go_default_library",
+        "@io_k8s_client_go//tools/clientcmd:go_default_library",
+        "@io_k8s_sigs_controller_runtime//pkg/builder:go_default_library",
+        "@io_k8s_sigs_controller_runtime//pkg/client:go_default_library",
+        "@io_k8s_sigs_controller_runtime//pkg/manager:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "viewer",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

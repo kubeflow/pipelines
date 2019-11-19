@@ -30,7 +30,7 @@ export default {
     },
     ownerReferences: [
       {
-        apiVersion: 'kubeflow.org/v1alpha1',
+        apiVersion: 'kubeflow.org/v1beta1',
         kind: 'ScheduledWorkflow',
         name: 'job-xgboosttrainingm7t2r',
         uid: '2d3b0ed1-cdef-11e8-8c17-42010a8a0078',

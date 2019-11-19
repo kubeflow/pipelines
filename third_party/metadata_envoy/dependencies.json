@@ -1,0 +1,145 @@
+{
+  "libraries": [
+    {
+      "library": "envoy-proxy",
+      "license_url": "https://raw.githubusercontent.com/envoyproxy/envoy/master/LICENSE"
+    },
+    {
+      "library": "protoc-gen-validate",
+      "license_url": "https://raw.githubusercontent.com/envoyproxy/protoc-gen-validate/master/LICENSE"
+    },
+    {
+      "library": "apache-thrift",
+      "license_url": "https://raw.githubusercontent.com/apache/thrift/master/LICENSE"
+
+    },
+    {
+      "library": "c-ares",
+      "license_url": "https://raw.githubusercontent.com/c-ares/c-ares/master/LICENSE.md"
+    },
+    {
+      "library": "libcircllhist",
+      "license_url": "https://raw.githubusercontent.com/circonus-labs/libcircllhist/master/LICENSE"
+    },
+    {
+      "library": "cncf-udpa",
+      "license_url": "https://raw.githubusercontent.com/cncf/udpa/master/LICENSE"
+    },
+    {
+      "library": "curl",
+      "license_url": "https://raw.githubusercontent.com/curl/curl/master/COPYING"
+    },
+    {
+      "library": "cyan4973-xxHash",
+      "license_url": "https://raw.githubusercontent.com/Cyan4973/xxHash/dev/LICENSE"
+    },
+    {
+      "library": "dd-opentracing-cpp",
+      "license_url": "https://raw.githubusercontent.com/DataDog/dd-opentracing-cpp/master/LICENSE"
+    },
+    {
+      "library": "eile-tclap",
+      "license_url": "https://raw.githubusercontent.com/eile/tclap/master/COPYING"
+    },
+    {
+      "library": "envoyproxy-sql-parser",
+      "license_url": "https://raw.githubusercontent.com/envoyproxy/sql-parser/master/LICENSE"
+    },
+    {
+      "library": "fmtlib-fmt",
+      "license_url": "https://raw.githubusercontent.com/fmtlib/fmt/master/LICENSE.rst"
+    },
+    {
+      "library": "spdlog",
+      "license_url": "https://raw.githubusercontent.com/gabime/spdlog/v1.x/LICENSE"
+    },
+    {
+      "library": "gperftools",
+      "license_url": "https://raw.githubusercontent.com/gperftools/gperftools/master/COPYING"
+    },
+    {
+      "library": "grpc",
+      "license_url": "https://raw.githubusercontent.com/grpc/grpc/master/LICENSE"
+    },
+    {
+      "library": "yaml-cpp",
+      "license_url": "https://raw.githubusercontent.com/jbeder/yaml-cpp/master/LICENSE"
+    },
+    {
+      "library": "libevent",
+      "license_url": "https://raw.githubusercontent.com/libevent/libevent/master/LICENSE"
+    },
+    {
+      "library": "lua-jit",
+      "license_url": "https://raw.githubusercontent.com/LuaJIT/LuaJIT/v2.1/COPYRIGHT"
+    },
+    {
+      "library": "msgpack-c",
+      "license_url": "https://raw.githubusercontent.com/msgpack/msgpack-c/master/LICENSE_1_0.txt"
+    },
+    {
+      "library": "nanopb",
+      "license_url": "https://raw.githubusercontent.com/nanopb/nanopb/master/LICENSE.txt"
+    },
+    {
+      "library": "nghttp2",
+      "license_url": "https://raw.githubusercontent.com/nghttp2/nghttp2/master/COPYING"
+    },
+    {
+      "library": "nodejs-http-parser",
+      "license_url": "https://raw.githubusercontent.com/nodejs/http-parser/master/LICENSE-MIT"
+    },
+    {
+      "library": "zipkin-api",
+      "license_url": "https://raw.githubusercontent.com/openzipkin/zipkin-api/master/LICENSE"
+    },
+    {
+      "library": "jinja",
+      "license_url": "https://raw.githubusercontent.com/pallets/jinja/master/LICENSE.rst"
+    },
+    {
+      "library": "markupsafe",
+      "license_url": "https://raw.githubusercontent.com/pallets/markupsafe/master/LICENSE.rst"
+    },
+    {
+      "library": "rapidjson",
+      "license_url": "https://raw.githubusercontent.com/Tencent/rapidjson/master/license.txt"
+    },
+    {
+      "library": "twitter-commons",
+      "license_url": "https://raw.githubusercontent.com/twitter/commons/master/LICENSE"
+    },
+    {
+      "library": "lightstep-tracer-cpp",
+      "license_url": "https://raw.githubusercontent.com/lightstep/lightstep-tracer-cpp/master/LICENSE"
+    },
+    {
+      "library": "grpc-httpjson-transcoding",
+      "license_url": "https://raw.githubusercontent.com/grpc-ecosystem/grpc-httpjson-transcoding/master/LICENSE"
+    },
+    {
+      "library": "opencensus-cpp",
+      "license_url": "https://raw.githubusercontent.com/census-instrumentation/opencensus-cpp/master/LICENSE"
+    },
+    {
+      "library": "opentracing-cpp",
+      "license_url": "https://raw.githubusercontent.com/opentracing/opentracing-cpp/master/LICENSE"
+    },
+    {
+      "library": "kafka",
+      "license_url": "https://raw.githubusercontent.com/apache/kafka/trunk/LICENSE"
+    },
+    {
+      "library": "zlib",
+      "license_url": "https://raw.githubusercontent.com/madler/zlib/master/README"
+    },
+    {
+      "library": "opencensus-proto",
+      "license_url": "https://raw.githubusercontent.com/census-instrumentation/opencensus-proto/master/LICENSE"
+    },
+    {
+      "library": "rometheus-client-model",
+      "license_url": "https://raw.githubusercontent.com/prometheus/client_model/master/LICENSE"
+    }
+  ]
+}

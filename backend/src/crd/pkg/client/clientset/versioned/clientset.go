@@ -16,7 +16,7 @@
 package versioned
 
 import (
-	scheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
+	scheduledworkflowv1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -24,27 +24,27 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	ScheduledworkflowV1alpha1() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface
+	ScheduledworkflowV1beta1() scheduledworkflowv1beta1.ScheduledworkflowV1beta1Interface
 	// Deprecated: please explicitly pick a version if possible.
-	Scheduledworkflow() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface
+	Scheduledworkflow() scheduledworkflowv1beta1.ScheduledworkflowV1beta1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	scheduledworkflowV1alpha1 *scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Client
+	scheduledworkflowV1beta1 *scheduledworkflowv1beta1.ScheduledworkflowV1beta1Client
 }
 
-// ScheduledworkflowV1alpha1 retrieves the ScheduledworkflowV1alpha1Client
-func (c *Clientset) ScheduledworkflowV1alpha1() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface {
-	return c.scheduledworkflowV1alpha1
+// ScheduledworkflowV1beta1 retrieves the ScheduledworkflowV1beta1Client
+func (c *Clientset) ScheduledworkflowV1beta1() scheduledworkflowv1beta1.ScheduledworkflowV1beta1Interface {
+	return c.scheduledworkflowV1beta1
 }
 
 // Deprecated: Scheduledworkflow retrieves the default version of ScheduledworkflowClient.
 // Please explicitly pick a version.
-func (c *Clientset) Scheduledworkflow() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface {
-	return c.scheduledworkflowV1alpha1
+func (c *Clientset) Scheduledworkflow() scheduledworkflowv1beta1.ScheduledworkflowV1beta1Interface {
+	return c.scheduledworkflowV1beta1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -63,7 +63,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.scheduledworkflowV1alpha1, err = scheduledworkflowv1alpha1.NewForConfig(&configShallowCopy)
+	cs.scheduledworkflowV1beta1, err = scheduledworkflowv1beta1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.scheduledworkflowV1alpha1 = scheduledworkflowv1alpha1.NewForConfigOrDie(c)
+	cs.scheduledworkflowV1beta1 = scheduledworkflowv1beta1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -88,7 +88,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.scheduledworkflowV1alpha1 = scheduledworkflowv1alpha1.New(c)
+	cs.scheduledworkflowV1beta1 = scheduledworkflowv1beta1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metadata-configmap
+  labels:
+    component: metadata-server
+data:
+  mysql_database: "metadb"
+  mysql_host: "mysql"
+  mysql_port: "3306"

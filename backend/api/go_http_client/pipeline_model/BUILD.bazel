@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "api_get_template_response.go",
+        "api_list_pipeline_versions_response.go",
+        "api_list_pipelines_response.go",
+        "api_parameter.go",
+        "api_pipeline.go",
+        "api_pipeline_version.go",
+        "api_relationship.go",
+        "api_resource_key.go",
+        "api_resource_reference.go",
+        "api_resource_type.go",
+        "api_status.go",
+        "api_url.go",
+        "protobuf_any.go",
+    ],
+    importpath = "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_go_openapi_errors//:go_default_library",
+        "@com_github_go_openapi_strfmt//:go_default_library",
+        "@com_github_go_openapi_swag//:go_default_library",
+        "@com_github_go_openapi_validate//:go_default_library",
+    ],
+)

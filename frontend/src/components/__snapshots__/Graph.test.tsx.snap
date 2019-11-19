@@ -8,6 +8,8 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
     className="node graphNode"
     key="0"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -15,23 +17,42 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
     key="1"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -39,18 +60,35 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
         "maxHeight": 10,
         "minHeight": 10,
         "top": 65,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
     >
-      node2
-    </div>
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     key="0"
@@ -60,37 +98,58 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
       key="0"
       style={
         Object {
-          "left": -7.75,
-          "top": 22.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -15.87487218800544,
+          "top": 65,
+          "transform": "rotate(-166.75948008481282deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 122.74974437601087,
         }
       }
     />
     <div
-      className="line lastEdgeLine"
+      className="line"
       key="1"
       style={
         Object {
-          "left": -7.75,
-          "top": 47.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -14.292526819072776,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 119.58505363814554,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="2"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -19,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": -4.5,
+        }
+      }
+    />
+    <div
+      className="arrowHead"
+      style={
+        Object {
+          "borderTopColor": "#5f6368",
+          "left": -20,
+          "top": 67,
+          "transform": "rotate(360deg)",
         }
       }
     />
   </div>
-  <div
-    className="startCircle"
-    key="0"
-    style={
-      Object {
-        "left": "calc(5px - 5px)",
-        "top": "calc(10px - 3px)",
-        "transform": "translate(100px, 44px)",
-      }
-    }
-  />
 </div>
 `;
 
@@ -104,6 +163,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
     className="node graphNode"
     key="0"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -111,23 +172,42 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="flipcoin1"
     >
-      flipcoin1
-    </div>
+      <div
+        className="label"
+      >
+        flipcoin1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
     key="1"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -135,23 +215,42 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 65,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="tails1"
     >
-      tails1
-    </div>
+      <div
+        className="label"
+      >
+        tails1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
     key="2"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -159,23 +258,42 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 65,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="heads1"
     >
-      heads1
-    </div>
+      <div
+        className="label"
+      >
+        heads1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
     key="3"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -183,23 +301,42 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 125,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="flipcoin2"
     >
-      flipcoin2
-    </div>
+      <div
+        className="label"
+      >
+        flipcoin2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
     key="4"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -207,23 +344,42 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 185,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="heads2"
     >
-      heads2
-    </div>
+      <div
+        className="label"
+      >
+        heads2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
     key="5"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -231,18 +387,598 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 185,
+        "transition": "left 0.5s, top 0.5s",
+        "width": 10,
+      }
+    }
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="tails2"
+    >
+      <div
+        className="label"
+      >
+        tails2
+      </div>
+    </WithStyles(Tooltip)>
+    <div
+      className="icon"
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    key="0"
+  >
+    <div
+      className="line"
+      key="0"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 53.599705252806814,
+          "top": 65,
+          "transform": "rotate(-162.53607310815718deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 93.80058949438637,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="1"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 25.707473180927224,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 119.58505363814554,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="2"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 21,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": -4.5,
+        }
+      }
+    />
+    <div
+      className="arrowHead"
+      style={
+        Object {
+          "borderTopColor": "#5f6368",
+          "left": 20,
+          "top": 67,
+          "transform": "rotate(360deg)",
+        }
+      }
+    />
+  </div>
+  <div
+    key="1"
+  >
+    <div
+      className="line"
+      key="0"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 54.44597636009023,
+          "top": 65,
+          "transform": "rotate(-169.35712925529643deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 152.10804727981954,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="1"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 85.70747318092722,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 119.58505363814554,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="2"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 81,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": -4.5,
+        }
+      }
+    />
+    <div
+      className="arrowHead"
+      style={
+        Object {
+          "borderTopColor": "#5f6368",
+          "left": 80,
+          "top": 67,
+          "transform": "rotate(360deg)",
+        }
+      }
+    />
+  </div>
+  <div
+    key="2"
+  >
+    <div
+      className="line"
+      key="0"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 24.12512781199456,
+          "top": 125,
+          "transform": "rotate(-166.75948008481282deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 122.74974437601087,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="1"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 25.707473180927224,
+          "top": 136.75,
+          "transform": "rotate(2.165615252902859deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 119.58505363814554,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="2"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 21,
+          "top": 138.5,
+          "transform": "rotate(270deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": -4.5,
+        }
+      }
+    />
+    <div
+      className="arrowHead"
+      style={
+        Object {
+          "borderTopColor": "#5f6368",
+          "left": 20,
+          "top": 127,
+          "transform": "rotate(360deg)",
+        }
+      }
+    />
+  </div>
+  <div
+    key="3"
+  >
+    <div
+      className="line"
+      key="0"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 23.342363464399483,
+          "top": 125,
+          "transform": "rotate(-160.48412699041728deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 84.31527307120105,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="1"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 89.75,
+          "top": 154,
+          "transform": "rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 30.5,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="2"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 89.75,
+          "top": 184,
+          "transform": "rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 30.5,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="3"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -14.292526819072776,
+          "top": 196.75,
+          "transform": "rotate(2.165615252902859deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 119.58505363814554,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="4"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -19,
+          "top": 198.5,
+          "transform": "rotate(270deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": -4.5,
+        }
+      }
+    />
+    <div
+      className="arrowHead"
+      style={
+        Object {
+          "borderTopColor": "#5f6368",
+          "left": -20,
+          "top": 187,
+          "transform": "rotate(360deg)",
+        }
+      }
+    />
+  </div>
+  <div
+    key="4"
+  >
+    <div
+      className="line"
+      key="0"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 24.52670720293925,
+          "top": 125,
+          "transform": "rotate(-170.01257842498643deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 161.9465855941215,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="1"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 169.75,
+          "top": 154,
+          "transform": "rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 30.5,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="2"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 169.75,
+          "top": 184,
+          "transform": "rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 30.5,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="3"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 65.70747318092722,
+          "top": 196.75,
+          "transform": "rotate(2.165615252902859deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 119.58505363814554,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="4"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 61,
+          "top": 198.5,
+          "transform": "rotate(270deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": -4.5,
+        }
+      }
+    />
+    <div
+      className="arrowHead"
+      style={
+        Object {
+          "borderTopColor": "#5f6368",
+          "left": 60,
+          "top": 187,
+          "transform": "rotate(360deg)",
+        }
+      }
+    />
+  </div>
+  <div
+    key="5"
+  >
+    <div
+      className="line"
+      key="0"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 24.12512781199456,
+          "top": 185,
+          "transform": "rotate(-166.75948008481282deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 122.74974437601087,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="1"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -14.281833249334824,
+          "top": 196.75,
+          "transform": "rotate(1.6211459136534117deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 159.56366649866965,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="2"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -19,
+          "top": 198.5,
+          "transform": "rotate(270deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": -4.5,
+        }
+      }
+    />
+    <div
+      className="arrowHead"
+      style={
+        Object {
+          "borderTopColor": "#5f6368",
+          "left": -20,
+          "top": 187,
+          "transform": "rotate(360deg)",
+        }
+      }
+    />
+  </div>
+  <div
+    key="6"
+  >
+    <div
+      className="line"
+      key="0"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 24.661645340032806,
+          "top": 185,
+          "transform": "rotate(-171.10957674263614deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 181.6767093199344,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="1"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 65.71358867470941,
+          "top": 196.75,
+          "transform": "rotate(1.8542517148477853deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 139.57282265058117,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="2"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": 61,
+          "top": 198.5,
+          "transform": "rotate(270deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": -4.5,
+        }
+      }
+    />
+    <div
+      className="arrowHead"
+      style={
+        Object {
+          "borderTopColor": "#5f6368",
+          "left": 60,
+          "top": 187,
+          "transform": "rotate(360deg)",
+        }
+      }
+    />
+  </div>
+</div>
+`;
+
+exports[`Graph renders a graph with a placeholder node and edge 1`] = `
+<div
+  className="root"
+>
+  <div
+    className="node graphNode"
+    key="0"
+    onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
+    style={
+      Object {
+        "backgroundColor": undefined,
+        "left": 5,
+        "maxHeight": 10,
+        "minHeight": 10,
+        "top": 5,
+        "transition": "left 0.5s, top 0.5s",
+        "width": 10,
+      }
+    }
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
+    >
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
+    <div
+      className="icon"
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    className="placeholderNode graphNode"
+    key="1"
+    onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
+    style={
+      Object {
+        "backgroundColor": undefined,
+        "left": 5,
+        "maxHeight": 10,
+        "minHeight": 10,
+        "top": 65,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
     <div
-      className="label"
-    >
-      tails2
-    </div>
-    <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     key="0"
@@ -252,319 +988,32 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
-          "left": 39.57233047033631,
-          "top": 22.5,
-          "transform": "translate(100px, 44px) rotate(-45deg)",
-          "width": 35.85533905932738,
+          "backgroundColor": "#9aa0a6",
+          "height": 2,
+          "left": -15.87487218800544,
+          "top": 65,
+          "transform": "rotate(-166.75948008481282deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 122.74974437601087,
         }
       }
     />
-    <div
-      className="line lastEdgeLine"
-      key="1"
-      style={
-        Object {
-          "left": 32.25,
-          "top": 47.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
-        }
-      }
-    />
-  </div>
-  <div
-    key="1"
-  >
     <div
       className="line"
-      key="0"
-      style={
-        Object {
-          "left": 74.57233047033631,
-          "top": 22.5,
-          "transform": "translate(100px, 44px) rotate(-135deg)",
-          "width": 35.85533905932738,
-        }
-      }
-    />
-    <div
-      className="line lastEdgeLine"
       key="1"
       style={
         Object {
+          "backgroundColor": "#9aa0a6",
+          "height": 2,
           "left": 92.25,
-          "top": 47.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
+          "top": 91.5,
+          "transform": "rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
     />
   </div>
-  <div
-    key="2"
-  >
-    <div
-      className="line"
-      key="0"
-      style={
-        Object {
-          "left": 32.25,
-          "top": 82.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
-        }
-      }
-    />
-    <div
-      className="line lastEdgeLine"
-      key="1"
-      style={
-        Object {
-          "left": 32.25,
-          "top": 107.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
-        }
-      }
-    />
-  </div>
-  <div
-    key="3"
-  >
-    <div
-      className="line"
-      key="0"
-      style={
-        Object {
-          "left": 0.375,
-          "top": 81.875,
-          "transform": "translate(100px, 44px) rotate(-36.86989764584402deg)",
-          "width": 44.25,
-        }
-      }
-    />
-    <div
-      className="line"
-      key="1"
-      style={
-        Object {
-          "left": -10.25,
-          "top": 110,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 30.5,
-        }
-      }
-    />
-    <div
-      className="line"
-      key="2"
-      style={
-        Object {
-          "left": -10.25,
-          "top": 140,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 30.5,
-        }
-      }
-    />
-    <div
-      className="line lastEdgeLine"
-      key="3"
-      style={
-        Object {
-          "left": -7.75,
-          "top": 167.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
-        }
-      }
-    />
-  </div>
-  <div
-    key="4"
-  >
-    <div
-      className="line"
-      key="0"
-      style={
-        Object {
-          "left": 45.375,
-          "top": 81.875,
-          "transform": "translate(100px, 44px) rotate(-143.13010235415598deg)",
-          "width": 44.25,
-        }
-      }
-    />
-    <div
-      className="line"
-      key="1"
-      style={
-        Object {
-          "left": 69.75,
-          "top": 110,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 30.5,
-        }
-      }
-    />
-    <div
-      className="line"
-      key="2"
-      style={
-        Object {
-          "left": 69.75,
-          "top": 140,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 30.5,
-        }
-      }
-    />
-    <div
-      className="line lastEdgeLine"
-      key="3"
-      style={
-        Object {
-          "left": 72.25,
-          "top": 167.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
-        }
-      }
-    />
-  </div>
-  <div
-    key="5"
-  >
-    <div
-      className="line"
-      key="0"
-      style={
-        Object {
-          "left": 32.25,
-          "top": 142.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
-        }
-      }
-    />
-    <div
-      className="line lastEdgeLine"
-      key="1"
-      style={
-        Object {
-          "left": 5.375,
-          "top": 168.125,
-          "transform": "translate(100px, 44px) rotate(-36.86989764584402deg)",
-          "width": 44.25,
-        }
-      }
-    />
-  </div>
-  <div
-    key="6"
-  >
-    <div
-      className="line"
-      key="0"
-      style={
-        Object {
-          "left": 46.50406530937789,
-          "top": 141.25,
-          "transform": "translate(100px, 44px) rotate(-153.43494882292202deg)",
-          "width": 61.991869381244214,
-        }
-      }
-    />
-    <div
-      className="line lastEdgeLine"
-      key="1"
-      style={
-        Object {
-          "left": 81.39353635223337,
-          "top": 167.5,
-          "transform": "translate(100px, 44px) rotate(-56.30993247402021deg)",
-          "width": 30.54626062886658,
-        }
-      }
-    />
-  </div>
-  <div
-    className="startCircle"
-    key="0"
-    style={
-      Object {
-        "left": "calc(70px - 5px)",
-        "top": "calc(10px - 3px)",
-        "transform": "translate(100px, 44px)",
-      }
-    }
-  />
-  <div
-    className="startCircle"
-    key="1"
-    style={
-      Object {
-        "left": "calc(80px - 5px)",
-        "top": "calc(10px - 3px)",
-        "transform": "translate(100px, 44px)",
-      }
-    }
-  />
-  <div
-    className="startCircle"
-    key="2"
-    style={
-      Object {
-        "left": "calc(45px - 5px)",
-        "top": "calc(70px - 3px)",
-        "transform": "translate(100px, 44px)",
-      }
-    }
-  />
-  <div
-    className="startCircle"
-    key="3"
-    style={
-      Object {
-        "left": "calc(40px - 5px)",
-        "top": "calc(68.75px - 3px)",
-        "transform": "translate(100px, 44px)",
-      }
-    }
-  />
-  <div
-    className="startCircle"
-    key="4"
-    style={
-      Object {
-        "left": "calc(50px - 5px)",
-        "top": "calc(68.75px - 3px)",
-        "transform": "translate(100px, 44px)",
-      }
-    }
-  />
-  <div
-    className="startCircle"
-    key="5"
-    style={
-      Object {
-        "left": "calc(45px - 5px)",
-        "top": "calc(130px - 3px)",
-        "transform": "translate(100px, 44px)",
-      }
-    }
-  />
-  <div
-    className="startCircle"
-    key="6"
-    style={
-      Object {
-        "left": "calc(50px - 5px)",
-        "top": "calc(127.5px - 3px)",
-        "transform": "translate(100px, 44px)",
-      }
-    }
-  />
 </div>
 `;
 
@@ -576,6 +1025,8 @@ exports[`Graph renders a graph with a selected node 1`] = `
     className="node graphNode nodeSelected"
     key="0"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -583,23 +1034,42 @@ exports[`Graph renders a graph with a selected node 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
     key="1"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -607,18 +1077,35 @@ exports[`Graph renders a graph with a selected node 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 65,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
     >
-      node2
-    </div>
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     key="0"
@@ -628,37 +1115,304 @@ exports[`Graph renders a graph with a selected node 1`] = `
       key="0"
       style={
         Object {
-          "left": -7.75,
-          "top": 22.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
+          "backgroundColor": "#1a73e8",
+          "height": 2,
+          "left": -15.87487218800544,
+          "top": 65,
+          "transform": "rotate(-166.75948008481282deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 122.74974437601087,
         }
       }
     />
     <div
-      className="line lastEdgeLine"
+      className="line"
       key="1"
       style={
         Object {
-          "left": -7.75,
-          "top": 47.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
+          "backgroundColor": "#1a73e8",
+          "height": 2,
+          "left": -14.292526819072776,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 119.58505363814554,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="2"
+      style={
+        Object {
+          "backgroundColor": "#1a73e8",
+          "height": 2,
+          "left": -19,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": -4.5,
+        }
+      }
+    />
+    <div
+      className="arrowHead"
+      style={
+        Object {
+          "borderTopColor": "#1a73e8",
+          "left": -20,
+          "top": 67,
+          "transform": "rotate(360deg)",
         }
       }
     />
   </div>
+</div>
+`;
+
+exports[`Graph renders a graph with colored edges 1`] = `
+<div
+  className="root"
+>
   <div
-    className="startCircle"
+    className="node graphNode"
     key="0"
+    onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
-        "left": "calc(5px - 5px)",
-        "top": "calc(10px - 3px)",
-        "transform": "translate(100px, 44px)",
+        "backgroundColor": undefined,
+        "left": 5,
+        "maxHeight": 10,
+        "minHeight": 10,
+        "top": 5,
+        "transition": "left 0.5s, top 0.5s",
+        "width": 10,
       }
     }
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
+    >
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
+    <div
+      className="icon"
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    className="node graphNode"
+    key="1"
+    onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
+    style={
+      Object {
+        "backgroundColor": undefined,
+        "left": 5,
+        "maxHeight": 10,
+        "minHeight": 10,
+        "top": 65,
+        "transition": "left 0.5s, top 0.5s",
+        "width": 10,
+      }
+    }
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
+    >
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
+    <div
+      className="icon"
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    key="0"
+  >
+    <div
+      className="line"
+      key="0"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -15.87487218800544,
+          "top": 65,
+          "transform": "rotate(-166.75948008481282deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 122.74974437601087,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="1"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -14.292526819072776,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 119.58505363814554,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="2"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -19,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": -4.5,
+        }
+      }
+    />
+    <div
+      className="arrowHead"
+      style={
+        Object {
+          "borderTopColor": "#5f6368",
+          "left": -20,
+          "top": 67,
+          "transform": "rotate(360deg)",
+        }
+      }
+    />
+  </div>
+</div>
+`;
+
+exports[`Graph renders a graph with colored nodes 1`] = `
+<div
+  className="root"
+>
+  <div
+    className="node graphNode"
+    key="0"
+    onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
+    style={
+      Object {
+        "backgroundColor": "red",
+        "left": 5,
+        "maxHeight": 10,
+        "minHeight": 10,
+        "top": 5,
+        "transition": "left 0.5s, top 0.5s",
+        "width": 10,
+      }
+    }
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
+    >
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
+    <div
+      className="icon"
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    className="node graphNode"
+    key="1"
+    onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
+    style={
+      Object {
+        "backgroundColor": "green",
+        "left": 65,
+        "maxHeight": 10,
+        "minHeight": 10,
+        "top": 5,
+        "transition": "left 0.5s, top 0.5s",
+        "width": 10,
+      }
+    }
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
+    >
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
+    <div
+      className="icon"
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
 </div>
 `;
 
@@ -670,6 +1424,8 @@ exports[`Graph renders a graph with one node 1`] = `
     className="node graphNode"
     key="0"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -677,18 +1433,35 @@ exports[`Graph renders a graph with one node 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
 </div>
 `;
@@ -701,6 +1474,8 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
     className="node graphNode"
     key="0"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -708,23 +1483,42 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
     key="1"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -732,18 +1526,35 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 65,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
     >
-      node2
-    </div>
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     key="0"
@@ -753,37 +1564,58 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
       key="0"
       style={
         Object {
-          "left": -7.75,
-          "top": 22.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -15.87487218800544,
+          "top": 65,
+          "transform": "rotate(-166.75948008481282deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 122.74974437601087,
         }
       }
     />
     <div
-      className="line lastEdgeLine"
+      className="line"
       key="1"
       style={
         Object {
-          "left": -7.75,
-          "top": 47.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -14.292526819072776,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 119.58505363814554,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="2"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -19,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": -4.5,
+        }
+      }
+    />
+    <div
+      className="arrowHead"
+      style={
+        Object {
+          "borderTopColor": "#5f6368",
+          "left": -20,
+          "top": 67,
+          "transform": "rotate(360deg)",
         }
       }
     />
   </div>
-  <div
-    className="startCircle"
-    key="0"
-    style={
-      Object {
-        "left": "calc(5px - 5px)",
-        "top": "calc(10px - 3px)",
-        "transform": "translate(100px, 44px)",
-      }
-    }
-  />
 </div>
 `;
 
@@ -795,6 +1627,8 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
     className="node graphNode"
     key="0"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -802,23 +1636,42 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 65,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
     key="1"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -826,18 +1679,35 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
     >
-      node2
-    </div>
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     key="0"
@@ -847,37 +1717,58 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
       key="0"
       style={
         Object {
-          "left": -7.75,
-          "top": 22.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -15.87487218800544,
+          "top": 65,
+          "transform": "rotate(-166.75948008481282deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 122.74974437601087,
         }
       }
     />
     <div
-      className="line lastEdgeLine"
+      className="line"
       key="1"
       style={
         Object {
-          "left": -7.75,
-          "top": 47.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
-          "width": 25.5,
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -14.292526819072776,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 119.58505363814554,
+        }
+      }
+    />
+    <div
+      className="line"
+      key="2"
+      style={
+        Object {
+          "backgroundColor": "#5f6368",
+          "height": 2,
+          "left": -19,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": -4.5,
+        }
+      }
+    />
+    <div
+      className="arrowHead"
+      style={
+        Object {
+          "borderTopColor": "#5f6368",
+          "left": -20,
+          "top": 67,
+          "transform": "rotate(360deg)",
         }
       }
     />
   </div>
-  <div
-    className="startCircle"
-    key="0"
-    style={
-      Object {
-        "left": "calc(5px - 5px)",
-        "top": "calc(10px - 3px)",
-        "transform": "translate(100px, 44px)",
-      }
-    }
-  />
 </div>
 `;
 
@@ -889,6 +1780,8 @@ exports[`Graph renders a graph with two disparate nodes 1`] = `
     className="node graphNode"
     key="0"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -896,23 +1789,42 @@ exports[`Graph renders a graph with two disparate nodes 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
     key="1"
     onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
     style={
       Object {
         "backgroundColor": undefined,
@@ -920,18 +1832,35 @@ exports[`Graph renders a graph with two disparate nodes 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
     >
-      node2
-    </div>
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
-    />
+      style={
+        Object {
+          "background": undefined,
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
 </div>
 `;

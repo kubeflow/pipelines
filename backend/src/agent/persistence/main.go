@@ -16,7 +16,6 @@ package main
 
 import (
 	"flag"
-	"os"
 	"time"
 
 	workflowclientSet "github.com/argoproj/argo/pkg/client/clientset/versioned"
@@ -32,28 +31,30 @@ import (
 )
 
 var (
-	masterURL                   string
-	kubeconfig                  string
-	namespace                   string
-	initializeTimeout           time.Duration
-	timeout                     time.Duration
-	mlPipelineAPIServerName     string
-	mlPipelineAPIServerPort     string
-	mlPipelineAPIServerBasePath string
-	mlPipelineServiceHttpPort   string
-	mlPipelineServiceGRPCPort   string
+	masterURL                     string
+	kubeconfig                    string
+	initializeTimeout             time.Duration
+	timeout                       time.Duration
+	mlPipelineAPIServerName       string
+	mlPipelineAPIServerPort       string
+	mlPipelineAPIServerBasePath   string
+	mlPipelineServiceHttpPort     string
+	mlPipelineServiceGRPCPort     string
+	namespace                     string
+	ttlSecondsAfterWorkflowFinish int64
 )
 
 const (
-	kubeconfigFlagName                  = "kubeconfig"
-	masterFlagName                      = "master"
-	namespaceFlagName                   = "namespace"
-	initializationTimeoutFlagName       = "initializeTimeout"
-	timeoutFlagName                     = "timeout"
-	mlPipelineAPIServerBasePathFlagName = "mlPipelineAPIServerBasePath"
-	mlPipelineAPIServerNameFlagName     = "mlPipelineAPIServerName"
-	mlPipelineAPIServerHttpPortFlagName = "mlPipelineServiceHttpPort"
-	mlPipelineAPIServerGRPCPortFlagName = "mlPipelineServiceGRPCPort"
+	kubeconfigFlagName                    = "kubeconfig"
+	masterFlagName                        = "master"
+	initializationTimeoutFlagName         = "initializeTimeout"
+	timeoutFlagName                       = "timeout"
+	mlPipelineAPIServerBasePathFlagName   = "mlPipelineAPIServerBasePath"
+	mlPipelineAPIServerNameFlagName       = "mlPipelineAPIServerName"
+	mlPipelineAPIServerHttpPortFlagName   = "mlPipelineServiceHttpPort"
+	mlPipelineAPIServerGRPCPortFlagName   = "mlPipelineServiceGRPCPort"
+	namespaceFlagName                     = "namespace"
+	ttlSecondsAfterWorkflowFinishFlagName = "ttlSecondsAfterWorkflowFinish"
 )
 
 func main() {
@@ -77,11 +78,17 @@ func main() {
 		log.Fatalf("Error building workflow clientset: %s", err.Error())
 	}
 
-	swfInformerFactory := swfinformers.NewSharedInformerFactory(swfClient, time.Second*30)
-	workflowInformerFactory := workflowinformers.NewSharedInformerFactory(workflowClient, time.Second*30)
+	var swfInformerFactory swfinformers.SharedInformerFactory
+	var workflowInformerFactory workflowinformers.SharedInformerFactory
+	if namespace == "" {
+		swfInformerFactory = swfinformers.NewSharedInformerFactory(swfClient, time.Second*30)
+		workflowInformerFactory = workflowinformers.NewSharedInformerFactory(workflowClient, time.Second*30)
+	} else {
+		swfInformerFactory = swfinformers.NewFilteredSharedInformerFactory(swfClient, time.Second*30, namespace, nil)
+		workflowInformerFactory = workflowinformers.NewFilteredSharedInformerFactory(workflowClient, time.Second*30, namespace, nil)
+	}
 
 	pipelineClient, err := client.NewPipelineClient(
-		namespace,
 		initializeTimeout,
 		timeout,
 		mlPipelineAPIServerBasePath,
@@ -109,7 +116,6 @@ func main() {
 func init() {
 	flag.StringVar(&kubeconfig, kubeconfigFlagName, "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, masterFlagName, "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
-	flag.StringVar(&namespace, namespaceFlagName, os.Getenv("POD_NAMESPACE"), "The namespace the ML pipeline API server is deployed to")
 	flag.DurationVar(&initializeTimeout, initializationTimeoutFlagName, 2*time.Minute, "Duration to wait for initialization of the ML pipeline API server.")
 	flag.DurationVar(&timeout, timeoutFlagName, 1*time.Minute, "Duration to wait for calls to complete.")
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
@@ -117,4 +123,6 @@ func init() {
 	flag.StringVar(&mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
 		"/apis/v1beta1", "The base path for the ML pipeline API server.")
+	flag.StringVar(&namespace, namespaceFlagName, "", "The namespace name used for Kubernetes informers to obtain the listers.")
+	flag.Int64Var(&ttlSecondsAfterWorkflowFinish, ttlSecondsAfterWorkflowFinishFlagName, 604800 /* 7 days */, "The TTL for Argo workflow to persist after workflow finish.")
 }

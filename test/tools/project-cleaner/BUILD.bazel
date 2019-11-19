@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/kubeflow/pipelines/test/tools/project-cleaner",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@in_gopkg_yaml_v2//:go_default_library",
+        "@org_golang_google_api//container/v1:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "project-cleaner",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

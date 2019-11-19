@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MarkdownViewer does not break on empty data 1`] = `null`;
+
+exports[`MarkdownViewer renders some basic markdown 1`] = `
+<div
+  class="markdown-viewer"
+>
+  <div>
+    <h1
+      id="title"
+    >
+      Title
+    </h1>
+    <p>
+      <a
+        href="http://example.com"
+      >
+        some link here
+      </a>
+    </p>
+  </div>
+</div>
+`;
+
+exports[`MarkdownViewer sanitizes the markdown to remove XSS 1`] = `
+<div
+  class="markdown-viewer"
+>
+  <pre>
+    <code>
+        lower[click me](javascript&#x3a;...)lower
+  upper[click me](javascript&#X3a;...)upper
+    </code>
+  </pre>
+</div>
+`;

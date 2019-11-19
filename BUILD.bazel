@@ -1,0 +1,8 @@
+load("@bazel_gazelle//:def.bzl", "gazelle")
+
+# gazelle:prefix github.com/kubeflow/pipelines
+# gazelle:resolve proto protoc-gen-swagger/options/annotations.proto @com_github_grpc_ecosystem_grpc_gateway//protoc-gen-swagger/options:options_proto
+# gazelle:resolve proto go protoc-gen-swagger/options/annotations.proto @com_github_grpc_ecosystem_grpc_gateway//protoc-gen-swagger/options:go_default_library
+# gazelle:resolve go github.com/kubeflow/pipelines/backend/api/go_client //backend/api:go_default_library
+# gazelle:exclude vendor/
+gazelle(name = "gazelle")

@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ package run_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"net/http"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
@@ -89,6 +88,12 @@ for the list runs operation typically these are written to a http.Request
 */
 type ListRunsParams struct {
 
+	/*Filter
+	  A url-encoded, JSON-serialized Filter protocol buffer (see
+	filter.proto).
+
+	*/
+	Filter *string
 	/*PageSize*/
 	PageSize *int32
 	/*PageToken*/
@@ -146,6 +151,17 @@ func (o *ListRunsParams) WithHTTPClient(client *http.Client) *ListRunsParams {
 // SetHTTPClient adds the HTTPClient to the list runs params
 func (o *ListRunsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
+}
+
+// WithFilter adds the filter to the list runs params
+func (o *ListRunsParams) WithFilter(filter *string) *ListRunsParams {
+	o.SetFilter(filter)
+	return o
+}
+
+// SetFilter adds the filter to the list runs params
+func (o *ListRunsParams) SetFilter(filter *string) {
+	o.Filter = filter
 }
 
 // WithPageSize adds the pageSize to the list runs params
@@ -210,6 +226,22 @@ func (o *ListRunsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regi
 		return err
 	}
 	var res []error
+
+	if o.Filter != nil {
+
+		// query param filter
+		var qrFilter string
+		if o.Filter != nil {
+			qrFilter = *o.Filter
+		}
+		qFilter := qrFilter
+		if qFilter != "" {
+			if err := r.SetQueryParam("filter", qFilter); err != nil {
+				return err
+			}
+		}
+
+	}
 
 	if o.PageSize != nil {
 

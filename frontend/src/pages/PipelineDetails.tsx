@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-import 'codemirror/lib/codemirror.css';
-import 'codemirror/mode/yaml/yaml.js';
 import * as JsYaml from 'js-yaml';
 import * as React from 'react';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
-import AddIcon from '@material-ui/icons/Add';
 import Button from '@material-ui/core/Button';
+import Buttons from '../lib/Buttons';
 import Graph from '../components/Graph';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import MD2Tabs from '../atoms/MD2Tabs';
@@ -33,13 +31,18 @@ import { ApiPipeline, ApiGetTemplateResponse } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { ToolbarProps, ToolbarActionConfig } from '../components/Toolbar';
+import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
-import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
-import { color, commonCss, padding, fontsize, fonts } from '../Css';
-import { logger, errorToMessage, formatDateString } from '../lib/Utils';
+import Editor from '../components/Editor';
+import { color, commonCss, padding, fontsize, fonts, zIndex } from '../Css';
+import { logger, formatDateString } from '../lib/Utils';
+import 'brace';
+import 'brace/ext/language_tools';
+import 'brace/mode/yaml';
+import 'brace/theme/github';
+import { Description } from '../components/Description';
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
@@ -67,6 +70,7 @@ export const css = stylesheet({
       },
     },
     background: '#f7f7f7',
+    height: '100%',
   },
   footer: {
     background: color.graphBg,
@@ -90,7 +94,7 @@ export const css = stylesheet({
     padding: 10,
     position: 'absolute',
     width: summaryCardWidth,
-    zIndex: 1,
+    zIndex: zIndex.PIPELINE_SUMMARY_CARD,
   },
   summaryKey: {
     color: color.strong,
@@ -99,7 +103,6 @@ export const css = stylesheet({
 });
 
 class PipelineDetails extends Page<{}, PipelineDetailsState> {
-
   constructor(props: any) {
     super(props);
 
@@ -113,49 +116,51 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
-    const actions: ToolbarActionConfig[] = [{
-      action: () => this._createNewRun(),
-      icon: AddIcon,
-      id: 'createNewRunBtn',
-      outlined: true,
-      primary: true,
-      title: 'Create run',
-      tooltip: 'Create a new run within this pipeline',
-    }];
+    const pipelineIdFromParams = this.props.match.params[RouteParams.pipelineId];
+    buttons.newRunFromPipeline(() => {
+      return this.state.pipeline
+        ? this.state.pipeline.id!
+        : pipelineIdFromParams
+        ? pipelineIdFromParams
+        : '';
+    });
 
     if (fromRunId) {
       return {
-        actions,
+        actions: buttons.getToolbarActionMap(),
         breadcrumbs: [
-          { displayName: fromRunId, href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId) }
+          {
+            displayName: fromRunId,
+            href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId),
+          },
         ],
         pageTitle: 'Pipeline details',
       };
     } else {
       // Add buttons for creating experiment and deleting pipeline
-      actions.push({
-        action: this._createNewExperiment.bind(this),
-        icon: AddIcon,
-        id: 'startNewExperimentBtn',
-        outlined: true,
-        title: 'Start an experiment',
-        tooltip: 'Create a new experiment beginning with this pipeline',
-      }, {
-        action: () => this.props.updateDialog({
-          buttons: [
-            { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-            { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-          ],
-          onClose: () => this._deleteDialogClosed(false),
-          title: 'Delete this pipeline?',
-        }),
-        id: 'deleteBtn',
-        title: 'Delete',
-        tooltip: 'Delete this pipeline',
-      });
+      buttons
+        .newExperiment(() =>
+          this.state.pipeline
+            ? this.state.pipeline.id!
+            : pipelineIdFromParams
+            ? pipelineIdFromParams
+            : '',
+        )
+        .delete(
+          () =>
+            this.state.pipeline
+              ? [this.state.pipeline.id!]
+              : pipelineIdFromParams
+              ? [pipelineIdFromParams]
+              : [],
+          'pipeline',
+          this._deleteCallback.bind(this),
+          true /* useCurrentResource */,
+        );
       return {
-        actions,
+        actions: buttons.getToolbarActionMap(),
         breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
         pageTitle: this.props.match.params[RouteParams.pipelineId],
       };
@@ -175,7 +180,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
-
         <div className={commonCss.page}>
           <MD2Tabs
             selectedTab={selectedTab}
@@ -183,68 +187,102 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             tabs={['Graph', 'Source']}
           />
           <div className={commonCss.page}>
-            {selectedTab === 0 && <div className={commonCss.page}>
-              {this.state.graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-                {!!pipeline && summaryShown && (
-                  <Paper className={css.summaryCard}>
-                    <div style={{ alignItems: 'baseline', display: 'flex', justifyContent: 'space-between' }}>
-                      <div className={commonCss.header}>
-                        Summary
+            {selectedTab === 0 && (
+              <div className={commonCss.page}>
+                {this.state.graph && (
+                  <div
+                    className={commonCss.page}
+                    style={{ position: 'relative', overflow: 'hidden' }}
+                  >
+                    {!!pipeline && summaryShown && (
+                      <Paper className={css.summaryCard}>
+                        <div
+                          style={{
+                            alignItems: 'baseline',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <div className={commonCss.header}>Summary</div>
+                          <Button
+                            onClick={() => this.setStateSafe({ summaryShown: false })}
+                            color='secondary'
+                          >
+                            Hide
+                          </Button>
                         </div>
-                      <Button onClick={() => this.setStateSafe({ summaryShown: false })} color='secondary'>
-                        Hide
-                        </Button>
-                    </div>
-                    <div className={css.summaryKey}>Uploaded on</div>
-                    <div>{formatDateString(pipeline.created_at)}</div>
-                    <div className={css.summaryKey}>Description</div>
-                    <div>{pipeline.description}</div>
-                  </Paper>
-                )}
-
-                <Graph graph={this.state.graph} selectedNodeId={selectedNodeId}
-                  onClick={id => this.setStateSafe({ selectedNodeId: id })} />
-
-                <SidePanel isOpen={!!selectedNodeId}
-                  title={selectedNodeId} onClose={() => this.setStateSafe({ selectedNodeId: '' })}>
-                  <div className={commonCss.page}>
-                    {!selectedNodeInfo && (
-                      <div className={commonCss.absoluteCenter}>Unable to retrieve node info</div>
+                        <div className={css.summaryKey}>ID</div>
+                        <div>{pipeline.id || 'Unable to obtain Pipeline ID'}</div>
+                        <div className={css.summaryKey}>Uploaded on</div>
+                        <div>{formatDateString(pipeline.created_at)}</div>
+                        <div className={css.summaryKey}>Description</div>
+                        <Description description={pipeline.description || ''} />
+                      </Paper>
                     )}
-                    {!!selectedNodeInfo && <div className={padding(20, 'lr')}>
-                      <StaticNodeDetails nodeInfo={selectedNodeInfo} />
-                    </div>}
+
+                    <Graph
+                      graph={this.state.graph}
+                      selectedNodeId={selectedNodeId}
+                      onClick={id => this.setStateSafe({ selectedNodeId: id })}
+                    />
+
+                    <SidePanel
+                      isOpen={!!selectedNodeId}
+                      title={selectedNodeId}
+                      onClose={() => this.setStateSafe({ selectedNodeId: '' })}
+                    >
+                      <div className={commonCss.page}>
+                        {!selectedNodeInfo && (
+                          <div className={commonCss.absoluteCenter}>
+                            Unable to retrieve node info
+                          </div>
+                        )}
+                        {!!selectedNodeInfo && (
+                          <div className={padding(20, 'lr')}>
+                            <StaticNodeDetails nodeInfo={selectedNodeInfo} />
+                          </div>
+                        )}
+                      </div>
+                    </SidePanel>
+                    <div className={css.footer}>
+                      {!summaryShown && (
+                        <Button
+                          onClick={() => this.setStateSafe({ summaryShown: !summaryShown })}
+                          color='secondary'
+                        >
+                          Show summary
+                        </Button>
+                      )}
+                      <div
+                        className={classes(
+                          commonCss.flex,
+                          summaryShown && !!pipeline && css.footerInfoOffset,
+                        )}
+                      >
+                        <InfoIcon className={commonCss.infoIcon} />
+                        <span className={css.infoSpan}>Static pipeline graph</span>
+                      </div>
+                    </div>
                   </div>
-                </SidePanel>
-                <div className={css.footer}>
-                  {!summaryShown && (
-                    <Button onClick={() => this.setStateSafe({ summaryShown: !summaryShown })} color='secondary'>
-                      Show summary
-                      </Button>
-                  )}
-                  <div className={classes(commonCss.flex, (summaryShown && !!pipeline) && css.footerInfoOffset)}>
-                    <InfoIcon style={{ color: color.lowContrast, height: 16, width: 16 }} />
-                    <span className={css.infoSpan}>Static pipeline graph</span>
-                  </div>
-                </div>
-              </div>}
-              {!this.state.graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
-            </div>}
-            {selectedTab === 1 && !!templateString &&
+                )}
+                {!this.state.graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
+              </div>
+            )}
+            {selectedTab === 1 && !!templateString && (
               <div className={css.containerCss}>
-                <CodeMirror
+                <Editor
                   value={templateString || ''}
-                  editorDidMount={(editor) => editor.refresh()}
-                  options={{
-                    lineNumbers: true,
-                    lineWrapping: true,
-                    mode: 'text/yaml',
-                    readOnly: true,
-                    theme: 'default',
-                  }}
+                  height='100%'
+                  width='100%'
+                  mode='yaml'
+                  theme='github'
+                  editorProps={{ $blockScrolling: true }}
+                  readOnly={true}
+                  highlightActiveLine={true}
+                  showGutter={true}
                 />
               </div>
-            }
+            )}
           </div>
         </div>
       </div>
@@ -266,8 +304,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     let pipeline: ApiPipeline | null = null;
     let templateString = '';
     let template: Workflow | undefined;
-    let breadcrumbs: Array<{ displayName: string, href: string }> = [];
-    const toolbarActions = [...this.props.toolbarProps.actions];
+    let breadcrumbs: Array<{ displayName: string; href: string }> = [];
+    const toolbarActions = this.props.toolbarProps.actions;
     let pageTitle = '';
 
     // If fromRunId is specified, load the run and get the pipeline template from it
@@ -277,20 +315,28 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
         // Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
         try {
-          const pipelineSpec = JSON.parse(RunUtils.getPipelineSpec(runDetails.run) || '{}');
+          const pipelineSpec = JSON.parse(RunUtils.getWorkflowManifest(runDetails.run) || '{}');
           try {
             templateString = JsYaml.safeDump(pipelineSpec);
           } catch (err) {
             await this.showPageError(
-              `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`, err);
+              `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
+              err,
+            );
             logger.error(
-              `Failed to convert pipeline spec YAML from run with ID: ${runDetails.run!.id}.`, err);
+              `Failed to convert pipeline spec YAML from run with ID: ${runDetails.run!.id}.`,
+              err,
+            );
           }
         } catch (err) {
           await this.showPageError(
-            `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`, err);
+            `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
+            err,
+          );
           logger.error(
-            `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`, err);
+            `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`,
+            err,
+          );
         }
 
         const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetails.run);
@@ -305,12 +351,14 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
             {
               displayName: experiment.name!,
-              href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
-            });
-        } else {
-          breadcrumbs.push(
-            { displayName: 'All runs', href: RoutePage.RUNS }
+              href: RoutePage.EXPERIMENT_DETAILS.replace(
+                ':' + RouteParams.experimentId,
+                experiment.id!,
+              ),
+            },
           );
+        } else {
+          breadcrumbs.push({ displayName: 'All runs', href: RoutePage.RUNS });
         }
         breadcrumbs.push({
           displayName: runDetails.run!.name!,
@@ -345,7 +393,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       }
 
       breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
-      toolbarActions[0].disabled = false;
     }
 
     this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
@@ -366,49 +413,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     });
   }
 
-  private _createNewRun(): void {
-    let searchString = '';
-    const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
-
-    if (fromRunId) {
-      searchString = new URLParser(this.props).build(Object.assign(
-        { [QUERY_PARAMS.fromRunId]: fromRunId }
-      ));
-    } else {
-      searchString = new URLParser(this.props).build(Object.assign(
-        { [QUERY_PARAMS.pipelineId]: this.state.pipeline!.id || '' }
-      ));
-    }
-
-    this.props.history.push(RoutePage.NEW_RUN + searchString);
-  }
-
-  private _createNewExperiment(): void {
-    const searchString = new URLParser(this.props).build({
-      [QUERY_PARAMS.pipelineId]: this.state.pipeline!.id || ''
-    });
-    this.props.history.push(RoutePage.NEW_EXPERIMENT + searchString);
-  }
-
-  private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
-    if (deleteConfirmed) {
-      try {
-        await Apis.pipelineServiceApi.deletePipeline(this.state.pipeline!.id!);
-        this.props.updateSnackbar({
-          autoHideDuration: 10000,
-          message: `Successfully deleted pipeline: ${this.state.pipeline!.name}`,
-          open: true,
-        });
-        this.props.history.push(RoutePage.PIPELINES);
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        this.props.updateDialog({
-          buttons: [{ text: 'Dismiss' }],
-          content: errorMessage,
-          title: 'Failed to delete pipeline',
-        });
-        logger.error('Deleting pipeline failed with error:', err);
-      }
+  private _deleteCallback(_: string[], success: boolean): void {
+    if (success) {
+      const breadcrumbs = this.props.toolbarProps.breadcrumbs;
+      const previousPage = breadcrumbs.length
+        ? breadcrumbs[breadcrumbs.length - 1].href
+        : RoutePage.PIPELINES;
+      this.props.history.push(previousPage);
     }
   }
 }

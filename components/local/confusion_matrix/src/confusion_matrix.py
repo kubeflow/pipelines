@@ -25,6 +25,7 @@
 import argparse
 import json
 import os
+import urlparse
 import pandas as pd
 from pathlib import Path
 from sklearn.metrics import confusion_matrix, accuracy_score
@@ -50,6 +51,11 @@ def main(argv=None):
 
   args = parser.parse_args()
 
+  storage_service_scheme = urlparse.urlparse(args.output).scheme
+  on_cloud = True if storage_service_scheme else False
+  if not on_cloud and not os.path.exists(args.output):
+    os.makedirs(args.output)
+
   schema_file = os.path.join(os.path.dirname(args.predictions), 'schema.json')
   schema = json.loads(file_io.read_file_to_string(schema_file))
   names = [x['name'] for x in schema]
@@ -58,7 +64,7 @@ def main(argv=None):
   for file in files:
     with file_io.FileIO(file, 'r') as f:
       dfs.append(pd.read_csv(f, names=names))
-    
+
   df = pd.concat(dfs)
   if args.target_lambda:
     df['target'] = df.apply(eval(args.target_lambda), axis=1)
@@ -78,7 +84,6 @@ def main(argv=None):
   metadata = {
     'outputs' : [{
       'type': 'confusion_matrix',
-      'storage': 'gcs',
       'format': 'csv',
       'schema': [
         {'name': 'target', 'type': 'CATEGORY'},

@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,6 +32,9 @@ type APIResourceReference struct {
 
 	// key
 	Key *APIResourceKey `json:"key,omitempty"`
+
+	// The name of the resource that referred to.
+	Name string `json:"name,omitempty"`
 
 	// Required field. The relationship from referred resource to the object.
 	Relationship APIRelationship `json:"relationship,omitempty"`

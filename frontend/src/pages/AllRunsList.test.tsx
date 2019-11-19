@@ -16,14 +16,16 @@
 
 import * as React from 'react';
 import AllRunsList from './AllRunsList';
-import { RoutePage } from '../components/Router';
-import { shallow, ShallowWrapper } from 'enzyme';
 import { PageProps } from './Page';
+import { RoutePage } from '../components/Router';
+import { RunStorageState } from '../apis/run';
+import { shallow, ShallowWrapper } from 'enzyme';
+import { ButtonKeys } from '../lib/Buttons';
 
 describe('AllRunsList', () => {
   const updateBannerSpy = jest.fn();
   let _toolbarProps: any = {};
-  const updateToolbarSpy = jest.fn(toolbarProps => _toolbarProps = toolbarProps);
+  const updateToolbarSpy = jest.fn(toolbarProps => (_toolbarProps = toolbarProps));
   const historyPushSpy = jest.fn();
   const props: PageProps = {
     history: { push: historyPushSpy } as any,
@@ -35,70 +37,79 @@ describe('AllRunsList', () => {
     updateSnackbar: jest.fn(),
     updateToolbar: updateToolbarSpy,
   };
+  let tree: ShallowWrapper;
 
-  // TODO: why is this called mount if it is using shallow?
-  function mountComponent(): ShallowWrapper {
-    const tree = shallow(<AllRunsList {...props} />);
+  function shallowMountComponent(): void {
+    tree = shallow(<AllRunsList {...props} />);
     // Necessary since the component calls updateToolbar with the toolbar props,
     // then expects to get them back in props
     tree.setProps({ toolbarProps: _toolbarProps });
     updateToolbarSpy.mockClear();
-    return tree;
   }
 
   beforeEach(() => {
     updateBannerSpy.mockClear();
     updateToolbarSpy.mockClear();
+    historyPushSpy.mockClear();
   });
 
+  afterEach(() => tree.unmount());
+
   it('renders all runs', () => {
-    expect(mountComponent()).toMatchSnapshot();
+    shallowMountComponent();
+    expect(tree).toMatchSnapshot();
   });
 
   it('removes error banner on unmount', () => {
-    const tree = mountComponent();
+    shallowMountComponent();
     tree.unmount();
     expect(updateBannerSpy).toHaveBeenCalledWith({});
   });
 
-  it('enables clone button when one run is selected', () => {
-    const tree = mountComponent();
-
+  it('only enables clone button when exactly one run is selected', () => {
+    shallowMountComponent();
+    const cloneBtn = _toolbarProps.actions[ButtonKeys.CLONE_RUN];
+    expect(cloneBtn.disabled).toBeTruthy();
     tree.find('RunList').simulate('selectionChange', ['run1']);
-    expect(shallow(<AllRunsList {...props} />)).toMatchSnapshot();
+    expect(cloneBtn.disabled).toBeFalsy();
+    tree.find('RunList').simulate('selectionChange', ['run1', 'run2']);
+    expect(cloneBtn.disabled).toBeTruthy();
   });
 
-  it('disables clone button and enables compare button when multiple runs are selected', () => {
-    const tree = mountComponent();
-
+  it('enables archive button when at least one run is selected', () => {
+    shallowMountComponent();
+    const archiveBtn = _toolbarProps.actions[ButtonKeys.ARCHIVE];
+    expect(archiveBtn.disabled).toBeTruthy();
+    tree.find('RunList').simulate('selectionChange', ['run1']);
+    expect(archiveBtn.disabled).toBeFalsy();
     tree.find('RunList').simulate('selectionChange', ['run1', 'run2']);
-    expect(shallow(<AllRunsList {...props} />)).toMatchSnapshot();
+    expect(archiveBtn.disabled).toBeFalsy();
   });
 
   it('refreshes the run list when refresh button is clicked', () => {
-    const tree = mountComponent();
+    shallowMountComponent();
     const spy = jest.fn();
     (tree.instance() as any)._runlistRef = { current: { refresh: spy } };
-    _toolbarProps.actions.find((a: any) => a.title === 'Refresh').action();
+    _toolbarProps.actions[ButtonKeys.REFRESH].action();
     expect(spy).toHaveBeenLastCalledWith();
   });
 
   it('navigates to new run page when clone is clicked', () => {
-    const tree = mountComponent();
+    shallowMountComponent();
     tree.find('RunList').simulate('selectionChange', ['run1']);
-    _toolbarProps.actions.find((a: any) => a.title === 'Clone run').action();
+    _toolbarProps.actions[ButtonKeys.CLONE_RUN].action();
     expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.NEW_RUN + '?cloneFromRun=run1');
   });
 
   it('navigates to compare page when compare button is clicked', () => {
-    const tree = mountComponent();
+    shallowMountComponent();
     tree.find('RunList').simulate('selectionChange', ['run1', 'run2', 'run3']);
-    _toolbarProps.actions.find((a: any) => a.title === 'Compare runs').action();
+    _toolbarProps.actions[ButtonKeys.COMPARE].action();
     expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.COMPARE + '?runlist=run1,run2,run3');
   });
 
   it('shows thrown error in error banner', () => {
-    const tree = mountComponent();
+    shallowMountComponent();
     const instance = tree.instance() as AllRunsList;
     const spy = jest.spyOn(instance, 'showPageError');
     instance.forceUpdate();
@@ -106,5 +117,10 @@ describe('AllRunsList', () => {
     const error = new Error('error object message');
     tree.find('RunList').simulate('error', errorMessage, error);
     expect(spy).toHaveBeenLastCalledWith(errorMessage, error);
+  });
+
+  it('shows a list of available runs', () => {
+    shallowMountComponent();
+    expect(tree.find('RunList').prop('storageState')).toBe(RunStorageState.AVAILABLE.toString());
   });
 });

@@ -25,10 +25,10 @@ describe('ViewerContainer', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  Object.keys(PlotType).map(type => (
+  Object.keys(PlotType).map(type =>
     it('renders a viewer of type ' + type, () => {
       const tree = shallow(<ViewerContainer configs={[{ type: PlotType[type] }]} />);
       expect(tree).toMatchSnapshot();
-    })
-  ));
+    }),
+  );
 });

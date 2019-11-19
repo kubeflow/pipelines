@@ -1,0 +1,113 @@
+name: Automl export data to gcs
+description: |
+  Exports dataset data to GCS.
+inputs:
+- name: dataset_path
+  type: String
+- name: gcs_output_uri_prefix
+  optional: true
+  type: String
+- name: timeout
+  optional: true
+  type: Float
+- default: '{}'
+  name: metadata
+  optional: true
+  type: JsonObject
+outputs:
+- name: gcs_output_uri_prefix
+  type: String
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - python3
+    - -u
+    - -c
+    - |
+      from typing import NamedTuple
+
+      def automl_export_data_to_gcs(
+          dataset_path: str,
+          gcs_output_uri_prefix: str = None,
+          #retry=None, #=google.api_core.gapic_v1.method.DEFAULT,
+          timeout: float = None, #=google.api_core.gapic_v1.method.DEFAULT,
+          metadata: dict = {},
+      ) -> NamedTuple('Outputs', [('gcs_output_uri_prefix', str)]):
+          """Exports dataset data to GCS."""
+          import sys
+          import subprocess
+          subprocess.run([sys.executable, "-m", "pip", "install", "google-cloud-automl==0.4.0", "--quiet", "--no-warn-script-location"], env={"PIP_DISABLE_PIP_VERSION_CHECK": "1"}, check=True)
+
+          import google
+          from google.cloud import automl
+          client = automl.AutoMlClient()
+
+          output_config = {"gcs_destination": {"output_uri_prefix": gcs_output_uri_prefix}}
+
+          response = client.export_data(
+              name=dataset_path,
+              output_config=output_config,
+              #retry=retry or google.api_core.gapic_v1.method.DEFAULT
+              timeout=timeout or google.api_core.gapic_v1.method.DEFAULT,
+              metadata=metadata,
+          )
+          print('Operation started:')
+          print(response.operation)
+          result = response.result()
+          metadata = response.metadata
+          print('Operation finished:')
+          print(metadata)
+          return (gcs_output_uri_prefix, )
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Automl export data to gcs', description='Exports dataset data to GCS.\n')
+      _parser.add_argument("--dataset-path", dest="dataset_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--gcs-output-uri-prefix", dest="gcs_output_uri_prefix", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--timeout", dest="timeout", type=float, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--metadata", dest="metadata", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = automl_export_data_to_gcs(**_parsed_args)
+
+      if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+          _outputs = [_outputs]
+
+      _output_serializers = [
+          str
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --dataset-path
+    - inputValue: dataset_path
+    - if:
+        cond:
+          isPresent: gcs_output_uri_prefix
+        then:
+        - --gcs-output-uri-prefix
+        - inputValue: gcs_output_uri_prefix
+    - if:
+        cond:
+          isPresent: timeout
+        then:
+        - --timeout
+        - inputValue: timeout
+    - if:
+        cond:
+          isPresent: metadata
+        then:
+        - --metadata
+        - inputValue: metadata
+    - '----output-paths'
+    - outputPath: gcs_output_uri_prefix

@@ -1,0 +1,28 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This is the schema for sample test config yaml file.
+test_name: str()
+# Parameters for python samples.
+# If 'output' is specified, values will be dynamically injected
+arguments: map(required=False)
+# Parameters for notebook samples. 
+# If 'output' is specified, values will be dynamically injected
+notebook_params: map(required=False)
+# Timeout
+test_timeout: int(min=0, required=False)
+# For python samples, run_pipeline means submiting the pipeline
+# run; For notebook samples, run_pipeline means checking the 
+# run results assuming the notebook codes already submit the run.
+run_pipeline: bool(required=False)

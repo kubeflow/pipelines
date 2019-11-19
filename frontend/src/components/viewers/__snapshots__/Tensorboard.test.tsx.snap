@@ -43,7 +43,7 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
     </div>
     <a
       className="unstyled"
-      href="apis/v1beta1/_proxy/test%2Faddress"
+      href="apis/v1beta1/_proxy/test/address"
       target="_blank"
     >
       <WithStyles(Button)

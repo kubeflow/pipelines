@@ -17,17 +17,17 @@
 import * as React from 'react';
 import ExperimentDetails from './ExperimentDetails';
 import TestUtils from '../TestUtils';
-import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
+import { ApiExperiment } from '../apis/experiment';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
-import { range } from 'lodash';
-import { ApiExperiment } from '../apis/experiment';
-import { ApiResourceType } from '../apis/job';
+import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
+import { RunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
+import { range } from 'lodash';
+import { ButtonKeys } from '../lib/Buttons';
 
 describe('ExperimentDetails', () => {
-
   let tree: ReactWrapper | ShallowWrapper;
 
   const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
@@ -53,21 +53,26 @@ describe('ExperimentDetails', () => {
   }
 
   function generateProps(): PageProps {
-    return {
-      history: { push: historyPushSpy } as any,
-      location: '' as any,
-      match: { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } } as any,
-      toolbarProps: ExperimentDetails.prototype.getInitialToolbarState(),
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
-    };
+    const match = { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } } as any;
+    return TestUtils.generatePageProps(
+      ExperimentDetails,
+      {} as any,
+      match,
+      historyPushSpy,
+      updateBannerSpy,
+      updateDialogSpy,
+      updateToolbarSpy,
+      updateSnackbarSpy,
+    );
   }
 
   async function mockNJobs(n: number): Promise<void> {
     listJobsSpy.mockImplementation(() => ({
-      jobs: range(n).map(i => ({ id: 'test-job-id' + i, enabled: true, name: 'test job name' + i })),
+      jobs: range(n).map(i => ({
+        enabled: true,
+        id: 'test-job-id' + i,
+        name: 'test job name' + i,
+      })),
     }));
     await listJobsSpy;
     await TestUtils.flushPromises();
@@ -100,8 +105,10 @@ describe('ExperimentDetails', () => {
     await mockNRuns(0);
   });
 
-  afterEach(() => {
-    tree.unmount();
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    await tree.unmount();
   });
 
   it('renders a page with no runs or recurring runs', async () => {
@@ -123,10 +130,12 @@ describe('ExperimentDetails', () => {
 
     tree = shallow(<ExperimentDetails {...props} />);
     await TestUtils.flushPromises();
-    expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      pageTitle: 'test exp ID',
-      pageTitleTooltip: 'test exp ID'
-    }));
+    expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        pageTitle: 'test exp ID',
+        pageTitleTooltip: 'test exp ID',
+      }),
+    );
   });
 
   it('uses the experiment name as the page title', async () => {
@@ -137,10 +146,12 @@ describe('ExperimentDetails', () => {
 
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
-    expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      pageTitle: 'A Test Experiment',
-      pageTitleTooltip: 'A Test Experiment'
-    }));
+    expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        pageTitle: 'A Test Experiment',
+        pageTitleTooltip: 'A Test Experiment',
+      }),
+    );
   });
 
   it('uses an empty string if the experiment has no description', async () => {
@@ -166,12 +177,15 @@ describe('ExperimentDetails', () => {
   });
 
   it('opens the expanded description modal when the expand button is clicked', async () => {
-    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps() as any} />);
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...(generateProps() as any)} />);
     await TestUtils.flushPromises();
 
     tree.update();
 
-    tree.find('#expandExperimentDescriptionBtn').at(0).simulate('click');
+    tree
+      .find('#expandExperimentDescriptionBtn')
+      .at(0)
+      .simulate('click');
     await TestUtils.flushPromises();
     expect(updateDialogSpy).toHaveBeenCalledWith({
       content: MOCK_EXPERIMENT.description,
@@ -194,18 +208,30 @@ describe('ExperimentDetails', () => {
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      additionalInfo: 'test error',
-      message: 'Error: failed to retrieve experiment: ' + MOCK_EXPERIMENT.id
-        + '. Click Details for more information.',
-      mode: 'error',
-    }));
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'test error',
+        message:
+          'Error: failed to retrieve experiment: ' +
+          MOCK_EXPERIMENT.id +
+          '. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
     expect(consoleErrorSpy.mock.calls[0][0]).toBe(
-      'Error loading experiment: ' + MOCK_EXPERIMENT.id
+      'Error loading experiment: ' + MOCK_EXPERIMENT.id,
     );
   });
 
-  it('fetches this experiment\'s recurring runs', async () => {
+  it('shows a list of available runs', async () => {
+    await mockNJobs(1);
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.find('RunList').prop('storageState')).toBe(RunStorageState.AVAILABLE.toString());
+  });
+
+  it("fetches this experiment's recurring runs", async () => {
     await mockNJobs(1);
 
     tree = shallow(<ExperimentDetails {...generateProps()} />);
@@ -216,27 +242,31 @@ describe('ExperimentDetails', () => {
       undefined,
       100,
       '',
-      ApiResourceType.EXPERIMENT.toString(),
+      'EXPERIMENT',
       MOCK_EXPERIMENT.id,
     );
     expect(tree.state('activeRecurringRunsCount')).toBe(1);
     expect(tree).toMatchSnapshot();
   });
 
-  it('shows an error banner if fetching the experiment\'s recurring runs fails', async () => {
+  it("shows an error banner if fetching the experiment's recurring runs fails", async () => {
     TestUtils.makeErrorResponseOnce(listJobsSpy, 'test error');
 
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      additionalInfo: 'test error',
-      message: 'Error: failed to retrieve recurring runs for experiment: ' + MOCK_EXPERIMENT.id
-        + '. Click Details for more information.',
-      mode: 'error',
-    }));
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'test error',
+        message:
+          'Error: failed to retrieve recurring runs for experiment: ' +
+          MOCK_EXPERIMENT.id +
+          '. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
     expect(consoleErrorSpy.mock.calls[0][0]).toBe(
-      'Error fetching recurring runs for experiment: ' + MOCK_EXPERIMENT.id
+      'Error fetching recurring runs for experiment: ' + MOCK_EXPERIMENT.id,
     );
   });
 
@@ -255,38 +285,46 @@ describe('ExperimentDetails', () => {
     expect(tree.state('activeRecurringRunsCount')).toBe(2);
   });
 
-  it('opens the recurring run manager modal when \'manage\' is clicked', async () => {
+  it("opens the recurring run manager modal when 'manage' is clicked", async () => {
     await mockNJobs(1);
-    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps() as any} />);
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...(generateProps() as any)} />);
     await TestUtils.flushPromises();
 
     tree.update();
 
-    tree.find('#manageExperimentRecurringRunsBtn').at(0).simulate('click');
+    tree
+      .find('#manageExperimentRecurringRunsBtn')
+      .at(0)
+      .simulate('click');
     await TestUtils.flushPromises();
     expect(tree.state('recurringRunsManagerOpen')).toBe(true);
   });
 
   it('closes the recurring run manager modal', async () => {
     await mockNJobs(1);
-    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps() as any} />);
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...(generateProps() as any)} />);
     await TestUtils.flushPromises();
 
     tree.update();
 
-    tree.find('#manageExperimentRecurringRunsBtn').at(0).simulate('click');
+    tree
+      .find('#manageExperimentRecurringRunsBtn')
+      .at(0)
+      .simulate('click');
     await TestUtils.flushPromises();
     expect(tree.state('recurringRunsManagerOpen')).toBe(true);
 
-    tree.find('#closeExperimentRecurringRunManagerBtn').at(0).simulate('click');
+    tree
+      .find('#closeExperimentRecurringRunManagerBtn')
+      .at(0)
+      .simulate('click');
     await TestUtils.flushPromises();
     expect(tree.state('recurringRunsManagerOpen')).toBe(false);
-
   });
 
   it('refreshes the number of active recurring runs when the recurring run manager is closed', async () => {
     await mockNJobs(1);
-    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps() as any} />);
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...(generateProps() as any)} />);
     await TestUtils.flushPromises();
 
     tree.update();
@@ -294,20 +332,25 @@ describe('ExperimentDetails', () => {
     // Called when the page initially loads to display the number of active recurring runs
     expect(listJobsSpy).toHaveBeenCalledTimes(1);
 
-    tree.find('#manageExperimentRecurringRunsBtn').at(0).simulate('click');
+    tree
+      .find('#manageExperimentRecurringRunsBtn')
+      .at(0)
+      .simulate('click');
     await TestUtils.flushPromises();
     expect(tree.state('recurringRunsManagerOpen')).toBe(true);
 
     // Called in the recurring run manager to list the recurring runs
     expect(listJobsSpy).toHaveBeenCalledTimes(2);
 
-    tree.find('#closeExperimentRecurringRunManagerBtn').at(0).simulate('click');
+    tree
+      .find('#closeExperimentRecurringRunManagerBtn')
+      .at(0)
+      .simulate('click');
     await TestUtils.flushPromises();
     expect(tree.state('recurringRunsManagerOpen')).toBe(false);
 
     // Called a third time when the manager is closed to update the number of active recurring runs
     expect(listJobsSpy).toHaveBeenCalledTimes(3);
-
   });
 
   it('clears the error banner on refresh', async () => {
@@ -323,43 +366,49 @@ describe('ExperimentDetails', () => {
 
     // Error banner should be cleared
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
-
   });
 
   it('navigates to the compare runs page', async () => {
-    const runs = [
-      { id: 'run-1-id', name: 'run-1' },
-      { id: 'run-2-id', name: 'run-2' },
-    ];
-    listRunsSpy.mockImplementationOnce(() => ({ runs }));
+    const runs = [{ id: 'run-1-id', name: 'run-1' }, { id: 'run-2-id', name: 'run-2' }];
+    listRunsSpy.mockImplementation(() => ({ runs }));
     await listRunsSpy;
 
     tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     tree.update();
 
-    tree.find('.tableRow').at(0).simulate('click');
-    tree.find('.tableRow').at(1).simulate('click');
+    tree
+      .find('.tableRow')
+      .at(0)
+      .simulate('click');
+    tree
+      .find('.tableRow')
+      .at(1)
+      .simulate('click');
 
-    const compareBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Compare runs');
+    const compareBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[
+      ButtonKeys.COMPARE
+    ];
     await compareBtn!.action();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
-      RoutePage.COMPARE + `?${QUERY_PARAMS.runlist}=run-1-id,run-2-id`);
+      RoutePage.COMPARE + `?${QUERY_PARAMS.runlist}=run-1-id,run-2-id`,
+    );
   });
 
-  it('navigates to the new run page and passes this experiment\s ID as a query param', async () => {
+  it('navigates to the new run page and passes this experiments ID as a query param', async () => {
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     tree.update();
 
-    const newRunBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Create run');
+    const newRunBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[
+      ButtonKeys.NEW_RUN
+    ];
     await newRunBtn!.action();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
-      RoutePage.NEW_RUN + `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`);
+      RoutePage.NEW_RUN + `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`,
+    );
   });
 
   it('navigates to the new run page with query param indicating it will be a recurring run', async () => {
@@ -367,19 +416,21 @@ describe('ExperimentDetails', () => {
     await TestUtils.flushPromises();
     tree.update();
 
-    const newRecurringRunBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Create recurring run');
+    const newRecurringRunBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[
+      ButtonKeys.NEW_RECURRING_RUN
+    ];
     await newRecurringRunBtn!.action();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
-      RoutePage.NEW_RUN
-      + `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
-      + `&${QUERY_PARAMS.isRecurring}=1`);
+      RoutePage.NEW_RUN +
+        `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}` +
+        `&${QUERY_PARAMS.isRecurring}=1`,
+    );
   });
 
   it('supports cloning a selected run', async () => {
     const runs = [{ id: 'run-1-id', name: 'run-1' }];
-    listRunsSpy.mockImplementationOnce(() => ({ runs }));
+    listRunsSpy.mockImplementation(() => ({ runs }));
     await listRunsSpy;
 
     tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
@@ -389,12 +440,14 @@ describe('ExperimentDetails', () => {
     // Select the run to clone
     tree.find('.tableRow').simulate('click');
 
-    const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Clone');
+    const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[
+      ButtonKeys.CLONE_RUN
+    ];
     await cloneBtn!.action();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
-      RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=run-1-id`);
+      RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=run-1-id`,
+    );
   });
 
   it('enables the compare runs button only when between 2 and 10 runs are selected', async () => {
@@ -404,8 +457,9 @@ describe('ExperimentDetails', () => {
     await TestUtils.flushPromises();
     tree.update();
 
-    const compareBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Compare runs');
+    const compareBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[
+      ButtonKeys.COMPARE
+    ];
 
     for (let i = 0; i < 12; i++) {
       if (i < 2 || i > 10) {
@@ -413,7 +467,10 @@ describe('ExperimentDetails', () => {
       } else {
         expect(compareBtn!.disabled).toBe(false);
       }
-      tree.find('.tableRow').at(i).simulate('click');
+      tree
+        .find('.tableRow')
+        .at(i)
+        .simulate('click');
     }
   });
 
@@ -424,8 +481,9 @@ describe('ExperimentDetails', () => {
     await TestUtils.flushPromises();
     tree.update();
 
-    const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Clone');
+    const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[
+      ButtonKeys.CLONE_RUN
+    ];
 
     for (let i = 0; i < 4; i++) {
       if (i === 1) {
@@ -433,7 +491,10 @@ describe('ExperimentDetails', () => {
       } else {
         expect(cloneBtn!.disabled).toBe(true);
       }
-      tree.find('.tableRow').at(i).simulate('click');
+      tree
+        .find('.tableRow')
+        .at(i)
+        .simulate('click');
     }
   });
 });

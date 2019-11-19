@@ -18,6 +18,7 @@ import WorkflowParser, { StoragePath } from './WorkflowParser';
 import { Apis } from '../lib/Apis';
 import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+import { MarkdownViewerConfig } from '../components/viewers/MarkdownViewer';
 import { PagedTableConfig } from '../components/viewers/PagedTable';
 import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { ROCCurveConfig } from '../components/viewers/ROCCurve';
@@ -30,9 +31,9 @@ export interface PlotMetadata {
   header?: string[];
   labels?: string[];
   predicted_col?: string;
-  schema?: Array<{ type: string, name: string }>;
+  schema?: Array<{ type: string; name: string }>;
   source: string;
-  storage?: 'gcs';
+  storage?: 'gcs' | 'inline';
   target_col?: string;
   type: PlotType;
 }
@@ -42,7 +43,6 @@ export interface OutputMetadata {
 }
 
 export class OutputArtifactLoader {
-
   public static async load(outputPath: StoragePath): Promise<ViewerConfig[]> {
     let plotMetadataList: PlotMetadata[] = [];
     try {
@@ -67,27 +67,31 @@ export class OutputArtifactLoader {
     const configs: Array<ViewerConfig | null> = await Promise.all(
       plotMetadataList.map(async metadata => {
         switch (metadata.type) {
-          case (PlotType.CONFUSION_MATRIX):
+          case PlotType.CONFUSION_MATRIX:
             return await this.buildConfusionMatrixConfig(metadata);
-          case (PlotType.TABLE):
+          case PlotType.MARKDOWN:
+            return await this.buildMarkdownViewerConfig(metadata);
+          case PlotType.TABLE:
             return await this.buildPagedTableConfig(metadata);
-          case (PlotType.TENSORBOARD):
+          case PlotType.TENSORBOARD:
             return await this.buildTensorboardConfig(metadata);
-          case (PlotType.WEB_APP):
+          case PlotType.WEB_APP:
             return await this.buildHtmlViewerConfig(metadata);
-          case (PlotType.ROC):
+          case PlotType.ROC:
             return await this.buildRocCurveConfig(metadata);
           default:
             logger.error('Unknown plot type: ' + metadata.type);
             return null;
         }
-      })
+      }),
     );
 
     return configs.filter(c => !!c) as ViewerConfig[];
   }
 
-  public static async buildConfusionMatrixConfig(metadata: PlotMetadata): Promise<ConfusionMatrixConfig> {
+  public static async buildConfusionMatrixConfig(
+    metadata: PlotMetadata,
+  ): Promise<ConfusionMatrixConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -106,13 +110,14 @@ export class OutputArtifactLoader {
     const labels = metadata.labels;
     const labelIndex: { [label: string]: number } = {};
     let index = 0;
-    labels.forEach((l) => {
+    labels.forEach(l => {
       labelIndex[l] = index++;
     });
 
     if (labels.length ** 2 !== csvRows.length) {
       throw new Error(
-        `Data dimensions ${csvRows.length} do not match the number of labels passed ${labels.length}`);
+        `Data dimensions ${csvRows.length} do not match the number of labels passed ${labels.length}`,
+      );
     }
 
     const data = Array.from(Array(labels.length), () => new Array(labels.length));
@@ -122,7 +127,7 @@ export class OutputArtifactLoader {
       data[i][j] = Number.parseInt(count, 10);
     });
 
-    const columnNames = metadata.schema.map((r) => {
+    const columnNames = metadata.schema.map(r => {
       if (!r.name) {
         throw new Error('Each item in the "schema" array must contain a "name" field');
       }
@@ -167,7 +172,9 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildTensorboardConfig(metadata: PlotMetadata): Promise<TensorboardViewerConfig> {
+  public static async buildTensorboardConfig(
+    metadata: PlotMetadata,
+  ): Promise<TensorboardViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -188,6 +195,26 @@ export class OutputArtifactLoader {
     return {
       htmlContent,
       type: PlotType.WEB_APP,
+    };
+  }
+
+  public static async buildMarkdownViewerConfig(
+    metadata: PlotMetadata,
+  ): Promise<MarkdownViewerConfig> {
+    if (!metadata.source) {
+      throw new Error('Malformed metadata, property "source" is required.');
+    }
+    let markdownContent = '';
+    if (metadata.storage === 'inline') {
+      markdownContent = metadata.source;
+    } else {
+      const path = WorkflowParser.parseStoragePath(metadata.source);
+      markdownContent = await Apis.readFile(path);
+    }
+
+    return {
+      markdownContent,
+      type: PlotType.MARKDOWN,
     };
   }
 

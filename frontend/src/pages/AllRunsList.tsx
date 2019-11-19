@@ -15,12 +15,11 @@
  */
 
 import * as React from 'react';
-import AddIcon from '@material-ui/icons/Add';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
 import RunList from './RunList';
 import { Page } from './Page';
-import { RoutePage, QUERY_PARAMS } from '../components/Router';
+import { RunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
-import { URLParser } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 
@@ -29,7 +28,6 @@ interface AllRunsListState {
 }
 
 class AllRunsList extends Page<{}, AllRunsListState> {
-
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
@@ -41,45 +39,36 @@ class AllRunsList extends Page<{}, AllRunsListState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [{
-        action: this._newExperimentClicked.bind(this),
-        icon: AddIcon,
-        id: 'newExperimentBtn',
-        outlined: true,
-        title: 'Create experiment',
-        tooltip: 'Create a new experiment',
-      }, {
-        action: this._compareRuns.bind(this),
-        disabled: true,
-        disabledTitle: 'Select multiple runs to compare',
-        id: 'compareBtn',
-        title: 'Compare runs',
-        tooltip: 'Compare up to 10 selected runs',
-      }, {
-        action: this._cloneRun.bind(this),
-        disabled: true,
-        disabledTitle: 'Select a run to clone',
-        id: 'cloneBtn',
-        title: 'Clone run',
-        tooltip: 'Create a copy from this run\s initial state',
-      }, {
-        action: this.refresh.bind(this),
-        id: 'refreshBtn',
-        title: 'Refresh',
-        tooltip: 'Refresh the list of runs',
-      }],
+      actions: buttons
+        .newRun()
+        .newExperiment()
+        .compareRuns(() => this.state.selectedIds)
+        .cloneRun(() => this.state.selectedIds, false)
+        .archive(() => this.state.selectedIds, false, selectedIds =>
+          this._selectionChanged(selectedIds),
+        )
+        .refresh(this.refresh.bind(this))
+        .getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: 'Experiments',
     };
   }
 
   public render(): JSX.Element {
-    return <div className={classes(commonCss.page, padding(20, 'lr'))}>
-      <RunList onError={this.showPageError.bind(this)} selectedIds={this.state.selectedIds}
-        onSelectionChange={this._selectionChanged.bind(this)}
-        {...this.props} ref={this._runlistRef} />
-    </div>;
+    return (
+      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+        <RunList
+          onError={this.showPageError.bind(this)}
+          selectedIds={this.state.selectedIds}
+          onSelectionChange={this._selectionChanged.bind(this)}
+          ref={this._runlistRef}
+          storageState={RunStorageState.AVAILABLE}
+          {...this.props}
+        />
+      </div>
+    );
   }
 
   public async refresh(): Promise<void> {
@@ -90,39 +79,17 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     }
   }
 
-  private _newExperimentClicked(): void {
-    this.props.history.push(RoutePage.NEW_EXPERIMENT);
-  }
-
-  private _compareRuns(): void {
-    const indices = this.state.selectedIds;
-    if (indices.length > 1 && indices.length <= 10) {
-      const runIds = this.state.selectedIds.join(',');
-      const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.runlist]: runIds,
-      });
-      this.props.history.push(RoutePage.COMPARE + searchString);
-    }
-  }
-
   private _selectionChanged(selectedIds: string[]): void {
-    const toolbarActions = [...this.props.toolbarProps.actions];
-    // Compare runs button
-    toolbarActions[1].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
-    // Clone run button
-    toolbarActions[2].disabled = selectedIds.length !== 1;
-    this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
+    const toolbarActions = this.props.toolbarProps.actions;
+    toolbarActions[ButtonKeys.COMPARE].disabled =
+      selectedIds.length <= 1 || selectedIds.length > 10;
+    toolbarActions[ButtonKeys.CLONE_RUN].disabled = selectedIds.length !== 1;
+    toolbarActions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
+    this.props.updateToolbar({
+      actions: toolbarActions,
+      breadcrumbs: this.props.toolbarProps.breadcrumbs,
+    });
     this.setState({ selectedIds });
-  }
-
-  private _cloneRun(): void {
-    if (this.state.selectedIds.length === 1) {
-      const runId = this.state.selectedIds[0];
-      const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.cloneFromRun]: runId || ''
-      });
-      this.props.history.push(RoutePage.NEW_RUN + searchString);
-    }
   }
 }
 

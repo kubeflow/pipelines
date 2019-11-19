@@ -18,7 +18,7 @@ def load_yaml(stream):
     #!!! Yaml should only be loaded using this function. Otherwise the dict ordering may be broken in Python versions prior to 3.6
     #See https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts/21912744#21912744
 
-    def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
+    def ordered_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=OrderedDict):
         class OrderedLoader(Loader):
             pass
         def construct_mapping(loader, node):
@@ -41,6 +41,7 @@ def dump_yaml(data):
                 yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
                 data.items())
         OrderedDumper.add_representer(OrderedDict, _dict_representer)
+        OrderedDumper.add_representer(dict, _dict_representer)
 
         #Hack to force the code (multi-line string) to be output using the '|' style.
         def represent_str_or_text(self, data):

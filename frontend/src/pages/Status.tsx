@@ -20,22 +20,20 @@ import PendingIcon from '@material-ui/icons/Schedule';
 import RunningIcon from '../icons/statusRunning';
 import SkippedIcon from '@material-ui/icons/SkipNext';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
+import TerminatedIcon from '../icons/statusTerminated';
 import Tooltip from '@material-ui/core/Tooltip';
 import UnknownIcon from '@material-ui/icons/Help';
 import { color } from '../Css';
-import { logger } from '../lib/Utils';
+import { logger, formatDateString } from '../lib/Utils';
+import { NodePhase, checkIfTerminated } from '../lib/StatusUtils';
 
-export enum NodePhase {
-  ERROR = 'Error',
-  FAILED = 'Failed',
-  PENDING = 'Pending',
-  RUNNING = 'Running',
-  SKIPPED = 'Skipped',
-  SUCCEEDED = 'Succeeded',
-  UNKNOWN = 'Unknown',
-}
-
-export function statusToIcon(status: NodePhase): JSX.Element {
+export function statusToIcon(
+  status?: NodePhase,
+  startDate?: Date | string,
+  endDate?: Date | string,
+  nodeMessage?: string,
+): JSX.Element {
+  status = checkIfTerminated(status, nodeMessage);
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
   let iconColor = color.inactive;
@@ -58,8 +56,13 @@ export function statusToIcon(status: NodePhase): JSX.Element {
       break;
     case NodePhase.RUNNING:
       IconComponent = RunningIcon;
-      iconColor = color.success;
+      iconColor = color.blue;
       title = 'Running';
+      break;
+    case NodePhase.TERMINATING:
+      IconComponent = RunningIcon;
+      iconColor = color.blue;
+      title = 'Run is terminating';
       break;
     case NodePhase.SKIPPED:
       IconComponent = SkippedIcon;
@@ -70,13 +73,30 @@ export function statusToIcon(status: NodePhase): JSX.Element {
       iconColor = color.success;
       title = 'Executed successfully';
       break;
+    case NodePhase.TERMINATED:
+      IconComponent = TerminatedIcon;
+      iconColor = color.terminated;
+      title = 'Run was manually terminated';
+      break;
     case NodePhase.UNKNOWN:
       break;
     default:
       logger.verbose('Unknown node phase:', status);
   }
-
-  return <Tooltip title={title}><span style={{ height: 18 }}>
-    <IconComponent style={{ color: iconColor, height: 18, width: 18 }} />
-  </span></Tooltip>;
+  return (
+    <Tooltip
+      title={
+        <div>
+          <div>{title}</div>
+          {/* These dates may actually be strings, not a Dates due to a bug in swagger's handling of dates */}
+          {startDate && <div>Start: {formatDateString(startDate)}</div>}
+          {endDate && <div>End: {formatDateString(endDate)}</div>}
+        </div>
+      }
+    >
+      <span style={{ height: 18 }}>
+        <IconComponent style={{ color: iconColor, height: 18, width: 18 }} />
+      </span>
+    </Tooltip>
+  );
 }

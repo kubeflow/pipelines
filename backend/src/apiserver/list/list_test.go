@@ -1,14 +1,17 @@
 package list
 
 import (
-	"errors"
 	"reflect"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/stretchr/testify/assert"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 )
 
@@ -36,8 +39,23 @@ func (f *fakeListable) APIToModelFieldMap() map[string]string {
 	return fakeAPIToModelMap
 }
 
+func (f *fakeListable) GetModelName() string {
+	return ""
+}
+
 func TestNextPageToken_ValidTokens(t *testing.T) {
 	l := &fakeListable{PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234}
+
+	protoFilter := &api.Filter{Predicates: []*api.Predicate{
+		&api.Predicate{
+			Key:   "name",
+			Op:    api.Predicate_EQUALS,
+			Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+		}}}
+	testFilter, err := filter.New(protoFilter)
+	if err != nil {
+		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter, err)
+	}
 
 	tests := []struct {
 		inOpts *Options
@@ -79,12 +97,29 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				IsDesc:           false,
 			},
 		},
+		{
+			inOpts: &Options{
+				PageSize: 10,
+				token: &token{
+					SortByFieldName: "FakeName", IsDesc: false,
+					Filter: testFilter,
+				},
+			},
+			want: &token{
+				SortByFieldName:  "FakeName",
+				SortByFieldValue: "Fake",
+				KeyFieldName:     "PrimaryKey",
+				KeyFieldValue:    "uuid123",
+				IsDesc:           false,
+				Filter:           testFilter,
+			},
+		},
 	}
 
 	for _, test := range tests {
 		got, err := test.inOpts.nextPageToken(l)
 
-		if !cmp.Equal(got, test.want) || err != nil {
+		if !cmp.Equal(got, test.want, cmp.AllowUnexported(filter.Filter{})) || err != nil {
 			t.Errorf("nextPageToken(%+v, %+v) =\nGot: %+v, %+v\nWant: %+v, <nil>\nDiff:\n%s",
 				test.inOpts, l, got, err, test.want, cmp.Diff(test.want, got))
 		}
@@ -97,11 +132,11 @@ func TestNextPageToken_InvalidSortByField(t *testing.T) {
 	inOpts := &Options{
 		PageSize: 10, token: &token{SortByFieldName: "Timestamp", IsDesc: true},
 	}
-	want := errors.New(`cannot sort by field "Timestamp" on type "fakeListable"`)
+	want := util.NewInvalidInputError(`cannot sort by field "Timestamp" on type "fakeListable"`)
 
 	got, err := inOpts.nextPageToken(l)
 
-	if !reflect.DeepEqual(err, want) {
+	if !cmp.Equal(err, want, cmpopts.IgnoreUnexported(util.UserError{})) {
 		t.Errorf("nextPageToken(%+v, %+v) =\nGot: %+v, %v\nWant: _, %v",
 			inOpts, l, got, err, want)
 	}
@@ -364,7 +399,7 @@ func TestNewOptions_InvalidFilter(t *testing.T) {
 	}
 }
 
-func TestAddToSelect(t *testing.T) {
+func TestAddPaginationAndFilterToSelect(t *testing.T) {
 	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
 			&api.Predicate{
@@ -471,7 +506,7 @@ func TestAddToSelect(t *testing.T) {
 
 	for _, test := range tests {
 		sql := sq.Select("*").From("MyTable")
-		gotSQL, gotArgs, err := test.in.AddToSelect(sql).ToSql()
+		gotSQL, gotArgs, err := test.in.AddFilterToSelect(test.in.AddPaginationToSelect(sql)).ToSql()
 
 		if gotSQL != test.wantSQL || !reflect.DeepEqual(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("BuildListSQLQuery(%+v) =\nGot: %q, %v, %v\nWant: %q, %v, nil",
@@ -481,6 +516,17 @@ func TestAddToSelect(t *testing.T) {
 }
 
 func TestTokenSerialization(t *testing.T) {
+	protoFilter := &api.Filter{Predicates: []*api.Predicate{
+		&api.Predicate{
+			Key:   "name",
+			Op:    api.Predicate_EQUALS,
+			Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+		}}}
+	testFilter, err := filter.New(protoFilter)
+	if err != nil {
+		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter, err)
+	}
+
 	tests := []struct {
 		in   *token
 		want *token
@@ -515,6 +561,25 @@ func TestTokenSerialization(t *testing.T) {
 				KeyFieldValue:    float64(200),
 				IsDesc:           true},
 		},
+		// has a filter.
+		{
+			in: &token{
+				SortByFieldName:  "SortField",
+				SortByFieldValue: 100,
+				KeyFieldName:     "KeyField",
+				KeyFieldValue:    200,
+				IsDesc:           true,
+				Filter:           testFilter,
+			},
+			want: &token{
+				SortByFieldName:  "SortField",
+				SortByFieldValue: float64(100),
+				KeyFieldName:     "KeyField",
+				KeyFieldValue:    float64(200),
+				IsDesc:           true,
+				Filter:           testFilter,
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -527,9 +592,147 @@ func TestTokenSerialization(t *testing.T) {
 
 		got := &token{}
 		got.unmarshal(s)
-		if !cmp.Equal(got, test.want) {
+		if !cmp.Equal(got, test.want, cmp.AllowUnexported(filter.Filter{})) {
 			t.Errorf("token.unmarshal(%q) =\nGot: %+v\nWant: %+v\nDiff:\n%s",
-				s, got, test.want, cmp.Diff(test.want, got))
+				s, got, test.want, cmp.Diff(test.want, got, cmp.AllowUnexported(filter.Filter{})))
+		}
+	}
+}
+
+func TestMatches(t *testing.T) {
+	protoFilter1 := &api.Filter{
+		Predicates: []*api.Predicate{
+			&api.Predicate{
+				Key:   "Name",
+				Op:    api.Predicate_EQUALS,
+				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+			},
+		},
+	}
+	f1, err := filter.New(protoFilter1)
+	if err != nil {
+		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter1, err)
+	}
+
+	protoFilter2 := &api.Filter{
+		Predicates: []*api.Predicate{
+			&api.Predicate{
+				Key:   "Name",
+				Op:    api.Predicate_NOT_EQUALS, // Not equals as opposed to equals above.
+				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+			},
+		},
+	}
+	f2, err := filter.New(protoFilter2)
+	if err != nil {
+		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter2, err)
+	}
+
+	tests := []struct {
+		o1   *Options
+		o2   *Options
+		want bool
+	}{
+		{
+			o1:   &Options{token: &token{SortByFieldName: "SortField1", IsDesc: true}},
+			o2:   &Options{token: &token{SortByFieldName: "SortField2", IsDesc: true}},
+			want: false,
+		},
+		{
+			o1:   &Options{token: &token{SortByFieldName: "SortField1", IsDesc: true}},
+			o2:   &Options{token: &token{SortByFieldName: "SortField1", IsDesc: true}},
+			want: true,
+		},
+		{
+			o1:   &Options{token: &token{SortByFieldName: "SortField1", IsDesc: true}},
+			o2:   &Options{token: &token{SortByFieldName: "SortField1", IsDesc: false}},
+			want: false,
+		},
+		{
+			o1:   &Options{token: &token{Filter: f1}},
+			o2:   &Options{token: &token{Filter: f1}},
+			want: true,
+		},
+		{
+			o1:   &Options{token: &token{Filter: f1}},
+			o2:   &Options{token: &token{Filter: f2}},
+			want: false,
+		},
+	}
+
+	for _, test := range tests {
+		got := test.o1.Matches(test.o2)
+
+		if got != test.want {
+			t.Errorf("Matches(%+v, %+v) = %v, Want nil %v", test.o1, test.o2, got, test.want)
+			continue
+		}
+	}
+}
+
+func TestFilterOnResourceReference(t *testing.T) {
+
+	type testIn struct {
+		table        string
+		resourceType common.ResourceType
+		count        bool
+		filter       *common.FilterContext
+	}
+	tests := []struct {
+		in      *testIn
+		wantSql string
+		wantErr error
+	}{
+		{
+			in: &testIn{
+				table:        "testTable",
+				resourceType: common.Run,
+				count:        false,
+				filter:       &common.FilterContext{},
+			},
+			wantSql: "SELECT * FROM testTable",
+			wantErr: nil,
+		},
+		{
+			in: &testIn{
+				table:        "testTable",
+				resourceType: common.Run,
+				count:        true,
+				filter:       &common.FilterContext{},
+			},
+			wantSql: "SELECT count(*) FROM testTable",
+			wantErr: nil,
+		},
+		{
+			in: &testIn{
+				table:        "testTable",
+				resourceType: common.Run,
+				count:        false,
+				filter:       &common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Run}},
+			},
+			wantSql: "SELECT * FROM testTable WHERE UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?))",
+			wantErr: nil,
+		},
+		{
+			in: &testIn{
+				table:        "testTable",
+				resourceType: common.Run,
+				count:        true,
+				filter:       &common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Run}},
+			},
+			wantSql: "SELECT count(*) FROM testTable WHERE UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?))",
+			wantErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		sqlBuilder, gotErr := FilterOnResourceReference(test.in.table, []string{"*"}, test.in.resourceType, test.in.count, test.in.filter)
+		gotSql, _, err := sqlBuilder.ToSql()
+		assert.Nil(t, err)
+
+		if gotSql != test.wantSql || gotErr != test.wantErr {
+			t.Errorf("FilterOnResourceReference(%+v) =\nGot: %q, %v\nWant: %q, %v",
+				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
 		}
 	}
 }

@@ -28,14 +28,10 @@ Here are the one-time steps to prepare for your GKE testing cluster:
 - Follow the [main page](https://github.com/kubeflow/pipelines#setup-gke) to
 create a GKE cluster.
 - Install [Argo](https://github.com/argoproj/argo/blob/master/demo.md#argo-v20-getting-started)
-in the cluster. If you have Argo CLI installed locally, just run
-  ```
-  argo install
-  ```
+in the cluster.
 - Create cluster role binding.
   ```
-  kubectl create clusterrolebinding default-as-admin
-  --clusterrole=cluster-admin --serviceaccount default:default
+  kubectl create clusterrolebinding default-as-admin --clusterrole=cluster-admin --serviceaccount=default:default
   ```
 - Follow the
 [guideline](https://developer.github.com/v3/guides/managing-deploy-keys/) to
@@ -67,6 +63,26 @@ workflow. All the images will be stored in
 However you can keep them by providing additional parameter. 
 ```
 argo submit integration_test_gke.yaml -p branch="my-branch" -p cleanup="false"
+```
+
+### Run presubmit-tests-with-pipeline-deployment.sh locally
+
+Run the following commands from root of kubeflow/pipelines repo.
+```
+#$PULL_PULL_SHA and $WORKSPACE are env variables set by Prow
+export PULL_PULL_SHA=pull-sha-placeholder
+export WORKSPACE=$(pwd) # root of kubeflow/pipelines git repo
+export SA_KEY_FILE=PATH/TO/YOUR/GCP/PROJECT/SERVICE/ACCOUNT/KEY
+# (optional) uncomment the following to keep reusing the same cluster
+# export TEST_CLUSTER=YOUR_PRECONFIGURED_CLUSTER_NAME
+# (optional) uncomment the following to disable built image caching
+# export DISABLE_IMAGE_CACHING=true
+
+./test/presubmit-tests-with-pipeline-deployment.sh \
+  --workflow_file e2e_test_gke_v2.yaml \ # You can specify other workflows you want to test too.
+  --test_result_folder ${FOLDER_NAME_TO_HOLD_TEST_RESULT} \
+  --test_result_bucket ${YOUR_GCS_TEST_RESULT_BUCKET} \
+  --project ${YOUR_GCS_PROJECT}
 ```
 
 ## Troubleshooting

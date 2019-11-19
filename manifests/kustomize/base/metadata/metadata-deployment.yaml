@@ -1,0 +1,56 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: metadata-deployment
+  labels:
+    component: metadata-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: metadata-server
+  template:
+    metadata:
+      labels:
+        component: metadata-server
+    spec:
+      containers:
+      - name: container
+        image: gcr.io/tfx-oss-public/ml_metadata_store_server:0.14.0
+        env:
+        - name: DBCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credential
+              key: username
+        - name: DBCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credential
+              key: password
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: metadata-configmap
+              key: mysql_database
+        - name: MYSQL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: metadata-configmap
+              key: mysql_host
+        - name: MYSQL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: metadata-configmap
+              key: mysql_port
+        command: ["/bin/metadata_store_server"]
+        args: ["--grpc_port=8080",
+               "--mysql_config_database=$(MYSQL_DATABASE)",
+               "--mysql_config_host=$(MYSQL_HOST)",
+               "--mysql_config_port=$(MYSQL_PORT)",
+               "--mysql_config_user=$(DBCONFIG_USER)",
+               "--mysql_config_password=$(DBCONFIG_PASSWORD)"
+               ]
+        ports:
+        - name: md-backendapi
+          containerPort: 8080

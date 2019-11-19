@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,6 +42,10 @@ type APIPipelineSpec struct {
 
 	// Optional input field. The raw pipeline JSON spec.
 	PipelineManifest string `json:"pipeline_manifest,omitempty"`
+
+	// Optional output field. The name of the pipeline.
+	// Not empty if the pipeline id is not empty.
+	PipelineName string `json:"pipeline_name,omitempty"`
 
 	// Optional input field. The marshalled raw argo JSON workflow.
 	// This will be deprecated when pipeline_manifest is in use.

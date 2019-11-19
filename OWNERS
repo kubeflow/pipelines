@@ -1,10 +1,7 @@
 approvers:
-  - vicaire
-  - jlewi
   - IronPan
   - paveldournov
-  - qimingj
+  - neuromage
 reviewers:
-  - vicaire
   - IronPan
-  - qimingj
+  - neuromage

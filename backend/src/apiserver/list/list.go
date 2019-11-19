@@ -18,6 +18,7 @@
 package list
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -26,6 +27,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
@@ -49,6 +51,8 @@ type token struct {
 	KeyFieldValue interface{}
 	// IsDesc is true if the sorting order should be descending.
 	IsDesc bool
+	// ModelName is the table where ***FieldName belongs to.
+	ModelName string
 	// Filter represents the filtering that should be applied in the query.
 	Filter *filter.Filter
 }
@@ -74,6 +78,7 @@ func (t *token) marshal() (string, error) {
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Failed to serialize page token.")
 	}
+	// return string(b), nil
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
@@ -86,12 +91,20 @@ type Options struct {
 	*token
 }
 
+// Matches returns trues if the sorting and filtering criteria in o matches that
+// of the one supplied in opts.
+func (o *Options) Matches(opts *Options) bool {
+	return o.SortByFieldName == opts.SortByFieldName &&
+		o.IsDesc == opts.IsDesc &&
+		reflect.DeepEqual(o.Filter, opts.Filter)
+}
+
 // NewOptionsFromToken creates a new Options struct from the passed in token
 // which represents the next page of results. An empty nextPageToken will result
 // in an error.
 func NewOptionsFromToken(nextPageToken string, pageSize int) (*Options, error) {
 	if nextPageToken == "" {
-		return nil, fmt.Errorf("cannot create list.Options from empty page token")
+		return nil, util.NewInvalidInputError("cannot create list.Options from empty page token")
 	}
 	pageSize, err := validatePageSize(pageSize)
 	if err != nil {
@@ -114,7 +127,9 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 		return nil, err
 	}
 
-	token := &token{KeyFieldName: listable.PrimaryKeyColumnName()}
+	token := &token{
+		KeyFieldName: listable.PrimaryKeyColumnName(),
+		ModelName:    listable.GetModelName()}
 
 	// Ignore the case of the letter. Split query string by space.
 	queryList := strings.Fields(strings.ToLower(sortBy))
@@ -150,20 +165,39 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 	return &Options{PageSize: pageSize, token: token}, nil
 }
 
-// AddToSelect adds WHERE clauses with the sorting and filtering criteria in the
+// AddPaginationToSelect adds WHERE clauses with the sorting and pagination criteria in the
 // Options o to the supplied SelectBuilder, and returns the new SelectBuilder
 // containing these.
-func (o *Options) AddToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+	sqlBuilder = o.AddSortingToSelect(sqlBuilder)
+	// Add one more item than what is requested.
+	sqlBuilder = sqlBuilder.Limit(uint64(o.PageSize + 1))
+
+	return sqlBuilder
+}
+
+// AddPaginationToSelect adds WHERE clauses with the sorting and pagination criteria in the
+// Options o to the supplied SelectBuilder, and returns the new SelectBuilder
+// containing these.
+func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	// If next row's value is specified, set those values in the clause.
+	var modelNamePrefix string
+	if len(o.ModelName) == 0 {
+		modelNamePrefix = ""
+	} else {
+		modelNamePrefix = o.ModelName + "."
+	}
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		if o.IsDesc {
 			sqlBuilder = sqlBuilder.
-				Where(sq.Or{sq.Lt{o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{o.SortByFieldName: o.SortByFieldValue}, sq.LtOrEq{o.KeyFieldName: o.KeyFieldValue}}})
+				Where(sq.Or{sq.Lt{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.And{sq.Eq{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.LtOrEq{modelNamePrefix + o.KeyFieldName: o.KeyFieldValue}}})
 		} else {
 			sqlBuilder = sqlBuilder.
-				Where(sq.Or{sq.Gt{o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{o.SortByFieldName: o.SortByFieldValue}, sq.GtOrEq{o.KeyFieldName: o.KeyFieldValue}}})
+				Where(sq.Or{sq.Gt{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.And{sq.Eq{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.GtOrEq{modelNamePrefix + o.KeyFieldName: o.KeyFieldValue}}})
 		}
 	}
 
@@ -172,17 +206,57 @@ func (o *Options) AddToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 		order = "DESC"
 	}
 	sqlBuilder = sqlBuilder.
-		OrderBy(fmt.Sprintf("%v %v", o.SortByFieldName, order)).
-		OrderBy(fmt.Sprintf("%v %v", o.KeyFieldName, order))
+		OrderBy(fmt.Sprintf("%v %v", modelNamePrefix+o.SortByFieldName, order)).
+		OrderBy(fmt.Sprintf("%v %v", modelNamePrefix+o.KeyFieldName, order))
 
-	// Add one more item than what is requested.
-	sqlBuilder = sqlBuilder.Limit(uint64(o.PageSize + 1))
+	return sqlBuilder
+}
 
+// AddFilterToSelect adds WHERE clauses with the filtering criteria in the
+// Options o to the supplied SelectBuilder, and returns the new SelectBuilder
+// containing these.
+func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	if o.Filter != nil {
 		sqlBuilder = o.Filter.AddToSelect(sqlBuilder)
 	}
 
 	return sqlBuilder
+}
+
+// FilterOnResourceReference filters the given resource's table by rows from the ResourceReferences
+// table that match an optional given filter, and returns the rebuilt SelectBuilder
+func FilterOnResourceReference(tableName string, columns []string, resourceType common.ResourceType,
+	selectCount bool, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
+	selectBuilder := sq.Select(columns...)
+	if selectCount {
+		selectBuilder = sq.Select("count(*)")
+	}
+	selectBuilder = selectBuilder.From(tableName)
+	if filterContext.ReferenceKey != nil {
+		resourceReferenceFilter, args, err := sq.Select("ResourceUUID").
+			From("resource_references as rf").
+			Where(sq.And{
+				sq.Eq{"rf.ResourceType": resourceType},
+				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
+				sq.Eq{"rf.ReferenceType": filterContext.Type}}).ToSql()
+		if err != nil {
+			return selectBuilder, util.NewInternalServerError(
+				err, "Failed to create subquery to filter by resource reference: %v", err.Error())
+		}
+		return selectBuilder.Where(fmt.Sprintf("UUID in (%s)", resourceReferenceFilter), args...), nil
+	}
+	return selectBuilder, nil
+}
+
+// Scans the one given row into a number, and returns the number
+func ScanRowToTotalSize(rows *sql.Rows) (int, error) {
+	var total_size int
+	rows.Next()
+	err := rows.Scan(&total_size)
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to scan row total_size")
+	}
+	return total_size, nil
 }
 
 // Listable is an interface that should be implemented by any resource/model
@@ -196,6 +270,8 @@ type Listable interface {
 	// APIToModelFieldMap returns a map from field names in the API representation
 	// of the model to its corresponding field name in the model itself.
 	APIToModelFieldMap() map[string]string
+	// GetModelName returns table name used as sort field prefix.
+	GetModelName() string
 }
 
 // NextPageToken returns a string that can be used to fetch the subsequent set
@@ -215,12 +291,12 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 
 	sortByField := elem.FieldByName(o.SortByFieldName)
 	if !sortByField.IsValid() {
-		return nil, fmt.Errorf("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
+		return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
 	}
 
 	keyField := elem.FieldByName(listable.PrimaryKeyColumnName())
 	if !keyField.IsValid() {
-		return nil, fmt.Errorf("type %q does not have key field %q", elemName, o.KeyFieldName)
+		return nil, util.NewInvalidInputError("type %q does not have key field %q", elemName, o.KeyFieldName)
 	}
 
 	return &token{
@@ -229,6 +305,8 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 		KeyFieldName:     listable.PrimaryKeyColumnName(),
 		KeyFieldValue:    keyField.Interface(),
 		IsDesc:           o.IsDesc,
+		Filter:           o.Filter,
+		ModelName:        o.ModelName,
 	}, nil
 }
 

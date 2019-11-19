@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "pipeline_client.go",
+        "pipeline_client_fake.go",
+        "scheduled_workflow_client.go",
+        "scheduled_workflow_client_fake.go",
+        "workflow_client.go",
+        "workflow_fake.go",
+    ],
+    importpath = "github.com/kubeflow/pipelines/backend/src/agent/persistence/client",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/api:go_default_library",
+        "//backend/src/common/util:go_default_library",
+        "//backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow/v1beta1:go_default_library",
+        "@com_github_argoproj_argo//pkg/client/informers/externalversions/workflow/v1alpha1:go_default_library",
+        "@com_github_pkg_errors//:go_default_library",
+        "@io_k8s_client_go//plugin/pkg/client/auth/gcp:go_default_library",
+        "@io_k8s_client_go//tools/cache:go_default_library",
+        "@org_golang_google_grpc//codes:go_default_library",
+        "@org_golang_google_grpc//status:go_default_library",
+    ],
+)

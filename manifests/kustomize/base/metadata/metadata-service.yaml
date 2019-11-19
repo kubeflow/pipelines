@@ -1,0 +1,14 @@
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: metadata
+  name: metadata-service
+spec:
+  selector:
+    component: metadata-server
+  type: ClusterIP
+  ports:
+  - port: 8080
+    protocol: TCP
+    name: md-backendapi

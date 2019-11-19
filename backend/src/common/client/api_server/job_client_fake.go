@@ -76,7 +76,7 @@ func (c *JobClientFake) Disable(params *jobparams.DisableJobParams) error {
 }
 
 func (c *JobClientFake) List(params *jobparams.ListJobsParams) (
-	[]*jobmodel.APIJob, string, error) {
+	[]*jobmodel.APIJob, int, string, error) {
 	const (
 		FirstToken  = ""
 		SecondToken = "SECOND_TOKEN"
@@ -93,13 +93,13 @@ func (c *JobClientFake) List(params *jobparams.ListJobsParams) (
 		return []*jobmodel.APIJob{
 			getDefaultJob("100", "MY_FIRST_JOB"),
 			getDefaultJob("101", "MY_SECOND_JOB"),
-		}, SecondToken, nil
+		}, 2, SecondToken, nil
 	case SecondToken:
 		return []*jobmodel.APIJob{
 			getDefaultJob("102", "MY_THIRD_JOB"),
-		}, FinalToken, nil
+		}, 1, FinalToken, nil
 	default:
-		return nil, "", fmt.Errorf(InvalidFakeRequest, token)
+		return nil, 0, "", fmt.Errorf(InvalidFakeRequest, token)
 	}
 }
 

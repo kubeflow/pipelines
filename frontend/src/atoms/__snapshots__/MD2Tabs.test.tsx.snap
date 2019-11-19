@@ -111,6 +111,7 @@ exports[`Input gracefully handles an out of bound selectedTab value 1`] = `
               disabled={false}
               onBlur={[Function]}
               onClick={[Function]}
+              onContextMenu={[Function]}
               onFocus={[Function]}
               onKeyDown={[Function]}
               onKeyUp={[Function]}
@@ -130,37 +131,42 @@ exports[`Input gracefully handles an out of bound selectedTab value 1`] = `
                   tab1
                 </span>
               </span>
-              <WithStyles(TouchRipple)
-                center={false}
-                innerRef={[Function]}
+              <NoSsr
+                defer={false}
+                fallback={null}
               >
-                <TouchRipple
+                <WithStyles(TouchRipple)
                   center={false}
-                  classes={
-                    Object {
-                      "child": "MuiTouchRipple-child-34",
-                      "childLeaving": "MuiTouchRipple-childLeaving-35",
-                      "childPulsate": "MuiTouchRipple-childPulsate-36",
-                      "ripple": "MuiTouchRipple-ripple-31",
-                      "ripplePulsate": "MuiTouchRipple-ripplePulsate-33",
-                      "rippleVisible": "MuiTouchRipple-rippleVisible-32",
-                      "root": "MuiTouchRipple-root-30",
-                    }
-                  }
+                  innerRef={[Function]}
                 >
-                  <TransitionGroup
-                    childFactory={[Function]}
-                    className="MuiTouchRipple-root-30"
-                    component="span"
-                    enter={true}
-                    exit={true}
+                  <TouchRipple
+                    center={false}
+                    classes={
+                      Object {
+                        "child": "MuiTouchRipple-child-34",
+                        "childLeaving": "MuiTouchRipple-childLeaving-35",
+                        "childPulsate": "MuiTouchRipple-childPulsate-36",
+                        "ripple": "MuiTouchRipple-ripple-31",
+                        "ripplePulsate": "MuiTouchRipple-ripplePulsate-33",
+                        "rippleVisible": "MuiTouchRipple-rippleVisible-32",
+                        "root": "MuiTouchRipple-root-30",
+                      }
+                    }
                   >
-                    <span
+                    <TransitionGroup
+                      childFactory={[Function]}
                       className="MuiTouchRipple-root-30"
-                    />
-                  </TransitionGroup>
-                </TouchRipple>
-              </WithStyles(TouchRipple)>
+                      component="span"
+                      enter={true}
+                      exit={true}
+                    >
+                      <span
+                        className="MuiTouchRipple-root-30"
+                      />
+                    </TransitionGroup>
+                  </TouchRipple>
+                </WithStyles(TouchRipple)>
+              </NoSsr>
             </button>
           </ButtonBase>
         </WithStyles(ButtonBase)>
@@ -248,6 +254,7 @@ exports[`Input gracefully handles an out of bound selectedTab value 1`] = `
               disabled={false}
               onBlur={[Function]}
               onClick={[Function]}
+              onContextMenu={[Function]}
               onFocus={[Function]}
               onKeyDown={[Function]}
               onKeyUp={[Function]}
@@ -267,37 +274,42 @@ exports[`Input gracefully handles an out of bound selectedTab value 1`] = `
                   tab2
                 </span>
               </span>
-              <WithStyles(TouchRipple)
-                center={false}
-                innerRef={[Function]}
+              <NoSsr
+                defer={false}
+                fallback={null}
               >
-                <TouchRipple
+                <WithStyles(TouchRipple)
                   center={false}
-                  classes={
-                    Object {
-                      "child": "MuiTouchRipple-child-34",
-                      "childLeaving": "MuiTouchRipple-childLeaving-35",
-                      "childPulsate": "MuiTouchRipple-childPulsate-36",
-                      "ripple": "MuiTouchRipple-ripple-31",
-                      "ripplePulsate": "MuiTouchRipple-ripplePulsate-33",
-                      "rippleVisible": "MuiTouchRipple-rippleVisible-32",
-                      "root": "MuiTouchRipple-root-30",
-                    }
-                  }
+                  innerRef={[Function]}
                 >
-                  <TransitionGroup
-                    childFactory={[Function]}
-                    className="MuiTouchRipple-root-30"
-                    component="span"
-                    enter={true}
-                    exit={true}
+                  <TouchRipple
+                    center={false}
+                    classes={
+                      Object {
+                        "child": "MuiTouchRipple-child-34",
+                        "childLeaving": "MuiTouchRipple-childLeaving-35",
+                        "childPulsate": "MuiTouchRipple-childPulsate-36",
+                        "ripple": "MuiTouchRipple-ripple-31",
+                        "ripplePulsate": "MuiTouchRipple-ripplePulsate-33",
+                        "rippleVisible": "MuiTouchRipple-rippleVisible-32",
+                        "root": "MuiTouchRipple-root-30",
+                      }
+                    }
                   >
-                    <span
+                    <TransitionGroup
+                      childFactory={[Function]}
                       className="MuiTouchRipple-root-30"
-                    />
-                  </TransitionGroup>
-                </TouchRipple>
-              </WithStyles(TouchRipple)>
+                      component="span"
+                      enter={true}
+                      exit={true}
+                    >
+                      <span
+                        className="MuiTouchRipple-root-30"
+                      />
+                    </TransitionGroup>
+                  </TouchRipple>
+                </WithStyles(TouchRipple)>
+              </NoSsr>
             </button>
           </ButtonBase>
         </WithStyles(ButtonBase)>

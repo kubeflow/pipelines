@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,18 +27,19 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// APICronSchedule api cron schedule
+// APICronSchedule CronSchedule allow scheduling the job with unix-like cron
 // swagger:model apiCronSchedule
 type APICronSchedule struct {
 
-	// cron
+	// The cron string. For details how to compose a cron, visit
+	// ttps://en.wikipedia.org/wiki/Cron
 	Cron string `json:"cron,omitempty"`
 
-	// end time
+	// The end time of the cron job
 	// Format: date-time
 	EndTime strfmt.DateTime `json:"end_time,omitempty"`
 
-	// start time
+	// The start time of the cron job
 	// Format: date-time
 	StartTime strfmt.DateTime `json:"start_time,omitempty"`
 }

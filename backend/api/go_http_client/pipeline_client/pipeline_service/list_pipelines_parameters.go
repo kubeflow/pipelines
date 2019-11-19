@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ package pipeline_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"net/http"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
@@ -77,6 +76,12 @@ for the list pipelines operation typically these are written to a http.Request
 */
 type ListPipelinesParams struct {
 
+	/*Filter
+	  A url-encoded, JSON-serialized Filter protocol buffer (see
+	filter.proto).
+
+	*/
+	Filter *string
 	/*PageSize*/
 	PageSize *int32
 	/*PageToken*/
@@ -126,6 +131,17 @@ func (o *ListPipelinesParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithFilter adds the filter to the list pipelines params
+func (o *ListPipelinesParams) WithFilter(filter *string) *ListPipelinesParams {
+	o.SetFilter(filter)
+	return o
+}
+
+// SetFilter adds the filter to the list pipelines params
+func (o *ListPipelinesParams) SetFilter(filter *string) {
+	o.Filter = filter
+}
+
 // WithPageSize adds the pageSize to the list pipelines params
 func (o *ListPipelinesParams) WithPageSize(pageSize *int32) *ListPipelinesParams {
 	o.SetPageSize(pageSize)
@@ -166,6 +182,22 @@ func (o *ListPipelinesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt
 		return err
 	}
 	var res []error
+
+	if o.Filter != nil {
+
+		// query param filter
+		var qrFilter string
+		if o.Filter != nil {
+			qrFilter = *o.Filter
+		}
+		qFilter := qrFilter
+		if qFilter != "" {
+			if err := r.SetQueryParam("filter", qFilter); err != nil {
+				return err
+			}
+		}
+
+	}
 
 	if o.PageSize != nil {
 

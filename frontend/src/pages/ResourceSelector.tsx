@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
-import Toolbar, { ToolbarActionConfig } from '../components/Toolbar';
+import Toolbar, { ToolbarActionMap } from '../components/Toolbar';
 import { ListRequest } from '../lib/Apis';
 import { RouteComponentProps } from 'react-router-dom';
 import { logger, errorToMessage, formatDateString } from '../lib/Utils';
@@ -39,9 +39,11 @@ export interface ResourceSelectorProps extends RouteComponentProps {
   listApi: (...args: any[]) => Promise<BaseResponse>;
   columns: Column[];
   emptyMessage: string;
+  filterLabel: string;
   initialSortColumn: any;
   selectionChanged: (resource: BaseResource) => void;
   title: string;
+  toolbarActionMap?: ToolbarActionMap;
   updateDialog: (dialogProps: DialogProps) => void;
 }
 
@@ -49,7 +51,7 @@ interface ResourceSelectorState {
   resources: BaseResource[];
   rows: Row[];
   selectedIds: string[];
-  toolbarActions: ToolbarActionConfig[];
+  toolbarActionMap: ToolbarActionMap;
 }
 
 class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSelectorState> {
@@ -62,21 +64,28 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
       resources: [],
       rows: [],
       selectedIds: [],
-      toolbarActions: [],
+      toolbarActionMap: (props && props.toolbarActionMap) || {},
     };
   }
 
   public render(): JSX.Element {
-    const { rows, selectedIds, toolbarActions } = this.state;
-    const { columns, title, emptyMessage, initialSortColumn } = this.props;
+    const { rows, selectedIds, toolbarActionMap } = this.state;
+    const { columns, title, filterLabel, emptyMessage, initialSortColumn } = this.props;
 
     return (
       <React.Fragment>
-        <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle={title} />
-        <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
+        <Toolbar actions={toolbarActionMap} breadcrumbs={[]} pageTitle={title} />
+        <CustomTable
+          columns={columns}
+          rows={rows}
+          selectedIds={selectedIds}
+          useRadioButtons={true}
           updateSelection={this._selectionChanged.bind(this)}
-          initialSortColumn={initialSortColumn} reload={this._load.bind(this)}
-          emptyMessage={emptyMessage} />
+          filterLabel={filterLabel}
+          initialSortColumn={initialSortColumn}
+          reload={this._load.bind(this)}
+          emptyMessage={emptyMessage}
+        />
       </React.Fragment>
     );
   }
@@ -109,12 +118,16 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
   protected async _load(request: ListRequest): Promise<string> {
     let nextPageToken = '';
     try {
-      const response =
-        await this.props.listApi(request.pageToken, request.pageSize, request.sortBy);
+      const response = await this.props.listApi(
+        request.pageToken,
+        request.pageSize,
+        request.sortBy,
+        request.filter,
+      );
 
       this.setStateSafe({
         resources: response.resources,
-        rows: this._resourcesToRow(response.resources)
+        rows: this._resourcesToRow(response.resources),
       });
 
       nextPageToken = response.nextPageToken;
@@ -131,17 +144,15 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
   }
 
   protected _resourcesToRow(resources: BaseResource[]): Row[] {
-    return resources.map((r) => ({
-      error: (r as any).error,
-      id: r.id!,
-      otherFields: [
-        r.name,
-        r.description,
-        formatDateString(r.created_at),
-      ],
-    } as Row));
+    return resources.map(
+      r =>
+        ({
+          error: (r as any).error,
+          id: r.id!,
+          otherFields: [r.name, r.description, formatDateString(r.created_at)],
+        } as Row),
+    );
   }
 }
 
 export default ResourceSelector;
-

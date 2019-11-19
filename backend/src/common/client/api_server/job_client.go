@@ -19,7 +19,7 @@ type JobInterface interface {
 	Delete(params *params.DeleteJobParams) error
 	Enable(params *params.EnableJobParams) error
 	Disable(params *params.DisableJobParams) error
-	List(params *params.ListJobsParams) ([]*model.APIJob, string, error)
+	List(params *params.ListJobsParams) ([]*model.APIJob, int, string, error)
 	ListAll(params *params.ListJobsParams, maxResultSize int) ([]*model.APIJob, error)
 }
 
@@ -161,7 +161,7 @@ func (c *JobClient) Disable(parameters *params.DisableJobParams) error {
 }
 
 func (c *JobClient) List(parameters *params.ListJobsParams) (
-	[]*model.APIJob, string, error) {
+	[]*model.APIJob, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
@@ -176,12 +176,12 @@ func (c *JobClient) List(parameters *params.ListJobsParams) (
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
-		return nil, "", util.NewUserError(err,
+		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list jobs. Params: '%+v'", parameters),
 			fmt.Sprintf("Failed to list jobs"))
 	}
 
-	return response.Payload.Jobs, response.Payload.NextPageToken, nil
+	return response.Payload.Jobs, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
 }
 
 func (c *JobClient) ListAll(parameters *params.ListJobsParams, maxResultSize int) (
@@ -199,7 +199,7 @@ func listAllForJob(client JobInterface, parameters *params.ListJobsParams,
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {
-		results, pageToken, err := client.List(parameters)
+		results, _, pageToken, err := client.List(parameters)
 		if err != nil {
 			return nil, err
 		}

@@ -18,9 +18,11 @@ import * as React from 'react';
 
 export enum PlotType {
   CONFUSION_MATRIX = 'confusion_matrix',
+  MARKDOWN = 'markdown',
   ROC = 'roc',
   TABLE = 'table',
   TENSORBOARD = 'tensorboard',
+  VISUALIZATION_CREATOR = 'visualization-creator',
   WEB_APP = 'web-app',
 }
 

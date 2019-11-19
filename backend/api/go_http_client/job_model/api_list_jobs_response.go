@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,11 +32,14 @@ import (
 // swagger:model apiListJobsResponse
 type APIListJobsResponse struct {
 
-	// jobs
+	// A list of jobs returned.
 	Jobs []*APIJob `json:"jobs"`
 
 	// next page token
 	NextPageToken string `json:"next_page_token,omitempty"`
+
+	// total size
+	TotalSize int32 `json:"total_size,omitempty"`
 }
 
 // Validate validates this api list jobs response

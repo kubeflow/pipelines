@@ -1,0 +1,22 @@
+EndpointConfigName: ''
+ProductionVariants:
+  - VariantName: 'variant-name-1'
+    ModelName: ''
+    InitialInstanceCount: 1
+    InstanceType: 'ml.m4.xlarge'
+    InitialVariantWeight: 1.0
+    AcceleratorType: ''
+  - VariantName: 'variant-name-2'
+    ModelName: ''
+    InitialInstanceCount: 1
+    InstanceType: 'ml.m4.xlarge'
+    InitialVariantWeight: 1.0
+    AcceleratorType: ''
+  - VariantName: 'variant-name-3'
+    ModelName: ''
+    InitialInstanceCount: 1
+    InstanceType: 'ml.m4.xlarge'
+    InitialVariantWeight: 1.0
+    AcceleratorType: ''
+Tags: []
+KmsKeyId: ''

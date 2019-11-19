@@ -6,7 +6,7 @@ import (
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -30,21 +30,24 @@ func TestCreateRun(t *testing.T) {
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
-			Id:           "workflow1",
+			Id:           "123e4567-e89b-12d3-a456-426655440000",
 			Name:         "123",
 			StorageState: api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt:  &timestamp.Timestamp{},
+			FinishedAt:   &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{
-					Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
-					Relationship: api.Relationship_OWNER,
+					Key:  &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+					Name: "123", Relationship: api.Relationship_OWNER,
 				},
 			},
 		},
@@ -71,36 +74,26 @@ func TestListRun(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRun := &api.Run{
-		Id:           "workflow1",
+		Id:           "123e4567-e89b-12d3-a456-426655440000",
 		Name:         "123",
 		StorageState: api.Run_STORAGESTATE_AVAILABLE,
 		CreatedAt:    &timestamp.Timestamp{Seconds: 2},
 		ScheduledAt:  &timestamp.Timestamp{},
+		FinishedAt:   &timestamp.Timestamp{},
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{
-				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
-				Relationship: api.Relationship_OWNER,
+				Key:  &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Name: "123", Relationship: api.Relationship_OWNER,
 			},
 		},
 	}
 	listRunsResponse, err := server.ListRuns(nil, &api.ListRunsRequest{})
+	assert.Equal(t, 1, len(listRunsResponse.Runs))
 	assert.Equal(t, expectedRun, listRunsResponse.Runs[0])
-
-	run2 := &api.Run{
-		Name: "456",
-		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow2.ToStringForStore(),
-			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
-		},
-	}
-	_, err = server.CreateRun(nil, &api.CreateRunRequest{Run: run2})
-	assert.Nil(t, err)
-	listRunsResponse, err = server.ListRuns(nil, &api.ListRunsRequest{})
-	assert.Equal(t, 2, len(listRunsResponse.Runs))
 }
 
 func TestValidateCreateRunRequest(t *testing.T) {
@@ -114,6 +107,18 @@ func TestValidateCreateRunRequest(t *testing.T) {
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
+	}
+	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+}
+
+func TestValidateCreateRunRequest_WithPipelineVersionReference(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewRunServer(manager)
+	run := &api.Run{
+		Name:               "123",
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
 	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
@@ -151,7 +156,7 @@ func TestValidateCreateRunRequest_NoExperiment(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestValidateCreateRunRequest_EmptyPipelineSpec(t *testing.T) {
+func TestValidateCreateRunRequest_EmptyPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager)
@@ -161,7 +166,7 @@ func TestValidateCreateRunRequest_EmptyPipelineSpec(t *testing.T) {
 	}
 	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a pipeline ID or workflow manifest")
+	assert.Contains(t, err.Error(), "Neither pipeline spec nor pipeline version is valid")
 }
 
 func TestValidateCreateRunRequest_TooMuchParameters(t *testing.T) {

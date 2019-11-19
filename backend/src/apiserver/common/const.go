@@ -23,10 +23,11 @@ type ResourceType string
 type Relationship string
 
 const (
-	Experiment ResourceType = "Experiment"
-	Job        ResourceType = "Job"
-	Run        ResourceType = "Run"
-	Pipeline   ResourceType = "pipeline"
+	Experiment      ResourceType = "Experiment"
+	Job             ResourceType = "Job"
+	Run             ResourceType = "Run"
+	Pipeline        ResourceType = "pipeline"
+	PipelineVersion ResourceType = "PipelineVersion"
 )
 
 const (
@@ -40,6 +41,8 @@ func ToModelResourceType(apiType api.ResourceType) (ResourceType, error) {
 		return Experiment, nil
 	case api.ResourceType_JOB:
 		return Job, nil
+	case api.ResourceType_PIPELINE_VERSION:
+		return PipelineVersion, nil
 	default:
 		return "", util.NewInvalidInputError("Unsupported resource type: %s", api.ResourceType_name[int32(apiType)])
 	}

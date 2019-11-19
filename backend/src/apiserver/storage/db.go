@@ -52,6 +52,10 @@ type SQLDialect interface {
 
 	// Check whether the error is a SQL duplicate entry error or not
 	IsDuplicateError(err error) bool
+
+	// Modifies the SELECT clause in query to return one that locks the selected
+	// row for update.
+	SelectForUpdate(query string) string
 }
 
 // MySQLDialect implements SQLDialect with mysql dialect implementation.
@@ -101,6 +105,14 @@ func (d SQLiteDialect) Concat(exprs []string, separator string) string {
 		separatorSQL = fmt.Sprintf(`||"%s"||`, separator)
 	}
 	return strings.Join(exprs, separatorSQL)
+}
+
+func (d MySQLDialect) SelectForUpdate(query string) string {
+	return query + " FOR UPDATE"
+}
+
+func (d SQLiteDialect) SelectForUpdate(query string) string {
+	return query
 }
 
 func (d SQLiteDialect) IsDuplicateError(err error) bool {

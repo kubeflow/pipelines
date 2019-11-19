@@ -16,7 +16,7 @@ package client
 
 import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow/v1alpha1"
+	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow/v1beta1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/cache"
 )
@@ -27,11 +27,11 @@ type ScheduledWorkflowClientInterface interface {
 
 // ScheduledWorkflowClient is a client to call the ScheduledWorkflow API.
 type ScheduledWorkflowClient struct {
-	informer v1alpha1.ScheduledWorkflowInformer
+	informer v1beta1.ScheduledWorkflowInformer
 }
 
 // NewScheduledWorkflowClient creates an instance of the client.
-func NewScheduledWorkflowClient(informer v1alpha1.ScheduledWorkflowInformer) *ScheduledWorkflowClient {
+func NewScheduledWorkflowClient(informer v1beta1.ScheduledWorkflowInformer) *ScheduledWorkflowClient {
 	return &ScheduledWorkflowClient{
 		informer: informer,
 	}

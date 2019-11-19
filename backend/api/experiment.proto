@@ -14,13 +14,14 @@
 
 syntax = "proto3";
 
+option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
 package api;
 
-import "filter.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-swagger/options/annotations.proto";
+import "backend/api/error.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   responses: {
@@ -84,29 +85,42 @@ service ExperimentService {
 }
 
 message CreateExperimentRequest {
+  // The experiment to be created
   Experiment experiment = 1;
 }
 
 message GetExperimentRequest {
+  // The ID of the experiment to be retrieved
   string id = 1;
 }
 
 message ListExperimentsRequest {
   string page_token = 1;
   int32 page_size = 2;
+
   // Can be format of "field_name", "field_name asc" or "field_name des"
   // Ascending by default.
   string sort_by = 3;
 
-  Filter filter = 4;
+  // A url-encoded, JSON-serialized Filter protocol buffer (see
+  // [filter.proto](https://github.com/kubeflow/pipelines/
+  // blob/master/backend/api/filter.proto)).
+  string filter = 4;
 }
 
 message ListExperimentsResponse {
+  // A list of experiments returned.
   repeated Experiment experiments = 1;
+
+  // The total number of experiments for the given query.
+  int32 total_size = 3;
+
+  // The token to list the next page of experiments.
   string next_page_token = 2;
 }
 
-message DeleteExperimentRequest{
+message DeleteExperimentRequest {
+  // The ID of the experiment to be deleted.
   string id = 1;
 }
 
@@ -118,7 +132,7 @@ message Experiment {
   string name = 2;
 
   // Optional input field. Describing the purpose of the experiment
-  string description =3;
+  string description = 3;
 
   // Output. The time that the experiment created.
   google.protobuf.Timestamp created_at = 4;

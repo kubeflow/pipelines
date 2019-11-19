@@ -19,7 +19,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -51,13 +50,7 @@ func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*ap
 }
 
 func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) (*api.ListJobsResponse, error) {
-	var opts *list.Options
-	var err error
-	if request.PageToken != "" {
-		opts, err = list.NewOptionsFromToken(request.PageToken, int(request.PageSize))
-	} else {
-		opts, err = list.NewOptions(&model.Pipeline{}, int(request.PageSize), request.SortBy, request.Filter)
-	}
+	opts, err := validatedListOptions(&model.Job{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
 
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
@@ -67,11 +60,11 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
-	jobs, nextPageToken, err := s.resourceManager.ListJobs(filterContext, opts)
+	jobs, total_size, nextPageToken, err := s.resourceManager.ListJobs(filterContext, opts)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list jobs.")
 	}
-	return &api.ListJobsResponse{Jobs: ToApiJobs(jobs), NextPageToken: nextPageToken}, nil
+	return &api.ListJobsResponse{Jobs: ToApiJobs(jobs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
 }
 
 func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest) (*empty.Empty, error) {
@@ -92,13 +85,11 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 
 func (s *JobServer) validateCreateJobRequest(request *api.CreateJobRequest) error {
 	job := request.Job
-	// Job must be created under an experiment.
-	if err := ValidateExperimentResourceReference(s.resourceManager, job.ResourceReferences); err != nil {
-		return util.Wrap(err, "The job must have a valid experiment resource reference.")
-	}
 
 	if err := ValidatePipelineSpec(s.resourceManager, job.PipelineSpec); err != nil {
-		return util.Wrap(err, "The pipeline spec is invalid.")
+		if _, errResourceReference := CheckPipelineVersionReference(s.resourceManager, job.ResourceReferences); errResourceReference != nil {
+			return util.Wrap(err, "Neither pipeline spec nor pipeline version is valid."+errResourceReference.Error())
+		}
 	}
 
 	if job.MaxConcurrency > 10 || job.MaxConcurrency < 1 {

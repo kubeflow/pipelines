@@ -1,0 +1,14 @@
+name: nuclio delete
+description: delete a nuclio function.
+inputs:
+  - {name: Name, type: String, description: 'function name'}
+  - {name: Namespace, type: String, description: 'Kubernetes namespace', default: ''}
+  - {name: Dashboard, type: String, description: 'nuclio dashboard service url', default: 'http://nuclio-dashboard.nuclio:8070'}
+implementation:
+  container:
+    image: nuclio/pydeploy
+    command: [
+      python, -m, nuclio, del, {inputValue: Name},
+      --dashboard-url, {inputValue: Dashboard},
+      --namespace, {inputValue: Namespace},
+    ]

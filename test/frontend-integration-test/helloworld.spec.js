@@ -20,6 +20,8 @@ const experimentDescription = 'hello world experiment description';
 const pipelineName = 'helloworld-pipeline-' + Date.now();
 const runName = 'helloworld-' + Date.now();
 const runDescription = 'test run description ' + runName;
+const runWithoutExperimentName = 'helloworld-2-' + Date.now();
+const runWithoutExperimentDescription = 'test run without experiment description ' + runWithoutExperimentName;
 const waitTimeout = 5000;
 const outputParameterValue = 'Hello world in test'
 
@@ -63,7 +65,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('creates a new experiment out of this pipeline', () => {
-    $('#startNewExperimentBtn').click();
+    $('#newExperimentBtn').click();
     browser.waitUntil(() => {
       return new URL(browser.getUrl()).hash.startsWith('#/experiments/new');
     }, waitTimeout);
@@ -93,12 +95,14 @@ describe('deploy helloworld sample run', () => {
 
     // Skip over "choose experiment" button
     browser.keys('Tab');
+    // Skip over "Run Type" radio button
+    browser.keys('Tab');
 
     browser.keys('Tab');
     browser.keys(outputParameterValue);
 
     // Deploy
-    $('#createNewRunBtn').click();
+    $('#startNewRunBtn').click();
   });
 
   it('redirects back to experiment page', () => {
@@ -139,7 +143,6 @@ describe('deploy helloworld sample run', () => {
     // Wait for a reasonable amount of time until the run is done
     while (attempts < maxAttempts && status.trim() !== 'Succeeded') {
       browser.pause(1000);
-      $('#refreshBtn').click();
       status = getValueFromDetailsTable('Status');
       attempts++;
     }
@@ -171,6 +174,7 @@ describe('deploy helloworld sample run', () => {
 
   it('opens the side panel when graph node is clicked', () => {
     $('.graphNode').click();
+    browser.pause(1000);
     $('button=Logs').waitForVisible();
   });
 
@@ -182,6 +186,83 @@ describe('deploy helloworld sample run', () => {
       return logs.indexOf(outputParameterValue + ' from node: ') > -1;
     }, waitTimeout);
   });
+
+  it('navigates back to the experiment list', () => {
+    $('button=Experiments').click();
+    browser.waitUntil(() => {
+      return new URL(browser.getUrl()).hash.startsWith('#/experiments');
+    }, waitTimeout);
+  });
+
+  it('creates a new run without selecting an experiment', () => {
+    $('#createNewRunBtn').waitForVisible();
+    $('#createNewRunBtn').click();
+
+    $('#choosePipelineBtn').waitForVisible();
+    $('#choosePipelineBtn').click();
+
+    $('.tableRow').waitForVisible();
+    $('.tableRow').click();
+
+    $('#usePipelineBtn').click();
+
+    $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
+
+    browser.keys('Tab');
+    browser.keys(runWithoutExperimentName);
+
+    browser.keys('Tab');
+    browser.keys(runWithoutExperimentDescription);
+
+    // Skip over "choose experiment" button
+    browser.keys('Tab');
+    // Skip over "Run Type" radio button
+    browser.keys('Tab');
+
+    browser.keys('Tab');
+    browser.keys(outputParameterValue);
+
+    // Deploy
+    $('#startNewRunBtn').click();
+  });
+
+  it('redirects back to all runs page', () => {
+    browser.waitUntil(() => {
+      return (new URL(browser.getUrl())).hash === '#/runs';
+    }, waitTimeout, `URL was: ${new URL(browser.getUrl())}`);
+  });
+
+  it('displays both runs in all runs page', () => {
+    $('.tableRow').waitForVisible();
+    const rows = $$('.tableRow').length;
+    assert(rows === 2, 'there should now be two runs in the table, instead there are: ' + rows);
+  });
+
+  it('navigates back to the experiment list', () => {
+    $('button=Experiments').click();
+    browser.waitUntil(() => {
+      return new URL(browser.getUrl()).hash.startsWith('#/experiments');
+    }, waitTimeout);
+  });
+
+  it('displays both experiments in the list', () => {
+    $('.tableRow').waitForVisible();
+    const rows = $$('.tableRow').length;
+    assert(rows === 2, 'there should now be two experiments in the table, instead there are: ' + rows);
+  });
+
+  it('filters the experiment list', () => {
+    // Enter "hello" into filter bar
+    browser.click('#tableFilterBox');
+    browser.keys(experimentName.substring(0, 5));
+    // Wait for the list to refresh
+    browser.pause(2000);
+
+    $('.tableRow').waitForVisible();
+    const rows = $$('.tableRow').length;
+    assert(rows === 1, 'there should now be one experiment in the table, instead there are: ' + rows);
+  });
+
   //TODO: enable this after we change the pipeline to a unique name such that deleting this
   // pipeline will not jeopardize the concurrent basic e2e tests.
   // it('deletes the uploaded pipeline', () => {

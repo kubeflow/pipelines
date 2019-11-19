@@ -1,0 +1,18 @@
+urllib3>=1.15,<1.25 #Fixing the version conflict with the "requests" package caused by the kubernetes package
+six>=1.10
+certifi
+python-dateutil
+PyYAML
+google-cloud-storage>=1.13.0
+kubernetes>=8.0.0, <=9.0.0
+PyJWT>=1.6.4
+cryptography>=2.4.2
+google-auth>=1.6.1
+requests_toolbelt>=0.8.0
+cloudpickle==1.1.1
+kfp-server-api >= 0.1.18, < 0.1.19
+argo-models == 2.2.1a
+jsonschema >= 3.0.1
+tabulate == 0.8.3
+click == 7.0
+Deprecated

@@ -20,7 +20,7 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={false}
         control={
           <WithStyles(Radio)
@@ -31,7 +31,7 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
         label="Upload a file"
         onChange={[Function]}
       />
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={true}
         control={
           <WithStyles(Radio)
@@ -48,11 +48,13 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
     >
       URL must be publicly accessible.
     </div>
+    <DocumentationCompilePipeline />
     <Component
       label="URL"
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
     <Component
       id="uploadFileName"
@@ -60,9 +62,16 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
   </div>
   <WithStyles(DialogActions)>
+    <WithStyles(Button)
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
     <BusyButton
       busy={false}
       disabled={true}
@@ -70,12 +79,6 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
       onClick={[Function]}
       title="Upload"
     />
-    <WithStyles(Button)
-      id="cancelUploadBtn"
-      onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
 `;
@@ -100,7 +103,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={true}
         control={
           <WithStyles(Radio)
@@ -111,7 +114,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
         label="Upload a file"
         onChange={[Function]}
       />
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={false}
         control={
           <WithStyles(Radio)
@@ -159,6 +162,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
         <br />
         You can also drag and drop the file here.
       </div>
+      <DocumentationCompilePipeline />
       <Component
         InputProps={
           Object {
@@ -172,6 +176,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
                   Object {
                     "margin": 0,
                     "padding": "3px 5px",
+                    "whiteSpace": "nowrap",
                   }
                 }
               >
@@ -185,6 +190,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
         onChange={[Function]}
         required={true}
         value=""
+        variant="outlined"
       />
     </n>
     <Component
@@ -193,9 +199,16 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
   </div>
   <WithStyles(DialogActions)>
+    <WithStyles(Button)
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
     <BusyButton
       busy={false}
       disabled={true}
@@ -203,12 +216,6 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
       onClick={[Function]}
       title="Upload"
     />
-    <WithStyles(Button)
-      id="cancelUploadBtn"
-      onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
 `;
@@ -233,7 +240,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={true}
         control={
           <WithStyles(Radio)
@@ -244,7 +251,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
         label="Upload a file"
         onChange={[Function]}
       />
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={false}
         control={
           <WithStyles(Radio)
@@ -287,6 +294,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
         <br />
         You can also drag and drop the file here.
       </div>
+      <DocumentationCompilePipeline />
       <Component
         InputProps={
           Object {
@@ -300,6 +308,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
                   Object {
                     "margin": 0,
                     "padding": "3px 5px",
+                    "whiteSpace": "nowrap",
                   }
                 }
               >
@@ -313,6 +322,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
         onChange={[Function]}
         required={true}
         value=""
+        variant="outlined"
       />
     </n>
     <Component
@@ -321,9 +331,16 @@ exports[`UploadPipelineDialog renders closed 1`] = `
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
   </div>
   <WithStyles(DialogActions)>
+    <WithStyles(Button)
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
     <BusyButton
       busy={false}
       disabled={true}
@@ -331,12 +348,6 @@ exports[`UploadPipelineDialog renders closed 1`] = `
       onClick={[Function]}
       title="Upload"
     />
-    <WithStyles(Button)
-      id="cancelUploadBtn"
-      onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
 `;
@@ -361,7 +372,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={true}
         control={
           <WithStyles(Radio)
@@ -372,7 +383,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
         label="Upload a file"
         onChange={[Function]}
       />
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={false}
         control={
           <WithStyles(Radio)
@@ -415,6 +426,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
         <br />
         You can also drag and drop the file here.
       </div>
+      <DocumentationCompilePipeline />
       <Component
         InputProps={
           Object {
@@ -428,6 +440,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
                   Object {
                     "margin": 0,
                     "padding": "3px 5px",
+                    "whiteSpace": "nowrap",
                   }
                 }
               >
@@ -441,6 +454,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
         onChange={[Function]}
         required={true}
         value=""
+        variant="outlined"
       />
     </n>
     <Component
@@ -449,9 +463,16 @@ exports[`UploadPipelineDialog renders open 1`] = `
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
   </div>
   <WithStyles(DialogActions)>
+    <WithStyles(Button)
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
     <BusyButton
       busy={false}
       disabled={true}
@@ -459,12 +480,6 @@ exports[`UploadPipelineDialog renders open 1`] = `
       onClick={[Function]}
       title="Upload"
     />
-    <WithStyles(Button)
-      id="cancelUploadBtn"
-      onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
 `;
@@ -489,7 +504,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={true}
         control={
           <WithStyles(Radio)
@@ -500,7 +515,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
         label="Upload a file"
         onChange={[Function]}
       />
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={false}
         control={
           <WithStyles(Radio)
@@ -543,6 +558,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
         <br />
         You can also drag and drop the file here.
       </div>
+      <DocumentationCompilePipeline />
       <Component
         InputProps={
           Object {
@@ -556,6 +572,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
                   Object {
                     "margin": 0,
                     "padding": "3px 5px",
+                    "whiteSpace": "nowrap",
                   }
                 }
               >
@@ -569,6 +586,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
         onChange={[Function]}
         required={true}
         value=""
+        variant="outlined"
       />
     </n>
     <Component
@@ -577,9 +595,16 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
   </div>
   <WithStyles(DialogActions)>
+    <WithStyles(Button)
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
     <BusyButton
       busy={false}
       disabled={true}
@@ -587,12 +612,6 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
       onClick={[Function]}
       title="Upload"
     />
-    <WithStyles(Button)
-      id="cancelUploadBtn"
-      onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
 `;

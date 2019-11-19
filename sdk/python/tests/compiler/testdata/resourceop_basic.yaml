@@ -1,0 +1,74 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A Basic Example on ResourceOp
+      Usage.", "inputs": [{"name": "username"}, {"name": "password"}], "name": "ResourceOp Basic"}'
+  generateName: resourceop-basic-
+spec:
+  arguments:
+    parameters:
+    - name: username
+    - name: password
+  entrypoint: resourceop-basic
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - ls /etc/secret-volume
+      command:
+      - sh
+      - -c
+      image: library/bash:4.4.23
+      volumeMounts:
+      - mountPath: /etc/secret-volume
+        name: my-secret
+    inputs:
+      parameters:
+      - name: create-my-secret-name
+    name: cop
+    volumes:
+    - name: my-secret
+      secret:
+        secretName: '{{inputs.parameters.create-my-secret-name}}'
+  - inputs:
+      parameters:
+      - name: password
+      - name: username
+    name: create-my-secret
+    outputs:
+      parameters:
+      - name: create-my-secret-manifest
+        valueFrom:
+          jsonPath: '{}'
+      - name: create-my-secret-name
+        valueFrom:
+          jsonPath: '{.metadata.name}'
+    resource:
+      action: create
+      manifest: "apiVersion: v1\ndata:\n  password: '{{inputs.parameters.password}}'\n\
+        \  username: '{{inputs.parameters.username}}'\nkind: Secret\nmetadata:\n \
+        \ generateName: my-secret-\ntype: Opaque\n"
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: create-my-secret-name
+            value: '{{tasks.create-my-secret.outputs.parameters.create-my-secret-name}}'
+        dependencies:
+        - create-my-secret
+        name: cop
+        template: cop
+      - arguments:
+          parameters:
+          - name: password
+            value: '{{inputs.parameters.password}}'
+          - name: username
+            value: '{{inputs.parameters.username}}'
+        name: create-my-secret
+        template: create-my-secret
+    inputs:
+      parameters:
+      - name: password
+      - name: username
+    name: resourceop-basic

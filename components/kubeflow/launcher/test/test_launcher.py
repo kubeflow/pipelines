@@ -38,7 +38,7 @@ class TestLauncher(unittest.TestCase):
     args_list.append('--learning-rate=0.1')
     generated_yaml = train._generate_train_yaml(train_template_file, tfjob_ns, worker, pss, args_list)
     with open(os.path.join(test_data_dir, 'train_basic.yaml'), 'r') as f:
-      golden = yaml.load(f)
+      golden = yaml.safe_load(f)
     self.assertEqual(golden, generated_yaml)
 
   def test_yaml_generation_advanced(self):
@@ -53,7 +53,7 @@ class TestLauncher(unittest.TestCase):
     args_list.append('--learning-rate=0.1')
     generated_yaml = train._generate_train_yaml(train_template_file, tfjob_ns, worker, pss, args_list)
     with open(os.path.join(test_data_dir, 'train_zero_worker.yaml'), 'r') as f:
-      golden = yaml.load(f)
+      golden = yaml.safe_load(f)
     self.assertEqual(golden, generated_yaml)
 
 if __name__ == '__main__':

@@ -12,20 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import * as _path from 'path';
 import * as express from 'express';
 import * as fs from 'fs';
-import * as _path from 'path';
-import proxyMiddleware from '../server/proxy-middleware';
-import { ExperimentSortKeys, RunSortKeys, PipelineSortKeys } from '../src/lib/Apis';
-
-import helloWorldRuntime from './integration-test-runtime';
-import { data as fixedData, namedPipelines } from './fixed-data';
-import { ApiPipeline, ApiListPipelinesResponse } from '../src/apis/pipeline';
-import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
-import { ApiRun, ApiListRunsResponse, ApiResourceType } from '../src/apis/run';
-import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
 import RunUtils from '../src/lib/RunUtils';
+import helloWorldRuntime from './integration-test-runtime';
+import proxyMiddleware from '../server/proxy-middleware';
+import { ApiFilter, PredicateOp } from '../src/apis/filter';
+import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
+import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
+import { ApiListPipelinesResponse, ApiPipeline } from '../src/apis/pipeline';
+import { ApiListRunsResponse, ApiResourceType, ApiRun, RunStorageState } from '../src/apis/run';
+import { ExperimentSortKeys, PipelineSortKeys, RunSortKeys } from '../src/lib/Apis';
 import { Response } from 'express-serve-static-core';
+import { data as fixedData, namedPipelines } from './fixed-data';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
 const rocMetadataJsonPath2 = './eval-output/metadata2.json';
@@ -42,6 +42,15 @@ const v1beta1Prefix = '/apis/v1beta1';
 
 let tensorboardPod = '';
 
+// This is a copy of the BaseResource defined within src/pages/ResourceSelector
+interface BaseResource {
+  id?: string;
+  created_at?: Date;
+  description?: string;
+  name?: string;
+  error?: string;
+}
+
 // tslint:disable-next-line:no-default-export
 export default (app: express.Application) => {
 
@@ -57,7 +66,13 @@ export default (app: express.Application) => {
   app.use(express.json());
 
   app.get(v1beta1Prefix + '/healthz', (_, res) => {
-    res.send({ apiServerReady: true });
+    res.header('Content-Type', 'application/json');
+    res.send({
+      apiServerCommitHash: 'd3c4add0a95e930c70a330466d0923827784eb9a',
+      apiServerReady: true,
+      buildDate: 'Wed Jan 9 19:40:24 UTC 2019',
+      frontendCommitHash: '8efb2fcff9f666ba5b101647e909dc9c6889cecb'
+    });
   });
 
   app.get('/hub/', (_, res) => {
@@ -92,13 +107,8 @@ export default (app: express.Application) => {
     };
 
     let jobs: ApiJob[] = fixedData.jobs;
-    if (req.query.filter_by) {
-      // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
-      // This may need to be updated when the backend implements filtering.
-      jobs = fixedData.jobs.filter((j) =>
-        j.name!.toLocaleLowerCase().indexOf(
-          decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
-
+    if (req.query.filter) {
+      jobs = filterResources(fixedData.jobs, req.query.filter);
     }
 
     const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.CREATED_AT, req.query.sort_by);
@@ -134,12 +144,8 @@ export default (app: express.Application) => {
     };
 
     let experiments: ApiExperiment[] = fixedData.experiments;
-    if (req.query.filterBy) {
-      // NOTE: We do not mock fuzzy matching. E.g. 'ep' doesn't match 'experiment'
-      experiments = fixedData.experiments.filter((exp) =>
-        exp.name!.toLocaleLowerCase().indexOf(
-          decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
-
+    if (req.query.filter) {
+      experiments = filterResources(fixedData.experiments, req.query.filter);
     }
 
     const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.NAME, req.query.sortBy);
@@ -169,7 +175,7 @@ export default (app: express.Application) => {
   app.post(v1beta1Prefix + '/experiments', (req, res) => {
     const experiment: ApiExperiment = req.body;
     if (fixedData.experiments.find(e => e.name!.toLowerCase() === experiment.name!.toLowerCase())) {
-      res.status(404).send('An experiment with teh same name already exists');
+      res.status(404).send('An experiment with the same name already exists');
       return;
     }
     experiment.id = 'new-experiment-' + (fixedData.experiments.length + 1);
@@ -189,10 +195,6 @@ export default (app: express.Application) => {
       return;
     }
     res.json(experiment);
-  });
-
-  app.options(v1beta1Prefix + '/jobs', (req, res) => {
-    res.send();
   });
 
   app.post(v1beta1Prefix + '/jobs', (req, res) => {
@@ -247,62 +249,6 @@ export default (app: express.Application) => {
     }
   });
 
-  app.get(v1beta1Prefix + '/jobs/:jid/runs', (req, res) => {
-    res.header('Content-Type', 'application/json');
-    // Note: the way that we use the next_page_token here may not reflect the way the backend works.
-    const response: ApiListRunsResponse = {
-      next_page_token: '',
-      runs: [],
-    };
-
-    let runs: ApiRun[] = fixedData.runs.slice(0, 7).map((r) => r.run!);
-
-    if (req.params.jid.startsWith('new-job-')) {
-      response.runs = runs.slice(0, 1);
-      res.json(response);
-      return;
-    } else if (req.params.jid === '7fc01714-4a13-4c05-5902-a8a72c14253b') { // No runs job
-      res.json(response);
-      return;
-    }
-
-    const job = fixedData.jobs.find((j) => j.id === req.params.jid);
-    if (!job) {
-      res.status(404).send(`No job was found with ID: ${req.params.jid}`);
-      return;
-    }
-
-    if (req.query.filter_by) {
-      // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
-      // This may need to be updated when the backend implements filtering.
-      runs = runs.filter((r) => r.name!.toLocaleLowerCase().indexOf(
-        decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
-    }
-
-    const { desc, key } = getSortKeyAndOrder(RunSortKeys.CREATED_AT, req.query.sort_by);
-
-    runs.sort((a, b) => {
-      let result = 1;
-      if (a[key]! < b[key]!) {
-        result = -1;
-      }
-      if (a[key]! === b[key]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
-
-    const start = (req.query.page_token ? +req.query.page_token : 0);
-    const end = start + (+req.query.page_size || 20);
-    response.runs = runs.slice(start, end);
-
-    if (end < runs.length) {
-      response.next_page_token = end + '';
-    }
-
-    res.json(response);
-  });
-
   app.get(v1beta1Prefix + '/runs', (req, res) => {
     res.header('Content-Type', 'application/json');
     // Note: the way that we use the next_page_token here may not reflect the way the backend works.
@@ -313,11 +259,8 @@ export default (app: express.Application) => {
 
     let runs: ApiRun[] = fixedData.runs.map((r) => r.run!);
 
-    if (req.query.filter_by) {
-      // NOTE: We do not mock fuzzy matching. E.g. 'rn' doesn't match 'run'
-      // This may need to be updated when the backend implements filtering.
-      runs = runs.filter((r) => r.name!.toLocaleLowerCase().indexOf(
-        decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
+    if (req.query.filter) {
+      runs = filterResources(runs, req.query.filter);
     }
 
     if (req.query['resource_reference_key.type'] === ApiResourceType.EXPERIMENT) {
@@ -359,7 +302,6 @@ export default (app: express.Application) => {
     res.json(run);
   });
 
-
   app.post(v1beta1Prefix + '/runs', (req, res) => {
     const date = new Date();
     const run: ApiRun = req.body;
@@ -379,9 +321,20 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
-  app.options(v1beta1Prefix + '/jobs/:jid/enable', (req, res) => {
-    res.send();
+  app.post(v1beta1Prefix + '/runs/:rid::method', (req, res) => {
+    if (req.params.method !== 'archive' && req.params.method !== 'unarchive') {
+      res.status(500).send('Bad method');
+    }
+    const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
+    if (runDetail) {
+      runDetail.run!.storage_state = req.params.method === 'archive' ?
+        RunStorageState.ARCHIVED : RunStorageState.AVAILABLE;
+      res.json({});
+    } else {
+      res.status(500).send('Cannot find a run with id ' + req.params.rid);
+    }
   });
+
   app.post(v1beta1Prefix + '/jobs/:jid/enable', (req, res) => {
     setTimeout(() => {
       const job = fixedData.jobs.find((j) => j.id === req.params.jid);
@@ -394,9 +347,6 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
-  app.options(v1beta1Prefix + '/jobs/:jid/disable', (req, res) => {
-    res.send();
-  });
   app.post(v1beta1Prefix + '/jobs/:jid/disable', (req, res) => {
     setTimeout(() => {
       const job = fixedData.jobs.find((j) => j.id === req.params.jid);
@@ -409,6 +359,54 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
+  function filterResources(resources: BaseResource[], filterString?: string): BaseResource[] {
+    if (!filterString) {
+      return resources;
+    }
+    const filter: ApiFilter = JSON.parse(decodeURIComponent(filterString));
+    ((filter && filter.predicates) || []).forEach(p => {
+      resources = resources.filter(r => {
+        switch (p.op) {
+          case PredicateOp.EQUALS:
+            if (p.key === 'name') {
+              return r.name && r.name.toLocaleLowerCase() === (p.string_value || '').toLocaleLowerCase();
+            } else if (p.key === 'storage_state') {
+              return (r as ApiRun).storage_state && (r as ApiRun).storage_state!.toString() === p.string_value;
+            } else {
+              throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
+            }
+          case PredicateOp.NOTEQUALS:
+            if (p.key === 'name') {
+              return r.name && r.name.toLocaleLowerCase() !== (p.string_value || '').toLocaleLowerCase();
+            } else if (p.key === 'storage_state') {
+              return ((r as ApiRun).storage_state || {}).toString() !== p.string_value;
+            } else {
+              throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
+            }
+          case PredicateOp.ISSUBSTRING:
+            if (p.key !== 'name') {
+              throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
+            }
+            return r.name && r.name.toLocaleLowerCase().includes((p.string_value || '').toLocaleLowerCase());
+          case PredicateOp.NOTEQUALS:
+          // Fall through
+          case PredicateOp.GREATERTHAN:
+          // Fall through
+          case PredicateOp.GREATERTHANEQUALS:
+          // Fall through
+          case PredicateOp.LESSTHAN:
+          // Fall through
+          case PredicateOp.LESSTHANEQUALS:
+            // Fall through
+            throw new Error(`Op: ${p.op} is not yet supported by the mock API server`);
+          default:
+            throw new Error(`Unknown Predicate op: ${p.op}`);
+        }
+      });
+    });
+    return resources;
+  }
+
   app.get(v1beta1Prefix + '/pipelines', (req, res) => {
     res.header('Content-Type', 'application/json');
     const response: ApiListPipelinesResponse = {
@@ -417,17 +415,11 @@ export default (app: express.Application) => {
     };
 
     let pipelines: ApiPipeline[] = fixedData.pipelines;
-    if (req.query.filter_by) {
-      // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
-      // This may need to be updated depending on how the backend implements filtering.
-      pipelines = fixedData.pipelines.filter((p) =>
-        p.name!.toLocaleLowerCase().indexOf(
-          decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
-
+    if (req.query.filter) {
+      pipelines = filterResources(fixedData.pipelines, req.query.filter);
     }
 
     const { desc, key } = getSortKeyAndOrder(PipelineSortKeys.CREATED_AT, req.query.sort_by);
-
 
     pipelines.sort((a, b) => {
       let result = 1;
@@ -469,12 +461,6 @@ export default (app: express.Application) => {
     res.json({});
   });
 
-  // Needed to avoid "Response for preflight does not have HTTP ok status." error.
-  app.options(v1beta1Prefix + '/pipelines/:pid', (req, res) => {
-    res.header('Content-Type', 'application/json');
-    res.json({});
-  });
-
   app.get(v1beta1Prefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
     const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
@@ -492,9 +478,14 @@ export default (app: express.Application) => {
       res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
       return;
     }
-    const filePath = req.params.pid === namedPipelines.noParamsPipeline.id
-      ? './mock-backend/mock-conditional-template.yaml'
-      : './mock-backend/mock-template.yaml';
+    let filePath = '';
+    if (req.params.pid === namedPipelines.noParamsPipeline.id) {
+      filePath = './mock-backend/mock-conditional-template.yaml';
+    } else if (req.params.pid === namedPipelines.unstructuredTextPipeline.id) {
+      filePath = './mock-backend/mock-recursive-template.yaml';
+    } else {
+      filePath = './mock-backend/mock-template.yaml';
+    }
     res.send(JSON.stringify({ template: fs.readFileSync(filePath, 'utf-8') }));
   });
 
@@ -529,16 +520,10 @@ export default (app: express.Application) => {
     }
   }
 
-  app.options(v1beta1Prefix + '/pipelines', (req, res) => {
-    res.send();
-  });
   app.post(v1beta1Prefix + '/pipelines', (req, res) => {
     mockCreatePipeline(res, req.body.name);
   });
 
-  app.options(v1beta1Prefix + '/pipelines/upload', (req, res) => {
-    res.send();
-  });
   app.post(v1beta1Prefix + '/pipelines/upload', (req, res) => {
     mockCreatePipeline(res, decodeURIComponent(req.query.name), req.body);
   });
@@ -576,9 +561,6 @@ export default (app: express.Application) => {
     res.send(tensorboardPod);
   });
 
-  app.options(v1beta1Prefix + '/apps/tensorboard', (req, res) => {
-    res.send();
-  });
   app.post('/apps/tensorboard', (req, res) => {
     tensorboardPod = 'http://tensorboardserver:port';
     setTimeout(() => {
@@ -598,6 +580,10 @@ export default (app: express.Application) => {
     setTimeout(() => {
       res.send(log);
     }, 300);
+  });
+
+  app.get('/visualizations/allowed', (req, res) => {
+    res.send(true);
   });
 
   app.all(v1beta1Prefix + '*', (req, res) => {

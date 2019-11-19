@@ -16,7 +16,7 @@ import (
 type ExperimentInterface interface {
 	Create(params *params.CreateExperimentParams) (*model.APIExperiment, error)
 	Get(params *params.GetExperimentParams) (*model.APIExperiment, error)
-	List(params *params.ListExperimentParams) ([]*model.APIExperiment, string, error)
+	List(params *params.ListExperimentParams) ([]*model.APIExperiment, int, string, error)
 	ListAll(params *params.ListExperimentParams, maxResultSize int) ([]*model.APIExperiment, error)
 }
 
@@ -89,7 +89,7 @@ func (c *ExperimentClient) Get(parameters *params.GetExperimentParams) (*model.A
 }
 
 func (c *ExperimentClient) List(parameters *params.ListExperimentParams) (
-	[]*model.APIExperiment, string, error) {
+	[]*model.APIExperiment, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
@@ -104,12 +104,12 @@ func (c *ExperimentClient) List(parameters *params.ListExperimentParams) (
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
-		return nil, "", util.NewUserError(err,
+		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list experiments. Params: '%+v'", parameters),
 			fmt.Sprintf("Failed to list experiments"))
 	}
 
-	return response.Payload.Experiments, response.Payload.NextPageToken, nil
+	return response.Payload.Experiments, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
 }
 
 func (c *ExperimentClient) Delete(parameters *params.DeleteExperimentParams) error {
@@ -150,7 +150,7 @@ func listAllForExperiment(client ExperimentInterface, parameters *params.ListExp
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {
-		results, pageToken, err := client.List(parameters)
+		results, _, pageToken, err := client.List(parameters)
 		if err != nil {
 			return nil, err
 		}

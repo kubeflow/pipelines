@@ -1,5 +1,11 @@
 {
-  "outputs": [{
+  "outputs": [
+    {
+      "storage": "inline",
+      "source": "# Title\n[some link here](http://example.com)",
+      "type": "markdown"
+    },
+    {
       "format": "csv",
       "labels": [
         "rec.sport.hockey",
@@ -40,11 +46,13 @@
           "name": "count"
         }
       ]
-    }, {
+    },
+    {
       "storage": "gcs",
       "source": "gs://some/path/hello-world.html",
       "type": "web-app"
-    }, {
+    },
+    {
       "storage": "gcs",
       "source": "gs://some/path/hello-world-big.html",
       "type": "web-app"

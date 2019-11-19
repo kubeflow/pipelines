@@ -18,10 +18,11 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
-	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
+	"strings"
 )
 
 // Workflow is a type to help manipulate Workflow objects.
@@ -34,6 +35,11 @@ func NewWorkflow(workflow *workflowapi.Workflow) *Workflow {
 	return &Workflow{
 		workflow,
 	}
+}
+
+// SetServiceAccount Set the service account to run the workflow.
+func (w *Workflow) SetServiceAccount(serviceAccount string) {
+	w.Spec.ServiceAccountName = serviceAccount
 }
 
 // OverrideParameters overrides some of the parameters of a Workflow.
@@ -109,8 +115,8 @@ func isScheduledWorkflow(reference metav1.OwnerReference) bool {
 	}
 
 	if reference.APIVersion == gvk.GroupVersion().String() &&
-		reference.Kind == gvk.Kind &&
-		reference.UID != "" {
+			reference.Kind == gvk.Kind &&
+			reference.UID != "" {
 		return true
 	}
 	return false
@@ -135,12 +141,19 @@ func (w *Workflow) ScheduledAtInSecOr0() int64 {
 	return 0
 }
 
+func (w *Workflow) FinishedAt() int64 {
+	if w.Status.FinishedAt.IsZero() {
+		// If workflow is not finished
+		return 0
+	}
+	return w.Status.FinishedAt.Unix()
+}
+
 func (w *Workflow) Condition() string {
 	return string(w.Status.Phase)
 }
 
 func (w *Workflow) ToStringForStore() string {
-
 	workflow, err := json.Marshal(w.Workflow)
 	if err != nil {
 		glog.Errorf("Could not marshal the workflow: %v", w.Workflow)
@@ -153,10 +166,18 @@ func (w *Workflow) HasScheduledWorkflowAsParent() bool {
 	return containsScheduledWorkflow(w.Workflow.OwnerReferences)
 }
 
-func (w *Workflow) GetSpec() *Workflow {
-	spec := w.DeepCopy()
-	spec.Status = workflowapi.WorkflowStatus{}
-	return NewWorkflow(spec)
+func (w *Workflow) GetWorkflowSpec() *Workflow {
+	workflow := w.DeepCopy()
+	workflow.Status = workflowapi.WorkflowStatus{}
+	workflow.TypeMeta = metav1.TypeMeta{Kind: w.Kind, APIVersion: w.APIVersion}
+	// To prevent collisions, clear name, set GenerateName to first 200 runes of previous name.
+	nameRunes := []rune(w.Name)
+	length := len(nameRunes)
+	if length > 200 {
+		length = 200
+	}
+	workflow.ObjectMeta = metav1.ObjectMeta{GenerateName: string(nameRunes[:length])}
+	return NewWorkflow(workflow)
 }
 
 // OverrideName sets the name of a Workflow.
@@ -181,6 +202,17 @@ func (w *Workflow) SetLabels(key string, value string) {
 		w.Labels = make(map[string]string)
 	}
 	w.Labels[key] = value
+}
+
+func (w *Workflow) ReplaceUID(id string) error {
+	newWorkflowString := strings.Replace(w.ToStringForStore(), "{{workflow.uid}}", id, -1)
+	var workflow *workflowapi.Workflow
+	if err := json.Unmarshal([]byte(newWorkflowString), &workflow); err != nil {
+		return NewInternalServerError(err,
+			"Failed to unmarshal workflow spec manifest. Workflow: %s", w.ToStringForStore())
+	}
+	w.Workflow = workflow
+	return nil
 }
 
 func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, index int64) {
@@ -211,4 +243,21 @@ func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName
 		s3Key = artifact.S3.Key
 	}
 	return s3Key
+}
+
+// IsInFinalState whether the workflow is in a final state.
+func (w *Workflow) IsInFinalState() bool {
+	if w.Status.Phase == workflowapi.NodeSucceeded || w.Status.Phase == workflowapi.NodeFailed {
+		return true
+	}
+	return false
+}
+
+// PersistedFinalState whether the workflow final state has being persisted.
+func (w *Workflow) PersistedFinalState() bool {
+	if _, ok := w.GetLabels()[LabelKeyWorkflowPersistedFinalState]; ok {
+		// If the label exist, workflow final state has being persisted.
+		return true
+	}
+	return false
 }

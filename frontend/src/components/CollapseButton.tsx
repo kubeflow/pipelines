@@ -44,22 +44,26 @@ interface CollapseButtonProps {
 }
 
 class CollapseButton extends React.Component<CollapseButtonProps> {
-
   public render(): JSX.Element {
     const { collapseSections, compareSetState } = this.props;
     const sectionName = this.props.sectionName;
-    return <div>
-      <Button onClick={() => {
-        collapseSections[sectionName] = !collapseSections[sectionName];
-        compareSetState({ collapseSections });
-      }} title='Expand/Collapse this section' className={css.collapseBtn}>
-        <ExpandedIcon className={classes(
-          css.icon,
-          collapseSections[sectionName] ? css.collapsed : '',
-        )} />
-        {sectionName}
-      </Button>
-    </div>;
+    return (
+      <div>
+        <Button
+          onClick={() => {
+            collapseSections[sectionName] = !collapseSections[sectionName];
+            compareSetState({ collapseSections });
+          }}
+          title='Expand/Collapse this section'
+          className={css.collapseBtn}
+        >
+          <ExpandedIcon
+            className={classes(css.icon, collapseSections[sectionName] ? css.collapsed : '')}
+          />
+          {sectionName}
+        </Button>
+      </div>
+    );
   }
 }
 

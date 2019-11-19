@@ -1,0 +1,13 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/workflow-controller:$TAG_NAME', '-f', 'third_party/argo/Dockerfile.workflow-controller', '.' ]
+  waitFor: ['-']
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/argoexec:$TAG_NAME', '-f', 'third_party/argo/Dockerfile.argoexec', '.' ]
+  waitFor: ['-']
+timeout: 300s # 5min
+options:
+ diskSizeGb: 20
+images:
+- 'gcr.io/$PROJECT_ID/argoexec'
+- 'gcr.io/$PROJECT_ID/workflow-controller'
