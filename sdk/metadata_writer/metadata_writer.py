@@ -30,7 +30,7 @@ spec:
           #wget --quiet -O /tmp/metadata_writer.py https://raw.githubusercontent.com/Ark-kun/pipelines/Metadata-Writer-0.1/sdk/metadata_writer/metadata_writer.py
           curl --silent --show-error https://raw.githubusercontent.com/Ark-kun/pipelines/Metadata-Writer-0.1/sdk/metadata_writer/metadata_writer.py >/tmp/metadata_writer.py
           echo "Starting the Metadata writer"
-          python3 /tmp/metadata_writer.py
+          python3 -u /tmp/metadata_writer.py
 EOF
 """
 
