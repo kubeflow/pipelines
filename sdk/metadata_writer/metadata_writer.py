@@ -1,8 +1,44 @@
-#kubectl exec sleeper -- python3 -m pip install kubernetes 'ml-metadata==0.14' 'tensorflow>=1.15' --upgrade --quiet --user
-#kubectl exec sleeper -- python3 -m pip freeze
-#kubectl exec sleeper -it -- python3 -c "$(< metadata_writer.py)"
-#kubectl cp metadata-writer-sleeper:/tmp ./
-#kubectl exec metadata-writer-sleeper -it -- python3 -c "$(< metadata_writer.py)"
+
+# Deploy the Metadata Writer PoC using the following command:
+"""
+kubectl create -f - <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-writer-deployment
+  labels:
+    app: metadata-writer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metadata-writer
+  template:
+    metadata:
+      labels:
+        app: metadata-writer
+    spec:
+      containers:
+      - name: main
+        image: tensorflow/tensorflow:1.15.0-py3
+        command:
+        - sh
+        - -e
+        - -c
+        - |
+          python3 -m pip install kubernetes 'ml-metadata==0.14' --upgrade --quiet --user --no-warn-script-location
+          #wget --quiet -O /tmp/metadata_writer.py https://raw.githubusercontent.com/Ark-kun/pipelines/Metadata-Writer-0.1/sdk/metadata_writer/metadata_writer.py
+          curl --silent --show-error https://raw.githubusercontent.com/Ark-kun/pipelines/Metadata-Writer-0.1/sdk/metadata_writer/metadata_writer.py >/tmp/metadata_writer.py
+          python3 /tmp/metadata_writer.py
+EOF
+"""
+
+#import site
+#import subprocess
+#import sys
+#subprocess.run([sys.executable, '-m', 'pip', 'install', 'ml-metadata==0.14', 'tensorflow>=1.15', 'kubernetes', '--upgrade', '--quiet', '--user'])
+#sys.path.append(site.getusersitepackages())
+
 
 import kubernetes
 
@@ -23,13 +59,6 @@ metadata_configmap_namespace = 'default' # Not kubeflow
 metadata_db_user = 'root'
 metadata_db_password = ''
 
-#use_metadata_store = True
-#if use_metadata_store:
-#import site
-#import subprocess
-#import sys
-#subprocess.run([sys.executable, '-m', 'pip', 'install', 'ml-metadata==0.14', 'tensorflow>=1.15', '--upgrade', '--quiet', '--user'])
-#sys.path.append(site.getusersitepackages())
 
 import ml_metadata
 
@@ -463,9 +492,6 @@ ARGO_WORKFLOW_LABEL_KEY = 'workflows.argoproj.io/workflow'
 METADATA_WRITTEN_LABEL_KEY = 'pipelines.kubeflow.org/metadata_written'
 
 
-#pods_namespace = 'kubeflow' # Kubeflow deployment # FIX!!!
-#pods_namespace = 'default' # Marketplace deployment # FIX!!!
-
 #%%
 
 def cleanup_pods():
@@ -492,9 +518,6 @@ def cleanup_pods():
 #cleanup_pods()
 
 
-#assert False
-
-
 #%%
 
 def output_name_to_argo(name: str) -> str:
@@ -508,30 +531,6 @@ def argo_artifact_to_uri(artifact: dict) -> str:
         key=artifact['s3']['key'],
     )
 
-
-#%%
-"""
-for event in k8s_watch.stream(
-    k8s_api.list_pod_for_all_namespaces,
-    #label_selector=ARGO_WORKFLOW_LABEL_KEY + ',' + '!' + METADATA_WRITTEN_LABEL_KEY,
-    label_selector=ARGO_WORKFLOW_LABEL_KEY,
-    #timeout_seconds=3,
-):
-    obj = event['object']
-    print(event['type'], obj.metadata.name, obj.metadata.resource_version)
-    try:
-        import yaml
-        with open('/tmp/pod_' + obj.metadata.name + '_' + obj.metadata.resource_version, 'w') as f:
-            f.write(yaml.dump(obj.to_dict()))
-    except:
-        pass
-
-
-
-exit(0)
-"""
-
-#%%
 
 def is_tfx_pod(pod) -> bool:
     main_containers = [container for container in pod.spec.containers if container.name == 'main']
@@ -559,6 +558,8 @@ for event in k8s_watch.stream(
         print(event['type'], obj.metadata.name, obj.metadata.resource_version)
         if event['type'] == 'ERROR':
             print(event)
+
+        # Logging pod changes for debugging
         try:
             import yaml
             with open('/tmp/pod_' + obj.metadata.name + '_' + obj.metadata.resource_version, 'w') as f:
@@ -589,9 +590,7 @@ for event in k8s_watch.stream(
         if obj.metadata.name in pod_name_to_execution_id:
             execution_id = pod_name_to_execution_id[obj.metadata.name]
             context_id = workflow_name_to_context_id[argo_workflow_name]
-
         elif METADATA_EXECUTION_ID_LABEL_KEY in obj.metadata.labels:
-        #if METADATA_EXECUTION_ID_LABEL_KEY in obj.metadata.labels:
             execution_id = int(obj.metadata.labels[METADATA_EXECUTION_ID_LABEL_KEY])
             context_id = int(obj.metadata.labels[METADATA_CONTEXT_ID_LABEL_KEY])
             print('Found execution id: {}, context id: {} for pod {}.'.format(execution_id, context_id, obj.metadata.name))
@@ -704,232 +703,4 @@ for event in k8s_watch.stream(
             pods_with_written_metadata.add(obj.metadata.name)
 
     except Exception as e:
-        #print(event)
         print(e)
-
-""" 
-avolkov@avolkov:~/_projects/pipelines_worktree2/sdk/metadata_writer$ kubectl exec sleeper -it -- python3 -c "$(< metadata_writer.py)"
-ADDED tfx-pipeline-lmbw6-1947672582
-New execution id: 1 for pod tfx-pipeline-lmbw6-1947672582.
-{'execution_id': '1', 'output_name': 'data', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-1947672582/download-from-gcs-data.tgz', 'type': None}
-ADDED tfx-pipeline-lmbw6-2473736504
-New execution id: 2 for pod tfx-pipeline-lmbw6-2473736504.
-{'execution_id': '2', 'output_name': 'output', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-2473736504/schemagen-output.tgz', 'type': 'Schema'}
-ADDED tfx-pipeline-lmbw6-2908704420
-New execution id: 3 for pod tfx-pipeline-lmbw6-2908704420.
-{'execution_id': '3', 'output_name': 'output', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-2908704420/statisticsgen-output.tgz', 'type': 'ExampleStatistics'}
-ADDED tfx-pipeline-lmbw6-2172955551
-New execution id: 4 for pod tfx-pipeline-lmbw6-2172955551.
-{'execution_id': '4', 'output_name': 'example-artifacts', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-2172955551/csvexamplegen-example-artifacts.tgz', 'type': 'ExamplesPath'}
-
-
-avolkov@avolkov:~/_projects/pipelines_worktree2/sdk/metadata_writer$ kubectl exec sleeper -it -- python3 -c "$(< metadata_writer.py)"
-ADDED tfx-pipeline-lmbw6-2908704420
-New execution id: 1 for pod tfx-pipeline-lmbw6-2908704420.
-{'execution_id': '1', 'output_name': 'output', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-2908704420/statisticsgen-output.tgz', 'type': 'ExampleStatistics'}
-{'execution_id': '1', 'component_name': 'Statisticsgen', 'output_artifacts': [{'output_name': 'output', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-2908704420/statisticsgen-output.tgz', 'type': 'ExampleStatistics'}]}
-ADDED tfx-pipeline-lmbw6-2172955551
-New execution id: 2 for pod tfx-pipeline-lmbw6-2172955551.
-{'execution_id': '2', 'output_name': 'example-artifacts', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-2172955551/csvexamplegen-example-artifacts.tgz', 'type': 'ExamplesPath'}
-{'execution_id': '2', 'component_name': 'CsvExampleGen', 'output_artifacts': [{'output_name': 'example-artifacts', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-2172955551/csvexamplegen-example-artifacts.tgz', 'type': 'ExamplesPath'}]}
-ADDED tfx-pipeline-lmbw6-1947672582
-New execution id: 3 for pod tfx-pipeline-lmbw6-1947672582.
-{'execution_id': '3', 'output_name': 'data', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-1947672582/download-from-gcs-data.tgz', 'type': None}
-{'execution_id': '3', 'component_name': 'Download from GCS', 'output_artifacts': [{'output_name': 'data', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-1947672582/download-from-gcs-data.tgz', 'type': None}]}
-ADDED tfx-pipeline-lmbw6-2473736504
-New execution id: 4 for pod tfx-pipeline-lmbw6-2473736504.
-{'execution_id': '4', 'output_name': 'output', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-2473736504/schemagen-output.tgz', 'type': 'Schema'}
-{'execution_id': '4', 'component_name': 'Schemagen', 'output_artifacts': [{'output_name': 'output', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lmbw6/tfx-pipeline-lmbw6-2473736504/schemagen-output.tgz', 'type': 'Schema'}]}
-
-
-# Many duplicate events and also a DELETED event:
-
-ADDED tfx-pipeline-lngmn-813654318
-New execution id: 42 for pod tfx-pipeline-lngmn-813654318.
-Execution: {'context_name': 'tfx-pipeline-lngmn', 'execution_id': 42, 'execution_name': 'tfx-pipeline-lngmn-813654318', 'component_name': 'Schemagen'}
-MODIFIED tfx-pipeline-lngmn-813654318
-New execution id: 43 for pod tfx-pipeline-lngmn-813654318.
-Execution: {'context_name': 'tfx-pipeline-lngmn', 'execution_id': 43, 'execution_name': 'tfx-pipeline-lngmn-813654318', 'component_name': 'Schemagen'}
-MODIFIED tfx-pipeline-lngmn-813654318
-New execution id: 44 for pod tfx-pipeline-lngmn-813654318.
-Execution: {'context_name': 'tfx-pipeline-lngmn', 'execution_id': 44, 'execution_name': 'tfx-pipeline-lngmn-813654318', 'component_name': 'Schemagen'}
-MODIFIED tfx-pipeline-lngmn-813654318
-New execution id: 45 for pod tfx-pipeline-lngmn-813654318.
-Execution: {'context_name': 'tfx-pipeline-lngmn', 'execution_id': 45, 'execution_name': 'tfx-pipeline-lngmn-813654318', 'component_name': 'Schemagen'}
-MODIFIED tfx-pipeline-lngmn-813654318
-New execution id: 46 for pod tfx-pipeline-lngmn-813654318.
-Execution: {'context_name': 'tfx-pipeline-lngmn', 'execution_id': 46, 'execution_name': 'tfx-pipeline-lngmn-813654318', 'component_name': 'Schemagen'}
-MODIFIED tfx-pipeline-lngmn-813654318
-New execution id: 47 for pod tfx-pipeline-lngmn-813654318.
-Execution: {'context_name': 'tfx-pipeline-lngmn', 'execution_id': 47, 'execution_name': 'tfx-pipeline-lngmn-813654318', 'component_name': 'Schemagen'}
-MODIFIED tfx-pipeline-lngmn-813654318
-New execution id: 48 for pod tfx-pipeline-lngmn-813654318.
-Execution: {'context_name': 'tfx-pipeline-lngmn', 'execution_id': 48, 'execution_name': 'tfx-pipeline-lngmn-813654318', 'component_name': 'Schemagen'}
-MODIFIED tfx-pipeline-lngmn-813654318
-New execution id: 49 for pod tfx-pipeline-lngmn-813654318.
-Execution: {'context_name': 'tfx-pipeline-lngmn', 'execution_id': 49, 'execution_name': 'tfx-pipeline-lngmn-813654318', 'component_name': 'Schemagen'}
-Artifact: {'output_name': 'output', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lngmn/tfx-pipeline-lngmn-813654318/schemagen-output.tgz', 'type': 'Schema'}
-DELETED tfx-pipeline-lngmn-813654318
-New execution id: 50 for pod tfx-pipeline-lngmn-813654318.
-Execution: {'context_name': 'tfx-pipeline-lngmn', 'execution_id': 50, 'execution_name': 'tfx-pipeline-lngmn-813654318', 'component_name': 'Schemagen'}
-Artifact: {'output_name': 'output', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-lngmn/tfx-pipeline-lngmn-813654318/schemagen-output.tgz', 'type': 'Schema'}
-
-
-# Double executions + multiple modifications + double artifacts + DELETED:
-
-ADDED tfx-pipeline-nnwhb-4013877105
-New execution id: 99 for pod tfx-pipeline-nnwhb-4013877105.
-Execution: {'context_name': 'tfx-pipeline-nnwhb', 'execution_id': 99, 'execution_name': 'tfx-pipeline-nnwhb-4013877105', 'component_name': 'Schemagen'}
-MODIFIED tfx-pipeline-nnwhb-4013877105
-New execution id: 100 for pod tfx-pipeline-nnwhb-4013877105.
-Execution: {'context_name': 'tfx-pipeline-nnwhb', 'execution_id': 100, 'execution_name': 'tfx-pipeline-nnwhb-4013877105', 'component_name': 'Schemagen'}
-MODIFIED tfx-pipeline-nnwhb-4013877105
-Found execution id: 99 for pod tfx-pipeline-nnwhb-4013877105.
-MODIFIED tfx-pipeline-nnwhb-4013877105
-Found execution id: 99 for pod tfx-pipeline-nnwhb-4013877105.
-MODIFIED tfx-pipeline-nnwhb-4013877105
-Found execution id: 100 for pod tfx-pipeline-nnwhb-4013877105.
-MODIFIED tfx-pipeline-nnwhb-4013877105
-Found execution id: 100 for pod tfx-pipeline-nnwhb-4013877105.
-MODIFIED tfx-pipeline-nnwhb-4013877105
-Found execution id: 100 for pod tfx-pipeline-nnwhb-4013877105.
-MODIFIED tfx-pipeline-nnwhb-4013877105
-Found execution id: 100 for pod tfx-pipeline-nnwhb-4013877105.
-MODIFIED tfx-pipeline-nnwhb-4013877105
-Found execution id: 100 for pod tfx-pipeline-nnwhb-4013877105.
-Artifact: {'output_name': 'output', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-nnwhb/tfx-pipeline-nnwhb-4013877105/schemagen-output.tgz', 'type': 'Schema'}
-DELETED tfx-pipeline-nnwhb-4013877105
-Found execution id: 100 for pod tfx-pipeline-nnwhb-4013877105.
-Artifact: {'output_name': 'output', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/tfx-pipeline-nnwhb/tfx-pipeline-nnwhb-4013877105/schemagen-output.tgz', 'type': 'Schema'}
-
-
-
-ADDED pipeline1-gzmbd-1417507587 5854984
-New execution id: 124 for pod pipeline1-gzmbd-1417507587.
-Execution: {'context_name': 'pipeline1-gzmbd', 'execution_id': 124, 'execution_name': 'pipeline1-gzmbd-1417507587', 'component_name': 'Write numbers'}
-MODIFIED pipeline1-gzmbd-1417507587 5854986
-New execution id: 125 for pod pipeline1-gzmbd-1417507587.
-Execution: {'context_name': 'pipeline1-gzmbd', 'execution_id': 125, 'execution_name': 'pipeline1-gzmbd-1417507587', 'component_name': 'Write numbers'}
-MODIFIED pipeline1-gzmbd-1417507587 5854988
-New execution id: 126 for pod pipeline1-gzmbd-1417507587.
-Execution: {'context_name': 'pipeline1-gzmbd', 'execution_id': 126, 'execution_name': 'pipeline1-gzmbd-1417507587', 'component_name': 'Write numbers'}
-MODIFIED pipeline1-gzmbd-1417507587 5854989
-Found execution id: 124 for pod pipeline1-gzmbd-1417507587.
-MODIFIED pipeline1-gzmbd-1417507587 5854990
-Found execution id: 125 for pod pipeline1-gzmbd-1417507587.
-MODIFIED pipeline1-gzmbd-1417507587 5854991
-Found execution id: 126 for pod pipeline1-gzmbd-1417507587.
-MODIFIED pipeline1-gzmbd-1417507587 5854999
-Found execution id: 126 for pod pipeline1-gzmbd-1417507587.
-MODIFIED pipeline1-gzmbd-1417507587 5855003
-Found execution id: 126 for pod pipeline1-gzmbd-1417507587.
-MODIFIED pipeline1-gzmbd-1417507587 5855004
-Found execution id: 126 for pod pipeline1-gzmbd-1417507587.
-Artifact: {'output_name': 'numbers', 'uri': 'https:/artifacts/get?source=minio&bucket=mlpipeline&key=artifacts/pipeline1-gzmbd/pipeline1-gzmbd-1417507587/write-numbers-numbers.tgz', 'type': 'String'}
-MODIFIED pipeline1-gzmbd-1417507587 5855007
-MODIFIED pipeline1-gzmbd-1417507587 5855014
-
-
-...
-ADDED tfx-pipeline-lmbw6-1947672582 5488020
-ADDED pipeline1-4cd5g-2150790726 5858993
-ADDED tfx-pipeline-lmbw6-2473736504 5488022
-ERROR None None
-{'type': 'ERROR', 'object': {'api_version': 'v1',
- 'kind': 'Status',
- 'metadata': {'annotations': None,
-              'cluster_name': None,
-              'creation_timestamp': None,
-              'deletion_grace_period_seconds': None,
-              'deletion_timestamp': None,
-              'finalizers': None,
-              'generate_name': None,
-              'generation': None,
-              'initializers': None,
-              'labels': None,
-              'managed_fields': None,
-              'name': None,
-              'namespace': None,
-              'owner_references': None,
-              'resource_version': None,
-              'self_link': None,
-              'uid': None},
- 'spec': None,
- 'status': {'conditions': None,
-            'container_statuses': None,
-            'host_ip': None,
-            'init_container_statuses': None,
-            'message': None,
-            'nominated_node_name': None,
-            'phase': None,
-            'pod_ip': None,
-            'qos_class': None,
-            'reason': None,
-            'start_time': None}}, 'raw_object': {'kind': 'Status', 'apiVersion': 'v1', 'metadata': {}, 'status': 'Failure', 'message': 'too old resource version: 5488022 (5858592)', 'reason': 'Gone', 'code': 410}}
-"""
-
-
-"""
-#kubectl create -n kubeflow -f - <<EOF
-kubectl create -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: sleeper
-spec:
-  containers:
-  - name: main
-    image: python:3.7
-    command:
-    - sleep
-    - '100000'
-EOF
-"""
-
-"""
-#kubectl create -n kubeflow -f - <<EOF
-kubectl create -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: metadata-writer-sleeper
-spec:
-  containers:
-  - name: main
-    image: tensorflow/tensorflow:1.15.0-py3
-    command:
-    - sh
-    - -e
-    - -c
-    - |
-      python3 -m pip install kubernetes 'ml-metadata==0.14' --upgrade --quiet --user
-      sleep 100000
-EOF
-"""
-
-"""
-kubectl create -f - <<EOF
-apiVersion: apps/v1beta2
-kind: Deployment
-metadata:
-  name: metadata-writer-sleeper-deployment
-  selector:
-    matchLabels:
-      app: metadata-writer
-spec:
-  template:
-    metadata:
-      labels:
-        app: metadata-writer
-    containers:
-    - name: main
-      image: tensorflow/tensorflow:1.15.0-py3
-      command:
-      - sh
-      - -e
-      - -c
-      - |
-        python3 -m pip install kubernetes 'ml-metadata==0.14' --upgrade --quiet --user
-        sleep 100000
-EOF
-"""
