@@ -32,7 +32,7 @@ import kfp_server_api
 from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 
-from kfp._auth import get_auth_token, get_gcp_access_token, get_id_token
+from kfp._auth import get_auth_token, get_gcp_access_token
 
 
 
@@ -114,15 +114,11 @@ class Client(object):
 
     token = None
 
+    # Obtain the tokens if it is inverse proxy or IAP.
     if self._is_inverse_proxy_host(host):
       token = get_gcp_access_token()
     if self._is_iap_host(host,client_id):
-      if other_client_id is None or other_client_secret is None:
-        # fetch IAP auth token: service accounts
-        token = get_auth_token(client_id)
-      else:
-        # fetch IAP auth token: user account
-        token = get_id_token(other_client_id, other_client_secret, client_id)
+      token = get_auth_token(client_id, other_client_id, other_client_secret)
 
     if token:
       config.api_key['authorization'] = token

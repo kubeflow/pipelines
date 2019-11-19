@@ -37,7 +37,17 @@ def get_gcp_access_token():
     with os.popen('gcloud auth print-access-token') as token:
         return token.read().rstrip()
 
-def get_auth_token(client_id):
+def get_auth_token(client_id, other_client_id, other_client_secret):
+    """Gets auth token from default service account or user account."""
+    if other_client_id is None or other_client_secret is None:
+        # fetch IAP auth token: service accounts
+        token = get_auth_token_from_sa(client_id)
+    else:
+        # fetch IAP auth token: user account
+        token = get_auth_token_from_client_id(other_client_id, other_client_secret, client_id)
+    return token
+
+def get_auth_token_from_sa(client_id):
     """Gets auth token from default service account.
 
     If no service account credential is found, returns None.
@@ -121,7 +131,7 @@ def get_google_open_id_connect_token(service_account_credentials):
         request, OAUTH_TOKEN_URI, body)
     return token_response['id_token']
 
-def get_id_token(client_id, client_secret, audience):
+def get_auth_token_from_client_id(client_id, client_secret, audience):
     """Obtain the ID token for provided Client ID with user accounts.
         Flow: get authorization code -> exchange for refresh token -> obtain and return ID token
     """
@@ -136,16 +146,14 @@ def get_auth_code(client_id):
     return input("Authorization code: ")
 
 def get_refresh_token_from_code(auth_code, client_id, client_secret):
-    oauth_token_base_URL = 'https://www.googleapis.com/oauth2/v4/token'
     payload = {"code": auth_code, "client_id": client_id, "client_secret": client_secret,
                "redirect_uri": "urn:ietf:wg:oauth:2.0:oob", "grant_type": "authorization_code"}
-    res = requests.post(oauth_token_base_URL, data=payload)
+    res = requests.post(OAUTH_TOKEN_URI, data=payload)
     return (str(json.loads(res.text)[u"refresh_token"]))
 
 def id_token_from_refresh_token(client_id, client_secret, refresh_token, audience):
-    oauth_token_base_URL = "https://www.googleapis.com/oauth2/v4/token"
     payload = {"client_id": client_id, "client_secret": client_secret,
                "refresh_token": refresh_token, "grant_type": "refresh_token",
                "audience": audience}
-    res = requests.post(oauth_token_base_URL, data=payload)
+    res = requests.post(OAUTH_TOKEN_URI, data=payload)
     return (str(json.loads(res.text)[u"id_token"]))
