@@ -26,7 +26,7 @@ def sanitize_k8s_name(name):
     """From _make_kubernetes_name
       sanitize_k8s_name cleans and converts the names in the workflow.
     """
-    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
+    return re.sub('-+', '-', re.sub('[^-_0-9A-Za-z]+', '-', name)).lstrip('-').rstrip('-')
 
 
 def match_serialized_pipelineparam(payload: str):
