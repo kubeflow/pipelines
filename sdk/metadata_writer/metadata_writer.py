@@ -584,7 +584,7 @@ for event in k8s_watch.stream(
         argo_output_name_to_type = {}
         if KFP_COMPONENT_SPEC_ANNOTATION_KEY in obj.metadata.annotations:
             component_spec = json.loads(obj.metadata.annotations[KFP_COMPONENT_SPEC_ANNOTATION_KEY])
-            component_name = component_spec.get('name', None)
+            component_name = component_spec.get('name', component_name)
             output_name_to_type = {output['name']: output.get('type', None) for output in component_spec.get('outputs', [])}
             argo_output_name_to_type = {output_name_to_argo(k): v for k, v in output_name_to_type.items() if v}
 
