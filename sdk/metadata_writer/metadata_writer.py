@@ -704,4 +704,5 @@ for event in k8s_watch.stream(
             pods_with_written_metadata.add(obj.metadata.name)
 
     except Exception as e:
-        print(e)
+        import traceback
+        print(traceback.format_exc())
