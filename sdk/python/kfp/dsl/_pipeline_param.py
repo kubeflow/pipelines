@@ -22,7 +22,7 @@ ConditionOperator = namedtuple('ConditionOperator', 'operator operand1 operand2'
 PipelineParamTuple = namedtuple('PipelineParamTuple', 'name op pattern')
 
 
-def sanitize_k8s_name(name, allow_capital=True):
+def sanitize_k8s_name(name, allow_capital=False):
     """From _make_kubernetes_name
       sanitize_k8s_name cleans and converts the names in the workflow.
     """
@@ -45,7 +45,7 @@ def match_serialized_pipelineparam(payload: str):
   for match in matches:
       pattern = '{{pipelineparam:op=%s;name=%s}}' % (match[0], match[1])
       param_tuples.append(PipelineParamTuple(
-                          name=sanitize_k8s_name(match[1]), 
+                          name=sanitize_k8s_name(match[1], True),
                           op=sanitize_k8s_name(match[0]), 
                           pattern=pattern))
   return param_tuples
