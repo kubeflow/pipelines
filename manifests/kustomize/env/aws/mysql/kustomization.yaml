@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+- github.com/kubeflow/manifests//pipeline/mysql/base?ref=v0.7.0-rc.2
+
+resources:
+- storage-class.yaml
+
+patchesStrategicMerge:
+- persistent-volume-claim-patch.yaml
+
+configMapGenerator:
+- name: pipeline-mysql-parameters
+  behavior: merge
+  env: params.env
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+vars:
+- name: mysqlStorageClass
+  objref:
+    kind: ConfigMap
+    name: pipeline-mysql-parameters
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.mysqlStorageClass
+- name: mysqlStorageSize
+  objref:
+    kind: ConfigMap
+    name: pipeline-mysql-parameters
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.mysqlStorageSize
+
+configurations:
+- params.yaml
