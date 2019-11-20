@@ -410,17 +410,24 @@ function modifyFeatureFlags(indexHtml: string): string {
   }
 }
 
-// TODO: cache index html if latency is important
+// Read index html on start up.
+let indexHtml = null;
+fs.readFile(path.resolve(staticDir, 'index.html'), (err, data) => {
+  if (err) {
+    console.error('Failed to load index.html.');
+    process.exit(1);
+  } else {
+    indexHtml = data.toString();
+  }
+});
+
 function handleIndexHtml(req, res) {
-  fs.readFile(path.resolve(staticDir, 'index.html'), (err, data) => {
-    if (err) {
-      res.send(404);
-    } else {
-      res.contentType('text/html');
-      const html = modifyFeatureFlags(data.toString());
-      res.send(html);
-    }
-  });
+  if (indexHtml) {
+    res.contentType('text/html');
+    res.send(modifyFeatureFlags(indexHtml));
+  } else {
+    res.send(404);
+  }
 }
 
 // These pathes can be matched by static handler. Putting them before it to
