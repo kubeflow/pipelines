@@ -72,6 +72,9 @@ const {
   ARGO_ARCHIVE_PREFIX = 'logs',
 } = process.env;
 
+/** Features flags */
+const ENABLE_MULTI_USER = process.env.ENABLE_MULTI_USER === 'true';
+
 /** construct minio endpoint from host and namespace (optional) */
 const MINIO_ENDPOINT = MINIO_NAMESPACE && MINIO_NAMESPACE.length > 0 ? `${MINIO_HOST}.${MINIO_NAMESPACE}` : MINIO_HOST;
 
@@ -399,13 +402,38 @@ app.all(BASEPATH  + '/' + v1beta1Prefix + '/*', proxy({
   target: apiServerAddress,
 }));
 
+function modifyFeatureFlags(indexHtml: string): string {
+  if (ENABLE_MULTI_USER) {
+    return indexHtml.replace('window.KFP_FLAGS.MULTI_USER=0', 'window.KFP_FLAGS.MULTI_USER=1');
+  } else {
+    return indexHtml;
+  }
+}
+
+// TODO: cache index html if latency is important
+function handleIndexHtml(req, res) {
+  fs.readFile(path.resolve(staticDir, 'index.html'), (err, data) => {
+    if (err) {
+      res.send(404);
+    } else {
+      res.contentType('text/html');
+      const html = modifyFeatureFlags(data.toString());
+      res.send(html);
+    }
+  });
+}
+
+// These pathes can be matched by static handler. Putting them before it to
+// override behavior for index html.
+app.get('/', handleIndexHtml);
+app.use(BASEPATH + '/', handleIndexHtml);
+app.get('/index.html', handleIndexHtml);
+app.use(BASEPATH + '/index.html', handleIndexHtml);
+
 app.use(BASEPATH, StaticHandler(staticDir));
 app.use(StaticHandler(staticDir));
 
-app.get('*', (req, res) => {
-  // TODO: look into caching this file to speed up multiple requests.
-  res.sendFile(path.resolve(staticDir, 'index.html'));
-});
+app.get('*', handleIndexHtml);
 
 app.listen(port, () => {
   console.log('Server listening at http://localhost:' + port);
