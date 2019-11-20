@@ -556,7 +556,7 @@ for event in k8s_watch.stream(
 ):
     try:
         obj = event['object']
-        print(event['type'], obj.metadata.name, obj.metadata.resource_version)
+        print('Kubernetes Pod event: ', event['type'], obj.metadata.name, obj.metadata.resource_version)
         if event['type'] == 'ERROR':
             print(event)
 
