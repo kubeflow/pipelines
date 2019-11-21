@@ -58,6 +58,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service ExperimentService {
+
 //Create a new experiment.
   rpc CreateExperiment(CreateExperimentRequest) returns (Experiment) {
     option (google.api.http) = {
