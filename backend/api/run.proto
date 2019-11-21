@@ -61,7 +61,6 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 
 
 service RunService {
-
   //Create a new run.
   rpc CreateRun(CreateRunRequest) returns (RunDetail) {
     option (google.api.http) = {
