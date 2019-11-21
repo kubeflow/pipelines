@@ -22,14 +22,22 @@ ConditionOperator = namedtuple('ConditionOperator', 'operator operand1 operand2'
 PipelineParamTuple = namedtuple('PipelineParamTuple', 'name op pattern')
 
 
-def sanitize_k8s_name(name, allow_capital=False):
-    """From _make_kubernetes_name
-      sanitize_k8s_name cleans and converts the names in the workflow.
-    """
-    if allow_capital:
-      return re.sub('-+', '-', re.sub('[^-_0-9A-Za-z]+', '-', name)).lstrip('-').rstrip('-')
-    else:
-      return re.sub('-+', '-', re.sub('[^-_0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
+def sanitize_k8s_name(name, allow_capital_underscore=False):
+  """From _make_kubernetes_name
+    sanitize_k8s_name cleans and converts the names in the workflow.
+
+  Args:
+    name: original name,
+    allow_capital_underscore: whether to allow capital letter and underscore
+      in this name.
+
+  Returns:
+    sanitized name.
+  """
+  if allow_capital_underscore:
+    return re.sub('-+', '-', re.sub('[^-_0-9A-Za-z]+', '-', name)).lstrip('-').rstrip('-')
+  else:
+    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
 
 
 def match_serialized_pipelineparam(payload: str):
