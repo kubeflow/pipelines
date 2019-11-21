@@ -61,8 +61,10 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   }
 };
 
-//Create a new job.
+
 service JobService {
+
+//Create a new job.
   rpc CreateJob(CreateJobRequest) returns (Job) {
     option (google.api.http) = {
       post: "/apis/v1beta1/jobs"
