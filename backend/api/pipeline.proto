@@ -61,6 +61,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service PipelineService {
+  //Add a pipeline.
   rpc CreatePipeline(CreatePipelineRequest) returns (Pipeline) {
     option (google.api.http) = {
       post: "/apis/v1beta1/pipelines"
@@ -68,24 +69,28 @@ service PipelineService {
     };
   }
 
+  //Find a specific pipeline by ID.
   rpc GetPipeline(GetPipelineRequest) returns (Pipeline) {
     option (google.api.http) = {
       get: "/apis/v1beta1/pipelines/{id}"
     };
   }
 
+  //Find all pipelines.
   rpc ListPipelines(ListPipelinesRequest) returns (ListPipelinesResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/pipelines"
     };
   }
 
+  //Delete a pipeline.
   rpc DeletePipeline(DeletePipelineRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/pipelines/{id}"
     };
   }
 
+  //Get a YAML template for the selected pipeline.
   rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/pipelines/{id}/templates"
