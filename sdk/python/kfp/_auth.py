@@ -162,7 +162,6 @@ def get_refresh_token_from_client_id(client_id, client_secret):
     """
     auth_code = get_auth_code(client_id)
     return get_refresh_token_from_code(auth_code, client_id, client_secret)
-    return id_token_from_refresh_token(client_id, client_secret, refresh_token, audience)
 
 def get_auth_code(client_id):
     auth_url = "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&response_type=code&scope=openid%%20email&access_type=offline&redirect_uri=urn:ietf:wg:oauth:2.0:oob"%client_id
