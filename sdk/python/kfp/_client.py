@@ -95,6 +95,7 @@ class Client(object):
       client_id: The client ID used by Identity-Aware Proxy.
       namespace: the namespace where the kubeflow pipeline system is run.
       other_client_id: The client ID used to obtain the auth codes and refresh tokens.
+        Reference: https://cloud.google.com/iap/docs/authentication-howto#authenticating_from_a_desktop_app.
       other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
