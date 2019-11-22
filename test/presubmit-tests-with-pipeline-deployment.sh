@@ -101,13 +101,15 @@ echo "KFP lite deployed"
 kubectl run test-$RANDOM --rm -it --restart=Never \
     --image=google/cloud-sdk:slim \
     --serviceaccount test-runner \
+    --namespace $NAMESPACE \
     -- gcloud auth list
 
-kubectl get sa test-runner -o yaml
+kubectl get sa test-runner -o yaml --namespace $NAMESPACE
 
 kubectl run test-$RANDOM --rm -it --restart=Never \
     --image=google/cloud-sdk:slim \
     --serviceaccount mlpipeline \
+    --namespace $NAMESPACE \
     -- gcloud auth list
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
