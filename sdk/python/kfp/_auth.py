@@ -28,6 +28,7 @@ import json
 
 IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
+LOCAL_KFP_CREDENTIAL = os.path.join(os.environ['HOME'], '.config/kfp/credentails.db')
 
 def get_gcp_access_token():
     """Get and return GCP access token for the current Application Default
@@ -39,12 +40,36 @@ def get_gcp_access_token():
 
 def get_auth_token(client_id, other_client_id, other_client_secret):
     """Gets auth token from default service account or user account."""
+    if os.path.exists(LOCAL_KFP_CREDENTIAL):
+        # fetch IAP auth token using the locally stored credentials.
+        with open(LOCAL_KFP_CREDENTIAL, 'r') as f:
+            credentials = json.load(f)
+        if client_id in credentials:
+            return id_token_from_refresh_token(credentials[client_id]['other_client_id'],
+                                               credentials[client_id]['other_client_secret'],
+                                               credentials[client_id]['refresh_token'],
+                                               client_id)
     if other_client_id is None or other_client_secret is None:
         # fetch IAP auth token: service accounts
         token = get_auth_token_from_sa(client_id)
     else:
         # fetch IAP auth token: user account
-        token = get_auth_token_from_client_id(other_client_id, other_client_secret, client_id)
+        # Obtain the ID token for provided Client ID with user accounts.
+        #  Flow: get authorization code -> exchange for refresh token -> obtain and return ID token
+        refresh_token = get_refresh_token_from_client_id(other_client_id, other_client_secret)
+        credentials = {}
+        if os.path.exists(LOCAL_KFP_CREDENTIAL):
+            with open(LOCAL_KFP_CREDENTIAL, 'r') as f:
+                credentials = json.load(f)
+        credentials[client_id] = {}
+        credentials[client_id]['other_client_id'] = other_client_id
+        credentials[client_id]['other_client_secret'] = other_client_secret
+        credentials[client_id]['refresh_token'] = refresh_token
+        if not os.path.exists(os.path.dirname(LOCAL_KFP_CREDENTIAL)):
+            os.makedirs(os.path.dirname(LOCAL_KFP_CREDENTIAL))
+        with open(LOCAL_KFP_CREDENTIAL, 'w') as f:
+            json.dump(credentials, f)
+        token = id_token_from_refresh_token(other_client_id, other_client_secret, refresh_token, client_id)
     return token
 
 def get_auth_token_from_sa(client_id):
@@ -131,12 +156,12 @@ def get_google_open_id_connect_token(service_account_credentials):
         request, OAUTH_TOKEN_URI, body)
     return token_response['id_token']
 
-def get_auth_token_from_client_id(client_id, client_secret, audience):
+def get_refresh_token_from_client_id(client_id, client_secret):
     """Obtain the ID token for provided Client ID with user accounts.
         Flow: get authorization code -> exchange for refresh token -> obtain and return ID token
     """
     auth_code = get_auth_code(client_id)
-    refresh_token = get_refresh_token_from_code(auth_code, client_id, client_secret)
+    return get_refresh_token_from_code(auth_code, client_id, client_secret)
     return id_token_from_refresh_token(client_id, client_secret, refresh_token, audience)
 
 def get_auth_code(client_id):
