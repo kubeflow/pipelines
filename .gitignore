@@ -67,4 +67,4 @@ _artifacts
 docs/_build
 
 # Pipeline Built Outputs
-*.tar.gz
+samples/**/*.tar.gz
