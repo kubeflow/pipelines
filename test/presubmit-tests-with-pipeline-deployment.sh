@@ -98,6 +98,18 @@ echo "argo installed"
 time source "${DIR}/deploy-pipeline-lite.sh"
 echo "KFP lite deployed"
 
+kubectl run test-$RANDOM --rm -it --restart=Never \
+    --image=google/cloud-sdk:slim \
+    --serviceaccount test-runner \
+    -- gcloud auth list
+
+kubectl get sa test-runner -o yaml
+
+kubectl run test-$RANDOM --rm -it --restart=Never \
+    --image=google/cloud-sdk:slim \
+    --serviceaccount mlpipeline \
+    -- gcloud auth list
+
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
