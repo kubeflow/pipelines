@@ -281,6 +281,27 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		}
 	}
 
+	for templateIdx, template := range workflow.Workflow.Spec.Templates {
+		foundUserGcpSaSecret := false
+		for volumeIdx, volume := range template.Volumes {
+			if volume.Secret != nil && volume.Secret.SecretName == "user-gcp-sa" {
+				foundUserGcpSaSecret = true
+
+				overrideOptional := new(bool)
+				*overrideOptional = true
+				workflow.Workflow.Spec.Templates[templateIdx].Volumes[volumeIdx].Secret.Optional = overrideOptional
+			}
+		}
+		if foundUserGcpSaSecret {
+			for envIdx, env := range template.Container.Env {
+				if env.Name == "GOOGLE_APPLICATION_CREDENTIALS" {
+					template.Container.Env = append(template.Container.Env[:envIdx], template.Container.Env[envIdx+1:]...)
+					break
+				}
+			}
+		}
+	}
+
 	// Create argo workflow CRD resource
 	newWorkflow, err := r.workflowClient.Create(workflow.Get())
 	if err != nil {
