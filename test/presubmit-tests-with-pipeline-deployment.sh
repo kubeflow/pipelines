@@ -98,7 +98,7 @@ echo "argo installed"
 time source "${DIR}/deploy-pipeline-lite.sh"
 echo "KFP lite deployed"
 
-kubectl run test-$RANDOM --rm -it --restart=Never \
+kubectl run test-$RANDOM --rm -i --restart=Never \
     --image=google/cloud-sdk:slim \
     --serviceaccount test-runner \
     --namespace $NAMESPACE \
@@ -106,7 +106,7 @@ kubectl run test-$RANDOM --rm -it --restart=Never \
 
 kubectl get sa test-runner -o yaml --namespace $NAMESPACE
 
-kubectl run test-$RANDOM --rm -it --restart=Never \
+kubectl run test-$RANDOM --rm -i --restart=Never \
     --image=google/cloud-sdk:slim \
     --serviceaccount mlpipeline \
     --namespace $NAMESPACE \
