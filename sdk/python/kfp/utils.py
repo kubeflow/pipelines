@@ -1,13 +1,13 @@
-def use_secret(secret_name=None, volume_name=None, secret_volume_mount_path=None, env_variable=None, secret_file_path_in_volume=None):
+def use_secret(secret_name:str=None, volume_name:str=None, secret_volume_mount_path:str=None, env_variable:str=None, secret_file_path_in_volume:str=None):
     """    
        An operator that configures the container to use a secret.
        
        This assumes that the secret is created and availabel in the k8s cluster.
     
     Keyword Arguments:
-        secret_name {String} -- The k8s secret name (default: {None})
+        secret_name {String} -- [Required] The k8s secret name (default: {None})
         volume_name {String} -- The pod volume name (default: {None})
-        secret_volume_mount_path {String} -- The path to the secret that is mounted  (default: {None})
+        secret_volume_mount_path {String} -- [Required] The path to the secret that is mounted  (default: {None})
         env_variable {String} -- Env variable pointing to the mounted secret file. Requires both the env_variable and secret_file_path_in_volume to be defined. 
                                  The value is the path to the secret (default: {None})
         secret_file_path_in_volume {String} -- The path to the secret in the volume. This will be the value of env_variable. 
@@ -21,8 +21,8 @@ def use_secret(secret_name=None, volume_name=None, secret_volume_mount_path=None
         [ContainerOperator] -- Returns the container operator after it has been modified. 
     """
 
-    if not volume_name:
-        volumen_name = secret_name + "_volume"
+    if secret_name:
+        volume_name = volume_name or secret_name + '_volume'
 
     params = [secret_name, volume_name, secret_volume_mount_path]
     param_names = ["secret_name", "volume_name", "secret_volume_mount_path"]
@@ -30,7 +30,7 @@ def use_secret(secret_name=None, volume_name=None, secret_volume_mount_path=None
         if param is None:
             raise ValueError("'{}' needs to be specified, is: {}".format(param_name, param))
     
-    if (env_variable and not secret_file_path_in_volume) or (secret_file_path_in_volume and not env_variable):
+    if bool(env_variable) != bool(secret_file_path_in_volume):
         raise ValueError("Both {} and {} needs to be supplied together or not at all".format(env_variable, secret_file_path_in_volume))
 
     def _use_secret(task):
