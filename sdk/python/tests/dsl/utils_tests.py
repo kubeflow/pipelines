@@ -27,7 +27,7 @@ class TestAddSecrets(unittest.TestCase):
         assert volume_mounts["mount_path"] == secret_path
 
 
-    def test_use_default_use_secret(self):
+    def test_use_set_volume_use_secret(self):
         op1 = ContainerOp(name='op1', image='image')
         secret_name = "my-secret"
         secret_path = "/here/are/my/secret"
@@ -64,4 +64,3 @@ class TestAddSecrets(unittest.TestCase):
         env_dict = op1.container.env[0].to_dict()
         assert env_dict["name"] == env_variable
         assert env_dict["value"] == secret_path + secret_file_path_in_volume
-
