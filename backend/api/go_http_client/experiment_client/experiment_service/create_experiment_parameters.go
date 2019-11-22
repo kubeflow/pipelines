@@ -78,7 +78,7 @@ for the create experiment operation typically these are written to a http.Reques
 type CreateExperimentParams struct {
 
 	/*Body
-	  The experiment to be created
+	  The experiment to be created.
 
 	*/
 	Body *experiment_model.APIExperiment

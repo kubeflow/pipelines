@@ -39,7 +39,7 @@ type Client struct {
 }
 
 /*
-CreateJob create job API
+CreateJob creates a new job
 */
 func (a *Client) CreateJob(params *CreateJobParams, authInfo runtime.ClientAuthInfoWriter) (*CreateJobOK, error) {
 	// TODO: Validate the params before sending
@@ -68,7 +68,7 @@ func (a *Client) CreateJob(params *CreateJobParams, authInfo runtime.ClientAuthI
 }
 
 /*
-DeleteJob delete job API
+DeleteJob deletes a job
 */
 func (a *Client) DeleteJob(params *DeleteJobParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteJobOK, error) {
 	// TODO: Validate the params before sending
@@ -97,7 +97,7 @@ func (a *Client) DeleteJob(params *DeleteJobParams, authInfo runtime.ClientAuthI
 }
 
 /*
-DisableJob disable job API
+DisableJob disables a job
 */
 func (a *Client) DisableJob(params *DisableJobParams, authInfo runtime.ClientAuthInfoWriter) (*DisableJobOK, error) {
 	// TODO: Validate the params before sending
@@ -126,7 +126,7 @@ func (a *Client) DisableJob(params *DisableJobParams, authInfo runtime.ClientAut
 }
 
 /*
-EnableJob enable job API
+EnableJob enables a job
 */
 func (a *Client) EnableJob(params *EnableJobParams, authInfo runtime.ClientAuthInfoWriter) (*EnableJobOK, error) {
 	// TODO: Validate the params before sending
@@ -155,7 +155,7 @@ func (a *Client) EnableJob(params *EnableJobParams, authInfo runtime.ClientAuthI
 }
 
 /*
-GetJob get job API
+GetJob finds a specific job by ID
 */
 func (a *Client) GetJob(params *GetJobParams, authInfo runtime.ClientAuthInfoWriter) (*GetJobOK, error) {
 	// TODO: Validate the params before sending
@@ -184,7 +184,7 @@ func (a *Client) GetJob(params *GetJobParams, authInfo runtime.ClientAuthInfoWri
 }
 
 /*
-ListJobs list jobs API
+ListJobs finds all jobs
 */
 func (a *Client) ListJobs(params *ListJobsParams, authInfo runtime.ClientAuthInfoWriter) (*ListJobsOK, error) {
 	// TODO: Validate the params before sending

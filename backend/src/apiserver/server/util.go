@@ -268,3 +268,8 @@ func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, re
 
 	return &pipelineVersionId, nil
 }
+
+func AuthorizeRequest(userIdentity string, namespace string) bool {
+	//TODO: Add authorization logic by contacting the KFAM service
+	return true
+}

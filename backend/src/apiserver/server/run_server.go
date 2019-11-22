@@ -30,6 +30,7 @@ type RunServer struct {
 
 func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest) (*api.RunDetail, error) {
 	err := s.validateCreateRunRequest(request)
+	AuthorizeRequest("google.com", request.Namespace)
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
