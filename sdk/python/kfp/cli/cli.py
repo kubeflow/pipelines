@@ -27,7 +27,7 @@ from .diagnose_me_cli import diagnose_me
 @click.pass_context
 def cli(ctx, endpoint, iap_client_id, namespace):
     """kfp is the command line interface to KFP service."""
-    if click.Group.get_command(cli, ctx,'diagnose_me'):
+    if ctx.invoked_subcommand == 'diagnose_me':
         # Do not create a client for diagnose_me
         return 
     ctx.obj['client'] = Client(endpoint, iap_client_id, namespace)
