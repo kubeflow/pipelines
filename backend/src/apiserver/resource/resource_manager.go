@@ -41,6 +41,7 @@ import (
 const (
 	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
 	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
+	defaultGcpSecretName                      = "user-gcp-sa"
 )
 
 type ClientManagerInterface interface {
@@ -232,22 +233,37 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	return template, nil
 }
 
+// user-gcp-sa secret was the default way to authenticate in GCP, but it is no longer needed when
+// we suggest using default authentication methods provided by GKE.
+// Alternatives include: project default service account, node pool default service account and
+// workload identity.
+// Dropping GOOGLE_APPLICATION_CREDENTIALS env when the secret is not configured ensures old
+// pipelines can still be run in new recommended clusters set up as above methods.
+//
+// TODO: when all pipeline samples no longer use user-gcp-sa secret, we can remove this usage.
 func (r *ResourceManager) dropUserGcpSaIfNotConfigured(workflow util.Workflow) {
 	someStepsHaveUserGcpSa := false
 	for _, template := range workflow.Workflow.Spec.Templates {
 		for _, volume := range template.Volumes {
-			if volume.Secret != nil && volume.Secret.SecretName == "user-gcp-sa" {
+			if volume.Secret != nil && volume.Secret.SecretName == defaultGcpSecretName {
 				someStepsHaveUserGcpSa = true
 			}
 		}
 	}
 	if !someStepsHaveUserGcpSa {
+		// No steps used user-gcp-sa secret, no need to drop GOOGLE_APPLICATION_CREDENTIALS.
 		return
 	}
+	secret, err := r.secretClient.Get(defaultGcpSecretName, v1.GetOptions{})
+	if err == nil && secret != nil {
+		// user-gcp-sa secret is set up correctly, no need to drop GOOGLE_APPLICATION_CREDENTIALS.
+		return
+	}
+	// drops env var and marks secret as optional
 	for templateIdx, template := range workflow.Workflow.Spec.Templates {
 		foundUserGcpSaSecret := false
 		for volumeIdx, volume := range template.Volumes {
-			if volume.Secret != nil && volume.Secret.SecretName == "user-gcp-sa" {
+			if volume.Secret != nil && volume.Secret.SecretName == defaultGcpSecretName {
 				foundUserGcpSaSecret = true
 
 				overrideOptional := new(bool)
