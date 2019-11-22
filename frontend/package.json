@@ -56,9 +56,8 @@
     "start": "react-scripts-ts start",
     "test": "react-scripts-ts test --env=jsdom",
     "test:coverage": "npm test -- --env=jsdom --coverage",
-    "test:coveralls": "./scripts/report-coveralls.sh",
     "test:ci": "npm run format:check && npm run lint && npm run test:coverage",
-    "test:ci:prow": "npm set unsafe-perm true && npm ci && npm run test:ci && npm run test:coveralls",
+    "test:ci:prow": "npm set unsafe-perm true && npm ci && npm run test:ci && ./scripts/report-coveralls.sh",
     "vr-approve": "backstop approve",
     "vr-test": "ts-node -O '{\"module\": \"commonjs\"}' backstop.ts"
   },
