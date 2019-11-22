@@ -232,6 +232,41 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	return template, nil
 }
 
+func (r *ResourceManager) dropUserGcpSaIfNotConfigured(workflow util.Workflow) {
+	someStepsHaveUserGcpSa := false
+	for _, template := range workflow.Workflow.Spec.Templates {
+		for _, volume := range template.Volumes {
+			if volume.Secret != nil && volume.Secret.SecretName == "user-gcp-sa" {
+				someStepsHaveUserGcpSa = true
+			}
+		}
+	}
+	if !someStepsHaveUserGcpSa {
+		return
+	}
+	for templateIdx, template := range workflow.Workflow.Spec.Templates {
+		foundUserGcpSaSecret := false
+		for volumeIdx, volume := range template.Volumes {
+			if volume.Secret != nil && volume.Secret.SecretName == "user-gcp-sa" {
+				foundUserGcpSaSecret = true
+
+				overrideOptional := new(bool)
+				*overrideOptional = true
+				workflow.Workflow.Spec.Templates[templateIdx].Volumes[volumeIdx].Secret.Optional = overrideOptional
+			}
+		}
+		if foundUserGcpSaSecret {
+			for envIdx, env := range template.Container.Env {
+				if env.Name == "GOOGLE_APPLICATION_CREDENTIALS" {
+					template.Container.Env = append(template.Container.Env[:envIdx], template.Container.Env[envIdx+1:]...)
+					break
+				}
+			}
+		}
+	}
+
+}
+
 func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// Get workflow from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
@@ -284,26 +319,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		}
 	}
 
-	for templateIdx, template := range workflow.Workflow.Spec.Templates {
-		foundUserGcpSaSecret := false
-		for volumeIdx, volume := range template.Volumes {
-			if volume.Secret != nil && volume.Secret.SecretName == "user-gcp-sa" {
-				foundUserGcpSaSecret = true
-
-				overrideOptional := new(bool)
-				*overrideOptional = true
-				workflow.Workflow.Spec.Templates[templateIdx].Volumes[volumeIdx].Secret.Optional = overrideOptional
-			}
-		}
-		if foundUserGcpSaSecret {
-			for envIdx, env := range template.Container.Env {
-				if env.Name == "GOOGLE_APPLICATION_CREDENTIALS" {
-					template.Container.Env = append(template.Container.Env[:envIdx], template.Container.Env[envIdx+1:]...)
-					break
-				}
-			}
-		}
-	}
+	r.dropUserGcpSaIfNotConfigured(workflow)
 
 	// Create argo workflow CRD resource
 	newWorkflow, err := r.workflowClient.Create(workflow.Get())
