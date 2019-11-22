@@ -102,7 +102,7 @@ kubectl run test-$RANDOM --rm -i --restart=Never \
     --image=google/cloud-sdk:slim \
     --serviceaccount test-runner \
     --namespace $NAMESPACE \
-    -- gcloud auth list
+    -- gcloud auth list || echo "failed"
 
 kubectl get sa test-runner -o yaml --namespace $NAMESPACE
 
@@ -110,7 +110,7 @@ kubectl run test-$RANDOM --rm -i --restart=Never \
     --image=google/cloud-sdk:slim \
     --serviceaccount ml-pipeline \
     --namespace $NAMESPACE \
-    -- gcloud auth list
+    -- gcloud auth list || echo "failed"
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
