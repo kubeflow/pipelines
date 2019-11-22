@@ -108,7 +108,7 @@ kubectl get sa test-runner -o yaml --namespace $NAMESPACE
 
 kubectl run test-$RANDOM --rm -i --restart=Never \
     --image=google/cloud-sdk:slim \
-    --serviceaccount mlpipeline \
+    --serviceaccount ml-pipeline \
     --namespace $NAMESPACE \
     -- gcloud auth list
 
