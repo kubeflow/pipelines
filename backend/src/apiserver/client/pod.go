@@ -10,25 +10,24 @@ import (
 	"time"
 )
 
-func createPodClient(namespace string) (v1.PodInterface, error) {
+func createK8sClient() (v1.CoreV1Interface, error) {
 	restConfig, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to initialize kubernetes client.")
 	}
-
 	clientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to initialize kubernetes client set.")
 	}
-	return clientSet.CoreV1().Pods(namespace), nil
+	return clientSet.CoreV1(), nil
 }
 
-// CreatePodClientOrFatal creates a new client for the Kubernetes pod.
-func CreatePodClientOrFatal(namespace string, initConnectionTimeout time.Duration) v1.PodInterface{
-	var client v1.PodInterface
+// CreateK8sClientOrFatal creates a new client for the Kubernetes resources.
+func CreateK8sClientOrFatal(initConnectionTimeout time.Duration) v1.CoreV1Interface {
+	var client v1.CoreV1Interface
 	var err error
 	var operation = func() error {
-		client, err = createPodClient(namespace)
+		client, err = createK8sClient()
 		if err != nil {
 			return err
 		}
@@ -39,7 +38,7 @@ func CreatePodClientOrFatal(namespace string, initConnectionTimeout time.Duratio
 	err = backoff.Retry(operation, b)
 
 	if err != nil {
-		glog.Fatalf("Failed to create pod client. Error: %v", err)
+		glog.Fatalf("Failed to create k8s client. Error: %v", err)
 	}
 	return client
 }

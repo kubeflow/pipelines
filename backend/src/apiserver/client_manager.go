@@ -37,14 +37,14 @@ import (
 )
 
 const (
-	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
-	mysqlServiceHost = "DBConfig.Host"
-	mysqlServicePort = "DBConfig.Port"
-	mysqlUser        = "DBConfig.User"
-	mysqlPassword    = "DBConfig.Password"
-	mysqlDBName      = "DBConfig.DBName"
-	mysqlGroupConcatMaxLen 	= "DBConfig.GroupConcatMaxLen"
+	minioServiceHost       = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort       = "MINIO_SERVICE_SERVICE_PORT"
+	mysqlServiceHost       = "DBConfig.Host"
+	mysqlServicePort       = "DBConfig.Port"
+	mysqlUser              = "DBConfig.User"
+	mysqlPassword          = "DBConfig.Password"
+	mysqlDBName            = "DBConfig.DBName"
+	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -67,6 +67,7 @@ type ClientManager struct {
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient              v1.PodInterface
+	secretClient           v1.SecretInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 }
@@ -115,6 +116,10 @@ func (c *ClientManager) PodClient() v1.PodInterface {
 	return c.podClient
 }
 
+func (c *ClientManager) SecretClient() v1.SecretInterface {
+	return c.secretClient
+}
+
 func (c *ClientManager) Time() util.TimeInterface {
 	return c.time
 }
@@ -148,8 +153,10 @@ func (c *ClientManager) init() {
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
 		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
 
-	c.podClient = client.CreatePodClientOrFatal(
-		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
+	namespace := common.GetStringConfig(podNamespace)
+	k8sClient := client.CreateK8sClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
+	c.podClient = k8sClient.Pods(namespace)
+	c.secretClient = k8sClient.Secrets(namespace)
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore

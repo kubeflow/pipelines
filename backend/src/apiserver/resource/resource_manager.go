@@ -55,6 +55,7 @@ type ClientManagerInterface interface {
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
 	PodClient() corev1.PodInterface
+	SecretClient() corev1.SecretInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
 }
@@ -71,6 +72,7 @@ type ResourceManager struct {
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient               corev1.PodInterface
+	secretClient            corev1.SecretInterface
 	time                    util.TimeInterface
 	uuid                    util.UUIDGeneratorInterface
 }
@@ -88,6 +90,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
 		podClient:               clientManager.PodClient(),
+		secretClient:            clientManager.SecretClient(),
 		time:                    clientManager.Time(),
 		uuid:                    clientManager.UUID(),
 	}

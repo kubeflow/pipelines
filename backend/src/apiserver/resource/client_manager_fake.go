@@ -41,6 +41,7 @@ type FakeClientManager struct {
 	workflowClientFake          *FakeWorkflowClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
 	podClientFake               v1.PodInterface
+	secretClientFake            v1.SecretInterface
 	time                        util.TimeInterface
 	uuid                        util.UUIDGeneratorInterface
 }
@@ -76,6 +77,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
 		podClientFake:               FakePodClient{},
+		secretClientFake:            FakeSecretClient{},
 		time:                        time,
 		uuid:                        uuid,
 	}, nil
@@ -144,6 +146,10 @@ func (f *FakeClientManager) ScheduledWorkflow() scheduledworkflowclient.Schedule
 
 func (f *FakeClientManager) PodClient() v1.PodInterface {
 	return f.podClientFake
+}
+
+func (f *FakeClientManager) SecretClient() v1.SecretInterface {
+	return f.secretClientFake
 }
 
 func (f *FakeClientManager) Close() error {
