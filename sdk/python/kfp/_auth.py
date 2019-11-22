@@ -65,6 +65,8 @@ def get_auth_token(client_id, other_client_id, other_client_secret):
         credentials[client_id]['other_client_id'] = other_client_id
         credentials[client_id]['other_client_secret'] = other_client_secret
         credentials[client_id]['refresh_token'] = refresh_token
+        #TODO: handle the case when the refresh_token expires.
+        #   which only happens if the refresh_token is not used once for six months.
         if not os.path.exists(os.path.dirname(LOCAL_KFP_CREDENTIAL)):
             os.makedirs(os.path.dirname(LOCAL_KFP_CREDENTIAL))
         with open(LOCAL_KFP_CREDENTIAL, 'w') as f:
