@@ -39,7 +39,7 @@ type Client struct {
 }
 
 /*
-CreateExperiment create experiment API
+CreateExperiment creates a new experiment
 */
 func (a *Client) CreateExperiment(params *CreateExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*CreateExperimentOK, error) {
 	// TODO: Validate the params before sending
@@ -68,7 +68,7 @@ func (a *Client) CreateExperiment(params *CreateExperimentParams, authInfo runti
 }
 
 /*
-DeleteExperiment delete experiment API
+DeleteExperiment deletes an experiment
 */
 func (a *Client) DeleteExperiment(params *DeleteExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteExperimentOK, error) {
 	// TODO: Validate the params before sending
@@ -97,7 +97,7 @@ func (a *Client) DeleteExperiment(params *DeleteExperimentParams, authInfo runti
 }
 
 /*
-GetExperiment get experiment API
+GetExperiment finds a specific experiment by ID
 */
 func (a *Client) GetExperiment(params *GetExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*GetExperimentOK, error) {
 	// TODO: Validate the params before sending
@@ -126,7 +126,7 @@ func (a *Client) GetExperiment(params *GetExperimentParams, authInfo runtime.Cli
 }
 
 /*
-ListExperiment list experiment API
+ListExperiment finds all experiments
 */
 func (a *Client) ListExperiment(params *ListExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*ListExperimentOK, error) {
 	// TODO: Validate the params before sending

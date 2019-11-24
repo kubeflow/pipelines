@@ -242,7 +242,7 @@ func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runti
 }
 
 /*
-RetryRun res initiates a failed or terminated run
+RetryRun res initiate a failed or terminated run
 */
 func (a *Client) RetryRun(params *RetryRunParams, authInfo runtime.ClientAuthInfoWriter) (*RetryRunOK, error) {
 	// TODO: Validate the params before sending

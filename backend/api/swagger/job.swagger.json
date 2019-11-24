@@ -17,6 +17,7 @@
   "paths": {
     "/apis/v1beta1/jobs": {
       "get": {
+        "summary": "Find all jobs.",
         "operationId": "ListJobs",
         "responses": {
           "200": {
@@ -48,7 +49,7 @@
           },
           {
             "name": "sort_by",
-            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\nAscending by default.",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\".\nAscending by default.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -88,6 +89,7 @@
         ]
       },
       "post": {
+        "summary": "Create a new job.",
         "operationId": "CreateJob",
         "responses": {
           "200": {
@@ -121,6 +123,7 @@
     },
     "/apis/v1beta1/jobs/{id}": {
       "get": {
+        "summary": "Find a specific job by ID.",
         "operationId": "GetJob",
         "responses": {
           "200": {
@@ -150,6 +153,7 @@
         ]
       },
       "delete": {
+        "summary": "Delete a job.",
         "operationId": "DeleteJob",
         "responses": {
           "200": {
@@ -181,6 +185,7 @@
     },
     "/apis/v1beta1/jobs/{id}/disable": {
       "post": {
+        "summary": "Disable a job.",
         "operationId": "DisableJob",
         "responses": {
           "200": {
@@ -212,6 +217,7 @@
     },
     "/apis/v1beta1/jobs/{id}/enable": {
       "post": {
+        "summary": "Enable a job.",
         "operationId": "EnableJob",
         "responses": {
           "200": {

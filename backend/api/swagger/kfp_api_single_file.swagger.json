@@ -18,7 +18,7 @@
   "paths": {
     "/apis/v1beta1/runs": {
       "get": {
-        "summary": "Finds all runs.",
+        "summary": "Find all runs.",
         "operationId": "ListRuns",
         "responses": {
           "200": {
@@ -90,7 +90,7 @@
         ]
       },
       "post": {
-        "summary": "Creates a new run.",
+        "summary": "Create a new run.",
         "operationId": "CreateRun",
         "responses": {
           "200": {
@@ -123,7 +123,7 @@
     },
     "/apis/v1beta1/runs/{id}": {
       "delete": {
-        "summary": "Deletes a run.",
+        "summary": "Delete a run.",
         "operationId": "DeleteRun",
         "responses": {
           "200": {
@@ -154,7 +154,7 @@
     },
     "/apis/v1beta1/runs/{id}:archive": {
       "post": {
-        "summary": "Archives a run.",
+        "summary": "Archive a run.",
         "operationId": "ArchiveRun",
         "responses": {
           "200": {
@@ -185,7 +185,7 @@
     },
     "/apis/v1beta1/runs/{id}:unarchive": {
       "post": {
-        "summary": "Restores an archived run.",
+        "summary": "Restore an archived run.",
         "operationId": "UnarchiveRun",
         "responses": {
           "200": {
@@ -216,7 +216,7 @@
     },
     "/apis/v1beta1/runs/{run_id}": {
       "get": {
-        "summary": "Finds a specific run by ID.",
+        "summary": "Find a specific run by ID.",
         "operationId": "GetRun",
         "responses": {
           "200": {
@@ -247,7 +247,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
       "get": {
-        "summary": "Finds a run's artifact data.",
+        "summary": "Find a run's artifact data.",
         "operationId": "ReadArtifact",
         "responses": {
           "200": {
@@ -293,7 +293,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/retry": {
       "post": {
-        "summary": "Re-initiates a failed or terminated run.",
+        "summary": "Re-initiate a failed or terminated run.",
         "operationId": "RetryRun",
         "responses": {
           "200": {
@@ -324,7 +324,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/terminate": {
       "post": {
-        "summary": "Terminates an active run.",
+        "summary": "Terminate an active run.",
         "operationId": "TerminateRun",
         "responses": {
           "200": {
@@ -395,6 +395,7 @@
     },
     "/apis/v1beta1/jobs": {
       "get": {
+        "summary": "Find all jobs.",
         "operationId": "ListJobs",
         "responses": {
           "200": {
@@ -426,7 +427,7 @@
           },
           {
             "name": "sort_by",
-            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\nAscending by default.",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\".\nAscending by default.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -466,6 +467,7 @@
         ]
       },
       "post": {
+        "summary": "Create a new job.",
         "operationId": "CreateJob",
         "responses": {
           "200": {
@@ -499,6 +501,7 @@
     },
     "/apis/v1beta1/jobs/{id}": {
       "get": {
+        "summary": "Find a specific job by ID.",
         "operationId": "GetJob",
         "responses": {
           "200": {
@@ -528,6 +531,7 @@
         ]
       },
       "delete": {
+        "summary": "Delete a job.",
         "operationId": "DeleteJob",
         "responses": {
           "200": {
@@ -559,6 +563,7 @@
     },
     "/apis/v1beta1/jobs/{id}/disable": {
       "post": {
+        "summary": "Disable a job.",
         "operationId": "DisableJob",
         "responses": {
           "200": {
@@ -590,6 +595,7 @@
     },
     "/apis/v1beta1/jobs/{id}/enable": {
       "post": {
+        "summary": "Enable a job.",
         "operationId": "EnableJob",
         "responses": {
           "200": {
@@ -813,6 +819,7 @@
     },
     "/apis/v1beta1/pipelines": {
       "get": {
+        "summary": "Find all pipelines.",
         "operationId": "ListPipelines",
         "responses": {
           "200": {
@@ -862,6 +869,7 @@
         ]
       },
       "post": {
+        "summary": "Add a pipeline.",
         "operationId": "CreatePipeline",
         "responses": {
           "200": {
@@ -894,6 +902,7 @@
     },
     "/apis/v1beta1/pipelines/{id}": {
       "get": {
+        "summary": "Find a specific pipeline by ID.",
         "operationId": "GetPipeline",
         "responses": {
           "200": {
@@ -922,6 +931,7 @@
         ]
       },
       "delete": {
+        "summary": "Delete a pipeline.",
         "operationId": "DeletePipeline",
         "responses": {
           "200": {
@@ -952,6 +962,7 @@
     },
     "/apis/v1beta1/pipelines/{id}/templates": {
       "get": {
+        "summary": "Get a YAML template for the selected pipeline.",
         "operationId": "GetTemplate",
         "responses": {
           "200": {
@@ -982,6 +993,7 @@
     },
     "/apis/v1beta1/experiments": {
       "get": {
+        "summary": "Find all experiments.",
         "operationId": "ListExperiment",
         "responses": {
           "200": {
@@ -1031,6 +1043,7 @@
         ]
       },
       "post": {
+        "summary": "Create a new experiment.",
         "operationId": "CreateExperiment",
         "responses": {
           "200": {
@@ -1049,7 +1062,7 @@
         "parameters": [
           {
             "name": "body",
-            "description": "The experiment to be created",
+            "description": "The experiment to be created.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1064,6 +1077,7 @@
     },
     "/apis/v1beta1/experiments/{id}": {
       "get": {
+        "summary": "Find a specific experiment by ID.",
         "operationId": "GetExperiment",
         "responses": {
           "200": {
@@ -1082,7 +1096,7 @@
         "parameters": [
           {
             "name": "id",
-            "description": "The ID of the experiment to be retrieved",
+            "description": "The ID of the experiment to be retrieved.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -1093,6 +1107,7 @@
         ]
       },
       "delete": {
+        "summary": "Delete an experiment.",
         "operationId": "DeleteExperiment",
         "responses": {
           "200": {

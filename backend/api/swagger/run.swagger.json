@@ -17,7 +17,7 @@
   "paths": {
     "/apis/v1beta1/runs": {
       "get": {
-        "summary": "Finds all runs.",
+        "summary": "Find all runs.",
         "operationId": "ListRuns",
         "responses": {
           "200": {
@@ -89,7 +89,7 @@
         ]
       },
       "post": {
-        "summary": "Creates a new run.",
+        "summary": "Create a new run.",
         "operationId": "CreateRun",
         "responses": {
           "200": {
@@ -122,7 +122,7 @@
     },
     "/apis/v1beta1/runs/{id}": {
       "delete": {
-        "summary": "Deletes a run.",
+        "summary": "Delete a run.",
         "operationId": "DeleteRun",
         "responses": {
           "200": {
@@ -153,7 +153,7 @@
     },
     "/apis/v1beta1/runs/{id}:archive": {
       "post": {
-        "summary": "Archives a run.",
+        "summary": "Archive a run.",
         "operationId": "ArchiveRun",
         "responses": {
           "200": {
@@ -184,7 +184,7 @@
     },
     "/apis/v1beta1/runs/{id}:unarchive": {
       "post": {
-        "summary": "Restores an archived run.",
+        "summary": "Restore an archived run.",
         "operationId": "UnarchiveRun",
         "responses": {
           "200": {
@@ -215,7 +215,7 @@
     },
     "/apis/v1beta1/runs/{run_id}": {
       "get": {
-        "summary": "Finds a specific run by ID.",
+        "summary": "Find a specific run by ID.",
         "operationId": "GetRun",
         "responses": {
           "200": {
@@ -246,7 +246,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
       "get": {
-        "summary": "Finds a run's artifact data.",
+        "summary": "Find a run's artifact data.",
         "operationId": "ReadArtifact",
         "responses": {
           "200": {
@@ -292,7 +292,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/retry": {
       "post": {
-        "summary": "Re-initiates a failed or terminated run.",
+        "summary": "Re-initiate a failed or terminated run.",
         "operationId": "RetryRun",
         "responses": {
           "200": {
@@ -323,7 +323,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/terminate": {
       "post": {
-        "summary": "Terminates an active run.",
+        "summary": "Terminate an active run.",
         "operationId": "TerminateRun",
         "responses": {
           "200": {

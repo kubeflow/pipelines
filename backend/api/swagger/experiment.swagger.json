@@ -17,6 +17,7 @@
   "paths": {
     "/apis/v1beta1/experiments": {
       "get": {
+        "summary": "Find all experiments.",
         "operationId": "ListExperiment",
         "responses": {
           "200": {
@@ -66,6 +67,7 @@
         ]
       },
       "post": {
+        "summary": "Create a new experiment.",
         "operationId": "CreateExperiment",
         "responses": {
           "200": {
@@ -84,7 +86,7 @@
         "parameters": [
           {
             "name": "body",
-            "description": "The experiment to be created",
+            "description": "The experiment to be created.",
             "in": "body",
             "required": true,
             "schema": {
@@ -99,6 +101,7 @@
     },
     "/apis/v1beta1/experiments/{id}": {
       "get": {
+        "summary": "Find a specific experiment by ID.",
         "operationId": "GetExperiment",
         "responses": {
           "200": {
@@ -117,7 +120,7 @@
         "parameters": [
           {
             "name": "id",
-            "description": "The ID of the experiment to be retrieved",
+            "description": "The ID of the experiment to be retrieved.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -128,6 +131,7 @@
         ]
       },
       "delete": {
+        "summary": "Delete an experiment.",
         "operationId": "DeleteExperiment",
         "responses": {
           "200": {

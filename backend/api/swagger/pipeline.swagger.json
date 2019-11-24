@@ -209,6 +209,7 @@
     },
     "/apis/v1beta1/pipelines": {
       "get": {
+        "summary": "Find all pipelines.",
         "operationId": "ListPipelines",
         "responses": {
           "200": {
@@ -258,6 +259,7 @@
         ]
       },
       "post": {
+        "summary": "Add a pipeline.",
         "operationId": "CreatePipeline",
         "responses": {
           "200": {
@@ -290,6 +292,7 @@
     },
     "/apis/v1beta1/pipelines/{id}": {
       "get": {
+        "summary": "Find a specific pipeline by ID.",
         "operationId": "GetPipeline",
         "responses": {
           "200": {
@@ -318,6 +321,7 @@
         ]
       },
       "delete": {
+        "summary": "Delete a pipeline.",
         "operationId": "DeletePipeline",
         "responses": {
           "200": {
@@ -348,6 +352,7 @@
     },
     "/apis/v1beta1/pipelines/{id}/templates": {
       "get": {
+        "summary": "Get a YAML template for the selected pipeline.",
         "operationId": "GetTemplate",
         "responses": {
           "200": {
