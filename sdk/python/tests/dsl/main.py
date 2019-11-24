@@ -29,6 +29,7 @@ import resource_op_tests
 import volume_op_tests
 import pipeline_volume_tests
 import volume_snapshotop_tests
+import test_utils
 
 
 if __name__ == '__main__':
@@ -54,6 +55,7 @@ if __name__ == '__main__':
   suite.addTests(
     unittest.defaultTestLoader.loadTestsFromModule(volume_snapshotop_tests)
   )
+  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(test_utils))
 
   runner = unittest.TextTestRunner()
   if not runner.run(suite).wasSuccessful():
