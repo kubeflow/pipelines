@@ -39,9 +39,11 @@ import RunDetails from '../pages/RunDetails';
 import SideNav from './SideNav';
 import Snackbar, { SnackbarProps } from '@material-ui/core/Snackbar';
 import Toolbar, { ToolbarProps } from './Toolbar';
-import { Route, Switch, Redirect, HashRouter } from 'react-router-dom';
+import { Route, Switch, Redirect } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss } from '../Css';
+
+export type RouteConfig = { path: string; Component: React.ComponentType<any>; view?: any };
 
 const css = stylesheet({
   dialog: {
@@ -128,7 +130,69 @@ interface RouteComponentState {
   toolbarProps: ToolbarProps;
 }
 
-class Router extends React.Component<{}, RouteComponentState> {
+export interface RouterProps {
+  configs?: RouteConfig[]; // only used in tests
+}
+
+// This component is made as a wrapper to separate toolbar state for different pages.
+const Router: React.FC<RouterProps> = ({ configs }) => {
+  const routes: RouteConfig[] = configs || [
+    { path: RoutePage.ARCHIVE, Component: Archive },
+    { path: RoutePage.ARTIFACTS, Component: ArtifactList },
+    { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails },
+    { path: RoutePage.EXECUTIONS, Component: ExecutionList },
+    { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
+    {
+      Component: ExperimentsAndRuns,
+      path: RoutePage.EXPERIMENTS,
+      view: ExperimentsAndRunsTab.EXPERIMENTS,
+    },
+    { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
+    { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
+    { path: RoutePage.NEW_RUN, Component: NewRun },
+    { path: RoutePage.PIPELINES, Component: PipelineList },
+    { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
+    { path: RoutePage.RUNS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.RUNS },
+    { path: RoutePage.RECURRING_RUN, Component: RecurringRunDetails },
+    { path: RoutePage.RUN_DETAILS, Component: RunDetails },
+    { path: RoutePage.COMPARE, Component: Compare },
+  ];
+
+  return (
+    <Switch>
+      <Route
+        exact={true}
+        path={'/'}
+        render={({ ...props }) => <Redirect to={RoutePage.PIPELINES} {...props} />}
+      />
+
+      {/* Normal routes */}
+      {routes.map((route, i) => {
+        const { path } = { ...route };
+        return (
+          // Setting a key here, so that two different routes are considered two instances from
+          // react. Therefore, they don't share toolbar state. This avoids many bugs like dangling
+          // network response handlers.
+          <Route
+            key={i}
+            exact={true}
+            path={path}
+            render={props => <RoutedPage key={props.location.key} route={route} />}
+          />
+        );
+      })}
+
+      {/* 404 */}
+      {
+        <Route>
+          <RoutedPage />
+        </Route>
+      }
+    </Switch>
+  );
+};
+
+class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponentState> {
   constructor(props: any) {
     super(props);
 
@@ -148,59 +212,28 @@ class Router extends React.Component<{}, RouteComponentState> {
       updateSnackbar: this._updateSnackbar.bind(this),
       updateToolbar: this._updateToolbar.bind(this),
     };
-
-    const routes: Array<{ path: string; Component: React.ComponentClass; view?: any }> = [
-      { path: RoutePage.ARCHIVE, Component: Archive },
-      { path: RoutePage.ARTIFACTS, Component: ArtifactList },
-      { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails },
-      { path: RoutePage.EXECUTIONS, Component: ExecutionList },
-      { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
-      {
-        Component: ExperimentsAndRuns,
-        path: RoutePage.EXPERIMENTS,
-        view: ExperimentsAndRunsTab.EXPERIMENTS,
-      },
-      { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
-      { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
-      { path: RoutePage.NEW_RUN, Component: NewRun },
-      { path: RoutePage.PIPELINES, Component: PipelineList },
-      { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
-      { path: RoutePage.RUNS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.RUNS },
-      { path: RoutePage.RECURRING_RUN, Component: RecurringRunDetails },
-      { path: RoutePage.RUN_DETAILS, Component: RunDetails },
-      { path: RoutePage.COMPARE, Component: Compare },
-    ];
+    const route = this.props.route;
 
     return (
-      <HashRouter>
-        <div className={commonCss.page}>
-          <div className={commonCss.flexGrow}>
-            <Route
-              render={({ ...props }) => <SideNav page={props.location.pathname} {...props} />}
-            />
-            <div className={classes(commonCss.page)}>
-              <Route
-                render={({ ...props }) => <Toolbar {...this.state.toolbarProps} {...props} />}
+      <div className={commonCss.page}>
+        <div className={commonCss.flexGrow}>
+          <Route render={({ ...props }) => <SideNav page={props.location.pathname} {...props} />} />
+          <div className={classes(commonCss.page)}>
+            <Route render={({ ...props }) => <Toolbar {...this.state.toolbarProps} {...props} />} />
+            {this.state.bannerProps.message && (
+              <Banner
+                message={this.state.bannerProps.message}
+                mode={this.state.bannerProps.mode}
+                additionalInfo={this.state.bannerProps.additionalInfo}
+                refresh={this.state.bannerProps.refresh}
               />
-              {this.state.bannerProps.message && (
-                <Banner
-                  message={this.state.bannerProps.message}
-                  mode={this.state.bannerProps.mode}
-                  additionalInfo={this.state.bannerProps.additionalInfo}
-                  refresh={this.state.bannerProps.refresh}
-                />
-              )}
-              <Switch>
-                <Route
-                  exact={true}
-                  path={'/'}
-                  render={({ ...props }) => <Redirect to={RoutePage.PIPELINES} {...props} />}
-                />
-                {routes.map((route, i) => {
+            )}
+            <Switch>
+              {route &&
+                (() => {
                   const { path, Component, ...otherProps } = { ...route };
                   return (
                     <Route
-                      key={i}
                       exact={true}
                       path={path}
                       render={({ ...props }) => (
@@ -208,52 +241,53 @@ class Router extends React.Component<{}, RouteComponentState> {
                       )}
                     />
                   );
-                })}
+                })()}
 
-                {/* 404 */}
-                {<Route render={({ ...props }) => <Page404 {...props} {...childProps} />} />}
-              </Switch>
+              {/* 404 */}
+              {!!route && (
+                <Route render={({ ...props }) => <Page404 {...props} {...childProps} />} />
+              )}
+            </Switch>
 
-              <Snackbar
-                autoHideDuration={this.state.snackbarProps.autoHideDuration}
-                message={this.state.snackbarProps.message}
-                open={this.state.snackbarProps.open}
-                onClose={this._handleSnackbarClose.bind(this)}
-              />
-            </div>
+            <Snackbar
+              autoHideDuration={this.state.snackbarProps.autoHideDuration}
+              message={this.state.snackbarProps.message}
+              open={this.state.snackbarProps.open}
+              onClose={this._handleSnackbarClose.bind(this)}
+            />
           </div>
-
-          <Dialog
-            open={this.state.dialogProps.open !== false}
-            classes={{ paper: css.dialog }}
-            className='dialog'
-            onClose={() => this._handleDialogClosed()}
-          >
-            {this.state.dialogProps.title && (
-              <DialogTitle> {this.state.dialogProps.title}</DialogTitle>
-            )}
-            {this.state.dialogProps.content && (
-              <DialogContent className={commonCss.prewrap}>
-                {this.state.dialogProps.content}
-              </DialogContent>
-            )}
-            {this.state.dialogProps.buttons && (
-              <DialogActions>
-                {this.state.dialogProps.buttons.map((b, i) => (
-                  <Button
-                    key={i}
-                    onClick={() => this._handleDialogClosed(b.onClick)}
-                    className='dialogButton'
-                    color='secondary'
-                  >
-                    {b.text}
-                  </Button>
-                ))}
-              </DialogActions>
-            )}
-          </Dialog>
         </div>
-      </HashRouter>
+
+        <Dialog
+          open={this.state.dialogProps.open !== false}
+          classes={{ paper: css.dialog }}
+          className='dialog'
+          onClose={() => this._handleDialogClosed()}
+        >
+          {this.state.dialogProps.title && (
+            <DialogTitle> {this.state.dialogProps.title}</DialogTitle>
+          )}
+          {this.state.dialogProps.content && (
+            <DialogContent className={commonCss.prewrap}>
+              {this.state.dialogProps.content}
+            </DialogContent>
+          )}
+          {this.state.dialogProps.buttons && (
+            <DialogActions>
+              {this.state.dialogProps.buttons.map((b, i) => (
+                <Button
+                  key={i}
+                  onClick={() => this._handleDialogClosed(b.onClick)}
+                  className='dialogButton'
+                  color='secondary'
+                >
+                  {b.text}
+                </Button>
+              ))}
+            </DialogActions>
+          )}
+        </Dialog>
+      </div>
     );
   }
 

@@ -61,7 +61,9 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   }
 };
 
+
 service JobService {
+  //Create a new job.
   rpc CreateJob(CreateJobRequest) returns (Job) {
     option (google.api.http) = {
       post: "/apis/v1beta1/jobs"
@@ -69,30 +71,35 @@ service JobService {
     };
   }
 
+  //Find a specific job by ID.
   rpc GetJob(GetJobRequest) returns (Job) {
     option (google.api.http) = {
       get: "/apis/v1beta1/jobs/{id}"
     };
   }
 
+  //Find all jobs.
   rpc ListJobs(ListJobsRequest) returns (ListJobsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/jobs"
     };
   }
 
+  //Enable a job.
   rpc EnableJob(EnableJobRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/jobs/{id}/enable"
     };
   }
 
+  //Disable a job.
   rpc DisableJob(DisableJobRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/jobs/{id}/disable"
     };
   }
 
+  //Delete a job.
   rpc DeleteJob(DeleteJobRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/jobs/{id}"
@@ -114,7 +121,7 @@ message ListJobsRequest {
   string page_token = 1;
   int32 page_size = 2;
 
-  // Can be format of "field_name", "field_name asc" or "field_name des"
+  // Can be format of "field_name", "field_name asc" or "field_name des".
   // Ascending by default.
   string sort_by = 3;
 

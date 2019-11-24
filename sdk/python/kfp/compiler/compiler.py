@@ -868,7 +868,7 @@ class Compiler(object):
         will be returned.
     """
     yaml.Dumper.ignore_aliases = lambda *args : True
-    yaml_text = yaml.dump(workflow, default_flow_style=False)
+    yaml_text = yaml.dump(workflow, default_flow_style=False, default_style='|')
 
     if '{{pipelineparam' in yaml_text:
       raise RuntimeError(

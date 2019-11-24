@@ -58,6 +58,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service ExperimentService {
+  //Create a new experiment.
   rpc CreateExperiment(CreateExperimentRequest) returns (Experiment) {
     option (google.api.http) = {
       post: "/apis/v1beta1/experiments"
@@ -65,18 +66,21 @@ service ExperimentService {
     };
   }
 
+  //Find a specific experiment by ID.
   rpc GetExperiment(GetExperimentRequest) returns (Experiment) {
     option (google.api.http) = {
       get: "/apis/v1beta1/experiments/{id}"
     };
   }
 
+  //Find all experiments.
   rpc ListExperiment(ListExperimentsRequest) returns (ListExperimentsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/experiments"
     };
   }
 
+  //Delete an experiment.
   rpc DeleteExperiment(DeleteExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/experiments/{id}"
@@ -85,12 +89,12 @@ service ExperimentService {
 }
 
 message CreateExperimentRequest {
-  // The experiment to be created
+  // The experiment to be created.
   Experiment experiment = 1;
 }
 
 message GetExperimentRequest {
-  // The ID of the experiment to be retrieved
+  // The ID of the experiment to be retrieved.
   string id = 1;
 }
 

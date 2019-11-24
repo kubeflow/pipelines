@@ -22,9 +22,13 @@ from google.auth.transport.requests import Request
 import google.oauth2.credentials
 import google.oauth2.service_account
 import requests_toolbelt.adapters.appengine
+from webbrowser import open_new_tab
+import requests
+import json
 
 IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
+LOCAL_KFP_CREDENTIAL = os.path.join(os.environ['HOME'], '.config/kfp/credentials.json')
 
 def get_gcp_access_token():
     """Get and return GCP access token for the current Application Default
@@ -34,7 +38,43 @@ def get_gcp_access_token():
     with os.popen('gcloud auth print-access-token') as token:
         return token.read().rstrip()
 
-def get_auth_token(client_id):
+def get_auth_token(client_id, other_client_id, other_client_secret):
+    """Gets auth token from default service account or user account."""
+    if os.path.exists(LOCAL_KFP_CREDENTIAL):
+        # fetch IAP auth token using the locally stored credentials.
+        with open(LOCAL_KFP_CREDENTIAL, 'r') as f:
+            credentials = json.load(f)
+        if client_id in credentials:
+            return id_token_from_refresh_token(credentials[client_id]['other_client_id'],
+                                               credentials[client_id]['other_client_secret'],
+                                               credentials[client_id]['refresh_token'],
+                                               client_id)
+    if other_client_id is None or other_client_secret is None:
+        # fetch IAP auth token: service accounts
+        token = get_auth_token_from_sa(client_id)
+    else:
+        # fetch IAP auth token: user account
+        # Obtain the ID token for provided Client ID with user accounts.
+        #  Flow: get authorization code -> exchange for refresh token -> obtain and return ID token
+        refresh_token = get_refresh_token_from_client_id(other_client_id, other_client_secret)
+        credentials = {}
+        if os.path.exists(LOCAL_KFP_CREDENTIAL):
+            with open(LOCAL_KFP_CREDENTIAL, 'r') as f:
+                credentials = json.load(f)
+        credentials[client_id] = {}
+        credentials[client_id]['other_client_id'] = other_client_id
+        credentials[client_id]['other_client_secret'] = other_client_secret
+        credentials[client_id]['refresh_token'] = refresh_token
+        #TODO: handle the case when the refresh_token expires.
+        #   which only happens if the refresh_token is not used once for six months.
+        if not os.path.exists(os.path.dirname(LOCAL_KFP_CREDENTIAL)):
+            os.makedirs(os.path.dirname(LOCAL_KFP_CREDENTIAL))
+        with open(LOCAL_KFP_CREDENTIAL, 'w') as f:
+            json.dump(credentials, f)
+        token = id_token_from_refresh_token(other_client_id, other_client_secret, refresh_token, client_id)
+    return token
+
+def get_auth_token_from_sa(client_id):
     """Gets auth token from default service account.
 
     If no service account credential is found, returns None.
@@ -117,3 +157,29 @@ def get_google_open_id_connect_token(service_account_credentials):
     token_response = google.oauth2._client._token_endpoint_request(
         request, OAUTH_TOKEN_URI, body)
     return token_response['id_token']
+
+def get_refresh_token_from_client_id(client_id, client_secret):
+    """Obtain the ID token for provided Client ID with user accounts.
+        Flow: get authorization code -> exchange for refresh token -> obtain and return ID token
+    """
+    auth_code = get_auth_code(client_id)
+    return get_refresh_token_from_code(auth_code, client_id, client_secret)
+
+def get_auth_code(client_id):
+    auth_url = "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&response_type=code&scope=openid%%20email&access_type=offline&redirect_uri=urn:ietf:wg:oauth:2.0:oob"%client_id
+    print(auth_url)
+    open_new_tab(auth_url)
+    return input("Authorization code: ")
+
+def get_refresh_token_from_code(auth_code, client_id, client_secret):
+    payload = {"code": auth_code, "client_id": client_id, "client_secret": client_secret,
+               "redirect_uri": "urn:ietf:wg:oauth:2.0:oob", "grant_type": "authorization_code"}
+    res = requests.post(OAUTH_TOKEN_URI, data=payload)
+    return (str(json.loads(res.text)[u"refresh_token"]))
+
+def id_token_from_refresh_token(client_id, client_secret, refresh_token, audience):
+    payload = {"client_id": client_id, "client_secret": client_secret,
+               "refresh_token": refresh_token, "grant_type": "refresh_token",
+               "audience": audience}
+    res = requests.post(OAUTH_TOKEN_URI, data=payload)
+    return (str(json.loads(res.text)[u"id_token"]))

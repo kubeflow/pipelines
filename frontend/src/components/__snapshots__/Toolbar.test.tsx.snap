@@ -66,6 +66,7 @@ exports[`Toolbar disables the back button when there is no browser history 1`] =
       </WithStyles(Tooltip)>
       <span
         className="pageName ellipsis"
+        data-testid="page-title"
       />
     </div>
   </div>
@@ -181,6 +182,7 @@ exports[`Toolbar renders outlined action buttons 1`] = `
       </WithStyles(Tooltip)>
       <span
         className="pageName ellipsis"
+        data-testid="page-title"
       />
     </div>
   </div>
@@ -274,6 +276,7 @@ exports[`Toolbar renders primary action buttons 1`] = `
       </WithStyles(Tooltip)>
       <span
         className="pageName ellipsis"
+        data-testid="page-title"
       />
     </div>
   </div>
@@ -367,6 +370,7 @@ exports[`Toolbar renders primary action buttons without outline, even if outline
       </WithStyles(Tooltip)>
       <span
         className="pageName ellipsis"
+        data-testid="page-title"
       />
     </div>
   </div>
@@ -460,6 +464,7 @@ exports[`Toolbar renders with two breadcrumbs and two actions 1`] = `
       </WithStyles(Tooltip)>
       <span
         className="pageName ellipsis"
+        data-testid="page-title"
       />
     </div>
   </div>
@@ -557,6 +562,7 @@ exports[`Toolbar renders without actions and one breadcrumb 1`] = `
       </WithStyles(Tooltip)>
       <span
         className="pageName ellipsis"
+        data-testid="page-title"
       >
         test page title
       </span>
@@ -618,6 +624,7 @@ exports[`Toolbar renders without actions, one breadcrumb, and a page name 1`] = 
       </WithStyles(Tooltip)>
       <span
         className="pageName ellipsis"
+        data-testid="page-title"
       >
         test page title
       </span>
@@ -648,6 +655,7 @@ exports[`Toolbar renders without breadcrumbs and a component page title 1`] = `
     >
       <span
         className="pageName ellipsis"
+        data-testid="page-title"
       >
         <div
           id="myComponent"
@@ -720,6 +728,7 @@ exports[`Toolbar renders without breadcrumbs and a string page title 1`] = `
     >
       <span
         className="pageName ellipsis"
+        data-testid="page-title"
       >
         test page title
       </span>
@@ -788,6 +797,7 @@ exports[`Toolbar renders without breadcrumbs and one action 1`] = `
     >
       <span
         className="pageName ellipsis"
+        data-testid="page-title"
       >
         test page title
       </span>
@@ -837,6 +847,7 @@ exports[`Toolbar renders without breadcrumbs and two actions 1`] = `
     >
       <span
         className="pageName ellipsis"
+        data-testid="page-title"
       >
         test page title
       </span>
