@@ -44,6 +44,7 @@ const (
 	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
 	defaultGcpSecretVolumeName                = "gcp-credentials-user-gcp-sa"
 	defaultGcpSecretName                      = "user-gcp-sa"
+	gcpApplicationDefaultCredentialsEnv       = "GOOGLE_APPLICATION_CREDENTIALS"
 )
 
 type ClientManagerInterface interface {
@@ -309,8 +310,8 @@ func (r *ResourceManager) dropUserGcpSaIfNotConfigured(workflow util.Workflow) {
 			}
 			if foundGcpSecretMount {
 				for envIdx, env := range template.Container.Env {
-					if env.Name == "GOOGLE_APPLICATION_CREDENTIALS" {
-						// We can safe change the array we are iterating on, because we break immediately afterwards.
+					if env.Name == gcpApplicationDefaultCredentialsEnv {
+						// We can safely change the array we are iterating on, because we break immediately afterwards.
 						template.Container.Env = append(template.Container.Env[:envIdx], template.Container.Env[envIdx+1:]...)
 						break
 					}
@@ -327,7 +328,7 @@ func (r *ResourceManager) dropUserGcpSaIfNotConfigured(workflow util.Workflow) {
 			}
 			if foundGcpSecretMount {
 				for envIdx, env := range template.Script.Env {
-					if env.Name == "GOOGLE_APPLICATION_CREDENTIALS" {
+					if env.Name == gcpApplicationDefaultCredentialsEnv {
 						// We can safe change the array we are iterating on, because we break immediately afterwards.
 						template.Script.Env = append(template.Script.Env[:envIdx], template.Script.Env[envIdx+1:]...)
 						break

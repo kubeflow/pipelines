@@ -16,7 +16,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-    - secrets
+    - secrets # Needed because apiserver checks default GCP secret validity before running a pipeline
   verbs:
   - get
 - apiGroups:
