@@ -17,7 +17,7 @@ export const ArtifactLink: React.FC<{ artifactUri?: string }> = ({ artifactUri }
     } else if (artifactUri.startsWith('minio:')) {
       clickableUrl = generateMinioArtifactUrl(artifactUri);
     }
-}
+  }
 
   if (clickableUrl) {
     // Opens in new window safely
