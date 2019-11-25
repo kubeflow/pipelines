@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"errors"
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,7 +38,7 @@ func (FakeSecretClient) DeleteCollection(options *v1.DeleteOptions, listOptions 
 }
 
 func (FakeSecretClient) Get(name string, options v1.GetOptions) (*corev1.Secret, error) {
-	return nil, nil
+	return &corev1.Secret{}, nil
 }
 
 func (FakeSecretClient) List(opts v1.ListOptions) (*corev1.SecretList, error) {
@@ -53,4 +54,12 @@ func (FakeSecretClient) Watch(opts v1.ListOptions) (watch.Interface, error) {
 func (FakeSecretClient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *corev1.Secret, err error) {
 	glog.Error("This fake method is not yet implemented.")
 	return nil, nil
+}
+
+type FakeSecretNotFoundClient struct {
+	FakeSecretClient
+}
+
+func (FakeSecretNotFoundClient) Get(name string, options v1.GetOptions) (*corev1.Secret, error) {
+	return nil, errors.New("Secret not found")
 }

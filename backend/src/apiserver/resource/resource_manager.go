@@ -32,6 +32,7 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
+	apicorev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
@@ -41,6 +42,7 @@ import (
 const (
 	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
 	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
+	defaultGcpSecretVolumeName                = "gcp-credentials-user-gcp-sa"
 	defaultGcpSecretName                      = "user-gcp-sa"
 )
 
@@ -233,54 +235,107 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	return template, nil
 }
 
+// This only detects default usage of use_gcp_secret sdk method.
+func isGcpSecretVolume(volume apicorev1.Volume) bool {
+	return volume.Secret != nil &&
+		volume.Name == defaultGcpSecretVolumeName &&
+		volume.Secret.SecretName == defaultGcpSecretName &&
+		(volume.Secret.Optional == nil || !*volume.Secret.Optional)
+}
+
+func isGcpSecretVolumeMount(volumeMount apicorev1.VolumeMount) bool {
+	return volumeMount.Name == defaultGcpSecretVolumeName
+}
+
 // user-gcp-sa secret was the default way to authenticate in GCP, but it is no longer needed when
 // we suggest using default authentication methods provided by GKE.
 // Alternatives include: project default service account, node pool default service account and
 // workload identity.
 // Dropping GOOGLE_APPLICATION_CREDENTIALS env when the secret is not configured ensures old
 // pipelines can still be run in new recommended clusters set up as above methods.
+// Reference, old pipeline mounts secret like https://github.com/kubeflow/pipelines/blob/e19efdff76829ee374f400e68cc478ebff53a845/sdk/python/kfp/gcp.py#L46
 //
 // TODO: when all pipeline samples no longer use user-gcp-sa secret, we can remove this usage.
 func (r *ResourceManager) dropUserGcpSaIfNotConfigured(workflow util.Workflow) {
-	someStepsHaveUserGcpSa := false
-	for _, template := range workflow.Workflow.Spec.Templates {
+	someStepHasGcpSecretVolume := false
+	for _, template := range workflow.Spec.Templates {
 		for _, volume := range template.Volumes {
-			if volume.Secret != nil && volume.Secret.SecretName == defaultGcpSecretName {
-				someStepsHaveUserGcpSa = true
+			if isGcpSecretVolume(volume) {
+				someStepHasGcpSecretVolume = true
+				break
 			}
 		}
 	}
-	if !someStepsHaveUserGcpSa {
-		// No steps used user-gcp-sa secret, no need to drop GOOGLE_APPLICATION_CREDENTIALS.
+	hasGlobalGcpSecretVolume := false
+	for _, volume := range workflow.Spec.Volumes {
+		if isGcpSecretVolume(volume) {
+			hasGlobalGcpSecretVolume = true
+			break
+		}
+	}
+	if !(someStepHasGcpSecretVolume || hasGlobalGcpSecretVolume) {
+		// No steps declared user-gcp-sa secret, no need to drop GOOGLE_APPLICATION_CREDENTIALS.
 		return
 	}
-	secret, err := r.secretClient.Get(defaultGcpSecretName, v1.GetOptions{})
-	if err == nil && secret != nil {
+	_, err := r.secretClient.Get(defaultGcpSecretName, v1.GetOptions{})
+	if err == nil {
 		// user-gcp-sa secret is set up correctly, no need to drop GOOGLE_APPLICATION_CREDENTIALS.
 		return
 	}
-	// drops env var and marks secret as optional
-	for templateIdx, template := range workflow.Workflow.Spec.Templates {
-		foundUserGcpSaSecret := false
-		for volumeIdx, volume := range template.Volumes {
-			if volume.Secret != nil && volume.Secret.SecretName == defaultGcpSecretName {
-				foundUserGcpSaSecret = true
 
+	glog.Infof("Workflow %s mounts user-gcp-sa secret, but the secret is not present. Dropping GOOGLE_APPLICATION_CREDENTIALS from the workflow and marking gcp-user-sa secret volumes as optional.", workflow.Name)
+	for _, volume := range workflow.Spec.Volumes {
+		if isGcpSecretVolume(volume) {
+			overrideOptional := new(bool)
+			*overrideOptional = true
+			volume.Secret.Optional = overrideOptional
+		}
+	}
+	for _, template := range workflow.Workflow.Spec.Templates {
+		for _, volume := range template.Volumes {
+			if isGcpSecretVolume(volume) {
 				overrideOptional := new(bool)
 				*overrideOptional = true
-				workflow.Workflow.Spec.Templates[templateIdx].Volumes[volumeIdx].Secret.Optional = overrideOptional
+				volume.Secret.Optional = overrideOptional
 			}
 		}
-		if foundUserGcpSaSecret {
-			for envIdx, env := range template.Container.Env {
-				if env.Name == "GOOGLE_APPLICATION_CREDENTIALS" {
-					template.Container.Env = append(template.Container.Env[:envIdx], template.Container.Env[envIdx+1:]...)
+		if template.Container != nil {
+			foundGcpSecretMount := false
+			for _, mount := range template.Container.VolumeMounts {
+				if mount.Name == defaultGcpSecretVolumeName {
+					foundGcpSecretMount = true
 					break
+				}
+			}
+			if foundGcpSecretMount {
+				for envIdx, env := range template.Container.Env {
+					if env.Name == "GOOGLE_APPLICATION_CREDENTIALS" {
+						// We can safe change the array we are iterating on, because we break immediately afterwards.
+						template.Container.Env = append(template.Container.Env[:envIdx], template.Container.Env[envIdx+1:]...)
+						break
+					}
+				}
+			}
+		}
+		if template.Script != nil {
+			foundGcpSecretMount := false
+			for _, mount := range template.Script.VolumeMounts {
+				if mount.Name == defaultGcpSecretVolumeName {
+					foundGcpSecretMount = true
+					break
+				}
+			}
+			if foundGcpSecretMount {
+				for envIdx, env := range template.Script.Env {
+					if env.Name == "GOOGLE_APPLICATION_CREDENTIALS" {
+						// We can safe change the array we are iterating on, because we break immediately afterwards.
+						template.Script.Env = append(template.Script.Env[:envIdx], template.Script.Env[envIdx+1:]...)
+						break
+					}
 				}
 			}
 		}
 	}
-
 }
 
 func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {

@@ -31,7 +31,9 @@ import (
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -65,11 +67,78 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	Status:     v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 })
 
+var testWorkflowWithGcpSecret = util.NewWorkflow(&v1alpha1.Workflow{
+	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+	ObjectMeta: v1.ObjectMeta{Name: "workflow-with-gcp-secret", UID: "workflow-gcp"},
+	Spec: v1alpha1.WorkflowSpec{
+		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{}},
+		Templates: []v1alpha1.Template{{
+			Name: "template-1",
+			Container: &corev1.Container{
+				Name: "container-1",
+				VolumeMounts: []corev1.VolumeMount{{
+					Name:      "gcp-credentials-user-gcp-sa", // same as volume name
+					MountPath: "/etc/credentials",
+				}},
+			},
+			Volumes: []corev1.Volume{{
+				Name: "gcp-credentials-user-gcp-sa",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{SecretName: "user-gcp-sa"},
+				},
+			}},
+		}},
+	},
+	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
+})
+
+// With legacy format, volumes lives in workflow.Spec.Volumes instead of workflow.Templates.Volumes.
+var testLegacyWorkflowWithGcpSecret = util.NewWorkflow(&v1alpha1.Workflow{
+	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+	ObjectMeta: v1.ObjectMeta{Name: "legacy-workflow-with-gcp-secret", UID: "lworkflow-gcp-legacy"},
+	Spec: v1alpha1.WorkflowSpec{
+		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{}},
+		Templates: []v1alpha1.Template{{
+			Name: "template-1",
+			Container: &corev1.Container{
+				Name: "container-1",
+				VolumeMounts: []corev1.VolumeMount{{
+					Name:      "gcp-credentials-user-gcp-sa", // same as volume name
+					MountPath: "/etc/credentials",
+				}},
+			},
+		}},
+		Volumes: []corev1.Volume{{
+			Name: "gcp-credentials-user-gcp-sa",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{SecretName: "user-gcp-sa"},
+			},
+		}},
+	},
+	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
+})
+
 // Util function to create an initial state with pipeline uploaded
 func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
 	p, err := manager.CreatePipeline("p1", "", []byte(testWorkflow.ToStringForStore()))
+	assert.Nil(t, err)
+	return store, manager, p
+}
+
+type TestInitOptions struct {
+	useLegacyFormat bool
+}
+
+func initWithPipelineUsingGcpSecret(t *testing.T, options TestInitOptions) (*FakeClientManager, *ResourceManager, *model.Pipeline) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store)
+	p, err := manager.CreatePipeline(
+		"p2",
+		"pipeline using user-gcp-sa secret for GCP auth",
+		[]byte(testLegacyWorkflowWithGcpSecret.ToStringForStore()),
+	)
 	assert.Nil(t, err)
 	return store, manager, p
 }
@@ -464,6 +533,33 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
+}
+
+func TestCreateRun_UserGcpSaSecretNotFound(t *testing.T) {
+	store, manager, p := initWithPipelineUsingGcpSecret(t, TestInitOptions{})
+	manager.secretClient = FakeSecretNotFoundClient{}
+
+	defer store.Close()
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			PipelineId: p.UUID,
+		},
+	}
+	runDetail, err := manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+
+	var runtimeWorkflow util.Workflow
+	err = json.Unmarshal([]byte(runDetail.WorkflowRuntimeManifest), &runtimeWorkflow)
+	require.Nil(t, err)
+
+	volumes := runtimeWorkflow.Spec.Volumes
+	require.Equal(t, 1, len(volumes))
+
+	secretVolume := volumes[0]
+	boolTrue := new(bool)
+	*boolTrue = true
+	assert.Equal(t, boolTrue, secretVolume.Secret.Optional, "gcp-user-sa secret should be set to optional")
 }
 
 func TestCreateRun_NoExperiment(t *testing.T) {
