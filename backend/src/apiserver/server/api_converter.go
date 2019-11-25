@@ -266,6 +266,8 @@ func toApiResourceType(modelType common.ResourceType) api.ResourceType {
 		return api.ResourceType_EXPERIMENT
 	case common.Job:
 		return api.ResourceType_JOB
+	case common.PipelineVersion:
+		return api.ResourceType_PIPELINE_VERSION
 	default:
 		return api.ResourceType_UNKNOWN_RESOURCE_TYPE
 	}
