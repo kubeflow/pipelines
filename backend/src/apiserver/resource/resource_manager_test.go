@@ -491,6 +491,30 @@ func createPipelineAndRunIt(manager *ResourceManager, workflowDef *v1alpha1.Work
 	return &runtimeWorkflow, nil
 }
 
+// Made as a function to make sure each call gets a separate instance.
+func exampleGcpSecretContainer() *corev1.Container {
+	return &corev1.Container{
+		Env: []corev1.EnvVar{{
+			Name:  "GOOGLE_APPLICATION_CREDENTIALS",
+			Value: "/etc/credentials/application_default_credentials.json",
+		}},
+		VolumeMounts: []corev1.VolumeMount{{
+			Name:      "gcp-credentials-user-gcp-sa",
+			MountPath: "/etc/credentials",
+		}},
+	}
+}
+
+// Made as a function to make sure each call gets a separate instance.
+func exampleGcpSecretVolume() *corev1.Volume {
+	return &corev1.Volume{
+		Name: "gcp-credentials-user-gcp-sa",
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{SecretName: "user-gcp-sa"},
+		},
+	}
+}
+
 func TestCreateRun_UserGcpSaSecretFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -501,25 +525,10 @@ func TestCreateRun_UserGcpSaSecretFound(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{Name: "workflow-with-gcp-secret", UID: "workflow-gcp"},
 		Spec: v1alpha1.WorkflowSpec{
 			Templates: []v1alpha1.Template{{
-				Container: &corev1.Container{
-					Env: []corev1.EnvVar{{
-						Name:  "GOOGLE_APPLICATION_CREDENTIALS",
-						Value: "/etc/credentials/application_default_credentials.json",
-					}},
-					VolumeMounts: []corev1.VolumeMount{{
-						Name:      "gcp-credentials-user-gcp-sa",
-						MountPath: "/etc/credentials",
-					}},
-				},
-				Volumes: []corev1.Volume{{
-					Name: "gcp-credentials-user-gcp-sa",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{SecretName: "user-gcp-sa"},
-					},
-				}},
+				Container: exampleGcpSecretContainer(),
+				Volumes:   []corev1.Volume{*exampleGcpSecretVolume()},
 			}},
 		},
-		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 	})
 	require.Nil(t, err)
 
@@ -540,25 +549,10 @@ func TestCreateRun_UserGcpSaSecretNotFound(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{Name: "workflow-with-gcp-secret", UID: "workflow-gcp"},
 		Spec: v1alpha1.WorkflowSpec{
 			Templates: []v1alpha1.Template{{
-				Container: &corev1.Container{
-					Env: []corev1.EnvVar{{
-						Name:  "GOOGLE_APPLICATION_CREDENTIALS",
-						Value: "/etc/credentials/application_default_credentials.json",
-					}},
-					VolumeMounts: []corev1.VolumeMount{{
-						Name:      "gcp-credentials-user-gcp-sa",
-						MountPath: "/etc/credentials",
-					}},
-				},
-				Volumes: []corev1.Volume{{
-					Name: "gcp-credentials-user-gcp-sa",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{SecretName: "user-gcp-sa"},
-					},
-				}},
+				Container: exampleGcpSecretContainer(),
+				Volumes:   []corev1.Volume{*exampleGcpSecretVolume()},
 			}},
 		},
-		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 	})
 	require.Nil(t, err)
 
@@ -582,26 +576,11 @@ func TestCreateRun_LegacyWorkflow_UserGcpSaSecretNotFound(t *testing.T) {
 		Spec: v1alpha1.WorkflowSpec{
 			Templates: []v1alpha1.Template{{
 				Script: &v1alpha1.ScriptTemplate{
-					Container: corev1.Container{
-						Env: []corev1.EnvVar{{
-							Name:  "GOOGLE_APPLICATION_CREDENTIALS",
-							Value: "/etc/credentials/application_default_credentials.json",
-						}},
-						VolumeMounts: []corev1.VolumeMount{{
-							Name:      "gcp-credentials-user-gcp-sa",
-							MountPath: "/etc/credentials",
-						}},
-					},
+					Container: *exampleGcpSecretContainer(),
 				},
 			}},
-			Volumes: []corev1.Volume{{
-				Name: "gcp-credentials-user-gcp-sa",
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{SecretName: "user-gcp-sa"},
-				},
-			}},
+			Volumes: []corev1.Volume{*exampleGcpSecretVolume()},
 		},
-		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 	})
 	require.Nil(t, err)
 
@@ -626,22 +605,8 @@ func TestCreateRun_MultiTemplateWorkflow_UserGcpSaSecretNotFound(t *testing.T) {
 			// Both templates have GOOGLE_APPLICATION_CREDENTIALS
 			Templates: []v1alpha1.Template{
 				{ // This template mounts default user-gcp-sa
-					Container: &corev1.Container{
-						Env: []corev1.EnvVar{{
-							Name:  "GOOGLE_APPLICATION_CREDENTIALS",
-							Value: "/etc/credentials/application_default_credentials.json",
-						}},
-						VolumeMounts: []corev1.VolumeMount{{
-							Name:      "gcp-credentials-user-gcp-sa",
-							MountPath: "/etc/credentials",
-						}},
-					},
-					Volumes: []corev1.Volume{{
-						Name: "gcp-credentials-user-gcp-sa",
-						VolumeSource: corev1.VolumeSource{
-							Secret: &corev1.SecretVolumeSource{SecretName: "user-gcp-sa"},
-						},
-					}},
+					Container: exampleGcpSecretContainer(),
+					Volumes:   []corev1.Volume{*exampleGcpSecretVolume()},
 				},
 				{ // This template mounts custom custom-gcp-sa
 					Container: &corev1.Container{
@@ -663,7 +628,6 @@ func TestCreateRun_MultiTemplateWorkflow_UserGcpSaSecretNotFound(t *testing.T) {
 				},
 			},
 		},
-		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 	})
 	require.Nil(t, err)
 
