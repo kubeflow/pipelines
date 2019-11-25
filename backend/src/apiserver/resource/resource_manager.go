@@ -257,7 +257,7 @@ func isGcpSecretVolumeMount(volumeMount apicorev1.VolumeMount) bool {
 // Reference, old pipeline mounts secret like https://github.com/kubeflow/pipelines/blob/e19efdff76829ee374f400e68cc478ebff53a845/sdk/python/kfp/gcp.py#L46
 //
 // TODO: when all pipeline samples no longer use user-gcp-sa secret, we can remove this usage.
-func (r *ResourceManager) dropUserGcpSaIfNotConfigured(workflow util.Workflow) {
+func (r *ResourceManager) dropUserGcpSaIfNotConfigured(workflow util.Workflow) error {
 	someStepHasGcpSecretVolume := false
 	for _, template := range workflow.Spec.Templates {
 		for _, volume := range template.Volumes {
@@ -276,16 +276,18 @@ func (r *ResourceManager) dropUserGcpSaIfNotConfigured(workflow util.Workflow) {
 	}
 	if !(someStepHasGcpSecretVolume || hasGlobalGcpSecretVolume) {
 		// No steps declared user-gcp-sa secret, no need to drop GOOGLE_APPLICATION_CREDENTIALS.
-		return
+		return nil
 	}
 	_, err := r.secretClient.Get(defaultGcpSecretName, v1.GetOptions{})
 	if err == nil {
 		// user-gcp-sa secret is set up correctly, no need to drop GOOGLE_APPLICATION_CREDENTIALS.
-		return
+		return nil
 	}
 	if !util.IsNotFound(err) {
-		glog.Warningf("Skipping dropping GCP credentials env because we met a runtime error when fetching user-gcp-sa secret: '%s'.", err.Error())
-		return
+		return errors.Wrap(err, "Failed to verify whether user-gcp-sa secret exists or not because of"+
+			" a runtime error. If you don't need this secret (e.g. when you are using workload identity"+
+			" or default GKE service account), please remove use_gcp_secret usage from your pipeline."+
+			" Otherwise, raise an issue in kubeflow/pipelines Github repo.")
 	}
 
 	glog.Infof("Workflow %s mounts user-gcp-sa secret, but the secret is not present. Dropping GOOGLE_APPLICATION_CREDENTIALS from the workflow and marking gcp-user-sa secret volumes as optional.", workflow.Name)
@@ -341,6 +343,8 @@ func (r *ResourceManager) dropUserGcpSaIfNotConfigured(workflow util.Workflow) {
 			}
 		}
 	}
+
+	return nil
 }
 
 func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
@@ -395,7 +399,10 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		}
 	}
 
-	r.dropUserGcpSaIfNotConfigured(workflow)
+	err = r.dropUserGcpSaIfNotConfigured(workflow)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to verify whether GCP secret is configured")
+	}
 
 	// Create argo workflow CRD resource
 	newWorkflow, err := r.workflowClient.Create(workflow.Get())

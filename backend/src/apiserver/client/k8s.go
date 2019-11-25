@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// TODO: rename this file to k8s.go
 func createK8sClient() (v1.CoreV1Interface, error) {
 	restConfig, err := rest.InClusterConfig()
 	if err != nil {
