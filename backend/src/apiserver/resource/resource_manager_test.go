@@ -67,78 +67,11 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	Status:     v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 })
 
-var testWorkflowWithGcpSecret = util.NewWorkflow(&v1alpha1.Workflow{
-	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "workflow-with-gcp-secret", UID: "workflow-gcp"},
-	Spec: v1alpha1.WorkflowSpec{
-		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{}},
-		Templates: []v1alpha1.Template{{
-			Name: "template-1",
-			Container: &corev1.Container{
-				Name: "container-1",
-				VolumeMounts: []corev1.VolumeMount{{
-					Name:      "gcp-credentials-user-gcp-sa", // same as volume name
-					MountPath: "/etc/credentials",
-				}},
-			},
-			Volumes: []corev1.Volume{{
-				Name: "gcp-credentials-user-gcp-sa",
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{SecretName: "user-gcp-sa"},
-				},
-			}},
-		}},
-	},
-	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
-})
-
-// With legacy format, volumes lives in workflow.Spec.Volumes instead of workflow.Templates.Volumes.
-var testLegacyWorkflowWithGcpSecret = util.NewWorkflow(&v1alpha1.Workflow{
-	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "legacy-workflow-with-gcp-secret", UID: "lworkflow-gcp-legacy"},
-	Spec: v1alpha1.WorkflowSpec{
-		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{}},
-		Templates: []v1alpha1.Template{{
-			Name: "template-1",
-			Container: &corev1.Container{
-				Name: "container-1",
-				VolumeMounts: []corev1.VolumeMount{{
-					Name:      "gcp-credentials-user-gcp-sa", // same as volume name
-					MountPath: "/etc/credentials",
-				}},
-			},
-		}},
-		Volumes: []corev1.Volume{{
-			Name: "gcp-credentials-user-gcp-sa",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{SecretName: "user-gcp-sa"},
-			},
-		}},
-	},
-	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
-})
-
 // Util function to create an initial state with pipeline uploaded
 func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
 	p, err := manager.CreatePipeline("p1", "", []byte(testWorkflow.ToStringForStore()))
-	assert.Nil(t, err)
-	return store, manager, p
-}
-
-type TestInitOptions struct {
-	useLegacyFormat bool
-}
-
-func initWithPipelineUsingGcpSecret(t *testing.T, options TestInitOptions) (*FakeClientManager, *ResourceManager, *model.Pipeline) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := NewResourceManager(store)
-	p, err := manager.CreatePipeline(
-		"p2",
-		"pipeline using user-gcp-sa secret for GCP auth",
-		[]byte(testLegacyWorkflowWithGcpSecret.ToStringForStore()),
-	)
 	assert.Nil(t, err)
 	return store, manager, p
 }
@@ -535,31 +468,216 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
 }
 
-func TestCreateRun_UserGcpSaSecretNotFound(t *testing.T) {
-	store, manager, p := initWithPipelineUsingGcpSecret(t, TestInitOptions{})
-	manager.secretClient = FakeSecretNotFoundClient{}
-
-	defer store.Close()
-	apiRun := &api.Run{
-		Name: "run1",
-		PipelineSpec: &api.PipelineSpec{
-			PipelineId: p.UUID,
-		},
+func createPipelineAndRunIt(manager *ResourceManager, workflowDef *v1alpha1.Workflow) (*util.Workflow, error) {
+	var workflow = util.NewWorkflow(workflowDef)
+	p, err := manager.CreatePipeline(
+		"pipeline-container-gcp-new",
+		"",
+		[]byte(workflow.ToStringForStore()),
+	)
+	if err != nil {
+		return nil, err
 	}
+	apiRun := &api.Run{Name: "run1", PipelineSpec: &api.PipelineSpec{PipelineId: p.UUID}}
 	runDetail, err := manager.CreateRun(apiRun)
-	assert.Nil(t, err)
-
+	if err != nil {
+		return nil, err
+	}
 	var runtimeWorkflow util.Workflow
 	err = json.Unmarshal([]byte(runDetail.WorkflowRuntimeManifest), &runtimeWorkflow)
+	if err != nil {
+		return nil, err
+	}
+	return &runtimeWorkflow, nil
+}
+
+func TestCreateRun_UserGcpSaSecretFound(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	runtimeWorkflow, err := createPipelineAndRunIt(manager, &v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-with-gcp-secret", UID: "workflow-gcp"},
+		Spec: v1alpha1.WorkflowSpec{
+			Templates: []v1alpha1.Template{{
+				Container: &corev1.Container{
+					Env: []corev1.EnvVar{{
+						Name:  "GOOGLE_APPLICATION_CREDENTIALS",
+						Value: "/etc/credentials/application_default_credentials.json",
+					}},
+					VolumeMounts: []corev1.VolumeMount{{
+						Name:      "gcp-credentials-user-gcp-sa",
+						MountPath: "/etc/credentials",
+					}},
+				},
+				Volumes: []corev1.Volume{{
+					Name: "gcp-credentials-user-gcp-sa",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{SecretName: "user-gcp-sa"},
+					},
+				}},
+			}},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
+	})
 	require.Nil(t, err)
 
-	volumes := runtimeWorkflow.Spec.Volumes
-	require.Equal(t, 1, len(volumes))
+	template := runtimeWorkflow.Spec.Templates[0]
+	secretVolume := template.Volumes[0]
+	assert.Equal(t, (*bool)(nil), secretVolume.Secret.Optional, "gcp-user-sa secret should be set to optional")
+	assert.Equal(t, 1, len(template.Container.Env), "Env is kept, because it mounts default user-gcp-sa and the secret is found in namespace")
+}
 
-	secretVolume := volumes[0]
+func TestCreateRun_UserGcpSaSecretNotFound(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	manager.secretClient = FakeSecretNotFoundClient{}
+
+	runtimeWorkflow, err := createPipelineAndRunIt(manager, &v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-with-gcp-secret", UID: "workflow-gcp"},
+		Spec: v1alpha1.WorkflowSpec{
+			Templates: []v1alpha1.Template{{
+				Container: &corev1.Container{
+					Env: []corev1.EnvVar{{
+						Name:  "GOOGLE_APPLICATION_CREDENTIALS",
+						Value: "/etc/credentials/application_default_credentials.json",
+					}},
+					VolumeMounts: []corev1.VolumeMount{{
+						Name:      "gcp-credentials-user-gcp-sa",
+						MountPath: "/etc/credentials",
+					}},
+				},
+				Volumes: []corev1.Volume{{
+					Name: "gcp-credentials-user-gcp-sa",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{SecretName: "user-gcp-sa"},
+					},
+				}},
+			}},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
+	})
+	require.Nil(t, err)
+
+	template := runtimeWorkflow.Spec.Templates[0]
+	secretVolume := template.Volumes[0]
 	boolTrue := new(bool)
 	*boolTrue = true
 	assert.Equal(t, boolTrue, secretVolume.Secret.Optional, "gcp-user-sa secret should be set to optional")
+	assert.Equal(t, 0, len(template.Container.Env), "Env is dropped, because it is mounting default user-gcp-sa and the secret is not found in namespace")
+}
+
+func TestCreateRun_LegacyWorkflow_UserGcpSaSecretNotFound(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	manager.secretClient = FakeSecretNotFoundClient{}
+
+	runtimeWorkflow, err := createPipelineAndRunIt(manager, &v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "legacy-workflow-with-gcp-secret", UID: "lworkflow-gcp-legacy"},
+		Spec: v1alpha1.WorkflowSpec{
+			Templates: []v1alpha1.Template{{
+				Script: &v1alpha1.ScriptTemplate{
+					Container: corev1.Container{
+						Env: []corev1.EnvVar{{
+							Name:  "GOOGLE_APPLICATION_CREDENTIALS",
+							Value: "/etc/credentials/application_default_credentials.json",
+						}},
+						VolumeMounts: []corev1.VolumeMount{{
+							Name:      "gcp-credentials-user-gcp-sa",
+							MountPath: "/etc/credentials",
+						}},
+					},
+				},
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "gcp-credentials-user-gcp-sa",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{SecretName: "user-gcp-sa"},
+				},
+			}},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
+	})
+	require.Nil(t, err)
+
+	template := runtimeWorkflow.Spec.Templates[0]
+	secretVolume := runtimeWorkflow.Spec.Volumes[0]
+	boolTrue := new(bool)
+	*boolTrue = true
+	assert.Equal(t, boolTrue, secretVolume.Secret.Optional, "gcp-user-sa secret should be set to optional")
+	assert.Equal(t, 0, len(template.Script.Env), "Env is dropped, because it is mounting default user-gcp-sa and the secret is not found in namespace")
+}
+
+func TestCreateRun_MultiTemplateWorkflow_UserGcpSaSecretNotFound(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	manager.secretClient = FakeSecretNotFoundClient{}
+
+	runtimeWorkflow, err := createPipelineAndRunIt(manager, &v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-with-two-steps", UID: "workflow-gcp"},
+		Spec: v1alpha1.WorkflowSpec{
+			// Both templates have GOOGLE_APPLICATION_CREDENTIALS
+			Templates: []v1alpha1.Template{
+				{ // This template mounts default user-gcp-sa
+					Container: &corev1.Container{
+						Env: []corev1.EnvVar{{
+							Name:  "GOOGLE_APPLICATION_CREDENTIALS",
+							Value: "/etc/credentials/application_default_credentials.json",
+						}},
+						VolumeMounts: []corev1.VolumeMount{{
+							Name:      "gcp-credentials-user-gcp-sa",
+							MountPath: "/etc/credentials",
+						}},
+					},
+					Volumes: []corev1.Volume{{
+						Name: "gcp-credentials-user-gcp-sa",
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{SecretName: "user-gcp-sa"},
+						},
+					}},
+				},
+				{ // This template mounts custom custom-gcp-sa
+					Container: &corev1.Container{
+						Env: []corev1.EnvVar{{
+							Name:  "GOOGLE_APPLICATION_CREDENTIALS",
+							Value: "/etc/custom/credentials.json",
+						}},
+						VolumeMounts: []corev1.VolumeMount{{
+							Name:      "gcp-credentials-custom-gcp-sa",
+							MountPath: "/etc/custom",
+						}},
+					},
+					Volumes: []corev1.Volume{{
+						Name: "gcp-credentials-custom-gcp-sa",
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{SecretName: "custom-gcp-sa"},
+						},
+					}},
+				},
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
+	})
+	require.Nil(t, err)
+
+	templateUserGcpSa := runtimeWorkflow.Spec.Templates[0]
+	secretVolume := templateUserGcpSa.Volumes[0]
+	boolTrue := new(bool)
+	*boolTrue = true
+	assert.Equal(t, boolTrue, secretVolume.Secret.Optional, "gcp-user-sa secret should be set to optional")
+	assert.Equal(t, 0, len(templateUserGcpSa.Container.Env), "Env is dropped, because it is mounting default user-gcp-sa and the secret is not found in namespace")
+
+	templateCustomGcpSa := runtimeWorkflow.Spec.Templates[1]
+	secretVolume = templateCustomGcpSa.Volumes[0]
+	assert.Equal(t, (*bool)(nil), secretVolume.Secret.Optional, "custom-gcp-sa should be kept as required")
+	assert.Equal(t, 1, len(templateCustomGcpSa.Container.Env), "Env is kept, because the secret is a custom one")
 }
 
 func TestCreateRun_NoExperiment(t *testing.T) {
