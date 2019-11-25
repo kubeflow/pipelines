@@ -570,7 +570,7 @@ func TestCreateRun_UserGcpSaSecretCannotGet(t *testing.T) {
 	manager := NewResourceManager(store)
 	manager.secretClient = FakeSecretSomeRuntimeErrorClient{}
 
-	runtimeWorkflow, err := createPipelineAndRunIt(manager, &v1alpha1.Workflow{
+	_, err := createPipelineAndRunIt(manager, &v1alpha1.Workflow{
 		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 		ObjectMeta: v1.ObjectMeta{Name: "workflow-with-gcp-secret", UID: "workflow-gcp"},
 		Spec: v1alpha1.WorkflowSpec{
@@ -580,12 +580,7 @@ func TestCreateRun_UserGcpSaSecretCannotGet(t *testing.T) {
 			}},
 		},
 	})
-	require.Nil(t, err)
-
-	template := runtimeWorkflow.Spec.Templates[0]
-	secretVolume := template.Volumes[0]
-	assert.Equal(t, (*bool)(nil), secretVolume.Secret.Optional, "gcp-user-sa secret should be kept")
-	assert.Equal(t, 1, len(template.Container.Env), "Env should be kept, because api server does a no-op when there's an error fetching the secret")
+	assert.NotNil(t, err, "An error should be returned when api server cannot talk to k8s to verify secrets")
 }
 
 func TestCreateRun_LegacyWorkflow_UserGcpSaSecretNotFound(t *testing.T) {
