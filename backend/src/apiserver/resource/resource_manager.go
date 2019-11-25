@@ -283,6 +283,10 @@ func (r *ResourceManager) dropUserGcpSaIfNotConfigured(workflow util.Workflow) {
 		// user-gcp-sa secret is set up correctly, no need to drop GOOGLE_APPLICATION_CREDENTIALS.
 		return
 	}
+	if !util.IsNotFound(err) {
+		glog.Warningf("Skipping dropping GCP credentials env because we met a runtime error when fetching user-gcp-sa secret: '%s'.", err.Error())
+		return
+	}
 
 	glog.Infof("Workflow %s mounts user-gcp-sa secret, but the secret is not present. Dropping GOOGLE_APPLICATION_CREDENTIALS from the workflow and marking gcp-user-sa secret volumes as optional.", workflow.Name)
 	for _, volume := range workflow.Spec.Volumes {

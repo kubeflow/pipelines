@@ -4,7 +4,9 @@ import (
 	"errors"
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 )
@@ -61,5 +63,13 @@ type FakeSecretNotFoundClient struct {
 }
 
 func (FakeSecretNotFoundClient) Get(name string, options v1.GetOptions) (*corev1.Secret, error) {
-	return nil, errors.New("Secret not found")
+	return nil, k8sErrors.NewNotFound(schema.GroupResource{}, name)
+}
+
+type FakeSecretSomeRuntimeErrorClient struct {
+	FakeSecretClient
+}
+
+func (FakeSecretSomeRuntimeErrorClient) Get(name string, options v1.GetOptions) (*corev1.Secret, error) {
+	return nil, errors.New("Some random runtime error")
 }
