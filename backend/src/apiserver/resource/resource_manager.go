@@ -263,7 +263,6 @@ func (r *ResourceManager) dropUserGcpSaIfNotConfigured(workflow util.Workflow) e
 		for _, volume := range template.Volumes {
 			if isGcpSecretVolume(volume) {
 				someStepHasGcpSecretVolume = true
-				break
 			}
 		}
 	}
@@ -290,7 +289,9 @@ func (r *ResourceManager) dropUserGcpSaIfNotConfigured(workflow util.Workflow) e
 			" Otherwise, raise an issue in kubeflow/pipelines Github repo.")
 	}
 
-	glog.Infof("Workflow %s mounts user-gcp-sa secret, but the secret is not present. Dropping GOOGLE_APPLICATION_CREDENTIALS from the workflow and marking gcp-user-sa secret volumes as optional.", workflow.Name)
+	glog.Infof("Workflow %s mounts user-gcp-sa secret, but the secret is not present."+
+		"Dropping GOOGLE_APPLICATION_CREDENTIALS from the workflow and marking gcp-user-sa secret"+
+		" volumes as optional.", workflow.Name)
 	for _, volume := range workflow.Spec.Volumes {
 		if isGcpSecretVolume(volume) {
 			overrideOptional := new(bool)
