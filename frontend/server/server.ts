@@ -72,8 +72,15 @@ const {
   ARGO_ARCHIVE_PREFIX = 'logs',
 } = process.env;
 
-/** Features flags */
-const ENABLE_MULTI_USER = process.env.ENABLE_MULTI_USER === 'true';
+enum Deployments {
+  NOT_SPECIFIED = 'NOT_SPECIFIED',
+  KUBEFLOW = 'KUBEFLOW',
+}
+
+const DEPLOYMENT = process.env.DEPLOYMENT === 'KUBEFLOW' ?
+  Deployments.KUBEFLOW :
+  Deployments.NOT_SPECIFIED;
+console.log(`Deployment = ${DEPLOYMENT}`);
 
 /** construct minio endpoint from host and namespace (optional) */
 const MINIO_ENDPOINT = MINIO_NAMESPACE && MINIO_NAMESPACE.length > 0 ? `${MINIO_HOST}.${MINIO_NAMESPACE}` : MINIO_HOST;
@@ -402,9 +409,10 @@ app.all(BASEPATH  + '/' + v1beta1Prefix + '/*', proxy({
   target: apiServerAddress,
 }));
 
+const DEFAULT_FLAG = 'window.KFP_FLAGS.DEPLOYMENT=null';
 function modifyFeatureFlags(indexHtml: string): string {
-  if (ENABLE_MULTI_USER) {
-    return indexHtml.replace('window.KFP_FLAGS.MULTI_USER=0', 'window.KFP_FLAGS.MULTI_USER=1');
+  if (DEPLOYMENT === Deployments.KUBEFLOW) {
+    return indexHtml.replace(DEFAULT_FLAG, 'window.KFP_FLAGS.MULTI_USER="KUBEFLOW"');
   } else {
     return indexHtml;
   }
@@ -418,6 +426,10 @@ fs.readFile(path.resolve(staticDir, 'index.html'), (err, data) => {
     process.exit(1);
   } else {
     indexHtml = data.toString();
+    // sanity checking
+    if (!indexHtml.includes(DEFAULT_FLAG)) {
+      throw new Error(`Error: cannot find DEFAULT_FLAG in index html. Its content: ${indexHtml}`);
+    }
   }
 });
 
