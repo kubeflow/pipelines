@@ -28,11 +28,13 @@ const (
 	Run             ResourceType = "Run"
 	Pipeline        ResourceType = "pipeline"
 	PipelineVersion ResourceType = "PipelineVersion"
+	Namespace				ResourceType = "Namespace"
 )
 
 const (
-	Owner   Relationship = "Owner"
-	Creator Relationship = "Creator"
+	Owner   	Relationship = "Owner"
+	Creator 	Relationship = "Creator"
+	Belonging Relationship = "Belonging"
 )
 
 const (
