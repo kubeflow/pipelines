@@ -45,6 +45,8 @@ func ToModelResourceType(apiType api.ResourceType) (ResourceType, error) {
 		return Job, nil
 	case api.ResourceType_PIPELINE_VERSION:
 		return PipelineVersion, nil
+	case api.ResourceType_NAMESPACE:
+		return Namespace, nil
 	default:
 		return "", util.NewInvalidInputError("Unsupported resource type: %s", api.ResourceType_name[int32(apiType)])
 	}
@@ -56,6 +58,8 @@ func ToModelRelationship(r api.Relationship) (Relationship, error) {
 		return Creator, nil
 	case api.Relationship_OWNER:
 		return Owner, nil
+	case api.Relationship_BELONGING:
+		return Belonging, nil
 	default:
 		return "", util.NewInvalidInputError("Unsupported resource relationship: %s", api.Relationship_name[int32(r)])
 	}
