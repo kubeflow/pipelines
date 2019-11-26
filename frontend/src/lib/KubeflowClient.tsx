@@ -1,3 +1,4 @@
+import React from 'react';
 import { KFP_FLAGS, Deployments } from './Flags';
 import { logger } from './Utils';
 
@@ -8,6 +9,12 @@ declare global {
     // 2. /frontend/server/server.ts -> KUBEFLOW_CLIENT_PLACEHOLDER
     centraldashboard: any;
   }
+}
+
+let namespace: string | undefined;
+let registeredHandler: undefined | ((namespace: string) => void);
+function onNamespaceChanged(handler: (namespace: string) => void) {
+  registeredHandler = handler;
 }
 
 export function init(): void {
@@ -21,12 +28,28 @@ export function init(): void {
     window.centraldashboard.CentralDashboardEventHandler.init((cdeh: any) => {
       // Binds a callback that gets invoked anytime the Dashboard's
       // namespace is changed
-      cdeh.onNamespaceSelected = (namespace: string) => {
-        // tslint:disable-next-line:no-console
-        console.log('Namespace changed to', namespace);
+      cdeh.onNamespaceSelected = (newNamespace: string) => {
+        namespace = newNamespace;
+        if (registeredHandler) {
+          registeredHandler(namespace);
+        }
       };
     });
   } catch (err) {
     logger.error('Failed to initialize central dashboard client', err);
+  }
+}
+
+const NamespaceContext = React.createContext<string | undefined>(undefined);
+export const NamespaceContextConsumer = NamespaceContext.Consumer;
+export class NamespaceContextProvider extends React.Component {
+  state = {
+    namespace,
+  };
+  componentDidMount() {
+    onNamespaceChanged(ns => this.setState({ namespace: ns }));
+  }
+  render() {
+    return <NamespaceContext.Provider value={this.state.namespace} {...this.props} />;
   }
 }

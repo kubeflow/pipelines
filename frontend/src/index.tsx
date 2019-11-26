@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { init as initKfClient } from './lib/KubeflowClient';
+import { init as initKfClient, NamespaceContextProvider } from './lib/KubeflowClient';
 import './CSSReset';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -23,6 +23,7 @@ import Router from './components/Router';
 import { cssRule } from 'typestyle';
 import { theme, fonts } from './Css';
 import { HashRouter } from 'react-router-dom';
+import { KFP_FLAGS, Deployments } from './lib/Flags';
 
 // TODO: license headers
 
@@ -39,10 +40,20 @@ cssRule('html, body, #root', {
 });
 
 ReactDOM.render(
-  <MuiThemeProvider theme={theme}>
-    <HashRouter>
-      <Router />
-    </HashRouter>
-  </MuiThemeProvider>,
+  KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
+    <MuiThemeProvider theme={theme}>
+      <NamespaceContextProvider>
+        <HashRouter>
+          <Router />
+        </HashRouter>
+      </NamespaceContextProvider>
+    </MuiThemeProvider>
+  ) : (
+    <MuiThemeProvider theme={theme}>
+      <HashRouter>
+        <Router />
+      </HashRouter>
+    </MuiThemeProvider>
+  ),
   document.getElementById('root'),
 );
