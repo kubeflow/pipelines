@@ -617,6 +617,48 @@ for event in k8s_watch.stream(
                 execution_type_name=component_name,
                 #?? execution_name = obj.metadata.name,
             )
+
+            argo_input_artifacts = argo_template.get('inputs', {}).get('artifacts', [])
+            for argo_artifact in argo_input_artifacts:
+                artifact_uri = argo_artifact_to_uri(argo_artifact)
+                if not artifact_uri:
+                    continue
+                artifacts = mlmd_store.get_artifacts_by_uri(artifact_uri)
+                if len(artifacts) == 0:
+                    print('Warning: Not found upstream artifact with URI={}.'.format(artifact_uri))
+                    continue
+                if len(artifacts) > 1:
+                    print('Warning: Found multiple artifacts with the same URI: {}.'.format(artifacts))
+
+                artifact = artifacts[0]
+
+                input_name = argo_artifact.get('path', '') # Every artifact should have a path in Argo
+                input_artifact_path_prefix = '/tmp/inputs/'
+                input_artifact_path_postfix = '/data'
+                if input_name.startswith(input_artifact_path_prefix):
+                    input_name = input_name[len(input_artifact_path_prefix):]
+                if input_name.endswith(input_artifact_path_postfix):
+                    input_name = input_name[0: -len(input_artifact_path_postfix)]
+
+                event = metadata_store_pb2.Event(
+                    execution_id=execution.id,
+                    artifact_id=artifact.id,
+                    type=metadata_store_pb2.Event.INPUT,
+                    path=metadata_store_pb2.Event.Path(
+                        steps=[
+                            metadata_store_pb2.Event.Path.Step(
+                                key=input_name,
+                            ),
+                        ]
+                    ),
+                )
+                mlmd_store.put_events([event])
+                print('Found Input Artifact: ' + str(dict(
+                    input_name=input_name,
+                    id=artifact.id,
+                    uri=artifact.uri,
+                )))
+
             execution_id = execution.id
             context_id = run_context.id
 
@@ -671,7 +713,7 @@ for event in k8s_watch.stream(
                         continue
                     artifact_type_name = argo_output_name_to_type.get(name, 'NoType') # Cannot be None or ''
 
-                    print('Artifact: ' + str(dict(
+                    print('Adding Output Artifact: ' + str(dict(
                         output_name=name,
                         uri=artifact_uri,
                         type=artifact_type_name,
