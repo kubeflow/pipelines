@@ -22,8 +22,9 @@ def use_secret(secret_name:str, secret_volume_mount_path:str, volume_name:str=No
     """
 
     if secret_name:
-        volume_name = volume_name or secret_name + '_volume'
-
+        volume_name = volume_name or secret_name + "_volume"
+    else: 
+        volume_name = "_volume"
     if bool(env_variable) != bool(secret_file_path_in_volume):
         raise ValueError("Both {} and {} needs to be supplied together or not at all".format(env_variable, secret_file_path_in_volume))
 
