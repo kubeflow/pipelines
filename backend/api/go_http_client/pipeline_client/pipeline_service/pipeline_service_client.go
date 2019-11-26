@@ -39,7 +39,7 @@ type Client struct {
 }
 
 /*
-CreatePipeline create pipeline API
+CreatePipeline adds a pipeline
 */
 func (a *Client) CreatePipeline(params *CreatePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineOK, error) {
 	// TODO: Validate the params before sending
@@ -68,7 +68,7 @@ func (a *Client) CreatePipeline(params *CreatePipelineParams, authInfo runtime.C
 }
 
 /*
-DeletePipeline delete pipeline API
+DeletePipeline deletes a pipeline
 */
 func (a *Client) DeletePipeline(params *DeletePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineOK, error) {
 	// TODO: Validate the params before sending
@@ -97,7 +97,7 @@ func (a *Client) DeletePipeline(params *DeletePipelineParams, authInfo runtime.C
 }
 
 /*
-GetPipeline get pipeline API
+GetPipeline finds a specific pipeline by ID
 */
 func (a *Client) GetPipeline(params *GetPipelineParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineOK, error) {
 	// TODO: Validate the params before sending
@@ -126,7 +126,7 @@ func (a *Client) GetPipeline(params *GetPipelineParams, authInfo runtime.ClientA
 }
 
 /*
-GetTemplate get template API
+GetTemplate gets a y a m l template for the selected pipeline
 */
 func (a *Client) GetTemplate(params *GetTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*GetTemplateOK, error) {
 	// TODO: Validate the params before sending
@@ -155,7 +155,7 @@ func (a *Client) GetTemplate(params *GetTemplateParams, authInfo runtime.ClientA
 }
 
 /*
-ListPipelines list pipelines API
+ListPipelines finds all pipelines
 */
 func (a *Client) ListPipelines(params *ListPipelinesParams, authInfo runtime.ClientAuthInfoWriter) (*ListPipelinesOK, error) {
 	// TODO: Validate the params before sending

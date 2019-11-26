@@ -140,6 +140,7 @@ service RunService {
 
 message CreateRunRequest {
   Run run = 1;
+  string namespace = 2;
 }
 
 message GetRunRequest {
@@ -166,10 +167,12 @@ message ListRunsRequest {
 
 message TerminateRunRequest {
   string run_id = 1;
+  string namespace = 2;
 }
 
 message RetryRunRequest {
   string run_id = 1;
+  string namespace = 2;
 }
 
 message ListRunsResponse {
@@ -188,6 +191,7 @@ message UnarchiveRunRequest {
 
 message DeleteRunRequest {
   string id = 1;
+  string namespace = 2;
 }
 
 message Run {
