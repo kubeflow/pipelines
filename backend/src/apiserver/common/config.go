@@ -22,6 +22,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	deployment 					string = "DEPLOYMENT"
+	kubeflowDeployment	string = "KUBEFLOW"
+)
 
 func GetStringConfig(configName string) string {
 	if !viper.IsSet(configName) {
@@ -53,4 +57,11 @@ func GetDurationConfig(configName string) time.Duration {
 		glog.Fatalf("Please specify flag %s", configName)
 	}
 	return viper.GetDuration(configName)
+}
+
+func IsKubeflowDeployment() bool {
+	if !viper.IsSet(deployment) {
+		return false
+	}
+	return viper.GetString(deployment) == kubeflowDeployment
 }

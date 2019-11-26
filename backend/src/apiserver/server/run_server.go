@@ -19,14 +19,14 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"google.golang.org/grpc/metadata"
-	"github.com/pkg/errors"
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/pkg/errors"
+	"google.golang.org/grpc/metadata"
 )
 
 type RunServer struct {
@@ -47,8 +47,20 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 			return nil, util.NewBadRequestError(errors.New("Request header error: user identity value is incorrectly formatted"), "Request header error: user identity value is incorrectly formatted")
 		}
 		userIdentity := userIdentityHeaderFields[1]
-		glog.Infof("User Identity: %s", userIdentity)
-		//TODO: authenticate the requests based on the userIdentity and the namespace.
+
+		if common.IsKubeflowDeployment() {
+			//authenticate the requests based on the userIdentity and the namespace.
+			namespace := ""
+			for _, resourceRef := range request.Run.ResourceReferences {
+				if resourceRef.Key.Type == api.ResourceType_NAMESPACE {
+					namespace = resourceRef.Key.Id
+					break
+				}
+			}
+			if len(namespace) != 0 && AuthorizeRequest(userIdentity, namespace){
+				glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
+			}
+		}
 	}
 
 	if err != nil {
