@@ -324,44 +324,35 @@ def create_new_artifact_event_and_attribution(
     return artifact
 
 
-def create_new_input_artifact(
+def link_execution_to_input_artifact(
     store,
     execution_id: int,
-    context_id: int,
     uri: str,
-    type_name: str,
     input_name: str,
-    run_id: str = None,
 ) -> metadata_store_pb2.Artifact:
-    properties = {
-        ARTIFACT_IO_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=input_name),
-    }
-    if run_id:
-        properties[ARTIFACT_PIPELINE_NAME_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
-        properties[ARTIFACT_RUN_ID_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
-    return create_new_artifact_event_and_attribution(
-        store=store,
+    artifacts = store.get_artifacts_by_uri(artifact_uri)
+    if len(artifacts) == 0:
+        print('Warning: Not found upstream artifact with URI={}.'.format(artifact_uri))
+        return None
+    if len(artifacts) > 1:
+        print('Warning: Found multiple artifacts with the same URI. {} Using the last one..'.format(artifacts))
+
+    artifact = artifacts[-1]
+
+    event = metadata_store_pb2.Event(
         execution_id=execution_id,
-        context_id=context_id,
-        uri=uri,
-        type_name=type_name,
-        event_type=metadata_store_pb2.Event.INPUT,
-        artifact_name_path=metadata_store_pb2.Event.Path(
+        artifact_id=artifact.id,
+        type=metadata_store_pb2.Event.INPUT,
+        path=metadata_store_pb2.Event.Path(
             steps=[
                 metadata_store_pb2.Event.Path.Step(
                     key=input_name,
-                    #index=0,
                 ),
             ]
         ),
-        properties=properties,
-        artifact_type_properties={
-            ARTIFACT_IO_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
-            ARTIFACT_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
-            ARTIFACT_RUN_ID_PROPERTY_NAME: metadata_store_pb2.STRING,
-        },
-        #milliseconds_since_epoch=int(datetime.now(timezone.utc).timestamp() * 1000), # Happens automatically
     )
+    store.put_events([event])
+    return artifact
 
 
 def create_new_output_artifact(
@@ -623,14 +614,6 @@ for event in k8s_watch.stream(
                 artifact_uri = argo_artifact_to_uri(argo_artifact)
                 if not artifact_uri:
                     continue
-                artifacts = mlmd_store.get_artifacts_by_uri(artifact_uri)
-                if len(artifacts) == 0:
-                    print('Warning: Not found upstream artifact with URI={}.'.format(artifact_uri))
-                    continue
-                if len(artifacts) > 1:
-                    print('Warning: Found multiple artifacts with the same URI: {}.'.format(artifacts))
-
-                artifact = artifacts[0]
 
                 input_name = argo_artifact.get('path', '') # Every artifact should have a path in Argo
                 input_artifact_path_prefix = '/tmp/inputs/'
@@ -640,19 +623,12 @@ for event in k8s_watch.stream(
                 if input_name.endswith(input_artifact_path_postfix):
                     input_name = input_name[0: -len(input_artifact_path_postfix)]
 
-                event = metadata_store_pb2.Event(
+                artifact = link_execution_to_input_artifact(
+                    store=mlmd_store,
                     execution_id=execution.id,
-                    artifact_id=artifact.id,
-                    type=metadata_store_pb2.Event.INPUT,
-                    path=metadata_store_pb2.Event.Path(
-                        steps=[
-                            metadata_store_pb2.Event.Path.Step(
-                                key=input_name,
-                            ),
-                        ]
-                    ),
+                    uri=artifact_uri,
+                    input_name=input_name,
                 )
-                mlmd_store.put_events([event])
                 print('Found Input Artifact: ' + str(dict(
                     input_name=input_name,
                     id=artifact.id,
