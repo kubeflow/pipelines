@@ -111,7 +111,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiRun"
+              "$ref": "#/definitions/apiCreateRunRequest"
             }
           }
         ],
@@ -143,12 +143,6 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "type": "string"
-          },
-          {
-            "name": "namespace",
-            "in": "query",
-            "required": false,
             "type": "string"
           }
         ],
@@ -450,6 +444,17 @@
         "STORAGESTATE_ARCHIVED"
       ],
       "default": "STORAGESTATE_AVAILABLE"
+    },
+    "apiCreateRunRequest": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "#/definitions/apiRun"
+        },
+        "namespace": {
+          "type": "string"
+        }
+      }
     },
     "apiListRunsResponse": {
       "type": "object",

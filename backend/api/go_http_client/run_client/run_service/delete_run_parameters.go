@@ -77,8 +77,6 @@ type DeleteRunParams struct {
 
 	/*ID*/
 	ID string
-	/*Namespace*/
-	Namespace *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -129,17 +127,6 @@ func (o *DeleteRunParams) SetID(id string) {
 	o.ID = id
 }
 
-// WithNamespace adds the namespace to the delete run params
-func (o *DeleteRunParams) WithNamespace(namespace *string) *DeleteRunParams {
-	o.SetNamespace(namespace)
-	return o
-}
-
-// SetNamespace adds the namespace to the delete run params
-func (o *DeleteRunParams) SetNamespace(namespace *string) {
-	o.Namespace = namespace
-}
-
 // WriteToRequest writes these params to a swagger request
 func (o *DeleteRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -151,22 +138,6 @@ func (o *DeleteRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Reg
 	// path param id
 	if err := r.SetPathParam("id", o.ID); err != nil {
 		return err
-	}
-
-	if o.Namespace != nil {
-
-		// query param namespace
-		var qrNamespace string
-		if o.Namespace != nil {
-			qrNamespace = *o.Namespace
-		}
-		qNamespace := qrNamespace
-		if qNamespace != "" {
-			if err := r.SetQueryParam("namespace", qNamespace); err != nil {
-				return err
-			}
-		}
-
 	}
 
 	if len(res) > 0 {
