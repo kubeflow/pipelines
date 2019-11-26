@@ -445,9 +445,9 @@ function handleIndexHtml(req, res) {
 // These pathes can be matched by static handler. Putting them before it to
 // override behavior for index html.
 app.get('/', handleIndexHtml);
-app.use(BASEPATH + '/', handleIndexHtml);
+app.get(BASEPATH + '/', handleIndexHtml);
 app.get('/index.html', handleIndexHtml);
-app.use(BASEPATH + '/index.html', handleIndexHtml);
+app.get(BASEPATH + '/index.html', handleIndexHtml);
 
 app.use(BASEPATH, StaticHandler(staticDir));
 app.use(StaticHandler(staticDir));
