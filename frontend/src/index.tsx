@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { init as initKfClient } from './lib/KubeflowClient';
 import './CSSReset';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -24,6 +25,8 @@ import { theme, fonts } from './Css';
 import { HashRouter } from 'react-router-dom';
 
 // TODO: license headers
+
+initKfClient();
 
 cssRule('html, body, #root', {
   background: 'white',
