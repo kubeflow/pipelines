@@ -66,7 +66,8 @@
               "EXPERIMENT",
               "JOB",
               "PIPELINE",
-              "PIPELINE_VERSION"
+              "PIPELINE_VERSION",
+              "NAMESPACE"
             ],
             "default": "UNKNOWN_RESOURCE_TYPE"
           },
@@ -112,7 +113,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiCreateRunRequest"
+              "$ref": "#/definitions/apiRun"
             }
           }
         ],
@@ -443,7 +444,8 @@
               "EXPERIMENT",
               "JOB",
               "PIPELINE",
-              "PIPELINE_VERSION"
+              "PIPELINE_VERSION",
+              "NAMESPACE"
             ],
             "default": "UNKNOWN_RESOURCE_TYPE"
           },
@@ -1041,17 +1043,6 @@
       ],
       "default": "STORAGESTATE_AVAILABLE"
     },
-    "apiCreateRunRequest": {
-      "type": "object",
-      "properties": {
-        "run": {
-          "$ref": "#/definitions/apiRun"
-        },
-        "namespace": {
-          "type": "string"
-        }
-      }
-    },
     "apiListRunsResponse": {
       "type": "object",
       "properties": {
@@ -1137,7 +1128,8 @@
       "enum": [
         "UNKNOWN_RELATIONSHIP",
         "OWNER",
-        "CREATOR"
+        "CREATOR",
+        "BELONGING"
       ],
       "default": "UNKNOWN_RELATIONSHIP"
     },
@@ -1204,7 +1196,8 @@
         "EXPERIMENT",
         "JOB",
         "PIPELINE",
-        "PIPELINE_VERSION"
+        "PIPELINE_VERSION",
+        "NAMESPACE"
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },

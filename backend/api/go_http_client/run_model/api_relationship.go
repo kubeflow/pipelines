@@ -42,6 +42,9 @@ const (
 
 	// APIRelationshipCREATOR captures enum value "CREATOR"
 	APIRelationshipCREATOR APIRelationship = "CREATOR"
+
+	// APIRelationshipBELONGING captures enum value "BELONGING"
+	APIRelationshipBELONGING APIRelationship = "BELONGING"
 )
 
 // for schema
@@ -49,7 +52,7 @@ var apiRelationshipEnum []interface{}
 
 func init() {
 	var res []APIRelationship
-	if err := json.Unmarshal([]byte(`["UNKNOWN_RELATIONSHIP","OWNER","CREATOR"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["UNKNOWN_RELATIONSHIP","OWNER","CREATOR","BELONGING"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

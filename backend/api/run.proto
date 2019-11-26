@@ -65,7 +65,7 @@ service RunService {
   rpc CreateRun(CreateRunRequest) returns (RunDetail) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs"
-      body: "*"
+      body: "run"
     };
   }
 
@@ -140,7 +140,6 @@ service RunService {
 
 message CreateRunRequest {
   Run run = 1;
-  string namespace = 2;
 }
 
 message GetRunRequest {

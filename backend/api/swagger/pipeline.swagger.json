@@ -333,7 +333,8 @@
       "enum": [
         "UNKNOWN_RELATIONSHIP",
         "OWNER",
-        "CREATOR"
+        "CREATOR",
+        "BELONGING"
       ],
       "default": "UNKNOWN_RELATIONSHIP"
     },
@@ -373,7 +374,8 @@
         "EXPERIMENT",
         "JOB",
         "PIPELINE",
-        "PIPELINE_VERSION"
+        "PIPELINE_VERSION",
+        "NAMESPACE"
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },
