@@ -72,6 +72,16 @@ const {
   ARGO_ARCHIVE_PREFIX = 'logs',
 } = process.env;
 
+enum Deployments {
+  NOT_SPECIFIED = 'NOT_SPECIFIED',
+  KUBEFLOW = 'KUBEFLOW',
+}
+
+const DEPLOYMENT = process.env.DEPLOYMENT === 'KUBEFLOW' ?
+  Deployments.KUBEFLOW :
+  Deployments.NOT_SPECIFIED;
+console.log(`Deployment = ${DEPLOYMENT}`);
+
 /** construct minio endpoint from host and namespace (optional) */
 const MINIO_ENDPOINT = MINIO_NAMESPACE && MINIO_NAMESPACE.length > 0 ? `${MINIO_HOST}.${MINIO_NAMESPACE}` : MINIO_HOST;
 
@@ -399,13 +409,50 @@ app.all(BASEPATH  + '/' + v1beta1Prefix + '/*', proxy({
   target: apiServerAddress,
 }));
 
+const DEFAULT_FLAG = 'window.KFP_FLAGS.DEPLOYMENT=null';
+function modifyFeatureFlags(indexHtml: string): string {
+  if (DEPLOYMENT === Deployments.KUBEFLOW) {
+    return indexHtml.replace(DEFAULT_FLAG, 'window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"');
+  } else {
+    return indexHtml;
+  }
+}
+
+// Read index html on start up.
+let indexHtml = null;
+fs.readFile(path.resolve(staticDir, 'index.html'), (err, data) => {
+  if (err) {
+    console.error('Failed to load index.html.');
+    process.exit(1);
+  } else {
+    indexHtml = data.toString();
+    // sanity checking
+    if (!indexHtml.includes(DEFAULT_FLAG)) {
+      throw new Error(`Error: cannot find DEFAULT_FLAG in index html. Its content: ${indexHtml}`);
+    }
+  }
+});
+
+function handleIndexHtml(req, res) {
+  if (indexHtml) {
+    res.contentType('text/html');
+    res.send(modifyFeatureFlags(indexHtml));
+  } else {
+    res.send(404);
+  }
+}
+
+// These pathes can be matched by static handler. Putting them before it to
+// override behavior for index html.
+app.get('/', handleIndexHtml);
+app.use(BASEPATH + '/', handleIndexHtml);
+app.get('/index.html', handleIndexHtml);
+app.use(BASEPATH + '/index.html', handleIndexHtml);
+
 app.use(BASEPATH, StaticHandler(staticDir));
 app.use(StaticHandler(staticDir));
 
-app.get('*', (req, res) => {
-  // TODO: look into caching this file to speed up multiple requests.
-  res.sendFile(path.resolve(staticDir, 'index.html'));
-});
+app.get('*', handleIndexHtml);
 
 app.listen(port, () => {
   console.log('Server listening at http://localhost:' + port);
