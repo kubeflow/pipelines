@@ -494,7 +494,7 @@ class Compiler(object):
             for argument_set in loop_tasks:
               c_dict = {}
               for k, v in argument_set.items():
-                c_dict[sanitize_k8s_name(k)] = v
+                c_dict[sanitize_k8s_name(k, True)] = v
               sanitized_tasks.append(c_dict)
           else:
             sanitized_tasks = loop_tasks
@@ -698,23 +698,23 @@ class Compiler(object):
       sanitized_name = sanitize_k8s_name(op.name)
       op.name = sanitized_name
       for param in op.outputs.values():
-        param.name = sanitize_k8s_name(param.name)
+        param.name = sanitize_k8s_name(param.name, True)
         if param.op_name:
           param.op_name = sanitize_k8s_name(param.op_name)
       if op.output is not None and not isinstance(op.output, dsl._container_op._MultipleOutputsError):
-        op.output.name = sanitize_k8s_name(op.output.name)
+        op.output.name = sanitize_k8s_name(op.output.name, True)
         op.output.op_name = sanitize_k8s_name(op.output.op_name)
       if op.dependent_names:
         op.dependent_names = [sanitize_k8s_name(name) for name in op.dependent_names]
       if isinstance(op, dsl.ContainerOp) and op.file_outputs is not None:
         sanitized_file_outputs = {}
         for key in op.file_outputs.keys():
-          sanitized_file_outputs[sanitize_k8s_name(key)] = op.file_outputs[key]
+          sanitized_file_outputs[sanitize_k8s_name(key, True)] = op.file_outputs[key]
         op.file_outputs = sanitized_file_outputs
       elif isinstance(op, dsl.ResourceOp) and op.attribute_outputs is not None:
         sanitized_attribute_outputs = {}
         for key in op.attribute_outputs.keys():
-          sanitized_attribute_outputs[sanitize_k8s_name(key)] = \
+          sanitized_attribute_outputs[sanitize_k8s_name(key, True)] = \
             op.attribute_outputs[key]
         op.attribute_outputs = sanitized_attribute_outputs
       sanitized_ops[sanitized_name] = op
@@ -757,7 +757,7 @@ class Compiler(object):
         if arg_name == input.name:
           arg_type = input.type
           break
-      args_list.append(dsl.PipelineParam(sanitize_k8s_name(arg_name), param_type=arg_type))
+      args_list.append(dsl.PipelineParam(sanitize_k8s_name(arg_name, True), param_type=arg_type))
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list)
@@ -770,7 +770,7 @@ class Compiler(object):
     # Fill in the default values.
     args_list_with_defaults = []
     if pipeline_meta.inputs:
-      args_list_with_defaults = [dsl.PipelineParam(sanitize_k8s_name(arg_name))
+      args_list_with_defaults = [dsl.PipelineParam(sanitize_k8s_name(arg_name, True))
                                  for arg_name in argspec.args]
       if argspec.defaults:
         for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):

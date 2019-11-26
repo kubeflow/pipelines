@@ -8,7 +8,7 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: my-pipe-param
+    - name: my_pipe_param
       value: '10'
   entrypoint: my-pipeline
   serviceAccountName: pipeline-runner
@@ -19,8 +19,8 @@ spec:
           parameters:
           - name: loop-item-param-00000001-subvar-a
             value: '{{inputs.parameters.loop-item-param-00000001-subvar-a}}'
-          - name: my-pipe-param
-            value: '{{inputs.parameters.my-pipe-param}}'
+          - name: my_pipe_param
+            value: '{{inputs.parameters.my_pipe_param}}'
         name: my-in-coop1
         template: my-in-coop1
       - arguments:
@@ -33,11 +33,11 @@ spec:
       parameters:
       - name: loop-item-param-00000001-subvar-a
       - name: loop-item-param-00000001-subvar-b
-      - name: my-pipe-param
+      - name: my_pipe_param
     name: for-loop-for-loop-00000001-1
   - container:
       args:
-      - echo op1 {{inputs.parameters.loop-item-param-00000001-subvar-a}} {{inputs.parameters.my-pipe-param}}
+      - echo op1 {{inputs.parameters.loop-item-param-00000001-subvar-a}} {{inputs.parameters.my_pipe_param}}
       command:
       - sh
       - -c
@@ -45,7 +45,7 @@ spec:
     inputs:
       parameters:
       - name: loop-item-param-00000001-subvar-a
-      - name: my-pipe-param
+      - name: my_pipe_param
     name: my-in-coop1
   - container:
       args:
@@ -60,14 +60,14 @@ spec:
     name: my-in-coop2
   - container:
       args:
-      - echo {{inputs.parameters.my-pipe-param}}
+      - echo {{inputs.parameters.my_pipe_param}}
       command:
       - sh
       - -c
       image: library/bash:4.4.23
     inputs:
       parameters:
-      - name: my-pipe-param
+      - name: my_pipe_param
     name: my-out-cop
   - dag:
       tasks:
@@ -77,8 +77,8 @@ spec:
             value: '{{item.a}}'
           - name: loop-item-param-00000001-subvar-b
             value: '{{item.b}}'
-          - name: my-pipe-param
-            value: '{{inputs.parameters.my-pipe-param}}'
+          - name: my_pipe_param
+            value: '{{inputs.parameters.my_pipe_param}}'
         name: for-loop-for-loop-00000001-1
         template: for-loop-for-loop-00000001-1
         withItems:
@@ -88,11 +88,11 @@ spec:
           b: 20
       - arguments:
           parameters:
-          - name: my-pipe-param
-            value: '{{inputs.parameters.my-pipe-param}}'
+          - name: my_pipe_param
+            value: '{{inputs.parameters.my_pipe_param}}'
         name: my-out-cop
         template: my-out-cop
     inputs:
       parameters:
-      - name: my-pipe-param
+      - name: my_pipe_param
     name: my-pipeline
