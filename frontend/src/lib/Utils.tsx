@@ -322,7 +322,6 @@ export function generateGcsConsoleUri(gcsUri: string): string | undefined {
   return GCS_CONSOLE_BASE + gcsUri.substring(GCS_URI_PREFIX.length);
 }
 
-const MINIO_URL_TEMPLATE = 'https:/artifacts/get?source={source}&bucket={bucket}&key={key}';
 const MINIO_URI_PREFIX = 'minio://';
 
 function generateArtifactUrl(source: string, bucket: string, key: string): string {
