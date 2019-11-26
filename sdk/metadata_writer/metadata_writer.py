@@ -527,10 +527,16 @@ def output_name_to_argo(name: str) -> str:
 
 
 def argo_artifact_to_uri(artifact: dict) -> str:
-    return 'https:/artifacts/get?source=minio&bucket={bucket}&key={key}'.format(
-        bucket=artifact['s3']['bucket'],
-        key=artifact['s3']['key'],
-    )
+    if 's3' in artifact:
+        s3_artifact = artifact['s3']
+        return 'https:/artifacts/get?source=minio&bucket={bucket}&key={key}'.format(
+            bucket=s3_artifact.get('bucket', ''),
+            key=s3_artifact.get('key', ''),
+        )
+    elif 'raw' in artifact:
+        return None
+    else:
+        return None
 
 
 def is_tfx_pod(pod) -> bool:
@@ -661,6 +667,8 @@ for event in k8s_watch.stream(
                 output_artifacts = []
                 for name, art in argo_output_artifacts.items():
                     artifact_uri = argo_artifact_to_uri(art)
+                    if not artifact_uri:
+                        continue
                     artifact_type_name = argo_output_name_to_type.get(name, 'NoType') # Cannot be None or ''
 
                     print('Artifact: ' + str(dict(
