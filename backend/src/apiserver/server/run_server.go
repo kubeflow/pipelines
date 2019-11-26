@@ -16,11 +16,16 @@ package server
 
 import (
 	"context"
+	"strings"
 
+	"github.com/golang/glog"
+	"google.golang.org/grpc/metadata"
+	"github.com/pkg/errors"
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -30,6 +35,22 @@ type RunServer struct {
 
 func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest) (*api.RunDetail, error) {
 	err := s.validateCreateRunRequest(request)
+	md, _ := metadata.FromIncomingContext(ctx)
+	// If the request header contains the user identity, requests are authorized
+	// based on the namespace field in the request.
+	if userIdentityHeader, ok := md[common.UserIdentityHeader]; ok {
+		if len(userIdentityHeader) != 1 {
+			return nil, util.NewBadRequestError(errors.New("Request header error: user identity value is empty"), "Request header error: user identity value is empty")
+		}
+		userIdentityHeaderFields := strings.Split(userIdentityHeader[0], ":")
+		if len(userIdentityHeaderFields) != 2 {
+			return nil, util.NewBadRequestError(errors.New("Request header error: user identity value is incorrectly formatted"), "Request header error: user identity value is incorrectly formatted")
+		}
+		userIdentity := userIdentityHeaderFields[1]
+		glog.Infof("User Identity: %s", userIdentity)
+		//TODO: authenticate the requests based on the userIdentity and the namespace.
+	}
+
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
