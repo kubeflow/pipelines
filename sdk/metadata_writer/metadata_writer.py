@@ -267,7 +267,12 @@ def create_new_execution_in_existing_run_context(
     store,
     execution_type_name: str,
     context_id: int,
+    # TODO: Remove when UX stops relying on thsese properties
+    pipeline_name: str = None,
+    run_id: str = None,
 ) -> metadata_store_pb2.Execution:
+    pipeline_name = pipeline_name or 'Context_' + str(context_id) + '_pipeline'
+    run_id = run_id or 'Context_' + str(context_id) + '_run'
     return create_new_execution_in_existing_context(
         store=store,
         execution_type_name=KFP_EXECUTION_TYPE_NAME_PREFIX + execution_type_name,
@@ -277,11 +282,12 @@ def create_new_execution_in_existing_run_context(
             EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.STRING,
             EXECUTION_COMPONENT_ID_PROPERTY_NAME: metadata_store_pb2.STRING,
         },
+        # TODO: Remove when UX stops relying on thsese properties
         properties={
             #EXECUTION_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id), # Mistakenly used for grouping in the UX
             #EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
-            EXECUTION_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value='Context_' + str(context_id) + '_pipeline'), # Mistakenly used for grouping in the UX
-            EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value='Context_' + str(context_id) + '_run'),
+            EXECUTION_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=pipeline_name), # Mistakenly used for grouping in the UX
+            EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
             EXECUTION_COMPONENT_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=execution_type_name), # should set to task ID, not component ID
         },
     )
@@ -606,7 +612,8 @@ for event in k8s_watch.stream(
                 store=mlmd_store,
                 context_id=run_context.id,
                 execution_type_name=component_name,
-                #?? execution_name = obj.metadata.name,
+                pipeline_name=argo_workflow_name,
+                run_id=argo_workflow_name,
             )
 
             argo_input_artifacts = argo_template.get('inputs', {}).get('artifacts', [])
@@ -702,7 +709,8 @@ for event in k8s_watch.stream(
                         uri=artifact_uri,
                         type_name=artifact_type_name,
                         output_name=name,
-                        run_id='Context_' + str(context_id) + '_run',
+                        #run_id='Context_' + str(context_id) + '_run',
+                        run_id=argo_workflow_name,
                     )
 
                     artifact_ids.append(dict(
