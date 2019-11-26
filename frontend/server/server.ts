@@ -412,7 +412,7 @@ app.all(BASEPATH  + '/' + v1beta1Prefix + '/*', proxy({
 const DEFAULT_FLAG = 'window.KFP_FLAGS.DEPLOYMENT=null';
 function modifyFeatureFlags(indexHtml: string): string {
   if (DEPLOYMENT === Deployments.KUBEFLOW) {
-    return indexHtml.replace(DEFAULT_FLAG, 'window.KFP_FLAGS.MULTI_USER="KUBEFLOW"');
+    return indexHtml.replace(DEFAULT_FLAG, 'window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"');
   } else {
     return indexHtml;
   }
