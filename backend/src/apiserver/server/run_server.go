@@ -16,7 +16,9 @@ package server
 
 import (
 	"context"
+	"strings"
 
+	"google.golang.org/grpc/metadata"
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -30,7 +32,13 @@ type RunServer struct {
 
 func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest) (*api.RunDetail, error) {
 	err := s.validateCreateRunRequest(request)
-	AuthorizeRequest("google.com", request.Namespace)
+	md, _ := metadata.FromIncomingContext(ctx)
+	userIdentity := strings.Split(md.Get("x-goog-authenticated-user-email")[0], ":")[1]
+
+	if AuthorizeRequest(userIdentity, request.Namespace) == false {
+		// TODO: output a special unauthorized error.
+		return nil, nil
+	}
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
@@ -84,6 +92,13 @@ func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunR
 }
 
 func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest) (*empty.Empty, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	userIdentity := strings.Split(md.Get("x-goog-authenticated-user-email")[0], ":")[1]
+
+	if AuthorizeRequest(userIdentity, request.Namespace) == false {
+		// TODO: output a special unauthorized error.
+		return nil, nil
+	}
 	err := s.resourceManager.DeleteRun(request.Id)
 	if err != nil {
 		return nil, err
@@ -139,6 +154,12 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 }
 
 func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunRequest) (*empty.Empty, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	userIdentity := strings.Split(md.Get("x-goog-authenticated-user-email")[0], ":")[1]
+	if AuthorizeRequest(userIdentity, request.Namespace) == false {
+		// TODO: output a special unauthorized error.
+		return nil, nil
+	}
 	err := s.resourceManager.TerminateRun(request.RunId)
 	if err != nil {
 		return nil, err
@@ -147,6 +168,12 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunR
 }
 
 func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) (*empty.Empty, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	userIdentity := strings.Split(md.Get("x-goog-authenticated-user-email")[0], ":")[1]
+	if AuthorizeRequest(userIdentity, request.Namespace) == false {
+		// TODO: output a special unauthorized error.
+		return nil, nil
+	}
 	err := s.resourceManager.RetryRun(request.RunId)
 	if err != nil {
 		return nil, err

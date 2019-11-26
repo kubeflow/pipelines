@@ -8,6 +8,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 
+	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -271,5 +272,6 @@ func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, re
 
 func AuthorizeRequest(userIdentity string, namespace string) bool {
 	//TODO: Add authorization logic by contacting the KFAM service
+	glog.Infof("Authorizing user %s for namespace %s", userIdentity, namespace)
 	return true
 }
