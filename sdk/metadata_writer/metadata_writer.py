@@ -617,6 +617,7 @@ for event in k8s_watch.stream(
             )
 
             argo_input_artifacts = argo_template.get('inputs', {}).get('artifacts', [])
+            input_artifact_ids = []
             for argo_artifact in argo_input_artifacts:
                 artifact_uri = argo_artifact_to_uri(argo_artifact)
                 if not artifact_uri:
@@ -636,6 +637,11 @@ for event in k8s_watch.stream(
                     uri=artifact_uri,
                     input_name=input_name,
                 )
+                input_artifact_ids.append(dict(
+                    id=artifact.id,
+                    name=input_name,
+                    uri=artifact.uri,
+                ))
                 print('Found Input Artifact: ' + str(dict(
                     input_name=input_name,
                     id=artifact.id,
@@ -652,6 +658,9 @@ for event in k8s_watch.stream(
                 'labels': {
                     METADATA_EXECUTION_ID_LABEL_KEY: str(execution_id),
                     METADATA_CONTEXT_ID_LABEL_KEY: str(context_id),
+                },
+                'annotations': {
+                    METADATA_INPUT_ARTIFACT_IDS_ANNOTATION_KEY: json.dumps(input_artifact_ids),
                 },
             }
 
