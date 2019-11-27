@@ -317,12 +317,16 @@ class Client(object):
     resource_references = []
     key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
-    reference = kfp_server_api.models.ApiResourceReference(key, kfp_server_api.models.ApiRelationship.OWNER)
+    reference = kfp_server_api.models.ApiResourceReference(key=key,
+                                                           name='',
+                                                           relationship=kfp_server_api.models.ApiRelationship.OWNER)
     resource_references.append(reference)
     if namespace is not None:
       key = kfp_server_api.models.ApiResourceKey(id=namespace,
                                                  type=kfp_server_api.models.ApiResourceType.NAMESPACE)
-      reference = kfp_server_api.models.ApiResourceReference(key, kfp_server_api.models.ApiRelationship.BELONGING)
+      reference = kfp_server_api.models.ApiResourceReference(key=key,
+                                                             name=namespace,
+                                                             relationship=kfp_server_api.models.ApiRelationship.BELONGING)
       resource_references.append(reference)
     spec = kfp_server_api.models.ApiPipelineSpec(
         pipeline_id=pipeline_id,
