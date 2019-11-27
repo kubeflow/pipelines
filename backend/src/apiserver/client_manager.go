@@ -265,6 +265,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 		common.GetStringConfigWithDefault(mysqlServicePort, "3306"),
 		"",
 		common.GetStringConfigWithDefault(mysqlGroupConcatMaxLen, "1024"),
+		common.GetMapConfig(mysqlExtraParams),
 	)
 
 	var db *sql.DB
