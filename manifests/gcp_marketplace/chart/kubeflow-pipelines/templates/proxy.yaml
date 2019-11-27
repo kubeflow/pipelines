@@ -64,3 +64,10 @@ spec:
           - name: K8S_APP_NAME
             value: {{ .Release.Name }}
       serviceAccountName: proxy-agent-runner
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inverse-proxy-config
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}

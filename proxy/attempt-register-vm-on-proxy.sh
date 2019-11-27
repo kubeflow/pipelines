@@ -78,11 +78,14 @@ echo "Hostname: ${HOSTNAME}"
 echo "Backend id: ${BACKEND_ID}"
 
 # Store the registration information in a ConfigMap
-kubectl create configmap inverse-proxy-config \
-        --namespace=${NAMESPACE}
-        --from-literal=ProxyUrl=${PROXY_URL} \
-        --from-literal=BackendId=${BACKEND_ID} \
-        --from-literal=Hostname=${HOSTNAME}
+PATCH_TEMP='{"data": {"Hostname":"'${HOSTNAME}'","ProxyUrl":"'${PROXY_URL}'","BackendId":"'${BACKEND_ID}'"}}'
+PATCH_JSON=$(printf "${PATCH_TEMP}" "${HOSTNAME}" "${PROXY_URL}" "${BACKEND_ID}")
+echo "PACTH_JSON: ${PATCH_JSON}"
+
+kubectl patch configmap/inverse-proxy-config \
+    --namespace=${NAMESPACE} \
+    --type merge \
+    --patch "${PATCH_JSON}"
 
 if [ ! -z "${K8S_APP_NAME}" ]; then
     kubectl label configmap inverse-proxy-config app.kubernetes.io/name=${K8S_APP_NAME}
