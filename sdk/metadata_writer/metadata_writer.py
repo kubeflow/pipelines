@@ -40,7 +40,7 @@ EOF
 #subprocess.run([sys.executable, '-m', 'pip', 'install', 'ml-metadata==0.14', 'tensorflow>=1.15', 'kubernetes', '--upgrade', '--quiet', '--user'])
 #sys.path.append(site.getusersitepackages())
 
-
+import hashlib
 import kubernetes
 
 try:
@@ -270,12 +270,14 @@ def create_new_execution_in_existing_run_context(
     # TODO: Remove when UX stops relying on thsese properties
     pipeline_name: str = None,
     run_id: str = None,
+    instance_id: str = None,
 ) -> metadata_store_pb2.Execution:
     pipeline_name = pipeline_name or 'Context_' + str(context_id) + '_pipeline'
     run_id = run_id or 'Context_' + str(context_id) + '_run'
+    instance_id = instance_id or execution_type_name
     return create_new_execution_in_existing_context(
         store=store,
-        execution_type_name=KFP_EXECUTION_TYPE_NAME_PREFIX + execution_type_name,
+        execution_type_name=execution_type_name,
         context_id=context_id,
         execution_type_properties={
             EXECUTION_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
@@ -288,7 +290,7 @@ def create_new_execution_in_existing_run_context(
             #EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
             EXECUTION_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=pipeline_name), # Mistakenly used for grouping in the UX
             EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
-            EXECUTION_COMPONENT_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=execution_type_name), # should set to task ID, not component ID
+            EXECUTION_COMPONENT_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=instance_id), # should set to task ID, not component ID
         },
     )
 
@@ -585,10 +587,14 @@ while True:
             argo_template_name = argo_template['name']
 
             component_name = argo_template_name
+            component_version = component_name
             argo_output_name_to_type = {}
             if KFP_COMPONENT_SPEC_ANNOTATION_KEY in obj.metadata.annotations:
-                component_spec = json.loads(obj.metadata.annotations[KFP_COMPONENT_SPEC_ANNOTATION_KEY])
+                component_spec_text = obj.metadata.annotations[KFP_COMPONENT_SPEC_ANNOTATION_KEY]
+                component_spec = json.loads(component_spec_text)
+                component_spec_digest = hashlib.sha256(component_spec_text.encode()).hexdigest()
                 component_name = component_spec.get('name', component_name)
+                component_version = component_name + '@sha256=' + component_spec_digest
                 output_name_to_type = {output['name']: output.get('type', None) for output in component_spec.get('outputs', [])}
                 argo_output_name_to_type = {output_name_to_argo(k): v for k, v in output_name_to_type.items() if v}
 
@@ -612,9 +618,10 @@ while True:
                 execution = create_new_execution_in_existing_run_context(
                     store=mlmd_store,
                     context_id=run_context.id,
-                    execution_type_name=component_name,
+                    execution_type_name=KFP_EXECUTION_TYPE_NAME_PREFIX + component_version,
                     pipeline_name=argo_workflow_name,
                     run_id=argo_workflow_name,
+                    instance_id=component_name,
                 )
 
                 argo_input_artifacts = argo_template.get('inputs', {}).get('artifacts', [])
