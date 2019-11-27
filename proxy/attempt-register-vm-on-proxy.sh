@@ -35,15 +35,6 @@ function run-proxy-agent {
         --health-check-unhealthy-threshold=${HEALTH_CHECK_UNHEALTHY_THRESHOLD}
 }
 
-# Check if the cluster already have proxy agent installed by checking ConfigMap.
-if kubectl get configmap inverse-proxy-config; then
-  # If ConfigMap already exist, reuse the existing endpoint (a.k.a BACKEND_ID) and same ProxyUrl.
-  PROXY_URL=$(kubectl get configmap inverse-proxy-config -o json | jq -r ".data.ProxyUrl")
-  BACKEND_ID=$(kubectl get configmap inverse-proxy-config -o json | jq -r ".data.BackendId")
-  run-proxy-agent
-  exit 0
-fi
-
 # Activate service account for gcloud SDK first
 if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
@@ -77,8 +68,9 @@ PATCH_JSON=$(printf "${PATCH_TEMP}" "${HOSTNAME}" "${PROXY_URL}" "${BACKEND_ID}"
 echo "PACTH_JSON: ${PATCH_JSON}"
 
 kubectl patch configmap/inverse-proxy-config \
-    --namespace=${NAMESPACE} \
     --type merge \
     --patch "${PATCH_JSON}"
+
+echo "Patched configmap/inverse-proxy-config"
 
 run-proxy-agent
