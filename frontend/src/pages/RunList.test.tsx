@@ -464,7 +464,7 @@ describe('RunList', () => {
     expect(
       getMountedInstance()._pipelineVersionCustomRenderer({
         id: 'run-id',
-        value: { displayName: 'test pipeline', pipelineId: 'pipeline-id', usePlaceholder: false, versionId: undefined },
+        value: { displayName: 'test pipeline', pipelineId: 'pipeline-id', usePlaceholder: false },
       }),
     ).toMatchSnapshot();
   });
@@ -570,6 +570,15 @@ describe('RunList', () => {
           metadata: { count: 1, maxValue: 100, minValue: 10 } as MetricMetadata,
           metric: { number_value: 55 } as ApiRunMetric,
         },
+      }),
+    ).toMatchSnapshot();
+  });
+
+  it('renders pipeline version name as link to its details page', () => {
+    expect(
+      getMountedInstance()._pipelineVersionCustomRenderer({
+        id: 'run-id',
+        value: { displayName: 'test pipeline version', pipelineId: 'pipeline-id', usePlaceholder: false, versionId: 'version-id' },
       }),
     ).toMatchSnapshot();
   });
