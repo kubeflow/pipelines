@@ -28,7 +28,7 @@ import json
 
 IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
-LOCAL_KFP_CREDENTIAL = os.path.join(os.environ['HOME'], '.config/kfp/credentials.json')
+LOCAL_KFP_CREDENTIAL = os.path.expanduser('~/.config/kfp/credentials.json')
 
 def get_gcp_access_token():
     """Get and return GCP access token for the current Application Default

@@ -14,18 +14,6 @@
 
 matrix:
   include:
-    - language: node_js
-      node_js: "11.8.0"
-      addons:
-        chrome: stable
-      before_install: npm i -g npm@latest
-      script:
-        # Frontend tests
-        - cd $TRAVIS_BUILD_DIR/frontend
-        - node -v
-        - npm ci
-        # Comment out next line if coverall has an ongoing outage to unblock.
-        - npm run test:ci
     - language: generic
       env:
         - BAZEL_URL="https://github.com/bazelbuild/bazel/releases/download/0.23.0/bazel-0.23.0-installer-linux-x86_64.sh"
