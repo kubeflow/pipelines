@@ -199,15 +199,17 @@ func (r *ResourceManager) toModelResourceReferences(
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to find the referred resource")
 		}
-		modelRef := &model.ResourceReference{
-			ResourceUUID:  resourceId,
-			ResourceType:  resourceType,
-			ReferenceUUID: apiRef.Key.Id,
-			ReferenceName: referenceName,
-			ReferenceType: modelReferenceType,
-			Relationship:  modelRelationship,
+		if apiRef.Key.Type != api.ResourceType_NAMESPACE {
+			modelRef := &model.ResourceReference{
+				ResourceUUID:  resourceId,
+				ResourceType:  resourceType,
+				ReferenceUUID: apiRef.Key.Id,
+				ReferenceName: referenceName,
+				ReferenceType: modelReferenceType,
+				Relationship:  modelRelationship,
+			}
+			modelRefs = append(modelRefs, modelRef)
 		}
-		modelRefs = append(modelRefs, modelRef)
 	}
 	return modelRefs, nil
 }
