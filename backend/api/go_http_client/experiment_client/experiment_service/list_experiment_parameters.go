@@ -77,8 +77,9 @@ for the list experiment operation typically these are written to a http.Request
 type ListExperimentParams struct {
 
 	/*Filter
-	  A base-64 encoded, JSON-serialized Filter protocol buffer (see
-	filter.proto).
+	  A url-encoded, JSON-serialized Filter protocol buffer (see
+	[filter.proto](https://github.com/kubeflow/pipelines/
+	blob/master/backend/api/filter.proto)).
 
 	*/
 	Filter *string

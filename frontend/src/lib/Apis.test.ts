@@ -16,10 +16,12 @@ import { Apis } from './Apis';
 import { StorageService } from './WorkflowParser';
 
 const fetchSpy = (response: string) => {
-  const spy = jest.fn(() => Promise.resolve({
-    ok: true,
-    text: () => response,
-  }));
+  const spy = jest.fn(() =>
+    Promise.resolve({
+      ok: true,
+      text: () => response,
+    }),
+  );
   window.fetch = spy;
   return spy;
 };
@@ -40,7 +42,7 @@ describe('Apis', () => {
   it('hosts a singleton runServiceApi', () => {
     expect(Apis.runServiceApi).toBe(Apis.runServiceApi);
   });
-  
+
   it('hosts a singleton visualizationServiceApi', () => {
     expect(Apis.visualizationServiceApi).toBe(Apis.visualizationServiceApi);
   });
@@ -48,16 +50,19 @@ describe('Apis', () => {
   it('getPodLogs', async () => {
     const spy = fetchSpy('http://some/address');
     expect(await Apis.getPodLogs('some-pod-name')).toEqual('http://some/address');
-    expect(spy).toHaveBeenCalledWith(
-      'k8s/pod/logs?podname=some-pod-name', { credentials: 'same-origin' });
+    expect(spy).toHaveBeenCalledWith('k8s/pod/logs?podname=some-pod-name', {
+      credentials: 'same-origin',
+    });
   });
 
   it('getPodLogs error', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => null);
-    window.fetch = jest.fn(() => Promise.resolve({
-      ok: false,
-      text: () => 'bad response',
-    }));
+    window.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: false,
+        text: () => 'bad response',
+      }),
+    );
     expect(Apis.getPodLogs('some-pod-name')).rejects.toThrowError('bad response');
   });
 
@@ -66,7 +71,7 @@ describe('Apis', () => {
       apiServerCommitHash: 'd3c4add0a95e930c70a330466d0923827784eb9a',
       apiServerReady: true,
       buildDate: 'Wed Jan 9 19:40:24 UTC 2019',
-      frontendCommitHash: '8efb2fcff9f666ba5b101647e909dc9c6889cecb'
+      frontendCommitHash: '8efb2fcff9f666ba5b101647e909dc9c6889cecb',
     };
     const spy = fetchSpy(JSON.stringify(expectedBuildInfo));
     const actualBuildInfo = await Apis.getBuildInfo();
@@ -91,13 +96,16 @@ describe('Apis', () => {
 
   it('readFile', async () => {
     const spy = fetchSpy('file contents');
-    expect(await Apis.readFile({
-      bucket: 'testbucket',
-      key: 'testkey',
-      source: StorageService.GCS,
-    })).toEqual('file contents');
-    expect(spy).toHaveBeenCalledWith(
-      'artifacts/get?source=gcs&bucket=testbucket&key=testkey', { credentials: 'same-origin' });
+    expect(
+      await Apis.readFile({
+        bucket: 'testbucket',
+        key: 'testkey',
+        source: StorageService.GCS,
+      }),
+    ).toEqual('file contents');
+    expect(spy).toHaveBeenCalledWith('artifacts/get?source=gcs&bucket=testbucket&key=testkey', {
+      credentials: 'same-origin',
+    });
   });
 
   it('getTensorboardApp', async () => {
@@ -114,7 +122,11 @@ describe('Apis', () => {
     await Apis.startTensorboardApp('gs://log/dir');
     expect(spy).toHaveBeenCalledWith(
       'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir'),
-      { credentials: 'same-origin', method: 'POST', headers: { 'content-type': 'application/json' } },
+      {
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      },
     );
   });
 
@@ -129,7 +141,7 @@ describe('Apis', () => {
         cache: 'no-cache',
         credentials: 'same-origin',
         method: 'POST',
-      }
+      },
     );
   });
 });

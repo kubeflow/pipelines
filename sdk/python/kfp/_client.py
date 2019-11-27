@@ -20,8 +20,9 @@ import os
 import re
 import tarfile
 import tempfile
-import zipfile
+import warnings
 import yaml
+import zipfile
 from datetime import datetime
 from typing import Mapping, Callable
 
@@ -29,7 +30,7 @@ import kfp
 import kfp_server_api
 
 from kfp.compiler import compiler
-from kfp.compiler import _k8s_helper
+from kfp.compiler._k8s_helper import sanitize_k8s_name
 
 from kfp._auth import get_auth_token, get_gcp_access_token
 
@@ -52,7 +53,7 @@ def _add_generated_apis(target_struct, api_module, api_client):
       short_api_name = camel_case_to_snake_case(api_name[0:-len('ServiceApi')]) + 's'
       api_struct = Struct()
       setattr(target_struct, short_api_name, api_struct)
-      service_api = getattr(api_module, api_name)
+      service_api = getattr(api_module.api, api_name)
       initialized_service_api = service_api(api_client)
       for member_name in dir(initialized_service_api):
           if member_name.startswith('_') or member_name.endswith('_with_http_info'):
@@ -60,10 +61,17 @@ def _add_generated_apis(target_struct, api_module, api_client):
 
           bound_member = getattr(initialized_service_api, member_name)
           setattr(api_struct, member_name, bound_member)
+  models_struct = Struct()
+  for member_name in dir(api_module.models):
+      if not member_name[0].islower():
+          setattr(models_struct, member_name, getattr(api_module.models, member_name))
+  target_struct.api_models = models_struct
 
 
 KF_PIPELINES_ENDPOINT_ENV = 'KF_PIPELINES_ENDPOINT'
 KF_PIPELINES_UI_ENDPOINT_ENV = 'KF_PIPELINES_UI_ENDPOINT'
+KF_PIPELINES_DEFAULT_EXPERIMENT_NAME = 'KF_PIPELINES_DEFAULT_EXPERIMENT_NAME'
+KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME = 'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'
 
 class Client(object):
   """ API Client for KubeFlow Pipeline.
@@ -73,7 +81,7 @@ class Client(object):
   IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
-  def __init__(self, host=None, client_id=None, namespace='kubeflow'):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None):
     """Create a new instance of kfp client.
 
     Args:
@@ -85,29 +93,33 @@ class Client(object):
           If you connect to an IAP enabled cluster, set it to
           https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
       client_id: The client ID used by Identity-Aware Proxy.
+      namespace: the namespace where the kubeflow pipeline system is run.
+      other_client_id: The client ID used to obtain the auth codes and refresh tokens.
+        Reference: https://cloud.google.com/iap/docs/authentication-howto#authenticating_from_a_desktop_app.
+      other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
-    config = self._load_config(host, client_id, namespace)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret)
     api_client = kfp_server_api.api_client.ApiClient(config)
-    _add_generated_apis(self, kfp_server_api.api, api_client)
+    _add_generated_apis(self, kfp_server_api, api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
 
-  def _load_config(self, host, client_id, namespace):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret):
     config = kfp_server_api.configuration.Configuration()
     if host:
       config.host = host
 
     token = None
 
+    # Obtain the tokens if it is inverse proxy or IAP.
     if self._is_inverse_proxy_host(host):
       token = get_gcp_access_token()
     if self._is_iap_host(host,client_id):
-      # fetch IAP auth token
-      token = get_auth_token(client_id)
+      token = get_auth_token(client_id, other_client_id, other_client_secret)
 
     if token:
       config.api_key['authorization'] = token
@@ -137,17 +149,19 @@ class Client(object):
       return config
 
     if config.host:
-      config.host = os.path.join(config.host, Client.KUBE_PROXY_PATH.format(namespace))
+      config.host = config.host + '/' + Client.KUBE_PROXY_PATH.format(namespace)
     return config
 
   def _is_iap_host(self, host, client_id):
     if host and client_id:
-      return re.match(r'\S+.endpoints.\S+.cloud.goog', host)
+      if re.match(r'\S+.endpoints.\S+.cloud.goog/{0,1}$', host):
+        warnings.warn('Suffix /pipeline is not ignorable for IAP host.')
+      return re.match(r'\S+.endpoints.\S+.cloud.goog/pipeline', host)
     return False
 
   def _is_inverse_proxy_host(self, host):
     if host:
-      return re.match(r'\S+dot-datalab-vm\S+.googleusercontent.com', host)
+      return re.match(r'\S+.googleusercontent.com/{0,1}$', host)
     return False
 
   def _is_ipython(self):
@@ -298,8 +312,9 @@ class Client(object):
     if pipeline_package_path:
       pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
       pipeline_json_string = json.dumps(pipeline_obj)
-    api_params = [kfp_server_api.ApiParameter(name=_k8s_helper.K8sHelper.sanitize_k8s_name(k), value=str(v))
-                  for k,v in params.items()]
+    api_params = [kfp_server_api.ApiParameter(
+        name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
+        value=str(v)) for k,v in params.items()]
     key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
     reference = kfp_server_api.models.ApiResourceReference(key, kfp_server_api.models.ApiRelationship.OWNER)
@@ -360,12 +375,17 @@ class Client(object):
         timeout = timeout or datetime.datetime.max - datetime.datetime.min
         return self._client.wait_for_run_completion(self.run_id, timeout)
 
-      def __str__(self):
-        return '<RunPipelineResult(run_id={})>'.format(self.run_id)
+      def __repr__(self):
+        return 'RunPipelineResult(run_id={})'.format(self.run_id)
 
     #TODO: Check arguments against the pipeline function
     pipeline_name = os.path.basename(pipeline_file)
-    experiment_name = experiment_name or 'Default'
+    experiment_name = experiment_name or os.environ.get(KF_PIPELINES_DEFAULT_EXPERIMENT_NAME, None)
+    overridden_experiment_name = os.environ.get(KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME, experiment_name)
+    if overridden_experiment_name != experiment_name:
+      import warnings
+      warnings.warn('Changing experiment name from "{}" to "{}".'.format(experiment_name, overridden_experiment_name))
+    experiment_name = overridden_experiment_name or 'Default'
     run_name = run_name or pipeline_name + ' ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
     experiment = self.create_experiment(name=experiment_name)
     run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments)
@@ -445,3 +465,14 @@ class Client(object):
       html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
       IPython.display.display(IPython.display.HTML(html))
     return response
+
+  def get_pipeline(self, pipeline_id):
+    """Get pipeline details.
+    Args:
+      id of the pipeline.
+    Returns:
+      A response object including details of a pipeline.
+    Throws:
+      Exception if pipeline is not found.
+    """
+    return self._pipelines_api.get_pipeline(id=pipeline_id)

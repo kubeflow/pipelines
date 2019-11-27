@@ -376,6 +376,96 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
 }
 
+func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
+	// Create experiment, pipeline, and pipeline version.
+	store, manager, experiment, pipeline := initWithExperimentAndPipeline(t)
+	defer store.Close()
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
+		Name: "version_for_run",
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   pipeline.UUID,
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}, []byte(testWorkflow.ToStringForStore()))
+	assert.Nil(t, err)
+
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: version.UUID},
+				Relationship: api.Relationship_CREATOR,
+			},
+		},
+	}
+	runDetail, err := manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
+
+	expectedRunDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			DisplayName:    "run1",
+			Name:           "workflow-name",
+			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec: 4,
+			Conditions:     "Running",
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+					ResourceType:  common.Run,
+					ReferenceUUID: experiment.UUID,
+					ReferenceName: "e1",
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
+				},
+				{
+					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+					ResourceType:  common.Run,
+					ReferenceUUID: version.UUID,
+					ReferenceName: "version_for_run",
+					ReferenceType: common.PipelineVersion,
+					Relationship:  common.Creator,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
+		},
+	}
+	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
+	assert.Equal(t, 1, store.workflowClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	runDetail, err = manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
+}
+
 func TestCreateRun_NoExperiment(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
@@ -764,6 +854,83 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 	assert.Equal(t, expectedJob, newJob)
 }
 
+func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
+	// Create experiment, pipeline and pipeline version.
+	store, manager, experiment, pipeline := initWithExperimentAndPipeline(t)
+	defer store.Close()
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
+		Name: "version_for_job",
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   pipeline.UUID,
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}, []byte(testWorkflow.ToStringForStore()))
+	assert.Nil(t, err)
+
+	job := &api.Job{
+		Name:    "j1",
+		Enabled: true,
+		PipelineSpec: &api.PipelineSpec{
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: version.UUID},
+				Relationship: api.Relationship_CREATOR,
+			},
+		},
+	}
+	newJob, err := manager.CreateJob(job)
+	expectedJob := &model.Job{
+		UUID:           "123",
+		DisplayName:    "j1",
+		Name:           "j1",
+		Namespace:      "default",
+		Enabled:        true,
+		CreatedAtInSec: 4,
+		UpdatedAtInSec: 4,
+		Conditions:     "NO_STATUS",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  "123",
+				ResourceType:  common.Job,
+				ReferenceUUID: experiment.UUID,
+				ReferenceName: "e1",
+				ReferenceType: common.Experiment,
+				Relationship:  common.Owner,
+			},
+			{
+				ResourceUUID:  "123",
+				ResourceType:  common.Job,
+				ReferenceUUID: version.UUID,
+				ReferenceName: "version_for_job",
+				ReferenceType: common.PipelineVersion,
+				Relationship:  common.Creator,
+			},
+		},
+	}
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, newJob)
+}
+
 func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -1015,18 +1182,18 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 				{
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
-					ReferenceUUID: job.UUID,
-					ReferenceName: job.Name,
-					ReferenceType: common.Job,
-					Relationship:  common.Creator,
-				},
-				{
-					ResourceUUID:  "WORKFLOW_1",
-					ResourceType:  common.Run,
 					ReferenceUUID: DefaultFakeUUID,
 					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
+				},
+				{
+					ResourceUUID:  "WORKFLOW_1",
+					ResourceType:  common.Run,
+					ReferenceUUID: job.UUID,
+					ReferenceName: job.Name,
+					ReferenceType: common.Job,
+					Relationship:  common.Creator,
 				},
 			},
 		},
@@ -1088,18 +1255,18 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 				{
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
-					ReferenceUUID: newJob.UUID,
-					ReferenceName: newJob.Name,
-					ReferenceType: common.Job,
-					Relationship:  common.Creator,
-				},
-				{
-					ResourceUUID:  "WORKFLOW_1",
-					ResourceType:  common.Run,
 					ReferenceUUID: DefaultFakeUUID,
 					ReferenceName: "Default",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
+				},
+				{
+					ResourceUUID:  "WORKFLOW_1",
+					ResourceType:  common.Run,
+					ReferenceUUID: newJob.UUID,
+					ReferenceName: newJob.Name,
+					ReferenceType: common.Job,
+					Relationship:  common.Creator,
 				},
 			},
 		},
@@ -1759,3 +1926,266 @@ spec:
         valueFrom:
           path: /output.txt`
 )
+
+func TestCreatePipelineVersion(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store)
+
+	// Create a pipeline before versions.
+	_, err := manager.CreatePipeline("p", "", []byte(testWorkflow.ToStringForStore()))
+	assert.Nil(t, err)
+
+	// Create a version under the above pipeline.
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	version, err := manager.CreatePipelineVersion(
+		&api.PipelineVersion{
+			Name: "p_v",
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   DefaultFakeUUID,
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		[]byte(testWorkflow.ToStringForStore()))
+	assert.Nil(t, err)
+
+	defer store.Close()
+	pipelineVersionExpected := &model.PipelineVersion{
+		UUID:           FakeUUIDOne,
+		CreatedAtInSec: 2,
+		Name:           "p_v",
+		Parameters:     "[{\"name\":\"param1\"}]",
+		Status:         model.PipelineVersionReady,
+		PipelineId:     DefaultFakeUUID,
+	}
+	assert.Equal(t, pipelineVersionExpected, version)
+}
+
+func TestCreatePipelineVersion_ComplexPipelineVersion(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	// Create a pipeline.
+	createdPipeline, err := manager.CreatePipeline("pipeline", "", []byte(strings.TrimSpace(complexPipeline)))
+	assert.Nil(t, err)
+
+	// Create a version under the above pipeline.
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	version, err := manager.CreatePipelineVersion(
+		&api.PipelineVersion{
+			Name: "pipeline_version",
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   DefaultFakeUUID,
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		[]byte(strings.TrimSpace(complexPipeline)))
+	assert.Nil(t, err)
+
+	_, err = manager.GetPipeline(createdPipeline.UUID)
+	assert.Nil(t, err)
+
+	_, err = manager.GetPipelineVersion(version.UUID)
+	assert.Nil(t, err)
+}
+
+func TestCreatePipelineVersion_CreatePipelineVersionFileError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	// Create a pipeline.
+	_, err := manager.CreatePipeline("pipeline", "", []byte(strings.TrimSpace(complexPipeline)))
+	assert.Nil(t, err)
+
+	// Switch to a bad object store
+	manager.objectStore = &FakeBadObjectStore{}
+
+	// Create a version under the above pipeline.
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	_, err = manager.CreatePipelineVersion(
+		&api.PipelineVersion{
+			Name: "pipeline_version",
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   DefaultFakeUUID,
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "bad object store")
+
+	// Verify the pipeline version in DB is in status PipelineVersionCreating.
+	version, err := manager.pipelineStore.GetPipelineVersionWithStatus(FakeUUIDOne, model.PipelineVersionCreating)
+	assert.Nil(t, err)
+	assert.NotNil(t, version)
+}
+
+func TestCreatePipelineVersion_GetParametersError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	// Create a pipeline.
+	_, err := manager.CreatePipeline("pipeline", "", []byte(testWorkflow.ToStringForStore()))
+	assert.Nil(t, err)
+
+	// Create a version under the above pipeline.
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	_, err = manager.CreatePipelineVersion(
+		&api.PipelineVersion{
+			Name: "pipeline_version",
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   DefaultFakeUUID,
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		[]byte("I am invalid yaml"))
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Failed to parse the parameter")
+}
+
+func TestCreatePipelineVersion_StorePipelineVersionMetadataError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	// Create a pipeline.
+	_, err := manager.CreatePipeline(
+		"pipeline",
+		"",
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	assert.Nil(t, err)
+
+	// Close db.
+	store.DB().Close()
+
+	// Create a version under the above pipeline, resulting in error because of
+	// closed db.
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(
+		FakeUUIDOne, nil))
+	_, err = manager.CreatePipelineVersion(
+		&api.PipelineVersion{
+			Name: "pipeline_version",
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   DefaultFakeUUID,
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "database is closed")
+}
+
+func TestDeletePipelineVersion(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	// Create a pipeline.
+	_, err := manager.CreatePipeline("pipeline", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	assert.Nil(t, err)
+
+	// Create a version under the above pipeline.
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	_, err = manager.CreatePipelineVersion(
+		&api.PipelineVersion{
+			Name: "pipeline_version",
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   DefaultFakeUUID,
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+
+	// Delete the above pipeline_version.
+	err = manager.DeletePipelineVersion(FakeUUIDOne)
+	assert.Nil(t, err)
+
+	// Verify the version doesn't exist.
+	_, err = manager.GetPipelineVersion(FakeUUIDOne)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestDeletePipelineVersion_FileError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	// Create a pipeline.
+	_, err := manager.CreatePipeline("pipeline", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	assert.Nil(t, err)
+
+	// Create a version under the above pipeline.
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	_, err = manager.CreatePipelineVersion(
+		&api.PipelineVersion{
+			Name: "pipeline_version",
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   DefaultFakeUUID,
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+
+	// Switch to a bad object store
+	manager.objectStore = &FakeBadObjectStore{}
+
+	// Delete the above pipeline_version.
+	err = manager.DeletePipelineVersion(FakeUUIDOne)
+	assert.NotNil(t, err)
+
+	// Verify the version in deleting status.
+	version, err := manager.pipelineStore.GetPipelineVersionWithStatus(FakeUUIDOne, model.PipelineVersionDeleting)
+	assert.Nil(t, err)
+	assert.NotNil(t, version)
+}

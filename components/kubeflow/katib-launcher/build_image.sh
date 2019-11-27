@@ -38,7 +38,7 @@ rsync -arvp ./src/ ./build/
 cp ../../license.sh ./build
 cp ../../third_party_licenses.csv ./build
 
-LOCAL_LAUNCHER_IMAGE_NAME=ml-pipeline-kubeflow-studyjob
+LOCAL_LAUNCHER_IMAGE_NAME=ml-pipeline-kubeflow-experiment
 
 docker build -t ${LOCAL_LAUNCHER_IMAGE_NAME} .
 if [ -z "${LAUNCHER_IMAGE_NAME}" ]; then

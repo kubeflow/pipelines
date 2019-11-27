@@ -58,6 +58,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service ExperimentService {
+  //Create a new experiment.
   rpc CreateExperiment(CreateExperimentRequest) returns (Experiment) {
     option (google.api.http) = {
       post: "/apis/v1beta1/experiments"
@@ -65,18 +66,21 @@ service ExperimentService {
     };
   }
 
+  //Find a specific experiment by ID.
   rpc GetExperiment(GetExperimentRequest) returns (Experiment) {
     option (google.api.http) = {
       get: "/apis/v1beta1/experiments/{id}"
     };
   }
 
+  //Find all experiments.
   rpc ListExperiment(ListExperimentsRequest) returns (ListExperimentsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/experiments"
     };
   }
 
+  //Delete an experiment.
   rpc DeleteExperiment(DeleteExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/experiments/{id}"
@@ -85,12 +89,12 @@ service ExperimentService {
 }
 
 message CreateExperimentRequest {
-  // The experiment to be created
+  // The experiment to be created.
   Experiment experiment = 1;
 }
 
 message GetExperimentRequest {
-  // The ID of the experiment to be retrieved
+  // The ID of the experiment to be retrieved.
   string id = 1;
 }
 
@@ -102,8 +106,9 @@ message ListExperimentsRequest {
   // Ascending by default.
   string sort_by = 3;
 
-  // A base-64 encoded, JSON-serialized Filter protocol buffer (see
-  // filter.proto).
+  // A url-encoded, JSON-serialized Filter protocol buffer (see
+  // [filter.proto](https://github.com/kubeflow/pipelines/
+  // blob/master/backend/api/filter.proto)).
   string filter = 4;
 }
 
@@ -118,7 +123,7 @@ message ListExperimentsResponse {
   string next_page_token = 2;
 }
 
-message DeleteExperimentRequest{
+message DeleteExperimentRequest {
   // The ID of the experiment to be deleted.
   string id = 1;
 }
@@ -131,7 +136,7 @@ message Experiment {
   string name = 2;
 
   // Optional input field. Describing the purpose of the experiment
-  string description =3;
+  string description = 3;
 
   // Output. The time that the experiment created.
   google.protobuf.Timestamp created_at = 4;

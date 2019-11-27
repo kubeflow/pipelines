@@ -15,17 +15,32 @@
  */
 
 import * as React from 'react';
-import CustomTable, { Column, Row, ExpandState, CustomRendererProps } from '../components/CustomTable';
+import CustomTable, {
+  Column,
+  Row,
+  ExpandState,
+  CustomRendererProps,
+} from '../components/CustomTable';
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { getResourceProperty, rowCompareFn, rowFilterFn, groupRows, getExpandedRow, serviceErrorToString } from '../lib/Utils';
+import {
+  getResourceProperty,
+  rowCompareFn,
+  rowFilterFn,
+  groupRows,
+  getExpandedRow,
+  serviceErrorToString,
+} from '../lib/Utils';
 import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from '../components/Router';
 import { Execution, ExecutionType } from '../generated/src/apis/metadata/metadata_store_pb';
 import { ListRequest, ExecutionProperties, ExecutionCustomProperties, Apis } from '../lib/Apis';
-import { GetExecutionsRequest, GetExecutionTypesRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
+import {
+  GetExecutionsRequest,
+  GetExecutionTypesRequest,
+} from '../generated/src/apis/metadata/metadata_store_service_pb';
 
 interface ExecutionListState {
   executions: Execution[];
@@ -45,7 +60,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           customRenderer: this.nameCustomRenderer,
           flex: 2,
           label: 'Pipeline/Workspace',
-          sortKey: 'pipelineName'
+          sortKey: 'pipelineName',
         },
         {
           customRenderer: this.nameCustomRenderer,
@@ -53,7 +68,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           label: 'Name',
           sortKey: 'name',
         },
-        { label: 'State', flex: 1, sortKey: 'state', },
+        { label: 'State', flex: 1, sortKey: 'state' },
         { label: 'ID', flex: 1, sortKey: 'id' },
         { label: 'Type', flex: 2, sortKey: 'type' },
       ],
@@ -78,7 +93,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
     const { rows, columns } = this.state;
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <CustomTable ref={this.tableRef}
+        <CustomTable
+          ref={this.tableRef}
           columns={columns}
           rows={rows}
           disablePaging={true}
@@ -88,7 +104,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           initialSortOrder='asc'
           getExpandComponent={this.getExpandedExecutionsRow}
           toggleExpansion={this.toggleRowExpand}
-          emptyMessage='No executions found.' />
+          emptyMessage='No executions found.'
+        />
       </div>
     );
   }
@@ -100,35 +117,39 @@ class ExecutionList extends Page<{}, ExecutionListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
-    Apis.getMetadataServiceClient().getExecutions(new GetExecutionsRequest(), (err, res) => {
+    const {
+      error: err,
+      response: res,
+    } = await Apis.getMetadataServicePromiseClient().getExecutions(new GetExecutionsRequest());
+
+    if (err) {
       // Code === 5 means no record found in backend. This is a temporary workaround.
       // TODO: remove err.code !== 5 check when backend is fixed.
-      if (err && err.code !== 5) {
+      if (err.code !== 5) {
         this.showPageError(serviceErrorToString(err));
-        return;
       }
+      return '';
+    }
 
-      const executions = (res && res.getExecutionsList()) || [];
-      this.getRowsFromExecutions(request, executions);
-      this.clearBanner();
-    });
+    const executions = (res && res.getExecutionsList()) || [];
+    await this.getRowsFromExecutions(request, executions);
     return '';
   }
 
-  private nameCustomRenderer: React.FC<CustomRendererProps<string>> =
-    (props: CustomRendererProps<string>) => {
-      const [executionType, executionId] = props.id.split(':');
-      const link = RoutePage.EXECUTION_DETAILS
-        .replace(`:${RouteParams.EXECUTION_TYPE}+`, executionType)
-        .replace(`:${RouteParams.ID}`, executionId);
-      return (
-        <Link onClick={(e) => e.stopPropagation()}
-          className={commonCss.link}
-          to={link}>
-          {props.value}
-        </Link>
-      );
-    }
+  private nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
+    props: CustomRendererProps<string>,
+  ) => {
+    const [executionType, executionId] = props.id.split(':');
+    const link = RoutePage.EXECUTION_DETAILS.replace(
+      `:${RouteParams.EXECUTION_TYPE}+`,
+      executionType,
+    ).replace(`:${RouteParams.ID}`, executionId);
+    return (
+      <Link onClick={e => e.stopPropagation()} className={commonCss.link} to={link}>
+        {props.value}
+      </Link>
+    );
+  };
 
   /**
    * Temporary solution to apply sorting, filtering, and pagination to the
@@ -136,47 +157,57 @@ class ExecutionList extends Page<{}, ExecutionListState> {
    * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
    * @param request
    */
-  private getRowsFromExecutions(request: ListRequest, executions: Execution[]): void {
+  private async getRowsFromExecutions(
+    request: ListRequest,
+    executions: Execution[],
+  ): Promise<void> {
     const executionTypesMap = new Map<number, ExecutionType>();
     // TODO: Consider making an Api method for returning and caching types
-    Apis.getMetadataServiceClient().getExecutionTypes(new GetExecutionTypesRequest(), (err, res) => {
-      if (err) {
-        this.showPageError(serviceErrorToString(err));
-        return;
-      }
+    const {
+      error: err,
+      response: res,
+    } = await Apis.getMetadataServicePromiseClient().getExecutionTypes(
+      new GetExecutionTypesRequest(),
+    );
 
-      (res && res.getExecutionTypesList() || []).forEach((executionType) => {
-        executionTypesMap.set(executionType.getId()!, executionType);
-      });
+    if (err) {
+      this.showPageError(serviceErrorToString(err));
+      return;
+    }
 
-      const collapsedAndExpandedRows =
-        groupRows(executions
-          .map((execution) => { // Flattens
-            const typeId = execution.getTypeId();
-            const type = (typeId && executionTypesMap && executionTypesMap.get(typeId))
+    ((res && res.getExecutionTypesList()) || []).forEach(executionType => {
+      executionTypesMap.set(executionType.getId()!, executionType);
+    });
+
+    const collapsedAndExpandedRows = groupRows(
+      executions
+        .map(execution => {
+          // Flattens
+          const typeId = execution.getTypeId();
+          const type =
+            typeId && executionTypesMap && executionTypesMap.get(typeId)
               ? executionTypesMap.get(typeId)!.getName()
               : typeId;
-            return {
-              id: `${type}:${execution.getId()}`, // Join with colon so we can build the link
-              otherFields: [
-                getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME)
-                || getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true),
-                getResourceProperty(execution, ExecutionProperties.COMPONENT_ID),
-                getResourceProperty(execution, ExecutionProperties.STATE),
-                execution.getId(),
-                type,
-              ],
-            };
-          })
-          .filter(rowFilterFn(request))
-          .sort(rowCompareFn(request, this.state.columns))
-        );
+          return {
+            id: `${type}:${execution.getId()}`, // Join with colon so we can build the link
+            otherFields: [
+              getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
+                getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true),
+              getResourceProperty(execution, ExecutionProperties.COMPONENT_ID),
+              getResourceProperty(execution, ExecutionProperties.STATE),
+              execution.getId(),
+              type,
+            ],
+          };
+        })
+        .filter(rowFilterFn(request))
+        .sort(rowCompareFn(request, this.state.columns)),
+    );
 
-      this.setState({
-        executions,
-        expandedRows: collapsedAndExpandedRows.expandedRows,
-        rows: collapsedAndExpandedRows.collapsedRows,
-      });
+    this.setState({
+      executions,
+      expandedRows: collapsedAndExpandedRows.expandedRows,
+      rows: collapsedAndExpandedRows.collapsedRows,
     });
   }
 
@@ -189,9 +220,10 @@ class ExecutionList extends Page<{}, ExecutionListState> {
     if (!rows[index]) {
       return;
     }
-    rows[index].expandState = rows[index].expandState === ExpandState.EXPANDED
-      ? ExpandState.COLLAPSED
-      : ExpandState.EXPANDED;
+    rows[index].expandState =
+      rows[index].expandState === ExpandState.EXPANDED
+        ? ExpandState.COLLAPSED
+        : ExpandState.EXPANDED;
     this.setState({ rows });
   }
 

@@ -121,8 +121,7 @@ def mnist_tf(docker_secret='docker-config',
 							}
 						]
 					}
-				},
-				"tfReplicaType": "MASTER"
+				}
 			}
 		}
 	}

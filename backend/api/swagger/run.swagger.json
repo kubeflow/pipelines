@@ -17,6 +17,7 @@
   "paths": {
     "/apis/v1beta1/runs": {
       "get": {
+        "summary": "Find all runs.",
         "operationId": "ListRuns",
         "responses": {
           "200": {
@@ -48,7 +49,7 @@
           },
           {
             "name": "sort_by",
-            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\nAscending by default.",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\n(Example, \"name asc\" or \"id des\"). Ascending by default.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -62,7 +63,9 @@
             "enum": [
               "UNKNOWN_RESOURCE_TYPE",
               "EXPERIMENT",
-              "JOB"
+              "JOB",
+              "PIPELINE",
+              "PIPELINE_VERSION"
             ],
             "default": "UNKNOWN_RESOURCE_TYPE"
           },
@@ -75,7 +78,7 @@
           },
           {
             "name": "filter",
-            "description": "A base-64 encoded, JSON-serialized Filter protocol buffer (see\nfilter.proto).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/\nblob/master/backend/api/filter.proto)).",
             "in": "query",
             "required": false,
             "type": "string"
@@ -86,6 +89,7 @@
         ]
       },
       "post": {
+        "summary": "Create a new run.",
         "operationId": "CreateRun",
         "responses": {
           "200": {
@@ -118,6 +122,7 @@
     },
     "/apis/v1beta1/runs/{id}": {
       "delete": {
+        "summary": "Delete a run.",
         "operationId": "DeleteRun",
         "responses": {
           "200": {
@@ -148,6 +153,7 @@
     },
     "/apis/v1beta1/runs/{id}:archive": {
       "post": {
+        "summary": "Archive a run.",
         "operationId": "ArchiveRun",
         "responses": {
           "200": {
@@ -178,6 +184,7 @@
     },
     "/apis/v1beta1/runs/{id}:unarchive": {
       "post": {
+        "summary": "Restore an archived run.",
         "operationId": "UnarchiveRun",
         "responses": {
           "200": {
@@ -208,6 +215,7 @@
     },
     "/apis/v1beta1/runs/{run_id}": {
       "get": {
+        "summary": "Find a specific run by ID.",
         "operationId": "GetRun",
         "responses": {
           "200": {
@@ -238,6 +246,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
       "get": {
+        "summary": "Find a run's artifact data.",
         "operationId": "ReadArtifact",
         "responses": {
           "200": {
@@ -283,6 +292,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/retry": {
       "post": {
+        "summary": "Re-initiate a failed or terminated run.",
         "operationId": "RetryRun",
         "responses": {
           "200": {
@@ -313,6 +323,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/terminate": {
       "post": {
+        "summary": "Terminate an active run.",
         "operationId": "TerminateRun",
         "responses": {
           "200": {
@@ -343,7 +354,7 @@
     },
     "/apis/v1beta1/runs/{run_id}:reportMetrics": {
       "post": {
-        "summary": "ReportRunMetrics reports metrics of a run. Each metric is reported in its\nown transaction, so this API accepts partial failures. Metric can be uniquely\nidentified by (run_id, node_id, name). Duplicate reporting will be\nignored by the API. First reporting wins.",
+        "summary": "ReportRunMetrics reports metrics of a run. Each metric is reported in its\nown transaction, so this API accepts partial failures. Metric can be\nuniquely identified by (run_id, node_id, name). Duplicate reporting will be\nignored by the API. First reporting wins.",
         "operationId": "ReportRunMetrics",
         "responses": {
           "200": {
@@ -584,7 +595,9 @@
       "enum": [
         "UNKNOWN_RESOURCE_TYPE",
         "EXPERIMENT",
-        "JOB"
+        "JOB",
+        "PIPELINE",
+        "PIPELINE_VERSION"
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },
@@ -665,11 +678,11 @@
       "properties": {
         "name": {
           "type": "string",
-          "description": "Required. The user defined name of the metric. It must between 1 and 63 characters\nlong and must conform to the following regular expression:\n`[a-z]([-a-z0-9]*[a-z0-9])?`."
+          "description": "Required. The user defined name of the metric. It must between 1 and 63\ncharacters long and must conform to the following regular expression:\n`[a-z]([-a-z0-9]*[a-z0-9])?`."
         },
         "node_id": {
           "type": "string",
-          "description": "Required. The runtime node ID which reports the metric. The node ID can be found in\nthe RunDetail.workflow.Status. Metric with same (node_id, name)\nare considerd as duplicate. Only the first reporting will be recorded. Max length is 128."
+          "description": "Required. The runtime node ID which reports the metric. The node ID can be\nfound in the RunDetail.workflow.Status. Metric with same (node_id, name)\nare considerd as duplicate. Only the first reporting will be recorded. Max\nlength is 128."
         },
         "number_value": {
           "type": "number",

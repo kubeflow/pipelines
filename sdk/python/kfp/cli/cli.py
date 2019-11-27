@@ -13,19 +13,35 @@
 # limitations under the License.
 
 import click
+import logging
+import sys
 from .._client import Client
 from .run import run
+from .pipeline import pipeline
+from .diagnose_me_cli import diagnose_me
 
 @click.group()
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
 @click.option('--iap-client-id', help='Client ID for IAP protected endpoint.')
 @click.option('-n', '--namespace', default='kubeflow', help='Kubernetes namespace to connect to the KFP API.')
+@click.option('--other-client-id', help='Client ID for IAP protected endpoint to obtain the refresh token.')
+@click.option('--other-client-secret', help='Client ID for IAP protected endpoint to obtain the refresh token.')
 @click.pass_context
-def cli(ctx, endpoint, iap_client_id, namespace):
+def cli(ctx, endpoint, iap_client_id, namespace, other_client_id, other_client_secret):
     """kfp is the command line interface to KFP service."""
-    ctx.obj['client'] = Client(endpoint, iap_client_id, namespace)
+    if ctx.invoked_subcommand == 'diagnose_me':
+          # Do not create a client for diagnose_me
+          return
+    ctx.obj['client'] = Client(endpoint, iap_client_id, namespace, other_client_id, other_client_secret)
     ctx.obj['namespace']= namespace
 
 def main():
+    logging.basicConfig(format='%(message)s', level=logging.INFO)
     cli.add_command(run)
-    cli(obj={}, auto_envvar_prefix='KFP')
+    cli.add_command(pipeline)
+    cli.add_command(diagnose_me,'diagnose_me')
+    try:
+        cli(obj={}, auto_envvar_prefix='KFP')
+    except Exception as e:
+        logging.error(e)
+        sys.exit(1)

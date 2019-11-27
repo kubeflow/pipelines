@@ -74,9 +74,33 @@ describe('UploadPipelineDialog', () => {
     const spy = jest.fn();
     tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     (tree.instance() as any)._dropzoneRef = { current: { open: () => null } };
-    (tree.instance() as UploadPipelineDialog).handleChange('uploadPipelineName')({ target: { value: 'test name' } });
+    (tree.instance() as UploadPipelineDialog).handleChange('uploadPipelineName')({
+      target: { value: 'test name' },
+    });
     tree.find('#confirmUploadBtn').simulate('click');
     expect(spy).toHaveBeenLastCalledWith(true, 'test name', null, '', ImportMethod.LOCAL, '');
+  });
+
+  it('calls close callback with trimmed file url and pipeline name when confirmed', () => {
+    const spy = jest.fn();
+    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
+    // Click 'Import by URL'
+    tree.find('#uploadFromUrlBtn').simulate('change');
+    (tree.instance() as UploadPipelineDialog).handleChange('fileUrl')({
+      target: { value: '\n https://www.google.com/test-file.txt ' },
+    });
+    (tree.instance() as UploadPipelineDialog).handleChange('uploadPipelineName')({
+      target: { value: 'test name' },
+    });
+    tree.find('#confirmUploadBtn').simulate('click');
+    expect(spy).toHaveBeenLastCalledWith(
+      true,
+      'test name',
+      null,
+      'https://www.google.com/test-file.txt',
+      ImportMethod.URL,
+      '',
+    );
   });
 
   it('trims file extension for pipeline name suggestion', () => {

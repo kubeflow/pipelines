@@ -44,6 +44,7 @@ const (
 	mysqlUser        = "DBConfig.User"
 	mysqlPassword    = "DBConfig.Password"
 	mysqlDBName      = "DBConfig.DBName"
+	mysqlGroupConcatMaxLen 	= "DBConfig.GroupConcatMaxLen"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -204,7 +205,7 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
 
-	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext")
+	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext not null")
 	if response.Error != nil {
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
 	}
@@ -226,6 +227,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		initPipelineVersionsFromPipelines(db)
 	}
 
+	response = db.Model(&model.Pipeline{}).ModifyColumn("Description", "longtext not null")
+	if response.Error != nil {
+		glog.Fatalf("Failed to update pipeline description type. Error: %s", response.Error)
+	}
+
 	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
 }
 
@@ -237,7 +243,9 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 		common.GetStringConfigWithDefault(mysqlPassword, ""),
 		common.GetStringConfigWithDefault(mysqlServiceHost, "mysql"),
 		common.GetStringConfigWithDefault(mysqlServicePort, "3306"),
-		"")
+		"",
+		common.GetStringConfigWithDefault(mysqlGroupConcatMaxLen, "1024"),
+	)
 
 	var db *sql.DB
 	var err error

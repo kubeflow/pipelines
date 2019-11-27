@@ -137,8 +137,8 @@ ipython-genutils,https://raw.githubusercontent.com/ipython/ipython_genutils/mast
 ipywidgets,https://raw.githubusercontent.com/jupyter-widgets/ipywidgets/master/LICENSE,3-Clause BSD
 Jinja2,https://raw.githubusercontent.com/pallets/jinja/master/LICENSE.rst,BSD
 jsonschema,https://raw.githubusercontent.com/Julian/jsonschema/master/COPYING,MIT
-jupyter,https://raw.githubusercontent.com/jupyter/notebook/master/COPYING.md,BSD
-notebook,https://raw.githubusercontent.com/jupyter/notebook/master/COPYING.md,BSD
+jupyter,https://raw.githubusercontent.com/jupyter/notebook/master/LICENSE,BSD
+notebook,https://raw.githubusercontent.com/jupyter/notebook/master/LICENSE,BSD
 jupyter-client,https://raw.githubusercontent.com/jupyter/jupyter_client/master/COPYING.md,BSD
 jupyter-console,https://raw.githubusercontent.com/jupyter/jupyter_console/master/COPYING.md,BSD
 jupyter-core,https://raw.githubusercontent.com/jupyter/jupyter_core/master/COPYING.md,BSD

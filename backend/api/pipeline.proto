@@ -61,6 +61,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service PipelineService {
+  //Add a pipeline.
   rpc CreatePipeline(CreatePipelineRequest) returns (Pipeline) {
     option (google.api.http) = {
       post: "/apis/v1beta1/pipelines"
@@ -68,27 +69,65 @@ service PipelineService {
     };
   }
 
+  //Find a specific pipeline by ID.
   rpc GetPipeline(GetPipelineRequest) returns (Pipeline) {
     option (google.api.http) = {
       get: "/apis/v1beta1/pipelines/{id}"
     };
   }
 
+  //Find all pipelines.
   rpc ListPipelines(ListPipelinesRequest) returns (ListPipelinesResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/pipelines"
     };
   }
 
+  //Delete a pipeline.
   rpc DeletePipeline(DeletePipelineRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/pipelines/{id}"
     };
   }
 
+  //Get a YAML template for the selected pipeline.
   rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/pipelines/{id}/templates"
+    };
+  }
+
+  rpc CreatePipelineVersion(CreatePipelineVersionRequest)
+      returns (PipelineVersion) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/pipeline_versions"
+      body: "version"
+    };
+  }
+
+  rpc GetPipelineVersion(GetPipelineVersionRequest) returns (PipelineVersion) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipeline_versions/{version_id}"
+    };
+  }
+
+  rpc ListPipelineVersions(ListPipelineVersionsRequest)
+      returns (ListPipelineVersionsResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipeline_versions"
+    };
+  }
+
+  rpc DeletePipelineVersion(DeletePipelineVersionRequest)
+      returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/apis/v1beta1/pipeline_versions/{version_id}"
+    };
+  }
+
+  rpc GetPipelineVersionTemplate(GetPipelineVersionTemplateRequest) returns (GetTemplateResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipeline_versions/{version_id}/templates"
     };
   }
 }
@@ -115,8 +154,9 @@ message ListPipelinesRequest {
   // Ascending by default.
   string sort_by = 3;
 
-  // A base-64 encoded, JSON-serialized Filter protocol buffer (see
-  // filter.proto).
+  // A url-encoded, JSON-serialized Filter protocol buffer (see
+  // [filter.proto](https://github.com/kubeflow/pipelines/
+  // blob/master/backend/api/filter.proto)).
   string filter = 4;
 }
 
@@ -138,7 +178,7 @@ message GetTemplateResponse {
   string template = 1;
 }
 
-message GetPipelineVersionTemplateRequest{
+message GetPipelineVersionTemplateRequest {
   string version_id = 1;
 }
 
@@ -157,11 +197,23 @@ message ListPipelineVersionsRequest {
   ResourceKey resource_key = 1;
   int32 page_size = 2;
   string page_token = 3;
+
+  // Can be format of "field_name", "field_name asc" or "field_name des"
+  // Ascending by default.
+  string sort_by = 4;
+  // A base-64 encoded, JSON-serialized Filter protocol buffer (see
+  // filter.proto).
+  string filter = 5;
 }
 
 message ListPipelineVersionsResponse {
   repeated PipelineVersion versions = 1;
   string next_page_token = 2;
+  int32 total_size = 3;
+}
+
+message DeletePipelineVersionRequest {
+  string version_id = 1;
 }
 
 message Pipeline {
@@ -199,8 +251,7 @@ message Pipeline {
   // Output only. The default version of the pipeline. As of now, the latest
   // version is used as default. (In the future, if desired by customers, we
   // can allow them to set default version.)
-  // TODO(jingzhang36): expose this in API pipeline definition with FE changes.
-  // PipelineVersion default_version = 8;
+  PipelineVersion default_version = 8;
 }
 
 message PipelineVersion {
@@ -228,4 +279,3 @@ message PipelineVersion {
   // to.
   repeated ResourceReference resource_references = 7;
 }
-

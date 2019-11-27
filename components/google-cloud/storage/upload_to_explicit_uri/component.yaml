@@ -1,0 +1,23 @@
+name: Upload to GCS
+inputs:
+- {name: Data}
+- {name: GCS path, type: URI}
+outputs:
+- {name: GCS path, type: URI}
+implementation:
+    container:
+        image: google/cloud-sdk
+        command:
+        - sh
+        - -ex
+        - -c
+        - |
+            if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+                gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+            fi
+            gsutil cp -r "$0" "$1"
+            mkdir -p "$(dirname "$2")"
+            echo "$1" > "$2"
+        - inputPath: Data
+        - inputValue: GCS path
+        - outputPath: GCS path

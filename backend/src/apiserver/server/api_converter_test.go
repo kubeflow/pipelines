@@ -30,36 +30,34 @@ func TestToApiPipeline(t *testing.T) {
 		UUID:           "pipeline1",
 		CreatedAtInSec: 1,
 		Parameters:     "[]",
-		// TODO(jingzhang36): uncomment when exposing versions to API.
-		// DefaultVersion: &model.PipelineVersion{
-		// 	UUID:           "pipelineversion1",
-		// 	CreatedAtInSec: 1,
-		// 	Parameters:     "[]",
-		// 	PipelineId:     "pipeline1",
-		// 	CodeSourceUrl: "http://repo/22222",
-		// },
+		DefaultVersion: &model.PipelineVersion{
+			UUID:           "pipelineversion1",
+			CreatedAtInSec: 1,
+			Parameters:     "[]",
+			PipelineId:     "pipeline1",
+			CodeSourceUrl:  "http://repo/22222",
+		},
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
 	expectedApiPipeline := &api.Pipeline{
 		Id:         "pipeline1",
 		CreatedAt:  &timestamp.Timestamp{Seconds: 1},
 		Parameters: []*api.Parameter{},
-		// TODO(jingzhang36): uncomment when exposing versions to API.
-		// DefaultVersion: &api.PipelineVersion{
-		// 	Id:             "pipelineversion1",
-		// 	CreatedAt:      &timestamp.Timestamp{Seconds: 1},
-		// 	Parameters:     []*api.Parameter{},
-		// 	CodeSourceUrl:  "http://repo/22222",
-		// 	ResourceReferences: []*api.ResourceReference{
-		// 		&api.ResourceReference{
-		// 			Key: &api.ResourceKey{
-		// 				Id:   "pipeline1",
-		// 				Type: api.ResourceType_PIPELINE,
-		// 			},
-		// 			Relationship: api.Relationship_OWNER,
-		// 		},
-		// 	},
-		// },
+		DefaultVersion: &api.PipelineVersion{
+			Id:            "pipelineversion1",
+			CreatedAt:     &timestamp.Timestamp{Seconds: 1},
+			Parameters:    []*api.Parameter{},
+			CodeSourceUrl: "http://repo/22222",
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   "pipeline1",
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
 	}
 	assert.Equal(t, expectedApiPipeline, apiPipeline)
 }
@@ -69,8 +67,7 @@ func TestToApiPipeline_ErrorParsingField(t *testing.T) {
 		UUID:           "pipeline1",
 		CreatedAtInSec: 1,
 		Parameters:     "[invalid parameter",
-		// TODO(jingzhang36): uncomment when exposing versions to API.
-		// DefaultVersion: &model.PipelineVersion{},
+		DefaultVersion: &model.PipelineVersion{},
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
 	expectedApiPipeline := &api.Pipeline{
@@ -512,12 +509,16 @@ func TestToApiResourceReferences(t *testing.T) {
 			ReferenceName: "e1", ReferenceType: common.Experiment, Relationship: common.Owner},
 		{ResourceUUID: "run1", ResourceType: common.Run, ReferenceUUID: "job1",
 			ReferenceName: "j1", ReferenceType: common.Job, Relationship: common.Owner},
+		{ResourceUUID: "run1", ResourceType: common.Run, ReferenceUUID: "pipelineversion1",
+			ReferenceName: "k1", ReferenceType: common.PipelineVersion, Relationship: common.Owner},
 	}
 	expectedApiResourceReferences := []*api.ResourceReference{
 		{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "experiment1"},
 			Name: "e1", Relationship: api.Relationship_OWNER},
 		{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job1"},
 			Name: "j1", Relationship: api.Relationship_OWNER},
+		{Key: &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: "pipelineversion1"},
+			Name: "k1", Relationship: api.Relationship_OWNER},
 	}
 	assert.Equal(t, expectedApiResourceReferences, toApiResourceReferences(resourceReferences))
 }

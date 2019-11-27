@@ -39,12 +39,16 @@ frontend/test/ui/visual-regression/screenshots/screen
 
 *.pyc
 .DS_Store
+build
 
 .ipynb_checkpoints
 *.egg-info
 
 # go vendor
 vendor
+
+# Go module cache
+backend/pkg/mod/cache
 
 # Bazel output artifacts
 bazel-*
@@ -61,3 +65,4 @@ _artifacts
 
 # Generated Python SDK documentation
 docs/_build
+

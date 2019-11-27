@@ -16,5 +16,4 @@ test_name: dataflow
 notebook_params:
   output:
   project: ml-pipeline-test
-  experiment_name: dataflow-test
-run_pipeline: False
+run_pipeline: True

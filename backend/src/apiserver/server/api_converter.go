@@ -58,22 +58,21 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 		}
 	}
 
-	// TODO(jingzhang36): uncomment when exposing versions to API.
-	// defaultVersion, err := ToApiPipelineVersion(pipeline.DefaultVersion)
-	// if err != nil {
-	// 	return &api.Pipeline{
-	// 		Id:    pipeline.UUID,
-	// 		Error: err.Error(),
-	// 	}
-	// }
+	defaultVersion, err := ToApiPipelineVersion(pipeline.DefaultVersion)
+	if err != nil {
+		return &api.Pipeline{
+			Id:    pipeline.UUID,
+			Error: err.Error(),
+		}
+	}
 
 	return &api.Pipeline{
-		Id:          pipeline.UUID,
-		CreatedAt:   &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
-		Name:        pipeline.Name,
-		Description: pipeline.Description,
-		Parameters:  params,
-		// DefaultVersion: defaultVersion,
+		Id:             pipeline.UUID,
+		CreatedAt:      &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
+		Name:           pipeline.Name,
+		Description:    pipeline.Description,
+		Parameters:     params,
+		DefaultVersion: defaultVersion,
 	}
 }
 
@@ -267,6 +266,8 @@ func toApiResourceType(modelType common.ResourceType) api.ResourceType {
 		return api.ResourceType_EXPERIMENT
 	case common.Job:
 		return api.ResourceType_JOB
+	case common.PipelineVersion:
+		return api.ResourceType_PIPELINE_VERSION
 	default:
 		return api.ResourceType_UNKNOWN_RESOURCE_TYPE
 	}

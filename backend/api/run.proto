@@ -59,7 +59,9 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   }
 };
 
+
 service RunService {
+  //Create a new run.
   rpc CreateRun(CreateRunRequest) returns (RunDetail) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs"
@@ -67,30 +69,35 @@ service RunService {
     };
   }
 
+  //Find a specific run by ID.
   rpc GetRun(GetRunRequest) returns (RunDetail) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs/{run_id}"
     };
   }
 
+  //Find all runs.
   rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs"
     };
   }
 
+  //Archive a run.
   rpc ArchiveRun(ArchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{id}:archive"
     };
   }
 
+  //Restore an archived run.
   rpc UnarchiveRun(UnarchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{id}:unarchive"
     };
   }
 
+  //Delete a run.
   rpc DeleteRun(DeleteRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/runs/{id}"
@@ -98,28 +105,32 @@ service RunService {
   }
 
   // ReportRunMetrics reports metrics of a run. Each metric is reported in its
-  // own transaction, so this API accepts partial failures. Metric can be uniquely
-  // identified by (run_id, node_id, name). Duplicate reporting will be
+  // own transaction, so this API accepts partial failures. Metric can be
+  // uniquely identified by (run_id, node_id, name). Duplicate reporting will be
   // ignored by the API. First reporting wins.
-  rpc ReportRunMetrics(ReportRunMetricsRequest) returns (ReportRunMetricsResponse) {
+  rpc ReportRunMetrics(ReportRunMetricsRequest)
+      returns (ReportRunMetricsResponse) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{run_id}:reportMetrics"
       body: "*"
     };
   }
 
+  //Find a run's artifact data.
   rpc ReadArtifact(ReadArtifactRequest) returns (ReadArtifactResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
     };
   }
 
+  //Terminate an active run.
   rpc TerminateRun(TerminateRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{run_id}/terminate"
     };
   }
 
+  //Re-initiate a failed or terminated run.
   rpc RetryRun(RetryRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{run_id}/retry"
@@ -139,7 +150,7 @@ message ListRunsRequest {
   string page_token = 1;
   int32 page_size = 2;
   // Can be format of "field_name", "field_name asc" or "field_name des"
-  // Ascending by default.
+  // (Example, "name asc" or "id des"). Ascending by default.
   string sort_by = 3;
 
   // What resource reference to filter on.
@@ -147,8 +158,9 @@ message ListRunsRequest {
   // resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
   ResourceKey resource_reference_key = 4;
 
-  // A base-64 encoded, JSON-serialized Filter protocol buffer (see
-  // filter.proto).
+  // A url-encoded, JSON-serialized Filter protocol buffer (see
+  // [filter.proto](https://github.com/kubeflow/pipelines/
+  // blob/master/backend/api/filter.proto)).
   string filter = 5;
 }
 
@@ -245,14 +257,15 @@ message RunDetail {
 }
 
 message RunMetric {
-  // Required. The user defined name of the metric. It must between 1 and 63 characters
-  // long and must conform to the following regular expression:
+  // Required. The user defined name of the metric. It must between 1 and 63
+  // characters long and must conform to the following regular expression:
   // `[a-z]([-a-z0-9]*[a-z0-9])?`.
   string name = 1;
 
-  // Required. The runtime node ID which reports the metric. The node ID can be found in
-  // the RunDetail.workflow.Status. Metric with same (node_id, name)
-  // are considerd as duplicate. Only the first reporting will be recorded. Max length is 128.
+  // Required. The runtime node ID which reports the metric. The node ID can be
+  // found in the RunDetail.workflow.Status. Metric with same (node_id, name)
+  // are considerd as duplicate. Only the first reporting will be recorded. Max
+  // length is 128.
   string node_id = 2;
 
   oneof value {

@@ -25,7 +25,7 @@ import { ButtonKeys } from '../lib/Buttons';
 describe('AllRunsList', () => {
   const updateBannerSpy = jest.fn();
   let _toolbarProps: any = {};
-  const updateToolbarSpy = jest.fn(toolbarProps => _toolbarProps = toolbarProps);
+  const updateToolbarSpy = jest.fn(toolbarProps => (_toolbarProps = toolbarProps));
   const historyPushSpy = jest.fn();
   const props: PageProps = {
     history: { push: historyPushSpy } as any,
