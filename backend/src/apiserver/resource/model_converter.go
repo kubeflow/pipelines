@@ -244,6 +244,8 @@ func (r *ResourceManager) getResourceName(resourceType common.ResourceType, reso
 			return "", util.Wrap(err, "Referred pipeline version not found.")
 		}
 		return version.Name, nil
+	case common.Namespace:
+		return resourceId, nil
 	default:
 		return "", util.NewInvalidInputError("Unsupported resource type: %s", string(resourceType))
 	}
