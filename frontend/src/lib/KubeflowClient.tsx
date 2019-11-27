@@ -1,5 +1,4 @@
 import React from 'react';
-import { KFP_FLAGS, Deployments } from './Flags';
 import { logger } from './Utils';
 
 declare global {
@@ -18,10 +17,6 @@ function onNamespaceChanged(handler: (namespace: string) => void) {
 }
 
 export function init(): void {
-  if (KFP_FLAGS.DEPLOYMENT !== Deployments.KUBEFLOW) {
-    return;
-  }
-
   try {
     // Init method will invoke the callback with the event handler instance
     // and a boolean indicating whether the page is iframed or not

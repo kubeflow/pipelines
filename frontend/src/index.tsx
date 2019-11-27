@@ -27,7 +27,9 @@ import { KFP_FLAGS, Deployments } from './lib/Flags';
 
 // TODO: license headers
 
-initKfClient();
+if (KFP_FLAGS.DEPLOYMENT == Deployments.KUBEFLOW) {
+  initKfClient();
+}
 
 cssRule('html, body, #root', {
   background: 'white',
