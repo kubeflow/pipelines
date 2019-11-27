@@ -18,7 +18,7 @@ import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import Metric from '../components/Metric';
 import RunUtils, { MetricMetadata, ExperimentInfo } from '../../src/lib/RunUtils';
-import { ApiRun, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
+import { ApiResourceType, ApiRun, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
@@ -29,10 +29,11 @@ import { commonCss, color } from '../Css';
 import { formatDateString, logger, errorToMessage, getRunDuration } from '../lib/Utils';
 import { statusToIcon } from './Status';
 
-interface PipelineInfo {
+interface PipelineVersionInfo {
   displayName?: string;
-  id?: string;
+  versionId?: string;
   runId?: string;
+  pipelineId?: string;
   usePlaceholder: boolean;
 }
 
@@ -45,7 +46,7 @@ interface DisplayRun {
   experiment?: ExperimentInfo;
   recurringRun?: RecurringRunInfo;
   run: ApiRun;
-  pipeline?: PipelineInfo;
+  pipelineVersion?: PipelineVersionInfo;
   error?: string;
 }
 
@@ -97,7 +98,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       },
       { customRenderer: this._statusCustomRenderer, flex: 0.5, label: 'Status' },
       { label: 'Duration', flex: 0.5 },
-      { customRenderer: this._pipelineCustomRenderer, label: 'Pipeline', flex: 1 },
+      { customRenderer: this._pipelineVersionCustomRenderer, label: 'Pipeline Version', flex: 1 },
       { customRenderer: this._recurringRunCustomRenderer, label: 'Recurring Run', flex: 0.5 },
       { label: 'Start time', flex: 1, sortKey: RunSortKeys.CREATED_AT },
     ];
@@ -148,7 +149,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           r.run!.name,
           r.run.status || '-',
           getRunDuration(r.run),
-          r.pipeline,
+          r.pipelineVersion,
           r.recurringRun,
           formatDateString(r.run.created_at),
         ] as any,
@@ -209,17 +210,19 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     );
   };
 
-  public _pipelineCustomRenderer: React.FC<CustomRendererProps<PipelineInfo>> = (
-    props: CustomRendererProps<PipelineInfo>,
+  public _pipelineVersionCustomRenderer: React.FC<CustomRendererProps<PipelineVersionInfo>> = (
+    props: CustomRendererProps<PipelineVersionInfo>,
   ) => {
     // If the getPipeline call failed or a run has no pipeline, we display a placeholder.
-    if (!props.value || (!props.value.usePlaceholder && !props.value.id)) {
+    if (!props.value || (!props.value.usePlaceholder && !props.value.pipelineId)) {
       return <div>-</div>;
     }
     const search = new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: props.id });
     const url = props.value.usePlaceholder
-      ? RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') + search
-      : RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, props.value.id || '');
+      ? RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId + '?', '') + search
+      : !!props.value.versionId
+      ? RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, props.value.pipelineId || '').replace(':' + RouteParams.pipelineVersionId, props.value.versionId || '')
+      : RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, props.value.pipelineId || '').replace('/version/:' + RouteParams.pipelineVersionId, '');
     return (
       <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
         {props.value.usePlaceholder ? '[View pipeline]' : props.value.displayName}
@@ -231,6 +234,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     props: CustomRendererProps<RecurringRunInfo>,
   ) => {
     // If the getJob call failed or a run has no job, we display a placeholder.
+    console.log('JING recurring run: ' + JSON.stringify(props));
     if (!props.value || !props.value.id) {
       return <div>-</div>;
     }
@@ -352,7 +356,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       displayRuns.map(async displayRun => {
         this._setRecurringRun(displayRun);
 
-        await this._getAndSetPipelineNames(displayRun);
+        await this._getAndSetPipelineVersionNames(displayRun);
 
         if (!this.props.hideExperimentColumn) {
           await this._getAndSetExperimentNames(displayRun);
@@ -395,9 +399,27 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * the DisplayRun. If the ApiRun has no Pipeline ID, then the corresponding DisplayRun will show
    * '-'.
    */
-  private async _getAndSetPipelineNames(displayRun: DisplayRun): Promise<void> {
+  private async _getAndSetPipelineVersionNames(displayRun: DisplayRun): Promise<void> {
+    const pipelineVersionId = RunUtils.getPipelineVersionId(displayRun.run);
     const pipelineId = RunUtils.getPipelineId(displayRun.run);
-    if (pipelineId) {
+    if (pipelineVersionId) {
+      try {
+        const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
+        const pipelineVersionName = pipelineVersion.name || '';
+        displayRun.pipelineVersion = {
+          displayName: pipelineVersionName,
+          pipelineId: pipelineVersion && pipelineVersion.resource_references && pipelineVersion.resource_references.find(ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINE)!.key!.id!,
+          usePlaceholder: false,
+          versionId: pipelineVersionId,
+        };
+      } catch (err) {
+        displayRun.error =
+          'Failed to get associated pipeline version: ' + (await errorToMessage(err));
+        return;
+      }
+    } else if (pipelineId) {
+      // For backward compatibility. Runs created before version is introduced
+      // refer to pipeline id instead of pipeline version id.
       let pipelineName = RunUtils.getPipelineName(displayRun.run);
       if (!pipelineName) {
         try {
@@ -408,13 +430,14 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           return;
         }
       }
-      displayRun.pipeline = {
+      displayRun.pipelineVersion = {
         displayName: pipelineName,
-        id: pipelineId,
+        pipelineId,
         usePlaceholder: false,
+        versionId: undefined,
       };
     } else if (!!RunUtils.getWorkflowManifest(displayRun.run)) {
-      displayRun.pipeline = { usePlaceholder: true };
+      displayRun.pipelineVersion = { usePlaceholder: true };
     }
   }
 

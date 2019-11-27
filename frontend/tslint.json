@@ -17,6 +17,7 @@
     "format": "verbose"
   },
   "rules": {
+    "no-console": false,
     "interface-name": [true, "never-prefix"],
     "interface-over-type-literal": false,
     "jsx-no-bind": false,
