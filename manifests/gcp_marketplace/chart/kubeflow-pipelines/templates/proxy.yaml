@@ -58,6 +58,9 @@ spec:
         - image: {{ .Values.images.proxyagent }}
           imagePullPolicy: IfNotPresent
           name: proxy-agent
+          envFrom:
+          - configMapRef
+            name: inverse-proxy-config
       serviceAccountName: proxy-agent-runner
 ---
 apiVersion: v1

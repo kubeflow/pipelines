@@ -81,8 +81,4 @@ kubectl patch configmap/inverse-proxy-config \
     --type merge \
     --patch "${PATCH_JSON}"
 
-if [ ! -z "${K8S_APP_NAME}" ]; then
-    kubectl label configmap inverse-proxy-config app.kubernetes.io/name=${K8S_APP_NAME}
-fi
-
 run-proxy-agent
