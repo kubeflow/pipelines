@@ -504,12 +504,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
 
-    // try {
-    //   template = JsYaml.safeLoad(templateString);
-    // } catch (err) {
-    //   await this.showPageError('Error: failed to generate Pipeline graph.', err);
-    // }
-
     this.setStateSafe({
       graph: await this._createGraph(templateString),
       pipeline,
