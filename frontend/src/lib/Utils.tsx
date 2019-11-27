@@ -339,7 +339,7 @@ export function generateMinioArtifactUrl(minioUri: string): string | undefined {
     return undefined;
   }
 
-  const matches = minioUri.match(/^minio:\/\/(?<bucket>[^\/]+)\/(?<key>.+)$/);
+  const matches = minioUri.match(/^minio:\/\/([^\/]+)\/(.+)$/);
   if (matches == null) {
     return undefined;
   }
