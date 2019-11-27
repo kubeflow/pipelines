@@ -480,6 +480,7 @@ METADATA_INPUT_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_in
 METADATA_OUTPUT_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_output_artifact_ids'
 
 ARGO_WORKFLOW_LABEL_KEY = 'workflows.argoproj.io/workflow'
+ARGO_COMPLETED_LABEL_KEY = 'workflows.argoproj.io/completed'
 METADATA_WRITTEN_LABEL_KEY = 'pipelines.kubeflow.org/metadata_written'
 
 
@@ -687,7 +688,7 @@ while True:
                 # TODO: Log input parameters as execution options.
                 # Unfortunately, DSL compiler loses the information about inputs and their arguments.
 
-            if obj.status.phase == 'Succeeded' and obj.metadata.name not in pods_with_written_metadata: # phase = One of Pending,Running,Succeeded,Failed,Unknown
+            if obj.metadata.name not in pods_with_written_metadata and obj.metadata.labels.get(ARGO_COMPLETED_LABEL_KEY, 'false') == 'true':
                 artifact_ids = []
 
                 if ARGO_OUTPUTS_ANNOTATION_KEY in obj.metadata.annotations: # Should be present
