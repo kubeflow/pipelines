@@ -8,7 +8,7 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: rok-url
+    - name: rok_url
   entrypoint: volumesnapshotop-rokurl
   serviceAccountName: pipeline-runner
   templates:
@@ -56,7 +56,7 @@ spec:
       successCondition: status.readyToUse == true
   - inputs:
       parameters:
-      - name: rok-url
+      - name: rok_url
     name: create-volume-1
     outputs:
       parameters:
@@ -72,7 +72,7 @@ spec:
     resource:
       action: create
       manifest: "apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  annotations:\n\
-        \    rok/origin: '{{inputs.parameters.rok-url}}'\n  name: '{{workflow.name}}-vol1'\n\
+        \    rok/origin: '{{inputs.parameters.rok_url}}'\n  name: '{{workflow.name}}-vol1'\n\
         spec:\n  accessModes:\n  - ReadWriteMany\n  resources:\n    requests:\n  \
         \    storage: 1Gi\n"
   - inputs:
@@ -192,8 +192,8 @@ spec:
         template: create-snapshot-2
       - arguments:
           parameters:
-          - name: rok-url
-            value: '{{inputs.parameters.rok-url}}'
+          - name: rok_url
+            value: '{{inputs.parameters.rok_url}}'
         name: create-volume-1
         template: create-volume-1
       - arguments:
@@ -242,5 +242,5 @@ spec:
         template: step3-output
     inputs:
       parameters:
-      - name: rok-url
+      - name: rok_url
     name: volumesnapshotop-rokurl
