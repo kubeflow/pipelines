@@ -22,7 +22,7 @@ import kfp.dsl as dsl
 )
 def volumeop_basic(size):
     vop = dsl.VolumeOp(
-        name="create_pvc",
+        name="create-pvc",
         resource_name="my-pvc",
         modes=dsl.VOLUME_MODE_RWO,
         size=size
