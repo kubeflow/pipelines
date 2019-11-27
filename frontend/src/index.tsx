@@ -27,7 +27,7 @@ import { KFP_FLAGS, Deployments } from './lib/Flags';
 
 // TODO: license headers
 
-if (KFP_FLAGS.DEPLOYMENT == Deployments.KUBEFLOW) {
+if (KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW) {
   initKfClient();
 }
 
