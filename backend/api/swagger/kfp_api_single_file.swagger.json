@@ -18,6 +18,7 @@
   "paths": {
     "/apis/v1beta1/runs": {
       "get": {
+        "summary": "Find all runs.",
         "operationId": "ListRuns",
         "responses": {
           "200": {
@@ -49,7 +50,7 @@
           },
           {
             "name": "sort_by",
-            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\nAscending by default.",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\n(Example, \"name asc\" or \"id des\"). Ascending by default.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -78,7 +79,7 @@
           },
           {
             "name": "filter",
-            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\nfilter.proto).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/\nblob/master/backend/api/filter.proto)).",
             "in": "query",
             "required": false,
             "type": "string"
@@ -89,6 +90,7 @@
         ]
       },
       "post": {
+        "summary": "Create a new run.",
         "operationId": "CreateRun",
         "responses": {
           "200": {
@@ -121,6 +123,7 @@
     },
     "/apis/v1beta1/runs/{id}": {
       "delete": {
+        "summary": "Delete a run.",
         "operationId": "DeleteRun",
         "responses": {
           "200": {
@@ -151,6 +154,7 @@
     },
     "/apis/v1beta1/runs/{id}:archive": {
       "post": {
+        "summary": "Archive a run.",
         "operationId": "ArchiveRun",
         "responses": {
           "200": {
@@ -181,6 +185,7 @@
     },
     "/apis/v1beta1/runs/{id}:unarchive": {
       "post": {
+        "summary": "Restore an archived run.",
         "operationId": "UnarchiveRun",
         "responses": {
           "200": {
@@ -211,6 +216,7 @@
     },
     "/apis/v1beta1/runs/{run_id}": {
       "get": {
+        "summary": "Find a specific run by ID.",
         "operationId": "GetRun",
         "responses": {
           "200": {
@@ -241,6 +247,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
       "get": {
+        "summary": "Find a run's artifact data.",
         "operationId": "ReadArtifact",
         "responses": {
           "200": {
@@ -286,6 +293,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/retry": {
       "post": {
+        "summary": "Re-initiate a failed or terminated run.",
         "operationId": "RetryRun",
         "responses": {
           "200": {
@@ -316,6 +324,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/terminate": {
       "post": {
+        "summary": "Terminate an active run.",
         "operationId": "TerminateRun",
         "responses": {
           "200": {
@@ -386,6 +395,7 @@
     },
     "/apis/v1beta1/jobs": {
       "get": {
+        "summary": "Find all jobs.",
         "operationId": "ListJobs",
         "responses": {
           "200": {
@@ -417,7 +427,7 @@
           },
           {
             "name": "sort_by",
-            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\nAscending by default.",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\".\nAscending by default.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -446,7 +456,7 @@
           },
           {
             "name": "filter",
-            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\nfilter.proto).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/\nblob/master/backend/api/filter.proto)).",
             "in": "query",
             "required": false,
             "type": "string"
@@ -457,6 +467,7 @@
         ]
       },
       "post": {
+        "summary": "Create a new job.",
         "operationId": "CreateJob",
         "responses": {
           "200": {
@@ -490,6 +501,7 @@
     },
     "/apis/v1beta1/jobs/{id}": {
       "get": {
+        "summary": "Find a specific job by ID.",
         "operationId": "GetJob",
         "responses": {
           "200": {
@@ -519,6 +531,7 @@
         ]
       },
       "delete": {
+        "summary": "Delete a job.",
         "operationId": "DeleteJob",
         "responses": {
           "200": {
@@ -550,6 +563,7 @@
     },
     "/apis/v1beta1/jobs/{id}/disable": {
       "post": {
+        "summary": "Disable a job.",
         "operationId": "DisableJob",
         "responses": {
           "200": {
@@ -581,6 +595,7 @@
     },
     "/apis/v1beta1/jobs/{id}/enable": {
       "post": {
+        "summary": "Enable a job.",
         "operationId": "EnableJob",
         "responses": {
           "200": {
@@ -610,8 +625,201 @@
         ]
       }
     },
+    "/apis/v1beta1/pipeline_versions": {
+      "get": {
+        "operationId": "ListPipelineVersions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiListPipelineVersionsResponse"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "resource_key.type",
+            "description": "The type of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "UNKNOWN_RESOURCE_TYPE",
+              "EXPERIMENT",
+              "JOB",
+              "PIPELINE",
+              "PIPELINE_VERSION"
+            ],
+            "default": "UNKNOWN_RESOURCE_TYPE"
+          },
+          {
+            "name": "resource_key.id",
+            "description": "The ID of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "page_token",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sort_by",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\nAscending by default.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filter",
+            "description": "A base-64 encoded, JSON-serialized Filter protocol buffer (see\nfilter.proto).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      },
+      "post": {
+        "operationId": "CreatePipelineVersion",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiPipelineVersion"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "ResourceReference inside PipelineVersion specifies the pipeline that this\nversion belongs to.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiPipelineVersion"
+            }
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
+    },
+    "/apis/v1beta1/pipeline_versions/{version_id}": {
+      "get": {
+        "operationId": "GetPipelineVersion",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiPipelineVersion"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      },
+      "delete": {
+        "operationId": "DeletePipelineVersion",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
+    },
+    "/apis/v1beta1/pipeline_versions/{version_id}/templates": {
+      "get": {
+        "operationId": "GetPipelineVersionTemplate",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiGetTemplateResponse"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
+    },
     "/apis/v1beta1/pipelines": {
       "get": {
+        "summary": "Find all pipelines.",
         "operationId": "ListPipelines",
         "responses": {
           "200": {
@@ -650,7 +858,7 @@
           },
           {
             "name": "filter",
-            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\nfilter.proto).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/\nblob/master/backend/api/filter.proto)).",
             "in": "query",
             "required": false,
             "type": "string"
@@ -661,6 +869,7 @@
         ]
       },
       "post": {
+        "summary": "Add a pipeline.",
         "operationId": "CreatePipeline",
         "responses": {
           "200": {
@@ -693,6 +902,7 @@
     },
     "/apis/v1beta1/pipelines/{id}": {
       "get": {
+        "summary": "Find a specific pipeline by ID.",
         "operationId": "GetPipeline",
         "responses": {
           "200": {
@@ -721,6 +931,7 @@
         ]
       },
       "delete": {
+        "summary": "Delete a pipeline.",
         "operationId": "DeletePipeline",
         "responses": {
           "200": {
@@ -751,6 +962,7 @@
     },
     "/apis/v1beta1/pipelines/{id}/templates": {
       "get": {
+        "summary": "Get a YAML template for the selected pipeline.",
         "operationId": "GetTemplate",
         "responses": {
           "200": {
@@ -781,6 +993,7 @@
     },
     "/apis/v1beta1/experiments": {
       "get": {
+        "summary": "Find all experiments.",
         "operationId": "ListExperiment",
         "responses": {
           "200": {
@@ -819,7 +1032,7 @@
           },
           {
             "name": "filter",
-            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\nfilter.proto).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/\nblob/master/backend/api/filter.proto)).",
             "in": "query",
             "required": false,
             "type": "string"
@@ -830,6 +1043,7 @@
         ]
       },
       "post": {
+        "summary": "Create a new experiment.",
         "operationId": "CreateExperiment",
         "responses": {
           "200": {
@@ -848,7 +1062,7 @@
         "parameters": [
           {
             "name": "body",
-            "description": "The experiment to be created",
+            "description": "The experiment to be created.",
             "in": "body",
             "required": true,
             "schema": {
@@ -863,6 +1077,7 @@
     },
     "/apis/v1beta1/experiments/{id}": {
       "get": {
+        "summary": "Find a specific experiment by ID.",
         "operationId": "GetExperiment",
         "responses": {
           "200": {
@@ -881,7 +1096,7 @@
         "parameters": [
           {
             "name": "id",
-            "description": "The ID of the experiment to be retrieved",
+            "description": "The ID of the experiment to be retrieved.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -892,6 +1107,7 @@
         ]
       },
       "delete": {
+        "summary": "Delete an experiment.",
         "operationId": "DeleteExperiment",
         "responses": {
           "200": {
