@@ -58,11 +58,6 @@ spec:
         - image: {{ .Values.images.proxyagent }}
           imagePullPolicy: IfNotPresent
           name: proxy-agent
-          env:
-          - name: NAMESPACE
-            value: {{ .Release.Namespace }}
-          - name: K8S_APP_NAME
-            value: {{ .Release.Name }}
       serviceAccountName: proxy-agent-runner
 ---
 apiVersion: v1
