@@ -80,6 +80,19 @@ data:
   username: {{ .Values.managedstorage.dbUsername | b64enc | quote}}
   password: {{ .Values.managedstorage.dbPassword | b64enc | quote}}
 {{ else }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
@@ -115,17 +128,4 @@ spec:
         - name: mysql-persistent-storage
           persistentVolumeClaim:
             claimName: mysql-pv-claim
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mysql-pv-claim
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
 {{ end }}

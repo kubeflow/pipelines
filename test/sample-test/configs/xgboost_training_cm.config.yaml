@@ -16,8 +16,8 @@ test_name: xgboost_training_cm
 arguments:
   output:
   project: ml-pipeline-test
-  train-data: gs://ml-pipeline-dataset/sample-test/sfpd/train_20.csv
-  eval-data: gs://ml-pipeline-dataset/sample-test/sfpd/eval_5.csv
+  train_data: gs://ml-pipeline-dataset/sample-test/sfpd/train_20.csv
+  eval_data: gs://ml-pipeline-dataset/sample-test/sfpd/eval_5.csv
   schema: gs://ml-pipeline-dataset/sample-test/sfpd/schema.json
   rounds: 5
   workers: 2

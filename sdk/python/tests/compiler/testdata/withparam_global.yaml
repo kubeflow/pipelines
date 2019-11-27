@@ -8,7 +8,7 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: loopidy-doop
+    - name: loopidy_doop
       value: '[3, 5, 7, 9]'
   entrypoint: my-pipeline
   serviceAccountName: pipeline-runner
@@ -17,24 +17,24 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: loopidy-doop
-            value: '{{inputs.parameters.loopidy-doop}}'
+          - name: loopidy_doop
+            value: '{{inputs.parameters.loopidy_doop}}'
         name: my-in-cop1
         template: my-in-cop1
     inputs:
       parameters:
-      - name: loopidy-doop
+      - name: loopidy_doop
     name: for-loop-for-loop-00000001-1
   - container:
       args:
-      - 'echo no output global op1, item: {{inputs.parameters.loopidy-doop}}'
+      - 'echo no output global op1, item: {{inputs.parameters.loopidy_doop}}'
       command:
       - sh
       - -c
       image: library/bash:4.4.23
     inputs:
       parameters:
-      - name: loopidy-doop
+      - name: loopidy_doop
     name: my-in-cop1
   - container:
       args:
@@ -68,13 +68,13 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: loopidy-doop
+          - name: loopidy_doop
             value: '{{item}}'
         dependencies:
         - my-out-cop0
         name: for-loop-for-loop-00000001-1
         template: for-loop-for-loop-00000001-1
-        withParam: '{{workflow.parameters.loopidy-doop}}'
+        withParam: '{{workflow.parameters.loopidy_doop}}'
       - name: my-out-cop0
         template: my-out-cop0
       - arguments:
