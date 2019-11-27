@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def use_secret(secret_name:str, secret_volume_mount_path:str, volume_name:str=None, env_variable:str=None, secret_file_path_in_volume:str=None):
+import random 
+import string
+
+def use_secret(secret_name:str, secret_volume_mount_path:str, env_variable:str=None, secret_file_path_in_volume:str=None):
     """    
        An operator that configures the container to use a secret.
        
@@ -20,7 +23,6 @@ def use_secret(secret_name:str, secret_volume_mount_path:str, volume_name:str=No
     
     Keyword Arguments:
         secret_name {String} -- [Required] The k8s secret name.
-        volume_name {String} -- The pod volume name. 
         secret_volume_mount_path {String} -- [Required] The path to the secret that is mounted.
         env_variable {String} -- Env variable pointing to the mounted secret file. Requires both the env_variable and secret_file_path_in_volume to be defined. 
                                  The value is the path to the secret.
@@ -35,10 +37,10 @@ def use_secret(secret_name:str, secret_volume_mount_path:str, volume_name:str=No
         [ContainerOperator] -- Returns the container operator after it has been modified. 
     """
 
-    if secret_name:
-        volume_name = volume_name or secret_name + "_volume"
-    else: 
-        volume_name = "_volume"
+    volume_name = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10)) + "_volume"
+    for param, param_name in  zip([secret_name, secret_volume_mount_path],["secret_name","secret_volume_mount_path"]):
+        if param == "":
+            raise ValueError(f"The '{param_name}' must not be empty")
     if bool(env_variable) != bool(secret_file_path_in_volume):
         raise ValueError("Both {} and {} needs to be supplied together or not at all".format(env_variable, secret_file_path_in_volume))
 
