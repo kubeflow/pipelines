@@ -193,7 +193,8 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
   return {
     /**
      *
-     * @param {ApiExperiment} body The experiment to be created
+     * @summary Create a new experiment.
+     * @param {ApiExperiment} body The experiment to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -243,6 +244,7 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
     },
     /**
      *
+     * @summary Delete an experiment.
      * @param {string} id The ID of the experiment to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -290,7 +292,8 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
     },
     /**
      *
-     * @param {string} id The ID of the experiment to be retrieved
+     * @summary Find a specific experiment by ID.
+     * @param {string} id The ID of the experiment to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -337,10 +340,11 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
     },
     /**
      *
+     * @summary Find all experiments.
      * @param {string} [page_token]
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
-     * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -408,7 +412,8 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
   return {
     /**
      *
-     * @param {ApiExperiment} body The experiment to be created
+     * @summary Create a new experiment.
+     * @param {ApiExperiment} body The experiment to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -431,6 +436,7 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
+     * @summary Delete an experiment.
      * @param {string} id The ID of the experiment to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -454,7 +460,8 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @param {string} id The ID of the experiment to be retrieved
+     * @summary Find a specific experiment by ID.
+     * @param {string} id The ID of the experiment to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -478,10 +485,11 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
+     * @summary Find all experiments.
      * @param {string} [page_token]
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
-     * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -524,7 +532,8 @@ export const ExperimentServiceApiFactory = function(
   return {
     /**
      *
-     * @param {ApiExperiment} body The experiment to be created
+     * @summary Create a new experiment.
+     * @param {ApiExperiment} body The experiment to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -533,6 +542,7 @@ export const ExperimentServiceApiFactory = function(
     },
     /**
      *
+     * @summary Delete an experiment.
      * @param {string} id The ID of the experiment to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -542,7 +552,8 @@ export const ExperimentServiceApiFactory = function(
     },
     /**
      *
-     * @param {string} id The ID of the experiment to be retrieved
+     * @summary Find a specific experiment by ID.
+     * @param {string} id The ID of the experiment to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -551,10 +562,11 @@ export const ExperimentServiceApiFactory = function(
     },
     /**
      *
+     * @summary Find all experiments.
      * @param {string} [page_token]
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
-     * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -585,7 +597,8 @@ export const ExperimentServiceApiFactory = function(
 export class ExperimentServiceApi extends BaseAPI {
   /**
    *
-   * @param {ApiExperiment} body The experiment to be created
+   * @summary Create a new experiment.
+   * @param {ApiExperiment} body The experiment to be created.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof ExperimentServiceApi
@@ -599,6 +612,7 @@ export class ExperimentServiceApi extends BaseAPI {
 
   /**
    *
+   * @summary Delete an experiment.
    * @param {string} id The ID of the experiment to be deleted.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -613,7 +627,8 @@ export class ExperimentServiceApi extends BaseAPI {
 
   /**
    *
-   * @param {string} id The ID of the experiment to be retrieved
+   * @summary Find a specific experiment by ID.
+   * @param {string} id The ID of the experiment to be retrieved.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof ExperimentServiceApi
@@ -627,10 +642,11 @@ export class ExperimentServiceApi extends BaseAPI {
 
   /**
    *
+   * @summary Find all experiments.
    * @param {string} [page_token]
    * @param {number} [page_size]
    * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
-   * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
+   * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof ExperimentServiceApi
