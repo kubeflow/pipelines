@@ -70,9 +70,6 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$USER_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor"
-
-  # Waits until IAM policies take effect.
-  sleep 1200
 fi
 
 popd

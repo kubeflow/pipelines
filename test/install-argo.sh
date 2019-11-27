@@ -59,4 +59,28 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
     --role="roles/editor" \
     > /dev/null # hide verbose output
   bind_gsa_and_ksa $ARGO_GSA $ARGO_KSA $PROJECT $NAMESPACE
+
+  # Waits until workload identity bindings take effect.
+  WORKLOAD_IDENTITY_MAX_ATTEMPT=10
+  for i in $(seq 1 ${WORKLOAD_IDENTITY_MAX_ATTEMPT})
+  do
+    workload_identity_is_ready=true
+    kubectl run test-$RANDOM --rm -i --restart=Never \
+        --image=google/cloud-sdk:slim \
+        --serviceaccount test-runner \
+        --namespace $NAMESPACE \
+        -- gcloud auth list || workload_identity_is_ready=false
+    kubectl run test-$RANDOM --rm -i --restart=Never \
+        --image=google/cloud-sdk:slim \
+        --serviceaccount test-runner \
+        --namespace $NAMESPACE \
+        -- gsutil ls gs:// || workload_identity_is_ready=false
+    if [ "$workload_identity_is_ready" = true ]; then
+      break
+    fi
+  done
+  if [ ! "$workload_identity_is_ready" = true ]; then
+    echo "Workload identity bindings are not ready after $WORKLOAD_IDENTITY_MAX_ATTEMPT attempts"
+    exit 1
+  fi
 fi
