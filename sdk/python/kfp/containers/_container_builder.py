@@ -133,20 +133,6 @@ class ContainerBuilder(object):
                          '--digest-file=/dev/termination-log', # This is suggested by the Kaniko devs as a way to return the image digest from Kaniko Pod. See https://github.com/GoogleContainerTools/kaniko#--digest-file
                 ],
                 'image': 'gcr.io/kaniko-project/executor@sha256:78d44ec4e9cb5545d7f85c1924695c89503ded86a59f92c7ae658afa3cff5400',
-                'env': [{
-                    'name': 'GOOGLE_APPLICATION_CREDENTIALS',
-                    'value': '/secret/gcp-credentials/user-gcp-sa.json'
-                }],
-                'volumeMounts': [{
-                    'mountPath': '/secret/gcp-credentials',
-                    'name': 'gcp-credentials',
-                }],
-            }],
-            'volumes': [{
-                'name': 'gcp-credentials',
-                'secret': {
-                    'secretName': 'user-gcp-sa',
-                },
             }],
             'serviceAccountName': 'default'}
     }

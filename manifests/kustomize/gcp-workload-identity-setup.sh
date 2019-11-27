@@ -22,7 +22,7 @@ USER_GSA=${USER_GSA:-$CLUSTER_NAME-kfp-user}
 
 # Kubernetes Service Account (KSA)
 SYSTEM_KSA=(ml-pipeline ml-pipeline-ui)
-USER_KSA=(pipeline-runner)
+USER_KSA=(pipeline-runner default) # default service account is used for container building, TODO: give it a specific name
 
 cat <<EOF
 

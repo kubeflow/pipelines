@@ -146,6 +146,7 @@ if __name__ == '__main__':
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
+      pipeline_operator_funcs=[], # TODO: remove this override when KubeflowDagRunnerConfig doesn't default to use_gcp_secret op.
       tfx_image='tensorflow/tfx:0.16.0.dev20191101',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(config=config)

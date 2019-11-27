@@ -16,7 +16,6 @@
 
 import kfp
 from kfp import dsl
-from kfp.gcp import use_gcp_secret
 
 
 def gcs_read_op(url):
@@ -57,11 +56,8 @@ for bucket in buckets:
 def secret_op_pipeline(url='gs://ml-pipeline-playground/shakespeare1.txt'):
   """A pipeline that uses secret to access cloud hosted resouces."""
 
-  gcs_read_task = gcs_read_op(url).apply(
-    use_gcp_secret('user-gcp-sa'))
-  use_gcp_api_task = use_gcp_api_op().apply(
-    use_gcp_secret('user-gcp-sa'))
-
+  gcs_read_task = gcs_read_op(url)
+  use_gcp_api_task = use_gcp_api_op()
 
 if __name__ == '__main__':
   kfp.compiler.Compiler().compile(secret_op_pipeline, __file__ + '.zip')
