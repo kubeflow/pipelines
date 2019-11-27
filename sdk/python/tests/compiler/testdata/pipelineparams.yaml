@@ -25,18 +25,18 @@ spec:
     parameters:
     - name: tag
       value: latest
-    - name: sleep-ms
+    - name: sleep_ms
       value: '10'
   templates:
   - name: download
     inputs:
       parameters:
-      - name: sleep-ms
+      - name: sleep_ms
       - name: tag
     container:
       image: busybox:{{inputs.parameters.tag}}
       args:
-      - sleep {{inputs.parameters.sleep-ms}}; wget localhost:5678 -O /tmp/results.txt
+      - sleep {{inputs.parameters.sleep_ms}}; wget localhost:5678 -O /tmp/results.txt
       command:
       - sh
       - "-c"
@@ -70,15 +70,15 @@ spec:
   - name: pipelineparams
     inputs:
       parameters:
-      - name: sleep-ms
+      - name: sleep_ms
       - name: tag
     dag:
       tasks:
       - name: download
         arguments:
           parameters:
-          - name: sleep-ms
-            value: "{{inputs.parameters.sleep-ms}}"
+          - name: sleep_ms
+            value: "{{inputs.parameters.sleep_ms}}"
           - name: tag
             value: "{{inputs.parameters.tag}}"
         template: download

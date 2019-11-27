@@ -76,7 +76,7 @@ for the get experiment operation typically these are written to a http.Request
 type GetExperimentParams struct {
 
 	/*ID
-	  The ID of the experiment to be retrieved
+	  The ID of the experiment to be retrieved.
 
 	*/
 	ID string

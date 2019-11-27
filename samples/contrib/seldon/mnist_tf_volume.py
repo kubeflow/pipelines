@@ -82,8 +82,7 @@ def mnist_tf_volume(docker_repo_training='seldonio/deepmnistclassifier_trainer',
 							}
 						]
 					}
-				},
-				"tfReplicaType": "MASTER"
+				}
 			}
 		}
 	}

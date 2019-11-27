@@ -100,6 +100,8 @@ export async function newTensorboardInstance(logdir: string, podTemplateSpec: Ob
       type: 'tensorboard',
       tensorboardSpec: {
         logDir: logdir,
+        // TODO(jingzhang36): tensorflow image version read from input textbox.
+        tensorflowImage: 'tensorflow/tensorflow:1.13.2',
       },
       podTemplateSpec
     }
@@ -175,16 +177,16 @@ export async function getArgoWorkflow(workflowName: string): Promise<IPartialArg
 
   const res = await k8sV1CustomObjectClient.getNamespacedCustomObject(
     workflowGroup, workflowVersion, namespace, workflowPlural, workflowName)
-  
+
   if (res.response.statusCode >= 400) {
     throw new Error(`Unable to query workflow:${workflowName}: Access denied.`);
   }
   return res.body;
 }
-  
+
 /**
  * Retrieves k8s secret by key and decode from base64.
- * @param name name of the secret 
+ * @param name name of the secret
  * @param key key in the secret
  */
 export async function getK8sSecret(name: string, key: string) {
@@ -195,5 +197,5 @@ export async function getK8sSecret(name: string, key: string) {
   const k8sSecret = await k8sV1Client.readNamespacedSecret(name, namespace);
   const secretb64 = k8sSecret.body.data[key];
   const buff = new Buffer(secretb64, 'base64');
-  return buff.toString('ascii');  
+  return buff.toString('ascii');
 }

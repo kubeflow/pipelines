@@ -257,7 +257,7 @@ class UploadPipelineDialog extends React.Component<
         confirmed,
         this.state.uploadPipelineName,
         this.state.file,
-        this.state.fileUrl,
+        this.state.fileUrl.trim(),
         this.state.importMethod,
         this.state.uploadPipelineDescription,
       );
