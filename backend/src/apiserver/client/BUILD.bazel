@@ -8,10 +8,12 @@ go_library(
         "scheduled_workflow.go",
         "sql.go",
         "workflow.go",
+        "kfam.go",
     ],
     importpath = "github.com/kubeflow/pipelines/backend/src/apiserver/client",
     visibility = ["//visibility:public"],
     deps = [
+        "//backend/src/common/util:go_default_library",
         "//backend/src/crd/pkg/client/clientset/versioned:go_default_library",
         "//backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1:go_default_library",
         "@com_github_argoproj_argo//pkg/client/clientset/versioned:go_default_library",

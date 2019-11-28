@@ -67,6 +67,7 @@ type ClientManager struct {
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient              v1.PodInterface
+	kfamClient             client.KFAMInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 }
@@ -115,6 +116,10 @@ func (c *ClientManager) PodClient() v1.PodInterface {
 	return c.podClient
 }
 
+func (c *ClientManager) KFAMClient() client.KFAMInterface {
+	return c.kfamClient
+}
+
 func (c *ClientManager) Time() util.TimeInterface {
 	return c.time
 }
@@ -154,6 +159,7 @@ func (c *ClientManager) init() {
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
 
+	c.kfamClient = client.NewKFAMClient("profiles-kfam.kubeflow","8081")
 	glog.Infof("Client manager initialized successfully")
 }
 

@@ -270,8 +270,7 @@ func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, re
 	return &pipelineVersionId, nil
 }
 
-func AuthorizeRequest(userIdentity string, namespace string) bool {
-	//TODO: Add authorization logic by contacting the KFAM service
+func IsRequestAuthorized(resourceManager *resource.ResourceManager, userIdentity string, namespace string) (bool, error) {
 	glog.Infof("Authorizing user %s for namespace %s", userIdentity, namespace)
-	return true
+	return resourceManager.IsRequestAuthorized(userIdentity, namespace)
 }

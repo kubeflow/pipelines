@@ -35,30 +35,42 @@ type RunServer struct {
 
 func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest) (*api.RunDetail, error) {
 	err := s.validateCreateRunRequest(request)
-	md, _ := metadata.FromIncomingContext(ctx)
-	// If the request header contains the user identity, requests are authorized
-	// based on the namespace field in the request.
-	if userIdentityHeader, ok := md[common.UserIdentityHeader]; ok {
-		if len(userIdentityHeader) != 1 {
-			return nil, util.NewBadRequestError(errors.New("Request header error: user identity value is empty"), "Request header error: user identity value is empty")
-		}
-		userIdentityHeaderFields := strings.Split(userIdentityHeader[0], ":")
-		if len(userIdentityHeaderFields) != 2 {
-			return nil, util.NewBadRequestError(errors.New("Request header error: user identity value is incorrectly formatted"), "Request header error: user identity value is incorrectly formatted")
-		}
-		userIdentity := userIdentityHeaderFields[1]
-
-		if common.IsKubeflowDeployment() {
-			//authenticate the requests based on the userIdentity and the namespace.
-			namespace := ""
-			for _, resourceRef := range request.Run.ResourceReferences {
-				if resourceRef.Key.Type == api.ResourceType_NAMESPACE {
-					namespace = resourceRef.Key.Id
-					break
-				}
+	if err != nil {
+		return nil, util.Wrap(err, "Validate create run request failed.")
+	}
+	if ctx != nil {
+		md, _ := metadata.FromIncomingContext(ctx)
+		// If the request header contains the user identity, requests are authorized
+		// based on the namespace field in the request.
+		if userIdentityHeader, ok := md[common.UserIdentityHeader]; ok {
+			if len(userIdentityHeader) != 1 {
+				return nil, util.NewBadRequestError(errors.New("Request header error: user identity value is empty"), "Request header error: user identity value is empty")
 			}
-			if len(namespace) != 0 && AuthorizeRequest(userIdentity, namespace){
-				glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
+			userIdentityHeaderFields := strings.Split(userIdentityHeader[0], ":")
+			if len(userIdentityHeaderFields) != 2 {
+				return nil, util.NewBadRequestError(errors.New("Request header error: user identity value is incorrectly formatted"), "Request header error: user identity value is incorrectly formatted")
+			}
+			userIdentity := userIdentityHeaderFields[1]
+
+			if common.IsKubeflowDeployment() {
+				//authenticate the requests based on the userIdentity and the namespace.
+				namespace := ""
+				for _, resourceRef := range request.Run.ResourceReferences {
+					if resourceRef.Key.Type == api.ResourceType_NAMESPACE {
+						namespace = resourceRef.Key.Id
+						break
+					}
+				}
+				if len(namespace) != 0 {
+					authorized, err:= IsRequestAuthorized(s.resourceManager, userIdentity, namespace)
+					if err != nil{
+						glog.Infof("Error: ", err.Error())
+					}
+					if authorized {
+						glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
+					}
+
+				}
 			}
 		}
 	}
