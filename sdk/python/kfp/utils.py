@@ -37,10 +37,14 @@ def use_secret(secret_name:str, secret_volume_mount_path:str, env_variable:str=N
         [ContainerOperator] -- Returns the container operator after it has been modified. 
     """
 
-    volume_name = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10)) + "_volume"
-    for param, param_name in  zip([secret_name, secret_volume_mount_path],["secret_name","secret_volume_mount_path"]):
+    secret_name = str(secret_name)
+    if '{{' in secret_name:
+        volume_name = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10)) + "_volume"
+    else:
+        volume_name = secret_name
+    for param, param_name in zip([secret_name, secret_volume_mount_path],["secret_name","secret_volume_mount_path"]):
         if param == "":
-            raise ValueError(f"The '{param_name}' must not be empty")
+            raise ValueError("The '{}' must not be empty".format(param_name))
     if bool(env_variable) != bool(secret_file_path_in_volume):
         raise ValueError("Both {} and {} needs to be supplied together or not at all".format(env_variable, secret_file_path_in_volume))
 

@@ -29,6 +29,7 @@ class TestAddSecrets(unittest.TestCase):
         self.assertEqual(type(op1.container.env), type(None))
         container_dict = op1.container.to_dict()
         volume_mounts = container_dict["volume_mounts"][0]
+        self.assertEqual(volume_mounts["name"], secret_name)
         self.assertEqual(type(volume_mounts), dict)
         self.assertEqual(volume_mounts["mount_path"], secret_path)
 
