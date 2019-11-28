@@ -1,0 +1,35 @@
+name: Kubeflow - Launch TFJob
+description: Kubeflow TFJob launcher
+inputs:
+- {name: Name,                      type: String,                       description: 'TFJob name.'}
+- {name: Namespace,                 type: String,   default: kubeflow,  description: 'TFJob namespace.'}
+- {name: Version,                   type: String,   default: v1,        description: 'TFJob version.'}
+- {name: ActiveDeadlineSeconds,     type: Integer,  default: -1,        description: 'Specifies the duration (in seconds) since startTime during which the job can remain active before it is terminated. Must be a positive integer. This setting applies only to pods where restartPolicy is OnFailure or Always.'}
+- {name: BackoffLimit,              type: Integer,  default: -1,        description: 'Number of retries before marking this job as failed.'}
+- {name: ttl Seconds After Finished,   type: Integer,  default: -1,        description: 'Defines the TTL for cleaning up finished TFJobs.'}
+- {name: CleanPodPolicy,            type: String,   default: Running,   description: 'Defines the policy for cleaning up pods after the TFJob completes.'}
+- {name: PS Spec,                   type: JSON,     default: '{}',      description: 'TFJob ps replicaSpecs.'}
+- {name: Worker Spec,               type: JSON,     default: '{}',      description: 'TFJob worker replicaSpecs.'}
+- {name: Chief Spec,                type: JSON,     default: '{}',      description: 'TFJob chief replicaSpecs.'}
+- {name: Evaluator Spec,            type: JSON,     default: '{}',      description: 'TFJob evaluator replicaSpecs.'}
+- {name: Tfjob Timeout Minutes,     type: Integer,  default: 1440,      description: 'Time in minutes to wait for the TFJob to complete.'}
+- {name: Delete Finished Tfjob,     type: Bool,     default: 'True' ,   description: 'Whether to delete the tfjob after it is finished.'}
+implementation:
+  container:
+    image: liuhougangxa/kubeflow-tfjob-launcher:latest
+    command: [python, /ml/launch_tfjob.py]
+    args: [
+      --name,                     {inputValue: Name},
+      --namespace,                {inputValue: Namespace},
+      --version,                  {inputValue: Version},
+      --activeDeadlineSeconds,    {inputValue: ActiveDeadlineSeconds},
+      --backoffLimit,             {inputValue: BackoffLimit},
+      --cleanPodPolicy,           {inputValue: CleanPodPolicy},
+      --ttlSecondsAfterFinished,  {inputValue: ttl Seconds After Finished},
+      --psSpec,                   {inputValue: PS Spec},
+      --workerSpec,               {inputValue: Worker Spec},
+      --chiefSpec,                {inputValue: Chief Spec},
+      --evaluatorSpec,            {inputValue: Evaluator Spec},
+      --tfjobTimeoutMinutes,      {inputValue: Tfjob Timeout Minutes},
+      --deleteAfterDone,          {inputValue: Delete Finished Tfjob},
+    ]
