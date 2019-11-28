@@ -635,6 +635,10 @@ while True:
                         uri=artifact_uri,
                         input_name=input_name,
                     )
+                    if artifact is None:
+                        # TODO: Maybe there is a better way to handle missing upstream artifacts
+                        continue
+
                     input_artifact_ids.append(dict(
                         id=artifact.id,
                         name=input_name,
