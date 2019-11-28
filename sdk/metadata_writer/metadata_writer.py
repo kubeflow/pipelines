@@ -1,4 +1,3 @@
-
 # Deploy the Metadata Writer PoC using the following command:
 """
 kubectl create -f - <<EOF
@@ -33,12 +32,6 @@ spec:
           python3 -u /tmp/metadata_writer.py
 EOF
 """
-
-#import site
-#import subprocess
-#import sys
-#subprocess.run([sys.executable, '-m', 'pip', 'install', 'ml-metadata==0.14', 'tensorflow>=1.15', 'kubernetes', '--upgrade', '--quiet', '--user'])
-#sys.path.append(site.getusersitepackages())
 
 import hashlib
 import kubernetes
@@ -480,8 +473,6 @@ print("Connected to the metadata store")
 ARGO_OUTPUTS_ANNOTATION_KEY = 'workflows.argoproj.io/outputs'
 ARGO_TEMPLATE_ANNOTATION_KEY = 'workflows.argoproj.io/template'
 KFP_COMPONENT_SPEC_ANNOTATION_KEY = 'pipelines.kubeflow.org/component_spec'
-#KFP_PIPELINE_SPEC_ANNOTATION_KEY = 'pipelines.kubeflow.org/pipeline_spec'
-#METADATA_EXECUTION_ID_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_execution_id'
 METADATA_EXECUTION_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_execution_id'
 METADATA_CONTEXT_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_context_id'
 METADATA_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_artifact_ids'
@@ -501,7 +492,6 @@ def cleanup_pods():
             pod_name=pod.metadata.name,
             patch={
                 'annotations': {
-                    #METADATA_EXECUTION_ID_ANNOTATION_KEY: None,
                     METADATA_ARTIFACT_IDS_ANNOTATION_KEY: None,
                     METADATA_INPUT_ARTIFACT_IDS_ANNOTATION_KEY: None,
                     METADATA_OUTPUT_ARTIFACT_IDS_ANNOTATION_KEY: None,
@@ -548,7 +538,11 @@ def is_tfx_pod(pod) -> bool:
 #%%
 
 # Caches (not expected to be persistent)
-pod_name_to_execution_id = {} # Updates happen fast. I've seen new ID being assigned to an execution 3 times.
+# These caches are only used to prevent race conditions. Race conditions happen because the writer can see multiple versions of K8s object before the applied labels show up.
+# They are expected to be lost when restarting the service.
+# The operation of the Metadata Writer remains correct even if it's getting restarted frequently. (Kubernetes only sends the latest version of resource for new watchers.)
+# Technically, we could remove the objects from cache as soon as we see that our labels have been applied successfully.
+pod_name_to_execution_id = {}
 workflow_name_to_context_id = {}
 pods_with_written_metadata = set()
 
@@ -558,7 +552,6 @@ while True:
         k8s_api.list_pod_for_all_namespaces,
         #label_selector=ARGO_WORKFLOW_LABEL_KEY + ',' + '!' + METADATA_WRITTEN_LABEL_KEY,
         label_selector=ARGO_WORKFLOW_LABEL_KEY,
-        #timeout_seconds=3,
     ):
         try:
             obj = event['object']
@@ -606,9 +599,6 @@ while True:
                 context_id = int(obj.metadata.labels[METADATA_CONTEXT_ID_LABEL_KEY])
                 print('Found execution id: {}, context id: {} for pod {}.'.format(execution_id, context_id, obj.metadata.name))
             else:
-                #if event['type'] != 'ADDED':
-                #    continue # Only add execution ID once
-
                 run_context = get_or_create_run_context(
                     store=mlmd_store,
                     run_id=argo_workflow_name, # We can switch to internal run IDs once backend starts adding them
@@ -690,7 +680,8 @@ while True:
                     component_name=component_name,
                 )))
 
-                #TODO: Write input artifacts. Unfortunately, DSL compiler loses this information
+                # TODO: Log input parameters as execution options.
+                # Unfortunately, DSL compiler loses the information about inputs and their arguments.
 
             if obj.status.phase == 'Succeeded' and obj.metadata.name not in pods_with_written_metadata: # phase = One of Pending,Running,Succeeded,Failed,Unknown
                 artifact_ids = []
