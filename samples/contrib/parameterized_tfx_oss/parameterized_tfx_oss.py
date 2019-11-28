@@ -143,11 +143,13 @@ if __name__ == '__main__':
       str(_taxi_module_file_param),
       enable_cache=enable_cache,
   )
+  mount_config_map_op = kubeflow_dag_runner._mount_config_map_op('metadata-configmap')
+  mysql_password_op = kubeflow_dag_runner._mount_secret_op('mysql-credential')
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
       # TODO: remove this override when KubeflowDagRunnerConfig doesn't default to use_gcp_secret op.
-      pipeline_operator_funcs=[lambda task: task], # Note an empty array is considered falsy in python, so we must add an identity function inside.
+      pipeline_operator_funcs=[mount_config_map_op, mysql_password_op],
       tfx_image='tensorflow/tfx:0.16.0.dev20191101',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(config=config)
