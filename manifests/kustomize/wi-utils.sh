@@ -44,3 +44,42 @@ function bind_gsa_and_ksa {
     iam.gke.io/gcp-service-account=$gsa_full
   echo "* Bound KSA $ksa in namespace $namespace to GSA $gsa_full"
 }
+
+# This can be used to programmatically verify workload identity binding grants corresponding GSA
+# permissions successfully.
+# Usage: verify_workload_identity_binding $KSA $NAMESPACE
+#
+# If you want to verify manually, use the following command instead:
+# kubectl run test-$RANDOM --rm -it --restart=Never \
+#     --image=google/cloud-sdk:slim \
+#     --serviceaccount $ksa \
+#     --namespace $namespace \
+#     -- /bin/bash
+# It connects you to a pod using specified KSA running an image with gcloud and gsutil CLI tools.
+function verify_workload_identity_binding {
+  local ksa=${1}
+  local namespace=${2}
+  local max_attempts=10
+  local workload_identity_is_ready=false
+  for i in $(seq 1 ${max_attempts})
+  do
+    workload_identity_is_ready=true
+    kubectl run test-$RANDOM --rm -i --restart=Never \
+        --image=google/cloud-sdk:slim \
+        --serviceaccount $ksa \
+        --namespace $namespace \
+        -- gcloud auth list || workload_identity_is_ready=false
+    kubectl run test-$RANDOM --rm -i --restart=Never \
+        --image=google/cloud-sdk:slim \
+        --serviceaccount $ksa \
+        --namespace $namespace \
+        -- gsutil ls gs:// || workload_identity_is_ready=false
+    if [ "$workload_identity_is_ready" = true ]; then
+      break
+    fi
+  done
+  if [ ! "$workload_identity_is_ready" = true ]; then
+    echo "Workload identity bindings are not ready after $max_attempts attempts"
+    return 1
+  fi
+}

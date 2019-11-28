@@ -70,6 +70,9 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$USER_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor"
+
+  source "$DIR/../manifests/kustomize/wi-utils.sh"
+  verify_workload_identity_binding "pipeline-runner" $NAMESPACE
 fi
 
 popd
