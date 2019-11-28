@@ -36,7 +36,7 @@ outputs:
   type: Examples
 implementation:
   container:
-    image: tensorflow/tfx:0.15.0rc0
+    image: tensorflow/tfx:0.15.0
     command:
     - python3
     - -u

@@ -100,6 +100,6 @@ if __name__ == '__main__':
     import kfp
     kfp.components.func_to_container_op(
         BigQueryExampleGen,
-        base_image='tensorflow/tfx:0.15.0rc0',
+        base_image='tensorflow/tfx:0.15.0',
         output_component_file='component.yaml'
     )
