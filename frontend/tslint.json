@@ -22,9 +22,9 @@
     "jsx-no-bind": false,
     "jsx-no-lambda": false,
     "max-classes-per-file": false,
+    "member-access": false,
     "ordered-imports": false,
     "semicolon": [true, "always", "ignore-bound-class-methods"],
-    "typedef": [true, "call-signature"],
     "no-unused-variable": true,
     "variable-name": [
       true,

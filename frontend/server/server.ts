@@ -410,9 +410,14 @@ app.all(BASEPATH  + '/' + v1beta1Prefix + '/*', proxy({
 }));
 
 const DEFAULT_FLAG = 'window.KFP_FLAGS.DEPLOYMENT=null';
-function modifyFeatureFlags(indexHtml: string): string {
+const KUBEFLOW_CLIENT_PLACEHOLDER = '<script id="kubeflow-client-placeholder"></script>';
+function replaceRuntimeContent(indexHtml: string): string {
   if (DEPLOYMENT === Deployments.KUBEFLOW) {
-    return indexHtml.replace(DEFAULT_FLAG, 'window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"');
+    return indexHtml.replace(DEFAULT_FLAG, 'window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"')
+      .replace(
+        KUBEFLOW_CLIENT_PLACEHOLDER,
+        `<script id="kubeflow-client-placeholder" src="/dashboard_lib.bundle.js"></script>`
+      );
   } else {
     return indexHtml;
   }
@@ -428,7 +433,10 @@ fs.readFile(path.resolve(staticDir, 'index.html'), (err, data) => {
     indexHtml = data.toString();
     // sanity checking
     if (!indexHtml.includes(DEFAULT_FLAG)) {
-      throw new Error(`Error: cannot find DEFAULT_FLAG in index html. Its content: ${indexHtml}`);
+      throw new Error(`Error: cannot find default flag: '${DEFAULT_FLAG}' in index html. Its content: '${indexHtml}'.`);
+    }
+    if (!indexHtml.includes(KUBEFLOW_CLIENT_PLACEHOLDER)) {
+      throw new Error(`Error: cannot find kubeflow client placeholder: '${KUBEFLOW_CLIENT_PLACEHOLDER}' in index html. Its content: '${indexHtml}'.`)
     }
   }
 });
@@ -436,7 +444,7 @@ fs.readFile(path.resolve(staticDir, 'index.html'), (err, data) => {
 function handleIndexHtml(req, res) {
   if (indexHtml) {
     res.contentType('text/html');
-    res.send(modifyFeatureFlags(indexHtml));
+    res.send(replaceRuntimeContent(indexHtml));
   } else {
     res.send(404);
   }
