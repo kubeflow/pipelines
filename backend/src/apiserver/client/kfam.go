@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -17,6 +18,26 @@ type KFAMClient struct {
 	kfamServiceUrl     string
 }
 
+type User struct {
+	Kind string
+	Name string
+}
+
+type RoleRef struct {
+	ApiGroup string
+	Kind string
+	Name string
+}
+
+type Binding struct {
+	User User
+	ReferredNamespace string
+	RoleRef RoleRef
+}
+
+type Bindings struct {
+	Bindings []Binding
+}
 
 func (c *KFAMClient) IsAuthorized(userIdentity string, namespace string) (bool, error) {
 	req, err := http.NewRequest("GET", c.kfamServiceUrl, nil)
@@ -39,7 +60,19 @@ func (c *KFAMClient) IsAuthorized(userIdentity string, namespace string) (bool, 
 		return false, util.Wrap(err, "Unable to parse KFAM response.")
 	}
 	glog.Info(string(body))
-	return true, nil
+	var jsonBindings Bindings
+	err = json.Unmarshal(body, &jsonBindings)
+	if err != nil{
+		return false, util.Wrap(err, "Failure to parse KFAM response.")
+	}
+	nsFound := false
+	for _, jsonBinding := range jsonBindings.Bindings {
+		if jsonBinding.ReferredNamespace == namespace {
+			nsFound = true
+			break;
+		}
+	}
+	return nsFound, nil
 }
 
 func NewKFAMClient(kfamServiceHost string, kfamServicePort string) *KFAMClient{

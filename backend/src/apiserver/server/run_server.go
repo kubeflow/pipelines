@@ -68,8 +68,9 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 					}
 					if authorized {
 						glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
+					} else {
+						return nil, util.NewBadRequestError(errors.New("Unauthorized access"), "Unauthorized access")
 					}
-
 				}
 			}
 		}
