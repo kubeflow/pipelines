@@ -688,7 +688,13 @@ while True:
                 # TODO: Log input parameters as execution options.
                 # Unfortunately, DSL compiler loses the information about inputs and their arguments.
 
-            if obj.metadata.name not in pods_with_written_metadata and obj.metadata.labels.get(ARGO_COMPLETED_LABEL_KEY, 'false') == 'true':
+            if (
+                obj.metadata.name not in pods_with_written_metadata
+                and (
+                    obj.metadata.labels.get(ARGO_COMPLETED_LABEL_KEY, 'false') == 'true'
+                    or ARGO_OUTPUTS_ANNOTATION_KEY in obj.metadata.annotations
+                )
+            ):
                 artifact_ids = []
 
                 if ARGO_OUTPUTS_ANNOTATION_KEY in obj.metadata.annotations: # Should be present
