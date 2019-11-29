@@ -71,7 +71,7 @@ if (isInCluster) {
   k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
 }
 
-function getNameOfViewerResource(logdir: string): string {
+function getNameOfViewerResource(logdir: string, tfversion: string): string {
   // TODO: find some hash function with shorter resulting message.
   return 'viewer-' + crypto.SHA1(logdir);
 }
@@ -80,11 +80,11 @@ function getNameOfViewerResource(logdir: string): string {
  * Create Tensorboard instance via CRD with the given logdir if there is no
  * existing Tensorboard instance.
  */
-export async function newTensorboardInstance(logdir: string, podTemplateSpec: Object = defaultPodTemplateSpec): Promise<void> {
+export async function newTensorboardInstance(logdir: string, tfversion: string, podTemplateSpec: Object = defaultPodTemplateSpec): Promise<void> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
-  const currentPod = await getTensorboardInstance(logdir);
+  const currentPod = await getTensorboardInstance(logdir, tfversion);
   if (currentPod) {
     return;
   }
@@ -93,15 +93,14 @@ export async function newTensorboardInstance(logdir: string, podTemplateSpec: Ob
     apiVersion: viewerGroup + '/' + viewerVersion,
     kind: 'Viewer',
     metadata: {
-      name: getNameOfViewerResource(logdir),
+      name: getNameOfViewerResource(logdir, tfversion),
       namespace: namespace,
     },
     spec: {
       type: 'tensorboard',
       tensorboardSpec: {
         logDir: logdir,
-        // TODO(jingzhang36): tensorflow image version read from input textbox.
-        tensorflowImage: 'tensorflow/tensorflow:1.13.2',
+        tensorflowImage: 'tensorflow/tensorflow:'+tfversion
       },
       podTemplateSpec
     }
@@ -114,21 +113,22 @@ export async function newTensorboardInstance(logdir: string, podTemplateSpec: Ob
  * Finds a running Tensorboard instance created via CRD with the given logdir
  * and returns its dns address.
  */
-export async function getTensorboardInstance(logdir: string): Promise<string> {
+export async function getTensorboardInstance(logdir: string, tfversion: string): Promise<string> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
 
   return await (k8sV1CustomObjectClient.getNamespacedCustomObject(
     viewerGroup, viewerVersion, namespace, viewerPlural,
-    getNameOfViewerResource(logdir))).then(
+    getNameOfViewerResource(logdir, tfversion))).then(
       // Viewer CRD pod has tensorboard instance running at port 6006 while
       // viewer CRD service has tensorboard instance running at port 80. Since
       // we return service address here (instead of pod address), so use 80.
       (viewer: any) => (
         viewer && viewer.body &&
         viewer.body.spec.tensorboardSpec.logDir == logdir &&
-        viewer.body.spec.type == 'tensorboard') ?
+        viewer.body.spec.type == 'tensorboard' &&
+        viewer.body.spec.tensorboardSpec.tensorflowImage == 'tensorflow/tensorflow:'+tfversion) ?
           `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/` : '',
       // No existing custom object with the given name, i.e., no existing
       // tensorboard instance.
@@ -140,14 +140,14 @@ export async function getTensorboardInstance(logdir: string): Promise<string> {
  * Polls every second for a running Tensorboard instance with the given logdir,
  * and returns the address of one if found, or rejects if a timeout expires.
  */
-export function waitForTensorboardInstance(logdir: string, timeout: number): Promise<string> {
+export function waitForTensorboardInstance(logdir: string, tfversion: string, timeout: number): Promise<string> {
   const start = Date.now();
   return new Promise((resolve, reject) => {
     setInterval(async () => {
       if (Date.now() - start > timeout) {
         reject('Timed out waiting for tensorboard');
       }
-      const tensorboardAddress = await getTensorboardInstance(logdir);
+      const tensorboardAddress = await getTensorboardInstance(logdir, tfversion);
       if (tensorboardAddress) {
         resolve(encodeURIComponent(tensorboardAddress));
       }

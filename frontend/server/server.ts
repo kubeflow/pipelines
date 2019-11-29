@@ -279,13 +279,19 @@ const getTensorboardHandler = async (req, res) => {
     return;
   }
   const logdir = decodeURIComponent(req.query.logdir);
+  const tfversion = decodeURIComponent(req.query.tfversion);
   if (!logdir) {
     res.status(404).send('logdir argument is required');
     return;
   }
 
+  if (!tfversion) {
+    res.status(404).send('tensorflow version argument is required');
+    return;
+  }
+
   try {
-    res.send(await k8sHelper.getTensorboardInstance(logdir));
+    res.send(await k8sHelper.getTensorboardInstance(logdir, tfversion));
   } catch (err) {
     res.status(500).send('Failed to list Tensorboard pods: ' + JSON.stringify(err));
   }
@@ -297,14 +303,21 @@ const createTensorboardHandler = async (req, res) => {
     return;
   }
   const logdir = decodeURIComponent(req.query.logdir);
+  const tfversion = decodeURIComponent(req.query.tfversion);
+
   if (!logdir) {
     res.status(404).send('logdir argument is required');
     return;
   }
 
+  if (!tfversion) {
+    res.status(404).send('tensorflow version argument is required');
+    return;
+  }
+
   try {
-    await k8sHelper.newTensorboardInstance(logdir, podTemplateSpec);
-    const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(logdir, 60 * 1000);
+    await k8sHelper.newTensorboardInstance(logdir, tfversion, podTemplateSpec);
+    const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(logdir, tfversion, 60 * 1000);
     res.send(tensorboardAddress);
   } catch (err) {
     res.status(500).send('Failed to start Tensorboard app: ' + JSON.stringify(err));

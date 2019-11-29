@@ -24,6 +24,7 @@ package reconciler
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/golang/glog"
 	viewerV1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta1"
@@ -42,7 +43,7 @@ import (
 
 const viewerTargetPort = 6006
 
-const defaultTensorflowImage = "tensorflow/tensorflow:1.13.2"
+const defaultTensorflowImage = "tensorflow/tensorflow:1.14.0"
 
 // Reconciler implements reconcile.Reconciler for the Viewer CRD.
 type Reconciler struct {
@@ -180,6 +181,12 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 		// when https://github.com/kubeflow/pipelines/issues/2514 is done
 		// "--bind_all",
 	}
+
+	matched, _ := regexp.MatchString(`tensorflow/tensorflow:2.`, view.Spec.TensorboardSpec.TensorflowImage)
+	if matched {
+		c.Args = append(c.Args, "--bind_all")
+	}
+
 	c.Ports = []corev1.ContainerPort{
 		corev1.ContainerPort{ContainerPort: viewerTargetPort},
 	}

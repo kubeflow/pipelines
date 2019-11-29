@@ -20,6 +20,12 @@ import Button from '@material-ui/core/Button';
 import Viewer, { ViewerConfig } from './Viewer';
 import { Apis } from '../../lib/Apis';
 import { commonCss, padding } from '../../Css';
+import InputLabel from '@material-ui/core/InputLabel';
+import Input from '@material-ui/core/Input';
+import MenuItem from '@material-ui/core/MenuItem';
+import ListSubheader from '@material-ui/core/ListSubheader';
+import FormControl from '@material-ui/core/FormControl';
+import Select from '@material-ui/core/Select';
 
 export interface TensorboardViewerConfig extends ViewerConfig {
   url: string;
@@ -32,6 +38,7 @@ interface TensorboardViewerProps {
 interface TensorboardViewerState {
   busy: boolean;
   podAddress: string;
+  tensorflowVersion: string;
 }
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
@@ -41,6 +48,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     this.state = {
       busy: false,
       podAddress: '',
+      tensorflowVersion: '1.14.0',
     };
   }
 
@@ -84,12 +92,48 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
         )}
 
         {!this.state.podAddress && (
-          <BusyButton
-            className={commonCss.buttonAction}
-            onClick={this._startTensorboard.bind(this)}
-            busy={this.state.busy}
-            title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`}
-          />
+          <div>
+            <div className={padding(30, 'b')}>
+              <FormControl className='Launch Tensorboard' style={{ minWidth: 120 }}>
+                <InputLabel htmlFor='grouped-select'>TF Version</InputLabel>
+                <Select
+                  defaultValue={this.state.tensorflowVersion}
+                  value={this.state.tensorflowVersion}
+                  input={<Input id='grouped-select' />}
+                  onChange={(e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+                    this.setState({ tensorflowVersion: e.target.value as string });
+                  }}
+                  style={{
+                    minHeight: 40,
+                  }}
+                >
+                  <ListSubheader>Tensoflow 1.x</ListSubheader>
+                  <MenuItem value={'1.4.0'}>TensorFlow 1.4.0</MenuItem>
+                  <MenuItem value={'1.5.0'}>TensorFlow 1.5.0</MenuItem>
+                  <MenuItem value={'1.6.0'}>TensorFlow 1.6.0</MenuItem>
+                  <MenuItem value={'1.7.0'}>TensorFlow 1.7.0</MenuItem>
+                  <MenuItem value={'1.8.0'}>TensorFlow 1.8.0</MenuItem>
+                  <MenuItem value={'1.9.0'}>TensorFlow 1.9.0</MenuItem>
+                  <MenuItem value={'1.10.0'}>TensorFlow 1.10.0</MenuItem>
+                  <MenuItem value={'1.11.0'}>TensorFlow 1.11.0</MenuItem>
+                  <MenuItem value={'1.12.0'}>TensorFlow 1.12.0</MenuItem>
+                  <MenuItem value={'1.13.0'}>TensorFlow 1.13.0</MenuItem>
+                  <MenuItem value={'1.14.0'}>TensorFlow 1.14.0</MenuItem>
+                  <MenuItem value={'1.15.0'}>TensorFlow 1.15.0</MenuItem>
+                  <ListSubheader>TensorFlow 2.x</ListSubheader>
+                  <MenuItem value={'2.0.0'}>TensorFlow 2.0.0</MenuItem>
+                </Select>
+              </FormControl>
+            </div>
+            <div>
+              <BusyButton
+                className={commonCss.buttonAction}
+                onClick={this._startTensorboard.bind(this)}
+                busy={this.state.busy}
+                title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`}
+              />
+            </div>
+          </div>
         )}
       </div>
     );
@@ -102,14 +146,17 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
-      const podAddress = await Apis.getTensorboardApp(this._buildUrl());
+      const podAddress = await Apis.getTensorboardApp(this._buildUrl(), this.state.tensorflowVersion);
       this.setState({ busy: false, podAddress });
     });
   }
 
   private async _startTensorboard(): Promise<void> {
     this.setState({ busy: true }, async () => {
-      await Apis.startTensorboardApp(encodeURIComponent(this._buildUrl()));
+      await Apis.startTensorboardApp(
+        encodeURIComponent(this._buildUrl()),
+        encodeURIComponent(this.state.tensorflowVersion),
+      );
       this.setState({ busy: false }, () => {
         this._checkTensorboardApp();
       });

@@ -258,16 +258,16 @@ export class Apis {
   /**
    * Gets the address (IP + port) of a Tensorboard service given the logdir
    */
-  public static getTensorboardApp(logdir: string): Promise<string> {
-    return this._fetch(`apps/tensorboard?logdir=${encodeURIComponent(logdir)}`);
+  public static getTensorboardApp(logdir: string, tfversion: string): Promise<string> {
+    return this._fetch(`apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(tfversion)}`);
   }
 
   /**
    * Starts a deployment and service for Tensorboard given the logdir
    */
-  public static startTensorboardApp(logdir: string): Promise<string> {
+  public static startTensorboardApp(logdir: string, tfversion: string): Promise<string> {
     return this._fetch(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(tfversion)}`,
       undefined,
       undefined,
       { headers: { 'content-type': 'application/json' }, method: 'POST' },
