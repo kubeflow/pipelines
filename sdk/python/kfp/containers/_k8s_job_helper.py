@@ -17,6 +17,7 @@ from kubernetes import client as k8s_client
 from kubernetes import config
 import time
 import logging
+import os
 
 
 class K8sJobHelper(object):
@@ -27,17 +28,25 @@ class K8sJobHelper(object):
       raise Exception('K8sHelper __init__ failure')
 
   def _configure_k8s(self):
-    try:
-      config.load_incluster_config()
-      logging.info('Initialized with in-cluster config.')
-    except:
-      logging.info('Cannot find in-cluster config, trying the local kubernetes config. ')
+    k8s_config_file = os.environ.get('KUBECONFIG')
+    if k8s_config_file:
       try:
-        config.load_kube_config()
-        logging.info('Found local kubernetes config. Initialized with kube_config.')
+        logging.info('Loading kubernetes config from the file %s', k8s_config_file)
+        config.load_kube_config(config_file=k8s_config_file)
+      except Exception as e:
+        raise RuntimeError('Can not load kube config from the file %s, error: %s', k8s_config_file, e)
+    else:
+      try:
+        config.load_incluster_config()
+        logging.info('Initialized with in-cluster config.')
       except:
-        raise RuntimeError('Forgot to run the gcloud command? Check out the link: \
-        https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl for more information')
+        logging.info('Cannot find in-cluster config, trying the local kubernetes config. ')
+        try:
+          config.load_kube_config()
+          logging.info('Found local kubernetes config. Initialized with kube_config.')
+        except:
+          raise RuntimeError('Forgot to run the gcloud command? Check out the link: \
+          https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl for more information')
     self._api_client = k8s_client.ApiClient()
     self._corev1 = k8s_client.CoreV1Api(self._api_client)
     return True
