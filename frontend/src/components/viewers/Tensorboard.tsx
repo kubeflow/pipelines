@@ -117,7 +117,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                   <MenuItem value={'1.10.0'}>TensorFlow 1.10.0</MenuItem>
                   <MenuItem value={'1.11.0'}>TensorFlow 1.11.0</MenuItem>
                   <MenuItem value={'1.12.0'}>TensorFlow 1.12.0</MenuItem>
-                  <MenuItem value={'1.13.0'}>TensorFlow 1.13.0</MenuItem>
+                  <MenuItem value={'1.13.2'}>TensorFlow 1.13.2</MenuItem>
                   <MenuItem value={'1.14.0'}>TensorFlow 1.14.0</MenuItem>
                   <MenuItem value={'1.15.0'}>TensorFlow 1.15.0</MenuItem>
                   <ListSubheader>TensorFlow 2.x</ListSubheader>
