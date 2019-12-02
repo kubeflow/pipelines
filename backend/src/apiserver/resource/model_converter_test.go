@@ -209,7 +209,6 @@ func TestToModelResourceReferences_NamespaceRef(t *testing.T) {
 	assert.Equal(t, 0, len(modelRefs))
 }
 
-
 func TestToModelResourceReferences_UnknownRelationship(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()
