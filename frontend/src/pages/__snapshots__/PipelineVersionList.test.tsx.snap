@@ -9627,58 +9627,6 @@ exports[`PipelineVersionList renders a list of one pipeline version without crea
 </div>
 `;
 
-exports[`PipelineVersionList renders a list of one pipeline versions without created date 1`] = `
-<div>
-  <CustomTable
-    columns={
-      Array [
-        Object {
-          "customRenderer": [Function],
-          "flex": 2,
-          "label": "Version name",
-          "sortKey": "name",
-        },
-        Object {
-          "flex": 1,
-          "label": "Uploaded on",
-          "sortKey": "created_at",
-        },
-      ]
-    }
-    emptyMessage="No pipeline versions found."
-    initialSortColumn="created_at"
-    reload={[Function]}
-    rows={Array []}
-  />
-</div>
-`;
-
-exports[`PipelineVersionList renders a list of one pipeline with error 1`] = `
-<div>
-  <CustomTable
-    columns={
-      Array [
-        Object {
-          "customRenderer": [Function],
-          "flex": 2,
-          "label": "Version name",
-          "sortKey": "name",
-        },
-        Object {
-          "flex": 1,
-          "label": "Uploaded on",
-          "sortKey": "created_at",
-        },
-      ]
-    }
-    emptyMessage="No pipeline versions found."
-    initialSortColumn="created_at"
-    reload={[Function]}
-    rows={Array []}
-  />
-</div>
-`;
-
 exports[`PipelineVersionList renders an empty list with empty state message 1`] = `
 <div>
   <CustomTable

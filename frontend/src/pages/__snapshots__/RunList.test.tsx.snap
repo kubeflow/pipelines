@@ -7643,17 +7643,6 @@ exports[`RunList renders pipeline name as link to its details page 2`] = `
 </Link>
 `;
 
-exports[`RunList renders pipeline version name as link to its details page`] = `
-<Link
-  className="link"
-  onClick={[Function]}
-  replace={false}
-  to="/pipelines/details/pipeline-id/version/version-id?"
->
-  test pipeline
-</Link>
-`;
-
 exports[`RunList renders pipeline version name as link to its details page 1`] = `
 <Link
   className="link"
@@ -7846,29 +7835,7 @@ exports[`RunList retrieves pipeline from backend to display name if not in spec 
 </div>
 `;
 
-exports[`RunList shows "View pipeline version" button if pipeline version is embedded in run 1`] = `
-<Link
-  className="link"
-  onClick={[Function]}
-  replace={false}
-  to="/pipelines/details/?fromRun=run-id"
->
-  [View pipeline]
-</Link>
-`;
-
 exports[`RunList shows "View pipeline" button if pipeline is embedded in run 1`] = `
-<Link
-  className="link"
-  onClick={[Function]}
-  replace={false}
-  to="/pipelines/details/?fromRun=run-id"
->
-  [View pipeline]
-</Link>
-`;
-
-exports[`RunList shows "View pipeline" button if pipeline is embedded in run 2`] = `
 <Link
   className="link"
   onClick={[Function]}
