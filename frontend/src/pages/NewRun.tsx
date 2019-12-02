@@ -748,8 +748,6 @@ class NewRun extends Page<{}, NewRunState> {
       },
       () => this._validate(),
     );
-
-    console.log(this.state.errorMessage);
   }
 
   protected _updateRecurringRunState(isRecurringRun: boolean): void {
