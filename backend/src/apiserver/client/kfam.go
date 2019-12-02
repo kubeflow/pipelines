@@ -15,7 +15,7 @@ type KFAMInterface interface {
 }
 
 type KFAMClient struct {
-	kfamServiceUrl     string
+	kfamServiceUrl string
 }
 
 type User struct {
@@ -25,14 +25,14 @@ type User struct {
 
 type RoleRef struct {
 	ApiGroup string
-	Kind string
-	Name string
+	Kind     string
+	Name     string
 }
 
 type Binding struct {
-	User User
+	User              User
 	ReferredNamespace string
-	RoleRef RoleRef
+	RoleRef           RoleRef
 }
 
 type Bindings struct {
@@ -62,20 +62,20 @@ func (c *KFAMClient) IsAuthorized(userIdentity string, namespace string) (bool, 
 	glog.Info(string(body))
 	var jsonBindings Bindings
 	err = json.Unmarshal(body, &jsonBindings)
-	if err != nil{
+	if err != nil {
 		return false, util.Wrap(err, "Failure to parse KFAM response.")
 	}
 	nsFound := false
 	for _, jsonBinding := range jsonBindings.Bindings {
 		if jsonBinding.ReferredNamespace == namespace {
 			nsFound = true
-			break;
+			break
 		}
 	}
 	return nsFound, nil
 }
 
-func NewKFAMClient(kfamServiceHost string, kfamServicePort string) *KFAMClient{
+func NewKFAMClient(kfamServiceHost string, kfamServicePort string) *KFAMClient {
 	kfamServiceUrl := fmt.Sprintf("http://%s:%s/kfam/v1/bindings", kfamServiceHost, kfamServicePort)
 	return &KFAMClient{kfamServiceUrl}
 }

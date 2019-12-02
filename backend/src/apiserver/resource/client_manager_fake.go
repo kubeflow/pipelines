@@ -78,7 +78,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
 		podClientFake:               FakePodClient{},
-		kfamClientFake:              client.NewKFAMClient("",""),
+		kfamClientFake:              client.NewKFAMClient("", ""),
 		time:                        time,
 		uuid:                        uuid,
 	}, nil

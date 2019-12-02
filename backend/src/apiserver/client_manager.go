@@ -37,14 +37,14 @@ import (
 )
 
 const (
-	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
-	mysqlServiceHost = "DBConfig.Host"
-	mysqlServicePort = "DBConfig.Port"
-	mysqlUser        = "DBConfig.User"
-	mysqlPassword    = "DBConfig.Password"
-	mysqlDBName      = "DBConfig.DBName"
-	mysqlGroupConcatMaxLen 	= "DBConfig.GroupConcatMaxLen"
+	minioServiceHost       = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort       = "MINIO_SERVICE_SERVICE_PORT"
+	mysqlServiceHost       = "DBConfig.Host"
+	mysqlServicePort       = "DBConfig.Port"
+	mysqlUser              = "DBConfig.User"
+	mysqlPassword          = "DBConfig.Password"
+	mysqlDBName            = "DBConfig.DBName"
+	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -159,7 +159,7 @@ func (c *ClientManager) init() {
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
 
-	c.kfamClient = client.NewKFAMClient("profiles-kfam.kubeflow","8081")
+	c.kfamClient = client.NewKFAMClient("profiles-kfam.kubeflow", "8081")
 	glog.Infof("Client manager initialized successfully")
 }
 

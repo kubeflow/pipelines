@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	deployment 					string = "DEPLOYMENT"
-	kubeflowDeployment	string = "KUBEFLOW"
+	deployment         string = "DEPLOYMENT"
+	kubeflowDeployment string = "KUBEFLOW"
 )
 
 func GetStringConfig(configName string) string {

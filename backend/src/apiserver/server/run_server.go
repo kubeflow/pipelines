@@ -62,14 +62,14 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 					}
 				}
 				if len(namespace) != 0 {
-					authorized, err:= IsRequestAuthorized(s.resourceManager, userIdentity, namespace)
-					if err != nil{
+					authorized, err := IsRequestAuthorized(s.resourceManager, userIdentity, namespace)
+					if err != nil {
 						glog.Infof("Error: ", err.Error())
 					}
 					if authorized {
 						glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
 					} else {
-						return nil, util.NewBadRequestError(errors.New("Unauthorized access"), "Unauthorized access")
+						return nil, util.NewBadRequestError(errors.New("Unauthorized access."), "Unauthorized access for "+userIdentity+" to namespace "+namespace)
 					}
 				}
 			}
