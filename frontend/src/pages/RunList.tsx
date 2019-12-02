@@ -226,10 +226,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           ':' + RouteParams.pipelineId,
           props.value.pipelineId || '',
         ).replace(':' + RouteParams.pipelineVersionId, props.value.versionId || '')
-      : RoutePage.PIPELINE_DETAILS.replace(
+      : RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(
           ':' + RouteParams.pipelineId,
           props.value.pipelineId || '',
-        ).replace('/version/:' + RouteParams.pipelineVersionId, '');
+        );
     return (
       <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
         {props.value.usePlaceholder ? '[View pipeline]' : props.value.displayName}
