@@ -54,13 +54,7 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 
 			if common.IsKubeflowDeployment() {
 				//authenticate the requests based on the userIdentity and the namespace.
-				namespace := ""
-				for _, resourceRef := range request.Run.ResourceReferences {
-					if resourceRef.Key.Type == api.ResourceType_NAMESPACE {
-						namespace = resourceRef.Key.Id
-						break
-					}
-				}
+				namespace := GetNamespaceFromRun(request.Run)
 				if len(namespace) != 0 {
 					authorized, err := IsRequestAuthorized(s.resourceManager, userIdentity, namespace)
 					if err != nil {
