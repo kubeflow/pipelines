@@ -872,10 +872,14 @@ class NewRun extends Page<{}, NewRunState> {
     if (referencePipelineVersionId) {
       try {
         // TODO(jingzhang36): optimize this part to make only one api call.
-        pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(referencePipelineVersionId);
+        pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
+          referencePipelineVersionId,
+        );
         pipelineVersionName = pipelineVersion && pipelineVersion.name ? pipelineVersion.name : '';
-        pipeline = await Apis.pipelineServiceApi.getPipeline(RunUtils.getPipelineIdFromApiPipelineVersion(pipelineVersion)!);
-        name =pipeline.name || '';
+        pipeline = await Apis.pipelineServiceApi.getPipeline(
+          RunUtils.getPipelineIdFromApiPipelineVersion(pipelineVersion)!,
+        );
+        name = pipeline.name || '';
       } catch (err) {
         await this.showPageError(
           'Error: failed to find a pipeline version corresponding to that of the original run:' +
