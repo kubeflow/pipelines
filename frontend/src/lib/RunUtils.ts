@@ -14,19 +14,13 @@
  * limitations under the License.
  */
 
-import { ApiJob } from '../apis/job';
-import {
-  ApiRun,
-  ApiResourceType,
-  ApiResourceReference,
-  ApiRunDetail,
-  ApiPipelineRuntime,
-} from '../apis/run';
-import { orderBy } from 'lodash';
-import { ApiParameter } from 'src/apis/pipeline';
-import { Workflow } from 'third_party/argo-ui/argo_template';
+import {orderBy} from 'lodash';
+import {ApiParameter, ApiPipelineVersion} from 'src/apis/pipeline';
+import {Workflow} from 'third_party/argo-ui/argo_template';
+import {ApiJob} from '../apis/job';
+import {ApiPipelineRuntime, ApiResourceReference, ApiResourceType, ApiRun, ApiRunDetail} from '../apis/run';
+import {logger} from './Utils';
 import WorkflowParser from './WorkflowParser';
-import { logger } from './Utils';
 
 export interface MetricMetadata {
   count: number;
@@ -64,6 +58,32 @@ function getPipelineId(run?: ApiRun | ApiJob): string | null {
 
 function getPipelineName(run?: ApiRun | ApiJob): string | null {
   return (run && run.pipeline_spec && run.pipeline_spec.pipeline_name) || null;
+}
+
+function getPipelineVersionId(run?: ApiRun | ApiJob): string | null {
+  return run &&
+    run.resource_references &&
+    run.resource_references.some(
+      ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINEVERSION,
+    )
+    ? run.resource_references.find(
+        ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINEVERSION,
+      )!.key!.id!
+    : null;
+}
+
+function getPipelineIdFromApiPipelineVersion(
+  pipelineVersion?: ApiPipelineVersion,
+): string | undefined {
+  return pipelineVersion &&
+    pipelineVersion.resource_references &&
+    pipelineVersion.resource_references.some(
+      ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINE,
+    )
+    ? pipelineVersion.resource_references.find(
+        ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINE,
+      )!.key!.id!
+    : undefined;
 }
 
 function getWorkflowManifest(run?: ApiRun | ApiJob): string | null {
@@ -152,6 +172,8 @@ export default {
   getParametersFromRuntime,
   getPipelineId,
   getPipelineName,
+  getPipelineIdFromApiPipelineVersion,
+  getPipelineVersionId,
   getRecurringRunId,
   getWorkflowManifest,
   runsToMetricMetadataMap,

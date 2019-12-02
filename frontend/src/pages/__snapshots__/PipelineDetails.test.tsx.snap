@@ -64,6 +64,7 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
             <div>
               test-pipeline-id
             </div>
+            0
             <div
               className="summaryKey"
             >
@@ -301,6 +302,7 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
             <div>
               test-pipeline-id
             </div>
+            0
             <div
               className="summaryKey"
             >
@@ -441,6 +443,7 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
             <div>
               test-pipeline-id
             </div>
+            0
             <div
               className="summaryKey"
             >
@@ -675,6 +678,7 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
             <div>
               test-pipeline-id
             </div>
+            0
             <div
               className="summaryKey"
             >
