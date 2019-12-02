@@ -54,7 +54,6 @@ import { logger, errorToMessage } from '../lib/Utils';
 import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
 import { CustomRendererProps } from '../components/CustomTable';
 import { Description } from '../components/Description';
-// import produce from 'immer';
 
 interface NewRunState {
   description: string;
@@ -856,17 +855,36 @@ class NewRun extends Page<{}, NewRunState> {
     }
 
     let pipeline: ApiPipeline | undefined;
+    let pipelineVersion: ApiPipelineVersion | undefined;
     let workflowFromRun: Workflow | undefined;
     let useWorkflowFromRun = false;
     let usePipelineFromRunLabel = '';
     let name = '';
+    let pipelineVersionName = '';
 
-    // This corresponds to a run using a pipeline that has been uploaded
+    // Case 1: a legacy run refers to a pipeline without specifying version.
     const referencePipelineId = RunUtils.getPipelineId(originalRun);
-    // This corresponds to a run where the pipeline has not been uploaded, such as runs started from
+    // Case 2: a run refers to a pipeline version.
+    const referencePipelineVersionId = RunUtils.getPipelineVersionId(originalRun);
+    // Case 3: a run whose pipeline (version) has not been uploaded, such as runs started from
     // the CLI or notebooks
     const embeddedPipelineSpec = RunUtils.getWorkflowManifest(originalRun);
-    if (referencePipelineId) {
+    if (referencePipelineVersionId) {
+      try {
+        // TODO(jingzhang36): optimize this part to make only one api call.
+        pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(referencePipelineVersionId);
+        pipelineVersionName = pipelineVersion && pipelineVersion.name ? pipelineVersion.name : '';
+        pipeline = await Apis.pipelineServiceApi.getPipeline(RunUtils.getPipelineIdFromApiPipelineVersion(pipelineVersion)!);
+        name =pipeline.name || '';
+      } catch (err) {
+        await this.showPageError(
+          'Error: failed to find a pipeline version corresponding to that of the original run:' +
+            ` ${originalRun.id}.`,
+          err,
+        );
+        return;
+      }
+    } else if (referencePipelineId) {
       try {
         pipeline = await Apis.pipelineServiceApi.getPipeline(referencePipelineId);
         name = pipeline.name || '';
@@ -907,6 +925,8 @@ class NewRun extends Page<{}, NewRunState> {
       parameters,
       pipeline,
       pipelineName: name,
+      pipelineVersion,
+      pipelineVersionName,
       runName: this._getCloneName(originalRun.name!),
       usePipelineFromRunLabel,
       useWorkflowFromRun,
