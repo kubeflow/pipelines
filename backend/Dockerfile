@@ -4,7 +4,6 @@ FROM $BAZEL_IMAGE as builder
 RUN apt-get update && \
   apt-get install -y cmake clang musl-dev openssl
 
-RUN pip3 install tfx==0.15.0
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY . .
@@ -27,6 +26,10 @@ RUN if [ "$use_remote_build" = "true" ]; then \
 
 # Compile
 FROM python:3.5 as compiler
+RUN apt-get update -y && \
+    apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev
+RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+RUN python3 -m pip install tfx==0.15.0
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY sdk sdk
