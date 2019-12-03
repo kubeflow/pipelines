@@ -81,10 +81,10 @@ implementation:
       --config_bucket, {inputValue: config_bucket},
       --image_version, {inputValue: image_version},
       --cluster, {inputValue: cluster},
-      --wait_interval, {inputValue: wait_interval}
+      --wait_interval, {inputValue: wait_interval},
+      --ui-metadata-path, {outputPath: MLPipeline UI metadata},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       cluster_name: /tmp/kfp/output/dataproc/cluster_name.txt
-      MLPipeline UI metadata: /mlpipeline-ui-metadata.json
