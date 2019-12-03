@@ -73,10 +73,12 @@ def _create_test_pipeline(
   example_gen = CsvExampleGen(input_base=examples)
   statistics_gen = StatisticsGen(input_data=example_gen.outputs.examples)
   infer_schema = SchemaGen(
-      stats=statistics_gen.outputs.output, infer_feature_shape=False,
+      stats=statistics_gen.outputs.output,
+      infer_feature_shape=False,
   )
   validate_stats = ExampleValidator(
-      stats=statistics_gen.outputs.output, schema=infer_schema.outputs.output,
+      stats=statistics_gen.outputs.output,
+      schema=infer_schema.outputs.output,
   )
   transform = Transform(
       input_data=example_gen.outputs.examples,
@@ -149,7 +151,9 @@ if __name__ == '__main__':
       get_default_kubeflow_metadata_config(),
       tfx_image='tensorflow/tfx:0.15.0',
   )
-  kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(config=config)
+  kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
+      output_filename=__file__ + '.zip', config=config
+  )
   # Make sure kfp_runner recognizes those parameters.
   kfp_runner._params.extend([_data_root_param, _taxi_module_file_param])
 

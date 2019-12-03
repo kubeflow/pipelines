@@ -10,8 +10,8 @@ Please refer to inline comments for the purpose of each step.
 
 In order to successfully compile this sample, you'll need to have a TFX installation at version 0.15.0
 by running `python3 -m pip install tfx==0.15.0`
-After that, running 
-`python3 parameterized_tfx_oss.py` compiles the TFX pipeline into KFP pipeline package.
+After that, run
+`python3 parameterized_tfx_oss.py` to compile the TFX pipeline into KFP pipeline package.
 
 # Permission
 
