@@ -152,7 +152,7 @@ if __name__ == '__main__':
       tfx_image='tensorflow/tfx:0.15.0',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
-      output_filename=__file__ + '.zip', config=config
+      output_filename='parameterized_tfx_oss.yaml', config=config
   )
   # Make sure kfp_runner recognizes those parameters.
   kfp_runner._params.extend([_data_root_param, _taxi_module_file_param])

@@ -49,15 +49,8 @@ class SampleTest(object):
     self._target_image_prefix = target_image_prefix
     self._namespace = namespace
 
-    # TODO(numerology): special treatment for new TFX::OSS sample. Current decision
-    # is that we directly run its compiled version, for its compilation brings
-    # complex and unstable dependencies. See
-    if test_name == 'parameterized_tfx_oss':
-      self._is_notebook = False
-      self._work_dir = os.path.join(BASE_DIR, 'samples/contrib/', self._test_name)
-    else:
-      self._is_notebook = None
-      self._work_dir = os.path.join(BASE_DIR, 'samples/core/', self._test_name)
+    self._is_notebook = None
+    self._work_dir = os.path.join(BASE_DIR, 'samples/core/', self._test_name)
 
     self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
     self._sample_test_output = self._results_gcs_dir
@@ -140,8 +133,15 @@ class SampleTest(object):
       ])
 
     else:
-      subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
-                       '--output', '%s.yaml' % self._test_name])
+      try:
+        subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
+                          '--output', '%s.yaml' % self._test_name])
+      finally:
+        # This is for parameterized_tfx_oss sample.
+        print('No decorated pipeline function found, try directly running the '
+              'python file. A python file output yaml pipeline spec is '
+              'expected.')
+        subprocess.call(['python3', '%s.py' % self._test_name])
 
   def _injection(self):
     """Inject images for pipeline components.
@@ -150,10 +150,8 @@ class SampleTest(object):
     pass
 
   def run_test(self):
-    # TODO(numerology): ad hoc logic for TFX::OSS sample
-    if self._test_name != 'parameterized_tfx_oss':
-      self._compile()
-      self._injection()
+    self._compile()
+    self._injection()
 
     # Overriding the experiment name of pipeline runs
     experiment_name = self._test_name + '-test'
@@ -170,10 +168,7 @@ class SampleTest(object):
       nbchecker.check()
     else:
       os.chdir(TEST_DIR)
-      if self._test_name != 'parameterized_tfx_oss':
-        input_file = os.path.join(self._work_dir, '%s.yaml' % self._test_name)
-      else:
-        input_file = os.path.join(self._work_dir, '%s.tar.gz' % self._test_name)
+      input_file = os.path.join(self._work_dir, '%s.yaml' % self._test_name)
 
       pysample_checker = PySampleChecker(testname=self._test_name,
                                          input=input_file,
