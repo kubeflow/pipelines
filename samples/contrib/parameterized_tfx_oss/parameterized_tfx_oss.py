@@ -60,7 +60,6 @@ def _create_test_pipeline(
   """Creates a simple Kubeflow-based Chicago Taxi TFX pipeline.
 
   Args:
-    pipeline_name: The name of the pipeline.
     pipeline_root: The root of the pipeline output.
     csv_input_location: The location of the input data directory.
     taxi_module_file: The location of the module file for Transform/Trainer.
@@ -143,10 +142,12 @@ if __name__ == '__main__':
       str(_taxi_module_file_param),
       enable_cache=enable_cache,
   )
+  # Make sure the version of TFX image used is consistent with the version of
+  # TFX SDK. Here we use tfx:0.15.0 image.
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
-      tfx_image='tensorflow/tfx:0.16.0.dev20191101',
+      tfx_image='tensorflow/tfx:0.15.0',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(config=config)
   # Make sure kfp_runner recognizes those parameters.
