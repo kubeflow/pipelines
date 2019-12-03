@@ -70,6 +70,7 @@ setup(
         'kfp.components.structures.kubernetes',
         'kfp.containers',
         'kfp.dsl',
+        'kfp.dsl.extensions',
         'kfp.notebook',
     ],
     classifiers=[
