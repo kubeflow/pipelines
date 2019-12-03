@@ -19,7 +19,8 @@ import TensorboardViewer from './Tensorboard';
 import TestUtils from '../../TestUtils';
 import { Apis } from '../../lib/Apis';
 import { PlotType } from './Viewer';
-import { shallow } from 'enzyme';
+import { shallow, mount } from 'enzyme';
+import { resolve } from 'dns';
 
 describe('Tensorboard', () => {
   it('does not break on no config', () => {
@@ -51,18 +52,20 @@ describe('Tensorboard', () => {
 
   it('shows start button if no instance exists', async () => {
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
+    const defaultVersion = '1.14.0'
     const getAppMock = () => Promise.resolve('');
     const spy = jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(getAppMock);
     const tree = shallow(<TensorboardViewer configs={[config]} />);
     await getAppMock;
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
-    expect(spy).toHaveBeenCalledWith(config.url);
+    expect(spy).toHaveBeenCalledWith(config.url, defaultVersion);
   });
 
   it('starts tensorboard instance when button is clicked', async () => {
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
     const getAppMock = () => Promise.resolve('');
+    const defaultVersion = '1.14.0'
     const startAppMock = jest.fn(() => Promise.resolve(''));
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(getAppMock);
     jest.spyOn(Apis, 'startTensorboardApp').mockImplementationOnce(startAppMock);
@@ -71,12 +74,13 @@ describe('Tensorboard', () => {
     await getAppMock;
     tree.find('BusyButton').simulate('click');
     await startAppMock;
-    expect(startAppMock).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl');
+    expect(startAppMock).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', defaultVersion);
   });
 
   it('starts tensorboard instance for two configs', async () => {
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
     const config2 = { type: PlotType.TENSORBOARD, url: 'http://test/url2' };
+    const defaultVersion = '1.14.0'
     const getAppMock = jest.fn(() => Promise.resolve(''));
     const startAppMock = jest.fn(() => Promise.resolve(''));
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(getAppMock);
@@ -84,14 +88,14 @@ describe('Tensorboard', () => {
     const tree = shallow(<TensorboardViewer configs={[config, config2]} />);
     jest.spyOn(tree.instance(), 'setState').mockImplementation((_, cb) => cb && cb());
     await getAppMock;
-    expect(getAppMock).toHaveBeenCalledWith(`Series1:${config.url},Series2:${config2.url}`);
+    expect(getAppMock).toHaveBeenCalledWith(`Series1:${config.url},Series2:${config2.url}`, defaultVersion);
     tree.find('BusyButton').simulate('click');
     await startAppMock;
     const expectedUrl =
       `Series1${encodeURIComponent(':' + config.url)}` +
       `${encodeURIComponent(',')}` +
       `Series2${encodeURIComponent(':' + config2.url)}`;
-    expect(startAppMock).toHaveBeenCalledWith(expectedUrl);
+    expect(startAppMock).toHaveBeenCalledWith(expectedUrl, defaultVersion);
   });
 
   it('returns friendly display name', () => {
@@ -101,4 +105,29 @@ describe('Tensorboard', () => {
   it('is aggregatable', () => {
     expect(TensorboardViewer.prototype.isAggregatable()).toBeTruthy();
   });
+
+  it('set state', async () => {
+    const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
+    const tree = shallow(<TensorboardViewer configs={[config]} />);
+    const event = {target: {value: '2.0.0'}} as React.ChangeEvent<{ name?: string; value: unknown }>
+    
+    const onChangeMock = jest.fn((event) => {tree.setState({tensorflowVersion: event.target.value})})
+    jest.spyOn(TensorboardViewer.prototype, 'onChangeFunc').mockImplementation(onChangeMock);
+    TensorboardViewer.prototype.onChangeFunc(event);
+    expect(onChangeMock).toHaveBeenCalled();
+    expect(tree.state('tensorflowVersion')).toEqual('2.0.0')
+
+    // then call the remote api with new state version
+    const getAppMock = () => Promise.resolve('');
+    const startAppMock = jest.fn(() => Promise.resolve(''));
+    jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(getAppMock);
+    jest.spyOn(Apis, 'startTensorboardApp').mockImplementationOnce(startAppMock);
+    jest.spyOn(tree.instance(), 'setState').mockImplementation((_, cb) => cb && cb());
+    await getAppMock;
+    tree.find('BusyButton').simulate('click');
+    await startAppMock;
+    expect(startAppMock).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', tree.state('tensorflowVersion'));
+  });
+
+
 });

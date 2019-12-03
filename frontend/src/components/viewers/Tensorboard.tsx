@@ -64,6 +64,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     this._checkTensorboardApp();
   }
 
+  public onChangeFunc(e: React.ChangeEvent<{ name?: string; value: unknown }>): void {
+      this.setState({ tensorflowVersion: e.target.value as string });
+  }
+
   public render(): JSX.Element {
     // Strip the protocol from the URL. This is a workaround for cloud shell
     // incorrectly decoding the address and replacing the protocol's // with /.
@@ -100,9 +104,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                   defaultValue={this.state.tensorflowVersion}
                   value={this.state.tensorflowVersion}
                   input={<Input id='grouped-select' />}
-                  onChange={(e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
-                    this.setState({ tensorflowVersion: e.target.value as string });
-                  }}
+                  onChange={this.onChangeFunc.bind(this)}
                   style={{
                     minHeight: 40,
                   }}

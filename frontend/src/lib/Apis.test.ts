@@ -112,7 +112,7 @@ describe('Apis', () => {
     const spy = fetchSpy('http://some/address');
     expect(await Apis.getTensorboardApp('gs://log/dir', '1.14.0')).toEqual('http://some/address');
     expect(spy).toHaveBeenCalledWith(
-      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir'),
+      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir')+'&tfversion=1.14.0',
       { credentials: 'same-origin' },
     );
   });
@@ -121,7 +121,7 @@ describe('Apis', () => {
     const spy = fetchSpy('http://some/address');
     await Apis.startTensorboardApp('gs://log/dir', '1.14.0');
     expect(spy).toHaveBeenCalledWith(
-      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir'),
+      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir')+'&tfversion=1.14.0',
       {
         credentials: 'same-origin',
         headers: { 'content-type': 'application/json' },
