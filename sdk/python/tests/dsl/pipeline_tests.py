@@ -56,10 +56,10 @@ class TestPipeline(unittest.TestCase):
     def my_pipeline2():
       pass
     
-    self.assertEqual(my_pipeline1._pipeline_name, 'p1')
-    self.assertEqual(my_pipeline2._pipeline_name, 'p2')
-    self.assertEqual(my_pipeline1._pipeline_description, 'description1')
-    self.assertEqual(my_pipeline2._pipeline_description, 'description2')
+    self.assertEqual(my_pipeline1._component_human_name, 'p1')
+    self.assertEqual(my_pipeline2._component_human_name, 'p2')
+    self.assertEqual(my_pipeline1._component_description, 'description1')
+    self.assertEqual(my_pipeline2._component_description, 'description2')
 
   def test_decorator_metadata(self):
     """Test @pipeline decorator with metadata."""
