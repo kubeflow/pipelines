@@ -531,8 +531,7 @@
       "enum": [
         "UNKNOWN_RELATIONSHIP",
         "OWNER",
-        "CREATOR",
-        "BELONGING"
+        "CREATOR"
       ],
       "default": "UNKNOWN_RELATIONSHIP"
     },
