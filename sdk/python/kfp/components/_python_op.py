@@ -345,8 +345,8 @@ def _extract_component_interface(func) -> ComponentSpec:
     component_spec = ComponentSpec(
         name=component_name,
         description=description,
-        inputs=inputs,
-        outputs=outputs,
+        inputs=inputs if inputs else None,
+        outputs=outputs if outputs else None,
     )
     return component_spec
 
