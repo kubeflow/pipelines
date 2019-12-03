@@ -30,7 +30,6 @@ enum Relationship {
   UNKNOWN_RELATIONSHIP = 0;
   OWNER = 1;
   CREATOR = 2;
-  BELONGING = 3;
 }
 
 

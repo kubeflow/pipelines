@@ -44,7 +44,8 @@
               "EXPERIMENT",
               "JOB",
               "PIPELINE",
-              "PIPELINE_VERSION"
+              "PIPELINE_VERSION",
+              "NAMESPACE"
             ],
             "default": "UNKNOWN_RESOURCE_TYPE"
           },
@@ -525,8 +526,7 @@
       "enum": [
         "UNKNOWN_RELATIONSHIP",
         "OWNER",
-        "CREATOR",
-        "BELONGING"
+        "CREATOR"
       ],
       "default": "UNKNOWN_RELATIONSHIP"
     },
