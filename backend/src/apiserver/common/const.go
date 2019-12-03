@@ -32,8 +32,8 @@ const (
 )
 
 const (
-	Owner     Relationship = "Owner"
-	Creator   Relationship = "Creator"
+	Owner   Relationship = "Owner"
+	Creator Relationship = "Creator"
 )
 
 func ToModelResourceType(apiType api.ResourceType) (ResourceType, error) {
