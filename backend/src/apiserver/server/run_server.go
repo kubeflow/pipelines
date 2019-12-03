@@ -16,7 +16,6 @@ package server
 
 import (
 	"context"
-	"strings"
 
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -26,7 +25,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc/metadata"
 )
 
 type RunServer struct {
@@ -38,34 +36,19 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
-	if ctx != nil {
-		md, _ := metadata.FromIncomingContext(ctx)
-		// If the request header contains the user identity, requests are authorized
-		// based on the namespace field in the request.
-		if userIdentityHeader, ok := md[common.UserIdentityHeader]; ok {
-			if len(userIdentityHeader) != 1 {
-				return nil, util.NewBadRequestError(errors.New("Request header error: user identity value is empty"), "Request header error: user identity value is empty")
+	userIdentity, _ := GetUserIdentity(ctx)
+	if userIdentity != "" && common.IsKubeflowDeployment() {
+		//authenticate the requests based on the userIdentity and the namespace.
+		namespace := GetNamespaceFromRun(request.Run)
+		if len(namespace) != 0 {
+			authorized, err := IsRequestAuthorized(s.resourceManager, userIdentity, namespace)
+			if err != nil {
+				glog.Infof("Error: ", err.Error())
 			}
-			userIdentityHeaderFields := strings.Split(userIdentityHeader[0], ":")
-			if len(userIdentityHeaderFields) != 2 {
-				return nil, util.NewBadRequestError(errors.New("Request header error: user identity value is incorrectly formatted"), "Request header error: user identity value is incorrectly formatted")
-			}
-			userIdentity := userIdentityHeaderFields[1]
-
-			if common.IsKubeflowDeployment() {
-				//authenticate the requests based on the userIdentity and the namespace.
-				namespace := GetNamespaceFromRun(request.Run)
-				if len(namespace) != 0 {
-					authorized, err := IsRequestAuthorized(s.resourceManager, userIdentity, namespace)
-					if err != nil {
-						glog.Infof("Error: ", err.Error())
-					}
-					if authorized {
-						glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
-					} else {
-						return nil, util.NewBadRequestError(errors.New("Unauthorized access."), "Unauthorized access for "+userIdentity+" to namespace "+namespace)
-					}
-				}
+			if authorized {
+				glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
+			} else {
+				return nil, util.NewBadRequestError(errors.New("Unauthorized access."), "Unauthorized access for "+userIdentity+" to namespace "+namespace)
 			}
 		}
 	}
