@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from kfp.dsl import ContainerOp
-from kfp.utils import use_secret
+from kfp.dsl.extensions.kubernetes import use_secret
 import unittest
 import inspect
 
