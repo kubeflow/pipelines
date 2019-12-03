@@ -48,8 +48,8 @@ describe('deploy helloworld sample run', () => {
 
   it('uploads the sample pipeline', () => {
     browser.chooseFile('input[type="file"]', './helloworld.yaml');
-    $('#pipelineName').setValue(pipelineName);
-    $('#createPipelineVerionBtn').click();
+    $('#newPipelineName').setValue(pipelineName);
+    $('#createPipelineVersionBtn').click();
   });
 
   it('opens pipeline details', () => {
