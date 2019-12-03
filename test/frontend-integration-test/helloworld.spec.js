@@ -18,6 +18,7 @@ const URL = require('url').URL;
 const experimentName = 'helloworld-experiment-' + Date.now();
 const experimentDescription = 'hello world experiment description';
 const pipelineName = 'helloworld-pipeline-' + Date.now();
+const pipelineVersionName = 'helloworld-pipeline-version-' + Date.now();
 const runName = 'helloworld-' + Date.now();
 const runDescription = 'test run description ' + runName;
 const runWithoutExperimentName = 'helloworld-2-' + Date.now();
@@ -38,18 +39,17 @@ describe('deploy helloworld sample run', () => {
     browser.url('/');
   });
 
-  it('opens the pipeline upload dialog', () => {
-    $('#uploadBtn').click();
-    browser.waitForVisible('#uploadDialog', waitTimeout);
+  it('open pipeline creation page', () => {
+    $('#createPipelineVersionBtn').click();
+    browser.waitUntil(() => {
+      return new URL(browser.getUrl()).hash.startsWith('#/pipeline_versions/new');
+    }, waitTimeout);
   });
 
   it('uploads the sample pipeline', () => {
-    browser.chooseFile('#uploadDialog input[type="file"]', './helloworld.yaml');
-    const input = $('#uploadDialog #uploadFileName');
-    input.clearElement();
-    input.setValue(pipelineName);
-    $('#confirmUploadBtn').click();
-    browser.waitForVisible('#uploadDialog', waitTimeout, true);
+    browser.chooseFile('input[type="file"]', './helloworld.yaml');
+    $('#pipelineName').setValue(pipelineName);
+    $('#createPipelineVerionBtn').click();
   });
 
   it('opens pipeline details', () => {
