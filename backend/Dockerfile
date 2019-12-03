@@ -3,6 +3,8 @@ FROM $BAZEL_IMAGE as builder
 
 RUN apt-get update && \
   apt-get install -y cmake clang musl-dev openssl
+
+RUN pip3 install tfx==0.15.0
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY . .
