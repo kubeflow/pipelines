@@ -24,7 +24,7 @@ from kfp.dsl import _for_loop
 
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
-from ._op_to_template import _op_to_template
+from ._op_to_template import _op_to_template, _process_obj
 from ._default_transformers import add_pod_env
 
 from ..components._structures import InputSpec
@@ -402,7 +402,7 @@ class Compiler(object):
     else:
       return str(value_or_reference)
 
-  def _group_to_dag_template(self, group, inputs, outputs, dependencies):
+  def _group_to_dag_template(self, args, group, inputs, outputs, dependencies):
     """Generate template given an OpsGroup.
 
     inputs, outputs, dependencies are all helper dicts.
@@ -498,7 +498,13 @@ class Compiler(object):
               sanitized_tasks.append(c_dict)
           else:
             sanitized_tasks = loop_tasks
-          task['withItems'] = sanitized_tasks
+
+          map_to_tmpl_var = {
+            (param.pattern or str(param)): '{{workflow.parameters.%s}}' % param.full_name
+            for param in args
+          }
+
+          task['withItems'] = [_process_obj(v, map_to_tmpl_var) for v in sanitized_tasks]
 
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
@@ -545,7 +551,7 @@ class Compiler(object):
 
     return arguments
 
-  def _create_dag_templates(self, pipeline, op_transformers=None, op_to_templates_handler=None):
+  def _create_dag_templates(self, args, pipeline, op_transformers=None, op_to_templates_handler=None):
     """Create all groups and ops templates in the pipeline.
 
     Args:
@@ -597,7 +603,7 @@ class Compiler(object):
 
     templates = []
     for opsgroup in opsgroups.keys():
-      template = self._group_to_dag_template(opsgroups[opsgroup], inputs, outputs, dependencies)
+      template = self._group_to_dag_template(args, opsgroups[opsgroup], inputs, outputs, dependencies)
       templates.append(template)
 
     for op in pipeline.ops.values():
@@ -620,7 +626,7 @@ class Compiler(object):
       input_params.append(param)
 
     # Templates
-    templates = self._create_dag_templates(pipeline, op_transformers)
+    templates = self._create_dag_templates(args, pipeline, op_transformers)
     templates.sort(key=lambda x: x['name'])
 
     # Exit Handler
