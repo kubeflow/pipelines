@@ -274,14 +274,3 @@ func IsRequestAuthorized(resourceManager *resource.ResourceManager, userIdentity
 	glog.Infof("Authorizing user %s for namespace %s", userIdentity, namespace)
 	return resourceManager.IsRequestAuthorized(userIdentity, namespace)
 }
-
-func GetNamespaceFromRun(run *api.Run) string {
-	namespace := ""
-	for _, resourceRef := range run.ResourceReferences {
-		if resourceRef.Key.Type == api.ResourceType_NAMESPACE {
-			namespace = resourceRef.Key.Id
-			break
-		}
-	}
-	return namespace
-}

@@ -19,6 +19,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"strconv"
 
+	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -26,6 +27,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 )
+
+type FakeWorkflowClientInterface interface {
+	workflowclient.WorkflowInterface
+	GetWorkflowCount() int
+	GetWorkflowKeys() map[string]bool
+	isTerminated(name string) (bool, error)
+}
 
 type FakeWorkflowClient struct {
 	workflows       map[string]*v1alpha1.Workflow

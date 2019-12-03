@@ -15,11 +15,11 @@
 package resource
 
 import (
-	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
@@ -39,7 +39,7 @@ type FakeClientManager struct {
 	dBStatusStore               storage.DBStatusStoreInterface
 	defaultExperimentStore      storage.DefaultExperimentStoreInterface
 	objectStore                 storage.ObjectStoreInterface
-	workflowClientFake          *FakeWorkflowClient
+	workflowClientFake          FakeWorkflowClientInterface
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
 	podClientFake               v1.PodInterface
 	kfamClientFake              client.KFAMInterface
@@ -117,7 +117,7 @@ func (f *FakeClientManager) DB() *storage.DB {
 	return f.db
 }
 
-func (f *FakeClientManager) Workflow() workflowclient.WorkflowInterface {
+func (f *FakeClientManager) Workflow(namespace string) workflowclient.WorkflowInterface {
 	return f.workflowClientFake
 }
 

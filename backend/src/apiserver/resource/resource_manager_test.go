@@ -554,7 +554,7 @@ func TestCreateRun_CreateWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	manager.workflowClient = &FakeBadWorkflowClient{}
+	store.workflowClientFake = &FakeBadWorkflowClient{}
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
@@ -612,7 +612,7 @@ func TestDeleteRun_CrdFailure(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()
 
-	manager.workflowClient = &FakeBadWorkflowClient{}
+	store.workflowClientFake = &FakeBadWorkflowClient{}
 	err := manager.DeleteRun(runDetail.UUID)
 	//assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	//assert.Contains(t, err.Error(), "some error")
@@ -678,7 +678,7 @@ func TestDeleteExperiment_CrdFailure(t *testing.T) {
 	store, manager, experiment := initWithExperiment(t)
 	defer store.Close()
 
-	manager.workflowClient = &FakeBadWorkflowClient{}
+	store.workflowClientFake = &FakeBadWorkflowClient{}
 	err := manager.DeleteExperiment(experiment.UUID)
 	assert.Nil(t, err)
 }
@@ -767,7 +767,7 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
 
-	manager.workflowClient = &FakeBadWorkflowClient{}
+	store.workflowClientFake = &FakeBadWorkflowClient{}
 	err := manager.RetryRun(runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to create or update the run")
@@ -1314,7 +1314,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing
 
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFailed(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
-	manager.workflowClient = &FakeBadWorkflowClient{}
+	store.workflowClientFake = &FakeBadWorkflowClient{}
 	defer store.Close()
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{

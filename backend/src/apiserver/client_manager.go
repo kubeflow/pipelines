@@ -64,7 +64,7 @@ type ClientManager struct {
 	dBStatusStore          storage.DBStatusStoreInterface
 	defaultExperimentStore storage.DefaultExperimentStoreInterface
 	objectStore            storage.ObjectStoreInterface
-	wfClient               workflowclient.WorkflowInterface
+	wfClient               map[string]workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient              v1.PodInterface
 	kfamClient             client.KFAMInterface
@@ -104,8 +104,15 @@ func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
 	return c.objectStore
 }
 
-func (c *ClientManager) Workflow() workflowclient.WorkflowInterface {
-	return c.wfClient
+func (c *ClientManager) Workflow(namespace string) workflowclient.WorkflowInterface {
+	if namespace == "" {
+		namespace = common.GetStringConfig(podNamespace)
+	}
+	if _, ok := c.wfClient[namespace]; !ok {
+		c.wfClient[namespace] = client.CreateWorkflowClientOrFatal(
+			namespace, common.GetDurationConfig(initConnectionTimeout))
+	}
+	return c.wfClient[namespace]
 }
 
 func (c *ClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
@@ -147,7 +154,8 @@ func (c *ClientManager) init() {
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
 
-	c.wfClient = client.CreateWorkflowClientOrFatal(
+	c.wfClient = make(map[string]workflowclient.WorkflowInterface)
+	c.wfClient[common.GetStringConfig(podNamespace)] = client.CreateWorkflowClientOrFatal(
 		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
