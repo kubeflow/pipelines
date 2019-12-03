@@ -379,9 +379,12 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     component_spec = _extract_component_interface(func)
 
+    component_inputs = component_spec.inputs or []
+    component_outputs = component_spec.outputs or []
+
     arguments = []
-    arguments.extend(InputValuePlaceholder(input.name) for input in component_spec.inputs)
-    arguments.extend(OutputPathPlaceholder(output.name) for output in component_spec.outputs)
+    arguments.extend(InputValuePlaceholder(input.name) for input in component_inputs)
+    arguments.extend(OutputPathPlaceholder(output.name) for output in component_outputs)
 
     if use_code_pickling:
         func_code = _capture_function_code_using_cloudpickle(func, modules_to_capture)
@@ -444,10 +447,10 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
             description_repr=repr(component_spec.description or ''),
         ),
     ]
-    outputs_passed_through_func_return_tuple = [output for output in (component_spec.outputs or []) if output._passing_style is None]
-    file_outputs_passed_using_func_parameters = [output for output in (component_spec.outputs or []) if output._passing_style is not None]
+    outputs_passed_through_func_return_tuple = [output for output in component_outputs if output._passing_style is None]
+    file_outputs_passed_using_func_parameters = [output for output in component_outputs if output._passing_style is not None]
     arguments = []
-    for input in component_spec.inputs + file_outputs_passed_using_func_parameters:
+    for input in component_inputs + file_outputs_passed_using_func_parameters:
         param_flag = "--" + input.name.replace("_", "-")
         is_required = isinstance(input, OutputSpec) or not input.optional
         line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default=argparse.SUPPRESS)'.format(
