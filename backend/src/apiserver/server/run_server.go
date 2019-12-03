@@ -37,7 +37,9 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
 	userIdentity, _ := GetUserIdentity(ctx)
-	if userIdentity != "" && common.IsKubeflowDeployment() {
+	// Authorization only happens when the userIdentity exists in the request header
+	// and it is the kubeflow deployment, which deploys the KFAM.
+	if len(userIdentity) != 0 && common.IsKubeflowDeployment() {
 		//authenticate the requests based on the userIdentity and the namespace.
 		namespace := GetNamespaceFromRun(request.Run)
 		if len(namespace) != 0 {
