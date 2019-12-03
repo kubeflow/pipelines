@@ -31,7 +31,7 @@ from tfx.components.transform.component import Transform
 from tfx.orchestration import pipeline
 from tfx.orchestration.kubeflow import kubeflow_dag_runner
 from tfx.proto import evaluator_pb2
-from tfx.utils.dsl_utils import csv_input
+from tfx.utils.dsl_utils import external_input
 from tfx.proto import pusher_pb2
 from tfx.proto import trainer_pb2
 
@@ -68,34 +68,34 @@ def _create_test_pipeline(
   Returns:
     A logical TFX pipeline.Pipeline object.
   """
-  examples = csv_input(csv_input_location)
+  examples = external_input(csv_input_location)
 
-  example_gen = CsvExampleGen(input_base=examples)
-  statistics_gen = StatisticsGen(input_data=example_gen.outputs.examples)
+  example_gen = CsvExampleGen(input=examples)
+  statistics_gen = StatisticsGen(input_data=example_gen.outputs['examples'])
   infer_schema = SchemaGen(
-      stats=statistics_gen.outputs.output,
+      stats=statistics_gen.outputs['statistics'],
       infer_feature_shape=False,
   )
   validate_stats = ExampleValidator(
-      stats=statistics_gen.outputs.output,
-      schema=infer_schema.outputs.output,
+      stats=statistics_gen.outputs['statistics'],
+      schema=infer_schema.outputs['schema'],
   )
   transform = Transform(
-      input_data=example_gen.outputs.examples,
-      schema=infer_schema.outputs.output,
+      input_data=example_gen.outputs['examples'],
+      schema=infer_schema.outputs['schema'],
       module_file=taxi_module_file,
   )
   trainer = Trainer(
       module_file=taxi_module_file,
-      transformed_examples=transform.outputs.transformed_examples,
-      schema=infer_schema.outputs.output,
-      transform_output=transform.outputs.transform_output,
+      transformed_examples=transform.outputs['transformed_examples'],
+      schema=infer_schema.outputs['schema'],
+      transform_output=transform.outputs['transform_graph'],
       train_args=trainer_pb2.TrainArgs(num_steps=10),
       eval_args=trainer_pb2.EvalArgs(num_steps=5),
   )
   model_analyzer = Evaluator(
-      examples=example_gen.outputs.examples,
-      model_exports=trainer.outputs.output,
+      examples=example_gen.outputs['examples'],
+      model_exports=trainer.outputs['model'],
       feature_slicing_spec=evaluator_pb2.FeatureSlicingSpec(
           specs=[
               evaluator_pb2.SingleSlicingSpec(
@@ -105,7 +105,7 @@ def _create_test_pipeline(
       ),
   )
   model_validator = ModelValidator(
-      examples=example_gen.outputs.examples, model=trainer.outputs.output
+      examples=example_gen.outputs['examples'], model=trainer.outputs['model']
   )
 
   # Hack: ensuring push_destination can be correctly parameterized and interpreted.
@@ -114,8 +114,8 @@ def _create_test_pipeline(
   # https://github.com/tensorflow/tfx/blob/1c670e92143c7856f67a866f721b8a9368ede385/tfx/orchestration/kubeflow/kubeflow_dag_runner.py#L226
   _pipeline_root_param = dsl.PipelineParam(name='pipeline-root')
   pusher = Pusher(
-      model_export=trainer.outputs.output,
-      model_blessing=model_validator.outputs.blessing,
+      model_export=trainer.outputs['model'],
+      model_blessing=model_validator.outputs['blessing'],
       push_destination=pusher_pb2.PushDestination(
           filesystem=pusher_pb2.PushDestination.Filesystem(
               base_directory=os.path.
