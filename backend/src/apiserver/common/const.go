@@ -32,9 +32,8 @@ const (
 )
 
 const (
-	Owner     Relationship = "Owner"
-	Creator   Relationship = "Creator"
-	Belonging Relationship = "Belonging"
+	Owner   Relationship = "Owner"
+	Creator Relationship = "Creator"
 )
 
 const (
@@ -62,8 +61,6 @@ func ToModelRelationship(r api.Relationship) (Relationship, error) {
 		return Creator, nil
 	case api.Relationship_OWNER:
 		return Owner, nil
-	case api.Relationship_BELONGING:
-		return Belonging, nil
 	default:
 		return "", util.NewInvalidInputError("Unsupported resource relationship: %s", api.Relationship_name[int32(r)])
 	}

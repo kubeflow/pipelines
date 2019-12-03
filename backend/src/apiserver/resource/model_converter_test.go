@@ -203,7 +203,7 @@ func TestToModelResourceReferences_NamespaceRef(t *testing.T) {
 	defer store.Close()
 
 	modelRefs, err := manager.toModelResourceReferences("r1", common.Run, []*api.ResourceReference{
-		{Key: &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "e1"}, Relationship: api.Relationship_BELONGING},
+		{Key: &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "e1"}, Relationship: api.Relationship_OWNER},
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(modelRefs))
