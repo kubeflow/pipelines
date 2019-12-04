@@ -45,6 +45,8 @@ const (
 	mysqlPassword          = "DBConfig.Password"
 	mysqlDBName            = "DBConfig.DBName"
 	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
+	kfamServiceHost        = "KFAM_SERVICE_HOST"
+	kfamServicePort        = "KFAM_SERVICE_PORT"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -159,7 +161,7 @@ func (c *ClientManager) init() {
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
 
-	c.kfamClient = client.NewKFAMClient("profiles-kfam.kubeflow", "8081")
+	c.kfamClient = client.NewKFAMClient(kfamServiceHost, kfamServicePort)
 	glog.Infof("Client manager initialized successfully")
 }
 
