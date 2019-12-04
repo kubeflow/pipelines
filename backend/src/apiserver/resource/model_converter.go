@@ -200,17 +200,15 @@ func (r *ResourceManager) toModelResourceReferences(
 			return nil, util.Wrap(err, "Failed to find the referred resource")
 		}
 		//TODO(gaoning777) further investigation: Is the plain namespace a good option?  maybe uuid for distinctness even with namespace deletion/recreation.
-		if apiRef.Key.Type != api.ResourceType_NAMESPACE {
-			modelRef := &model.ResourceReference{
-				ResourceUUID:  resourceId,
-				ResourceType:  resourceType,
-				ReferenceUUID: apiRef.Key.Id,
-				ReferenceName: referenceName,
-				ReferenceType: modelReferenceType,
-				Relationship:  modelRelationship,
-			}
-			modelRefs = append(modelRefs, modelRef)
+		modelRef := &model.ResourceReference{
+			ResourceUUID:  resourceId,
+			ResourceType:  resourceType,
+			ReferenceUUID: apiRef.Key.Id,
+			ReferenceName: referenceName,
+			ReferenceType: modelReferenceType,
+			Relationship:  modelRelationship,
 		}
+		modelRefs = append(modelRefs, modelRef)
 	}
 	return modelRefs, nil
 }
