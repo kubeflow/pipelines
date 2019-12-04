@@ -281,7 +281,7 @@ func GetUserIdentity(ctx context.Context) (string, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	// If the request header contains the user identity, requests are authorized
 	// based on the namespace field in the request.
-	if userIdentityHeader, ok := md[common.UserIdentityHeader]; ok {
+	if userIdentityHeader, ok := md[common.GoogleIAPUserIdentityHeader]; ok {
 		if len(userIdentityHeader) != 1 {
 			return "", util.NewBadRequestError(errors.New("Request header error: user identity value is empty"), "Request header error: user identity value is empty")
 		}
