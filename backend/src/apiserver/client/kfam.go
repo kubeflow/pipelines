@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/pkg/errors"
 )
 
 type KFAMInterface interface {
@@ -42,28 +43,28 @@ type Bindings struct {
 func (c *KFAMClient) IsAuthorized(userIdentity string, namespace string) (bool, error) {
 	req, err := http.NewRequest("GET", c.kfamServiceUrl, nil)
 	if err != nil {
-		return false, util.Wrap(err, "Failed to create a KFAM http request.")
+		return false, util.NewInternalServerError(err, "Failed to create a KFAM http request.")
 	}
 	q := req.URL.Query()
 	q.Add("user", userIdentity)
 	req.URL.RawQuery = q.Encode()
 	resp, err := http.Get(req.URL.String())
 	if err != nil {
-		return false, util.Wrap(err, "Failure to connect to the KFAM service.")
+		return false, util.NewInternalServerError(err, "Failure to connect to the KFAM service.")
 	}
 	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf(resp.Status)
+		return false, util.NewInternalServerError(errors.New("Requests to the KFAM service fails."), resp.Status)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return false, util.Wrap(err, "Unable to parse KFAM response.")
+		return false, util.NewInternalServerError(err, "Unable to parse KFAM response.")
 	}
 	glog.Info(string(body))
 	var jsonBindings Bindings
 	err = json.Unmarshal(body, &jsonBindings)
 	if err != nil {
-		return false, util.Wrap(err, "Failure to parse KFAM response.")
+		return false, util.NewInternalServerError(err, "Failure to parse KFAM response.")
 	}
 	nsFound := false
 	for _, jsonBinding := range jsonBindings.Bindings {
