@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
+import { NodePhase } from './StatusUtils';
 import {
-  logger,
-  formatDateString,
   enabledDisplayString,
+  formatDateString,
+  generateMinioArtifactUrl,
   getRunDuration,
   getRunDurationFromWorkflow,
+  logger,
 } from './Utils';
-import { NodePhase } from './StatusUtils';
 
 describe('Utils', () => {
   describe('log', () => {
@@ -234,6 +235,22 @@ describe('Utils', () => {
         },
       } as any;
       expect(getRunDurationFromWorkflow(workflow)).toBe('-0:00:02');
+    });
+  });
+
+  describe('generateMinioArtifactUrl', () => {
+    it('handles minio:// URIs', () => {
+      expect(generateMinioArtifactUrl('minio://my-bucket/a/b/c')).toBe(
+        'artifacts/get?source=minio&bucket=my-bucket&key=a/b/c',
+      );
+    });
+
+    it('handles non-minio URIs', () => {
+      expect(generateMinioArtifactUrl('minio://my-bucket-a-b-c')).toBe(undefined);
+    });
+
+    it('handles broken minio URIs', () => {
+      expect(generateMinioArtifactUrl('ZZZ://my-bucket/a/b/c')).toBe(undefined);
     });
   });
 });
