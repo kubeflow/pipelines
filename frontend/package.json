@@ -99,6 +99,7 @@
   "jest": {
     "collectCoverageFrom": [
       "src/**/*.{ts,tsx}",
+      "!src/**/*.d.ts",
       "!src/apis/**/*.ts",
       "!src/icons/*.tsx",
       "!src/third_party/*",
