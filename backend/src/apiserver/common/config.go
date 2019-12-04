@@ -60,8 +60,5 @@ func GetDurationConfig(configName string) time.Duration {
 }
 
 func IsKubeflowDeployment() bool {
-	if !viper.IsSet(deployment) {
-		return false
-	}
-	return viper.GetString(deployment) == kubeflowDeployment
+	return GetStringConfigWithDefault(deployment, "") == kubeflowDeployment
 }
