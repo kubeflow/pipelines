@@ -461,7 +461,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
           {/* Create pipeline or pipeline version */}
           <div className={commonCss.flex}>
             <BusyButton
-              id='createPipelineVersionBtn'
+              id='createNewPipelineOrVersionBtn'
               disabled={!!validationError}
               busy={isbeingCreated}
               className={commonCss.buttonAction}
@@ -469,7 +469,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
               onClick={this._create.bind(this)}
             />
             <Button
-              id='cancelNewPipelineVersionBtn'
+              id='cancelNewPipelineOrVersionBtn'
               onClick={() => this.props.history.push(RoutePage.PIPELINES)}
             >
               Cancel

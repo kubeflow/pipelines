@@ -18,7 +18,6 @@ const URL = require('url').URL;
 const experimentName = 'helloworld-experiment-' + Date.now();
 const experimentDescription = 'hello world experiment description';
 const pipelineName = 'helloworld-pipeline-' + Date.now();
-const pipelineVersionName = 'helloworld-pipeline-version-' + Date.now();
 const runName = 'helloworld-' + Date.now();
 const runDescription = 'test run description ' + runName;
 const runWithoutExperimentName = 'helloworld-2-' + Date.now();
@@ -47,14 +46,13 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('uploads the sample pipeline', () => {
-    browser.chooseFile('input[type="file"]', './helloworld.yaml');
-    $('#pipelineName').setValue(pipelineName);
-    $('#createPipelineVerionBtn').click();
-  });
-
-  it('opens pipeline details', () => {
-    $('.tableRow a').waitForVisible(waitTimeout);
-    browser.execute('document.querySelector(".tableRow a").click()');
+    $('#localPackageBtn').click();
+    browser.chooseFile('#dropZone input[type="file"]', './helloworld.yaml');
+    $('#newPipelineName').setValue(pipelineName);
+    $('#createNewPipelineOrVersionBtn').click();
+    browser.waitUntil(() => {
+      return new URL(browser.getUrl()).hash.startsWith('#/pipelines/details');
+    }, waitTimeout);
   });
 
   it('shows a 4-node static graph', () => {
@@ -86,6 +84,16 @@ describe('deploy helloworld sample run', () => {
     $('#usePipelineBtn').click();
 
     $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
+
+    $('#choosePipelineVersionBtn').waitForVisible();
+    $('#choosePipelineVersionBtn').click();
+
+    $('.tableRow').waitForVisible();
+    $('.tableRow').click();
+
+    $('#usePipelineVersionBtn').click();
+
+    $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout, true);
 
     browser.keys('Tab');
     browser.keys(runName);

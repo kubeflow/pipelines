@@ -192,12 +192,12 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
         busy={false}
         className="buttonAction"
         disabled={true}
-        id="createPipelineVersionBtn"
+        id="createNewPipelineOrVersionBtn"
         onClick={[Function]}
         title="Create"
       />
       <WithStyles(Button)
-        id="cancelNewPipelineVersionBtn"
+        id="cancelNewPipelineOrVersionBtn"
         onClick={[Function]}
       >
         Cancel

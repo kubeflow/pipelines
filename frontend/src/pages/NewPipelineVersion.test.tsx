@@ -235,7 +235,7 @@ describe('NewPipelineVersion', () => {
       });
       await TestUtils.flushPromises();
 
-      tree.find('#createPipelineVersionBtn').simulate('click');
+      tree.find('#createNewPipelineOrVersionBtn').simulate('click');
       // The APIs are called in a callback triggered by clicking 'Create', so we wait again
       await TestUtils.flushPromises();
 
@@ -297,7 +297,7 @@ describe('NewPipelineVersion', () => {
       });
       await TestUtils.flushPromises();
 
-      tree.find('#createPipelineVersionBtn').simulate('click');
+      tree.find('#createNewPipelineOrVersionBtn').simulate('click');
       // The APIs are called in a callback triggered by clicking 'Create', so we wait again
       await TestUtils.flushPromises();
 
@@ -323,7 +323,7 @@ describe('NewPipelineVersion', () => {
       });
       const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
       (tree.instance() as TestNewPipelineVersion)._onDropForTest([file]);
-      tree.find('#createPipelineVersionBtn').simulate('click');
+      tree.find('#createNewPipelineOrVersionBtn').simulate('click');
 
       tree.update();
       await TestUtils.flushPromises();
