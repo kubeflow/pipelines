@@ -1,25 +1,31 @@
 steps:
   - name: "gcr.io/cloud-builders/docker"
+    id: "persistenceagent"
     args:
       ["build", "-t", "$_GCR_BASE/persistenceagent", "-f", "backend/Dockerfile.persistenceagent", "."]
     waitFor: ["-"]
   - name: "gcr.io/cloud-builders/docker"
+    id: "scheduledworkflow"
     args:
       ["build", "-t", "$_GCR_BASE/scheduledworkflow", "-f", "backend/Dockerfile.scheduledworkflow", "."]
     waitFor: ["-"]
   - name: "gcr.io/cloud-builders/docker"
+    id: "frontend"
     args:
       ["build", "-t", "$_GCR_BASE/frontend", "-f", "frontend/Dockerfile", "."]
     waitFor: ["-"]
   - name: "gcr.io/cloud-builders/docker"
+    id: "viewer-crd-controller"
     args:
       ["build", "-t", "$_GCR_BASE/viewer-crd-controller", "-f", "backend/Dockerfile.viewercontroller", "."]
     waitFor: ["-"]
   - name: "gcr.io/cloud-builders/docker"
+    id: "visualization-server"
     args:
       ["build", "-t", "$_GCR_BASE/visualization-server", "-f", "backend/Dockerfile.visualization", "."]
     waitFor: ["-"]
   - name: "gcr.io/cloud-builders/docker"
+    id: "inverse-proxy-agent"
     args:
       ["build", "-t", "$_GCR_BASE/inverse-proxy-agent", "-f", "proxy/Dockerfile", "./proxy"]
     waitFor: ["-"]
