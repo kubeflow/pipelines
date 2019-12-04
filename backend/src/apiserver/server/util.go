@@ -8,19 +8,18 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"io"
+	"io/ioutil"
+	"net/url"
 	"strconv"
+	"strings"
 
-	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/metadata"
-	"io"
-	"io/ioutil"
-	"net/url"
-	"strings"
 )
 
 // These are valid conditions of a ScheduledWorkflow.
@@ -295,11 +294,6 @@ func GetUserIdentity(ctx context.Context) (string, error) {
 		return userIdentityHeaderFields[1], nil
 	}
 	return "", nil
-}
-
-func IsRequestAuthorized(resourceManager *resource.ResourceManager, userIdentity string, namespace string) (bool, error) {
-	glog.Infof("Authorizing user %s for namespace %s", userIdentity, namespace)
-	return resourceManager.IsRequestAuthorized(userIdentity, namespace)
 }
 
 func GetNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) string {

@@ -43,7 +43,7 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 		//authenticate the requests based on the userIdentity and the namespace.
 		namespace := GetNamespaceFromResourceReferences(request.Run.ResourceReferences)
 		if len(namespace) != 0 {
-			authorized, err := IsRequestAuthorized(s.resourceManager, userIdentity, namespace)
+			authorized, err := s.resourceManager.IsRequestAuthorized(userIdentity, namespace)
 			if err != nil {
 				glog.Infof("Error: ", err.Error())
 			}
