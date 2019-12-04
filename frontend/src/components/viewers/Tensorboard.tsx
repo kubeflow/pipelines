@@ -65,7 +65,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   public onChangeFunc(e: React.ChangeEvent<{ name?: string; value: unknown }>): void {
-      this.setState({ tensorflowVersion: e.target.value as string });
+    this.setState({ tensorflowVersion: e.target.value as string });
   }
 
   public render(): JSX.Element {
@@ -148,7 +148,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
-      const podAddress = await Apis.getTensorboardApp(this._buildUrl(), this.state.tensorflowVersion);
+      const podAddress = await Apis.getTensorboardApp(
+        this._buildUrl(),
+        this.state.tensorflowVersion,
+      );
       this.setState({ busy: false, podAddress });
     });
   }
