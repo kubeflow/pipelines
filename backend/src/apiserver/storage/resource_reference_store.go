@@ -64,6 +64,8 @@ func (s *ResourceReferenceStore) checkReferenceExist(tx *sql.Tx, referenceId str
 		selectBuilder = sq.Select("1").From("experiments").Where(sq.Eq{"uuid": referenceId})
 	case common.PipelineVersion:
 		selectBuilder = sq.Select("1").From("pipeline_versions").Where(sq.Eq{"uuid": referenceId})
+	case common.Namespace:
+		return true
 	default:
 		return false
 	}
