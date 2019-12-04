@@ -8,18 +8,18 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"io"
+	"io/ioutil"
+	"net/url"
+	"strconv"
+	"strings"
 
-	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/metadata"
-	"io"
-	"io/ioutil"
-	"net/url"
-	"strings"
 )
 
 // These are valid conditions of a ScheduledWorkflow.
@@ -281,20 +281,28 @@ func GetUserIdentity(ctx context.Context) (string, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	// If the request header contains the user identity, requests are authorized
 	// based on the namespace field in the request.
-	if userIdentityHeader, ok := md[common.UserIdentityHeader]; ok {
+	if userIdentityHeader, ok := md[common.GoogleIAPUserIdentityHeader]; ok {
 		if len(userIdentityHeader) != 1 {
-			return "", util.NewBadRequestError(errors.New("Request header error: user identity value is empty"), "Request header error: user identity value is empty")
+			return "", util.NewBadRequestError(errors.New("Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader))),
+				"Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader)))
 		}
 		userIdentityHeaderFields := strings.Split(userIdentityHeader[0], ":")
 		if len(userIdentityHeaderFields) != 2 {
-			return "", util.NewBadRequestError(errors.New("Request header error: user identity value is incorrectly formatted"), "Request header error: user identity value is incorrectly formatted")
+			return "", util.NewBadRequestError(errors.New("Request header error: user identity value is incorrectly formatted"),
+				"Request header error: user identity value is incorrectly formatted")
 		}
 		return userIdentityHeaderFields[1], nil
 	}
 	return "", nil
 }
 
-func IsRequestAuthorized(resourceManager *resource.ResourceManager, userIdentity string, namespace string) (bool, error) {
-	glog.Infof("Authorizing user %s for namespace %s", userIdentity, namespace)
-	return resourceManager.IsRequestAuthorized(userIdentity, namespace)
+func GetNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) string {
+	namespace := ""
+	for _, resourceRef := range resourceRefs {
+		if resourceRef.Key.Type == api.ResourceType_NAMESPACE {
+			namespace = resourceRef.Key.Id
+			break
+		}
+	}
+	return namespace
 }

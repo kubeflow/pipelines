@@ -199,7 +199,8 @@ func (r *ResourceManager) toModelResourceReferences(
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to find the referred resource")
 		}
-		//TODO further investigation: Is the plain namespace a good option?  maybe uuid for distinctness even with namespace deletion/recreation.
+    
+		//TODO(gaoning777) further investigation: Is the plain namespace a good option?  maybe uuid for distinctness even with namespace deletion/recreation.
 		if apiRef.Key.Type != api.ResourceType_NAMESPACE {
 			modelRef := &model.ResourceReference{
 				ResourceUUID:  resourceId,

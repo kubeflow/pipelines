@@ -321,3 +321,27 @@ export function generateGcsConsoleUri(gcsUri: string): string | undefined {
 
   return GCS_CONSOLE_BASE + gcsUri.substring(GCS_URI_PREFIX.length);
 }
+
+const MINIO_URI_PREFIX = 'minio://';
+
+function generateArtifactUrl(source: string, bucket: string, key: string): string {
+  return `artifacts/get?source=${source}&bucket=${bucket}&key=${key}`;
+}
+
+/**
+ * Generates an HTTPS API URL from minio:// uri
+ *
+ * @param minioUri Minio uri that starts with minio://, like minio://ml-pipeline/path/file
+ * @returns A URL that leads to the artifact data. Returns undefined when minioUri is not valid.
+ */
+export function generateMinioArtifactUrl(minioUri: string): string | undefined {
+  if (!minioUri.startsWith(MINIO_URI_PREFIX)) {
+    return undefined;
+  }
+
+  const matches = minioUri.match(/^minio:\/\/([^\/]+)\/(.+)$/);
+  if (matches == null) {
+    return undefined;
+  }
+  return generateArtifactUrl('minio', matches[1], matches[2]);
+}

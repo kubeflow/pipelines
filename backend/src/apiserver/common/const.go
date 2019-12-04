@@ -37,7 +37,7 @@ const (
 )
 
 const (
-	UserIdentityHeader	string = "x-goog-authenticated-user-email"
+	GoogleIAPUserIdentityHeader	string = "x-goog-authenticated-user-email"
 )
 
 func ToModelResourceType(apiType api.ResourceType) (ResourceType, error) {
