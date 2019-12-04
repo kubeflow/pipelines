@@ -24,7 +24,7 @@ package reconciler
 import (
 	"context"
 	"fmt"
-	"regexp"
+	"strings"
 
 	"github.com/golang/glog"
 	viewerV1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta1"
@@ -182,8 +182,7 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 		// "--bind_all",
 	}
 
-	matched, _ := regexp.MatchString(`tensorflow/tensorflow:2.`, view.Spec.TensorboardSpec.TensorflowImage)
-	if matched {
+	if strings.HasPrefix(view.Spec.TensorboardSpec.TensorflowImage, `tensorflow/tensorflow:2.`) {
 		c.Args = append(c.Args, "--bind_all")
 	}
 
