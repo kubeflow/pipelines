@@ -50,10 +50,10 @@ func (c *KFAMClient) IsAuthorized(userIdentity string, namespace string) (bool, 
 	req.URL.RawQuery = q.Encode()
 	resp, err := http.Get(req.URL.String())
 	if err != nil {
-		return false, util.NewInternalServerError(err, "Failure to connect to the KFAM service.")
+		return false, util.NewInternalServerError(err, "Failed to connect to the KFAM service.")
 	}
 	if resp.StatusCode != http.StatusOK {
-		return false, util.NewInternalServerError(errors.New("Requests to the KFAM service fails."), resp.Status)
+		return false, util.NewInternalServerError(errors.New("Requests to the KFAM service failed."), resp.Status)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
@@ -64,7 +64,7 @@ func (c *KFAMClient) IsAuthorized(userIdentity string, namespace string) (bool, 
 	var jsonBindings Bindings
 	err = json.Unmarshal(body, &jsonBindings)
 	if err != nil {
-		return false, util.NewInternalServerError(err, "Failure to parse KFAM response.")
+		return false, util.NewInternalServerError(err, "Failed to parse KFAM response.")
 	}
 	nsFound := false
 	for _, jsonBinding := range jsonBindings.Bindings {
