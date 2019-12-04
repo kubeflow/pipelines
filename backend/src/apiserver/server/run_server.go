@@ -41,7 +41,7 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	// and it is the kubeflow deployment, which deploys the KFAM.
 	if len(userIdentity) != 0 && common.IsKubeflowDeployment() {
 		//authenticate the requests based on the userIdentity and the namespace.
-		namespace := GetNamespaceFromRun(request.Run)
+		namespace := GetNamespaceFromResourceReferences(request.Run.ResourceReferences)
 		if len(namespace) != 0 {
 			authorized, err := IsRequestAuthorized(s.resourceManager, userIdentity, namespace)
 			if err != nil {
