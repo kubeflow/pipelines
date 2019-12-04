@@ -284,11 +284,13 @@ func GetUserIdentity(ctx context.Context) (string, error) {
 	// based on the namespace field in the request.
 	if userIdentityHeader, ok := md[common.GoogleIAPUserIdentityHeader]; ok {
 		if len(userIdentityHeader) != 1 {
-			return "", util.NewBadRequestError(errors.New("Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader))), "Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader)))
+			return "", util.NewBadRequestError(errors.New("Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader))),
+				"Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader)))
 		}
 		userIdentityHeaderFields := strings.Split(userIdentityHeader[0], ":")
 		if len(userIdentityHeaderFields) != 2 {
-			return "", util.NewBadRequestError(errors.New("Request header error: user identity value is incorrectly formatted"), "Request header error: user identity value is incorrectly formatted")
+			return "", util.NewBadRequestError(errors.New("Request header error: user identity value is incorrectly formatted"),
+				"Request header error: user identity value is incorrectly formatted")
 		}
 		return userIdentityHeaderFields[1], nil
 	}
