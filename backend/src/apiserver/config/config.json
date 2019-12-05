@@ -10,8 +10,6 @@
     "SecretAccessKey": "minio123",
     "BucketName": "mlpipeline"
   },
-  "KFAM_SERVICE_HOST": "profiles-kfam.kubeflow",
-  "KFAM_SERVICE_PORT": "8081",
   "InitConnectionTimeout": "6m",
   "DefaultPipelineRunnerServiceAccount": "pipeline-runner"
 }
