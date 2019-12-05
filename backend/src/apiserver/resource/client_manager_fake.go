@@ -42,7 +42,7 @@ type FakeClientManager struct {
 	workflowClientFake          *FakeWorkflowClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
 	podClientFake               v1.PodInterface
-	kfamClientFake              client.KFAMInterface
+	kfamClientFake              client.KFAMClientInterface
 	time                        util.TimeInterface
 	uuid                        util.UUIDGeneratorInterface
 }
@@ -149,7 +149,7 @@ func (f *FakeClientManager) PodClient() v1.PodInterface {
 	return f.podClientFake
 }
 
-func (f *FakeClientManager) KFAMClient() client.KFAMInterface {
+func (f *FakeClientManager) KFAMClient() client.KFAMClientInterface {
 	return f.kfamClientFake
 }
 

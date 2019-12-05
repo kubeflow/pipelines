@@ -69,7 +69,7 @@ type ClientManager struct {
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient              v1.PodInterface
-	kfamClient             client.KFAMInterface
+	kfamClient             client.KFAMClientInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 }
@@ -118,7 +118,7 @@ func (c *ClientManager) PodClient() v1.PodInterface {
 	return c.podClient
 }
 
-func (c *ClientManager) KFAMClient() client.KFAMInterface {
+func (c *ClientManager) KFAMClient() client.KFAMClientInterface {
 	return c.kfamClient
 }
 

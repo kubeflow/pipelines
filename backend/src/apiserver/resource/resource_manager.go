@@ -56,7 +56,7 @@ type ClientManagerInterface interface {
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
 	PodClient() corev1.PodInterface
-	KFAMClient() client.KFAMInterface
+	KFAMClient() client.KFAMClientInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
 }
@@ -73,7 +73,7 @@ type ResourceManager struct {
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient               corev1.PodInterface
-	kfamClient              client.KFAMInterface
+	kfamClient              client.KFAMClientInterface
 	time                    util.TimeInterface
 	uuid                    util.UUIDGeneratorInterface
 }

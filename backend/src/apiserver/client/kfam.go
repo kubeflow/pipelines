@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type KFAMInterface interface {
+type KFAMClientInterface interface {
 	IsAuthorized(userIdentity string, namespace string) (bool, error)
 }
 
