@@ -42,7 +42,7 @@ import (
 const (
 	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
 	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
-	defaultServiceAccount = "default-editor"
+	defaultServiceAccount                     = "default-editor"
 )
 
 type ClientManagerInterface interface {
@@ -268,7 +268,11 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 
-	workflow.SetServiceAccount(defaultServiceAccount)
+	if common.IsMultiuserMode() {
+		workflow.SetServiceAccount(defaultServiceAccount)
+	} else {
+		workflow.SetServiceAccount(defaultPipelineRunnerServiceAccount)
+	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
 	// Add label to the workflow so it can be persisted by persistent agent later.
