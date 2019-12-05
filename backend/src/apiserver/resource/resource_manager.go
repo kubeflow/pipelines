@@ -268,10 +268,12 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 
-	if common.IsMultiuserMode() {
-		workflow.SetServiceAccount(defaultServiceAccount)
-	} else {
-		workflow.SetServiceAccount(defaultPipelineRunnerServiceAccount)
+	if len(workflow.Spec.ServiceAccountName) == 0 {
+		if common.IsMultiuserMode() {
+			workflow.SetServiceAccount(defaultServiceAccount)
+		} else {
+			workflow.SetServiceAccount(defaultPipelineRunnerServiceAccount)
+		}
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
