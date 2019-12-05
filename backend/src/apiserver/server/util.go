@@ -276,7 +276,7 @@ func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, re
 
 func GetUserIdentity(ctx context.Context) (string, error) {
 	if ctx == nil {
-		return "", nil
+		return "", util.NewBadRequestError(errors.New("Request error: context is nil"),"Request error: context is nil.")
 	}
 	md, _ := metadata.FromIncomingContext(ctx)
 	// If the request header contains the user identity, requests are authorized
@@ -293,7 +293,7 @@ func GetUserIdentity(ctx context.Context) (string, error) {
 		}
 		return userIdentityHeaderFields[1], nil
 	}
-	return "", nil
+	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."),"Request header error: there is no user identity header.")
 }
 
 func GetNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) string {

@@ -36,22 +36,29 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
-	userIdentity, _ := GetUserIdentity(ctx)
-	// Authorization only happens when the userIdentity exists in the request header
-	// and it is the kubeflow deployment, which deploys the KFAM.
-	if len(userIdentity) != 0 && common.IsKubeflowDeployment() {
+	if(common.IsMultiuserMode()) {
+		userIdentity, err := GetUserIdentity(ctx)
+		if len(userIdentity) == 0{
+			return nil, util.Wrap(err, "Failed to retrieve user identity.")
+		}
+		if common.IsKubeflowDeployment() == false {
+			return nil, util.NewBadRequestError(errors.New("Kubeflow Pipeline only supports multi-user for Kubeflow deployment."),
+				"Kubeflow Pipeline only supports multi-user for Kubeflow deployment.")
+		}
 		//authenticate the requests based on the userIdentity and the namespace.
 		namespace := GetNamespaceFromResourceReferences(request.Run.ResourceReferences)
-		if len(namespace) != 0 {
-			authorized, err := s.resourceManager.IsRequestAuthorized(userIdentity, namespace)
-			if err != nil {
-				glog.Infof("Error: ", err.Error())
-			}
-			if authorized {
-				glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
-			} else {
-				return nil, util.NewBadRequestError(errors.New("Unauthorized access."), "Unauthorized access for "+userIdentity+" to namespace "+namespace)
-			}
+		if len(namespace) == 0 {
+			return nil, util.NewBadRequestError(errors.New("In multiuser mode, namespace needs to be specified."),
+				"In multiuser mode, namespace needs to be specified..")
+		}
+		authorized, err := s.resourceManager.IsRequestAuthorized(userIdentity, namespace)
+		if err != nil {
+			glog.Infof("Error: ", err.Error())
+		}
+		if authorized {
+			glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
+		} else {
+			return nil, util.NewBadRequestError(errors.New("Unauthorized access."), "Unauthorized access for "+userIdentity+" to namespace "+namespace)
 		}
 	}
 
