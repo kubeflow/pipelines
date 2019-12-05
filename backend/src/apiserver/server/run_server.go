@@ -17,14 +17,11 @@ package server
 import (
 	"context"
 
-	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/pkg/errors"
 )
 
 type RunServer struct {
@@ -36,23 +33,17 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
-	userIdentity, _ := GetUserIdentity(ctx)
-	// Authorization only happens when the userIdentity exists in the request header
-	// and it is the kubeflow deployment, which deploys the KFAM.
-	if len(userIdentity) != 0 && common.IsKubeflowDeployment() {
-		//authenticate the requests based on the userIdentity and the namespace.
-		namespace := GetNamespaceFromResourceReferences(request.Run.ResourceReferences)
-		if len(namespace) != 0 {
-			authorized, err := s.resourceManager.IsRequestAuthorized(userIdentity, namespace)
-			if err != nil {
-				glog.Infof("Error: ", err.Error())
-			}
-			if authorized {
-				glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
-			} else {
-				return nil, util.NewBadRequestError(errors.New("Unauthorized access."), "Unauthorized access for "+userIdentity+" to namespace "+namespace)
-			}
-		}
+	userIdentity, err := GetUserIdentity(ctx)
+	if err != nil {
+		return nil, util.Wrap(err, "Bad request.")
+	}
+	namespace := GetNamespaceFromResourceReferences(request.Run.ResourceReferences)
+	isAuthorized, err := Authorize(s.resourceManager, userIdentity, namespace)
+	if err != nil {
+		return nil, util.Wrap(err, "Authorization failure.")
+	}
+	if isAuthorized == false {
+		return nil, util.NewBadRequestError(err, "Unauthorized access for "+userIdentity+" to namespace "+namespace)
 	}
 
 	if err != nil {

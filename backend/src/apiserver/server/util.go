@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -305,4 +306,25 @@ func GetNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) s
 		}
 	}
 	return namespace
+}
+
+func Authorize(resourceManager *resource.ResourceManager, userIdentity string, namespace string) (bool, error) {
+	// Authorization only happens when the userIdentity exists in the request header
+	// and it is the kubeflow deployment, which deploys the KFAM.
+	if len(userIdentity) != 0 && common.IsKubeflowDeployment() {
+		//authenticate the requests based on the userIdentity and the namespace.
+		if len(namespace) != 0 {
+			authorized, err := resourceManager.IsRequestAuthorized(userIdentity, namespace)
+			if err != nil {
+				return false, err
+			}
+			if authorized == false {
+				return false, errors.New("Unauthorized access for " + userIdentity + " to namespace " + namespace)
+			}
+			glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
+		} else {
+			return false, errors.New("Namespace required in Kubeflow deployment when the user identity exists.")
+		}
+	}
+	return true, nil
 }
