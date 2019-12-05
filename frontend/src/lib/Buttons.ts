@@ -623,12 +623,10 @@ export default class Buttons {
     if (fromRunId) {
       searchString = this._urlParser.build(Object.assign({ [QUERY_PARAMS.fromRunId]: fromRunId }));
     } else {
-      searchString = this._urlParser.build(
-        Object.assign({
-          [QUERY_PARAMS.pipelineId]: pipelineId || '',
-          [QUERY_PARAMS.pipelineVersionId]: pipelineVersionId || '',
-        }),
-      );
+      searchString = this._urlParser.build({
+        [QUERY_PARAMS.pipelineId]: pipelineId || '',
+        [QUERY_PARAMS.pipelineVersionId]: pipelineVersionId || '',
+      });
     }
 
     this._props.history.push(RoutePage.NEW_RUN + searchString);

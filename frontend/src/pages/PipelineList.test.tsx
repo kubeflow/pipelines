@@ -33,6 +33,7 @@ describe('PipelineList', () => {
   let updateToolbarSpy: jest.Mock<{}>;
   let listPipelinesSpy: jest.SpyInstance<{}>;
   let deletePipelineSpy: jest.SpyInstance<{}>;
+  let deletePipelineVersionSpy: jest.SpyInstance<{}>;
 
   function spyInit() {
     updateBannerSpy = jest.fn();
@@ -41,6 +42,7 @@ describe('PipelineList', () => {
     updateToolbarSpy = jest.fn();
     listPipelinesSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
     deletePipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipeline');
+    deletePipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipelineVersion');
   }
 
   function generateProps(): PageProps {
@@ -491,6 +493,42 @@ describe('PipelineList', () => {
     // Should show snackbar for the one successful deletion
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
       message: 'Deletion succeeded for 2 pipelines',
+      open: true,
+    });
+  });
+
+  it.only("delete a pipeline and some other pipeline's version together", async () => {
+    deletePipelineSpy.mockImplementation(() => Promise.resolve());
+    deletePipelineVersionSpy.mockImplementation(() => Promise.resolve());
+
+    tree = shallow(<PipelineList {...generateProps()} />);
+    tree.setState({
+      selectedIds: ['test-pipeline-id0'],
+      selectedVersionIds: { 'test-pipeline-id1': ['test-pipeline-id1_default_version'] },
+    });
+    const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
+      ButtonKeys.DELETE_RUN
+    ];
+    await deleteBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    await confirmBtn.onClick();
+
+    await deletePipelineSpy;
+    await deletePipelineVersionSpy;
+
+    expect(deletePipelineSpy).toHaveBeenCalledTimes(1);
+    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0');
+
+    expect(deletePipelineVersionSpy).toHaveBeenCalledTimes(1);
+    expect(deletePipelineVersionSpy).toHaveBeenCalledWith('test-pipeline-id1_default_version');
+
+    expect(tree.state()).toHaveProperty('selectedIds', []);
+    expect(tree.state()).toHaveProperty('selectedVersionIds', { 'test-pipeline-id1': [] });
+
+    // Should show snackbar for the one successful deletion
+    expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
+      message: 'Deletion succeeded for 1 pipeline and 1 pipeline version',
       open: true,
     });
   });

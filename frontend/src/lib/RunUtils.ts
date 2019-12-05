@@ -84,10 +84,10 @@ function getPipelineIdFromApiPipelineVersion(
   return pipelineVersion &&
     pipelineVersion.resource_references &&
     pipelineVersion.resource_references.some(
-      ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINE,
+      ref => ref.key && ref.key.type && ref.key.id && ref.key.type === ApiResourceType.PIPELINE,
     )
     ? pipelineVersion.resource_references.find(
-        ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINE,
+        ref => ref.key && ref.key.type && ref.key.id && ref.key.type === ApiResourceType.PIPELINE,
       )!.key!.id!
     : undefined;
 }

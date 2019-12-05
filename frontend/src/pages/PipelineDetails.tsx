@@ -249,8 +249,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                                   onChange={event => this.handleVersionSelected(event.target.value)}
                                   inputProps={{ id: 'version-selector', name: 'selectedVersion' }}
                                 >
-                                  {versions.map((v, i) => (
-                                    <MenuItem key={i} value={v.id}>
+                                  {versions.map((v, _) => (
+                                    <MenuItem key={v.id} value={v.id}>
                                       {v.name}
                                     </MenuItem>
                                   ))}
@@ -347,7 +347,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         this.state.pipeline.id!,
         versionId,
       );
-      // TODO(rjbauer): remove last history entry
       this.props.history.replace({
         pathname: `/pipelines/details/${this.state.pipeline.id}/version/${versionId}`,
       });
@@ -374,7 +373,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     let pipeline: ApiPipeline | null = null;
     let version: ApiPipelineVersion | null = null;
     let templateString = '';
-    // let template: Workflow | undefined;
     let breadcrumbs: Array<{ displayName: string; href: string }> = [];
     const toolbarActions = this.props.toolbarProps.actions;
     let pageTitle = '';
@@ -482,8 +480,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           // TODO(jingzhang36): pagination not proper here. so if many versions,
           // the page size value should be?
           versions =
-            (await Apis.pipelineServiceApi.listPipelineVersions('PIPELINE', pipelineId, 50))
-              .versions || [];
+            (await Apis.pipelineServiceApi.listPipelineVersions(
+              'PIPELINE',
+              pipelineId,
+              50,
+              undefined,
+              'created_at desc',
+            )).versions || [];
         } catch (err) {
           await this.showPageError('Cannot retrieve pipeline versions.', err);
           logger.error('Cannot retrieve pipeline versions.', err);
