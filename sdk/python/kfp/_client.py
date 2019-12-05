@@ -317,7 +317,7 @@ class Client(object):
         value=str(v)) for k,v in params.items()]
     key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
-    reference = kfp_server_api.models.ApiResourceReference(key, kfp_server_api.models.ApiRelationship.OWNER)
+    reference = kfp_server_api.models.ApiResourceReference(key=key, relationship=kfp_server_api.models.ApiRelationship.OWNER)
     spec = kfp_server_api.models.ApiPipelineSpec(
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string,
