@@ -320,7 +320,6 @@ class Client(object):
     key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
     reference = kfp_server_api.models.ApiResourceReference(key=key,
-                                                           name='',
                                                            relationship=kfp_server_api.models.ApiRelationship.OWNER)
     resource_references.append(reference)
     if namespace is not None:

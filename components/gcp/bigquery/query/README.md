@@ -89,7 +89,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 bigquery_query_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/4e7e6e866c1256e641b0c3effc55438e6e4b30f6/components/gcp/bigquery/query/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/a8d3b6977df26a89701cd229f01c1840a8475521/components/gcp/bigquery/query/component.yaml')
 help(bigquery_query_op)
 ```
 
