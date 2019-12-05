@@ -268,6 +268,8 @@ func toApiResourceType(modelType common.ResourceType) api.ResourceType {
 		return api.ResourceType_JOB
 	case common.PipelineVersion:
 		return api.ResourceType_PIPELINE_VERSION
+	case common.Namespace:
+		return api.ResourceType_NAMESPACE
 	default:
 		return api.ResourceType_UNKNOWN_RESOURCE_TYPE
 	}
