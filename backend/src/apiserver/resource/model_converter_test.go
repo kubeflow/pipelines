@@ -198,6 +198,17 @@ func TestToModelResourceReferences_UnknownRefType(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to convert reference type")
 }
 
+func TestToModelResourceReferences_NamespaceRef(t *testing.T) {
+	store, manager, _ := initWithJob(t)
+	defer store.Close()
+
+	modelRefs, err := manager.toModelResourceReferences("r1", common.Run, []*api.ResourceReference{
+		{Key: &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "e1"}, Relationship: api.Relationship_OWNER},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(modelRefs))
+}
+
 func TestToModelResourceReferences_UnknownRelationship(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()

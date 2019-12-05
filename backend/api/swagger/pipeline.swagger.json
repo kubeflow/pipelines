@@ -44,7 +44,8 @@
               "EXPERIMENT",
               "JOB",
               "PIPELINE",
-              "PIPELINE_VERSION"
+              "PIPELINE_VERSION",
+              "NAMESPACE"
             ],
             "default": "UNKNOWN_RESOURCE_TYPE"
           },
@@ -565,7 +566,8 @@
         "EXPERIMENT",
         "JOB",
         "PIPELINE",
-        "PIPELINE_VERSION"
+        "PIPELINE_VERSION",
+        "NAMESPACE"
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },

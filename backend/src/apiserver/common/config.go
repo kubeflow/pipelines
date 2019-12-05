@@ -22,7 +22,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-
 func GetStringConfig(configName string) string {
 	if !viper.IsSet(configName) {
 		glog.Fatalf("Please specify flag %s", configName)

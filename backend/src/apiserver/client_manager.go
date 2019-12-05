@@ -37,14 +37,14 @@ import (
 )
 
 const (
-	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
-	mysqlServiceHost = "DBConfig.Host"
-	mysqlServicePort = "DBConfig.Port"
-	mysqlUser        = "DBConfig.User"
-	mysqlPassword    = "DBConfig.Password"
-	mysqlDBName      = "DBConfig.DBName"
-	mysqlGroupConcatMaxLen 	= "DBConfig.GroupConcatMaxLen"
+	minioServiceHost       = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort       = "MINIO_SERVICE_SERVICE_PORT"
+	mysqlServiceHost       = "DBConfig.Host"
+	mysqlServicePort       = "DBConfig.Port"
+	mysqlUser              = "DBConfig.User"
+	mysqlPassword          = "DBConfig.Password"
+	mysqlDBName            = "DBConfig.DBName"
+	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
