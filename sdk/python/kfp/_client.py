@@ -348,7 +348,7 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return response.run
 
-  def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None, pipeline_conf: kfp.dsl.PipelineConf = None):
+  def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None, pipeline_conf: kfp.dsl.PipelineConf = None, namespace=None):
     '''Runs pipeline on KFP-enabled Kubernetes cluster.
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
 
@@ -357,6 +357,9 @@ class Client(object):
       arguments: Arguments to the pipeline function provided as a dict.
       run_name: Optional. Name of the run to be shown in the UI.
       experiment_name: Optional. Name of the experiment to add the run to.
+      namespace: kubernetes namespace where the pipeline runs are created.
+        For single user deployment, leave it as None;
+        For multi user, input a namespace where the user is authorized
     '''
     #TODO: Check arguments against the pipeline function
     pipeline_name = pipeline_func.__name__
@@ -364,11 +367,11 @@ class Client(object):
     try:
       (_, pipeline_package_path) = tempfile.mkstemp(suffix='.zip')
       compiler.Compiler().compile(pipeline_func, pipeline_package_path, pipeline_conf=pipeline_conf)
-      return self.create_run_from_pipeline_package(pipeline_package_path, arguments, run_name, experiment_name)
+      return self.create_run_from_pipeline_package(pipeline_package_path, arguments, run_name, experiment_name, namespace)
     finally:
       os.remove(pipeline_package_path)
 
-  def create_run_from_pipeline_package(self, pipeline_file: str, arguments: Mapping[str, str], run_name=None, experiment_name=None):
+  def create_run_from_pipeline_package(self, pipeline_file: str, arguments: Mapping[str, str], run_name=None, experiment_name=None, namespace=None):
     '''Runs pipeline on KFP-enabled Kubernetes cluster.
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
 
@@ -377,6 +380,9 @@ class Client(object):
       arguments: Arguments to the pipeline function provided as a dict.
       run_name: Optional. Name of the run to be shown in the UI.
       experiment_name: Optional. Name of the experiment to add the run to.
+      namespace: kubernetes namespace where the pipeline runs are created.
+        For single user deployment, leave it as None;
+        For multi user, input a namespace where the user is authorized
     '''
 
     class RunPipelineResult:
@@ -402,7 +408,7 @@ class Client(object):
     experiment_name = overridden_experiment_name or 'Default'
     run_name = run_name or pipeline_name + ' ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
     experiment = self.create_experiment(name=experiment_name)
-    run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments)
+    run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments, namespace=namespace)
     return RunPipelineResult(self, run_info)
 
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
