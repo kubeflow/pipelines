@@ -303,6 +303,9 @@ class Client(object):
       pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: a dictionary with key (string) as param name and value (string) as as param value.
       pipeline_id: the string ID of a pipeline.
+      namespace: kubernetes namespace where the pipeline runs are created.
+        For single user deployment, leave it as None;
+        For multi user, input a namespace where the user is authorized
 
     Returns:
       A run object. Most important field is id.
