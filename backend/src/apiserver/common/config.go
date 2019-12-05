@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	deploymentType     string = "DEPLOYMENT"
-	kubeflowDeployment string = "KUBEFLOW"
+	DeploymentType     string = "DEPLOYMENT"
+	KubeflowDeployment string = "KUBEFLOW"
 )
 
 func GetStringConfig(configName string) string {
@@ -60,5 +60,5 @@ func GetDurationConfig(configName string) time.Duration {
 }
 
 func IsKubeflowDeployment() bool {
-	return GetStringConfigWithDefault(deploymentType, "") == kubeflowDeployment
+	return GetStringConfigWithDefault(DeploymentType, "") == KubeflowDeployment
 }
