@@ -310,9 +310,14 @@ def _extract_component_interface(func) -> ComponentSpec:
             output_spec._passing_style = None
             output_spec._return_tuple_field_name = field_name
             outputs.append(output_spec)
-    elif isinstance(return_ann, dict): # Deprecated dict-based way of declaring multiple outputs. Was only used by the @acomponent decorator
+    # Deprecated dict-based way of declaring multiple outputs. Was only used by the @component decorator
+    elif isinstance(return_ann, dict):
         import warnings
-        warnings.warn("The ability to specify multiple outputs using the dict syntax has been deprecated and will be removed soon after release 0.1.32. Please use typing.NamedTuple to declare multiple outputs.")
+        warnings.warn(
+            "The ability to specify multiple outputs using the dict syntax has been deprecated."
+            "It will be removed soon after release 0.1.32."
+            "Please use typing.NamedTuple to declare multiple outputs."
+        )
         for output_name, output_type_annotation in return_ann.items():
             output_type_struct = annotation_to_type_struct(output_type_annotation)
             output_spec = OutputSpec(

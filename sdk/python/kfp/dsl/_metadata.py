@@ -44,7 +44,7 @@ def _annotation_to_typemeta(annotation):
 def _extract_pipeline_metadata(func):
   '''Creates pipeline metadata structure instance based on the function signature.'''
 
-  # Most of thsi code is only needed for verifying the default values against "openapi_schema_validator" type properties.
+  # Most of this code is only needed for verifying the default values against "openapi_schema_validator" type properties.
   # TODO: Move the value verification code to some other place
 
   from ._pipeline_param import PipelineParam

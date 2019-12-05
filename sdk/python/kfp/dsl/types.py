@@ -17,12 +17,10 @@ import warnings
 
 
 class BaseType:
-	'''BaseType is a base type for all scalar and artifact types.
-	'''
+	'''BaseType is a base type for all scalar and artifact types.'''
 
-	def to_dict(self) -> dict:
-		'''to_dict serializes the type instance into a python dictionary'''
-		#return {type(self).__name__: self.__dict__}
+	def to_dict(self) -> Union[Dict, str]:
+		'''to_dict serializes the type instance into a python dictionary or string'''
 		return {type(self).__name__: self.__dict__} if self.__dict__ else type(self).__name__
 
 
