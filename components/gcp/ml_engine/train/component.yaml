@@ -103,7 +103,7 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:9ad7d7dd9776ce75a83712f5723db2ef93ba5c26
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:b63472062bd80737c7f39e0eda901db0fe23a5e0
     args: [
       kfp_component.google.ml_engine, train,
       --project_id, {inputValue: project_id},
