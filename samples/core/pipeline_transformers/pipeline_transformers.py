@@ -39,4 +39,4 @@ def transform_pipeline():
   dsl.get_pipeline_conf().add_op_transformer(add_annotation)
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(transform_pipeline, __file__ + '.zip')
+  kfp.compiler.Compiler().compile(transform_pipeline, __file__ + '.yaml')
