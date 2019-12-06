@@ -7,7 +7,7 @@
   {
     "name": "[Sample] Unified DSL - Taxi Tip Prediction Model Trainer",
     "description": "[GCP Permission requirements](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/parameterized_tfx_oss#permission). Example pipeline that does classification with model analysis based on a public tax cab BigQuery dataset. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/parameterized_tfx_oss)",
-    "file": "/samples/contrib/parameterized_tfx_oss/parameterized_tfx_oss.yaml"
+    "file": "/samples/core/parameterized_tfx_oss/parameterized_tfx_oss.yaml"
   },
   {
     "name": "[Sample] Basic - Sequential execution",
