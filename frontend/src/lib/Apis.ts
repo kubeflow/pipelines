@@ -281,6 +281,18 @@ export class Apis {
   }
 
   /**
+   * Delete a deployment and its service of the Tensorboard given the URL 
+   */
+  public static deleteTensorboardApp(logdir: string, tfversion: string): Promise<string> {
+    return this._fetch(
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(tfversion)}`,
+      undefined,
+      undefined,
+      {method: 'DELETE'}
+    );
+  }
+
+  /**
    * Uploads the given pipeline file to the backend, and gets back a Pipeline
    * object with its metadata parsed.
    */

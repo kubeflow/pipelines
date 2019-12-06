@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // @ts-ignore
-import {Core_v1Api, Custom_objectsApi, KubeConfig, V1ConfigMapKeySelector} from '@kubernetes/client-node';
+import {Core_v1Api, Custom_objectsApi, KubeConfig, V1ConfigMapKeySelector, V1DeleteOptions} from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import * as Utils from './utils';
@@ -135,6 +135,29 @@ export async function getTensorboardInstance(logdir: string, tfversion: string):
       (error: any) => ''
     );
 }
+
+/**
+ * Find a running Tensorboard instance with the given logdir, delete the instance
+ * and returns the deleted podAddress
+ */
+
+export async function deleteTensorboardInstance(logdir: string, tfversion: string): Promise<void> {
+
+  if (!k8sV1CustomObjectClient) {
+    throw new Error('Cannot access kubernetes Custom Object API');
+  }
+  const currentPod = await getTensorboardInstance(logdir, tfversion);
+  if (!currentPod) {
+    return;
+  }
+
+  const viewerName = getNameOfViewerResource(logdir, tfversion)
+  const deleteOption = new V1DeleteOptions()
+
+  await k8sV1CustomObjectClient.deleteNamespacedCustomObject(viewerGroup, viewerVersion, 
+    namespace, viewerPlural, viewerName, deleteOption);
+}
+
 
 /**
  * Polls every second for a running Tensorboard instance with the given logdir,
