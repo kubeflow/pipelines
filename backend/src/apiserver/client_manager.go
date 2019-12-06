@@ -69,7 +69,7 @@ type ClientManager struct {
 	wfClient               map[string]workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient              v1.PodInterface
-	kfamClient             client.KFAMInterface
+	kfamClient             client.KFAMClientInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 }
@@ -125,7 +125,7 @@ func (c *ClientManager) PodClient() v1.PodInterface {
 	return c.podClient
 }
 
-func (c *ClientManager) KFAMClient() client.KFAMInterface {
+func (c *ClientManager) KFAMClient() client.KFAMClientInterface {
 	return c.kfamClient
 }
 
@@ -169,7 +169,9 @@ func (c *ClientManager) init() {
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
 
-	c.kfamClient = client.NewKFAMClient(common.GetStringConfig(kfamServiceHost), common.GetStringConfig(kfamServicePort))
+	if common.IsKubeflowDeployment() {
+		c.kfamClient = client.NewKFAMClient(common.GetStringConfig(kfamServiceHost), common.GetStringConfig(kfamServicePort))
+	}
 	glog.Infof("Client manager initialized successfully")
 }
 

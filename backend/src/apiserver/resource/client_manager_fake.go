@@ -42,7 +42,7 @@ type FakeClientManager struct {
 	workflowClientFake          FakeWorkflowClientInterface
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
 	podClientFake               v1.PodInterface
-	kfamClientFake              client.KFAMInterface
+	kfamClientFake              *FakeKFAMClient
 	time                        util.TimeInterface
 	uuid                        util.UUIDGeneratorInterface
 }
@@ -78,7 +78,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
 		podClientFake:               FakePodClient{},
-		kfamClientFake:              client.NewKFAMClient("", ""),
+		kfamClientFake:              NewKFAMClientFake(),
 		time:                        time,
 		uuid:                        uuid,
 	}, nil
@@ -87,6 +87,16 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
 	uuid := util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil)
 	fakeStore, err := NewFakeClientManager(time, uuid)
+	if err != nil {
+		glog.Fatalf("The fake store doesn't create successfully. Fail fast.")
+	}
+	return fakeStore
+}
+
+func NewFakeClientManagerOrFatal_KFAM_Authorized(time util.TimeInterface) *FakeClientManager {
+	uuid := util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil)
+	fakeStore, err := NewFakeClientManager(time, uuid)
+	fakeStore.kfamClientFake.mode = Unauthorized
 	if err != nil {
 		glog.Fatalf("The fake store doesn't create successfully. Fail fast.")
 	}
@@ -149,7 +159,7 @@ func (f *FakeClientManager) PodClient() v1.PodInterface {
 	return f.podClientFake
 }
 
-func (f *FakeClientManager) KFAMClient() client.KFAMInterface {
+func (f *FakeClientManager) KFAMClient() client.KFAMClientInterface {
 	return f.kfamClientFake
 }
 

@@ -7,8 +7,10 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -331,4 +333,57 @@ func TestValidatePipelineSpec_ParameterTooLong(t *testing.T) {
 	err := ValidatePipelineSpec(manager, spec)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
+}
+
+func TestGetNamespaceFromResourceReferences(t *testing.T) {
+	references := []*api.ResourceReference{
+		{
+			Key: &api.ResourceKey{
+				Type: api.ResourceType_EXPERIMENT, Id: "123"},
+			Relationship: api.Relationship_CREATOR,
+		},
+		{
+			Key: &api.ResourceKey{
+				Type: api.ResourceType_NAMESPACE, Id: "ns"},
+			Relationship: api.Relationship_OWNER,
+		},
+	}
+	namespace := GetNamespaceFromResourceReferences(references)
+	assert.Equal(t, "ns", namespace)
+
+	references = []*api.ResourceReference{
+		{
+			Key: &api.ResourceKey{
+				Type: api.ResourceType_EXPERIMENT, Id: "123"},
+			Relationship: api.Relationship_CREATOR,
+		},
+	}
+	namespace = GetNamespaceFromResourceReferences(references)
+	assert.Equal(t, "", namespace)
+}
+
+func TestAuthorize_Unauthorized(t *testing.T) {
+	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	defer clients.Close()
+	viper.SetDefault(common.DeploymentType, common.KubeflowDeployment)
+	authorized, err := Authorize(manager, "user", "namespace")
+	assert.False(t, authorized)
+	assert.NotNil(t, err)
+}
+
+func TestAuthorize_Authorized(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	os.Setenv(common.DeploymentType, common.KubeflowDeployment)
+	authorized, err := Authorize(manager, "", "")
+	assert.True(t, authorized)
+	assert.Nil(t, err)
+
+	authorized, err = Authorize(manager, "user", "")
+	assert.False(t, authorized)
+	assert.NotNil(t, err)
+
+	authorized, err = Authorize(manager, "user", "namespace")
+	assert.True(t, authorized)
+	assert.Nil(t, err)
 }

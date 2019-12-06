@@ -1,3 +1,17 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package client
 
 import (
@@ -10,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type KFAMInterface interface {
+type KFAMClientInterface interface {
 	IsAuthorized(userIdentity string, namespace string) (bool, error)
 }
 
@@ -54,6 +68,7 @@ func (c *KFAMClient) IsAuthorized(userIdentity string, namespace string) (bool, 
 
 	var httpClient = &http.Client{Timeout: HTTP_TIMEOUT_SECONDS * time.Second}
 
+	fmt.Println(req.URL.String())
 	resp, err := httpClient.Get(req.URL.String())
 	if err != nil {
 		return false, util.NewInternalServerError(err, "Failed to connect to the KFAM service.")
@@ -62,6 +77,7 @@ func (c *KFAMClient) IsAuthorized(userIdentity string, namespace string) (bool, 
 		return false, util.NewInternalServerError(errors.New("Requests to the KFAM service failed."), resp.Status)
 	}
 	defer resp.Body.Close()
+
 	jsonBindings := new(Bindings)
 	err = json.NewDecoder(resp.Body).Decode(jsonBindings)
 

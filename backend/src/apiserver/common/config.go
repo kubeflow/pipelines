@@ -23,9 +23,9 @@ import (
 )
 
 const (
-	deploymentType     string = "DEPLOYMENT"
-	kubeflowDeployment string = "KUBEFLOW"
-	multiuserMode      string = "MULTIUSER_MODE"
+	DeploymentType     string = "DEPLOYMENT"
+	KubeflowDeployment string = "KUBEFLOW"
+	MultiuserMode      string = "MULTIUSER_MODE"
 )
 
 func GetStringConfig(configName string) string {
@@ -61,9 +61,9 @@ func GetDurationConfig(configName string) time.Duration {
 }
 
 func IsKubeflowDeployment() bool {
-	return GetStringConfigWithDefault(deploymentType, "") == kubeflowDeployment
+	return GetStringConfigWithDefault(DeploymentType, "") == KubeflowDeployment
 }
 
 func IsMultiuserMode() bool {
-	return GetBoolConfigWithDefault(multiuserMode, false)
+	return GetBoolConfigWithDefault(MultiuserMode, false)
 }
