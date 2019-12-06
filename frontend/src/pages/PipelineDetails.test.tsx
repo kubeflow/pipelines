@@ -112,7 +112,9 @@ describe('PipelineDetails', () => {
 
     getPipelineSpy.mockImplementation(() => Promise.resolve(testPipeline));
     getPipelineVersionSpy.mockImplementation(() => Promise.resolve(testPipelineVersion));
-    listPipelineVersionsSpy.mockImplementation(() => Promise.resolve([testPipelineVersion]));
+    listPipelineVersionsSpy.mockImplementation(() =>
+      Promise.resolve({ versions: [testPipelineVersion] }),
+    );
     getRunSpy.mockImplementation(() => Promise.resolve(testRun));
     getExperimentSpy.mockImplementation(() =>
       Promise.resolve({ id: 'test-experiment-id', name: 'test experiment' } as ApiExperiment),
@@ -645,6 +647,14 @@ describe('PipelineDetails', () => {
     tree.setState({ selectedNodeId: 'some-node-id' });
     tree.find('SidePanel').simulate('close');
     expect(tree.state('selectedNodeId')).toBe('');
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('closes side panel when close button is clicked', async () => {
+    tree = shallow(<PipelineDetails {...generateProps()} />);
+    await getPipelineVersionTemplateSpy;
+    await TestUtils.flushPromises();
+    expect(tree.state('versions')).toHaveLength(1);
     expect(tree).toMatchSnapshot();
   });
 });

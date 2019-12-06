@@ -32,6 +32,7 @@ describe('PipelineList', () => {
   let updateSnackbarSpy: jest.Mock<{}>;
   let updateToolbarSpy: jest.Mock<{}>;
   let listPipelinesSpy: jest.SpyInstance<{}>;
+  let listPipelineVersionsSpy: jest.SpyInstance<{}>;
   let deletePipelineSpy: jest.SpyInstance<{}>;
   let deletePipelineVersionSpy: jest.SpyInstance<{}>;
 
@@ -41,6 +42,7 @@ describe('PipelineList', () => {
     updateSnackbarSpy = jest.fn();
     updateToolbarSpy = jest.fn();
     listPipelinesSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
+    listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelineVersions');
     deletePipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipeline');
     deletePipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipelineVersion');
   }
@@ -500,12 +502,39 @@ describe('PipelineList', () => {
   it.only("delete a pipeline and some other pipeline's version together", async () => {
     deletePipelineSpy.mockImplementation(() => Promise.resolve());
     deletePipelineVersionSpy.mockImplementation(() => Promise.resolve());
+    listPipelineVersionsSpy.mockImplementation(() => ({
+      versions: [
+        {
+          id: 'test-pipeline-id1_default_version',
+          name: 'test-pipeline-id1_default_version_name',
+        },
+      ],
+    }));
 
-    tree = shallow(<PipelineList {...generateProps()} />);
-    tree.setState({
-      selectedIds: ['test-pipeline-id0'],
-      selectedVersionIds: { 'test-pipeline-id1': ['test-pipeline-id1_default_version'] },
+    tree = await mountWithNPipelines(2);
+    tree
+      .find('button[aria-label="Expand"]')
+      .at(1)
+      .simulate('click');
+    await listPipelineVersionsSpy;
+    tree.update();
+
+    // select pipeline of id 'test-pipeline-id0'
+    tree
+      .find('.tableRow')
+      .at(0)
+      .simulate('click');
+    // select pipeline version of id 'test-pipeline-id1_default_version' under pipeline 'test-pipeline-id1'
+    tree
+      .find('.tableRow')
+      .at(2)
+      .simulate('click');
+
+    expect(tree.state()).toHaveProperty('selectedIds', ['test-pipeline-id0']);
+    expect(tree.state()).toHaveProperty('selectedVersionIds', {
+      'test-pipeline-id1': ['test-pipeline-id1_default_version'],
     });
+
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
