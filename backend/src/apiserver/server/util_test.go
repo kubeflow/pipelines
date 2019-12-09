@@ -375,15 +375,8 @@ func TestAuthorize_Authorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	os.Setenv(common.DeploymentType, common.KubeflowDeployment)
-	authorized, err := Authorize(manager, "", "")
-	assert.True(t, authorized)
-	assert.Nil(t, err)
 
-	authorized, err = Authorize(manager, "user", "")
-	assert.False(t, authorized)
-	assert.NotNil(t, err)
-
-	authorized, err = Authorize(manager, "user", "namespace")
+	authorized, err := Authorize(manager, "user", "namespace")
 	assert.True(t, authorized)
 	assert.Nil(t, err)
 }
