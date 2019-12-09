@@ -28,7 +28,7 @@ First point your `kubectl` current context to your cluster
 ```
 export PROJECT_ID=<my-project-id>
 export CLUSTER=<cluster-where-kfp-was-installed>
-export ZONE=<zone-where-kfp-was-installed>
+export ZONE=<region-where-kfp-was-installed>
 # Configure kubectl to connect with the cluster
 gcloud container clusters get-credentials "$CLUSTER" --zone "$ZONE" --project "$PROJECT_ID"
 ```
