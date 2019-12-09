@@ -133,12 +133,7 @@ class SampleTest(object):
       ])
 
     else:
-      if self._test_name != 'parameterized_tfx_oss':
-        subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
-                          '--output', '%s.yaml' % self._test_name])
-      else:
-        # This is for parameterized_tfx_oss sample.
-        subprocess.call(['python3', '%s.py' % self._test_name])
+      subprocess.call(['python3', '%s.py' % self._test_name])
 
   def _injection(self):
     """Inject images for pipeline components.
@@ -165,7 +160,7 @@ class SampleTest(object):
       nbchecker.check()
     else:
       os.chdir(TEST_DIR)
-      input_file = os.path.join(self._work_dir, '%s.yaml' % self._test_name)
+      input_file = os.path.join(self._work_dir, '%s.py.yaml' % self._test_name)
 
       pysample_checker = PySampleChecker(testname=self._test_name,
                                          input=input_file,
@@ -213,14 +208,14 @@ class ComponentTest(SampleTest):
           'gcr\.io/ml-pipeline/ml-pipeline-gcp:\w+':self._dataproc_gcp_image
       })
 
-      utils.file_injection('%s.yaml' % self._test_name,
-                           '%s.yaml.tmp' % self._test_name,
+      utils.file_injection('%s.py.yaml' % self._test_name,
+                           '%s.py.yaml.tmp' % self._test_name,
                            subs)
     else:
-      # Only the above two samples need injection for now.
+      # Only the above sample need injection for now.
       pass
-    utils.file_injection('%s.yaml' % self._test_name,
-                         '%s.yaml.tmp' % self._test_name,
+    utils.file_injection('%s.py.yaml' % self._test_name,
+                         '%s.py.yaml.tmp' % self._test_name,
                          subs)
 
 
