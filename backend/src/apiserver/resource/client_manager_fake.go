@@ -93,7 +93,7 @@ func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
 	return fakeStore
 }
 
-func NewFakeClientManagerOrFatal_KFAM_Authorized(time util.TimeInterface) *FakeClientManager {
+func NewFakeClientManagerOrFatal_KFAM_Unauthorized(time util.TimeInterface) *FakeClientManager {
 	uuid := util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil)
 	fakeStore, err := NewFakeClientManager(time, uuid)
 	fakeStore.kfamClientFake.mode = Unauthorized
