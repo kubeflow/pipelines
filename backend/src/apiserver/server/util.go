@@ -328,3 +328,19 @@ func Authorize(resourceManager *resource.ResourceManager, userIdentity string, n
 	}
 	return true, nil
 }
+
+func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) (bool, error){
+	userIdentity, err := GetUserIdentity(ctx)
+	if err != nil {
+		return false, util.Wrap(err, "Bad request.")
+	}
+	namespace := GetNamespaceFromResourceReferences(resourceRefs)
+	isAuthorized, err := Authorize(resourceManager, userIdentity, namespace)
+	if err != nil {
+		return false, util.Wrap(err, "Authorization failure.")
+	}
+	if isAuthorized == false {
+		return false, util.NewBadRequestError(err, "Unauthorized access for "+userIdentity+" to namespace "+namespace)
+	}
+	return true, nil
+}

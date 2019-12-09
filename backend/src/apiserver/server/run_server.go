@@ -33,22 +33,11 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
-	userIdentity, err := GetUserIdentity(ctx)
-	if err != nil {
-		return nil, util.Wrap(err, "Bad request.")
-	}
-	namespace := GetNamespaceFromResourceReferences(request.Run.ResourceReferences)
-	isAuthorized, err := Authorize(s.resourceManager, userIdentity, namespace)
-	if err != nil {
-		return nil, util.Wrap(err, "Authorization failure.")
-	}
-	if isAuthorized == false {
-		return nil, util.NewBadRequestError(err, "Unauthorized access for "+userIdentity+" to namespace "+namespace)
+	authorized, err := IsAuthorized(s.resourceManager, ctx, request.Run.ResourceReferences)
+	if authorized == false {
+		return nil, err
 	}
 
-	if err != nil {
-		return nil, util.Wrap(err, "Validate create run request failed.")
-	}
 	run, err := s.resourceManager.CreateRun(request.Run)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a new run.")
