@@ -47,6 +47,7 @@ const (
 	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
 	kfamServiceHost        = "PROFILES_KFAM_SERVICE_HOST"
 	kfamServicePort        = "PROFILES_KFAM_SERVICE_PORT"
+	mysqlExtraParams       = "DBConfig.ExtraParams"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
