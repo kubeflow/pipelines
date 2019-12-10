@@ -18,9 +18,9 @@ import (
 api "github.com/kubeflow/pipelines/backend/api/go_client"
 )
 
-func GetNamespaceFromRun(run *api.Run) string {
+func GetNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) string {
 	namespace := ""
-	for _, resourceRef := range run.ResourceReferences {
+	for _, resourceRef := range resourceRefs {
 		if resourceRef.Key.Type == api.ResourceType_NAMESPACE {
 			namespace = resourceRef.Key.Id
 			break
