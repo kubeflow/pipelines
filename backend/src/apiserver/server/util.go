@@ -315,8 +315,11 @@ func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 	}
 
 	userIdentity, err := GetUserIdentity(ctx)
-	if err != nil || len(userIdentity) == 0 {
+	if err != nil {
 		return false, util.Wrap(err, "Bad request.")
+	}
+	if len(userIdentity) == 0 {
+		return false, errors.New("userIdentity is empty.")
 	}
 	namespace := GetNamespaceFromResourceReferences(resourceRefs)
 	if len(namespace) == 0 {
@@ -329,7 +332,8 @@ func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 	}
 
 	if isAuthorized == false {
-		return false, util.NewBadRequestError(err, "Unauthorized access for "+userIdentity+" to namespace "+namespace)
+		glog.Infof("Unauthorized access for %s to namespace %s", userIdentity, namespace)
+		return false, nil
 	}
 
 	glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
