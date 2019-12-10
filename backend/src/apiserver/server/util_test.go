@@ -10,7 +10,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -365,7 +364,7 @@ func TestGetNamespaceFromResourceReferences(t *testing.T) {
 func TestAuthorize_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
-	viper.SetDefault(common.DeploymentType, common.KubeflowDeployment)
+	os.Setenv(common.MultiUserMode, "true")
 	authorized, err := Authorize(manager, "user", "namespace")
 	assert.False(t, authorized)
 	assert.NotNil(t, err)
@@ -374,16 +373,9 @@ func TestAuthorize_Unauthorized(t *testing.T) {
 func TestAuthorize_Authorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	os.Setenv(common.DeploymentType, common.KubeflowDeployment)
-	authorized, err := Authorize(manager, "", "")
-	assert.True(t, authorized)
-	assert.Nil(t, err)
+	os.Setenv(common.MultiUserMode, "true")
 
-	authorized, err = Authorize(manager, "user", "")
-	assert.False(t, authorized)
-	assert.NotNil(t, err)
-
-	authorized, err = Authorize(manager, "user", "namespace")
+	authorized, err := Authorize(manager, "user", "namespace")
 	assert.True(t, authorized)
 	assert.Nil(t, err)
 }

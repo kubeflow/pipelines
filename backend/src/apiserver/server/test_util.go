@@ -74,7 +74,7 @@ func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.Re
 }
 
 func initWithExperiment_KFAM_Unauthorized(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {
-	clientManager := resource.NewFakeClientManagerOrFatal_KFAM_Authorized(util.NewFakeTimeForEpoch())
+	clientManager := resource.NewFakeClientManagerOrFatal_KFAM_Unauthorized(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	experiment := &model.Experiment{Name: "123"}
 	experiment, err := resourceManager.CreateExperiment(experiment)

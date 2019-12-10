@@ -309,22 +309,40 @@ func GetNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) s
 }
 
 func Authorize(resourceManager *resource.ResourceManager, userIdentity string, namespace string) (bool, error) {
-	// Authorization only happens when the userIdentity exists in the request header
-	// and it is the kubeflow deployment, which deploys the KFAM.
-	if len(userIdentity) != 0 && common.IsKubeflowDeployment() {
-		//authenticate the requests based on the userIdentity and the namespace.
-		if len(namespace) != 0 {
-			authorized, err := resourceManager.IsRequestAuthorized(userIdentity, namespace)
-			if err != nil {
-				return false, err
-			}
-			if authorized == false {
-				return false, errors.New("Unauthorized access for " + userIdentity + " to namespace " + namespace)
-			}
-			glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
-		} else {
-			return false, errors.New("Namespace required in Kubeflow deployment when the user identity exists.")
-		}
+	//authenticate the requests based on the userIdentity and the namespace.
+	authorized, err := resourceManager.IsRequestAuthorized(userIdentity, namespace)
+	if err != nil {
+		return false, err
+	}
+	if authorized == false {
+		return false, errors.New("Unauthorized access for " + userIdentity + " to namespace " + namespace)
+	}
+	glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
+	return true, nil
+}
+
+func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) (bool, error) {
+	if common.IsMultiUserMode() == false {
+		// Skip authz if not kubeflow deployment.
+		return true, nil
+	}
+
+	userIdentity, err := GetUserIdentity(ctx)
+	if err != nil || len(userIdentity) == 0 {
+		return false, util.Wrap(err, "Bad request.")
+	}
+	namespace := GetNamespaceFromResourceReferences(resourceRefs)
+	if len(namespace) == 0 {
+		return false, errors.New("Namespace required in Kubeflow deployment for authorization.")
+	}
+
+	isAuthorized, err := Authorize(resourceManager, userIdentity, namespace)
+
+	if err != nil {
+		return false, util.Wrap(err, "Authorization failure.")
+	}
+	if isAuthorized == false {
+		return false, util.NewBadRequestError(err, "Unauthorized access for "+userIdentity+" to namespace "+namespace)
 	}
 	return true, nil
 }

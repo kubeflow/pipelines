@@ -68,7 +68,6 @@ func (c *KFAMClient) IsAuthorized(userIdentity string, namespace string) (bool, 
 
 	var httpClient = &http.Client{Timeout: HTTP_TIMEOUT_SECONDS * time.Second}
 
-	fmt.Println(req.URL.String())
 	resp, err := httpClient.Get(req.URL.String())
 	if err != nil {
 		return false, util.NewInternalServerError(err, "Failed to connect to the KFAM service.")
