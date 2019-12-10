@@ -387,7 +387,7 @@ func TestAuthorize_Unauthorized(t *testing.T) {
 	}
 	authorized, err := IsAuthorized(manager, ctx, references)
 	assert.False(t, authorized)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }
 
 func TestAuthorize_Authorized(t *testing.T) {
