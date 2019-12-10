@@ -333,7 +333,7 @@ func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 
 	if isAuthorized == false {
 		glog.Infof("Unauthorized access for %s to namespace %s", userIdentity, namespace)
-		return false, nil
+		return false, errors.New("Unauthorized access for " + userIdentity + " to namespace " + namespace)
 	}
 
 	glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
