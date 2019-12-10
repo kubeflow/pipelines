@@ -172,7 +172,7 @@ class PipelineParam(object):
     # ensure value is None even if empty string or empty list
     # so that serialization and unserialization remain consistent
     # (i.e. None => '' => None)
-    self.op_name = op_name if op_name else None
+    self.op_name = sanitize_k8s_name(op_name) if op_name else None
     self.value = value if value else None
     self.param_type = param_type
     self.pattern = pattern or str(self)
