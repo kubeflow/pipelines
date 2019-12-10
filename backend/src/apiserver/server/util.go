@@ -315,7 +315,7 @@ func Authorize(resourceManager *resource.ResourceManager, userIdentity string, n
 		return false, err
 	}
 	if authorized == false {
-		return false, errors.New("Unauthorized access for " + userIdentity + " to namespace " + namespace)
+		return false, nil
 	}
 	glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
 	return true, nil

@@ -367,7 +367,7 @@ func TestAuthorize_Unauthorized(t *testing.T) {
 	os.Setenv(common.MultiUserMode, "true")
 	authorized, err := Authorize(manager, "user", "namespace")
 	assert.False(t, authorized)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }
 
 func TestAuthorize_Authorized(t *testing.T) {

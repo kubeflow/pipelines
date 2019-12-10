@@ -19,6 +19,7 @@ import (
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -74,7 +75,8 @@ func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.Re
 }
 
 func initWithExperiment_KFAM_Unauthorized(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {
-	clientManager := resource.NewFakeClientManagerOrFatal_KFAM_Unauthorized(util.NewFakeTimeForEpoch())
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
 	resourceManager := resource.NewResourceManager(clientManager)
 	experiment := &model.Experiment{Name: "123"}
 	experiment, err := resourceManager.CreateExperiment(experiment)
