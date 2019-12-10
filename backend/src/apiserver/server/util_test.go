@@ -340,7 +340,7 @@ func TestValidatePipelineSpec_ParameterTooLong(t *testing.T) {
 func TestGetUserIdentity(t *testing.T) {
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
-	userIdentity, err := GetUserIdentity(ctx)
+	userIdentity, err := getUserIdentity(ctx)
 	assert.Nil(t, err)
 	assert.Equal(t, "user@google.com", userIdentity)
 }
@@ -358,7 +358,7 @@ func TestGetNamespaceFromResourceReferences(t *testing.T) {
 			Relationship: api.Relationship_OWNER,
 		},
 	}
-	namespace := GetNamespaceFromResourceReferences(references)
+	namespace := getNamespaceFromResourceReferences(references)
 	assert.Equal(t, "ns", namespace)
 
 	references = []*api.ResourceReference{
@@ -368,7 +368,7 @@ func TestGetNamespaceFromResourceReferences(t *testing.T) {
 			Relationship: api.Relationship_CREATOR,
 		},
 	}
-	namespace = GetNamespaceFromResourceReferences(references)
+	namespace = getNamespaceFromResourceReferences(references)
 	assert.Equal(t, "", namespace)
 }
 

@@ -275,7 +275,7 @@ func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, re
 	return &pipelineVersionId, nil
 }
 
-func GetUserIdentity(ctx context.Context) (string, error) {
+func getUserIdentity(ctx context.Context) (string, error) {
 	if ctx == nil {
 		return "", util.NewBadRequestError(errors.New("Request error: context is nil"),"Request error: context is nil.")
 	}
@@ -297,7 +297,7 @@ func GetUserIdentity(ctx context.Context) (string, error) {
 	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."),"Request header error: there is no user identity header.")
 }
 
-func GetNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) string {
+func getNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) string {
 	namespace := ""
 	for _, resourceRef := range resourceRefs {
 		if resourceRef.Key.Type == api.ResourceType_NAMESPACE {
@@ -314,7 +314,7 @@ func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 		return true, nil
 	}
 
-	userIdentity, err := GetUserIdentity(ctx)
+	userIdentity, err := getUserIdentity(ctx)
 	if err != nil {
 		return false, util.Wrap(err, "Bad request.")
 	}
@@ -322,7 +322,7 @@ func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 	if len(userIdentity) == 0 {
 		return false, util.NewBadRequestError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
 	}
-	namespace := GetNamespaceFromResourceReferences(resourceRefs)
+	namespace := getNamespaceFromResourceReferences(resourceRefs)
 	if len(namespace) == 0 {
 		return false, util.NewBadRequestError(errors.New("Namespace required in Kubeflow deployment for authorization."), "Namespace required in Kubeflow deployment for authorization.")
 	}
