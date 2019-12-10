@@ -310,7 +310,7 @@ func getNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) s
 
 func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) (bool, error) {
 	if common.IsMultiUserMode() == false {
-		// Skip authz if not kubeflow deployment.
+		// Skip authz if not multi-user mode.
 		return true, nil
 	}
 
