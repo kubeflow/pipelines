@@ -269,7 +269,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	if len(workflow.Spec.ServiceAccountName) == 0 {
-		if common.IsMultiuserMode() {
+		if common.IsMultiUserMode() {
 			workflow.SetServiceAccount(defaultServiceAccount)
 		} else {
 			workflow.SetServiceAccount(defaultPipelineRunnerServiceAccount)
