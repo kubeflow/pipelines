@@ -186,6 +186,14 @@ func (w *Workflow) OverrideName(name string) {
 	w.Name = name
 }
 
+// SetAnnotations sets annotations on a Workflow
+func (w *Workflow) SetAnnotations(key string, value string) {
+	if w.Annotations == nil {
+		w.Annotations = make(map[string]string)
+	}
+	w.Annotations[key] = value
+}
+
 // SetOwnerReferences sets owner references on a Workflow.
 func (w *Workflow) SetOwnerReferences(schedule *swfapi.ScheduledWorkflow) {
 	w.OwnerReferences = []metav1.OwnerReference{

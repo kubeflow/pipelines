@@ -267,13 +267,18 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	if err = workflow.VerifyParameters(parameters); err != nil {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
-
+	multiuserMode := common.IsMultiUserMode()
 	if len(workflow.Spec.ServiceAccountName) == 0 {
-		if common.IsMultiUserMode() {
+		if multiuserMode == true {
 			workflow.SetServiceAccount(defaultServiceAccount)
 		} else {
 			workflow.SetServiceAccount(defaultPipelineRunnerServiceAccount)
 		}
+	}
+
+	// Disable istio sidecar injection
+	if multiuserMode == true {
+		workflow.SetAnnotations(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectEnabled)
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
