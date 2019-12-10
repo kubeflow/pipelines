@@ -309,11 +309,11 @@ func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 	}
 
 	if len(userIdentity) == 0 {
-		return false, errors.New("userIdentity is empty.")
+		return false, util.NewBadRequestError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
 	}
 	namespace := common.GetNamespaceFromResourceReferences(resourceRefs)
 	if len(namespace) == 0 {
-		return false, errors.New("Namespace required in Kubeflow deployment for authorization.")
+		return false, util.NewBadRequestError(errors.New("Namespace required in Kubeflow deployment for authorization."), "Namespace required in Kubeflow deployment for authorization.")
 	}
 
 	isAuthorized, err := resourceManager.IsRequestAuthorized(userIdentity, namespace)
@@ -323,7 +323,7 @@ func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 
 	if isAuthorized == false {
 		glog.Infof("Unauthorized access for %s to namespace %s", userIdentity, namespace)
-		return false, errors.New("Unauthorized access for " + userIdentity + " to namespace " + namespace)
+		return false, util.NewBadRequestError(errors.New("Unauthorized access for " + userIdentity + " to namespace " + namespace), "Unauthorized access for " + userIdentity + " to namespace " + namespace)
 	}
 
 	glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
