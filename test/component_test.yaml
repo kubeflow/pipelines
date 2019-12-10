@@ -76,7 +76,7 @@ spec:
   # Build and push image
   - name: build-image-by-dockerfile
     retryStrategy:
-        limit: 1
+      limit: 1
     inputs:
       parameters:
       # GCS URI prefix pointing to a .tar.gz archive of Docker build context
