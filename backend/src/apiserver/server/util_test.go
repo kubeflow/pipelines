@@ -340,7 +340,7 @@ func TestValidatePipelineSpec_ParameterTooLong(t *testing.T) {
 func TestGetUserIdentity(t *testing.T) {
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
-	userIdentity, err := GetUserIdentity(ctx)
+	userIdentity, err := getUserIdentity(ctx)
 	assert.Nil(t, err)
 	assert.Equal(t, "user@google.com", userIdentity)
 }
@@ -358,8 +358,7 @@ func TestAuthorize_Unauthorized(t *testing.T) {
 			Relationship: api.Relationship_OWNER,
 		},
 	}
-	authorized, err := IsAuthorized(manager, ctx, references)
-	assert.False(t, authorized)
+	err := IsAuthorized(manager, ctx, references)
 	assert.NotNil(t, err)
 }
 
@@ -376,7 +375,6 @@ func TestAuthorize_Authorized(t *testing.T) {
 			Relationship: api.Relationship_OWNER,
 		},
 	}
-	authorized, err := IsAuthorized(manager, ctx, references)
-	assert.True(t, authorized)
+	err := IsAuthorized(manager, ctx, references)
 	assert.Nil(t, err)
 }

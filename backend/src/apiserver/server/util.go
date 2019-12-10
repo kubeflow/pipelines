@@ -275,7 +275,7 @@ func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, re
 	return &pipelineVersionId, nil
 }
 
-func GetUserIdentity(ctx context.Context) (string, error) {
+func getUserIdentity(ctx context.Context) (string, error) {
 	if ctx == nil {
 		return "", util.NewBadRequestError(errors.New("Request error: context is nil"),"Request error: context is nil.")
 	}
@@ -297,35 +297,37 @@ func GetUserIdentity(ctx context.Context) (string, error) {
 	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."),"Request header error: there is no user identity header.")
 }
 
-func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) (bool, error) {
+
+func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
 	if common.IsMultiUserMode() == false {
-		// Skip authz if not kubeflow deployment.
-		return true, nil
+		// Skip authz if not multi-user mode.
+		return nil
 	}
 
-	userIdentity, err := GetUserIdentity(ctx)
+	userIdentity, err := getUserIdentity(ctx)
 	if err != nil {
-		return false, util.Wrap(err, "Bad request.")
+		return util.Wrap(err, "Bad request.")
 	}
 
 	if len(userIdentity) == 0 {
-		return false, util.NewBadRequestError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
+		return util.NewBadRequestError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
 	}
+
 	namespace := common.GetNamespaceFromResourceReferences(resourceRefs)
 	if len(namespace) == 0 {
-		return false, util.NewBadRequestError(errors.New("Namespace required in Kubeflow deployment for authorization."), "Namespace required in Kubeflow deployment for authorization.")
+		return util.NewBadRequestError(errors.New("Namespace required in Kubeflow deployment for authorization."), "Namespace required in Kubeflow deployment for authorization.")
 	}
 
 	isAuthorized, err := resourceManager.IsRequestAuthorized(userIdentity, namespace)
 	if err != nil {
-		return false, util.Wrap(err, "Authorization failure.")
+		return util.Wrap(err, "Authorization failure.")
 	}
 
 	if isAuthorized == false {
 		glog.Infof("Unauthorized access for %s to namespace %s", userIdentity, namespace)
-		return false, util.NewBadRequestError(errors.New("Unauthorized access for " + userIdentity + " to namespace " + namespace), "Unauthorized access for " + userIdentity + " to namespace " + namespace)
+		return util.NewBadRequestError(errors.New("Unauthorized access for " + userIdentity + " to namespace " + namespace), "Unauthorized access for " + userIdentity + " to namespace " + namespace)
 	}
 
 	glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
-	return true, nil
+	return nil
 }
