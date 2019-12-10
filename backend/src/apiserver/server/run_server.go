@@ -34,8 +34,11 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
 	authorized, err := IsAuthorized(s.resourceManager, ctx, request.Run.ResourceReferences)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the requests.")
+	}
 	if authorized == false {
-		return nil, err
+		return nil, util.Wrap(err, "Unauthorized access.")
 	}
 
 	run, err := s.resourceManager.CreateRun(request.Run)
