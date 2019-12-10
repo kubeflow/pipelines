@@ -28,7 +28,7 @@ exports[`RunList adds metrics columns 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],
@@ -173,7 +173,7 @@ exports[`RunList displays error in run row if experiment could not be fetched 1`
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],
@@ -240,7 +240,7 @@ exports[`RunList displays error in run row if it failed to parse (run list mask)
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],
@@ -320,7 +320,7 @@ exports[`RunList displays error in run row if pipeline could not be fetched 1`] 
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],
@@ -399,7 +399,7 @@ exports[`RunList hides experiment name if instructed 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],
@@ -465,7 +465,7 @@ exports[`RunList in archived state renders the empty experience 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],
@@ -516,7 +516,7 @@ exports[`RunList loads multiple runs 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],
@@ -635,7 +635,7 @@ exports[`RunList loads one run 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],
@@ -712,7 +712,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
           Object {
             "customRenderer": [Function],
             "flex": 1,
-            "label": "Pipeline",
+            "label": "Pipeline Version",
           },
           Object {
             "customRenderer": [Function],
@@ -4352,7 +4352,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 "width": "16.666666666666664%",
               }
             }
-            title="Pipeline"
+            title="Pipeline Version"
           >
             <WithStyles(Tooltip)
               enterDelay={300}
@@ -4846,7 +4846,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             tabIndex="0"
                             title="Cannot sort by this column"
                           >
-                            Pipeline
+                            Pipeline Version
                             <pure(ArrowDownward)
                               className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                             >
@@ -4905,7 +4905,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       tabindex="0"
                       title="Cannot sort by this column"
                     >
-                      Pipeline
+                      Pipeline Version
                       <svg
                         aria-hidden="true"
                         class="MuiSvgIcon-root-59 MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
@@ -7643,6 +7643,17 @@ exports[`RunList renders pipeline name as link to its details page 2`] = `
 </Link>
 `;
 
+exports[`RunList renders pipeline version name as link to its details page 1`] = `
+<Link
+  className="link"
+  onClick={[Function]}
+  replace={false}
+  to="/pipelines/details/pipeline-id/version/version-id?"
+>
+  test pipeline version
+</Link>
+`;
+
 exports[`RunList renders raw metric 1`] = `
 <Metric
   metadata={
@@ -7729,7 +7740,7 @@ exports[`RunList renders the empty experience 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],
@@ -7780,7 +7791,7 @@ exports[`RunList retrieves pipeline from backend to display name if not in spec 
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],
@@ -7810,8 +7821,9 @@ exports[`RunList retrieves pipeline from backend to display name if not in spec 
             undefined,
             Object {
               "displayName": "test pipeline",
-              "id": "test-pipeline-id",
+              "pipelineId": "test-pipeline-id",
               "usePlaceholder": false,
+              "versionId": undefined,
             },
             undefined,
             "-",
@@ -7862,7 +7874,7 @@ exports[`RunList shows experiment name 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],
@@ -7932,7 +7944,7 @@ exports[`RunList shows link to recurring run config 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],
@@ -8002,7 +8014,7 @@ exports[`RunList shows pipeline name 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],
@@ -8032,8 +8044,9 @@ exports[`RunList shows pipeline name 1`] = `
             undefined,
             Object {
               "displayName": "pipeline name",
-              "id": "test-pipeline-id",
+              "pipelineId": "test-pipeline-id",
               "usePlaceholder": false,
+              "versionId": undefined,
             },
             undefined,
             "-",
@@ -8073,7 +8086,7 @@ exports[`RunList shows run time for each run 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Pipeline",
+          "label": "Pipeline Version",
         },
         Object {
           "customRenderer": [Function],

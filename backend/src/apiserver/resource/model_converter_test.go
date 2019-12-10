@@ -206,7 +206,7 @@ func TestToModelResourceReferences_NamespaceRef(t *testing.T) {
 		{Key: &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "e1"}, Relationship: api.Relationship_OWNER},
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(modelRefs))
+	assert.Equal(t, 1, len(modelRefs))
 }
 
 func TestToModelResourceReferences_UnknownRelationship(t *testing.T) {
