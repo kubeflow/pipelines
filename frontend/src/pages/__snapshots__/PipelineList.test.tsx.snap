@@ -27,11 +27,13 @@ exports[`PipelineList renders a list of one pipeline 1`] = `
     }
     emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
     filterLabel="Filter pipelines"
+    getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
       Array [
         Object {
+          "expandState": undefined,
           "id": undefined,
           "otherFields": Array [
             "pipeline1",
@@ -42,6 +44,7 @@ exports[`PipelineList renders a list of one pipeline 1`] = `
       ]
     }
     selectedIds={Array []}
+    toggleExpansion={[Function]}
     updateSelection={[Function]}
   />
   <UploadPipelineDialog
@@ -78,11 +81,13 @@ exports[`PipelineList renders a list of one pipeline with error 1`] = `
     }
     emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
     filterLabel="Filter pipelines"
+    getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
       Array [
         Object {
+          "expandState": undefined,
           "id": undefined,
           "otherFields": Array [
             "pipeline1",
@@ -93,6 +98,7 @@ exports[`PipelineList renders a list of one pipeline with error 1`] = `
       ]
     }
     selectedIds={Array []}
+    toggleExpansion={[Function]}
     updateSelection={[Function]}
   />
   <UploadPipelineDialog
@@ -129,11 +135,13 @@ exports[`PipelineList renders a list of one pipeline with no description or crea
     }
     emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
     filterLabel="Filter pipelines"
+    getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
       Array [
         Object {
+          "expandState": undefined,
           "id": undefined,
           "otherFields": Array [
             "pipeline1",
@@ -144,6 +152,7 @@ exports[`PipelineList renders a list of one pipeline with no description or crea
       ]
     }
     selectedIds={Array []}
+    toggleExpansion={[Function]}
     updateSelection={[Function]}
   />
   <UploadPipelineDialog
@@ -180,10 +189,12 @@ exports[`PipelineList renders an empty list with empty state message 1`] = `
     }
     emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
     filterLabel="Filter pipelines"
+    getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
     rows={Array []}
     selectedIds={Array []}
+    toggleExpansion={[Function]}
     updateSelection={[Function]}
   />
   <UploadPipelineDialog

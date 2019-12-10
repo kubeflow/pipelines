@@ -48,6 +48,9 @@ const (
 
 	// APIResourceTypePIPELINEVERSION captures enum value "PIPELINE_VERSION"
 	APIResourceTypePIPELINEVERSION APIResourceType = "PIPELINE_VERSION"
+
+	// APIResourceTypeNAMESPACE captures enum value "NAMESPACE"
+	APIResourceTypeNAMESPACE APIResourceType = "NAMESPACE"
 )
 
 // for schema
@@ -55,7 +58,7 @@ var apiResourceTypeEnum []interface{}
 
 func init() {
 	var res []APIResourceType
-	if err := json.Unmarshal([]byte(`["UNKNOWN_RESOURCE_TYPE","EXPERIMENT","JOB","PIPELINE","PIPELINE_VERSION"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["UNKNOWN_RESOURCE_TYPE","EXPERIMENT","JOB","PIPELINE","PIPELINE_VERSION","NAMESPACE"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
