@@ -360,7 +360,7 @@ func TestAuthorize_Unauthorized(t *testing.T) {
 	}
 	authorized, err := IsAuthorized(manager, ctx, references)
 	assert.False(t, authorized)
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 }
 
 func TestAuthorize_Authorized(t *testing.T) {

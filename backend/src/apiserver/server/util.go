@@ -297,6 +297,17 @@ func GetUserIdentity(ctx context.Context) (string, error) {
 	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."),"Request header error: there is no user identity header.")
 }
 
+func GetNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) string {
+	namespace := ""
+	for _, resourceRef := range resourceRefs {
+		if resourceRef.Key.Type == api.ResourceType_NAMESPACE {
+			namespace = resourceRef.Key.Id
+			break
+		}
+	}
+	return namespace
+}
+
 func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) (bool, error) {
 	if common.IsMultiUserMode() == false {
 		// Skip authz if not kubeflow deployment.
@@ -311,7 +322,7 @@ func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 	if len(userIdentity) == 0 {
 		return false, util.NewBadRequestError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
 	}
-	namespace := common.GetNamespaceFromResourceReferences(resourceRefs)
+	namespace := GetNamespaceFromResourceReferences(resourceRefs)
 	if len(namespace) == 0 {
 		return false, util.NewBadRequestError(errors.New("Namespace required in Kubeflow deployment for authorization."), "Namespace required in Kubeflow deployment for authorization.")
 	}
