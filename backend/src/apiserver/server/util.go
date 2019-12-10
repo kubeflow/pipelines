@@ -322,7 +322,7 @@ func Authorize(resourceManager *resource.ResourceManager, userIdentity string, n
 }
 
 func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) (bool, error) {
-	if common.IsKubeflowDeployment() == false {
+	if common.IsMultiUserMode() == false {
 		// Skip authz if not kubeflow deployment.
 		return true, nil
 	}

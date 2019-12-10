@@ -23,8 +23,7 @@ import (
 )
 
 const (
-	DeploymentType     string = "DEPLOYMENT"
-	KubeflowDeployment string = "KUBEFLOW"
+	MultiUserMode     string = "MULTIUSER"
 )
 
 func GetStringConfig(configName string) string {
@@ -59,6 +58,6 @@ func GetDurationConfig(configName string) time.Duration {
 	return viper.GetDuration(configName)
 }
 
-func IsKubeflowDeployment() bool {
-	return GetStringConfigWithDefault(DeploymentType, "") == KubeflowDeployment
+func IsMultiUserMode() bool {
+	return GetBoolConfigWithDefault(MultiUserMode, false)
 }

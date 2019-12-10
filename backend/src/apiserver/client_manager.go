@@ -161,7 +161,7 @@ func (c *ClientManager) init() {
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
 
-	if common.IsKubeflowDeployment() {
+	if common.IsMultiUserMode() {
 		c.kfamClient = client.NewKFAMClient(common.GetStringConfig(kfamServiceHost), common.GetStringConfig(kfamServicePort))
 	}
 	glog.Infof("Client manager initialized successfully")
