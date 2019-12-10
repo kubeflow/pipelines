@@ -4,7 +4,6 @@ go_library(
     name = "go_default_library",
     srcs = [
         "client_manager_fake.go",
-        "kfam_fake.go",
         "model_converter.go",
         "pod_fake.go",
         "resource_manager.go",

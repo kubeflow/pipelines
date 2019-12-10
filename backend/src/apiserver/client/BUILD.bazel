@@ -9,6 +9,7 @@ go_library(
         "sql.go",
         "workflow.go",
         "kfam.go",
+        "kfam_fake.go",
     ],
     importpath = "github.com/kubeflow/pipelines/backend/src/apiserver/client",
     visibility = ["//visibility:public"],

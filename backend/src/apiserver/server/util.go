@@ -297,19 +297,6 @@ func GetUserIdentity(ctx context.Context) (string, error) {
 	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."),"Request header error: there is no user identity header.")
 }
 
-func Authorize(resourceManager *resource.ResourceManager, userIdentity string, namespace string) (bool, error) {
-	//authenticate the requests based on the userIdentity and the namespace.
-	authorized, err := resourceManager.IsRequestAuthorized(userIdentity, namespace)
-	if err != nil {
-		return false, err
-	}
-	if authorized == false {
-		return false, errors.New("Unauthorized access for " + userIdentity + " to namespace " + namespace)
-	}
-	glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
-	return true, nil
-}
-
 func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) (bool, error) {
 	if common.IsMultiUserMode() == false {
 		// Skip authz if not kubeflow deployment.
@@ -325,13 +312,15 @@ func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 		return false, errors.New("Namespace required in Kubeflow deployment for authorization.")
 	}
 
-	isAuthorized, err := Authorize(resourceManager, userIdentity, namespace)
-
+	isAuthorized, err := resourceManager.IsRequestAuthorized(userIdentity, namespace)
 	if err != nil {
 		return false, util.Wrap(err, "Authorization failure.")
 	}
+
 	if isAuthorized == false {
 		return false, util.NewBadRequestError(err, "Unauthorized access for "+userIdentity+" to namespace "+namespace)
 	}
+
+	glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
 	return true, nil
 }
