@@ -267,13 +267,15 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	if err = workflow.VerifyParameters(parameters); err != nil {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
+	
 	multiuserMode := common.IsMultiUserMode()
-	if len(workflow.Spec.ServiceAccountName) == 0 {
-		if multiuserMode == true {
+	if multiuserMode == true {
+		if len(workflow.Spec.ServiceAccountName) == 0 || workflow.Spec.ServiceAccountName == defaultPipelineRunnerServiceAccount {
+			// To reserve SDK backward compatibility, the backend currently replaces the serviceaccount in multi-user mode.
 			workflow.SetServiceAccount(defaultServiceAccount)
-		} else {
-			workflow.SetServiceAccount(defaultPipelineRunnerServiceAccount)
 		}
+	} else {
+		workflow.SetServiceAccount(defaultPipelineRunnerServiceAccount)
 	}
 
 	// Disable istio sidecar injection
