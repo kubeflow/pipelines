@@ -49,4 +49,4 @@ def sequential_pipeline(url='gs://ml-pipeline-playground/shakespeare1.txt'):
     echo_task = echo_op(download_task.output)
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(sequential_pipeline, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(sequential_pipeline, __file__ + '.yaml')

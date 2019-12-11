@@ -25,6 +25,10 @@ RUN if [ "$use_remote_build" = "true" ]; then \
 
 # Compile
 FROM python:3.5 as compiler
+RUN apt-get update -y && \
+    apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev
+RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+RUN python3 -m pip install tfx==0.15.0
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY sdk sdk
@@ -41,7 +45,7 @@ COPY ./samples .
 #I think it's better to just use a shell loop though.
 #RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
 #The "for" loop breaks on all whitespace, so we either need to override IFS or use the "read" command instead.
-RUN  set -e; find core -maxdepth 2 -name '*.py' -type f | while read pipeline; do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
+RUN  set -e; find core -maxdepth 2 -name '*.py' -type f | while read pipeline; do python3 $pipeline; done
 
 FROM debian:stretch
 

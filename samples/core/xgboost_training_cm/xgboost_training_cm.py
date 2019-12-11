@@ -301,4 +301,4 @@ def xgb_train_pipeline(
         gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.yaml')

@@ -31,7 +31,7 @@ from tfx.components.transform.component import Transform
 from tfx.orchestration import pipeline
 from tfx.orchestration.kubeflow import kubeflow_dag_runner
 from tfx.proto import evaluator_pb2
-from tfx.utils.dsl_utils import csv_input
+from tfx.utils.dsl_utils import external_input
 from tfx.proto import pusher_pb2
 from tfx.proto import trainer_pb2
 
@@ -60,7 +60,6 @@ def _create_test_pipeline(
   """Creates a simple Kubeflow-based Chicago Taxi TFX pipeline.
 
   Args:
-    pipeline_name: The name of the pipeline.
     pipeline_root: The root of the pipeline output.
     csv_input_location: The location of the input data directory.
     taxi_module_file: The location of the module file for Transform/Trainer.
@@ -69,32 +68,34 @@ def _create_test_pipeline(
   Returns:
     A logical TFX pipeline.Pipeline object.
   """
-  examples = csv_input(csv_input_location)
+  examples = external_input(csv_input_location)
 
-  example_gen = CsvExampleGen(input_base=examples)
-  statistics_gen = StatisticsGen(input_data=example_gen.outputs.examples)
+  example_gen = CsvExampleGen(input=examples)
+  statistics_gen = StatisticsGen(input_data=example_gen.outputs['examples'])
   infer_schema = SchemaGen(
-      stats=statistics_gen.outputs.output, infer_feature_shape=False,
+      stats=statistics_gen.outputs['statistics'],
+      infer_feature_shape=False,
   )
   validate_stats = ExampleValidator(
-      stats=statistics_gen.outputs.output, schema=infer_schema.outputs.output,
+      stats=statistics_gen.outputs['statistics'],
+      schema=infer_schema.outputs['schema'],
   )
   transform = Transform(
-      input_data=example_gen.outputs.examples,
-      schema=infer_schema.outputs.output,
+      input_data=example_gen.outputs['examples'],
+      schema=infer_schema.outputs['schema'],
       module_file=taxi_module_file,
   )
   trainer = Trainer(
       module_file=taxi_module_file,
-      transformed_examples=transform.outputs.transformed_examples,
-      schema=infer_schema.outputs.output,
-      transform_output=transform.outputs.transform_output,
+      transformed_examples=transform.outputs['transformed_examples'],
+      schema=infer_schema.outputs['schema'],
+      transform_output=transform.outputs['transform_graph'],
       train_args=trainer_pb2.TrainArgs(num_steps=10),
       eval_args=trainer_pb2.EvalArgs(num_steps=5),
   )
   model_analyzer = Evaluator(
-      examples=example_gen.outputs.examples,
-      model_exports=trainer.outputs.output,
+      examples=example_gen.outputs['examples'],
+      model_exports=trainer.outputs['model'],
       feature_slicing_spec=evaluator_pb2.FeatureSlicingSpec(
           specs=[
               evaluator_pb2.SingleSlicingSpec(
@@ -104,7 +105,7 @@ def _create_test_pipeline(
       ),
   )
   model_validator = ModelValidator(
-      examples=example_gen.outputs.examples, model=trainer.outputs.output
+      examples=example_gen.outputs['examples'], model=trainer.outputs['model']
   )
 
   # Hack: ensuring push_destination can be correctly parameterized and interpreted.
@@ -113,8 +114,8 @@ def _create_test_pipeline(
   # https://github.com/tensorflow/tfx/blob/1c670e92143c7856f67a866f721b8a9368ede385/tfx/orchestration/kubeflow/kubeflow_dag_runner.py#L226
   _pipeline_root_param = dsl.PipelineParam(name='pipeline-root')
   pusher = Pusher(
-      model_export=trainer.outputs.output,
-      model_blessing=model_validator.outputs.blessing,
+      model_export=trainer.outputs['model'],
+      model_blessing=model_validator.outputs['blessing'],
       push_destination=pusher_pb2.PushDestination(
           filesystem=pusher_pb2.PushDestination.Filesystem(
               base_directory=os.path.
@@ -143,12 +144,16 @@ if __name__ == '__main__':
       str(_taxi_module_file_param),
       enable_cache=enable_cache,
   )
+  # Make sure the version of TFX image used is consistent with the version of
+  # TFX SDK. Here we use tfx:0.15.0 image.
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
-      tfx_image='tensorflow/tfx:0.16.0.dev20191101',
+      tfx_image='tensorflow/tfx:0.15.0',
   )
-  kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(config=config)
+  kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
+      output_filename=__file__ + '.yaml', config=config
+  )
   # Make sure kfp_runner recognizes those parameters.
   kfp_runner._params.extend([_data_root_param, _taxi_module_file_param])
 

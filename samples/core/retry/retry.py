@@ -38,4 +38,4 @@ def retry_sample_pipeline():
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(retry_sample_pipeline, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(retry_sample_pipeline, __file__ + '.yaml')

@@ -48,4 +48,4 @@ def custom_artifact_location(
                          file_outputs={'output': '/tmp/output.txt'})
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(custom_artifact_location, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(custom_artifact_location, __file__ + '.yaml')
