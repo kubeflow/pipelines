@@ -71,6 +71,17 @@ func main() {
 	clientManager.Close()
 }
 
+// A custom http request header matcher to pass on the user identity
+// Reference: https://github.com/grpc-ecosystem/grpc-gateway/blob/master/docs/_docs/customizingyourgateway.md#mapping-from-http-request-headers-to-grpc-client-metadata
+func grpcCustomMatcher(key string) (string, bool) {
+	switch strings.ToLower(key) {
+	case common.GoogleIAPUserIdentityHeader:
+		return strings.ToLower(key), true
+	default:
+		return strings.ToLower(key), false
+	}
+}
+
 func startRpcServer(resourceManager *resource.ResourceManager) {
 	glog.Info("Starting RPC server")
 	listener, err := net.Listen("tcp", *rpcPortFlag)
@@ -107,7 +118,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	defer cancel()
 
 	// Create gRPC HTTP MUX and register services.
-	mux := runtime.NewServeMux()
+	mux := runtime.NewServeMux(runtime.WithIncomingHeaderMatcher(grpcCustomMatcher))
 	registerHttpHandlerFromEndpoint(api.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, mux)

@@ -28,11 +28,16 @@ const (
 	Run             ResourceType = "Run"
 	Pipeline        ResourceType = "pipeline"
 	PipelineVersion ResourceType = "PipelineVersion"
+	Namespace       ResourceType = "Namespace"
 )
 
 const (
 	Owner   Relationship = "Owner"
 	Creator Relationship = "Creator"
+)
+
+const (
+	GoogleIAPUserIdentityHeader	string = "x-goog-authenticated-user-email"
 )
 
 func ToModelResourceType(apiType api.ResourceType) (ResourceType, error) {
@@ -43,6 +48,8 @@ func ToModelResourceType(apiType api.ResourceType) (ResourceType, error) {
 		return Job, nil
 	case api.ResourceType_PIPELINE_VERSION:
 		return PipelineVersion, nil
+	case api.ResourceType_NAMESPACE:
+		return Namespace, nil
 	default:
 		return "", util.NewInvalidInputError("Unsupported resource type: %s", api.ResourceType_name[int32(apiType)])
 	}

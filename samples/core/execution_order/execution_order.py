@@ -45,4 +45,4 @@ def execution_order_pipeline(text1='message 1', text2='message 2'):
   step2_task.after(step1_task)
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(execution_order_pipeline, __file__ + '.zip')
+  kfp.compiler.Compiler().compile(execution_order_pipeline, __file__ + '.yaml')

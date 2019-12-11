@@ -17,26 +17,35 @@
 import * as React from 'react';
 import PipelineList from './PipelineList';
 import TestUtils from '../TestUtils';
-import { ApiPipeline } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 import { range } from 'lodash';
-import { ImportMethod } from '../components/UploadPipelineDialog';
 import { ButtonKeys } from '../lib/Buttons';
 
 describe('PipelineList', () => {
   let tree: ReactWrapper | ShallowWrapper;
 
-  const updateBannerSpy = jest.fn();
-  const updateDialogSpy = jest.fn();
-  const updateSnackbarSpy = jest.fn();
-  const updateToolbarSpy = jest.fn();
-  const listPipelinesSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
-  const createPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'createPipeline');
-  const deletePipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipeline');
-  const uploadPipelineSpy = jest.spyOn(Apis, 'uploadPipeline');
+  let updateBannerSpy: jest.Mock<{}>;
+  let updateDialogSpy: jest.Mock<{}>;
+  let updateSnackbarSpy: jest.Mock<{}>;
+  let updateToolbarSpy: jest.Mock<{}>;
+  let listPipelinesSpy: jest.SpyInstance<{}>;
+  let listPipelineVersionsSpy: jest.SpyInstance<{}>;
+  let deletePipelineSpy: jest.SpyInstance<{}>;
+  let deletePipelineVersionSpy: jest.SpyInstance<{}>;
+
+  function spyInit() {
+    updateBannerSpy = jest.fn();
+    updateDialogSpy = jest.fn();
+    updateSnackbarSpy = jest.fn();
+    updateToolbarSpy = jest.fn();
+    listPipelinesSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
+    listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelineVersions');
+    deletePipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipeline');
+    deletePipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'deletePipelineVersion');
+  }
 
   function generateProps(): PageProps {
     return TestUtils.generatePageProps(
@@ -52,10 +61,14 @@ describe('PipelineList', () => {
   }
 
   async function mountWithNPipelines(n: number): Promise<ReactWrapper> {
-    listPipelinesSpy.mockImplementationOnce(() => ({
+    listPipelinesSpy.mockImplementation(() => ({
       pipelines: range(n).map(i => ({
         id: 'test-pipeline-id' + i,
         name: 'test pipeline name' + i,
+        defaultVersion: {
+          id: 'test-pipeline-id' + i + '_default_version',
+          name: 'test-pipeline-id' + i + '_default_version_name',
+        },
       })),
     }));
     tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
@@ -66,6 +79,7 @@ describe('PipelineList', () => {
   }
 
   beforeEach(() => {
+    spyInit();
     jest.clearAllMocks();
   });
 
@@ -73,7 +87,7 @@ describe('PipelineList', () => {
     // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
     // depends on mocks/spies
     await tree.unmount();
-    jest.resetAllMocks();
+    jest.restoreAllMocks();
   });
 
   it('renders an empty list with empty state message', () => {
@@ -84,13 +98,13 @@ describe('PipelineList', () => {
   it('renders a list of one pipeline', async () => {
     tree = shallow(<PipelineList {...generateProps()} />);
     tree.setState({
-      pipelines: [
+      displayPipelines: [
         {
           created_at: new Date(2018, 8, 22, 11, 5, 48),
           description: 'test pipeline description',
           name: 'pipeline1',
           parameters: [],
-        } as ApiPipeline,
+        },
       ],
     });
     await listPipelinesSpy;
@@ -100,11 +114,11 @@ describe('PipelineList', () => {
   it('renders a list of one pipeline with no description or created date', async () => {
     tree = shallow(<PipelineList {...generateProps()} />);
     tree.setState({
-      pipelines: [
+      displayPipelines: [
         {
           name: 'pipeline1',
           parameters: [],
-        } as ApiPipeline,
+        },
       ],
     });
     await listPipelinesSpy;
@@ -114,14 +128,14 @@ describe('PipelineList', () => {
   it('renders a list of one pipeline with error', async () => {
     tree = shallow(<PipelineList {...generateProps()} />);
     tree.setState({
-      pipelines: [
+      displayPipelines: [
         {
           created_at: new Date(2018, 8, 22, 11, 5, 48),
           description: 'test pipeline description',
           error: 'oops! could not load pipeline',
           name: 'pipeline1',
           parameters: [],
-        } as ApiPipeline,
+        },
       ],
     });
     await listPipelinesSpy;
@@ -133,7 +147,9 @@ describe('PipelineList', () => {
     tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
     await listPipelinesSpy;
     expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
-    expect(tree.state()).toHaveProperty('pipelines', [{ name: 'pipeline1' }]);
+    expect(tree.state()).toHaveProperty('displayPipelines', [
+      { expandState: 0, name: 'pipeline1' },
+    ]);
   });
 
   it('has a Refresh button, clicking it refreshes the pipeline list', async () => {
@@ -207,14 +223,17 @@ describe('PipelineList', () => {
     const link = tree.find('a[children="test pipeline name0"]');
     expect(link).toHaveLength(1);
     expect(link.prop('href')).toBe(
-      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', 'test-pipeline-id0'),
+      RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(
+        ':' + RouteParams.pipelineId + '?',
+        'test-pipeline-id0',
+      ),
     );
   });
 
   it('always has upload pipeline button enabled', async () => {
     tree = await mountWithNPipelines(1);
     const calls = updateToolbarSpy.mock.calls[0];
-    expect(calls[0].actions[ButtonKeys.UPLOAD_PIPELINE]).not.toHaveProperty('disabled');
+    expect(calls[0].actions[ButtonKeys.NEW_PIPELINE_VERSION]).not.toHaveProperty('disabled');
   });
 
   it('enables delete button when one pipeline is selected', async () => {
@@ -330,6 +349,7 @@ describe('PipelineList', () => {
       .at(0)
       .simulate('click');
     expect(tree.state()).toHaveProperty('selectedIds', ['test-pipeline-id0']);
+    deletePipelineSpy.mockImplementation(() => Promise.resolve());
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
@@ -351,6 +371,7 @@ describe('PipelineList', () => {
       .at(3)
       .simulate('click');
     expect(tree.state()).toHaveProperty('selectedIds', ['test-pipeline-id0', 'test-pipeline-id3']);
+    deletePipelineSpy.mockImplementation(() => Promise.resolve());
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
@@ -394,6 +415,7 @@ describe('PipelineList', () => {
       .find('.tableRow')
       .at(0)
       .simulate('click');
+    deletePipelineSpy.mockImplementation(() => Promise.resolve());
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
@@ -402,7 +424,7 @@ describe('PipelineList', () => {
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-      message: 'Delete succeeded for 1 pipeline',
+      message: 'Deletion succeeded for 1 pipeline',
       open: true,
     });
   });
@@ -424,7 +446,7 @@ describe('PipelineList', () => {
     const lastCall = updateDialogSpy.mock.calls[1][0];
     expect(lastCall).toMatchObject({
       content: 'Failed to delete pipeline: test-pipeline-id0 with error: "woops, failed"',
-      title: 'Failed to delete 1 pipeline',
+      title: 'Failed to delete some pipelines and/or some pipeline versions',
     });
   });
 
@@ -467,142 +489,76 @@ describe('PipelineList', () => {
       content:
         'Failed to delete pipeline: test-pipeline-id0 with error: "woops, failed!"\n\n' +
         'Failed to delete pipeline: test-pipeline-id1 with error: "woops, failed!"',
-      title: 'Failed to delete 2 pipelines',
+      title: 'Failed to delete some pipelines and/or some pipeline versions',
     });
 
     // Should show snackbar for the one successful deletion
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-      message: 'Delete succeeded for 2 pipelines',
+      message: 'Deletion succeeded for 2 pipelines',
       open: true,
     });
   });
 
-  it('shows upload dialog when upload button is clicked', async () => {
-    tree = await mountWithNPipelines(0);
-    const instance = tree.instance() as PipelineList;
-    const uploadBtn = instance.getInitialToolbarState().actions[ButtonKeys.UPLOAD_PIPELINE];
-    expect(uploadBtn).toBeDefined();
-    await uploadBtn!.action();
-    expect(instance.state).toHaveProperty('uploadDialogOpen', true);
-  });
+  it.only("delete a pipeline and some other pipeline's version together", async () => {
+    deletePipelineSpy.mockImplementation(() => Promise.resolve());
+    deletePipelineVersionSpy.mockImplementation(() => Promise.resolve());
+    listPipelineVersionsSpy.mockImplementation(() => ({
+      versions: [
+        {
+          id: 'test-pipeline-id1_default_version',
+          name: 'test-pipeline-id1_default_version_name',
+        },
+      ],
+    }));
 
-  it('dismisses the upload dialog', async () => {
-    tree = shallow(<PipelineList {...generateProps()} />);
-    tree.setState({ uploadDialogOpen: true });
-    tree.find('UploadPipelineDialog').simulate('close', false);
+    tree = await mountWithNPipelines(2);
+    tree
+      .find('button[aria-label="Expand"]')
+      .at(1)
+      .simulate('click');
+    await listPipelineVersionsSpy;
     tree.update();
-    expect(tree.state()).toHaveProperty('uploadDialogOpen', false);
-  });
 
-  it('does not try to upload if the upload dialog dismissed', async () => {
-    tree = shallow(<PipelineList {...generateProps()} />);
-    const handlerSpy = jest.spyOn(tree.instance() as any, '_uploadDialogClosed');
-    tree.setState({ uploadDialogOpen: true });
-    tree.find('UploadPipelineDialog').simulate('close', false);
-    expect(handlerSpy).toHaveBeenLastCalledWith(false);
-    expect(uploadPipelineSpy).not.toHaveBeenCalled();
-  });
-
-  it('does not try to upload if import method is local and no file is returned from upload dialog', async () => {
-    tree = shallow(<PipelineList {...generateProps()} />);
-    const handlerSpy = jest.spyOn(tree.instance() as any, '_uploadDialogClosed');
-    tree.setState({ uploadDialogOpen: true });
+    // select pipeline of id 'test-pipeline-id0'
     tree
-      .find('UploadPipelineDialog')
-      .simulate('close', true, 'some name', null, '', ImportMethod.LOCAL);
-    expect(handlerSpy).toHaveBeenLastCalledWith(true, 'some name', null, '', ImportMethod.LOCAL);
-    expect(uploadPipelineSpy).not.toHaveBeenCalled();
-  });
-
-  it('does not try to upload if import method is url and no url is returned from upload dialog', async () => {
-    tree = shallow(<PipelineList {...generateProps()} />);
-    const handlerSpy = jest.spyOn(tree.instance() as any, '_uploadDialogClosed');
-    tree.setState({ uploadDialogOpen: true });
+      .find('.tableRow')
+      .at(0)
+      .simulate('click');
+    // select pipeline version of id 'test-pipeline-id1_default_version' under pipeline 'test-pipeline-id1'
     tree
-      .find('UploadPipelineDialog')
-      .simulate('close', true, 'some name', null, '', ImportMethod.URL);
-    expect(handlerSpy).toHaveBeenLastCalledWith(true, 'some name', null, '', ImportMethod.URL);
-    expect(uploadPipelineSpy).not.toHaveBeenCalled();
-  });
+      .find('.tableRow')
+      .at(2)
+      .simulate('click');
 
-  it('tries to upload if import method is local and a file is returned from upload dialog', async () => {
-    tree = shallow(<PipelineList {...generateProps()} />);
-    tree.setState({ uploadDialogOpen: true });
-    tree
-      .find('UploadPipelineDialog')
-      .simulate('close', true, 'some name', { body: 'something' }, '', ImportMethod.LOCAL);
-    tree.update();
-    await createPipelineSpy;
-    await uploadPipelineSpy;
-    expect(uploadPipelineSpy).toHaveBeenLastCalledWith('some name', { body: 'something' });
-    expect(createPipelineSpy).not.toHaveBeenCalled();
-
-    // Check the dialog is closed
-    expect(tree.state()).toHaveProperty('uploadDialogOpen', false);
-  });
-
-  it('shows error dialog and does not dismiss upload dialog when upload fails', async () => {
-    TestUtils.makeErrorResponseOnce(uploadPipelineSpy, 'woops, could not upload');
-    tree = shallow(<PipelineList {...generateProps()} />);
-    tree.setState({ uploadDialogOpen: true });
-    tree
-      .find('UploadPipelineDialog')
-      .simulate('close', true, 'some name', { body: 'something' }, '', ImportMethod.LOCAL);
-    tree.update();
-    await uploadPipelineSpy;
-    await TestUtils.flushPromises();
-    expect(uploadPipelineSpy).toHaveBeenLastCalledWith('some name', { body: 'something' });
-    expect(updateDialogSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        content: 'woops, could not upload',
-        title: 'Failed to upload pipeline',
-      }),
-    );
-    // Check the dialog is not closed
-    expect(tree.state()).toHaveProperty('uploadDialogOpen', true);
-  });
-
-  it('tries to create a pipeline if import method is url and a url is returned from upload dialog', async () => {
-    tree = shallow(<PipelineList {...generateProps()} />);
-    tree.setState({ uploadDialogOpen: true });
-    tree
-      .find('UploadPipelineDialog')
-      .simulate('close', true, 'some name', null, 'https://some.url.com', ImportMethod.URL);
-    tree.update();
-    await createPipelineSpy;
-    await uploadPipelineSpy;
-    expect(createPipelineSpy).toHaveBeenLastCalledWith({
-      name: 'some name',
-      url: { pipeline_url: 'https://some.url.com' },
+    expect(tree.state()).toHaveProperty('selectedIds', ['test-pipeline-id0']);
+    expect(tree.state()).toHaveProperty('selectedVersionIds', {
+      'test-pipeline-id1': ['test-pipeline-id1_default_version'],
     });
-    expect(uploadPipelineSpy).not.toHaveBeenCalled();
 
-    // Check the dialog is closed
-    expect(tree.state()).toHaveProperty('uploadDialogOpen', false);
-  });
+    const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
+      ButtonKeys.DELETE_RUN
+    ];
+    await deleteBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    await confirmBtn.onClick();
 
-  it('shows error dialog and does not dismiss upload dialog when create fails', async () => {
-    TestUtils.makeErrorResponseOnce(createPipelineSpy, 'woops, could not create');
-    tree = shallow(<PipelineList {...generateProps()} />);
-    tree.setState({ uploadDialogOpen: true });
-    tree
-      .find('UploadPipelineDialog')
-      .simulate('close', true, 'some name', null, 'https://some.url.com', ImportMethod.URL);
-    tree.update();
-    await uploadPipelineSpy;
-    await TestUtils.flushPromises();
-    expect(createPipelineSpy).toHaveBeenLastCalledWith({
-      name: 'some name',
-      url: { pipeline_url: 'https://some.url.com' },
+    await deletePipelineSpy;
+    await deletePipelineVersionSpy;
+
+    expect(deletePipelineSpy).toHaveBeenCalledTimes(1);
+    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0');
+
+    expect(deletePipelineVersionSpy).toHaveBeenCalledTimes(1);
+    expect(deletePipelineVersionSpy).toHaveBeenCalledWith('test-pipeline-id1_default_version');
+
+    expect(tree.state()).toHaveProperty('selectedIds', []);
+    expect(tree.state()).toHaveProperty('selectedVersionIds', { 'test-pipeline-id1': [] });
+
+    // Should show snackbar for the one successful deletion
+    expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
+      message: 'Deletion succeeded for 1 pipeline and 1 pipeline version',
+      open: true,
     });
-    expect(updateDialogSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        content: 'woops, could not create',
-        title: 'Failed to upload pipeline',
-      }),
-    );
-
-    // Check the dialog is not closed
-    expect(tree.state()).toHaveProperty('uploadDialogOpen', true);
   });
 });

@@ -44,4 +44,4 @@ def pipeline(loopidy_doop=[{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]):
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(pipeline, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(pipeline, __file__ + '.yaml')

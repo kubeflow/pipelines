@@ -54,4 +54,4 @@ def download_and_print(url='gs://ml-pipeline-playground/shakespeare1.txt'):
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(download_and_print, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(download_and_print, __file__ + '.yaml')
