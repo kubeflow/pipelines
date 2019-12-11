@@ -260,9 +260,7 @@ export class Apis {
    */
   public static getTensorboardApp(logdir: string, tfversion: string): Promise<string> {
     return this._fetch(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(
-        tfversion,
-      )}`,
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(tfversion)}`,
     );
   }
 
@@ -271,9 +269,7 @@ export class Apis {
    */
   public static startTensorboardApp(logdir: string, tfversion: string): Promise<string> {
     return this._fetch(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(
-        tfversion,
-      )}`,
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(tfversion)}`,
       undefined,
       undefined,
       { headers: { 'content-type': 'application/json' }, method: 'POST' },
