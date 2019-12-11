@@ -61,4 +61,3 @@ func GetDurationConfig(configName string) time.Duration {
 func IsMultiUserMode() bool {
 	return GetBoolConfigWithDefault(MultiUserMode, false)
 }
-

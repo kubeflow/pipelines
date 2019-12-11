@@ -64,4 +64,4 @@ def secret_op_pipeline(url='gs://ml-pipeline-playground/shakespeare1.txt'):
 
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(secret_op_pipeline, __file__ + '.zip')
+  kfp.compiler.Compiler().compile(secret_op_pipeline, __file__ + '.yaml')

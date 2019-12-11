@@ -297,7 +297,6 @@ func getUserIdentity(ctx context.Context) (string, error) {
 	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."),"Request header error: there is no user identity header.")
 }
 
-
 func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
 	if common.IsMultiUserMode() == false {
 		// Skip authz if not multi-user mode.

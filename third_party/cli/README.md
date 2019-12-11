@@ -1,4 +1,4 @@
-# CLI tools to fetch license info
+# CLI tools to fetch go library's license info
 
 ## Why we need this?
 
