@@ -301,6 +301,7 @@ export enum ApiResourceType {
   JOB = <any>'JOB',
   PIPELINE = <any>'PIPELINE',
   PIPELINEVERSION = <any>'PIPELINE_VERSION',
+  NAMESPACE = <any>'NAMESPACE',
 }
 
 /**
@@ -754,7 +755,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
      * @param {string} [page_token]
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; (Example, \&quot;name asc\&quot; or \&quot;id des\&quot;). Ascending by default.
-     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
@@ -769,7 +770,8 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         | 'EXPERIMENT'
         | 'JOB'
         | 'PIPELINE'
-        | 'PIPELINE_VERSION',
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
       resource_reference_key_id?: string,
       filter?: string,
       options: any = {},
@@ -1216,7 +1218,7 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
      * @param {string} [page_token]
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; (Example, \&quot;name asc\&quot; or \&quot;id des\&quot;). Ascending by default.
-     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
@@ -1231,7 +1233,8 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
         | 'EXPERIMENT'
         | 'JOB'
         | 'PIPELINE'
-        | 'PIPELINE_VERSION',
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
       resource_reference_key_id?: string,
       filter?: string,
       options?: any,
@@ -1442,7 +1445,7 @@ export const RunServiceApiFactory = function(
      * @param {string} [page_token]
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; (Example, \&quot;name asc\&quot; or \&quot;id des\&quot;). Ascending by default.
-     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
@@ -1457,7 +1460,8 @@ export const RunServiceApiFactory = function(
         | 'EXPERIMENT'
         | 'JOB'
         | 'PIPELINE'
-        | 'PIPELINE_VERSION',
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
       resource_reference_key_id?: string,
       filter?: string,
       options?: any,
@@ -1595,7 +1599,7 @@ export class RunServiceApi extends BaseAPI {
    * @param {string} [page_token]
    * @param {number} [page_size]
    * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; (Example, \&quot;name asc\&quot; or \&quot;id des\&quot;). Ascending by default.
-   * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_reference_key_type] The type of the resource that referred to.
+   * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
    * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
    * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
    * @param {*} [options] Override http request option.
@@ -1611,7 +1615,8 @@ export class RunServiceApi extends BaseAPI {
       | 'EXPERIMENT'
       | 'JOB'
       | 'PIPELINE'
-      | 'PIPELINE_VERSION',
+      | 'PIPELINE_VERSION'
+      | 'NAMESPACE',
     resource_reference_key_id?: string,
     filter?: string,
     options?: any,
