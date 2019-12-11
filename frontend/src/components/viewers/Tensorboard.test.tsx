@@ -161,15 +161,16 @@ describe('Tensorboard', () => {
       .findWhere(el => el.text() === 'TensorFlow 2.0.0')
       .hostNodes()
       .simulate('click');
-    tree.find('BusyButton').at(1).simulate('click');
+    tree.find('BusyButton').simulate('click');
     expect(spy).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', '2.0.0');
   });
-/**
-  it('select a version, start a tensorboard, then delete the tensorboard instance', async () => {
-    const getAppMock = () => Promise.resolve('');
+
+  it.only('select a version, start a tensorboard, then delete the tensorboard instance', async () => {
+    const getAppMock = () => Promise.resolve('')
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(getAppMock)
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
-    const spy = jest.spyOn(Apis, 'startTensorboardApp');
+    const startSpy = jest.spyOn(Apis, 'startTensorboardApp');
+    const deleteSpy = jest.spyOn(Apis, 'deleteTensorboardApp');
     const tree = mount(<TensorboardViewer configs={[config]} />);
     await TestUtils.flushPromises();
 
@@ -184,14 +185,15 @@ describe('Tensorboard', () => {
       .findWhere(el => el.text() === 'TensorFlow 2.0.0')
       .hostNodes()
       .simulate('click');
-    tree.find('BusyButton').at(0).simulate('click');
-    expect(spy).toHaveBeenCalledWith(encodeURIComponent('gs://log/dir'), '2.0.0')
-
+    tree.find('BusyButton').simulate('click');
+    expect(startSpy).toHaveBeenCalledWith(encodeURIComponent('http://test/url'), '2.0.0');
+    await startSpy;
     // delete the tensorboard
-
-    tree
-      .find()
+    console.log(tree.debug());
+    tree.findWhere(el => el.text() === 'Stop Tensorboard').simulate('click');
+    expect(deleteSpy).toHaveBeenCalledWith(encodeURIComponent('http://test/url'), '2.0.0');
+    expect(tree.findWhere(el => el.text() === 'Start Tensorboard').exists()).toEqual(true);
+    
   });
-*/
 
 });
