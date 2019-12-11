@@ -13,10 +13,10 @@
 // limitations under the License.
 
 import * as express from 'express';
-import {Application, static as StaticHandler} from 'express';
+import { Application, static as StaticHandler } from 'express';
 import * as fs from 'fs';
 import * as proxy from 'http-proxy-middleware';
-import {Client as MinioClient, ClientOptions as MinioClientOptions} from 'minio';
+import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
 import fetch from 'node-fetch';
 import * as path from 'path';
 import * as process from 'process';
@@ -24,11 +24,11 @@ import * as process from 'process';
 import * as k8sHelper from './k8s-helper';
 import podLogsHandler from './workflow-helper';
 import proxyMiddleware from './proxy-middleware';
-import {getTarObjectAsString, getObjectStream, createMinioClient} from './minio-helper';
-import {Storage} from '@google-cloud/storage';
-import {Stream} from 'stream';
+import { getTarObjectAsString, getObjectStream, createMinioClient } from './minio-helper';
+import { Storage } from '@google-cloud/storage';
+import { Stream } from 'stream';
 
-import {loadJSON} from './utils';
+import { loadJSON } from './utils';
 
 const BASEPATH = '/pipeline';
 
@@ -63,7 +63,7 @@ const {
   /** Envoy service will listen to this port */
   METADATA_ENVOY_SERVICE_SERVICE_PORT = '9090',
   /** Is Argo log archive enabled? */
-  ARGO_ARCHIVE_LOGS = "false",
+  ARGO_ARCHIVE_LOGS = 'false',
   /** Use minio or s3 client to retrieve archives. */
   ARGO_ARCHIVE_ARTIFACTORY = 'minio',
   /** Bucket to retrive logs from */
@@ -77,16 +77,16 @@ enum Deployments {
   KUBEFLOW = 'KUBEFLOW',
 }
 
-const DEPLOYMENT = process.env.DEPLOYMENT === 'KUBEFLOW' ?
-  Deployments.KUBEFLOW :
-  Deployments.NOT_SPECIFIED;
+const DEPLOYMENT =
+  process.env.DEPLOYMENT === 'KUBEFLOW' ? Deployments.KUBEFLOW : Deployments.NOT_SPECIFIED;
 console.log(`Deployment = ${DEPLOYMENT}`);
 
 /** construct minio endpoint from host and namespace (optional) */
-const MINIO_ENDPOINT = MINIO_NAMESPACE && MINIO_NAMESPACE.length > 0 ? `${MINIO_HOST}.${MINIO_NAMESPACE}` : MINIO_HOST;
+const MINIO_ENDPOINT =
+  MINIO_NAMESPACE && MINIO_NAMESPACE.length > 0 ? `${MINIO_HOST}.${MINIO_NAMESPACE}` : MINIO_HOST;
 
 /** converts string to bool */
-const _as_bool = (value: string) => ['true', '1'].indexOf(value.toLowerCase()) >= 0
+const _as_bool = (value: string) => ['true', '1'].indexOf(value.toLowerCase()) >= 0;
 
 /** minio client for minio storage */
 const minioOptions: MinioClientOptions = {
@@ -108,21 +108,23 @@ const s3Options: MinioClientOptions = {
 const s3ClientPromise = () => createMinioClient(s3Options);
 
 /** pod template spec to use for viewer crd */
-const podTemplateSpec = loadJSON(VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH, k8sHelper.defaultPodTemplateSpec)
+const podTemplateSpec = loadJSON(
+  VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH,
+  k8sHelper.defaultPodTemplateSpec,
+);
 
 /** set a fallback query to a s3 or minio endpoint for the pod logs. */
 if (_as_bool(ARGO_ARCHIVE_LOGS)) {
   podLogsHandler.setFallbackHandler(
-    ARGO_ARCHIVE_ARTIFACTORY==='minio' ? minioOptions : s3Options,
+    ARGO_ARCHIVE_ARTIFACTORY === 'minio' ? minioOptions : s3Options,
     ARGO_ARCHIVE_BUCKETNAME,
     ARGO_ARCHIVE_PREFIX,
-  )
+  );
 }
-
 
 const app = express() as Application;
 
-app.use(function (req, _, next) {
+app.use(function(req, _, next) {
   console.info(req.method + ' ' + req.originalUrl);
   next();
 });
@@ -141,14 +143,16 @@ const buildDatePath = path.join(currentDir, 'BUILD_DATE');
 const commitHashPath = path.join(currentDir, 'COMMIT_HASH');
 
 const staticDir = path.resolve(process.argv[2]);
-const buildDate =
-  fs.existsSync(buildDatePath) ? fs.readFileSync(buildDatePath, 'utf-8').trim() : '';
-const commitHash =
-  fs.existsSync(commitHashPath) ? fs.readFileSync(commitHashPath, 'utf-8').trim() : '';
+const buildDate = fs.existsSync(buildDatePath)
+  ? fs.readFileSync(buildDatePath, 'utf-8').trim()
+  : '';
+const commitHash = fs.existsSync(commitHashPath)
+  ? fs.readFileSync(commitHashPath, 'utf-8').trim()
+  : '';
 const port = process.argv[3] || 3000;
 const apiServerAddress = `http://${ML_PIPELINE_SERVICE_HOST}:${ML_PIPELINE_SERVICE_PORT}`;
 
-const envoyServiceAddress = `http://${METADATA_ENVOY_SERVICE_SERVICE_HOST}:${METADATA_ENVOY_SERVICE_SERVICE_PORT}`
+const envoyServiceAddress = `http://${METADATA_ENVOY_SERVICE_SERVICE_HOST}:${METADATA_ENVOY_SERVICE_SERVICE_PORT}`;
 
 const v1beta1Prefix = 'apis/v1beta1';
 
@@ -161,8 +165,7 @@ const healthzStats = {
 
 const healthzHandler = async (_, res) => {
   try {
-    const response = await fetch(
-      `${apiServerAddress}/${v1beta1Prefix}/healthz`, { timeout: 1000 });
+    const response = await fetch(`${apiServerAddress}/${v1beta1Prefix}/healthz`, { timeout: 1000 });
     healthzStats.apiServerReady = true;
     const serverStatus = await response.json();
     healthzStats.apiServerCommitHash = serverStatus.commit_sha;
@@ -199,12 +202,19 @@ const artifactsHandler = async (req, res) => {
         const storage = new Storage();
         const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
         const files = await storage.bucket(bucket).getFiles({ prefix });
-        const matchingFiles = files[0].filter((f) => {
+        const matchingFiles = files[0].filter(f => {
           // Escape regex characters
           const escapeRegexChars = (s: string) => s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
           // Build a RegExp object that only recognizes asterisks ('*'), and
           // escapes everything else.
-          const regex = new RegExp('^' + key.split(/\*+/).map(escapeRegexChars).join('.*') + '$');
+          const regex = new RegExp(
+            '^' +
+              key
+                .split(/\*+/)
+                .map(escapeRegexChars)
+                .join('.*') +
+              '$',
+          );
           return regex.test(f.name);
         });
 
@@ -218,9 +228,12 @@ const artifactsHandler = async (req, res) => {
         matchingFiles.forEach((f, i) => {
           const buffer: Buffer[] = [];
           f.createReadStream()
-            .on('data', (data) => buffer.push(Buffer.from(data)))
+            .on('data', data => buffer.push(Buffer.from(data)))
             .on('end', () => {
-              contents += Buffer.concat(buffer).toString().trim() + '\n';
+              contents +=
+                Buffer.concat(buffer)
+                  .toString()
+                  .trim() + '\n';
               if (i === matchingFiles.length - 1) {
                 res.send(contents);
               }
@@ -234,7 +247,7 @@ const artifactsHandler = async (req, res) => {
 
     case 'minio':
       try {
-        res.send(await getTarObjectAsString({bucket, key, client: minioClient}));
+        res.send(await getTarObjectAsString({ bucket, key, client: minioClient }));
       } catch (err) {
         res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
       }
@@ -242,9 +255,11 @@ const artifactsHandler = async (req, res) => {
 
     case 's3':
       try {
-        const stream = await getObjectStream({bucket, key, client: await s3ClientPromise()});
+        const stream = await getObjectStream({ bucket, key, client: await s3ClientPromise() });
         stream.on('end', () => res.end());
-        stream.on('error', err => res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`))
+        stream.on('error', err =>
+          res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`),
+        );
         stream.pipe(res);
       } catch (err) {
         res.send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
@@ -260,7 +275,8 @@ const artifactsHandler = async (req, res) => {
       // add authorization header to fetch request if key is non-empty
       if (HTTP_AUTHORIZATION_KEY.length > 0) {
         // inject original request's value if exists, otherwise default to provided default value
-        headers[HTTP_AUTHORIZATION_KEY] = req.headers[HTTP_AUTHORIZATION_KEY] || HTTP_AUTHORIZATION_DEFAULT_VALUE;
+        headers[HTTP_AUTHORIZATION_KEY] =
+          req.headers[HTTP_AUTHORIZATION_KEY] || HTTP_AUTHORIZATION_DEFAULT_VALUE;
       }
       const response = await fetch(`${source}://${baseUrl}${bucket}/${key}`, { headers: headers });
       const content = await response.buffer();
@@ -325,7 +341,7 @@ const logsHandler = async (req, res) => {
 
   try {
     const stream = await podLogsHandler.getPodLogs(podName);
-    stream.on('error', (err) => res.status(500).send('Could not get main container logs: ' + err))
+    stream.on('error', err => res.status(500).send('Could not get main container logs: ' + err));
     stream.on('end', () => res.end());
     stream.pipe(res);
   } catch (err) {
@@ -336,16 +352,15 @@ const logsHandler = async (req, res) => {
 const clusterNameHandler = async (req, res) => {
   const response = await fetch(
     'http://metadata/computeMetadata/v1/instance/attributes/cluster-name',
-    { headers: {'Metadata-Flavor': 'Google' } }
+    { headers: { 'Metadata-Flavor': 'Google' } },
   );
   res.send(await response.text());
 };
 
 const projectIdHandler = async (req, res) => {
-  const response = await fetch(
-    'http://metadata/computeMetadata/v1/project/project-id',
-    { headers: {'Metadata-Flavor': 'Google' } }
-  );
+  const response = await fetch('http://metadata/computeMetadata/v1/project/project-id', {
+    headers: { 'Metadata-Flavor': 'Google' },
+  });
   res.send(await response.text());
 };
 
@@ -378,45 +393,55 @@ app.get('/visualizations/allowed', allowCustomVisualizationsHandler);
 app.get(BASEPATH + '/visualizations/allowed', allowCustomVisualizationsHandler);
 
 // Proxy metadata requests to the Envoy instance which will handle routing to the metadata gRPC server
-app.all('/ml_metadata.*', proxy({
-  changeOrigin: true,
-  onProxyReq: proxyReq => {
-    console.log('Metadata proxied request: ', (proxyReq as any).path);
-  },
-  target: envoyServiceAddress,
-}));
+app.all(
+  '/ml_metadata.*',
+  proxy({
+    changeOrigin: true,
+    onProxyReq: proxyReq => {
+      console.log('Metadata proxied request: ', (proxyReq as any).path);
+    },
+    target: envoyServiceAddress,
+  }),
+);
 
 // Order matters here, since both handlers can match any proxied request with a referer,
 // and we prioritize the basepath-friendly handler
 proxyMiddleware(app, BASEPATH + '/' + v1beta1Prefix);
 proxyMiddleware(app, '/' + v1beta1Prefix);
 
-app.all('/' + v1beta1Prefix + '/*', proxy({
-  changeOrigin: true,
-  onProxyReq: proxyReq => {
-    console.log('Proxied request: ', (proxyReq as any).path);
-  },
-  target: apiServerAddress,
-}));
+app.all(
+  '/' + v1beta1Prefix + '/*',
+  proxy({
+    changeOrigin: true,
+    onProxyReq: proxyReq => {
+      console.log('Proxied request: ', (proxyReq as any).path);
+    },
+    target: apiServerAddress,
+  }),
+);
 
-app.all(BASEPATH  + '/' + v1beta1Prefix + '/*', proxy({
-  changeOrigin: true,
-  onProxyReq: proxyReq => {
-    console.log('Proxied request: ', (proxyReq as any).path);
-  },
-  pathRewrite: (path) =>
-    path.startsWith(BASEPATH) ? path.substr(BASEPATH.length, path.length) : path,
-  target: apiServerAddress,
-}));
+app.all(
+  BASEPATH + '/' + v1beta1Prefix + '/*',
+  proxy({
+    changeOrigin: true,
+    onProxyReq: proxyReq => {
+      console.log('Proxied request: ', (proxyReq as any).path);
+    },
+    pathRewrite: path =>
+      path.startsWith(BASEPATH) ? path.substr(BASEPATH.length, path.length) : path,
+    target: apiServerAddress,
+  }),
+);
 
 const DEFAULT_FLAG = 'window.KFP_FLAGS.DEPLOYMENT=null';
 const KUBEFLOW_CLIENT_PLACEHOLDER = '<script id="kubeflow-client-placeholder"></script>';
 function replaceRuntimeContent(indexHtml: string): string {
   if (DEPLOYMENT === Deployments.KUBEFLOW) {
-    return indexHtml.replace(DEFAULT_FLAG, 'window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"')
+    return indexHtml
+      .replace(DEFAULT_FLAG, 'window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"')
       .replace(
         KUBEFLOW_CLIENT_PLACEHOLDER,
-        `<script id="kubeflow-client-placeholder" src="/dashboard_lib.bundle.js"></script>`
+        `<script id="kubeflow-client-placeholder" src="/dashboard_lib.bundle.js"></script>`,
       );
   } else {
     return indexHtml;
@@ -433,10 +458,14 @@ fs.readFile(path.resolve(staticDir, 'index.html'), (err, data) => {
     indexHtml = data.toString();
     // sanity checking
     if (!indexHtml.includes(DEFAULT_FLAG)) {
-      throw new Error(`Error: cannot find default flag: '${DEFAULT_FLAG}' in index html. Its content: '${indexHtml}'.`);
+      throw new Error(
+        `Error: cannot find default flag: '${DEFAULT_FLAG}' in index html. Its content: '${indexHtml}'.`,
+      );
     }
     if (!indexHtml.includes(KUBEFLOW_CLIENT_PLACEHOLDER)) {
-      throw new Error(`Error: cannot find kubeflow client placeholder: '${KUBEFLOW_CLIENT_PLACEHOLDER}' in index html. Its content: '${indexHtml}'.`)
+      throw new Error(
+        `Error: cannot find kubeflow client placeholder: '${KUBEFLOW_CLIENT_PLACEHOLDER}' in index html. Its content: '${indexHtml}'.`,
+      );
     }
   }
 });

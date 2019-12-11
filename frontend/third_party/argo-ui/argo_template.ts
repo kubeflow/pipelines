@@ -179,8 +179,8 @@ export interface Inputs {
  * Pod metdata
  */
 export interface Metadata {
-  annotations?: { [key: string]: string; };
-  labels?: { [key: string]: string; };
+  annotations?: { [key: string]: string };
+  labels?: { [key: string]: string };
 }
 /**
  * Outputs hold parameters, artifacts, and results from a step
@@ -564,7 +564,7 @@ export interface Template {
    * run on the selected node(s). Overrides the selector set at the workflow
    * level.
    */
-  nodeSelector?: { [key: string]: string; };
+  nodeSelector?: { [key: string]: string };
   /**
    * Outputs describe the parameters and artifacts that this template produces
    */
@@ -747,7 +747,6 @@ export interface NodeStatus {
 }
 
 export interface WorkflowStatus {
-
   /**
    * Phase a simple, high-level summary of where the workflow is in its lifecycle.
    */
@@ -825,7 +824,7 @@ export interface WorkflowSpec {
    * to be scheduled on the selected node(s).
    * This is able to be overridden by a nodeSelector specified in the template.
    */
-  nodeSelector?: { [key: string]: string; };
+  nodeSelector?: { [key: string]: string };
   /**
    * OnExit is a template reference which is invoked at the end of the
    * workflow, irrespective of the success, failure, or error of the primary
