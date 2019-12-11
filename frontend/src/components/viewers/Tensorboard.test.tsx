@@ -20,7 +20,11 @@ import TestUtils from '../../TestUtils';
 import { Apis } from '../../lib/Apis';
 import { PlotType } from './Viewer';
 import { shallow, mount } from 'enzyme';
-import { resolve } from 'dns';
+
+beforeEach(() => {
+  jest.restoreAllMocks();
+  jest.clearAllMocks();
+});
 
 describe('Tensorboard', () => {
   it('does not break on no config', () => {
@@ -138,5 +142,26 @@ describe('Tensorboard', () => {
       'http%3A%2F%2Ftest%2Furl',
       tree.state('tensorflowVersion'),
     );
+  });
+
+  it.only('simulate select', async () => {
+    const getAppMock = () => Promise.resolve('');
+    jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(getAppMock);
+    const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
+    const spy = jest.spyOn(Apis, 'startTensorboardApp');
+
+    const tree = mount(<TensorboardViewer configs={[config]} />);
+    await TestUtils.flushPromises();
+
+    tree
+      .find('Select')
+      .find('[role="button"]')
+      .simulate('click');
+    tree
+      .findWhere(el => el.text() === 'TensorFlow 2.0.0')
+      .hostNodes()
+      .simulate('click');
+    tree.find('BusyButton').simulate('click');
+    expect(spy).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', '2.0.0');
   });
 });

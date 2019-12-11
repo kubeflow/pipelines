@@ -64,9 +64,9 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     this._checkTensorboardApp();
   }
 
-  public onChangeFunc(e: React.ChangeEvent<{ name?: string; value: unknown }>): void {
+  public onChangeFunc = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
     this.setState({ tensorflowVersion: e.target.value as string });
-  }
+  };
 
   public render(): JSX.Element {
     // Strip the protocol from the URL. This is a workaround for cloud shell
@@ -82,7 +82,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       <div>
         {this.state.podAddress && (
           <div>
-            <div className={padding(20, 'b')}>{`Tensorboard ${this.state.tensorflowVersion}is running for this output.`}</div>
+            <div className={padding(20, 'b')}>{`Tensorboard is running for this output.`}</div>
             <a
               href={'apis/v1beta1/_proxy/' + podAddress}
               target='_blank'
@@ -104,7 +104,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                   defaultValue={this.state.tensorflowVersion}
                   value={this.state.tensorflowVersion}
                   input={<Input id='grouped-select' />}
-                  onChange={this.onChangeFunc.bind(this)}
+                  onChange={this.onChangeFunc}
                   style={{
                     minHeight: 40,
                   }}
@@ -133,10 +133,11 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 onClick={this._startTensorboard.bind(this)}
                 busy={this.state.busy}
                 title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`}
-                style = {{marginBottom: 20}}
+                //style = {{marginBottom: 20}}
               />
             </div>
 
+            {/**
             <div>
               <BusyButton
                 className={commonCss.buttonAction}
@@ -145,9 +146,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`}
               />
             </div>
-            
-
-            
+            */}
           </div>
         )}
       </div>
@@ -185,13 +184,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // delete the already opened Tensorboard, clear the podAddress recorded in frontend,
     // and return to the select & start tensorboard page
     this.setState({ busy: true }, async () => {
-      await Apis.deleteTensorboardApp(
-        this._buildUrl(),
-        this.state.tensorflowVersion
-      );
+      await Apis.deleteTensorboardApp(this._buildUrl(), this.state.tensorflowVersion);
       this.setState({ busy: false, podAddress: '' });
     });
-  }    
+  }
 }
 
 export default TensorboardViewer;
