@@ -280,7 +280,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 
 	// Disable istio sidecar injection
 	if multiuserMode == true {
-		workflow.SetAnnotations(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectEnabled)
+		workflow.SetAnnotations(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)

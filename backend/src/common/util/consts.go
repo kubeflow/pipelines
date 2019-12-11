@@ -46,4 +46,5 @@ const (
 
 	AnnotationKeyIstioSidecarInject = "sidecar.istio.io/inject"
 	AnnotationValueIstioSidecarInjectEnabled = "true"
+	AnnotationValueIstioSidecarInjectDisabled = "false"
 )
