@@ -54,6 +54,7 @@ import { logger, errorToMessage } from '../lib/Utils';
 import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
 import { CustomRendererProps } from '../components/CustomTable';
 import { Description } from '../components/Description';
+import {pipeline} from 'stream';
 
 interface NewRunState {
   description: string;
@@ -612,10 +613,12 @@ class NewRun extends Page<{}, NewRunState> {
       if (possiblePipelineId) {
         try {
           const pipeline = await Apis.pipelineServiceApi.getPipeline(possiblePipelineId);
+          console.log('JING here 1');
           this.setStateSafe({
             parameters: pipeline.parameters || [],
             pipeline,
             pipelineName: (pipeline && pipeline.name) || '',
+            runName: 'p_' + this._getRunNameFromPipelineVersion((pipeline && pipeline.name) || ''),
           });
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
@@ -632,10 +635,12 @@ class NewRun extends Page<{}, NewRunState> {
           const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
             possiblePipelineVersionId,
           );
+          console.log('JING here 2');
           this.setStateSafe({
             parameters: pipelineVersion.parameters || [],
             pipelineVersion,
             pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
+            runName: 'pv_' + this._getRunNameFromPipelineVersion((pipelineVersion && pipelineVersion.name) || ''),
           });
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineVersionId);
@@ -1043,6 +1048,11 @@ class NewRun extends Page<{}, NewRunState> {
       const cloneNumber = match[1] ? +match[1] : 1;
       return `Clone (${cloneNumber + 1}) of ${match[2]}`;
     }
+  }
+
+  private _getRunNameFromPipelineVersion(pipelineVersionName: string): string{
+    const currDate = new Date();
+    return 'Run_of_' + pipelineVersionName + '_at_' + currDate.toISOString();
   }
 
   private _validate(): void {
