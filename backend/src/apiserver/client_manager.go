@@ -242,6 +242,16 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to update pipeline description type. Error: %s", response.Error)
 	}
 
+	// If the old unique index idx_pipeline_version_uuid_name on pipeline_versions exists, remove it.
+	rows, err := db.Raw(`show index from pipeline_versions where Key_name="idx_pipeline_version_uuid_name"`).Rows()
+	if err != nil {
+		glog.Fatalf("Failed to query pipeline_version table's indices. Error: %s", err)
+	}
+	if rows.Next() {
+		db.Exec(`drop index idx_pipeline_version_uuid_name on pipeline_versions`)
+	}
+	rows.Close()
+
 	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
 }
 
