@@ -130,6 +130,18 @@ describe('Apis', () => {
     );
   });
 
+  it('deleteTensorboardApp', async () => {
+    const spy = fetchSpy('http://some/address')
+    await Apis.deleteTensorboardApp('gs://log/dir', '1.14.0');
+    expect(spy).toHaveBeenCalledWith(
+      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir') + '&tfversion=1.14.0',
+      {
+        credentials: 'same-origin',
+        method: 'DELETE',
+      },
+    );
+  });
+
   it('uploadPipeline', async () => {
     const spy = fetchSpy(JSON.stringify({ name: 'resultName' }));
     const result = await Apis.uploadPipeline('test pipeline name', new File([], 'test name'));

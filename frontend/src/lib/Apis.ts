@@ -285,9 +285,7 @@ export class Apis {
    */
   public static deleteTensorboardApp(logdir: string, tfversion: string): Promise<string> {
     return this._fetch(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(
-        tfversion,
-      )}`,
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(tfversion)}`,
       undefined,
       undefined,
       { method: 'DELETE' },

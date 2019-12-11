@@ -88,11 +88,24 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
               target='_blank'
               className={commonCss.unstyled}
             >
-              <Button className={commonCss.buttonAction} disabled={this.state.busy}>
+              <Button 
+              className={commonCss.buttonAction} disabled={this.state.busy}
+              style = {{marginBottom: 20}}>
                 Open Tensorboard
               </Button>
             </a>
+
+            <div>
+              <BusyButton
+                className={commonCss.buttonAction}
+                onClick={this._deleteTensorboard.bind(this)}
+                busy={this.state.busy}
+                title={`Stop Tensorboard`} //pop out dialog: this tensorboard would be deleted 
+              />
+            </div>
+
           </div>
+
         )}
 
         {!this.state.podAddress && (
@@ -133,20 +146,9 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 onClick={this._startTensorboard.bind(this)}
                 busy={this.state.busy}
                 title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`}
-                //style = {{marginBottom: 20}}
               />
             </div>
-
-            {/**
-            <div>
-              <BusyButton
-                className={commonCss.buttonAction}
-                onClick={this._deleteTensorboard.bind(this)}
-                busy={this.state.busy}
-                title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`}
-              />
-            </div>
-            */}
+      
           </div>
         )}
       </div>
