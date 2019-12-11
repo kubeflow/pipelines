@@ -24,8 +24,8 @@ export default {
     creationTimestamp: '2018-04-16T23:37:48Z',
     labels: {
       'workflows.argoproj.io/completed': 'true',
-      'workflows.argoproj.io/phase': 'Succeeded'
-    }
+      'workflows.argoproj.io/phase': 'Succeeded',
+    },
   },
   spec: {
     templates: [
@@ -34,15 +34,15 @@ export default {
         inputs: {
           parameters: [
             {
-              name: 'project'
+              name: 'project',
             },
             {
-              name: 'region'
+              name: 'region',
             },
             {
-              name: 'cluster'
-            }
-          ]
+              name: 'cluster',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
@@ -55,63 +55,63 @@ export default {
                 parameters: [
                   {
                     name: 'project',
-                    value: '{{inputs.parameters.project}}'
+                    value: '{{inputs.parameters.project}}',
                   },
                   {
                     name: 'region',
-                    value: '{{inputs.parameters.region}}'
+                    value: '{{inputs.parameters.region}}',
                   },
                   {
                     name: 'name',
-                    value: '{{inputs.parameters.cluster}}'
-                  }
-                ]
-              }
-            }
-          ]
-        ]
+                    value: '{{inputs.parameters.cluster}}',
+                  },
+                ],
+              },
+            },
+          ],
+        ],
       },
       {
         name: 'xgboost-training',
         inputs: {
           parameters: [
             {
-              name: 'project'
+              name: 'project',
             },
             {
-              name: 'region'
+              name: 'region',
             },
             {
-              name: 'cluster'
+              name: 'cluster',
             },
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'train'
+              name: 'train',
             },
             {
-              name: 'eval'
+              name: 'eval',
             },
             {
-              name: 'schema'
+              name: 'schema',
             },
             {
-              name: 'target'
+              name: 'target',
             },
             {
-              name: 'package'
+              name: 'package',
             },
             {
-              name: 'workers'
+              name: 'workers',
             },
             {
-              name: 'rounds'
+              name: 'rounds',
             },
             {
-              name: 'conf'
-            }
-          ]
+              name: 'conf',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
@@ -124,23 +124,23 @@ export default {
                 parameters: [
                   {
                     name: 'project',
-                    value: '{{inputs.parameters.project}}'
+                    value: '{{inputs.parameters.project}}',
                   },
                   {
                     name: 'region',
-                    value: '{{inputs.parameters.region}}'
+                    value: '{{inputs.parameters.region}}',
                   },
                   {
                     name: 'name',
-                    value: '{{inputs.parameters.cluster}}'
+                    value: '{{inputs.parameters.cluster}}',
                   },
                   {
                     name: 'staging',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/staging'
-                  }
-                ]
-              }
-            }
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/staging',
+                  },
+                ],
+              },
+            },
           ],
           [
             {
@@ -150,31 +150,31 @@ export default {
                 parameters: [
                   {
                     name: 'project',
-                    value: '{{inputs.parameters.project}}'
+                    value: '{{inputs.parameters.project}}',
                   },
                   {
                     name: 'region',
-                    value: '{{inputs.parameters.region}}'
+                    value: '{{inputs.parameters.region}}',
                   },
                   {
                     name: 'cluster',
-                    value: '{{inputs.parameters.cluster}}'
+                    value: '{{inputs.parameters.cluster}}',
                   },
                   {
                     name: 'output',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/analysis'
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/analysis',
                   },
                   {
                     name: 'train',
-                    value: '{{inputs.parameters.train}}'
+                    value: '{{inputs.parameters.train}}',
                   },
                   {
                     name: 'schema',
-                    value: '{{inputs.parameters.schema}}'
-                  }
-                ]
-              }
-            }
+                    value: '{{inputs.parameters.schema}}',
+                  },
+                ],
+              },
+            },
           ],
           [
             {
@@ -184,39 +184,39 @@ export default {
                 parameters: [
                   {
                     name: 'project',
-                    value: '{{inputs.parameters.project}}'
+                    value: '{{inputs.parameters.project}}',
                   },
                   {
                     name: 'region',
-                    value: '{{inputs.parameters.region}}'
+                    value: '{{inputs.parameters.region}}',
                   },
                   {
                     name: 'cluster',
-                    value: '{{inputs.parameters.cluster}}'
+                    value: '{{inputs.parameters.cluster}}',
                   },
                   {
                     name: 'output',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/transform'
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/transform',
                   },
                   {
                     name: 'train',
-                    value: '{{inputs.parameters.train}}'
+                    value: '{{inputs.parameters.train}}',
                   },
                   {
                     name: 'eval',
-                    value: '{{inputs.parameters.eval}}'
+                    value: '{{inputs.parameters.eval}}',
                   },
                   {
                     name: 'target',
-                    value: '{{inputs.parameters.target}}'
+                    value: '{{inputs.parameters.target}}',
                   },
                   {
                     name: 'analysis',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/analysis'
-                  }
-                ]
-              }
-            }
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/analysis',
+                  },
+                ],
+              },
+            },
           ],
           [
             {
@@ -226,55 +226,55 @@ export default {
                 parameters: [
                   {
                     name: 'project',
-                    value: '{{inputs.parameters.project}}'
+                    value: '{{inputs.parameters.project}}',
                   },
                   {
                     name: 'region',
-                    value: '{{inputs.parameters.region}}'
+                    value: '{{inputs.parameters.region}}',
                   },
                   {
                     name: 'cluster',
-                    value: '{{inputs.parameters.cluster}}'
+                    value: '{{inputs.parameters.cluster}}',
                   },
                   {
                     name: 'output',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/model'
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/model',
                   },
                   {
                     name: 'train',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/transform/train/part-*'
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/transform/train/part-*',
                   },
                   {
                     name: 'eval',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/transform/eval/part-*'
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/transform/eval/part-*',
                   },
                   {
                     name: 'target',
-                    value: '{{inputs.parameters.target}}'
+                    value: '{{inputs.parameters.target}}',
                   },
                   {
                     name: 'analysis',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/analysis'
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/analysis',
                   },
                   {
                     name: 'package',
-                    value: '{{inputs.parameters.package}}'
+                    value: '{{inputs.parameters.package}}',
                   },
                   {
                     name: 'workers',
-                    value: '{{inputs.parameters.workers}}'
+                    value: '{{inputs.parameters.workers}}',
                   },
                   {
                     name: 'rounds',
-                    value: '{{inputs.parameters.rounds}}'
+                    value: '{{inputs.parameters.rounds}}',
                   },
                   {
                     name: 'conf',
-                    value: '{{inputs.parameters.conf}}'
-                  }
-                ]
-              }
-            }
+                    value: '{{inputs.parameters.conf}}',
+                  },
+                ],
+              },
+            },
           ],
           [
             {
@@ -284,43 +284,43 @@ export default {
                 parameters: [
                   {
                     name: 'project',
-                    value: '{{inputs.parameters.project}}'
+                    value: '{{inputs.parameters.project}}',
                   },
                   {
                     name: 'region',
-                    value: '{{inputs.parameters.region}}'
+                    value: '{{inputs.parameters.region}}',
                   },
                   {
                     name: 'cluster',
-                    value: '{{inputs.parameters.cluster}}'
+                    value: '{{inputs.parameters.cluster}}',
                   },
                   {
                     name: 'output',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/batchpredict'
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/batchpredict',
                   },
                   {
                     name: 'eval',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/transform/eval/part-*'
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/transform/eval/part-*',
                   },
                   {
                     name: 'target',
-                    value: '{{inputs.parameters.target}}'
+                    value: '{{inputs.parameters.target}}',
                   },
                   {
                     name: 'analysis',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/analysis'
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/analysis',
                   },
                   {
                     name: 'package',
-                    value: '{{inputs.parameters.package}}'
+                    value: '{{inputs.parameters.package}}',
                   },
                   {
                     name: 'model',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/model'
-                  }
-                ]
-              }
-            }
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/model',
+                  },
+                ],
+              },
+            },
           ],
           [
             {
@@ -330,383 +330,363 @@ export default {
                 parameters: [
                   {
                     name: 'output',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/confusionmatrix'
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/confusionmatrix',
                   },
                   {
                     name: 'predictions',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/batchpredict/part-*.csv'
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/batchpredict/part-*.csv',
                   },
                   {
                     name: 'analysis',
-                    value: '{{inputs.parameters.output}}/{{workflow.name}}/analysis'
+                    value: '{{inputs.parameters.output}}/{{workflow.name}}/analysis',
                   },
                   {
                     name: 'target',
-                    value: '{{inputs.parameters.target}}'
-                  }
-                ]
-              }
-            }
-          ]
-        ]
+                    value: '{{inputs.parameters.target}}',
+                  },
+                ],
+              },
+            },
+          ],
+        ],
       },
       {
         name: 'createcluster',
         inputs: {
           parameters: [
             {
-              name: 'project'
+              name: 'project',
             },
             {
-              name: 'region'
+              name: 'region',
             },
             {
-              name: 'name'
+              name: 'name',
             },
             {
-              name: 'staging'
-            }
-          ]
+              name: 'staging',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
         container: {
           name: '',
           image: 'gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost',
-          command: [
-            'sh',
-            '-c'
-          ],
+          command: ['sh', '-c'],
           args: [
             'python /ml/create_cluster.py --project {{inputs.parameters.project}} ' +
-            '--region {{inputs.parameters.region}} --name {{inputs.parameters.name}} ' +
-            '--staging {{inputs.parameters.staging}}'
+              '--region {{inputs.parameters.region}} --name {{inputs.parameters.name}} ' +
+              '--staging {{inputs.parameters.staging}}',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'analyze',
         inputs: {
           parameters: [
             {
-              name: 'project'
+              name: 'project',
             },
             {
-              name: 'region'
+              name: 'region',
             },
             {
-              name: 'cluster'
+              name: 'cluster',
             },
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'train'
+              name: 'train',
             },
             {
-              name: 'schema'
-            }
-          ]
+              name: 'schema',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
         container: {
           name: '',
           image: 'gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost',
-          command: [
-            'sh',
-            '-c'
-          ],
+          command: ['sh', '-c'],
           args: [
             'python /ml/analyze.py --project {{inputs.parameters.project}} ' +
-            '--region {{inputs.parameters.region}} --cluster ' +
-            '{{inputs.parameters.cluster}} --output ' +
-            '{{inputs.parameters.output}} --train {{inputs.parameters.train}} ' +
-            '--schema {{inputs.parameters.schema}}'
+              '--region {{inputs.parameters.region}} --cluster ' +
+              '{{inputs.parameters.cluster}} --output ' +
+              '{{inputs.parameters.output}} --train {{inputs.parameters.train}} ' +
+              '--schema {{inputs.parameters.schema}}',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'transform',
         inputs: {
           parameters: [
             {
-              name: 'project'
+              name: 'project',
             },
             {
-              name: 'region'
+              name: 'region',
             },
             {
-              name: 'cluster'
+              name: 'cluster',
             },
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'train'
+              name: 'train',
             },
             {
-              name: 'eval'
+              name: 'eval',
             },
             {
-              name: 'target'
+              name: 'target',
             },
             {
-              name: 'analysis'
-            }
-          ]
+              name: 'analysis',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
         container: {
           name: '',
           image: 'gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost',
-          command: [
-            'sh',
-            '-c'
-          ],
+          command: ['sh', '-c'],
           args: [
             'python /ml/transform.py --project {{inputs.parameters.project}} ' +
-            '--region {{inputs.parameters.region}} --cluster ' +
-            '{{inputs.parameters.cluster}} --output ' +
-            '{{inputs.parameters.output}} --train {{inputs.parameters.train}} ' +
-            '--eval {{inputs.parameters.eval}} --target ' +
-            '{{inputs.parameters.target}} --analysis ' +
-            '{{inputs.parameters.analysis}}'
+              '--region {{inputs.parameters.region}} --cluster ' +
+              '{{inputs.parameters.cluster}} --output ' +
+              '{{inputs.parameters.output}} --train {{inputs.parameters.train}} ' +
+              '--eval {{inputs.parameters.eval}} --target ' +
+              '{{inputs.parameters.target}} --analysis ' +
+              '{{inputs.parameters.analysis}}',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'train',
         inputs: {
           parameters: [
             {
-              name: 'project'
+              name: 'project',
             },
             {
-              name: 'region'
+              name: 'region',
             },
             {
-              name: 'cluster'
+              name: 'cluster',
             },
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'train'
+              name: 'train',
             },
             {
-              name: 'eval'
+              name: 'eval',
             },
             {
-              name: 'target'
+              name: 'target',
             },
             {
-              name: 'analysis'
+              name: 'analysis',
             },
             {
-              name: 'package'
+              name: 'package',
             },
             {
-              name: 'workers'
+              name: 'workers',
             },
             {
-              name: 'rounds'
+              name: 'rounds',
             },
             {
-              name: 'conf'
-            }
-          ]
+              name: 'conf',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
         container: {
           name: '',
           image: 'gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost',
-          command: [
-            'sh',
-            '-c'
-          ],
+          command: ['sh', '-c'],
           args: [
             // tslint:disable-next-line:max-line-length
-            'python /ml/train.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --cluster {{inputs.parameters.cluster}} --output {{inputs.parameters.output}} --train {{inputs.parameters.train}} --eval {{inputs.parameters.eval}} --target {{inputs.parameters.target}} --analysis {{inputs.parameters.analysis}} --package {{inputs.parameters.package}} --workers {{inputs.parameters.workers}} --rounds {{inputs.parameters.rounds}} --conf {{inputs.parameters.conf}}'
+            'python /ml/train.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --cluster {{inputs.parameters.cluster}} --output {{inputs.parameters.output}} --train {{inputs.parameters.train}} --eval {{inputs.parameters.eval}} --target {{inputs.parameters.target}} --analysis {{inputs.parameters.analysis}} --package {{inputs.parameters.package}} --workers {{inputs.parameters.workers}} --rounds {{inputs.parameters.rounds}} --conf {{inputs.parameters.conf}}',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'batchpredict',
         inputs: {
           parameters: [
             {
-              name: 'project'
+              name: 'project',
             },
             {
-              name: 'region'
+              name: 'region',
             },
             {
-              name: 'cluster'
+              name: 'cluster',
             },
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'eval'
+              name: 'eval',
             },
             {
-              name: 'model'
+              name: 'model',
             },
             {
-              name: 'target'
+              name: 'target',
             },
             {
-              name: 'package'
+              name: 'package',
             },
             {
-              name: 'analysis'
-            }
-          ]
+              name: 'analysis',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
         container: {
           name: '',
           image: 'gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost',
-          command: [
-            'sh',
-            '-c'
-          ],
+          command: ['sh', '-c'],
           args: [
             // tslint:disable-next-line:max-line-length
-            'python /ml/predict.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --cluster {{inputs.parameters.cluster}} --output {{inputs.parameters.output}} --predict {{inputs.parameters.eval}} --analysis {{inputs.parameters.analysis}} --target {{inputs.parameters.target}} --model {{inputs.parameters.model}} --package {{inputs.parameters.package}} '
+            'python /ml/predict.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --cluster {{inputs.parameters.cluster}} --output {{inputs.parameters.output}} --predict {{inputs.parameters.eval}} --analysis {{inputs.parameters.analysis}} --target {{inputs.parameters.target}} --model {{inputs.parameters.model}} --package {{inputs.parameters.package}} ',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'confusionmatrix',
         inputs: {
           parameters: [
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'analysis'
+              name: 'analysis',
             },
             {
-              name: 'predictions'
+              name: 'predictions',
             },
             {
-              name: 'target'
-            }
-          ]
+              name: 'target',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
         container: {
           name: '',
           image: 'gcr.io/ml-pipeline/ml-pipeline-local',
-          command: [
-            'sh',
-            '-c'
-          ],
+          command: ['sh', '-c'],
           args: [
             // tslint:disable-next-line:max-line-length
-            'python /ml/confusion_matrix.py --output {{inputs.parameters.output}} --predictions {{inputs.parameters.predictions}} --analysis {{inputs.parameters.analysis}} --target {{inputs.parameters.target}}'
+            'python /ml/confusion_matrix.py --output {{inputs.parameters.output}} --predictions {{inputs.parameters.predictions}} --analysis {{inputs.parameters.analysis}} --target {{inputs.parameters.target}}',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'deletecluster',
         inputs: {
           parameters: [
             {
-              name: 'project'
+              name: 'project',
             },
             {
-              name: 'region'
+              name: 'region',
             },
             {
-              name: 'name'
-            }
-          ]
+              name: 'name',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
         container: {
           name: '',
           image: 'gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost',
-          command: [
-            'sh',
-            '-c'
-          ],
+          command: ['sh', '-c'],
           args: [
             // tslint:disable-next-line:max-line-length
-            'python /ml/delete_cluster.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --name {{inputs.parameters.name}}'
+            'python /ml/delete_cluster.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --name {{inputs.parameters.name}}',
           ],
-          resources: {}
-        }
-      }
+          resources: {},
+        },
+      },
     ],
     entrypoint: 'xgboost-training',
     arguments: {
       parameters: [
         {
           name: 'project',
-          value: 'ml-pipeline'
+          value: 'ml-pipeline',
         },
         {
           name: 'region',
-          value: 'us-central1'
+          value: 'us-central1',
         },
         {
           name: 'cluster',
-          value: 'xgboost-spark-{{workflow.name}}'
+          value: 'xgboost-spark-{{workflow.name}}',
         },
         {
           name: 'output',
-          value: 'gs://sample-xgbbost-cm-output'
+          value: 'gs://sample-xgbbost-cm-output',
         },
         {
           name: 'train',
-          value: 'gs://ml-pipeline-playground/newsgroup/train.csv'
+          value: 'gs://ml-pipeline-playground/newsgroup/train.csv',
         },
         {
           name: 'eval',
-          value: 'gs://ml-pipeline-playground/newsgroup/eval.csv'
+          value: 'gs://ml-pipeline-playground/newsgroup/eval.csv',
         },
         {
           name: 'schema',
-          value: 'gs://ml-pipeline-playground/newsgroup/schema.json'
+          value: 'gs://ml-pipeline-playground/newsgroup/schema.json',
         },
         {
           name: 'target',
-          value: 'news_label'
+          value: 'news_label',
         },
         {
           name: 'package',
-            // tslint:disable-next-line:max-line-length
-          value: 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar'
+          // tslint:disable-next-line:max-line-length
+          value:
+            'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar',
         },
         {
           name: 'workers',
-          value: '2'
+          value: '2',
         },
         {
           name: 'rounds',
-          value: '200'
+          value: '200',
         },
         {
           name: 'conf',
-          value: 'gs://ml-pipeline-playground/trainconfcla.json '
-        }
-      ]
+          value: 'gs://ml-pipeline-playground/trainconfcla.json ',
+        },
+      ],
     },
-    onExit: 'exit-handler'
+    onExit: 'exit-handler',
   },
   status: {
     phase: 'Succeeded',
@@ -726,54 +706,55 @@ export default {
           parameters: [
             {
               name: 'project',
-              value: 'ml-pipeline'
+              value: 'ml-pipeline',
             },
             {
               name: 'region',
-              value: 'us-central1'
+              value: 'us-central1',
             },
             {
               name: 'cluster',
-              value: 'xgboost-spark-xgboost-training-gzkm9'
+              value: 'xgboost-spark-xgboost-training-gzkm9',
             },
             {
               name: 'output',
-              value: 'gs://sample-xgbbost-cm-output'
+              value: 'gs://sample-xgbbost-cm-output',
             },
             {
               name: 'train',
-              value: 'gs://ml-pipeline-playground/newsgroup/train.csv'
+              value: 'gs://ml-pipeline-playground/newsgroup/train.csv',
             },
             {
               name: 'eval',
-              value: 'gs://ml-pipeline-playground/newsgroup/eval.csv'
+              value: 'gs://ml-pipeline-playground/newsgroup/eval.csv',
             },
             {
               name: 'schema',
-              value: 'gs://ml-pipeline-playground/newsgroup/schema.json'
+              value: 'gs://ml-pipeline-playground/newsgroup/schema.json',
             },
             {
               name: 'target',
-              value: 'news_label'
+              value: 'news_label',
             },
             {
               name: 'package',
-            // tslint:disable-next-line:max-line-length
-              value: 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar'
+              // tslint:disable-next-line:max-line-length
+              value:
+                'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar',
             },
             {
               name: 'workers',
-              value: '2'
+              value: '2',
             },
             {
               name: 'rounds',
-              value: '200'
+              value: '200',
             },
             {
               name: 'conf',
-              value: 'gs://ml-pipeline-playground/trainconfcla.json '
-            }
-          ]
+              value: 'gs://ml-pipeline-playground/trainconfcla.json ',
+            },
+          ],
         },
         children: [
           'xgboost-training-gzkm9-4204210601',
@@ -781,11 +762,9 @@ export default {
           'xgboost-training-gzkm9-915503087',
           'xgboost-training-gzkm9-982760658',
           'xgboost-training-gzkm9-4204798981',
-          'xgboost-training-gzkm9-916635920'
+          'xgboost-training-gzkm9-916635920',
         ],
-        outboundNodes: [
-          'xgboost-training-gzkm9-2203328319'
-        ]
+        outboundNodes: ['xgboost-training-gzkm9-2203328319'],
       },
       'xgboost-training-gzkm9-1253553084': {
         id: 'xgboost-training-gzkm9-1253553084',
@@ -794,31 +773,28 @@ export default {
         type: 'Steps',
         templateName: 'exit-handler',
         phase: 'Pending',
-        message: 'ImagePullBackOff: Back-off pulling image "gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster"',
+        message:
+          'ImagePullBackOff: Back-off pulling image "gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster"',
         startedAt: '2018-04-17T00:10:06Z',
         finishedAt: '2018-04-17T00:12:01Z',
         inputs: {
           parameters: [
             {
               name: 'project',
-              value: 'ml-pipeline'
+              value: 'ml-pipeline',
             },
             {
               name: 'region',
-              value: 'us-central1'
+              value: 'us-central1',
             },
             {
               name: 'cluster',
-              value: 'xgboost-spark-xgboost-training-gzkm9'
-            }
-          ]
+              value: 'xgboost-spark-xgboost-training-gzkm9',
+            },
+          ],
         },
-        children: [
-          'xgboost-training-gzkm9-3439262870'
-        ],
-        outboundNodes: [
-          'xgboost-training-gzkm9-3721733163'
-        ]
+        children: ['xgboost-training-gzkm9-3439262870'],
+        outboundNodes: ['xgboost-training-gzkm9-3721733163'],
       },
       'xgboost-training-gzkm9-1761585008': {
         id: 'xgboost-training-gzkm9-1761585008',
@@ -834,46 +810,45 @@ export default {
           parameters: [
             {
               name: 'project',
-              value: 'ml-pipeline'
+              value: 'ml-pipeline',
             },
             {
               name: 'region',
-              value: 'us-central1'
+              value: 'us-central1',
             },
             {
               name: 'cluster',
-              value: 'xgboost-spark-xgboost-training-gzkm9'
+              value: 'xgboost-spark-xgboost-training-gzkm9',
             },
             {
               name: 'output',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/batchpredict'
+              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/batchpredict',
             },
             {
               name: 'eval',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/transform/eval/part-*'
+              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/transform/eval/part-*',
             },
             {
               name: 'model',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/model'
+              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/model',
             },
             {
               name: 'target',
-              value: 'news_label'
+              value: 'news_label',
             },
             {
               name: 'package',
-            // tslint:disable-next-line:max-line-length
-              value: 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar'
+              // tslint:disable-next-line:max-line-length
+              value:
+                'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar',
             },
             {
               name: 'analysis',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/analysis'
-            }
-          ]
+              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/analysis',
+            },
+          ],
         },
-        children: [
-          'xgboost-training-gzkm9-916635920'
-        ]
+        children: ['xgboost-training-gzkm9-916635920'],
       },
       'xgboost-training-gzkm9-2203328319': {
         id: 'xgboost-training-gzkm9-2203328319',
@@ -890,26 +865,28 @@ export default {
           parameters: [
             {
               name: 'analysis',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/analysis'
+              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/analysis',
             },
             {
               name: 'predictions',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/batchpredict/part-*.csv'
+              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/batchpredict/part-*.csv',
             },
             {
               name: 'target',
-              value: 'news_label'
-            }
-          ]
+              value: 'news_label',
+            },
+          ],
         },
         outputs: {
-          artifacts: [{
-            name: 'mlpipeline-ui-metadata',
-            s3: {
-              bucket: 'somebucket',
-              key: 'confusionmatrix',
+          artifacts: [
+            {
+              name: 'mlpipeline-ui-metadata',
+              s3: {
+                bucket: 'somebucket',
+                key: 'confusionmatrix',
+              },
             },
-          }],
+          ],
         },
       },
       'xgboost-training-gzkm9-2365787662': {
@@ -926,63 +903,64 @@ export default {
           parameters: [
             {
               name: 'project',
-              value: 'ml-pipeline'
+              value: 'ml-pipeline',
             },
             {
               name: 'region',
-              value: 'us-central1'
+              value: 'us-central1',
             },
             {
               name: 'cluster',
-              value: 'xgboost-spark-xgboost-training-gzkm9'
+              value: 'xgboost-spark-xgboost-training-gzkm9',
             },
             {
               name: 'train',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/transform/train/part-*'
+              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/transform/train/part-*',
             },
             {
               name: 'eval',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/transform/eval/part-*'
+              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/transform/eval/part-*',
             },
             {
               name: 'target',
-              value: 'news_label'
+              value: 'news_label',
             },
             {
               name: 'analysis',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/analysis'
+              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/analysis',
             },
             {
               name: 'package',
-            // tslint:disable-next-line:max-line-length
-              value: 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar'
+              // tslint:disable-next-line:max-line-length
+              value:
+                'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar',
             },
             {
               name: 'workers',
-              value: '2'
+              value: '2',
             },
             {
               name: 'rounds',
-              value: '200'
+              value: '200',
             },
             {
               name: 'conf',
-              value: 'gs://ml-pipeline-playground/trainconfcla.json '
-            }
-          ]
+              value: 'gs://ml-pipeline-playground/trainconfcla.json ',
+            },
+          ],
         },
         outputs: {
-          artifacts: [{
-            name: 'mlpipeline-ui-metadata',
-            s3: {
-              bucket: 'somebucket',
-              key: 'model',
+          artifacts: [
+            {
+              name: 'mlpipeline-ui-metadata',
+              s3: {
+                bucket: 'somebucket',
+                key: 'model',
+              },
             },
-          }],
+          ],
         },
-        children: [
-          'xgboost-training-gzkm9-4204798981'
-        ]
+        children: ['xgboost-training-gzkm9-4204798981'],
       },
       'xgboost-training-gzkm9-2411879589': {
         id: 'xgboost-training-gzkm9-2411879589',
@@ -998,25 +976,23 @@ export default {
           parameters: [
             {
               name: 'project',
-              value: 'ml-pipeline'
+              value: 'ml-pipeline',
             },
             {
               name: 'region',
-              value: 'us-central1'
+              value: 'us-central1',
             },
             {
               name: 'name',
-              value: 'xgboost-spark-xgboost-training-gzkm9'
+              value: 'xgboost-spark-xgboost-training-gzkm9',
             },
             {
               name: 'staging',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/staging'
-            }
-          ]
+              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/staging',
+            },
+          ],
         },
-        children: [
-          'xgboost-training-gzkm9-916047540'
-        ]
+        children: ['xgboost-training-gzkm9-916047540'],
       },
       'xgboost-training-gzkm9-2457131397': {
         id: 'xgboost-training-gzkm9-2457131397',
@@ -1032,46 +1008,46 @@ export default {
           parameters: [
             {
               name: 'project',
-              value: 'ml-pipeline'
+              value: 'ml-pipeline',
             },
             {
               name: 'region',
-              value: 'us-central1'
+              value: 'us-central1',
             },
             {
               name: 'cluster',
-              value: 'xgboost-spark-xgboost-training-gzkm9'
+              value: 'xgboost-spark-xgboost-training-gzkm9',
             },
             {
               name: 'train',
-              value: 'gs://ml-pipeline-playground/newsgroup/train.csv'
+              value: 'gs://ml-pipeline-playground/newsgroup/train.csv',
             },
             {
               name: 'eval',
-              value: 'gs://ml-pipeline-playground/newsgroup/eval.csv'
+              value: 'gs://ml-pipeline-playground/newsgroup/eval.csv',
             },
             {
               name: 'target',
-              value: 'news_label'
+              value: 'news_label',
             },
             {
               name: 'analysis',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/analysis'
-            }
-          ]
+              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/analysis',
+            },
+          ],
         },
         outputs: {
-          artifacts: [{
-            name: 'mlpipeline-ui-metadata',
-            s3: {
-              bucket: 'somebucket',
-              key: 'transform',
+          artifacts: [
+            {
+              name: 'mlpipeline-ui-metadata',
+              s3: {
+                bucket: 'somebucket',
+                key: 'transform',
+              },
             },
-          }],
+          ],
         },
-        children: [
-          'xgboost-training-gzkm9-982760658'
-        ]
+        children: ['xgboost-training-gzkm9-982760658'],
       },
       'xgboost-training-gzkm9-3439262870': {
         id: 'xgboost-training-gzkm9-3439262870',
@@ -1082,9 +1058,7 @@ export default {
         boundaryID: 'xgboost-training-gzkm9-1253553084',
         startedAt: '2018-04-17T00:10:06Z',
         finishedAt: '2018-04-17T00:12:01Z',
-        children: [
-          'xgboost-training-gzkm9-3721733163'
-        ]
+        children: ['xgboost-training-gzkm9-3721733163'],
       },
       'xgboost-training-gzkm9-3636935406': {
         id: 'xgboost-training-gzkm9-3636935406',
@@ -1100,38 +1074,38 @@ export default {
           parameters: [
             {
               name: 'project',
-              value: 'ml-pipeline'
+              value: 'ml-pipeline',
             },
             {
               name: 'region',
-              value: 'us-central1'
+              value: 'us-central1',
             },
             {
               name: 'cluster',
-              value: 'xgboost-spark-xgboost-training-gzkm9'
+              value: 'xgboost-spark-xgboost-training-gzkm9',
             },
             {
               name: 'train',
-              value: 'gs://ml-pipeline-playground/newsgroup/train.csv'
+              value: 'gs://ml-pipeline-playground/newsgroup/train.csv',
             },
             {
               name: 'schema',
-              value: 'gs://ml-pipeline-playground/newsgroup/schema.json'
-            }
-          ]
+              value: 'gs://ml-pipeline-playground/newsgroup/schema.json',
+            },
+          ],
         },
         outputs: {
-          artifacts: [{
-            name: 'mlpipeline-ui-metadata',
-            s3: {
-              bucket: 'somebucket',
-              key: 'analysis',
+          artifacts: [
+            {
+              name: 'mlpipeline-ui-metadata',
+              s3: {
+                bucket: 'somebucket',
+                key: 'analysis',
+              },
             },
-          }],
+          ],
         },
-        children: [
-          'xgboost-training-gzkm9-915503087'
-        ]
+        children: ['xgboost-training-gzkm9-915503087'],
       },
       'xgboost-training-gzkm9-3721733163': {
         id: 'xgboost-training-gzkm9-3721733163',
@@ -1147,18 +1121,18 @@ export default {
           parameters: [
             {
               name: 'project',
-              value: 'ml-pipeline'
+              value: 'ml-pipeline',
             },
             {
               name: 'region',
-              value: 'us-central1'
+              value: 'us-central1',
             },
             {
               name: 'name',
-              value: 'xgboost-spark-xgboost-training-gzkm9'
-            }
-          ]
-        }
+              value: 'xgboost-spark-xgboost-training-gzkm9',
+            },
+          ],
+        },
       },
       'xgboost-training-gzkm9-4204210601': {
         id: 'xgboost-training-gzkm9-4204210601',
@@ -1169,9 +1143,7 @@ export default {
         boundaryID: 'xgboost-training-gzkm9',
         startedAt: '2018-04-16T23:37:48Z',
         finishedAt: '2018-04-16T23:39:56Z',
-        children: [
-          'xgboost-training-gzkm9-2411879589'
-        ]
+        children: ['xgboost-training-gzkm9-2411879589'],
       },
       'xgboost-training-gzkm9-4204798981': {
         id: 'xgboost-training-gzkm9-4204798981',
@@ -1182,9 +1154,7 @@ export default {
         boundaryID: 'xgboost-training-gzkm9',
         startedAt: '2018-04-17T00:08:06Z',
         finishedAt: '2018-04-17T00:08:59Z',
-        children: [
-          'xgboost-training-gzkm9-1761585008'
-        ]
+        children: ['xgboost-training-gzkm9-1761585008'],
       },
       'xgboost-training-gzkm9-915503087': {
         id: 'xgboost-training-gzkm9-915503087',
@@ -1195,9 +1165,7 @@ export default {
         boundaryID: 'xgboost-training-gzkm9',
         startedAt: '2018-04-16T23:41:24Z',
         finishedAt: '2018-04-16T23:49:28Z',
-        children: [
-          'xgboost-training-gzkm9-2457131397'
-        ]
+        children: ['xgboost-training-gzkm9-2457131397'],
       },
       'xgboost-training-gzkm9-916047540': {
         id: 'xgboost-training-gzkm9-916047540',
@@ -1208,9 +1176,7 @@ export default {
         boundaryID: 'xgboost-training-gzkm9',
         startedAt: '2018-04-16T23:39:56Z',
         finishedAt: '2018-04-16T23:41:24Z',
-        children: [
-          'xgboost-training-gzkm9-3636935406'
-        ]
+        children: ['xgboost-training-gzkm9-3636935406'],
       },
       'xgboost-training-gzkm9-916635920': {
         id: 'xgboost-training-gzkm9-916635920',
@@ -1221,9 +1187,7 @@ export default {
         boundaryID: 'xgboost-training-gzkm9',
         startedAt: '2018-04-17T00:08:59Z',
         finishedAt: '2018-04-17T00:10:06Z',
-        children: [
-          'xgboost-training-gzkm9-2203328319'
-        ]
+        children: ['xgboost-training-gzkm9-2203328319'],
       },
       'xgboost-training-gzkm9-982760658': {
         id: 'xgboost-training-gzkm9-982760658',
@@ -1234,10 +1198,8 @@ export default {
         boundaryID: 'xgboost-training-gzkm9',
         startedAt: '2018-04-16T23:49:28Z',
         finishedAt: '2018-04-17T00:08:06Z',
-        children: [
-          'xgboost-training-gzkm9-2365787662'
-        ]
-      }
-    }
-  }
+        children: ['xgboost-training-gzkm9-2365787662'],
+      },
+    },
+  },
 };
