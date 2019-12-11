@@ -191,11 +191,11 @@ func (w *Workflow) SetAnnotationsToAllTemplates(key string, value string) {
 	if len(w.Spec.Templates) == 0 {
 		return
 	}
-	for _, template := range w.Spec.Templates {
-		if template.Metadata.Annotations == nil {
-			template.Metadata.Annotations = make(map[string]string)
+	for index, _ := range w.Spec.Templates {
+		if w.Spec.Templates[index].Metadata.Annotations == nil {
+			w.Spec.Templates[index].Metadata.Annotations = make(map[string]string)
 		}
-		template.Metadata.Annotations[key] = value
+		w.Spec.Templates[index].Metadata.Annotations[key] = value
 	}
 }
 
