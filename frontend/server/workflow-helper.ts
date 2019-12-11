@@ -90,11 +90,11 @@ function workflowNameFromPodName(podName: string) {
 export class PodLogsHandler {
   fromConfig?: (podName: string) => Promise<IMinioRequestConfig>;
 
-  async getPodLogs(podName: string) {
+  async getPodLogs(podName: string, podNamespace?: string) {
     try {
       // retrieve from k8s
       const stream = new PassThrough();
-      stream.end(await getPodLogs(podName));
+      stream.end(await getPodLogs(podName, podNamespace));
       console.log(`Getting logs for pod:${podName}.`);
       return stream;
     } catch (k8sError) {
@@ -103,6 +103,7 @@ export class PodLogsHandler {
     }
   }
 
+  // TODO: support pod in a certain namespace
   async getPodLogsFromArchive(podName: string) {
     try {
       // try argo workflow crd status

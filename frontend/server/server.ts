@@ -339,8 +339,11 @@ const logsHandler = async (req, res) => {
     return;
   }
 
+  // This is optional
+  const podNamespace = decodeURIComponent(req.query.podnamespace) || undefined;
+
   try {
-    const stream = await podLogsHandler.getPodLogs(podName);
+    const stream = await podLogsHandler.getPodLogs(podName, podNamespace);
     stream.on('error', err => res.status(500).send('Could not get main container logs: ' + err));
     stream.on('end', () => res.end());
     stream.pipe(res);
