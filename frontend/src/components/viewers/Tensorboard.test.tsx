@@ -130,7 +130,7 @@ describe('Tensorboard', () => {
       .findWhere(el => el.text() === 'TensorFlow 2.0.0')
       .hostNodes()
       .simulate('click');
-    tree.find('BusyButton').simulate('click');
+    tree.find('BusyButton').at(1).simulate('click');
     expect(spy).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', '2.0.0');
   });
 

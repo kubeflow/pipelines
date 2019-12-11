@@ -100,7 +100,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 className={commonCss.buttonAction}
                 onClick={this._deleteTensorboard.bind(this)}
                 busy={this.state.busy}
-                title={`Stop Tensorboard`}
+                title={`Stop Tensorboard`} //pop out dialog: this tensorboard would be deleted 
               />
             </div>
 
