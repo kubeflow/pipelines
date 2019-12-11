@@ -24,22 +24,22 @@ import (
 	"github.com/pkg/errors"
 )
 
-func CreateMinioClient(minioServiceHost string, minioServicePort string,
+func CreateMinioClient(minioServiceUrl string, ssl bool,
 	accessKey string, secretKey string) (*minio.Client, error) {
-	minioClient, err := minio.New(fmt.Sprintf("%s:%s", minioServiceHost, minioServicePort),
-		accessKey, secretKey, false /* Secure connection */)
+	minioClient, err := minio.New(minioServiceUrl,
+		accessKey, secretKey, ssl)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error while creating minio client: %+v", err)
 	}
 	return minioClient, nil
 }
 
-func CreateMinioClientOrFatal(minioServiceHost string, minioServicePort string,
+func CreateMinioClientOrFatal(minioServiceUrl string, ssl bool,
 	accessKey string, secretKey string, initConnectionTimeout time.Duration) *minio.Client {
 	var minioClient *minio.Client
 	var err error
 	var operation = func() error {
-		minioClient, err = CreateMinioClient(minioServiceHost, minioServicePort,
+		minioClient, err = CreateMinioClient(minioServiceUrl, ssl,
 			accessKey, secretKey)
 		if err != nil {
 			return err

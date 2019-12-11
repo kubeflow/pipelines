@@ -37,8 +37,7 @@ import (
 )
 
 const (
-	minioServiceHost       = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort       = "MINIO_SERVICE_SERVICE_PORT"
+	minioServiceUrl        = "MINIO_SERVICE_SERVICE_URL"
 	mysqlServiceHost       = "DBConfig.Host"
 	mysqlServicePort       = "DBConfig.Port"
 	mysqlUser              = "DBConfig.User"
@@ -303,16 +302,15 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
 	// Create minio client.
-	minioServiceHost := common.GetStringConfigWithDefault(
-		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
-	minioServicePort := common.GetStringConfigWithDefault(
-		"ObjectStoreConfig.Port", os.Getenv(minioServicePort))
+	minioServiceUrl := common.GetStringConfigWithDefault(
+		"ObjectStoreConfig.Url", os.Getenv(minioServiceUrl))
+	ssl := common.GetStringConfigWithDefault("ObjectStoreConfig.Ssl")
 	accessKey := common.GetStringConfig("ObjectStoreConfig.AccessKey")
 	secretKey := common.GetStringConfig("ObjectStoreConfig.SecretAccessKey")
 	bucketName := common.GetStringConfig("ObjectStoreConfig.BucketName")
 	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
-	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
+	minioClient := client.CreateMinioClientOrFatal(minioServiceUrl, ssl, accessKey,
 		secretKey, initConnectionTimeout)
 	createMinioBucket(minioClient, bucketName)
 
