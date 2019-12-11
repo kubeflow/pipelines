@@ -186,12 +186,17 @@ func (w *Workflow) OverrideName(name string) {
 	w.Name = name
 }
 
-// SetAnnotations sets annotations on a Workflow
-func (w *Workflow) SetAnnotations(key string, value string) {
-	if w.Annotations == nil {
-		w.Annotations = make(map[string]string)
+// SetAnnotations sets annotations on all templates in a Workflow
+func (w *Workflow) SetAnnotationsToAllTemplates(key string, value string) {
+	if len(w.Spec.Templates) == 0 {
+		return
 	}
-	w.Annotations[key] = value
+	for _, template := range w.Spec.Templates {
+		if template.Metadata.Annotations == nil {
+			template.Metadata.Annotations = make(map[string]string)
+		}
+		template.Metadata.Annotations[key] = value
+	}
 }
 
 // SetOwnerReferences sets owner references on a Workflow.
