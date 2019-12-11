@@ -22,17 +22,14 @@ export function _extractUrlFromReferer(proxyPrefix: string, referer = ''): strin
 }
 
 export function _trimProxyPrefix(proxyPrefix: string, path: string): string {
-  return path.indexOf(proxyPrefix) === 0 ?
-    path = path.substr(proxyPrefix.length) :
-    path;
+  return path.indexOf(proxyPrefix) === 0 ? (path = path.substr(proxyPrefix.length)) : path;
 }
 
 export function _routePathWithReferer(proxyPrefix: string, path: string, referer = ''): string {
   // If a referer header is included, extract the referer URL, otherwise
   // just trim out the /_proxy/ prefix. Use the origin of the resulting URL.
   const proxiedUrlInReferer = _extractUrlFromReferer(proxyPrefix, referer);
-  let decodedPath =
-    decodeURIComponent(proxiedUrlInReferer || _trimProxyPrefix(proxyPrefix, path));
+  let decodedPath = decodeURIComponent(proxiedUrlInReferer || _trimProxyPrefix(proxyPrefix, path));
   if (!decodedPath.startsWith('http://') && !decodedPath.startsWith('https://')) {
     decodedPath = 'http://' + decodedPath;
   }
@@ -48,7 +45,6 @@ export function _rewritePath(proxyPrefix: string, path: string, query: string): 
 }
 
 export default (app: express.Application, apisPrefix: string) => {
-
   const proxyPrefix = apisPrefix + '/_proxy/';
 
   app.use((req, _, next) => {
@@ -58,7 +54,8 @@ export default (app: express.Application, apisPrefix: string) => {
       const refererUrl = _extractUrlFromReferer(proxyPrefix, req.headers.referer as string);
       if (refererUrl && req.url.indexOf(proxyPrefix) !== 0) {
         let proxiedUrl = decodeURIComponent(
-          _extractUrlFromReferer(proxyPrefix, req.headers.referer as string));
+          _extractUrlFromReferer(proxyPrefix, req.headers.referer as string),
+        );
         if (!proxiedUrl.startsWith('http://') && !proxiedUrl.startsWith('https://')) {
           proxiedUrl = 'http://' + proxiedUrl;
         }
@@ -69,18 +66,20 @@ export default (app: express.Application, apisPrefix: string) => {
     next();
   });
 
-  app.all(proxyPrefix + '*', proxy({
-    changeOrigin: true,
-    logLevel: 'debug',
-    target: 'http://127.0.0.1',
+  app.all(
+    proxyPrefix + '*',
+    proxy({
+      changeOrigin: true,
+      logLevel: 'debug',
+      target: 'http://127.0.0.1',
 
-    router: (req: any) => {
-      return _routePathWithReferer(proxyPrefix, req.path, req.headers.referer as string);
-    },
+      router: (req: any) => {
+        return _routePathWithReferer(proxyPrefix, req.path, req.headers.referer as string);
+      },
 
-    pathRewrite: (_, req: any) => {
-      return _rewritePath(proxyPrefix, req.path, req.query);
-    },
-  }));
-
+      pathRewrite: (_, req: any) => {
+        return _rewritePath(proxyPrefix, req.path, req.query);
+      },
+    }),
+  );
 };
