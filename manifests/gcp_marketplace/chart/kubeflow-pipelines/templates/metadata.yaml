@@ -58,17 +58,17 @@ spec:
         - name: MYSQL_DATABASE
           valueFrom:
             configMapKeyRef:
-              name: metadata-configmap
+              name: metadata-mysql-configmap
               key: mysql_database
         - name: MYSQL_HOST
           valueFrom:
             configMapKeyRef:
-              name: metadata-configmap
+              name: metadata-mysql-configmap
               key: mysql_host
         - name: MYSQL_PORT
           valueFrom:
             configMapKeyRef:
-              name: metadata-configmap
+              name: metadata-mysql-configmap
               key: mysql_port
         command: ["/bin/metadata_store_server"]
         args: ["--grpc_port=8080",
@@ -140,3 +140,30 @@ data:
   mysql_port: "3306"
   username: "root"
   password: ""
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metadata-mysql-configmap
+  labels:
+    component: metadata-server
+data:
+  {{ if .Values.managedstorage.databaseNamePrefix }}
+  mysql_database: '{{ .Values.managedstorage.databaseNamePrefix }}_metadata'
+  {{ else }}
+  mysql_database: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_metadata'
+  {{ end }}
+  mysql_host: "mysql"
+  mysql_port: "3306"
+  username: "root"
+  password: ""
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metadata-grpc-configmap
+  labels:
+    component: metadata-server
+data:
+  METADATA_GRPC_SERVICE_HOST: "metadata-service"
+  METADATA_GRPC_SERVICE_PORT: "8080"
