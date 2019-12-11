@@ -6,15 +6,21 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
-
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"io"
 	"io/ioutil"
 	"net/url"
+	"strconv"
 	"strings"
+
+	"github.com/golang/glog"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/pkg/errors"
+	"google.golang.org/grpc/metadata"
 )
 
 // These are valid conditions of a ScheduledWorkflow.
@@ -267,4 +273,70 @@ func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, re
 	}
 
 	return &pipelineVersionId, nil
+}
+
+func getUserIdentity(ctx context.Context) (string, error) {
+	if ctx == nil {
+		return "", util.NewBadRequestError(errors.New("Request error: context is nil"),"Request error: context is nil.")
+	}
+	md, _ := metadata.FromIncomingContext(ctx)
+	// If the request header contains the user identity, requests are authorized
+	// based on the namespace field in the request.
+	if userIdentityHeader, ok := md[common.GoogleIAPUserIdentityHeader]; ok {
+		if len(userIdentityHeader) != 1 {
+			return "", util.NewBadRequestError(errors.New("Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader))),
+				"Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader)))
+		}
+		userIdentityHeaderFields := strings.Split(userIdentityHeader[0], ":")
+		if len(userIdentityHeaderFields) != 2 {
+			return "", util.NewBadRequestError(errors.New("Request header error: user identity value is incorrectly formatted"),
+				"Request header error: user identity value is incorrectly formatted")
+		}
+		return userIdentityHeaderFields[1], nil
+	}
+	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."),"Request header error: there is no user identity header.")
+}
+
+func getNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) string {
+	namespace := ""
+	for _, resourceRef := range resourceRefs {
+		if resourceRef.Key.Type == api.ResourceType_NAMESPACE {
+			namespace = resourceRef.Key.Id
+			break
+		}
+	}
+	return namespace
+}
+
+func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
+	if common.IsMultiUserMode() == false {
+		// Skip authz if not multi-user mode.
+		return nil
+	}
+
+	userIdentity, err := getUserIdentity(ctx)
+	if err != nil {
+		return util.Wrap(err, "Bad request.")
+	}
+
+	if len(userIdentity) == 0 {
+		return util.NewBadRequestError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
+	}
+	namespace := getNamespaceFromResourceReferences(resourceRefs)
+	if len(namespace) == 0 {
+		return util.NewBadRequestError(errors.New("Namespace required in Kubeflow deployment for authorization."), "Namespace required in Kubeflow deployment for authorization.")
+	}
+
+	isAuthorized, err := resourceManager.IsRequestAuthorized(userIdentity, namespace)
+	if err != nil {
+		return util.Wrap(err, "Authorization failure.")
+	}
+
+	if isAuthorized == false {
+		glog.Infof("Unauthorized access for %s to namespace %s", userIdentity, namespace)
+		return util.NewBadRequestError(errors.New("Unauthorized access for " + userIdentity + " to namespace " + namespace), "Unauthorized access for " + userIdentity + " to namespace " + namespace)
+	}
+
+	glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
+	return nil
 }

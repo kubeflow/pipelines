@@ -45,6 +45,8 @@ const (
 	mysqlPassword          = "DBConfig.Password"
 	mysqlDBName            = "DBConfig.DBName"
 	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
+	kfamServiceHost        = "KFAM_SERVICE_HOST"
+	kfamServicePort        = "KFAM_SERVICE_PORT"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -67,6 +69,7 @@ type ClientManager struct {
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient              v1.PodInterface
+	kfamClient             client.KFAMClientInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 }
@@ -115,6 +118,10 @@ func (c *ClientManager) PodClient() v1.PodInterface {
 	return c.podClient
 }
 
+func (c *ClientManager) KFAMClient() client.KFAMClientInterface {
+	return c.kfamClient
+}
+
 func (c *ClientManager) Time() util.TimeInterface {
 	return c.time
 }
@@ -154,6 +161,9 @@ func (c *ClientManager) init() {
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
 
+	if common.IsMultiUserMode() {
+		c.kfamClient = client.NewKFAMClient(common.GetStringConfig(kfamServiceHost), common.GetStringConfig(kfamServicePort))
+	}
 	glog.Infof("Client manager initialized successfully")
 }
 
