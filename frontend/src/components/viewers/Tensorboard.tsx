@@ -114,7 +114,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
               <FormControl className='Launch Tensorboard' style={{ minWidth: 120 }}>
                 <InputLabel htmlFor='grouped-select'>TF Version</InputLabel>
                 <Select
-                  defaultValue={this.state.tensorflowVersion}
                   value={this.state.tensorflowVersion}
                   input={<Input id='grouped-select' />}
                   onChange={this.onChangeFunc}

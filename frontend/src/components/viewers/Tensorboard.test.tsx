@@ -20,6 +20,7 @@ import TestUtils from '../../TestUtils';
 import { Apis } from '../../lib/Apis';
 import { PlotType } from './Viewer';
 import { shallow, mount } from 'enzyme';
+import BusyButton from 'src/atoms/BusyButton';
 
 beforeEach(() => {
   jest.restoreAllMocks();
@@ -60,7 +61,6 @@ describe('Tensorboard', () => {
     const getAppMock = () => Promise.resolve('');
     const spy = jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(getAppMock);
     const tree = shallow(<TensorboardViewer configs={[config]} />);
-    await getAppMock;
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
     expect(spy).toHaveBeenCalledWith(config.url, defaultVersion);
@@ -113,37 +113,6 @@ describe('Tensorboard', () => {
     expect(TensorboardViewer.prototype.isAggregatable()).toBeTruthy();
   });
 
-  it('set state', async () => {
-    const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
-    const tree = shallow(<TensorboardViewer configs={[config]} />);
-    const event = { target: { value: '2.0.0' } } as React.ChangeEvent<{
-      name?: string;
-      value: unknown;
-    }>;
-
-    const onChangeMock = jest.fn(event => {
-      tree.setState({ tensorflowVersion: event.target.value });
-    });
-    jest.spyOn(TensorboardViewer.prototype, 'onChangeFunc').mockImplementation(onChangeMock);
-    TensorboardViewer.prototype.onChangeFunc(event);
-    expect(onChangeMock).toHaveBeenCalled();
-    expect(tree.state('tensorflowVersion')).toEqual('2.0.0');
-
-    // then call the remote api with new state version
-    const getAppMock = () => Promise.resolve('');
-    const startAppMock = jest.fn(() => Promise.resolve(''));
-    jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(getAppMock);
-    jest.spyOn(Apis, 'startTensorboardApp').mockImplementationOnce(startAppMock);
-    jest.spyOn(tree.instance(), 'setState').mockImplementation((_, cb) => cb && cb());
-    await getAppMock;
-    tree.find('BusyButton').simulate('click');
-    await startAppMock;
-    expect(startAppMock).toHaveBeenCalledWith(
-      'http%3A%2F%2Ftest%2Furl',
-      tree.state('tensorflowVersion'),
-    );
-  });
-
   it('select a version, then start a tensorboard of the corresponding version', async () => {
     const getAppMock = () => Promise.resolve('');
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(getAppMock);
@@ -165,33 +134,24 @@ describe('Tensorboard', () => {
     expect(spy).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', '2.0.0');
   });
 
-  it.only('select a version, start a tensorboard, then delete the tensorboard instance', async () => {
-    const getAppMock = () => Promise.resolve('')
+  it('select a version, start a tensorboard, then delete the tensorboard instance', async () => {
+    const getAppMock = () => Promise.resolve('pod-address')
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(getAppMock)
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
-    const startSpy = jest.spyOn(Apis, 'startTensorboardApp');
-    const deleteSpy = jest.spyOn(Apis, 'deleteTensorboardApp');
+    const deleteAppMock = () => Promise.resolve('')
+    const deleteSpy = jest.spyOn(Apis, 'deleteTensorboardApp').mockImplementationOnce(deleteAppMock);
     const tree = mount(<TensorboardViewer configs={[config]} />);
     await TestUtils.flushPromises();
+    expect(!!tree.state('podAddress')).toBeTruthy()
+    tree.update()
 
-    //start a new tensorboard
-
-    tree
-      .find('Select')
-      .find('[role="button"]')
-      .simulate('click');
-    
-    tree
-      .findWhere(el => el.text() === 'TensorFlow 2.0.0')
-      .hostNodes()
-      .simulate('click');
+    // delete a tensorboard
     tree.find('BusyButton').simulate('click');
-    expect(startSpy).toHaveBeenCalledWith(encodeURIComponent('http://test/url'), '2.0.0');
-    await startSpy;
-    // delete the tensorboard
-    console.log(tree.debug());
-    tree.findWhere(el => el.text() === 'Stop Tensorboard').simulate('click');
-    expect(deleteSpy).toHaveBeenCalledWith(encodeURIComponent('http://test/url'), '2.0.0');
+    expect(deleteSpy).toHaveBeenCalledWith('http://test/url', tree.state('tensorflowVersion'));
+    // check the page return to the state where no tensorboard is running
+    await deleteSpy
+    console.log('here!!!!!!!!!')
+    tree.update()
     expect(tree.findWhere(el => el.text() === 'Start Tensorboard').exists()).toEqual(true);
     
   });

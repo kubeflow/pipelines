@@ -414,9 +414,3 @@ export enum ExperimentSortKeys {
   ID = 'id',
   NAME = 'name',
 }
-
-// Valid sortKeys as specified by the backend.
-export enum PipelineVersionSortKeys {
-  CREATED_AT = 'created_at',
-  NAME = 'name',
-}

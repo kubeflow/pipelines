@@ -20,7 +20,6 @@ exports[`Tensorboard does not break on empty data 1`] = `
           TF Version
         </WithStyles(WithFormControlContext(InputLabel))>
         <WithStyles(WithFormControlContext(Select))
-          defaultValue="1.14.0"
           input={
             <WithStyles(Input)
               id="grouped-select"
@@ -140,7 +139,6 @@ exports[`Tensorboard does not break on empty data 2`] = `
           TF Version
         </WithStyles(WithFormControlContext(InputLabel))>
         <WithStyles(WithFormControlContext(Select))
-          defaultValue="1.14.0"
           input={
             <WithStyles(Input)
               id="grouped-select"
@@ -260,7 +258,6 @@ exports[`Tensorboard does not break on no config 1`] = `
           TF Version
         </WithStyles(WithFormControlContext(InputLabel))>
         <WithStyles(WithFormControlContext(Select))
-          defaultValue="1.14.0"
           input={
             <WithStyles(Input)
               id="grouped-select"
@@ -376,10 +373,23 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
       <WithStyles(Button)
         className="buttonAction"
         disabled={false}
+        style={
+          Object {
+            "marginBottom": 20,
+          }
+        }
       >
         Open Tensorboard
       </WithStyles(Button)>
     </a>
+    <div>
+      <BusyButton
+        busy={false}
+        className="buttonAction"
+        onClick={[Function]}
+        title="Stop Tensorboard"
+      />
+    </div>
   </div>
 </div>
 `;
@@ -404,7 +414,6 @@ exports[`Tensorboard shows start button if no instance exists 1`] = `
           TF Version
         </WithStyles(WithFormControlContext(InputLabel))>
         <WithStyles(WithFormControlContext(Select))
-          defaultValue="1.14.0"
           input={
             <WithStyles(Input)
               id="grouped-select"
