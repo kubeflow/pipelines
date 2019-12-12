@@ -613,13 +613,36 @@ class NewRun extends Page<{}, NewRunState> {
       if (possiblePipelineId) {
         try {
           const pipeline = await Apis.pipelineServiceApi.getPipeline(possiblePipelineId);
-          console.log('JING here 1');
           this.setStateSafe({
             parameters: pipeline.parameters || [],
             pipeline,
             pipelineName: (pipeline && pipeline.name) || '',
-            runName: 'p_' + this._getRunNameFromPipelineVersion((pipeline && pipeline.name) || ''),
           });
+          const possiblePipelineVersionId = urlParser.get(QUERY_PARAMS.pipelineVersionId) || (pipeline.default_version && pipeline.default_version.id) ;
+          if (possiblePipelineVersionId) {
+            try {
+              const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
+                possiblePipelineVersionId,
+              );
+              this.setStateSafe({
+                parameters: pipelineVersion.parameters || [],
+                pipelineVersion,
+                pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
+                runName: 'pv_' + this._getRunNameFromPipelineVersion((pipelineVersion && pipelineVersion.name) || ''),
+              });
+            } catch (err) {
+              urlParser.clear(QUERY_PARAMS.pipelineVersionId);
+              await this.showPageError(
+                `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
+                err,
+              );
+              logger.error(`Failed to retrieve pipeline version: ${possiblePipelineVersionId}`, err);
+            }
+          } else {
+            this.setStateSafe({
+              runName: 'pv_' + this._getRunNameFromPipelineVersion((pipeline && pipeline.name) || ''),
+            });
+          }
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
           await this.showPageError(
@@ -627,28 +650,6 @@ class NewRun extends Page<{}, NewRunState> {
             err,
           );
           logger.error(`Failed to retrieve pipeline: ${possiblePipelineId}`, err);
-        }
-      }
-      const possiblePipelineVersionId = urlParser.get(QUERY_PARAMS.pipelineVersionId);
-      if (possiblePipelineVersionId) {
-        try {
-          const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
-            possiblePipelineVersionId,
-          );
-          console.log('JING here 2');
-          this.setStateSafe({
-            parameters: pipelineVersion.parameters || [],
-            pipelineVersion,
-            pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
-            runName: 'pv_' + this._getRunNameFromPipelineVersion((pipelineVersion && pipelineVersion.name) || ''),
-          });
-        } catch (err) {
-          urlParser.clear(QUERY_PARAMS.pipelineVersionId);
-          await this.showPageError(
-            `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
-            err,
-          );
-          logger.error(`Failed to retrieve pipeline version: ${possiblePipelineVersionId}`, err);
         }
       }
     }
