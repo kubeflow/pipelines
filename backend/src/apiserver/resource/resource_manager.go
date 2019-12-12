@@ -24,6 +24,7 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -55,6 +56,7 @@ type ClientManagerInterface interface {
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
 	PodClient() corev1.PodInterface
+	KFAMClient() client.KFAMClientInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
 }
@@ -71,6 +73,7 @@ type ResourceManager struct {
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient               corev1.PodInterface
+	kfamClient              client.KFAMClientInterface
 	time                    util.TimeInterface
 	uuid                    util.UUIDGeneratorInterface
 }
@@ -88,6 +91,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
 		podClient:               clientManager.PodClient(),
+		kfamClient:              clientManager.KFAMClient(),
 		time:                    clientManager.Time(),
 		uuid:                    clientManager.UUID(),
 	}
@@ -944,4 +948,8 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 	}
 
 	return template, nil
+}
+
+func (r *ResourceManager) IsRequestAuthorized(userIdentity string, namespace string) (bool, error) {
+	return r.kfamClient.IsAuthorized(userIdentity, namespace)
 }

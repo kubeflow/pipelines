@@ -36,6 +36,10 @@ const (
 	Creator Relationship = "Creator"
 )
 
+const (
+	GoogleIAPUserIdentityHeader	string = "x-goog-authenticated-user-email"
+)
+
 func ToModelResourceType(apiType api.ResourceType) (ResourceType, error) {
 	switch apiType {
 	case api.ResourceType_EXPERIMENT:

@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,52 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 FROM ubuntu:16.04
 
-ARG TRAINER_IMAGE_NAME
-
-RUN apt-get update -y
-
-RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget unzip git
-
-RUN easy_install pip
-
-RUN pip install pyyaml==3.12 six==1.11.0 requests==2.18.4 tensorflow==1.7.0 \
-      kubernetes google-api-python-client retrying
-
-RUN wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip && \
-    unzip -qq google-cloud-sdk.zip -d tools && \
-    rm google-cloud-sdk.zip && \
-    tools/google-cloud-sdk/install.sh --usage-reporting=false \
-        --path-update=false --bash-completion=false \
-        --disable-installation-options && \
-    tools/google-cloud-sdk/bin/gcloud -q components update \
-        gcloud core gsutil && \
-    tools/google-cloud-sdk/bin/gcloud -q components install kubectl && \
-    tools/google-cloud-sdk/bin/gcloud config set component_manager/disable_update_check true && \
-    touch /tools/google-cloud-sdk/lib/third_party/google.py
-
-RUN wget -nv https://github.com/ksonnet/ksonnet/releases/download/v0.9.0/ks_0.9.0_linux_amd64.tar.gz && \
-    tar -xzf ks_0.9.0_linux_amd64.tar.gz && \
-    mkdir -p /tools/ks/bin && \
-    cp ./ks_0.9.0_linux_amd64/ks /tools/ks/bin && \
-    rm ks_0.9.0_linux_amd64.tar.gz && \
-    rm -r ks_0.9.0_linux_amd64
-
-RUN wget https://github.com/kubeflow/tf-operator/archive/v0.3.0.zip && \
-    unzip v0.3.0.zip && \
-    mv tf-operator-0.3.0 tf-operator
-
-ENV PYTHONPATH $PYTHONPATH:/tf-operator
-
-ENV PATH $PATH:/tools/google-cloud-sdk/bin:/tools/ks/bin
-
-ENV TRAINER_IMAGE_NAME $TRAINER_IMAGE_NAME
+RUN apt-get update -y && \
+    apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget && \
+    easy_install pip && \
+    pip install pyyaml==3.12 kubernetes
 
 ADD build /ml
 
 RUN mkdir /usr/licenses && \
     /ml/license.sh /ml/third_party_licenses.csv /usr/licenses
 
-ENTRYPOINT ["python", "/ml/launch_tf_job.py"]
+ENTRYPOINT ["python", "/ml/launch_tfjob.py"]

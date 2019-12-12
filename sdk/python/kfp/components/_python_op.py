@@ -115,7 +115,8 @@ def set_default_base_image(image_or_factory: Union[str, Callable[[], str]]):
 
 def _python_function_name_to_component_name(name):
     import re
-    return re.sub(' +', ' ', name.replace('_', ' ')).strip(' ').capitalize()
+    name_with_spaces = re.sub(' +', ' ', name.replace('_', ' ')).strip(' ')
+    return name_with_spaces[0].upper() + name_with_spaces[1:]
 
 
 def _capture_function_code_using_cloudpickle(func, modules_to_capture: List[str] = None) -> str:
