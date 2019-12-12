@@ -25,7 +25,7 @@ const config = {
   debugWindow: false,
   engine: 'puppeteer',
   engineOptions: {
-    args: ['--no-sandbox']
+    args: ['--no-sandbox'],
   },
   id: 'pipelines',
   onReadyScript: 'steps.js',
@@ -44,16 +44,12 @@ const config = {
     },
     {
       label: 'hover on first row',
-      steps: [
-        { action: 'hover', selector: '.tableRow' },
-      ],
+      steps: [{ action: 'hover', selector: '.tableRow' }],
       url,
     },
     {
       label: 'select one row',
-      steps: [
-        { action: 'click', selector: '.tableRow' }
-      ],
+      steps: [{ action: 'click', selector: '.tableRow' }],
       url,
     },
     {
@@ -61,18 +57,15 @@ const config = {
       steps: [
         { action: 'click', selector: '.tableRow' },
         { action: 'click', selector: `.tableRow:nth-of-type(2)` },
-        { action: 'click', selector: `.tableRow:nth-of-type(5)` }
+        { action: 'click', selector: `.tableRow:nth-of-type(5)` },
       ],
       url,
     },
     {
       label: 'open upload dialog',
-      steps: [
-        { action: 'click', selector: '#uploadBtn' },
-        { action: 'pause' }
-      ],
+      steps: [{ action: 'click', selector: '#uploadBtn' }, { action: 'pause' }],
       url,
-    }
+    },
   ],
   viewports: [{ width: 1024, height: 768 }],
 };
