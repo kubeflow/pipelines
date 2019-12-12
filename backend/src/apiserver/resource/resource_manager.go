@@ -275,7 +275,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 			workflow.SetServiceAccount(defaultServiceAccount)
 		}
 	} else {
-		workflow.SetServiceAccount(defaultPipelineRunnerServiceAccount)
+		workflow.SetServiceAccount(r.getDefaultSA())
 	}
 
 	// Disable istio sidecar injection
