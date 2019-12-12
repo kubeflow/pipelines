@@ -86,24 +86,23 @@ class SubmitRunOp(ResourceOp):
                  name: str = None,
                  k8s_name: str = None,
                  run_name: str = None,
-                 spec: {}=None,
+                 spec: {} = None,
                  job_name: str = None,
-                 jar_params: {}=None,
-                 python_params: {}=None,
-                 spark_submit_params: {}=None,
-                 notebook_params: {}=None,
+                 jar_params: {} = None,
+                 python_params: {} = None,
+                 spark_submit_params: {} = None,
+                 notebook_params: {} = None,
                  existing_cluster_id: str = None,
-                 new_cluster: {}=None,
-                 libraries: {}=None,
-                 spark_jar_task: {}=None,
-                 spark_python_task: {}=None,
-                 spark_submit_task: {}=None,
-                 notebook_task: {}=None,
+                 new_cluster: {} = None,
+                 libraries: {} = None,
+                 spark_jar_task: {} = None,
+                 spark_python_task: {} = None,
+                 spark_submit_task: {} = None,
+                 notebook_task: {} = None,
                  timeout_seconds: int = None):
         """Create a new instance of SubmitRunOp.
-
+        
         Args:
-
             name: The name of the pipeline Op.
                 It does not have to be unique within a pipeline
                 because the pipeline will generate a new unique name in case of a conflict.
@@ -291,9 +290,8 @@ class DeleteRunOp(ResourceOp):
             ValueError: If no k8s resource name or Run name are provided.
         """
 
-        if not k8s_name and run_name:
-            k8s_name = run_name
-        elif not k8s_name:
+        k8s_name = k8s_name or run_name
+        if not k8s_name:
             raise ValueError("You need to provide a k8s_name or a run_name.")
 
         super().__init__(

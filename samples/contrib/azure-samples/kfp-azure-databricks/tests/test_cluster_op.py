@@ -228,6 +228,14 @@ class TestCreateClusterOp(unittest.TestCase):
 
 class TestDeleteClusterOp(unittest.TestCase):
 
+    def test_databricks_delete_cluster_without_k8s_or_cluster_name(self):
+        def my_pipeline():
+            DeleteClusterOp(
+                name="deletecluster"
+            )
+
+        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
+
     def test_databricks_delete_cluster(self):
         def my_pipeline():
 

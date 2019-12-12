@@ -49,17 +49,17 @@ class CreateClusterOp(ResourceOp):
                  name: str = None,
                  k8s_name: str = None,
                  cluster_name: str = None,
-                 spec: {}=None,
+                 spec: {} = None,
                  num_workers: int = None,
-                 autoscale: {}=None,
+                 autoscale: {} = None,
                  spark_version: str = None,
-                 spark_conf: {}=None,
+                 spark_conf: {} = None,
                  node_type_id: str = None,
                  driver_node_type_id: str = None,
-                 custom_tags: {}=None,
-                 cluster_log_conf: {}=None,
-                 init_scripts: {}=None,
-                 spark_env_vars: {}=None,
+                 custom_tags: {} = None,
+                 cluster_log_conf: {} = None,
+                 init_scripts: {} = None,
+                 spark_env_vars: {} = None,
                  autotermination_minutes: int = None,
                  instance_pool_id: str = None):
         """Create a new instance of CreateClusterOp.
@@ -195,7 +195,7 @@ class CreateClusterOp(ResourceOp):
                 This name is DNS-1123 subdomain name and must consist of lower case alphanumeric
                 characters, '-' or '.', and must start and end with an alphanumeric character.
             cluster_name: Cluster name requested by the user.
-            json_spec_file_name: Name of the file containing the full specification of the 
+            json_spec_file_name: Name of the file containing the full specification of the
                 Databricks cluster to create in json format.
 
         Raises:
@@ -250,9 +250,8 @@ class DeleteClusterOp(ResourceOp):
             ValueError: If no k8s resource name or Cluster name are provided.
         """
 
-        if not k8s_name and cluster_name:
-            k8s_name = cluster_name
-        elif not k8s_name:
+        k8s_name = k8s_name or cluster_name
+        if not k8s_name:
             raise ValueError("You need to provide a k8s_name or a cluster_name.")
 
         super().__init__(

@@ -460,6 +460,14 @@ class TestCreateJobOp(unittest.TestCase):
 
 class TestDeleteJobOp(unittest.TestCase):
 
+    def test_databricks_delete_job_without_k8s_or_job_name(self):
+        def my_pipeline():
+            DeleteJobOp(
+                name="deletejob"
+            )
+
+        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
+
     def test_databricks_delete_job(self):
         def my_pipeline():
 

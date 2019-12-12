@@ -74,21 +74,21 @@ class CreateJobOp(ResourceOp):
                  name: str = None,
                  k8s_name: str = None,
                  job_name: str = None,
-                 spec: {}=None,
+                 spec: {} = None,
                  existing_cluster_id: str = None,
-                 new_cluster: {}=None,
-                 libraries: {}=None,
-                 spark_jar_task: {}=None,
-                 spark_python_task: {}=None,
-                 spark_submit_task: {}=None,
-                 notebook_task: {}=None,
+                 new_cluster: {} = None,
+                 libraries: {} = None,
+                 spark_jar_task: {} = None,
+                 spark_python_task: {} = None,
+                 spark_submit_task: {} = None,
+                 notebook_task: {} = None,
                  timeout_seconds: int = None,
                  max_retries: int = None,
                  min_retry_interval_millis: int = None,
                  retry_on_timeout: bool = None,
-                 schedule: {}=None,
+                 schedule: {} = None,
                  max_concurrent_runs: int = None,
-                 email_notifications: {}=None):
+                 email_notifications: {} = None):
 
         """Create a new instance of CreateJobOp.
 
@@ -288,9 +288,8 @@ class DeleteJobOp(ResourceOp):
             ValueError: If no k8s resource name or Job name are provided.
         """
 
-        if not k8s_name and job_name:
-            k8s_name = job_name
-        elif not k8s_name:
+        k8s_name = k8s_name or job_name
+        if not k8s_name:
             raise ValueError("You need to provide a k8s_name or a job_name.")
 
         super().__init__(

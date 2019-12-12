@@ -460,6 +460,14 @@ class TestSubmitRunOp(unittest.TestCase):
 
 class TestDeleteRunOp(unittest.TestCase):
 
+    def test_databricks_delete_run_without_k8s_or_run_name(self):
+        def my_pipeline():
+            DeleteRunOp(
+                name="deleterun"
+            )
+
+        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
+
     def test_databricks_delete_run(self):
         def my_pipeline():
 
