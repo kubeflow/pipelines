@@ -37,7 +37,7 @@ To uninstall Databricks Package use:
 pip uninstall kfp-azure-databricks
 ```
 
-## Examples
+## Example
 
 The following sample pipeline will submit a one-time job run with implicit cluster creation to Azure 
 Databricks:
@@ -55,7 +55,7 @@ def calc_pipeline(run_name="test-run", parameter="10"):
         name="submitrun",
         run_name=run_name,
         new_cluster={
-            "spark_version":"5.3.x-scala2.11",
+            "spark_version": "5.3.x-scala2.11",
             "node_type_id": "Standard_D3_v2",
             "num_workers": 2
         },
@@ -79,9 +79,77 @@ points to the library *sparkpi.jar*. You may upload the library to [Databricks
 File System](https://docs.microsoft.com/en-us/azure/databricks/data/databricks-file-system) using 
 [DBFS CLI](https://docs.microsoft.com/en-us/azure/databricks/dev-tools/databricks-cli#dbfs-cli).
 
-More sample pipelines can be found in folder [samples/contrib/azure-samples/databricks-pipelines](
-../databricks-pipelines/) and in the tests of this package: 
-[samples/contrib/azure-samples/kfp-azure-databricks/tests](./tests/).
+## Example using ResourceOp
+
+This sample pipeline shows the code that would be required to submit a one-time job run with 
+implicit cluster creation to Azure Databricks, but using ResourceOp instead of this package:
+
+```python
+import kfp.dsl as dsl
+import kfp.compiler as compiler
+
+@dsl.pipeline(
+    name="DatabricksRun",
+    description="A toy pipeline that computes an approximation to pi with Databricks."
+)
+def calc_pipeline(run_name="test-run", parameter="10"):
+    submit_run_task = dsl.ResourceOp(
+        name="submitrun",
+        k8s_resource={
+            "apiVersion": "databricks.microsoft.com/v1alpha1",
+            "kind": "Run",
+            "metadata": {
+                "name":run_name,
+            },
+            "spec":{
+                "run_name": run_name,
+                "new_cluster": {
+                    "spark_version": "5.3.x-scala2.11",
+                    "node_type_id": "Standard_D3_v2",
+                    "num_workers": 2
+                },
+                "libraries": [{"jar": "dbfs:/docs/sparkpi.jar"}],
+                "spark_jar_task": {
+                    "main_class_name": "com.databricks.ComputeModels",
+                    "parameters": [parameter]
+                }
+            },
+        },
+        action="create",
+        success_condition="status.metadata.state.life_cycle_state in (TERMINATED, SKIPPED, INTERNAL_ERROR)",
+        attribute_outputs={
+            "name": "{.metadata.name}",
+            "job_id": "{.status.metadata.job_id}",
+            "number_in_job": "{.status.metadata.number_in_job}",
+            "run_id": "{.status.metadata.run_id}",
+            "run_name": "{.status.metadata.run_name}",
+            "life_cycle_state": "{.status.metadata.state.life_cycle_state}",
+            "result_state": "{.status.metadata.state.result_state}",
+            "notebook_output_result": "{.status.notebook_output.result}",
+            "notebook_output_truncated": "{.status.notebook_output.truncated}",
+            "error": "{.status.error}"
+        }
+    )
+
+    delete_run_task = dsl.ResourceOp(
+        name="deleterun",
+        k8s_resource={
+            "apiVersion": "databricks.microsoft.com/v1alpha1",
+            "kind": "Run",
+            "metadata": {
+                "name": run_name
+            }
+        },
+        action="delete"
+    )
+    delete_run_task.after(submit_run_task)
+```
+
+## Additional examples
+
+More sample pipelines can be found in folder 
+[samples/contrib/azure-samples/databricks-pipelines](../databricks-pipelines/) and in the tests of 
+this package: [samples/contrib/azure-samples/kfp-azure-databricks/tests](./tests/).
 
 ## Additional information
 - [Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/) 

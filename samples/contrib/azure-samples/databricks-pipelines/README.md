@@ -2,15 +2,8 @@
 
 This folder contains several [Kubeflow Pipeline](https://www.kubeflow.org/docs/pipelines/) samples 
 which show how to manipulate [Databricks](https://azure.microsoft.com/services/databricks/) 
-resources using the [Azure Databricks Operator for Kubernetes](
-https://github.com/microsoft/azure-databricks-operator). 
-
-- databricks_operator_*.py samples show how to use [ResourceOp](
-https://www.kubeflow.org/docs/pipelines/sdk/manipulate-resources/#resourceop) to manipulate
-Databricks resources.
-- databricks_pkg_*.py samples show how to use [Azure Databricks for Kubeflow Pipelines](
-../kfp-azure-databricks/) 
-package to manipulate Databricks resources.
+resources using the [Azure Databricks for Kubeflow Pipelines](
+../kfp-azure-databricks/) package.
 
 ## Setup
 

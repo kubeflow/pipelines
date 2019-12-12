@@ -59,7 +59,7 @@ fi
 echo "Compiling pipeline '$PIPELINE_NAME.py'..."
 # To test with the local package: pip install --upgrade ../kfp-azure-databricks
 pip install -e "git+https://github.com/kubeflow/pipelines#egg=kfp-azure-databricks&subdirectory=samples/contrib/azure-samples/kfp-azure-databricks" --upgrade
-python ./$PIPELINE_NAME.py
+python3 ./$PIPELINE_NAME.py
 PIPELINE_FILE="$PIPELINE_NAME.py.tar.gz"
 
 echo "Uploading pipeline '$PIPELINE_FILE' to '$KUBEFLOW_HOST'..."
