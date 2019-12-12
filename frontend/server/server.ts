@@ -333,14 +333,15 @@ const logsHandler = async (req, res) => {
     return;
   }
 
-  const podName = decodeURIComponent(req.query.podname);
-  if (!podName) {
+  if (!req.query.podname) {
     res.status(404).send('podname argument is required');
     return;
   }
+  const podName = decodeURIComponent(req.query.podname);
 
-  // This is optional
-  const podNamespace = decodeURIComponent(req.query.podnamespace) || undefined;
+  // This is optional.
+  // Note decodeURIComponent(undefined) === 'undefined', so I cannot pass the argument directly.
+  const podNamespace = decodeURIComponent(req.query.podnamespace || '') || undefined;
 
   try {
     const stream = await podLogsHandler.getPodLogs(podName, podNamespace);
