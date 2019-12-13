@@ -1,0 +1,156 @@
+name: Schemagen
+inputs:
+- {name: stats, type: ExampleStatistics}
+- {default: 'False', name: infer_feature_shape, optional: true, type: Boolean}
+outputs:
+- {name: output, type: Schema}
+description: |
+  Constructs a SchemaGen component.
+
+      Args:
+        stats: A Channel of `ExampleStatistics` type (required if spec is not
+          passed). This should contain at least a `train` split. Other splits are
+          currently ignored.
+        #  Exactly one of 'stats'/'statistics' or 'schema' is required.
+        #schema: A Channel of `Schema` type that provides an instance of Schema.
+        #  If provided, pass through this schema artifact as the output. Exactly
+        #  one of 'stats'/'statistics' or 'schema' is required.
+        infer_feature_shape: Boolean value indicating whether or not to infer the
+          shape of features. If the feature shape is not inferred, downstream
+          Tensorflow Transform component using the schema will parse input
+          as tf.SparseTensor.
+        #statistics: Future replacement of the 'stats' argument.
+        #Either `statistics` or `stats` must be present in the input arguments.
+      Returns:
+        output: Output `Schema` channel for schema result.
+implementation:
+  container:
+    image: tensorflow/tfx:0.15.0
+    command:
+    - python3
+    - -u
+    - -c
+    - |
+      class OutputPath:
+          '''When creating component from function, OutputPath should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a file with the given path instead of returning the data from the function.'''
+          def __init__(self, type=None):
+              self.type = type
+
+      class InputPath:
+          '''When creating component from function, InputPath should be used as function parameter annotation to tell the system to pass the *data file path* to the function instead of passing the actual data.'''
+          def __init__(self, type=None):
+              self.type = type
+
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def SchemaGen(
+          stats_path: InputPath('ExampleStatistics'),
+          #statistics_path: InputPath('ExampleStatistics'),
+          output_path: OutputPath('Schema'),
+          #schema_path: InputPath('Schema') = None,
+          infer_feature_shape: bool = False,
+      ):
+          """Constructs a SchemaGen component.
+
+          Args:
+            stats: A Channel of `ExampleStatistics` type (required if spec is not
+              passed). This should contain at least a `train` split. Other splits are
+              currently ignored.
+            #  Exactly one of 'stats'/'statistics' or 'schema' is required.
+            #schema: A Channel of `Schema` type that provides an instance of Schema.
+            #  If provided, pass through this schema artifact as the output. Exactly
+            #  one of 'stats'/'statistics' or 'schema' is required.
+            infer_feature_shape: Boolean value indicating whether or not to infer the
+              shape of features. If the feature shape is not inferred, downstream
+              Tensorflow Transform component using the schema will parse input
+              as tf.SparseTensor.
+            #statistics: Future replacement of the 'stats' argument.
+            #Either `statistics` or `stats` must be present in the input arguments.
+          Returns:
+            output: Output `Schema` channel for schema result.
+          """
+
+          import json
+          import os
+          from google.protobuf import json_format
+          from tfx.types import standard_artifacts
+          from tfx.types import channel_utils
+
+          # Create input dict.
+          input_base_path = stats_path
+          input_artifact_class = standard_artifacts.ExampleStatistics
+          # Recovering splits
+          splits = sorted(os.listdir(input_base_path))
+          input_data_artifacts = []
+          for split in splits:
+              artifact = input_artifact_class()
+              artifact.split = split
+              artifact.uri = os.path.join(input_base_path, split) + '/'
+              input_data_artifacts.append(artifact)
+          input_data_channel = channel_utils.as_channel(input_data_artifacts)
+
+          from tfx.components.schema_gen.component import SchemaGen
+          component_class_instance = SchemaGen(
+              stats=input_data_channel,
+          )
+
+          input_dict = {name: channel.get() for name, channel in component_class_instance.inputs.get_all().items()}
+          output_dict = {name: channel.get() for name, channel in component_class_instance.outputs.get_all().items()}
+          exec_properties = component_class_instance.exec_properties
+
+          # Generating paths for output artifacts
+          for output_artifact in output_dict['output']:
+              output_artifact.uri = os.path.join(output_path, output_artifact.split) # Default split is ''
+
+          print('component instance: ' + str(component_class_instance))
+
+          executor = component_class_instance.executor_spec.executor_class()
+          executor.Do(
+              input_dict=input_dict,
+              output_dict=output_dict,
+              exec_properties=exec_properties,
+          )
+          #return (output_path,)
+
+      def _deserialize_bool(s) -> bool:
+          from distutils.util import strtobool
+          return strtobool(s) == 1
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Schemagen', description="Constructs a SchemaGen component.\n\n    Args:\n      stats: A Channel of `ExampleStatistics` type (required if spec is not\n        passed). This should contain at least a `train` split. Other splits are\n        currently ignored.\n      #  Exactly one of 'stats'/'statistics' or 'schema' is required.\n      #schema: A Channel of `Schema` type that provides an instance of Schema.\n      #  If provided, pass through this schema artifact as the output. Exactly\n      #  one of 'stats'/'statistics' or 'schema' is required.\n      infer_feature_shape: Boolean value indicating whether or not to infer the\n        shape of features. If the feature shape is not inferred, downstream\n        Tensorflow Transform component using the schema will parse input\n        as tf.SparseTensor.\n      #statistics: Future replacement of the 'stats' argument.\n      #Either `statistics` or `stats` must be present in the input arguments.\n    Returns:\n      output: Output `Schema` channel for schema result.\n")
+      _parser.add_argument("--stats", dest="stats_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--infer-feature-shape", dest="infer_feature_shape", type=_deserialize_bool, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--output", dest="output_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = SchemaGen(**_parsed_args)
+
+      if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+          _outputs = [_outputs]
+
+      _output_serializers = [
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --stats
+    - {inputPath: stats}
+    - if:
+        cond: {isPresent: infer_feature_shape}
+        then:
+        - --infer-feature-shape
+        - {inputValue: infer_feature_shape}
+    - --output
+    - {outputPath: output}

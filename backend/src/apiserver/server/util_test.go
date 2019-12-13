@@ -1,15 +1,19 @@
 package server
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestGetPipelineName_QueryStringNotEmpty(t *testing.T) {
@@ -331,4 +335,73 @@ func TestValidatePipelineSpec_ParameterTooLong(t *testing.T) {
 	err := ValidatePipelineSpec(manager, spec)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
+}
+
+func TestGetUserIdentity(t *testing.T) {
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	userIdentity, err := getUserIdentity(ctx)
+	assert.Nil(t, err)
+	assert.Equal(t, "user@google.com", userIdentity)
+}
+
+func TestGetNamespaceFromResourceReferences(t *testing.T) {
+	references := []*api.ResourceReference{
+		{
+			Key: &api.ResourceKey{
+				Type: api.ResourceType_EXPERIMENT, Id: "123"},
+			Relationship: api.Relationship_CREATOR,
+		},
+		{
+			Key: &api.ResourceKey{
+				Type: api.ResourceType_NAMESPACE, Id: "ns"},
+			Relationship: api.Relationship_OWNER,
+		},
+	}
+	namespace := getNamespaceFromResourceReferences(references)
+	assert.Equal(t, "ns", namespace)
+
+	references = []*api.ResourceReference{
+		{
+			Key: &api.ResourceKey{
+				Type: api.ResourceType_EXPERIMENT, Id: "123"},
+			Relationship: api.Relationship_CREATOR,
+		},
+	}
+	namespace = getNamespaceFromResourceReferences(references)
+	assert.Equal(t, "", namespace)
+}
+
+func TestAuthorize_Unauthorized(t *testing.T) {
+	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	defer clients.Close()
+	viper.Set(common.MultiUserMode, "true")
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	references := []*api.ResourceReference{
+		{
+			Key: &api.ResourceKey{
+				Type: api.ResourceType_NAMESPACE, Id: "ns"},
+			Relationship: api.Relationship_OWNER,
+		},
+	}
+	err := IsAuthorized(manager, ctx, references)
+	assert.NotNil(t, err)
+}
+
+func TestAuthorize_Authorized(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	viper.Set(common.MultiUserMode, "true")
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	references := []*api.ResourceReference{
+		{
+			Key: &api.ResourceKey{
+				Type: api.ResourceType_NAMESPACE, Id: "ns"},
+			Relationship: api.Relationship_OWNER,
+		},
+	}
+	err := IsAuthorized(manager, ctx, references)
+	assert.Nil(t, err)
 }

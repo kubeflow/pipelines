@@ -1,6 +1,6 @@
 steps:
-- name: 'gcr.io/cloud-builders/docker'
-  id: "api-server"
+- id: "api-server"
+  name: "gcr.io/cloud-builders/docker"
   args: [ 'build', '-t', '$_GCR_BASE/api-server', '-f', 'backend/Dockerfile', '.' ]
 timeout: 1800s # 30min
 options:

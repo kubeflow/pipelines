@@ -31,14 +31,14 @@ const (
 type PipelineVersion struct {
 	UUID           string `gorm:"column:UUID; not null; primary_key"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index"`
-	Name           string `gorm:"column:Name; not null; unique_index:idx_pipeline_version_uuid_name"`
+	Name           string `gorm:"column:Name; not null; unique_index:idx_pipelineid_name"`
 	// Set size to 65535 so it will be stored as longtext.
 	// https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html
 	Parameters string `gorm:"column:Parameters; not null; size:65535"`
 	// PipelineVersion belongs to Pipeline. If a pipeline with a specific UUID
 	// is deleted from Pipeline table, all this pipeline's versions will be
 	// deleted from PipelineVersion table.
-	PipelineId string                `gorm:"column:PipelineId; not null;index;"`
+	PipelineId string                `gorm:"column:PipelineId; not null;index; unique_index:idx_pipelineid_name"`
 	Status     PipelineVersionStatus `gorm:"column:Status; not null"`
 	// Code source url links to the pipeline version's definition in repo.
 	CodeSourceUrl string `gorm:"column:CodeSourceUrl;"`

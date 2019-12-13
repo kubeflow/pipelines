@@ -88,13 +88,13 @@ func (c *FakeWorkflowClient) Delete(name string, options *v1.DeleteOptions) erro
 }
 
 func (c *FakeWorkflowClient) DeleteCollection(options *v1.DeleteOptions,
-		listOptions v1.ListOptions) error {
+	listOptions v1.ListOptions) error {
 	glog.Error("This fake method is not yet implemented.")
 	return nil
 }
 
 func (c *FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte,
-		subresources ...string) (*v1alpha1.Workflow, error) {
+	subresources ...string) (*v1alpha1.Workflow, error) {
 
 	var dat map[string]interface{}
 	json.Unmarshal(data, &dat)
