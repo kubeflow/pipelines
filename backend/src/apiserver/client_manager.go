@@ -17,12 +17,12 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"time"
 
-	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 
@@ -30,6 +30,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
@@ -51,7 +52,6 @@ const (
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
 
-	podNamespace          = "POD_NAMESPACE"
 	initConnectionTimeout = "InitConnectionTimeout"
 )
 
@@ -66,7 +66,7 @@ type ClientManager struct {
 	dBStatusStore          storage.DBStatusStoreInterface
 	defaultExperimentStore storage.DefaultExperimentStoreInterface
 	objectStore            storage.ObjectStoreInterface
-	wfClient               map[string]workflowclient.WorkflowInterface
+	argoClient             client.ArgoClientInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient              v1.PodInterface
 	kfamClient             client.KFAMClientInterface
@@ -106,15 +106,8 @@ func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
 	return c.objectStore
 }
 
-func (c *ClientManager) Workflow(namespace string) workflowclient.WorkflowInterface {
-	if namespace == "" {
-		namespace = common.GetStringConfig(podNamespace)
-	}
-	if _, ok := c.wfClient[namespace]; !ok {
-		c.wfClient[namespace] = client.CreateWorkflowClientOrFatal(
-			namespace, common.GetDurationConfig(initConnectionTimeout))
-	}
-	return c.wfClient[namespace]
+func (c *ClientManager) ArgoClient() client.ArgoClientInterface {
+	return c.argoClient
 }
 
 func (c *ClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
@@ -156,15 +149,13 @@ func (c *ClientManager) init() {
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
 
-	c.wfClient = make(map[string]workflowclient.WorkflowInterface)
-	c.wfClient[common.GetStringConfig(podNamespace)] = client.CreateWorkflowClientOrFatal(
-		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
+	c.argoClient = client.NewArgoClient(common.GetDurationConfig(initConnectionTimeout))
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
-		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
+		common.GetStringConfig(resource.PodNamespace), common.GetDurationConfig(initConnectionTimeout))
 
 	c.podClient = client.CreatePodClientOrFatal(
-		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
+		common.GetStringConfig(resource.PodNamespace), common.GetDurationConfig(initConnectionTimeout))
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore

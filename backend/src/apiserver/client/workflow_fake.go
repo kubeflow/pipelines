@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package resource
+package client
 
 import (
 	"encoding/json"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"strconv"
 
-	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,7 +32,7 @@ type FakeWorkflowClientInterface interface {
 	workflowclient.WorkflowInterface
 	GetWorkflowCount() int
 	GetWorkflowKeys() map[string]bool
-	isTerminated(name string) (bool, error)
+	IsTerminated(name string) (bool, error)
 }
 
 type FakeWorkflowClient struct {
@@ -137,7 +137,7 @@ func (c *FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte,
 	return nil, errors.New("Failed to patch workflow")
 }
 
-func (c *FakeWorkflowClient) isTerminated(name string) (bool, error) {
+func (c *FakeWorkflowClient) IsTerminated(name string) (bool, error) {
 	workflow, ok := c.workflows[name]
 	if !ok {
 		return false, errors.New("No workflow found with name: " + name)

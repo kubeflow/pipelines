@@ -18,40 +18,42 @@ import (
 	"time"
 
 	argoclient "github.com/argoproj/argo/pkg/client/clientset/versioned"
-	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	argoprojv1alpha1 "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/rest"
 )
 
-func CreateWorkflowClient(namespace string) (v1alpha1.WorkflowInterface, error) {
-	restConfig, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to initialize workflow client.")
-	}
-	wfClientSet := argoclient.NewForConfigOrDie(restConfig)
-	wfClient := wfClientSet.ArgoprojV1alpha1().Workflows(namespace)
-	return wfClient, nil
+type ArgoClientInterface interface {
+	Workflow(namespace string) argoprojv1alpha1.WorkflowInterface
 }
 
-// creates a new client for the Kubernetes Workflow CRD.
-func CreateWorkflowClientOrFatal(namespace string, initConnectionTimeout time.Duration) v1alpha1.WorkflowInterface {
-	var wfClient v1alpha1.WorkflowInterface
-	var err error
+type ArgoClient struct {
+	argoProjClient argoprojv1alpha1.ArgoprojV1alpha1Interface
+}
+
+func (argoClient *ArgoClient) Workflow(namespace string) argoprojv1alpha1.WorkflowInterface {
+	return argoClient.argoProjClient.Workflows(namespace)
+}
+
+func NewArgoClient(initConnectionTimeout time.Duration) *ArgoClient {
+	var argoProjClient argoprojv1alpha1.ArgoprojV1alpha1Interface
 	var operation = func() error {
-		wfClient, err = CreateWorkflowClient(namespace)
+		restConfig, err := rest.InClusterConfig()
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Failed to initialize the RestConfig")
 		}
+		argoProjClient = argoclient.NewForConfigOrDie(restConfig).ArgoprojV1alpha1()
 		return nil
 	}
+
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout
-	err = backoff.Retry(operation, b)
+	err := backoff.Retry(operation, b)
 
 	if err != nil {
-		glog.Fatalf("Failed to create workflow client. Error: %v", err)
+		glog.Fatalf("Failed to create ArgoClient. Error: %v", err)
 	}
-	return wfClient
+	return &ArgoClient{argoProjClient}
 }

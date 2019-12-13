@@ -43,6 +43,8 @@ const (
 	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
 	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
 	defaultServiceAccount                     = "default-editor"
+
+	PodNamespace = "POD_NAMESPACE"
 )
 
 type ClientManagerInterface interface {
@@ -54,7 +56,7 @@ type ClientManagerInterface interface {
 	DBStatusStore() storage.DBStatusStoreInterface
 	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
-	Workflow(string) workflowclient.WorkflowInterface
+	ArgoClient() client.ArgoClientInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
 	PodClient() corev1.PodInterface
 	KFAMClient() client.KFAMClientInterface
@@ -63,7 +65,6 @@ type ClientManagerInterface interface {
 }
 
 type ResourceManager struct {
-	clientManager           ClientManagerInterface
 	experimentStore         storage.ExperimentStoreInterface
 	pipelineStore           storage.PipelineStoreInterface
 	jobStore                storage.JobStoreInterface
@@ -72,6 +73,7 @@ type ResourceManager struct {
 	dBStatusStore           storage.DBStatusStoreInterface
 	defaultExperimentStore  storage.DefaultExperimentStoreInterface
 	objectStore             storage.ObjectStoreInterface
+	argoClient              client.ArgoClientInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient               corev1.PodInterface
 	kfamClient              client.KFAMClientInterface
@@ -81,7 +83,6 @@ type ResourceManager struct {
 
 func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 	return &ResourceManager{
-		clientManager:           clientManager,
 		experimentStore:         clientManager.ExperimentStore(),
 		pipelineStore:           clientManager.PipelineStore(),
 		jobStore:                clientManager.JobStore(),
@@ -90,6 +91,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		dBStatusStore:           clientManager.DBStatusStore(),
 		defaultExperimentStore:  clientManager.DefaultExperimentStore(),
 		objectStore:             clientManager.ObjectStore(),
+		argoClient:              clientManager.ArgoClient(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
 		podClient:               clientManager.PodClient(),
 		kfamClient:              clientManager.KFAMClient(),
@@ -99,7 +101,10 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 }
 
 func (r *ResourceManager) GetWorkflowClient(namespace string) workflowclient.WorkflowInterface {
-	return r.clientManager.Workflow(namespace)
+	if len(namespace) == 0 {
+		return r.argoClient.Workflow(PodNamespace)
+	}
+	return r.argoClient.Workflow(namespace)
 }
 
 func (r *ResourceManager) GetTime() util.TimeInterface {
@@ -267,7 +272,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	if err = workflow.VerifyParameters(parameters); err != nil {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
-	
+
 	multiuserMode := common.IsMultiUserMode()
 	if multiuserMode == true {
 		if len(workflow.Spec.ServiceAccountName) == 0 || workflow.Spec.ServiceAccountName == defaultPipelineRunnerServiceAccount {
@@ -351,7 +356,7 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 	if err != nil {
 		return util.Wrap(err, "Delete run failed")
 	}
-	err = r.GetWorkflowClient("").Delete(runDetail.Name, &v1.DeleteOptions{})
+	err = r.GetWorkflowClient(PodNamespace).Delete(runDetail.Name, &v1.DeleteOptions{})
 	if err != nil {
 		// API won't need to delete the workflow CRD
 		// once persistent agent sync the state to DB and set TTL for it.
@@ -402,7 +407,7 @@ func (r *ResourceManager) TerminateRun(runId string) error {
 		return util.Wrap(err, "Terminate run failed")
 	}
 
-	err = TerminateWorkflow(r.GetWorkflowClient(""), runDetail.Run.Name)
+	err = TerminateWorkflow(r.GetWorkflowClient(PodNamespace), runDetail.Run.Name)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to terminate the run")
 	}
@@ -437,7 +442,7 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	if updateError != nil {
 		// Remove resource version
 		newWorkflow.ResourceVersion = ""
-		newCreatedWorkflow, createError := r.GetWorkflowClient("").Create(newWorkflow.Workflow)
+		newCreatedWorkflow, createError := r.GetWorkflowClient(PodNamespace).Create(newWorkflow.Workflow)
 		if createError != nil {
 			return util.NewInternalServerError(createError,
 				"Retry run failed. Failed to create or update the run. Update Error: %s, Create Error: %s",
@@ -454,13 +459,13 @@ func (r *ResourceManager) RetryRun(runId string) error {
 
 func (r *ResourceManager) updateWorkflow(newWorkflow *util.Workflow) error {
 	// If fail to get the workflow, return error.
-	latestWorkflow, err := r.GetWorkflowClient("").Get(newWorkflow.Name, v1.GetOptions{})
+	latestWorkflow, err := r.GetWorkflowClient(PodNamespace).Get(newWorkflow.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	// Update the workflow's resource version to latest.
 	newWorkflow.ResourceVersion = latestWorkflow.ResourceVersion
-	_, err = r.GetWorkflowClient("").Update(newWorkflow.Workflow)
+	_, err = r.GetWorkflowClient(PodNamespace).Update(newWorkflow.Workflow)
 	return err
 }
 
@@ -588,7 +593,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 
 	if workflow.PersistedFinalState() {
 		// If workflow's final state has being persisted, the workflow should be garbage collected.
-		err := r.GetWorkflowClient("").Delete(workflow.Name, &v1.DeleteOptions{})
+		err := r.GetWorkflowClient(PodNamespace).Delete(workflow.Name, &v1.DeleteOptions{})
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 		}
@@ -656,7 +661,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	}
 
 	if workflow.IsInFinalState() {
-		err := AddWorkflowLabel(r.GetWorkflowClient(""), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
+		err := AddWorkflowLabel(r.GetWorkflowClient(PodNamespace), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
 			return util.Wrap(err, "Failed to add PersistedFinalState label to workflow")
 		}

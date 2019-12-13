@@ -19,7 +19,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
@@ -39,7 +38,7 @@ type FakeClientManager struct {
 	dBStatusStore               storage.DBStatusStoreInterface
 	defaultExperimentStore      storage.DefaultExperimentStoreInterface
 	objectStore                 storage.ObjectStoreInterface
-	workflowClientFake          FakeWorkflowClientInterface
+	argoClientFake              *client.FakeArgoClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
 	podClientFake               v1.PodInterface
 	KfamClientFake              client.KFAMClientInterface
@@ -71,7 +70,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		pipelineStore:               storage.NewPipelineStore(db, time, uuid),
 		jobStore:                    storage.NewJobStore(db, time),
 		runStore:                    storage.NewRunStore(db, time),
-		workflowClientFake:          NewWorkflowClientFake(),
+		argoClientFake:              client.NewFakeArgoClient(),
 		resourceReferenceStore:      storage.NewResourceReferenceStore(db),
 		dBStatusStore:               storage.NewDBStatusStore(db),
 		defaultExperimentStore:      storage.NewDefaultExperimentStore(db),
@@ -117,8 +116,8 @@ func (f *FakeClientManager) DB() *storage.DB {
 	return f.db
 }
 
-func (f *FakeClientManager) Workflow(namespace string) workflowclient.WorkflowInterface {
-	return f.workflowClientFake
+func (f *FakeClientManager) ArgoClient() client.ArgoClientInterface {
+	return f.argoClientFake
 }
 
 func (f *FakeClientManager) JobStore() storage.JobStoreInterface {
