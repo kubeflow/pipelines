@@ -1,4 +1,4 @@
-# Introduction to Azure Databricks Operator pipeline samples
+# Introduction to Azure Databricks pipeline samples
 
 This folder contains several [Kubeflow Pipeline](https://www.kubeflow.org/docs/pipelines/) samples 
 which show how to manipulate [Databricks](https://azure.microsoft.com/services/databricks/) 
@@ -21,8 +21,30 @@ CLI](https://docs.microsoft.com/en-us/azure/databricks/dev-tools/databricks-cli#
 ```
 pip install -e "git+https://github.com/kubeflow/pipelines#egg=kfp-azure-databricks&subdirectory=samples/contrib/azure-samples/kfp-azure-databricks" --upgrade
 ```
-To uninstall use:
+To uninstall Azure Databricks for Kubeflow Pipelines package use:
 ```
 pip uninstall kfp-azure-databricks
 ```
 
+## Testing the pipelines
+
+Install the requirements:
+```bash
+pip install --upgrade -r requirements.txt
+```
+Compile a pipeline with any of the following commands:
+```bash
+dsl-compile --py databricks_run_pipeline.py --output databricks_run_pipeline.py.tar.gz
+# Or
+python3 databricks_run_pipeline.py
+# Or
+python3 pipeline_cli.py compile databricks_run_pipeline.py
+```
+Then run the compiled pipeline in Kubeflow:
+```bash
+python3 pipeline_cli.py run databricks_run_pipeline.py.tar.gz http://localhost:8080 '{"run_name":"test-run","parameter":"10"}'
+```
+Or compile and run a pipeline in Kubeflow with a single command:
+```bash
+python3 pipeline_cli.py compile_run databricks_run_pipeline.py http://localhost:8080 '{"run_name":"test-run","parameter":"10"}'
+```
