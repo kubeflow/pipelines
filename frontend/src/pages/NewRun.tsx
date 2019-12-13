@@ -657,6 +657,48 @@ class NewRun extends Page<{}, NewRunState> {
           );
           logger.error(`Failed to retrieve pipeline: ${possiblePipelineId}`, err);
         }
+      } else {
+        const possiblePipelineVersionId = urlParser.get(QUERY_PARAMS.pipelineVersionId);
+        if (possiblePipelineVersionId) {
+          try {
+            const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
+              possiblePipelineVersionId,
+            );
+            this.setStateSafe({
+              parameters: pipelineVersion.parameters || [],
+              pipelineVersion,
+              pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
+              runName: this._getRunNameFromPipelineVersion(
+                (pipelineVersion && pipelineVersion.name) || '',
+              ),
+            });
+            const possiblePipelineId = RunUtils.getPipelineIdFromApiPipelineVersion(
+              pipelineVersion,
+            );
+            if (possiblePipelineId) {
+              try {
+                const pipeline = await Apis.pipelineServiceApi.getPipeline(possiblePipelineId);
+                this.setStateSafe({
+                  pipeline,
+                  pipelineName: (pipeline && pipeline.name) || '',
+                });
+              } catch (err) {
+                await this.showPageError(
+                  `Error: failed to retrieve pipeline: ${possiblePipelineId}.`,
+                  err,
+                );
+                logger.error(`Failed to retrieve pipeline: ${possiblePipelineId}`, err);
+              }
+            }
+          } catch (err) {
+            urlParser.clear(QUERY_PARAMS.pipelineVersionId);
+            await this.showPageError(
+              `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
+              err,
+            );
+            logger.error(`Failed to retrieve pipeline version: ${possiblePipelineVersionId}`, err);
+          }
+        }
       }
     }
 
