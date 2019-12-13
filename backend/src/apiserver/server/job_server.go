@@ -19,10 +19,12 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/robfig/cron"
+	"github.com/pkg/errors"
 )
 
 type JobServer struct {
@@ -30,6 +32,9 @@ type JobServer struct {
 }
 
 func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest) (*api.Job, error) {
+	if common.IsMultiUserMode() == true {
+		return nil, util.NewBadRequestError(errors.New("Job APIs are temporarily disabled in the multi-user mode until it is fully ready."), "Job APIs are temporarily disabled in the multi-user mode until it is fully ready.")
+	}
 	err := s.validateCreateJobRequest(request)
 	if err != nil {
 		return nil, err
@@ -42,6 +47,9 @@ func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest
 }
 
 func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*api.Job, error) {
+	if common.IsMultiUserMode() == true {
+		return nil, util.NewBadRequestError(errors.New("Job APIs are temporarily disabled in the multi-user mode until it is fully ready."), "Job APIs are temporarily disabled in the multi-user mode until it is fully ready.")
+	}
 	job, err := s.resourceManager.GetJob(request.Id)
 	if err != nil {
 		return nil, err
@@ -50,6 +58,9 @@ func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*ap
 }
 
 func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) (*api.ListJobsResponse, error) {
+	if common.IsMultiUserMode() == true {
+		return nil, util.NewBadRequestError(errors.New("Job APIs are temporarily disabled in the multi-user mode until it is fully ready."), "Job APIs are temporarily disabled in the multi-user mode until it is fully ready.")
+	}
 	opts, err := validatedListOptions(&model.Job{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
 
 	if err != nil {
@@ -68,14 +79,23 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 }
 
 func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest) (*empty.Empty, error) {
+	if common.IsMultiUserMode() == true {
+		return nil, util.NewBadRequestError(errors.New("Job APIs are temporarily disabled in the multi-user mode until it is fully ready."), "Job APIs are temporarily disabled in the multi-user mode until it is fully ready.")
+	}
 	return s.enableJob(request.Id, true)
 }
 
 func (s *JobServer) DisableJob(ctx context.Context, request *api.DisableJobRequest) (*empty.Empty, error) {
+	if common.IsMultiUserMode() == true {
+		return nil, util.NewBadRequestError(errors.New("Job APIs are temporarily disabled in the multi-user mode until it is fully ready."), "Job APIs are temporarily disabled in the multi-user mode until it is fully ready.")
+	}
 	return s.enableJob(request.Id, false)
 }
 
 func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest) (*empty.Empty, error) {
+	if common.IsMultiUserMode() == true {
+		return nil, util.NewBadRequestError(errors.New("Job APIs are temporarily disabled in the multi-user mode until it is fully ready."), "Job APIs are temporarily disabled in the multi-user mode until it is fully ready.")
+	}
 	err := s.resourceManager.DeleteJob(request.Id)
 	if err != nil {
 		return nil, err
