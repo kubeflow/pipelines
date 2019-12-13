@@ -17,13 +17,15 @@
 import * as React from 'react';
 import NewRun from './NewRun';
 import TestUtils from '../TestUtils';
-import { shallow, ShallowWrapper, ReactWrapper } from 'enzyme';
+import { shallow, ShallowWrapper, ReactWrapper, mount, render } from 'enzyme';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
 import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '../apis/run';
+import { MemoryRouter } from 'react-router';
+import { logger } from '../lib/Utils';
 
 class TestNewRun extends NewRun {
   public _experimentSelectorClosed = super._experimentSelectorClosed;
@@ -31,6 +33,12 @@ class TestNewRun extends NewRun {
   public _pipelineVersionSelectorClosed = super._pipelineVersionSelectorClosed;
   public _updateRecurringRunState = super._updateRecurringRunState;
   public _handleParamChange = super._handleParamChange;
+}
+
+function fillRequiredFields(instance: TestNewRun) {
+  instance.handleChange('runName')({
+    target: { value: 'test run name' },
+  });
 }
 
 describe('NewRun', () => {
@@ -43,6 +51,7 @@ describe('NewRun', () => {
   const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
   const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+  const loggerErrorSpy = jest.spyOn(logger, 'error');
   const historyPushSpy = jest.fn();
   const historyReplaceSpy = jest.fn();
   const updateBannerSpy = jest.fn();
@@ -55,6 +64,11 @@ describe('NewRun', () => {
   let MOCK_PIPELINE_VERSION = newMockPipelineVersion();
   let MOCK_RUN_DETAIL = newMockRunDetail();
   let MOCK_RUN_WITH_EMBEDDED_PIPELINE = newMockRunWithEmbeddedPipeline();
+
+  function muteErrors() {
+    updateBannerSpy.mockImplementation(() => null);
+    loggerErrorSpy.mockImplementation(() => null);
+  }
 
   function newMockExperiment(): ApiExperiment {
     return {
@@ -146,14 +160,21 @@ describe('NewRun', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
 
-    consoleErrorSpy.mockImplementation(() => null);
+    // TODO: decide this
+    // consoleErrorSpy.mockImplementation(() => null);
     startRunSpy.mockImplementation(() => ({ id: 'new-run-id' }));
     getExperimentSpy.mockImplementation(() => MOCK_EXPERIMENT);
     getPipelineSpy.mockImplementation(() => MOCK_PIPELINE);
     getPipelineVersionSpy.mockImplementation(() => MOCK_PIPELINE_VERSION);
     getRunSpy.mockImplementation(() => MOCK_RUN_DETAIL);
+    updateBannerSpy.mockImplementation((opts: any) => {
+      if (opts.mode) {
+        // it's error or warning
+        throw new Error('There was an error loading the page: ' + JSON.stringify(opts));
+      }
+    });
 
     MOCK_EXPERIMENT = newMockExperiment();
     MOCK_PIPELINE = newMockPipeline();
@@ -165,7 +186,6 @@ describe('NewRun', () => {
     // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
     // depends on mocks/spies
     await tree.unmount();
-    jest.resetAllMocks();
   });
 
   it('renders the new run page', async () => {
@@ -335,6 +355,8 @@ describe('NewRun', () => {
   });
 
   it('shows a page error if getExperiment fails', async () => {
+    muteErrors();
+
     const props = generateProps();
     props.location.search = `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`;
 
@@ -369,6 +391,8 @@ describe('NewRun', () => {
   });
 
   it('shows a page error if getPipeline fails', async () => {
+    muteErrors();
+
     const props = generateProps();
     props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
@@ -387,6 +411,8 @@ describe('NewRun', () => {
   });
 
   it('shows a page error if getPipelineVersion fails', async () => {
+    muteErrors();
+
     const props = generateProps();
     props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
@@ -727,6 +753,9 @@ describe('NewRun', () => {
     });
 
     it('retrieves the pipeline from the original run, even if there is a pipeline ID in the query params', async () => {
+      // The error is caused by incomplete mock data.
+      muteErrors();
+
       const runDetail = newMockRunDetail();
       runDetail.run!.pipeline_spec = { pipeline_id: 'original-run-pipeline-id' };
       const props = generateProps();
@@ -744,6 +773,8 @@ describe('NewRun', () => {
     });
 
     it('shows a page error if getPipeline fails to find the pipeline from the original run', async () => {
+      muteErrors();
+
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${MOCK_RUN_DETAIL.run!.id}`;
 
@@ -764,6 +795,8 @@ describe('NewRun', () => {
     });
 
     it('shows an error if getPipeline fails to find the pipeline from the original run', async () => {
+      muteErrors();
+
       const runDetail = newMockRunDetail();
       runDetail.run!.pipeline_spec!.pipeline_id = undefined;
       const props = generateProps();
@@ -784,6 +817,9 @@ describe('NewRun', () => {
     });
 
     it('does not call getPipeline if original run has pipeline spec instead of id', async () => {
+      // Error expected because of incompelte mock data.
+      muteErrors();
+
       const runDetail = newMockRunDetail();
       delete runDetail.run!.pipeline_spec!.pipeline_id;
       runDetail.run!.pipeline_spec!.workflow_manifest = 'test workflow yaml';
@@ -799,6 +835,8 @@ describe('NewRun', () => {
     });
 
     it('shows a page error if parsing embedded pipeline yaml fails', async () => {
+      muteErrors();
+
       const runDetail = newMockRunDetail();
       delete runDetail.run!.pipeline_spec!.pipeline_id;
       runDetail.run!.pipeline_spec!.workflow_manifest = '!definitely not yaml';
@@ -839,6 +877,8 @@ describe('NewRun', () => {
     });
 
     it("shows a page error if the original run's workflow_manifest is undefined", async () => {
+      muteErrors();
+
       const runDetail = newMockRunDetail();
       runDetail.run!.pipeline_spec!.workflow_manifest = undefined;
       const props = generateProps();
@@ -858,6 +898,8 @@ describe('NewRun', () => {
     });
 
     it("shows a page error if the original run's workflow_manifest is invalid JSON", async () => {
+      muteErrors();
+
       const runDetail = newMockRunWithEmbeddedPipeline();
       runDetail.run!.pipeline_spec!.workflow_manifest = 'not json';
       const props = generateProps();
@@ -901,6 +943,8 @@ describe('NewRun', () => {
     });
 
     it('shows a page error if getRun fails', async () => {
+      muteErrors();
+
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${MOCK_RUN_DETAIL.run!.id}`;
 
@@ -961,6 +1005,8 @@ describe('NewRun', () => {
     });
 
     it('displays a page error if it fails to parse the embedded pipeline', async () => {
+      muteErrors();
+
       MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.pipeline_spec!.workflow_manifest = 'not JSON';
 
       tree = shallow(<TestNewRun {...(mockEmbeddedPipelineProps as any)} />);
@@ -977,10 +1023,12 @@ describe('NewRun', () => {
     });
 
     it('displays a page error if referenced run has no embedded pipeline', async () => {
+      muteErrors();
+
       // Remove workflow_manifest entirely
       delete MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.pipeline_spec!.workflow_manifest;
 
-      tree = shallow(<TestNewRun {...(mockEmbeddedPipelineProps as any)} />);
+      tree = mount(<TestNewRun {...(mockEmbeddedPipelineProps as any)} />);
       await TestUtils.flushPromises();
 
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
@@ -994,6 +1042,8 @@ describe('NewRun', () => {
     });
 
     it('displays a page error if it fails to retrieve the run containing the embedded pipeline', async () => {
+      muteErrors();
+
       getRunSpy.mockReset();
       TestUtils.makeErrorResponseOnce(getRunSpy, 'test - error!');
 
@@ -1051,7 +1101,7 @@ describe('NewRun', () => {
         `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}` +
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
-      tree = shallow(<TestNewRun {...props} />);
+      tree = mount(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({
         target: { value: 'test run name' },
       });
@@ -1060,7 +1110,10 @@ describe('NewRun', () => {
       });
       await TestUtils.flushPromises();
 
-      tree.find('#startNewRunBtn').simulate('click');
+      tree
+        .find('#startNewRunBtn')
+        .hostNodes()
+        .simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1103,7 +1156,7 @@ describe('NewRun', () => {
       getPipelineSpy.mockImplementation(() => pipeline);
       getPipelineVersionSpy.mockImplementation(() => pipelineVersion);
 
-      tree = shallow(<TestNewRun {...props} />);
+      tree = mount(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
       (tree.instance() as TestNewRun).handleChange('runName')({
         target: { value: 'test run name' },
@@ -1111,7 +1164,10 @@ describe('NewRun', () => {
       // Fill in the first pipeline parameter
       (tree.instance() as TestNewRun)._handleParamChange(0, 'test param value');
 
-      tree.find('#startNewRunBtn').simulate('click');
+      tree
+        .find('#startNewRunBtn')
+        .hostNodes()
+        .simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1126,7 +1182,6 @@ describe('NewRun', () => {
           },
         }),
       );
-      expect(tree).toMatchSnapshot();
     });
 
     it('copies pipeline from run in the start API call when cloning a run with embedded pipeline', async () => {
@@ -1137,10 +1192,18 @@ describe('NewRun', () => {
 
       getRunSpy.mockImplementation(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
 
-      tree = shallow(<TestNewRun {...props} />);
+      tree = mount(
+        // Router is needed as context for Links to work.
+        <MemoryRouter>
+          <TestNewRun {...props} />
+        </MemoryRouter>,
+      );
       await TestUtils.flushPromises();
 
-      tree.find('#startNewRunBtn').simulate('click');
+      tree
+        .find('#startNewRunBtn')
+        .hostNodes()
+        .simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1155,7 +1218,7 @@ describe('NewRun', () => {
         },
         resource_references: [],
       });
-      expect(tree).toMatchSnapshot();
+      // TODO: verify route change happens
     });
 
     it('updates the pipeline params as user selects different pipelines', async () => {
@@ -1201,8 +1264,14 @@ describe('NewRun', () => {
     });
 
     it('trims whitespace from the pipeline params', async () => {
-      tree = shallow(<TestNewRun {...generateProps()} />);
+      tree = mount(
+        <MemoryRouter>
+          <TestNewRun {...generateProps()} />
+        </MemoryRouter>,
+      );
       await TestUtils.flushPromises();
+      const instance = tree.find(TestNewRun).instance() as TestNewRun;
+      fillRequiredFields(instance);
 
       // Select a pipeline with parameters
       const pipeline = newMockPipeline();
@@ -1214,41 +1283,27 @@ describe('NewRun', () => {
       ];
       getPipelineSpy.mockImplementationOnce(() => pipeline);
       getPipelineVersionSpy.mockImplementationOnce(() => pipelineVersionWithParams);
-      tree.setState({ unconfirmedSelectedPipeline: pipeline });
-      tree.setState({ unconfirmedSelectedPipelineVersion: pipelineVersionWithParams });
-      const instance = tree.instance() as TestNewRun;
+      instance.setState({ unconfirmedSelectedPipeline: pipeline });
+      instance.setState({ unconfirmedSelectedPipelineVersion: pipelineVersionWithParams });
       instance._pipelineSelectorClosed(true);
       instance._pipelineVersionSelectorClosed(true);
-      tree.find('#startNewRunBtn').simulate('click');
+      tree
+        .find('#startNewRunBtn')
+        .hostNodes()
+        .simulate('click');
       await TestUtils.flushPromises();
 
       expect(startRunSpy).toHaveBeenCalledTimes(1);
-      expect(startRunSpy).toHaveBeenLastCalledWith({
-        description: '',
-        name: '',
-        pipeline_spec: {
-          parameters: [
-            { name: 'param-1', value: 'whitespace on either side' },
-            { name: 'param-2', value: 'value 2' },
-          ],
-        },
-        resource_references: [
-          {
-            key: {
-              id: MOCK_EXPERIMENT.id,
-              type: ApiResourceType.EXPERIMENT,
-            },
-            relationship: ApiRelationship.OWNER,
+      expect(startRunSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pipeline_spec: {
+            parameters: [
+              { name: 'param-1', value: 'whitespace on either side' },
+              { name: 'param-2', value: 'value 2' },
+            ],
           },
-          {
-            key: {
-              id: 'pipeline-version-with-params',
-              type: ApiResourceType.PIPELINEVERSION,
-            },
-            relationship: ApiRelationship.CREATOR,
-          },
-        ],
-      });
+        }),
+      );
     });
 
     it("sets the page to a busy state upon clicking 'Start'", async () => {
@@ -1258,13 +1313,16 @@ describe('NewRun', () => {
         `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}` +
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
-      tree = shallow(<TestNewRun {...props} />);
+      tree = mount(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({
         target: { value: 'test run name' },
       });
       await TestUtils.flushPromises();
 
-      tree.find('#startNewRunBtn').simulate('click');
+      tree
+        .find('#startNewRunBtn')
+        .hostNodes()
+        .simulate('click');
 
       expect(tree.state('isBeingStarted')).toBe(true);
     });
@@ -1276,13 +1334,16 @@ describe('NewRun', () => {
         `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}` +
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
-      tree = shallow(<TestNewRun {...props} />);
+      tree = mount(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({
         target: { value: 'test run name' },
       });
       await TestUtils.flushPromises();
 
-      tree.find('#startNewRunBtn').simulate('click');
+      tree
+        .find('#startNewRunBtn')
+        .hostNodes()
+        .simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1296,13 +1357,16 @@ describe('NewRun', () => {
       // No experiment in query params
       props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
-      tree = shallow(<TestNewRun {...props} />);
+      tree = mount(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({
         target: { value: 'test run name' },
       });
       await TestUtils.flushPromises();
 
-      tree.find('#startNewRunBtn').simulate('click');
+      tree
+        .find('#startNewRunBtn')
+        .hostNodes()
+        .simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1310,6 +1374,8 @@ describe('NewRun', () => {
     });
 
     it('shows an error dialog if Starting the new run fails', async () => {
+      muteErrors();
+
       const props = generateProps();
       props.location.search =
         `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}` +
@@ -1318,13 +1384,16 @@ describe('NewRun', () => {
 
       TestUtils.makeErrorResponseOnce(startRunSpy, 'test error message');
 
-      tree = shallow(<TestNewRun {...props} />);
+      tree = mount(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({
         target: { value: 'test run name' },
       });
       await TestUtils.flushPromises();
 
-      tree.find('#startNewRunBtn').simulate('click');
+      tree
+        .find('#startNewRunBtn')
+        .hostNodes()
+        .simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1336,6 +1405,8 @@ describe('NewRun', () => {
     });
 
     it("shows an error dialog if 'Start' is clicked and the new run somehow has no pipeline", async () => {
+      muteErrors();
+
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`;
 
@@ -1357,6 +1428,8 @@ describe('NewRun', () => {
     });
 
     it('unsets the page to a busy state if starting run fails', async () => {
+      muteErrors();
+
       const props = generateProps();
       props.location.search =
         `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}` +
@@ -1365,13 +1438,16 @@ describe('NewRun', () => {
 
       TestUtils.makeErrorResponseOnce(startRunSpy, 'test error message');
 
-      tree = shallow(<TestNewRun {...props} />);
+      tree = mount(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({
         target: { value: 'test run name' },
       });
       await TestUtils.flushPromises();
 
-      tree.find('#startNewRunBtn').simulate('click');
+      tree
+        .find('#startNewRunBtn')
+        .hostNodes()
+        .simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1385,13 +1461,16 @@ describe('NewRun', () => {
         `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}` +
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
-      tree = shallow(<TestNewRun {...props} />);
+      tree = mount(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({
         target: { value: 'test run name' },
       });
       await TestUtils.flushPromises();
 
-      tree.find('#startNewRunBtn').simulate('click');
+      tree
+        .find('#startNewRunBtn')
+        .hostNodes()
+        .simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 

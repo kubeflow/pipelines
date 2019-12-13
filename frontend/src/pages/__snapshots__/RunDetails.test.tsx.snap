@@ -843,6 +843,120 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
 </div>
 `;
 
+exports[`RunDetails logs tab loads logs in run's namespace 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page graphPane"
+      >
+        <div
+          className="page"
+        >
+          <Graph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": Object {},
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            selectedNodeId="node1"
+          />
+          <SidePanel
+            isBusy={false}
+            isOpen={true}
+            onClose={[Function]}
+            title="node1"
+          >
+            <div
+              className="page"
+            >
+              <MD2Tabs
+                onSwitch={[Function]}
+                selectedTab={4}
+                tabs={
+                  Array [
+                    "Artifacts",
+                    "Input/Output",
+                    "Volumes",
+                    "Manifest",
+                    "Logs",
+                  ]
+                }
+              />
+              <div
+                className="page"
+              >
+                <div
+                  className="page"
+                >
+                  <div
+                    className="pageOverflowHidden"
+                  >
+                    <LogViewer
+                      logLines={
+                        Array [
+                          "test logs",
+                        ]
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`RunDetails logs tab shows error banner atop logs area if fetching logs failed and getClusterName fails 1`] = `
 <div
   className="page"
