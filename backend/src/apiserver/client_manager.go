@@ -45,8 +45,8 @@ const (
 	mysqlPassword          = "DBConfig.Password"
 	mysqlDBName            = "DBConfig.DBName"
 	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
-	kfamServiceHost        = "KFAM_SERVICE_HOST"
-	kfamServicePort        = "KFAM_SERVICE_PORT"
+	kfamServiceHost        = "PROFILES_KFAM_SERVICE_HOST"
+	kfamServicePort        = "PROFILES_KFAM_SERVICE_PORT"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
