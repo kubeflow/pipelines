@@ -30,7 +30,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
@@ -152,10 +151,10 @@ func (c *ClientManager) init() {
 	c.argoClient = client.NewArgoClient(common.GetDurationConfig(initConnectionTimeout))
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
-		common.GetStringConfig(resource.PodNamespace), common.GetDurationConfig(initConnectionTimeout))
+		common.GetStringConfig(client.PodNamespace), common.GetDurationConfig(initConnectionTimeout))
 
 	c.podClient = client.CreatePodClientOrFatal(
-		common.GetStringConfig(resource.PodNamespace), common.GetDurationConfig(initConnectionTimeout))
+		common.GetStringConfig(client.PodNamespace), common.GetDurationConfig(initConnectionTimeout))
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore

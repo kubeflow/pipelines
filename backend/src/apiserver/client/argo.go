@@ -21,8 +21,13 @@ import (
 	argoprojv1alpha1 "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/rest"
+)
+
+const (
+	PodNamespace = "POD_NAMESPACE"
 )
 
 type ArgoClientInterface interface {
@@ -34,6 +39,9 @@ type ArgoClient struct {
 }
 
 func (argoClient *ArgoClient) Workflow(namespace string) argoprojv1alpha1.WorkflowInterface {
+	if len(namespace) == 0 {
+		namespace = common.GetStringConfig(PodNamespace)
+	}
 	return argoClient.argoProjClient.Workflows(namespace)
 }
 
