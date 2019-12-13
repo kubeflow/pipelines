@@ -54,7 +54,6 @@ import { logger, errorToMessage } from '../lib/Utils';
 import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
 import { CustomRendererProps } from '../components/CustomTable';
 import { Description } from '../components/Description';
-import {pipeline} from 'stream';
 
 interface NewRunState {
   description: string;
@@ -618,7 +617,9 @@ class NewRun extends Page<{}, NewRunState> {
             pipeline,
             pipelineName: (pipeline && pipeline.name) || '',
           });
-          const possiblePipelineVersionId = urlParser.get(QUERY_PARAMS.pipelineVersionId) || (pipeline.default_version && pipeline.default_version.id) ;
+          const possiblePipelineVersionId =
+            urlParser.get(QUERY_PARAMS.pipelineVersionId) ||
+            (pipeline.default_version && pipeline.default_version.id);
           if (possiblePipelineVersionId) {
             try {
               const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
@@ -628,7 +629,9 @@ class NewRun extends Page<{}, NewRunState> {
                 parameters: pipelineVersion.parameters || [],
                 pipelineVersion,
                 pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
-                runName: this._getRunNameFromPipelineVersion((pipelineVersion && pipelineVersion.name) || ''),
+                runName: this._getRunNameFromPipelineVersion(
+                  (pipelineVersion && pipelineVersion.name) || '',
+                ),
               });
             } catch (err) {
               urlParser.clear(QUERY_PARAMS.pipelineVersionId);
@@ -636,7 +639,10 @@ class NewRun extends Page<{}, NewRunState> {
                 `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
                 err,
               );
-              logger.error(`Failed to retrieve pipeline version: ${possiblePipelineVersionId}`, err);
+              logger.error(
+                `Failed to retrieve pipeline version: ${possiblePipelineVersionId}`,
+                err,
+              );
             }
           } else {
             this.setStateSafe({
@@ -1051,7 +1057,7 @@ class NewRun extends Page<{}, NewRunState> {
     }
   }
 
-  private _getRunNameFromPipelineVersion(pipelineVersionName: string): string{
+  private _getRunNameFromPipelineVersion(pipelineVersionName: string): string {
     return 'Run_of_(' + pipelineVersionName + ')';
   }
 
