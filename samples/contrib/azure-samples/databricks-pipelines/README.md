@@ -42,9 +42,9 @@ python3 pipeline_cli.py compile databricks_run_pipeline.py
 ```
 Then run the compiled pipeline in Kubeflow:
 ```bash
-python3 pipeline_cli.py run databricks_run_pipeline.py.tar.gz http://localhost:8080 '{"run_name":"test-run","parameter":"10"}'
+python3 pipeline_cli.py run databricks_run_pipeline.py.tar.gz http://localhost:8080/pipeline '{"run_name":"test-run","parameter":"10"}'
 ```
 Or compile and run a pipeline in Kubeflow with a single command:
 ```bash
-python3 pipeline_cli.py compile_run databricks_run_pipeline.py http://localhost:8080 '{"run_name":"test-run","parameter":"10"}'
+python3 pipeline_cli.py compile_run databricks_run_pipeline.py http://localhost:8080/pipeline '{"run_name":"test-run","parameter":"10"}'
 ```

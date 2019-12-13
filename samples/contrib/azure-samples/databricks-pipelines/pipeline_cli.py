@@ -45,18 +45,18 @@ class MyCLI:
 
         Args:
             path: Path to the compiled pipeline (e.g. databricks_run_pipeline.py.tar.gz)
-            host: Kubeflow server address (e.g. http://localhost:8080)
-            params: Pipeline parameters (e.g. '{\"run_name\":\"test-run\",\"parameter\":\"10\"}'
+            host: Host name to use to talk to Kubeflow Pipelines (e.g. http://localhost:8080/pipeline)
+            params: Pipeline parameters (e.g. '{\"run_name\":\"test-run\",\"parameter\":\"10\"}')
         """
 
         logging.info("Running '%s' in '%s'...", path, host)
-        client = kfp.Client(f"{host}/pipeline")
+        client = kfp.Client(f"{host}")
         try:
             result = client.create_run_from_pipeline_package(
                 pipeline_file=path,
                 arguments=params
             )
-            logging.info("View run: %s/pipeline/#/runs/details/%s",
+            logging.info("View run: %s/#/runs/details/%s",
                          host,
                          result.run_id)
         except Exception as ex:
@@ -74,8 +74,8 @@ class MyCLI:
 
         Args:
             path: Path to the pipeline (e.g. databricks_run_pipeline.py)
-            host: Kubeflow server address (e.g. http://localhost:8080)
-            params: Pipeline parameters (e.g. '{\"run_name\":\"test-run\",\"parameter\":\"10\"}'
+            host: Host name to use to talk to Kubeflow Pipelines (e.g. http://localhost:8080/pipeline)
+            params: Pipeline parameters (e.g. '{\"run_name\":\"test-run\",\"parameter\":\"10\"}')
         """
 
         compiled_path = MyCLI.compile(path)
