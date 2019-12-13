@@ -19,9 +19,11 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/pkg/errors"
 )
 
 type RunServer struct {
@@ -88,6 +90,7 @@ func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunR
 }
 
 func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest) (*empty.Empty, error) {
+
 	err := s.resourceManager.DeleteRun(request.Id)
 	if err != nil {
 		return nil, err
@@ -157,6 +160,18 @@ func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) 
 	}
 	return &empty.Empty{}, nil
 
+}
+
+func (s *RunServer) GetNamespaceFromRunId(runId string) (string, error) {
+	runDetail, err := s.resourceManager.GetRun(runId)
+	if err != nil {
+		return "", util.Wrap(err, "Failed to get namespace from run Id.")
+	}
+	namespace := common.GetNamespaceFromResourceReferencesModel(runDetail.ResourceReferences)
+	if len(namespace) == 0 {
+		return "", errors.New("There is no namespace in the ResourceReferences")
+	}
+	return namespace, nil
 }
 
 func NewRunServer(resourceManager *resource.ResourceManager) *RunServer {

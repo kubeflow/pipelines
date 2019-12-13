@@ -277,7 +277,7 @@ func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, re
 
 func getUserIdentity(ctx context.Context) (string, error) {
 	if ctx == nil {
-		return "", util.NewBadRequestError(errors.New("Request error: context is nil"),"Request error: context is nil.")
+		return "", util.NewBadRequestError(errors.New("Request error: context is nil"), "Request error: context is nil.")
 	}
 	md, _ := metadata.FromIncomingContext(ctx)
 	// If the request header contains the user identity, requests are authorized
@@ -294,7 +294,7 @@ func getUserIdentity(ctx context.Context) (string, error) {
 		}
 		return userIdentityHeaderFields[1], nil
 	}
-	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."),"Request header error: there is no user identity header.")
+	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."), "Request header error: there is no user identity header.")
 }
 
 func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
@@ -324,7 +324,7 @@ func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 
 	if isAuthorized == false {
 		glog.Infof("Unauthorized access for %s to namespace %s", userIdentity, namespace)
-		return util.NewBadRequestError(errors.New("Unauthorized access for " + userIdentity + " to namespace " + namespace), "Unauthorized access for " + userIdentity + " to namespace " + namespace)
+		return util.NewBadRequestError(errors.New("Unauthorized access for "+userIdentity+" to namespace "+namespace), "Unauthorized access for "+userIdentity+" to namespace "+namespace)
 	}
 
 	glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
