@@ -628,7 +628,7 @@ class NewRun extends Page<{}, NewRunState> {
                 parameters: pipelineVersion.parameters || [],
                 pipelineVersion,
                 pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
-                runName: 'pv_' + this._getRunNameFromPipelineVersion((pipelineVersion && pipelineVersion.name) || ''),
+                runName: this._getRunNameFromPipelineVersion((pipelineVersion && pipelineVersion.name) || ''),
               });
             } catch (err) {
               urlParser.clear(QUERY_PARAMS.pipelineVersionId);
@@ -640,7 +640,7 @@ class NewRun extends Page<{}, NewRunState> {
             }
           } else {
             this.setStateSafe({
-              runName: 'pv_' + this._getRunNameFromPipelineVersion((pipeline && pipeline.name) || ''),
+              runName: this._getRunNameFromPipelineVersion((pipeline && pipeline.name) || ''),
             });
           }
         } catch (err) {
@@ -1052,8 +1052,7 @@ class NewRun extends Page<{}, NewRunState> {
   }
 
   private _getRunNameFromPipelineVersion(pipelineVersionName: string): string{
-    const currDate = new Date();
-    return 'Run_of_' + pipelineVersionName + '_at_' + currDate.toISOString();
+    return 'Run_of_(' + pipelineVersionName + ')';
   }
 
   private _validate(): void {

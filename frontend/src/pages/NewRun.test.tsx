@@ -218,6 +218,20 @@ describe('NewRun', () => {
     expect(tree.state()).toHaveProperty('runName', 'run name');
   });
 
+  it('reports validation error when missing the run name', async () => {
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}&${
+      QUERY_PARAMS.pipelineVersionId
+    }=${MOCK_PIPELINE.default_version!.id}`;
+
+    tree = shallow(<TestNewRun {...props} />);
+    await TestUtils.flushPromises();
+
+    (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: null } });
+
+    expect(tree.state()).toHaveProperty('errorMessage', 'Run name is required');
+  });
+
   it('allows updating the run description', async () => {
     tree = shallow(<TestNewRun {...(generateProps() as any)} />);
     await TestUtils.flushPromises();
@@ -364,7 +378,7 @@ describe('NewRun', () => {
     expect(tree.state()).toHaveProperty('pipeline', MOCK_PIPELINE);
     expect(tree.state()).toHaveProperty('pipelineName', MOCK_PIPELINE.name);
     expect(tree.state()).toHaveProperty('pipelineVersion', MOCK_PIPELINE_VERSION);
-    expect(tree.state()).toHaveProperty('errorMessage', 'Run name is required');
+    expect(tree.state()).toHaveProperty('runName', "Run_of_(original mock pipeline version name)");
     expect(tree).toMatchSnapshot();
   });
 
@@ -1052,6 +1066,8 @@ describe('NewRun', () => {
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
       tree = shallow(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+
       (tree.instance() as TestNewRun).handleChange('runName')({
         target: { value: 'test run name' },
       });
@@ -1386,6 +1402,8 @@ describe('NewRun', () => {
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
       tree = shallow(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+
       (tree.instance() as TestNewRun).handleChange('runName')({
         target: { value: 'test run name' },
       });
@@ -1435,6 +1453,8 @@ describe('NewRun', () => {
 
       tree = TestUtils.mountWithRouter(<TestNewRun {...props} />);
       const instance = tree.instance() as TestNewRun;
+      await TestUtils.flushPromises();
+
       instance.handleChange('runName')({ target: { value: 'test run name' } });
       instance.handleChange('description')({ target: { value: 'test run description' } });
       await TestUtils.flushPromises();
