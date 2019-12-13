@@ -45,7 +45,7 @@ func (argoClient *ArgoClient) Workflow(namespace string) argoprojv1alpha1.Workfl
 	return argoClient.argoProjClient.Workflows(namespace)
 }
 
-func NewArgoClient(initConnectionTimeout time.Duration) *ArgoClient {
+func NewArgoClientOrFatal(initConnectionTimeout time.Duration) *ArgoClient {
 	var argoProjClient argoprojv1alpha1.ArgoprojV1alpha1Interface
 	var operation = func() error {
 		restConfig, err := rest.InClusterConfig()

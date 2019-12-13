@@ -148,7 +148,7 @@ func (c *ClientManager) init() {
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
 
-	c.argoClient = client.NewArgoClient(common.GetDurationConfig(initConnectionTimeout))
+	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
 		common.GetStringConfig(client.PodNamespace), common.GetDurationConfig(initConnectionTimeout))

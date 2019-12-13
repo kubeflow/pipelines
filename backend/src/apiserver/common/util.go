@@ -15,7 +15,7 @@
 package common
 
 import (
-api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 )
 
 func GetNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) string {
