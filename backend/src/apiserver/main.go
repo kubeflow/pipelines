@@ -92,7 +92,11 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	api.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager))
 	api.RegisterExperimentServiceServer(s, server.NewExperimentServer(resourceManager))
 	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager))
-	api.RegisterJobServiceServer(s, server.NewJobServer(resourceManager))
+	// Temporary disable the job service in multi-user mode.
+	// Will enable the job service when it is fully multi-user ready.
+	if common.IsMultiUserMode() == false {
+		api.RegisterJobServiceServer(s, server.NewJobServer(resourceManager))
+	}
 	api.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
 	api.RegisterVisualizationServiceServer(
 		s,
@@ -121,7 +125,9 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	mux := runtime.NewServeMux(runtime.WithIncomingHeaderMatcher(grpcCustomMatcher))
 	registerHttpHandlerFromEndpoint(api.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, mux)
-	registerHttpHandlerFromEndpoint(api.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, mux)
+	if common.IsMultiUserMode() == false {
+		registerHttpHandlerFromEndpoint(api.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, mux)
+	}
 	registerHttpHandlerFromEndpoint(api.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization", ctx, mux)
