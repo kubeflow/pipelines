@@ -56,6 +56,9 @@ class PipelineVolume(V1Volume):
                            for attr in self.attribute_map.keys()}
         else:
             if "name" in kwargs:
+                if len(kwargs["name"]) > 63:
+                    raise ValueError("PipelineVolume name must be no more than"
+                                     " 63 characters")
                 init_volume = {"name": kwargs.pop("name")}
             else:
                 name_provided = False
@@ -69,9 +72,16 @@ class PipelineVolume(V1Volume):
                 init_volume["persistent_volume_claim"] = pvc_volume_source
         super().__init__(**init_volume, **kwargs)
         if not name_provided:
-            self.name = "pvolume-%s" % hashlib.sha256(
-                bytes(json.dumps(self.to_dict(), sort_keys=True), "utf-8")
-            ).hexdigest()
+            hash_value = hashlib.sha256(bytes(json.dumps(self.to_dict(),
+                                                         sort_keys=True),
+                                              "utf-8")).hexdigest()
+            name_prefix = "pvolume-"
+            # Name must be no more than 63 characters, so we will keep the last
+            # chars of the hash value
+            hash_len = 63 - len(name_prefix)
+            self.name = (name_prefix + hash_value[len(hash_value)-hash_len:]
+                         if len(hash_value) > hash_len
+                         else name_prefix + hash_value)
         self.dependent_names = []
 
     def after(self, *ops):
