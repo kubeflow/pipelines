@@ -16,25 +16,13 @@ package common
 
 import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 )
 
-func GetNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) string {
+func GetNamespaceFromAPIResourceReferences(resourceRefs []*api.ResourceReference) string {
 	namespace := ""
 	for _, resourceRef := range resourceRefs {
 		if resourceRef.Key.Type == api.ResourceType_NAMESPACE {
 			namespace = resourceRef.Key.Id
-			break
-		}
-	}
-	return namespace
-}
-
-func GetNamespaceFromResourceReferencesModel(resourceRefs []*model.ResourceReference) string {
-	namespace := ""
-	for _, resourceRef := range resourceRefs {
-		if resourceRef.ReferenceType == Namespace {
-			namespace = resourceRef.ReferenceUUID
 			break
 		}
 	}

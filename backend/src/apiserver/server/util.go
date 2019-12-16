@@ -17,6 +17,7 @@ import (
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
@@ -306,7 +307,7 @@ func IsAuthorizedRunID(resourceManager *resource.ResourceManager, ctx context.Co
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize with the run Id.")
 	}
-	namespace := common.GetNamespaceFromResourceReferencesModel(runDetail.ResourceReferences)
+	namespace := model.GetNamespaceFromModelResourceReferences(runDetail.ResourceReferences)
 	if len(namespace) == 0 {
 		return util.NewInternalServerError(errors.New("There is no namespace in the ResourceReferences"), "There is no namespace in the ResourceReferences")
 	}
@@ -317,13 +318,13 @@ func IsAuthorizedRunID(resourceManager *resource.ResourceManager, ctx context.Co
 	return nil
 }
 
-func IsAuthorizedResourceReferenceAPI(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
+func IsAuthorizedAPIResourceReference(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
 	if common.IsMultiUserMode() == false {
 		// Skip authz if not multi-user mode.
 		return nil
 	}
 
-	namespace := common.GetNamespaceFromResourceReferences(resourceRefs)
+	namespace := common.GetNamespaceFromAPIResourceReferences(resourceRefs)
 	if len(namespace) == 0 {
 		return util.NewBadRequestError(errors.New("Namespace required in Kubeflow deployment for authorization."), "Namespace required in Kubeflow deployment for authorization.")
 	}

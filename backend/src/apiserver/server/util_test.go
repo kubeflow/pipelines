@@ -345,7 +345,7 @@ func TestGetUserIdentity(t *testing.T) {
 	assert.Equal(t, "user@google.com", userIdentity)
 }
 
-func TestAuthorize_Unauthorized(t *testing.T) {
+func TestAuthorizeAPIResourceReference_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
 	viper.Set(common.MultiUserMode, "true")
@@ -358,11 +358,11 @@ func TestAuthorize_Unauthorized(t *testing.T) {
 			Relationship: api.Relationship_OWNER,
 		},
 	}
-	err := IsAuthorized(manager, ctx, references)
+	err := IsAuthorizedAPIResourceReference(manager, ctx, references)
 	assert.NotNil(t, err)
 }
 
-func TestAuthorize_Authorized(t *testing.T) {
+func TestAuthorizeAPIResourceReference_Authorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	viper.Set(common.MultiUserMode, "true")
@@ -375,6 +375,7 @@ func TestAuthorize_Authorized(t *testing.T) {
 			Relationship: api.Relationship_OWNER,
 		},
 	}
-	err := IsAuthorized(manager, ctx, references)
+	err := IsAuthorizedAPIResourceReference(manager, ctx, references)
 	assert.Nil(t, err)
 }
+

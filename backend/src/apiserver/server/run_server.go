@@ -33,7 +33,7 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
-	err = IsAuthorizedResourceReferenceAPI(s.resourceManager, ctx, request.Run.ResourceReferences)
+	err = IsAuthorizedAPIResourceReference(s.resourceManager, ctx, request.Run.ResourceReferences)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the requests.")
 	}
