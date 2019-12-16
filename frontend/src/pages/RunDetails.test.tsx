@@ -935,7 +935,6 @@ describe('RunDetails', () => {
       await getPodLogsSpy;
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
       expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1', 'username');
-      expect(tree).toMatchSnapshot();
     });
 
     it('shows warning banner and link to Stackdriver in logs area if fetching logs failed and cluster is in GKE', async () => {
