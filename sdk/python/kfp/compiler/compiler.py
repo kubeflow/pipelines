@@ -16,6 +16,7 @@ from collections import defaultdict
 from deprecated import deprecated
 import inspect
 import tarfile
+import uuid
 import zipfile
 from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
@@ -487,7 +488,18 @@ class Compiler(object):
 
           task['withParam'] = withparam_value
         else:
-          task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
+          # Need to sanitize the dict keys for consistency.
+          loop_tasks = sub_group.loop_args.to_list_for_task_yaml()
+          sanitized_tasks = []
+          if isinstance(loop_tasks[0], dict):
+            for argument_set in loop_tasks:
+              c_dict = {}
+              for k, v in argument_set.items():
+                c_dict[sanitize_k8s_name(k, True)] = v
+              sanitized_tasks.append(c_dict)
+          else:
+            sanitized_tasks = loop_tasks
+          task['withItems'] = sanitized_tasks
 
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
@@ -608,9 +620,13 @@ class Compiler(object):
           param['value'] = str(arg.value)
       input_params.append(param)
 
+    # Making the pipeline group name unique to prevent name clashes with templates
+    pipeline_group = pipeline.groups[0]
+    temp_pipeline_group_name = uuid.uuid4().hex
+    pipeline_group.name = temp_pipeline_group_name
+
     # Templates
     templates = self._create_dag_templates(pipeline, op_transformers)
-    templates.sort(key=lambda x: x['name'])
 
     # Exit Handler
     exit_handler = None
@@ -621,12 +637,24 @@ class Compiler(object):
 
     # The whole pipeline workflow
     pipeline_name = pipeline.name or 'Pipeline'
+
+    # Workaround for pipeline name clashing with container template names
+    # TODO: Make sure template names cannot clash at all (container, DAG, workflow)
+    template_map = {template['name'].lower(): template  for template in templates}
+    from ..components._naming import _make_name_unique_by_adding_index
+    pipeline_template_name = _make_name_unique_by_adding_index(pipeline_name, template_map, '-')
+
+    # Restoring the name of the pipeline template
+    pipeline_template = template_map[temp_pipeline_group_name]
+    pipeline_template['name'] = pipeline_template_name
+
+    templates.sort(key=lambda x: x['name'])
     workflow = {
       'apiVersion': 'argoproj.io/v1alpha1',
       'kind': 'Workflow',
-      'metadata': {'generateName': pipeline_name + '-'},
+      'metadata': {'generateName': pipeline_template_name + '-'},
       'spec': {
-        'entrypoint': pipeline_name,
+        'entrypoint': pipeline_template_name,
         'templates': templates,
         'arguments': {'parameters': input_params},
         'serviceAccountName': 'pipeline-runner'
@@ -687,23 +715,23 @@ class Compiler(object):
       sanitized_name = sanitize_k8s_name(op.name)
       op.name = sanitized_name
       for param in op.outputs.values():
-        param.name = sanitize_k8s_name(param.name)
+        param.name = sanitize_k8s_name(param.name, True)
         if param.op_name:
           param.op_name = sanitize_k8s_name(param.op_name)
       if op.output is not None and not isinstance(op.output, dsl._container_op._MultipleOutputsError):
-        op.output.name = sanitize_k8s_name(op.output.name)
+        op.output.name = sanitize_k8s_name(op.output.name, True)
         op.output.op_name = sanitize_k8s_name(op.output.op_name)
       if op.dependent_names:
         op.dependent_names = [sanitize_k8s_name(name) for name in op.dependent_names]
       if isinstance(op, dsl.ContainerOp) and op.file_outputs is not None:
         sanitized_file_outputs = {}
         for key in op.file_outputs.keys():
-          sanitized_file_outputs[sanitize_k8s_name(key)] = op.file_outputs[key]
+          sanitized_file_outputs[sanitize_k8s_name(key, True)] = op.file_outputs[key]
         op.file_outputs = sanitized_file_outputs
       elif isinstance(op, dsl.ResourceOp) and op.attribute_outputs is not None:
         sanitized_attribute_outputs = {}
         for key in op.attribute_outputs.keys():
-          sanitized_attribute_outputs[sanitize_k8s_name(key)] = \
+          sanitized_attribute_outputs[sanitize_k8s_name(key, True)] = \
             op.attribute_outputs[key]
         op.attribute_outputs = sanitized_attribute_outputs
       sanitized_ops[sanitized_name] = op
@@ -746,7 +774,7 @@ class Compiler(object):
         if arg_name == input.name:
           arg_type = input.type
           break
-      args_list.append(dsl.PipelineParam(sanitize_k8s_name(arg_name), param_type=arg_type))
+      args_list.append(dsl.PipelineParam(sanitize_k8s_name(arg_name, True), param_type=arg_type))
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list)
@@ -759,7 +787,7 @@ class Compiler(object):
     # Fill in the default values.
     args_list_with_defaults = []
     if pipeline_meta.inputs:
-      args_list_with_defaults = [dsl.PipelineParam(sanitize_k8s_name(arg_name))
+      args_list_with_defaults = [dsl.PipelineParam(sanitize_k8s_name(arg_name, True))
                                  for arg_name in argspec.args]
       if argspec.defaults:
         for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
@@ -857,7 +885,7 @@ class Compiler(object):
         will be returned.
     """
     yaml.Dumper.ignore_aliases = lambda *args : True
-    yaml_text = yaml.dump(workflow, default_flow_style=False)
+    yaml_text = yaml.dump(workflow, default_flow_style=False, default_style='|')
 
     if '{{pipelineparam' in yaml_text:
       raise RuntimeError(

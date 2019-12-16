@@ -462,16 +462,16 @@ describe('RunList', () => {
 
   it('renders pipeline name as link to its details page', () => {
     expect(
-      getMountedInstance()._pipelineCustomRenderer({
+      getMountedInstance()._pipelineVersionCustomRenderer({
         id: 'run-id',
-        value: { displayName: 'test pipeline', id: 'pipeline-id', usePlaceholder: false },
+        value: { displayName: 'test pipeline', pipelineId: 'pipeline-id', usePlaceholder: false },
       }),
     ).toMatchSnapshot();
   });
 
   it('handles no pipeline id given', () => {
     expect(
-      getMountedInstance()._pipelineCustomRenderer({
+      getMountedInstance()._pipelineVersionCustomRenderer({
         id: 'run-id',
         value: { displayName: 'test pipeline', usePlaceholder: false },
       }),
@@ -480,16 +480,16 @@ describe('RunList', () => {
 
   it('shows "View pipeline" button if pipeline is embedded in run', () => {
     expect(
-      getMountedInstance()._pipelineCustomRenderer({
+      getMountedInstance()._pipelineVersionCustomRenderer({
         id: 'run-id',
-        value: { displayName: 'test pipeline', id: 'pipeline-id', usePlaceholder: true },
+        value: { displayName: 'test pipeline', pipelineId: 'pipeline-id', usePlaceholder: true },
       }),
     ).toMatchSnapshot();
   });
 
   it('handles no pipeline name', () => {
     expect(
-      getMountedInstance()._pipelineCustomRenderer({
+      getMountedInstance()._pipelineVersionCustomRenderer({
         id: 'run-id',
         value: { /* no displayName */ usePlaceholder: true },
       }),
@@ -569,6 +569,20 @@ describe('RunList', () => {
         value: {
           metadata: { count: 1, maxValue: 100, minValue: 10 } as MetricMetadata,
           metric: { number_value: 55 } as ApiRunMetric,
+        },
+      }),
+    ).toMatchSnapshot();
+  });
+
+  it('renders pipeline version name as link to its details page', () => {
+    expect(
+      getMountedInstance()._pipelineVersionCustomRenderer({
+        id: 'run-id',
+        value: {
+          displayName: 'test pipeline version',
+          pipelineId: 'pipeline-id',
+          usePlaceholder: false,
+          versionId: 'version-id',
         },
       }),
     ).toMatchSnapshot();

@@ -90,7 +90,8 @@ type ListRunsParams struct {
 
 	/*Filter
 	  A url-encoded, JSON-serialized Filter protocol buffer (see
-	filter.proto).
+	[filter.proto](https://github.com/kubeflow/pipelines/
+	blob/master/backend/api/filter.proto)).
 
 	*/
 	Filter *string
@@ -110,7 +111,7 @@ type ListRunsParams struct {
 	ResourceReferenceKeyType *string
 	/*SortBy
 	  Can be format of "field_name", "field_name asc" or "field_name des"
-	Ascending by default.
+	(Example, "name asc" or "id des"). Ascending by default.
 
 	*/
 	SortBy *string

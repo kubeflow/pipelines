@@ -15,12 +15,11 @@
 package resource
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
-
-	"encoding/json"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -1182,18 +1181,18 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 				{
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
-					ReferenceUUID: job.UUID,
-					ReferenceName: job.Name,
-					ReferenceType: common.Job,
-					Relationship:  common.Creator,
-				},
-				{
-					ResourceUUID:  "WORKFLOW_1",
-					ResourceType:  common.Run,
 					ReferenceUUID: DefaultFakeUUID,
 					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
+				},
+				{
+					ResourceUUID:  "WORKFLOW_1",
+					ResourceType:  common.Run,
+					ReferenceUUID: job.UUID,
+					ReferenceName: job.Name,
+					ReferenceType: common.Job,
+					Relationship:  common.Creator,
 				},
 			},
 		},
@@ -1255,18 +1254,18 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 				{
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
-					ReferenceUUID: newJob.UUID,
-					ReferenceName: newJob.Name,
-					ReferenceType: common.Job,
-					Relationship:  common.Creator,
-				},
-				{
-					ResourceUUID:  "WORKFLOW_1",
-					ResourceType:  common.Run,
 					ReferenceUUID: DefaultFakeUUID,
 					ReferenceName: "Default",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
+				},
+				{
+					ResourceUUID:  "WORKFLOW_1",
+					ResourceType:  common.Run,
+					ReferenceUUID: newJob.UUID,
+					ReferenceName: newJob.Name,
+					ReferenceType: common.Job,
+					Relationship:  common.Creator,
 				},
 			},
 		},

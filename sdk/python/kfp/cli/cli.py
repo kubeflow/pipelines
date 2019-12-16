@@ -24,13 +24,15 @@ from .diagnose_me_cli import diagnose_me
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
 @click.option('--iap-client-id', help='Client ID for IAP protected endpoint.')
 @click.option('-n', '--namespace', default='kubeflow', help='Kubernetes namespace to connect to the KFP API.')
+@click.option('--other-client-id', help='Client ID for IAP protected endpoint to obtain the refresh token.')
+@click.option('--other-client-secret', help='Client ID for IAP protected endpoint to obtain the refresh token.')
 @click.pass_context
-def cli(ctx, endpoint, iap_client_id, namespace):
+def cli(ctx, endpoint, iap_client_id, namespace, other_client_id, other_client_secret):
     """kfp is the command line interface to KFP service."""
-    if click.Group.get_command(cli, ctx,'diagnose_me'):
-        # Do not create a client for diagnose_me
-        return 
-    ctx.obj['client'] = Client(endpoint, iap_client_id, namespace)
+    if ctx.invoked_subcommand == 'diagnose_me':
+          # Do not create a client for diagnose_me
+          return
+    ctx.obj['client'] = Client(endpoint, iap_client_id, namespace, other_client_id, other_client_secret)
     ctx.obj['namespace']= namespace
 
 def main():

@@ -42,6 +42,7 @@ export CLUSTER=kubeflow-pipelines-cluster
 export ZONE=us-west1-a
 export MACHINE_TYPE=n1-standard-2
 
+gcloud config set project <your_project>
 gcloud container clusters create "$CLUSTER" --zone "$ZONE" --machine-type "$MACHINE_TYPE"
 ```
 
@@ -103,9 +104,9 @@ Follow the [instruction](https://github.com/GoogleCloudPlatform/marketplace-k8s-
 TODO: The official mpdev won't work because it doesn't have permission to deploy CRD. The latest unofficial build will have right permission. Remove following instruction when change is in prod.
 ```
 BIN_FILE="$HOME/bin/mpdev"
-docker run gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev:unreleased-pr396 cat /scripts/dev > "$BIN_FILE"
+docker run gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev:remove-ui-ownerrefs cat /scripts/dev > "$BIN_FILE"
 chmod +x "$BIN_FILE"
-export MARKETPLACE_TOOLS_TAG=unreleased-pr396
+export MARKETPLACE_TOOLS_TAG=remove-ui-ownerrefs
 export MARKETPLACE_TOOLS_IMAGE=gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev
 ```
 

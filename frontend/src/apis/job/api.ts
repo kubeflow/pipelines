@@ -369,6 +369,8 @@ export enum ApiResourceType {
   UNKNOWNRESOURCETYPE = <any>'UNKNOWN_RESOURCE_TYPE',
   EXPERIMENT = <any>'EXPERIMENT',
   JOB = <any>'JOB',
+  PIPELINE = <any>'PIPELINE',
+  PIPELINEVERSION = <any>'PIPELINE_VERSION',
 }
 
 /**
@@ -456,6 +458,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
   return {
     /**
      *
+     * @summary Create a new job.
      * @param {ApiJob} body The job to be created
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -506,6 +509,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
+     * @summary Delete a job.
      * @param {string} id The ID of the job to be deleted
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -553,6 +557,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
+     * @summary Disable a job.
      * @param {string} id The ID of the job to be disabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -600,6 +605,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
+     * @summary Enable a job.
      * @param {string} id The ID of the job to be enabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -647,6 +653,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
+     * @summary Find a specific job by ID.
      * @param {string} id The ID of the job to be retrieved
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -694,12 +701,13 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
+     * @summary Find all jobs.
      * @param {string} [page_token]
      * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
-     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default.
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
-     * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -707,7 +715,12 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
       page_token?: string,
       page_size?: number,
       sort_by?: string,
-      resource_reference_key_type?: 'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB',
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION',
       resource_reference_key_id?: string,
       filter?: string,
       options: any = {},
@@ -777,6 +790,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
   return {
     /**
      *
+     * @summary Create a new job.
      * @param {ApiJob} body The job to be created
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -801,6 +815,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
+     * @summary Delete a job.
      * @param {string} id The ID of the job to be deleted
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -822,6 +837,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
+     * @summary Disable a job.
      * @param {string} id The ID of the job to be disabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -843,6 +859,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
+     * @summary Enable a job.
      * @param {string} id The ID of the job to be enabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -864,6 +881,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
+     * @summary Find a specific job by ID.
      * @param {string} id The ID of the job to be retrieved
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -882,12 +900,13 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
+     * @summary Find all jobs.
      * @param {string} [page_token]
      * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
-     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default.
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
-     * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -895,7 +914,12 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
       page_token?: string,
       page_size?: number,
       sort_by?: string,
-      resource_reference_key_type?: 'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB',
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION',
       resource_reference_key_id?: string,
       filter?: string,
       options?: any,
@@ -934,6 +958,7 @@ export const JobServiceApiFactory = function(
   return {
     /**
      *
+     * @summary Create a new job.
      * @param {ApiJob} body The job to be created
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -943,6 +968,7 @@ export const JobServiceApiFactory = function(
     },
     /**
      *
+     * @summary Delete a job.
      * @param {string} id The ID of the job to be deleted
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -952,6 +978,7 @@ export const JobServiceApiFactory = function(
     },
     /**
      *
+     * @summary Disable a job.
      * @param {string} id The ID of the job to be disabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -961,6 +988,7 @@ export const JobServiceApiFactory = function(
     },
     /**
      *
+     * @summary Enable a job.
      * @param {string} id The ID of the job to be enabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -970,6 +998,7 @@ export const JobServiceApiFactory = function(
     },
     /**
      *
+     * @summary Find a specific job by ID.
      * @param {string} id The ID of the job to be retrieved
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -979,12 +1008,13 @@ export const JobServiceApiFactory = function(
     },
     /**
      *
+     * @summary Find all jobs.
      * @param {string} [page_token]
      * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
-     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default.
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
-     * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -992,7 +1022,12 @@ export const JobServiceApiFactory = function(
       page_token?: string,
       page_size?: number,
       sort_by?: string,
-      resource_reference_key_type?: 'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB',
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION',
       resource_reference_key_id?: string,
       filter?: string,
       options?: any,
@@ -1019,6 +1054,7 @@ export const JobServiceApiFactory = function(
 export class JobServiceApi extends BaseAPI {
   /**
    *
+   * @summary Create a new job.
    * @param {ApiJob} body The job to be created
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1030,6 +1066,7 @@ export class JobServiceApi extends BaseAPI {
 
   /**
    *
+   * @summary Delete a job.
    * @param {string} id The ID of the job to be deleted
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1041,6 +1078,7 @@ export class JobServiceApi extends BaseAPI {
 
   /**
    *
+   * @summary Disable a job.
    * @param {string} id The ID of the job to be disabled
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1052,6 +1090,7 @@ export class JobServiceApi extends BaseAPI {
 
   /**
    *
+   * @summary Enable a job.
    * @param {string} id The ID of the job to be enabled
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1063,6 +1102,7 @@ export class JobServiceApi extends BaseAPI {
 
   /**
    *
+   * @summary Find a specific job by ID.
    * @param {string} id The ID of the job to be retrieved
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1074,12 +1114,13 @@ export class JobServiceApi extends BaseAPI {
 
   /**
    *
+   * @summary Find all jobs.
    * @param {string} [page_token]
    * @param {number} [page_size]
-   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
-   * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB'} [resource_reference_key_type] The type of the resource that referred to.
+   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default.
+   * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_reference_key_type] The type of the resource that referred to.
    * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
-   * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
+   * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof JobServiceApi
@@ -1088,7 +1129,12 @@ export class JobServiceApi extends BaseAPI {
     page_token?: string,
     page_size?: number,
     sort_by?: string,
-    resource_reference_key_type?: 'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB',
+    resource_reference_key_type?:
+      | 'UNKNOWN_RESOURCE_TYPE'
+      | 'EXPERIMENT'
+      | 'JOB'
+      | 'PIPELINE'
+      | 'PIPELINE_VERSION',
     resource_reference_key_id?: string,
     filter?: string,
     options?: any,

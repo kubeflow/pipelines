@@ -1,4 +1,5 @@
-FROM l.gcr.io/google/bazel:0.24.0 as builder
+ARG BAZEL_IMAGE=l.gcr.io/google/bazel:0.24.0
+FROM $BAZEL_IMAGE as builder
 
 RUN apt-get update && \
   apt-get install -y cmake clang musl-dev openssl
@@ -24,6 +25,10 @@ RUN if [ "$use_remote_build" = "true" ]; then \
 
 # Compile
 FROM python:3.5 as compiler
+RUN apt-get update -y && \
+    apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev
+RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+RUN python3 -m pip install tfx==0.15.0
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY sdk sdk
@@ -40,7 +45,7 @@ COPY ./samples .
 #I think it's better to just use a shell loop though.
 #RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
 #The "for" loop breaks on all whitespace, so we either need to override IFS or use the "read" command instead.
-RUN  set -e; find core -maxdepth 2 -name '*.py' -type f | while read pipeline; do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
+RUN  set -e; find core -maxdepth 2 -name '*.py' -type f | while read pipeline; do python3 $pipeline; done
 
 FROM debian:stretch
 
@@ -50,7 +55,9 @@ ENV COMMIT_SHA=${COMMIT_SHA}
 WORKDIR /bin
 
 COPY third_party/license.txt /bin/license.txt
-COPY --from=builder /go/src/github.com/kubeflow/pipelines/bazel-bin/backend/src/apiserver/linux_amd64_stripped/apiserver  /bin/apiserver
+COPY --from=builder /go/src/github.com/kubeflow/pipelines/bazel-bin/backend/src/apiserver/  /usr/local/apiserver
+RUN cp /usr/local/apiserver/linux_$(dpkg --print-architecture)_stripped/apiserver /bin/apiserver && \
+    rm -rf /usr/local/apiserver
 COPY backend/src/apiserver/config/ /config
 
 COPY --from=compiler /samples/ /samples/

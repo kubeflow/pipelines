@@ -70,7 +70,7 @@ Follow these steps to use the component in a pipeline:
     ```python
     import kfp.components as comp
 
-    dataproc_delete_cluster_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/02c991dd265054b040265b3dfa1903d5b49df859/components/gcp/dataproc/delete_cluster/component.yaml')
+    dataproc_delete_cluster_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a8d3b6977df26a89701cd229f01c1840a8475521/components/gcp/dataproc/delete_cluster/component.yaml')
     help(dataproc_delete_cluster_op)
     ```
 

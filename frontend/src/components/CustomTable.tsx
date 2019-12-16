@@ -674,6 +674,7 @@ const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
               expandState === ExpandState.EXPANDED && css.expandButtonExpanded,
             )}
             onClick={onExpand}
+            aria-label='Expand'
           >
             <ArrowRight />
           </IconButton>
