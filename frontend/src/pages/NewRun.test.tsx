@@ -50,6 +50,10 @@ describe('NewRun', () => {
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
 
+  const mockMath = Object.create(global.Math);
+  mockMath.random = () => 0.5;
+  global.Math = mockMath;
+
   let MOCK_EXPERIMENT = newMockExperiment();
   let MOCK_PIPELINE = newMockPipeline();
   let MOCK_PIPELINE_VERSION = newMockPipelineVersion();
@@ -378,7 +382,7 @@ describe('NewRun', () => {
     expect(tree.state()).toHaveProperty('pipeline', MOCK_PIPELINE);
     expect(tree.state()).toHaveProperty('pipelineName', MOCK_PIPELINE.name);
     expect(tree.state()).toHaveProperty('pipelineVersion', MOCK_PIPELINE_VERSION);
-    expect(tree.state()).toHaveProperty('runName', 'Run_of_(original mock pipeline version name)');
+    expect((tree.state() as any).runName).toMatch(/Run_of_\(original mock pipeline version name\)_.*/)
     expect(tree).toMatchSnapshot();
   });
 
