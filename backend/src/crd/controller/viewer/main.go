@@ -69,14 +69,9 @@ func main() {
 
 	}
 
-	var mgr manager.Manager
 	// Create a controller that is in charge of Viewer types, and also responds to
 	// changes to any deployment and services that is owned by any Viewer instance.
-	if *namespace == "" {
-		mgr, err = manager.New(cfg, manager.Options{})
-	} else {
-		mgr, err = manager.New(cfg, manager.Options{Namespace: *namespace})
-	}
+	mgr, err = manager.New(cfg, manager.Options{Namespace: *namespace})
 	if err != nil {
 		log.Fatal(err)
 	}
