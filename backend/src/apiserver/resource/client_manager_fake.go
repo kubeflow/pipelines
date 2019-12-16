@@ -38,7 +38,7 @@ type FakeClientManager struct {
 	dBStatusStore               storage.DBStatusStoreInterface
 	defaultExperimentStore      storage.DefaultExperimentStoreInterface
 	objectStore                 storage.ObjectStoreInterface
-	argoClientFake              *client.FakeArgoClient
+	ArgoClientFake              *client.FakeArgoClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
 	podClientFake               v1.PodInterface
 	KfamClientFake              client.KFAMClientInterface
@@ -70,7 +70,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		pipelineStore:               storage.NewPipelineStore(db, time, uuid),
 		jobStore:                    storage.NewJobStore(db, time),
 		runStore:                    storage.NewRunStore(db, time),
-		argoClientFake:              client.NewFakeArgoClient(),
+		ArgoClientFake:              client.NewFakeArgoClient(),
 		resourceReferenceStore:      storage.NewResourceReferenceStore(db),
 		dBStatusStore:               storage.NewDBStatusStore(db),
 		defaultExperimentStore:      storage.NewDefaultExperimentStore(db),
@@ -117,7 +117,7 @@ func (f *FakeClientManager) DB() *storage.DB {
 }
 
 func (f *FakeClientManager) ArgoClient() client.ArgoClientInterface {
-	return f.argoClientFake
+	return f.ArgoClientFake
 }
 
 func (f *FakeClientManager) JobStore() storage.JobStoreInterface {

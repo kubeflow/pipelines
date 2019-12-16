@@ -16,24 +16,17 @@ package client
 
 import (
 	"encoding/json"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"strconv"
 
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 )
-
-type FakeWorkflowClientInterface interface {
-	workflowclient.WorkflowInterface
-	GetWorkflowCount() int
-	GetWorkflowKeys() map[string]bool
-	IsTerminated(name string) (bool, error)
-}
 
 type FakeWorkflowClient struct {
 	workflows       map[string]*v1alpha1.Workflow
@@ -55,18 +48,6 @@ func (c *FakeWorkflowClient) Create(workflow *v1alpha1.Workflow) (*v1alpha1.Work
 	}
 	c.workflows[workflow.Name] = workflow
 	return workflow, nil
-}
-
-func (c *FakeWorkflowClient) GetWorkflowCount() int {
-	return len(c.workflows)
-}
-
-func (c *FakeWorkflowClient) GetWorkflowKeys() map[string]bool {
-	result := map[string]bool{}
-	for key := range c.workflows {
-		result[key] = true
-	}
-	return result
 }
 
 func (c *FakeWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
@@ -135,20 +116,6 @@ func (c *FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte,
 		}
 	}
 	return nil, errors.New("Failed to patch workflow")
-}
-
-func (c *FakeWorkflowClient) IsTerminated(name string) (bool, error) {
-	workflow, ok := c.workflows[name]
-	if !ok {
-		return false, errors.New("No workflow found with name: " + name)
-	}
-
-	activeDeadlineSeconds := workflow.Spec.ActiveDeadlineSeconds
-	if activeDeadlineSeconds == nil {
-		return false, errors.New("No ActiveDeadlineSeconds found in workflow with name: " + name)
-	}
-
-	return *activeDeadlineSeconds == 0, nil
 }
 
 type FakeBadWorkflowClient struct {
