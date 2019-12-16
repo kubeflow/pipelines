@@ -297,12 +297,44 @@ func getUserIdentity(ctx context.Context) (string, error) {
 	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."), "Request header error: there is no user identity header.")
 }
 
-func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
+func IsAuthorizedRunID(resourceManager *resource.ResourceManager, ctx context.Context, runId string) error {
+	if common.IsMultiUserMode() == false {
+		// Skip authz if not multi-user mode.
+		return nil
+	}
+	runDetail, err := resourceManager.GetRun(runId)
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize with the run Id.")
+	}
+	namespace := common.GetNamespaceFromResourceReferencesModel(runDetail.ResourceReferences)
+	if len(namespace) == 0 {
+		return util.NewInternalServerError(errors.New("There is no namespace in the ResourceReferences"), "There is no namespace in the ResourceReferences")
+	}
+	err = isAuthorized(resourceManager, ctx, namespace)
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize with API resource references")
+	}
+	return nil
+}
+
+func IsAuthorizedResourceReferenceAPI(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
 	if common.IsMultiUserMode() == false {
 		// Skip authz if not multi-user mode.
 		return nil
 	}
 
+	namespace := common.GetNamespaceFromResourceReferences(resourceRefs)
+	if len(namespace) == 0 {
+		return util.NewBadRequestError(errors.New("Namespace required in Kubeflow deployment for authorization."), "Namespace required in Kubeflow deployment for authorization.")
+	}
+	err := isAuthorized(resourceManager, ctx, namespace)
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize with API resource references")
+	}
+	return nil
+}
+
+func isAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, namespace string) error {
 	userIdentity, err := getUserIdentity(ctx)
 	if err != nil {
 		return util.Wrap(err, "Bad request.")
@@ -310,11 +342,6 @@ func IsAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 
 	if len(userIdentity) == 0 {
 		return util.NewBadRequestError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
-	}
-
-	namespace := common.GetNamespaceFromResourceReferences(resourceRefs)
-	if len(namespace) == 0 {
-		return util.NewBadRequestError(errors.New("Namespace required in Kubeflow deployment for authorization."), "Namespace required in Kubeflow deployment for authorization.")
 	}
 
 	isAuthorized, err := resourceManager.IsRequestAuthorized(userIdentity, namespace)

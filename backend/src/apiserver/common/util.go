@@ -17,7 +17,6 @@ package common
 import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"github.com/kubeflow/pipelines/bazel-pipelines/backend/src/apiserver/common"
 )
 
 func GetNamespaceFromResourceReferences(resourceRefs []*api.ResourceReference) string {
@@ -35,7 +34,7 @@ func GetNamespaceFromResourceReferencesModel(resourceRefs []*model.ResourceRefer
 	namespace := ""
 	for _, resourceRef := range resourceRefs {
 		if resourceRef.ReferenceType == Namespace {
-			namespace = resourceRef.ReferenceName
+			namespace = resourceRef.ReferenceUUID
 			break
 		}
 	}

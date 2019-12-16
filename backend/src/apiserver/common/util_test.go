@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,5 +45,35 @@ func TestGetNamespaceFromResourceReferences(t *testing.T) {
 		},
 	}
 	namespace = GetNamespaceFromResourceReferences(references)
+	assert.Equal(t, "", namespace)
+}
+
+func TestGetNamespaceFromResourceReferencesModel(t *testing.T) {
+	references := []*model.ResourceReference{
+		{
+			ReferenceType: Experiment,
+			ReferenceUUID: "123",
+			ReferenceName: "123",
+			Relationship: Creator,
+		},
+		{
+			ReferenceType: Namespace,
+			ReferenceName: "ns",
+			ReferenceUUID: "ns",
+			Relationship: Creator,
+		},
+	}
+	namespace := GetNamespaceFromResourceReferencesModel(references)
+	assert.Equal(t, "ns", namespace)
+
+	references = []*model.ResourceReference{
+		{
+			ReferenceType: Experiment,
+			ReferenceUUID: "123",
+			ReferenceName: "123",
+			Relationship: Creator,
+		},
+	}
+	namespace = GetNamespaceFromResourceReferencesModel(references)
 	assert.Equal(t, "", namespace)
 }
