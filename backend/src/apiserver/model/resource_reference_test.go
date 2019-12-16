@@ -15,10 +15,10 @@
 package model
 
 import (
-	"testing"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/stretchr/testify/assert"
-	)
+	"testing"
+)
 
 func TestGetNamespaceFromResourceReferencesModel(t *testing.T) {
 	references := []*ResourceReference{
@@ -26,13 +26,13 @@ func TestGetNamespaceFromResourceReferencesModel(t *testing.T) {
 			ReferenceType: common.Experiment,
 			ReferenceUUID: "123",
 			ReferenceName: "123",
-			Relationship: common.Creator,
+			Relationship:  common.Creator,
 		},
 		{
 			ReferenceType: common.Namespace,
 			ReferenceName: "ns",
 			ReferenceUUID: "ns",
-			Relationship: common.Creator,
+			Relationship:  common.Creator,
 		},
 	}
 	namespace := GetNamespaceFromModelResourceReferences(references)
@@ -43,10 +43,9 @@ func TestGetNamespaceFromResourceReferencesModel(t *testing.T) {
 			ReferenceType: common.Experiment,
 			ReferenceUUID: "123",
 			ReferenceName: "123",
-			Relationship: common.Creator,
+			Relationship:  common.Creator,
 		},
 	}
 	namespace = GetNamespaceFromModelResourceReferences(references)
 	assert.Equal(t, "", namespace)
 }
-

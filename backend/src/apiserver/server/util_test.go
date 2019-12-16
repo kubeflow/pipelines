@@ -378,4 +378,3 @@ func TestAuthorizeAPIResourceReference_Authorized(t *testing.T) {
 	err := IsAuthorizedAPIResourceReference(manager, ctx, references)
 	assert.Nil(t, err)
 }
-
