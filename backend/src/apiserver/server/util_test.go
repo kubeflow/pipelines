@@ -345,7 +345,7 @@ func TestGetUserIdentity(t *testing.T) {
 	assert.Equal(t, "user@google.com", userIdentity)
 }
 
-func TestAuthorizeAPIResourceReference_Unauthorized(t *testing.T) {
+func TestCanAccessNamespaceInResourceReferencesUnauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
 	viper.Set(common.MultiUserMode, "true")
@@ -358,11 +358,11 @@ func TestAuthorizeAPIResourceReference_Unauthorized(t *testing.T) {
 			Relationship: api.Relationship_OWNER,
 		},
 	}
-	err := IsAuthorizedAPIResourceReference(manager, ctx, references)
+	err := CanAccessNamespaceInResourceReferences(manager, ctx, references)
 	assert.NotNil(t, err)
 }
 
-func TestAuthorizeRunID_Unauthorized(t *testing.T) {
+func TestCanAccessRun_Unauthorized(t *testing.T) {
 	clients, manager, experiment := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
 	viper.Set(common.MultiUserMode, "true")
@@ -390,11 +390,11 @@ func TestAuthorizeRunID_Unauthorized(t *testing.T) {
 	}
 	runDetail, _ := manager.CreateRun(apiRun)
 
-	err := IsAuthorizedRunID(manager, ctx, runDetail.UUID)
+	err := CanAccessRun(manager, ctx, runDetail.UUID)
 	assert.NotNil(t, err)
 }
 
-func TestAuthorizeAPIResourceReference_Authorized(t *testing.T) {
+func TestCanAccessNamespaceInResourceReferences_Authorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	viper.Set(common.MultiUserMode, "true")
@@ -407,11 +407,11 @@ func TestAuthorizeAPIResourceReference_Authorized(t *testing.T) {
 			Relationship: api.Relationship_OWNER,
 		},
 	}
-	err := IsAuthorizedAPIResourceReference(manager, ctx, references)
+	err := CanAccessNamespaceInResourceReferences(manager, ctx, references)
 	assert.Nil(t, err)
 }
 
-func TestAuthorizeRunID_Authorized(t *testing.T) {
+func TestCanAccessRun_Authorized(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
 	viper.Set(common.MultiUserMode, "true")
@@ -439,6 +439,6 @@ func TestAuthorizeRunID_Authorized(t *testing.T) {
 	}
 	runDetail, _ := manager.CreateRun(apiRun)
 
-	err := IsAuthorizedRunID(manager, ctx, runDetail.UUID)
+	err := CanAccessRun(manager, ctx, runDetail.UUID)
 	assert.Nil(t, err)
 }

@@ -298,7 +298,7 @@ func getUserIdentity(ctx context.Context) (string, error) {
 	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."), "Request header error: there is no user identity header.")
 }
 
-func IsAuthorizedRunID(resourceManager *resource.ResourceManager, ctx context.Context, runId string) error {
+func CanAccessRun(resourceManager *resource.ResourceManager, ctx context.Context, runId string) error {
 	if common.IsMultiUserMode() == false {
 		// Skip authz if not multi-user mode.
 		return nil
@@ -318,7 +318,7 @@ func IsAuthorizedRunID(resourceManager *resource.ResourceManager, ctx context.Co
 	return nil
 }
 
-func IsAuthorizedAPIResourceReference(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
+func CanAccessNamespaceInResourceReferences(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
 	if common.IsMultiUserMode() == false {
 		// Skip authz if not multi-user mode.
 		return nil
@@ -335,6 +335,9 @@ func IsAuthorizedAPIResourceReference(resourceManager *resource.ResourceManager,
 	return nil
 }
 
+// isAuthorized verified whether the user identity, which is contains in the context object,
+// can access the target namespace. If the returned error is nil, the authorization passes.
+// Otherwise, Authorization fails with a non-nil error.
 func isAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, namespace string) error {
 	userIdentity, err := getUserIdentity(ctx)
 	if err != nil {

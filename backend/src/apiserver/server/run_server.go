@@ -33,7 +33,7 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
-	err = IsAuthorizedAPIResourceReference(s.resourceManager, ctx, request.Run.ResourceReferences)
+	err = CanAccessNamespaceInResourceReferences(s.resourceManager, ctx, request.Run.ResourceReferences)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the requests.")
 	}
@@ -72,7 +72,7 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 }
 
 func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunRequest) (*empty.Empty, error) {
-	err := IsAuthorizedRunID(s.resourceManager, ctx, request.Id)
+	err := CanAccessRun(s.resourceManager, ctx, request.Id)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the requests.")
 	}
@@ -84,7 +84,7 @@ func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunReque
 }
 
 func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunRequest) (*empty.Empty, error) {
-	err := IsAuthorizedRunID(s.resourceManager, ctx, request.Id)
+	err := CanAccessRun(s.resourceManager, ctx, request.Id)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the requests.")
 	}
@@ -96,7 +96,7 @@ func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunR
 }
 
 func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest) (*empty.Empty, error) {
-	err := IsAuthorizedRunID(s.resourceManager, ctx, request.Id)
+	err := CanAccessRun(s.resourceManager, ctx, request.Id)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the requests.")
 	}
@@ -155,7 +155,7 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 }
 
 func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunRequest) (*empty.Empty, error) {
-	err := IsAuthorizedRunID(s.resourceManager, ctx, request.RunId)
+	err := CanAccessRun(s.resourceManager, ctx, request.RunId)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the requests.")
 	}
@@ -167,7 +167,7 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunR
 }
 
 func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) (*empty.Empty, error) {
-	err := IsAuthorizedRunID(s.resourceManager, ctx, request.RunId)
+	err := CanAccessRun(s.resourceManager, ctx, request.RunId)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the requests.")
 	}
