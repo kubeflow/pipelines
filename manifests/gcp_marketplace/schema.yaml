@@ -82,6 +82,10 @@ x-google-marketplace:
             resources: ['customresourcedefinitions']
             verbs: ['*']
   clusterConstraints:
+    gcp:
+      nodes:
+        requiredOauthScopes:
+        - https://www.googleapis.com/auth/cloud-platform
     resources:
     - replicas: 3
       requests:
