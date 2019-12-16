@@ -55,7 +55,6 @@ import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipeline
 import { CustomRendererProps } from '../components/CustomTable';
 import { Description } from '../components/Description';
 import { NamespaceContext } from '../lib/KubeflowClient';
-import { AssertionError } from 'assert';
 
 interface NewRunState {
   description: string;
