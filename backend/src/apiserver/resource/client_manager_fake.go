@@ -17,6 +17,7 @@ package resource
 import (
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
@@ -41,6 +42,7 @@ type FakeClientManager struct {
 	workflowClientFake          *FakeWorkflowClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
 	podClientFake               v1.PodInterface
+	KfamClientFake              client.KFAMClientInterface
 	time                        util.TimeInterface
 	uuid                        util.UUIDGeneratorInterface
 }
@@ -76,6 +78,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
 		podClientFake:               FakePodClient{},
+		KfamClientFake:              client.NewFakeKFAMClientAuthorized(),
 		time:                        time,
 		uuid:                        uuid,
 	}, nil
@@ -144,6 +147,10 @@ func (f *FakeClientManager) ScheduledWorkflow() scheduledworkflowclient.Schedule
 
 func (f *FakeClientManager) PodClient() v1.PodInterface {
 	return f.podClientFake
+}
+
+func (f *FakeClientManager) KFAMClient() client.KFAMClientInterface {
+	return f.KfamClientFake
 }
 
 func (f *FakeClientManager) Close() error {

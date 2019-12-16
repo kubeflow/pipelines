@@ -81,4 +81,4 @@ def volume_snapshotop_sequential(url):
     )
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(volume_snapshotop_sequential, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(volume_snapshotop_sequential, __file__ + '.yaml')
