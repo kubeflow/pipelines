@@ -329,7 +329,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.argoClientFake.FakeWorkflow().GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -370,7 +370,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.argoClientFake.FakeWorkflow().GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -460,7 +460,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.argoClientFake.FakeWorkflow().GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -554,7 +554,7 @@ func TestCreateRun_CreateWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	store.argoClientFake.SetFakeWorkflow(&client.FakeBadWorkflowClient{})
+	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
@@ -612,7 +612,7 @@ func TestDeleteRun_CrdFailure(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()
 
-	store.argoClientFake.SetFakeWorkflow(&client.FakeBadWorkflowClient{})
+	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
 	err := manager.DeleteRun(runDetail.UUID)
 	//assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	//assert.Contains(t, err.Error(), "some error")
@@ -678,7 +678,7 @@ func TestDeleteExperiment_CrdFailure(t *testing.T) {
 	store, manager, experiment := initWithExperiment(t)
 	defer store.Close()
 
-	store.argoClientFake.SetFakeWorkflow(&client.FakeBadWorkflowClient{})
+	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
 	err := manager.DeleteExperiment(experiment.UUID)
 	assert.Nil(t, err)
 }
@@ -704,7 +704,7 @@ func TestTerminateRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "Terminating", actualRunDetail.Conditions)
 
-	isTerminated, err := store.argoClientFake.FakeWorkflow().IsTerminated(runDetail.Run.Name)
+	isTerminated, err := store.ArgoClientFake.IsTerminated(runDetail.Run.Name)
 	assert.Nil(t, err)
 	assert.True(t, isTerminated)
 }
@@ -767,7 +767,7 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
 
-	store.argoClientFake.SetFakeWorkflow(&client.FakeBadWorkflowClient{})
+	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
 	err := manager.RetryRun(runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to create or update the run")
@@ -1291,7 +1291,7 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	err := manager.ReportWorkflowResource(workflow)
 	assert.Nil(t, err)
 
-	wf, err := store.argoClientFake.FakeWorkflow().Get(run.Run.Name, v1.GetOptions{})
+	wf, err := store.ArgoClientFake.Workflow("").Get(run.Run.Name, v1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, wf.Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }
@@ -1314,7 +1314,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing
 
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFailed(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
-	store.argoClientFake.SetFakeWorkflow(&client.FakeBadWorkflowClient{})
+	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
 	defer store.Close()
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{

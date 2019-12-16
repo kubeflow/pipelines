@@ -16,10 +16,11 @@ package client
 
 import (
 	argoprojv1alpha1 "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/pkg/errors"
 )
 
 type FakeArgoClient struct {
-	workflowClientFake FakeWorkflowClientInterface
+	workflowClientFake *FakeWorkflowClient
 }
 
 func NewFakeArgoClient() *FakeArgoClient {
@@ -30,10 +31,40 @@ func (c *FakeArgoClient) Workflow(namespace string) argoprojv1alpha1.WorkflowInt
 	return c.workflowClientFake
 }
 
-func (c *FakeArgoClient) FakeWorkflow() FakeWorkflowClientInterface {
-	return c.workflowClientFake
+func (c *FakeArgoClient) GetWorkflowCount() int {
+	return len(c.workflowClientFake.workflows)
 }
 
-func (c *FakeArgoClient) SetFakeWorkflow(fakeWorkflow FakeWorkflowClientInterface) {
-	c.workflowClientFake = fakeWorkflow
+func (c *FakeArgoClient) GetWorkflowKeys() map[string]bool {
+	result := map[string]bool{}
+	for key := range c.workflowClientFake.workflows {
+		result[key] = true
+	}
+	return result
+}
+
+func (c *FakeArgoClient) IsTerminated(name string) (bool, error) {
+	workflow, ok := c.workflowClientFake.workflows[name]
+	if !ok {
+		return false, errors.New("No workflow found with name: " + name)
+	}
+
+	activeDeadlineSeconds := workflow.Spec.ActiveDeadlineSeconds
+	if activeDeadlineSeconds == nil {
+		return false, errors.New("No ActiveDeadlineSeconds found in workflow with name: " + name)
+	}
+
+	return *activeDeadlineSeconds == 0, nil
+}
+
+type FakeArgoClientWithBadWorkflow struct {
+	workflowClientFake *FakeBadWorkflowClient
+}
+
+func NewFakeArgoClientWithBadWorkflow() *FakeArgoClientWithBadWorkflow {
+	return &FakeArgoClientWithBadWorkflow{&FakeBadWorkflowClient{}}
+}
+
+func (c *FakeArgoClientWithBadWorkflow) Workflow(namespace string) argoprojv1alpha1.WorkflowInterface {
+	return c.workflowClientFake
 }
