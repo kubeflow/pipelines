@@ -26,6 +26,7 @@ import { ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
 import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '../apis/run';
 import { MemoryRouter } from 'react-router';
 import { logger } from '../lib/Utils';
+import { NamespaceContext } from '../lib/KubeflowClient';
 
 class TestNewRun extends NewRun {
   public _experimentSelectorClosed = super._experimentSelectorClosed;
@@ -1141,6 +1142,43 @@ describe('NewRun', () => {
           },
         ],
       });
+    });
+
+    it('starts a run in provided namespace', async () => {
+      const props = generateProps();
+      props.location.search =
+        `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}` +
+        `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
+
+      tree = mount(
+        <NamespaceContext.Provider value='test-ns'>
+          <TestNewRun {...props} />
+        </NamespaceContext.Provider>,
+      );
+      fillRequiredFields(tree.find(TestNewRun).instance() as TestNewRun);
+      await TestUtils.flushPromises();
+
+      tree
+        .find('#startNewRunBtn')
+        .hostNodes()
+        .simulate('click');
+      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
+      await TestUtils.flushPromises();
+
+      expect(startRunSpy).toHaveBeenCalledTimes(1);
+      expect(startRunSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          resource_references: expect.arrayContaining([
+            {
+              key: {
+                id: 'test-ns',
+                type: ApiResourceType.NAMESPACE,
+              },
+              relationship: ApiRelationship.OWNER,
+            },
+          ]),
+        }),
+      );
     });
 
     it('updates the parameters in state on handleParamChange', async () => {
