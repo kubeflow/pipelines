@@ -128,7 +128,7 @@ function getNamespaceReferenceName(run?: ApiRun | ApiJob): string | undefined {
         ref.key &&
         ref.key.type === ApiResourceType.NAMESPACE,
     );
-  return namespaceRef && namespaceRef.name;
+  return namespaceRef && namespaceRef.key && namespaceRef.key.id;
 }
 
 /**

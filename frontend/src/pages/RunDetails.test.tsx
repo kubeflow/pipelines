@@ -919,8 +919,7 @@ describe('RunDetails', () => {
       });
       testRun.run!.resource_references = [
         {
-          key: { type: ApiResourceType.NAMESPACE },
-          name: 'username',
+          key: { type: ApiResourceType.NAMESPACE, id: 'username' },
           relationship: ApiRelationship.OWNER,
         },
       ];
