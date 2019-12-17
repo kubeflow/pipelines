@@ -1058,7 +1058,7 @@ class NewRun extends Page<{}, NewRunState> {
   }
 
   private _getRunNameFromPipelineVersion(pipelineVersionName: string): string {
-    return 'Run_of_(' + pipelineVersionName + ')_' + Math.floor(Math.random() * 1000) + 1;
+    return 'Run ' + (Math.floor(Math.random() * 1000) + 1) + ' of (' + pipelineVersionName + ')';
   }
 
   private _validate(): void {

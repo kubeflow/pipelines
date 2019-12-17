@@ -2923,7 +2923,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       label="Run name"
       onChange={[Function]}
       required={true}
-      value="Run_of_(original mock pipeline version name)_5001"
+      value="Run 501 of (original mock pipeline version name)"
       variant="outlined"
     />
     <Component
