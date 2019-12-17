@@ -18,7 +18,6 @@ import json
 import kfp
 from kfp import components
 from kfp import dsl
-from kfp import gcp
 import os
 import subprocess
 
@@ -296,9 +295,6 @@ def xgb_train_pipeline(
             true_score_column=true_label,
             output_dir=output_template
         ).after(_predict_op)
-
-    dsl.get_pipeline_conf().add_op_transformer(
-        gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.yaml')

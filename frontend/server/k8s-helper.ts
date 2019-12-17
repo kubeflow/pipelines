@@ -44,33 +44,7 @@ const workflowPlural = 'workflows';
 /** Default pod template spec used to create tensorboard viewer. */
 export const defaultPodTemplateSpec = {
   spec: {
-    containers: [
-      {
-        env: [
-          {
-            name: 'GOOGLE_APPLICATION_CREDENTIALS',
-            value: '/secret/gcp-credentials/user-gcp-sa.json',
-          },
-        ],
-        volumeMounts: [
-          {
-            name: 'gcp-credentials',
-            mountPath: '/secret/gcp-credentials/user-gcp-sa.json',
-            readOnly: true,
-          },
-        ],
-      },
-    ],
-    volumes: [
-      {
-        name: 'gcp-credentials',
-        volumeSource: {
-          secret: {
-            secretName: 'user-gcp-sa',
-          },
-        },
-      },
-    ],
+    containers: [{}],
   },
 };
 
