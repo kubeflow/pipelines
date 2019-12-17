@@ -18,15 +18,11 @@ metadata:
   generateName: integration-test-
 spec:
   entrypoint: integration-test
-  volumes:
-  - name: gcp-credentials
-    secret:
-      secretName: user-gcp-sa
   arguments:
     parameters:
     - name: image-build-context-gcs-uri
     - name: image-builder-image
-      value: gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4
+      value: gcr.io/ml-pipeline-test/image-builder:v20191122-0.1.25-582-g7908980c
     - name: target-image-prefix
     - name: test-results-gcs-dir
     - name: initialization-test-image-suffix
@@ -140,6 +136,8 @@ spec:
 
   # Build and push image
   - name: build-image
+    retryStrategy:
+      limit: 1
     inputs:
       parameters:
       # GCS URI prefix pointing to a .tar.gz archive of Docker build context
@@ -168,11 +166,6 @@ spec:
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials
     sidecars:
     - name: dind
       image: docker:17.10-dind
@@ -190,12 +183,6 @@ spec:
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials
 
   - name: run-api-integration-tests
     inputs:
@@ -207,12 +194,6 @@ spec:
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials
 
   - name: run-frontend-integration-tests
     inputs:
@@ -224,12 +205,6 @@ spec:
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials
 
   - name: run-basic-e2e-tests
     inputs:
@@ -246,9 +221,3 @@ spec:
         "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
       ]
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials

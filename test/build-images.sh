@@ -36,7 +36,7 @@ then
     persistenceagent, viewer-crd-controller, inverse-proxy-agent, and visualization-server \
     are already built in ${GCR_IMAGE_BASE_DIR}."
 else
-  echo "submitting cloud build to build docker images for commit ${PULL_PULL_SHA}..."
+  echo "submitting cloud build to build docker images for commit ${COMMIT_SHA}..."
   IMAGES_BUILDING=true
   CLOUD_BUILD_COMMON_ARGS=(. --async --format='value(id)' --substitutions=_GCR_BASE=${GCR_IMAGE_BASE_DIR})
   # Split into two tasks because api_server builds slowly, use a separate task
