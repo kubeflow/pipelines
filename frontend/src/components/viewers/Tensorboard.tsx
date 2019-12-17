@@ -26,6 +26,12 @@ import MenuItem from '@material-ui/core/MenuItem';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import Paper from '@material-ui/core/Paper';
 
 export interface TensorboardViewerConfig extends ViewerConfig {
   url: string;
@@ -39,6 +45,7 @@ interface TensorboardViewerState {
   busy: boolean;
   podAddress: string;
   tensorflowVersion: string;
+  deleteDialogOpen: boolean;
 }
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
@@ -49,6 +56,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       busy: false,
       podAddress: '',
       tensorflowVersion: '1.14.0',
+      deleteDialogOpen: false
     };
   }
 
@@ -67,6 +75,14 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   public onChangeFunc = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
     this.setState({ tensorflowVersion: e.target.value as string });
   };
+
+  private handleDeleteOpen = () => {
+    this.setState({deleteDialogOpen: true})
+  }
+
+  private handleDeleteClose = () => {
+    this.setState({deleteDialogOpen: false})
+  }
 
   public render(): JSX.Element {
     // Strip the protocol from the URL. This is a workaround for cloud shell
@@ -90,18 +106,52 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
             >
               <Button 
               className={commonCss.buttonAction} disabled={this.state.busy}
-              style = {{marginBottom: 20}}>
+              style = {{marginBottom: 20, width: 150}}>
                 Open Tensorboard
               </Button>
             </a>
 
             <div>
-              <BusyButton
-                className={commonCss.buttonAction}
-                onClick={this._deleteTensorboard.bind(this)}
-                busy={this.state.busy}
-                title={`Stop Tensorboard`} //pop out dialog: this tensorboard would be deleted 
-              />
+              <Button 
+                className={commonCss.buttonAction} disabled={this.state.busy}
+                id = {'delete'}
+                title={`stop tensorboard and delete its instance`} 
+                onClick={this.handleDeleteOpen.bind(this)}
+                style = {{marginBottom: 20, width: 150}}>
+                Delete Tensorboard
+              </Button>
+              <Dialog
+                open={this.state.deleteDialogOpen}
+                onClose={this.handleDeleteClose.bind(this)}
+                aria-labelledby="dialog-title"
+              >
+                <DialogTitle style={{ cursor: 'move' }} id="dialog-title">
+                  {`Stop Tensorboard ${this.state.tensorflowVersion}?`}
+                </DialogTitle>
+                <DialogContent>
+                  <DialogContentText>
+                    You can stop the current running tensorboard. The tensorboard viewer will also be clean from your GKE workloads.
+                  </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                  <Button 
+                  autoFocus
+                  onClick={this.handleDeleteClose.bind(this)}
+                  style = {{width: 50}}
+                  color="primary">
+                    Cancel
+                  </Button>
+                  <BusyButton
+                  className={commonCss.buttonAction}
+                  onClick={this._deleteTensorboard.bind(this)}
+                  busy={this.state.busy}
+                  color="primary"
+                  style = {{width: 50}}
+                  title={`Stop`} 
+                  />
+                </DialogActions>
+              </Dialog>          
+
             </div>
 
           </div>
@@ -185,8 +235,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // delete the already opened Tensorboard, clear the podAddress recorded in frontend,
     // and return to the select & start tensorboard page
     this.setState({ busy: true }, async () => {
-      await Apis.deleteTensorboardApp(this._buildUrl(), this.state.tensorflowVersion);
-      this.setState({ busy: false, podAddress: '' });
+      await Apis.deleteTensorboardApp(
+        encodeURIComponent(this._buildUrl()),
+        encodeURIComponent(this.state.tensorflowVersion));
+      this.setState({ busy: false, podAddress: '', deleteDialogOpen: false });
     });
   }
 }

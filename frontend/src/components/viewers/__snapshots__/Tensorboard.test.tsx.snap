@@ -376,6 +376,7 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
         style={
           Object {
             "marginBottom": 20,
+            "width": 150,
           }
         }
       >
@@ -383,12 +384,68 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
       </WithStyles(Button)>
     </a>
     <div>
-      <BusyButton
-        busy={false}
+      <WithStyles(Button)
         className="buttonAction"
+        disabled={false}
+        id="delete"
         onClick={[Function]}
-        title="Stop Tensorboard"
-      />
+        style={
+          Object {
+            "marginBottom": 20,
+            "width": 150,
+          }
+        }
+        title="stop tensorboard and delete its instance"
+      >
+        Delete Tensorboard
+      </WithStyles(Button)>
+      <WithStyles(Dialog)
+        aria-labelledby="dialog-title"
+        onClose={[Function]}
+        open={false}
+      >
+        <WithStyles(DialogTitle)
+          id="dialog-title"
+          style={
+            Object {
+              "cursor": "move",
+            }
+          }
+        >
+          Stop Tensorboard 1.14.0?
+        </WithStyles(DialogTitle)>
+        <WithStyles(DialogContent)>
+          <WithStyles(DialogContentText)>
+            You can stop the current running tensorboard. The tensorboard viewer will also be clean from your GKE workloads.
+          </WithStyles(DialogContentText)>
+        </WithStyles(DialogContent)>
+        <WithStyles(DialogActions)>
+          <WithStyles(Button)
+            autoFocus={true}
+            color="primary"
+            onClick={[Function]}
+            style={
+              Object {
+                "width": 50,
+              }
+            }
+          >
+            Cancel
+          </WithStyles(Button)>
+          <BusyButton
+            busy={false}
+            className="buttonAction"
+            color="primary"
+            onClick={[Function]}
+            style={
+              Object {
+                "width": 50,
+              }
+            }
+            title="Stop"
+          />
+        </WithStyles(DialogActions)>
+      </WithStyles(Dialog)>
     </div>
   </div>
 </div>

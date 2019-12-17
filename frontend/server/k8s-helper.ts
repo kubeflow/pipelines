@@ -154,7 +154,6 @@ export async function deleteTensorboardInstance(logdir: string, tfversion: strin
   const viewerName = getNameOfViewerResource(logdir, tfversion)
   const deleteOption = new V1DeleteOptions()
 
-  console.log('kkkkkkkkkkk88888888ssss!!!')
   await k8sV1CustomObjectClient.deleteNamespacedCustomObject(viewerGroup, viewerVersion, 
     namespace, viewerPlural, viewerName, deleteOption);
 }
