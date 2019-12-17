@@ -63,19 +63,23 @@ while [ "$1" != "" ]; do
     shift
 done
 
-# PULL_PULL_SHA is empty whne Pros/Tide tests the batches.
-# PULL_BASE_SHA cannot be used here as it still points to master tip in that case.
-PULL_PULL_SHA="${PULL_PULL_SHA:-$(git rev-parse HEAD)}"
+# This is merged commit's SHA.
+COMMIT_SHA="$(git rev-parse HEAD)"
 
-# Variables
-GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${PULL_PULL_SHA}
-TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
+# Paths are using commit sha, instead of pull sha, because tests may be rerun with the same PR
+# commit, but merged on a different master version. When this happens, we cannot reuse cached
+# results on the previous test run.
+GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${COMMIT_SHA}
+TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${COMMIT_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 # Configure `time` command output format.
 TIMEFORMAT="[test-timing] It took %lR."
 
 echo "presubmit test starts"
+if [ -n "$PULL_PULL_SHA" ]; then
+    echo "PR commit is ${PULL_PULL_SHA}"
+fi
 time source "${DIR}/test-prep.sh"
 echo "test env prepared"
 
@@ -84,7 +88,7 @@ echo "test env prepared"
 time source "${DIR}/build-images.sh"
 echo "KFP images cloudbuild jobs submitted"
 
-time COMMIT_SHA=$PULL_PULL_SHA source "${DIR}/deploy-cluster.sh"
+time source "${DIR}/deploy-cluster.sh"
 echo "cluster deployed"
 
 time source "${DIR}/check-build-image-status.sh"
@@ -97,7 +101,7 @@ echo "argo installed"
 time source "${DIR}/deploy-pipeline-lite.sh"
 echo "KFP lite deployed"
 
-echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
+echo "submitting argo workflow to run tests for commit ${COMMIT_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 ${IMAGE_BUILDER_ARG} \

@@ -43,4 +43,8 @@ const (
 
 	LabelKeyWorkflowRunId = "pipeline/runid"
 	LabelKeyWorkflowPersistedFinalState = "pipeline/persistedFinalState"
+
+	AnnotationKeyIstioSidecarInject = "sidecar.istio.io/inject"
+	AnnotationValueIstioSidecarInjectEnabled = "true"
+	AnnotationValueIstioSidecarInjectDisabled = "false"
 )

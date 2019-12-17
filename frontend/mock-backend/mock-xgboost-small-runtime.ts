@@ -17,7 +17,8 @@ export default {
   metadata: {
     name: 'job-xgboosttrainingm7t2r-1-2537408167',
     namespace: 'default',
-    selfLink: '/apis/argoproj.io/v1alpha1/namespaces/default/workflows/job-xgboosttrainingm7t2r-1-2537408167',
+    selfLink:
+      '/apis/argoproj.io/v1alpha1/namespaces/default/workflows/job-xgboosttrainingm7t2r-1-2537408167',
     uid: '3333210c-cdef-11e8-8c17-42010a8a0078',
     resourceVersion: '24210',
     creationTimestamp: '2018-10-12T07:19:47Z',
@@ -26,7 +27,7 @@ export default {
       'scheduledworkflows.kubeflow.org/scheduledWorkflowName': 'job-xgboosttrainingm7t2r',
       'scheduledworkflows.kubeflow.org/workflowEpoch': '1539328777',
       'scheduledworkflows.kubeflow.org/workflowIndex': '1',
-      'workflows.argoproj.io/phase': 'Running'
+      'workflows.argoproj.io/phase': 'Running',
     },
     ownerReferences: [
       {
@@ -35,9 +36,9 @@ export default {
         name: 'job-xgboosttrainingm7t2r',
         uid: '2d3b0ed1-cdef-11e8-8c17-42010a8a0078',
         controller: true,
-        blockOwnerDeletion: true
-      }
-    ]
+        blockOwnerDeletion: true,
+      },
+    ],
   },
   spec: {
     templates: [
@@ -46,25 +47,25 @@ export default {
         inputs: {
           parameters: [
             {
-              name: 'create-cluster-output'
+              name: 'create-cluster-output',
             },
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'project'
-            }
-          ]
+              name: 'project',
+            },
+          ],
         },
         outputs: {
           parameters: [
             {
               name: 'analyze-output',
               valueFrom: {
-                path: '/output.txt'
-              }
-            }
-          ]
+                path: '/output.txt',
+              },
+            },
+          ],
         },
         metadata: {},
         container: {
@@ -82,22 +83,22 @@ export default {
             '--train',
             'gs://ml-pipeline-playground/sfpd/train.csv',
             '--output',
-            '{{inputs.parameters.output}}/{{workflow.name}}/analysis'
+            '{{inputs.parameters.output}}/{{workflow.name}}/analysis',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'confusion-matrix',
         inputs: {
           parameters: [
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'predict-output'
-            }
-          ]
+              name: 'predict-output',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
@@ -108,32 +109,32 @@ export default {
             '--output',
             '{{inputs.parameters.output}}/{{workflow.name}}/confusionmatrix',
             '--predictions',
-            '{{inputs.parameters.predict-output}}'
+            '{{inputs.parameters.predict-output}}',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'create-cluster',
         inputs: {
           parameters: [
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'project'
-            }
-          ]
+              name: 'project',
+            },
+          ],
         },
         outputs: {
           parameters: [
             {
               name: 'create-cluster-output',
               valueFrom: {
-                path: '/output.txt'
-              }
-            }
-          ]
+                path: '/output.txt',
+              },
+            },
+          ],
         },
         metadata: {},
         container: {
@@ -147,19 +148,19 @@ export default {
             '--name',
             'xgb-{{workflow.name}}',
             '--staging',
-            '{{inputs.parameters.output}}'
+            '{{inputs.parameters.output}}',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'delete-cluster',
         inputs: {
           parameters: [
             {
-              name: 'project'
-            }
-          ]
+              name: 'project',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
@@ -172,22 +173,22 @@ export default {
             '--region',
             'us-central1',
             '--name',
-            'xgb-{{workflow.name}}'
+            'xgb-{{workflow.name}}',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'exit-handler-1',
         inputs: {
           parameters: [
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'project'
-            }
-          ]
+              name: 'project',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
@@ -200,21 +201,19 @@ export default {
                 parameters: [
                   {
                     name: 'create-cluster-output',
-                    value: '{{tasks.create-cluster.outputs.parameters.create-cluster-output}}'
+                    value: '{{tasks.create-cluster.outputs.parameters.create-cluster-output}}',
                   },
                   {
                     name: 'output',
-                    value: '{{inputs.parameters.output}}'
+                    value: '{{inputs.parameters.output}}',
                   },
                   {
                     name: 'project',
-                    value: '{{inputs.parameters.project}}'
-                  }
-                ]
+                    value: '{{inputs.parameters.project}}',
+                  },
+                ],
               },
-              dependencies: [
-                'create-cluster'
-              ]
+              dependencies: ['create-cluster'],
             },
             {
               name: 'confusion-matrix',
@@ -223,17 +222,15 @@ export default {
                 parameters: [
                   {
                     name: 'output',
-                    value: '{{inputs.parameters.output}}'
+                    value: '{{inputs.parameters.output}}',
                   },
                   {
                     name: 'predict-output',
-                    value: '{{tasks.predict.outputs.parameters.predict-output}}'
-                  }
-                ]
+                    value: '{{tasks.predict.outputs.parameters.predict-output}}',
+                  },
+                ],
               },
-              dependencies: [
-                'predict'
-              ]
+              dependencies: ['predict'],
             },
             {
               name: 'create-cluster',
@@ -242,14 +239,14 @@ export default {
                 parameters: [
                   {
                     name: 'output',
-                    value: '{{inputs.parameters.output}}'
+                    value: '{{inputs.parameters.output}}',
                   },
                   {
                     name: 'project',
-                    value: '{{inputs.parameters.project}}'
-                  }
-                ]
-              }
+                    value: '{{inputs.parameters.project}}',
+                  },
+                ],
+              },
             },
             {
               name: 'predict',
@@ -258,36 +255,31 @@ export default {
                 parameters: [
                   {
                     name: 'analyze-output',
-                    value: '{{tasks.analyze.outputs.parameters.analyze-output}}'
+                    value: '{{tasks.analyze.outputs.parameters.analyze-output}}',
                   },
                   {
                     name: 'create-cluster-output',
-                    value: '{{tasks.create-cluster.outputs.parameters.create-cluster-output}}'
+                    value: '{{tasks.create-cluster.outputs.parameters.create-cluster-output}}',
                   },
                   {
                     name: 'output',
-                    value: '{{inputs.parameters.output}}'
+                    value: '{{inputs.parameters.output}}',
                   },
                   {
                     name: 'project',
-                    value: '{{inputs.parameters.project}}'
+                    value: '{{inputs.parameters.project}}',
                   },
                   {
                     name: 'train-output',
-                    value: '{{tasks.train.outputs.parameters.train-output}}'
+                    value: '{{tasks.train.outputs.parameters.train-output}}',
                   },
                   {
                     name: 'transform-eval',
-                    value: '{{tasks.transform.outputs.parameters.transform-eval}}'
-                  }
-                ]
+                    value: '{{tasks.transform.outputs.parameters.transform-eval}}',
+                  },
+                ],
               },
-              dependencies: [
-                'analyze',
-                'create-cluster',
-                'train',
-                'transform'
-              ]
+              dependencies: ['analyze', 'create-cluster', 'train', 'transform'],
             },
             {
               name: 'roc',
@@ -296,17 +288,15 @@ export default {
                 parameters: [
                   {
                     name: 'output',
-                    value: '{{inputs.parameters.output}}'
+                    value: '{{inputs.parameters.output}}',
                   },
                   {
                     name: 'predict-output',
-                    value: '{{tasks.predict.outputs.parameters.predict-output}}'
-                  }
-                ]
+                    value: '{{tasks.predict.outputs.parameters.predict-output}}',
+                  },
+                ],
               },
-              dependencies: [
-                'predict'
-              ]
+              dependencies: ['predict'],
             },
             {
               name: 'train',
@@ -315,35 +305,31 @@ export default {
                 parameters: [
                   {
                     name: 'analyze-output',
-                    value: '{{tasks.analyze.outputs.parameters.analyze-output}}'
+                    value: '{{tasks.analyze.outputs.parameters.analyze-output}}',
                   },
                   {
                     name: 'create-cluster-output',
-                    value: '{{tasks.create-cluster.outputs.parameters.create-cluster-output}}'
+                    value: '{{tasks.create-cluster.outputs.parameters.create-cluster-output}}',
                   },
                   {
                     name: 'output',
-                    value: '{{inputs.parameters.output}}'
+                    value: '{{inputs.parameters.output}}',
                   },
                   {
                     name: 'project',
-                    value: '{{inputs.parameters.project}}'
+                    value: '{{inputs.parameters.project}}',
                   },
                   {
                     name: 'transform-eval',
-                    value: '{{tasks.transform.outputs.parameters.transform-eval}}'
+                    value: '{{tasks.transform.outputs.parameters.transform-eval}}',
                   },
                   {
                     name: 'transform-train',
-                    value: '{{tasks.transform.outputs.parameters.transform-train}}'
-                  }
-                ]
+                    value: '{{tasks.transform.outputs.parameters.transform-train}}',
+                  },
+                ],
               },
-              dependencies: [
-                'analyze',
-                'create-cluster',
-                'transform'
-              ]
+              dependencies: ['analyze', 'create-cluster', 'transform'],
             },
             {
               name: 'transform',
@@ -352,63 +338,60 @@ export default {
                 parameters: [
                   {
                     name: 'analyze-output',
-                    value: '{{tasks.analyze.outputs.parameters.analyze-output}}'
+                    value: '{{tasks.analyze.outputs.parameters.analyze-output}}',
                   },
                   {
                     name: 'create-cluster-output',
-                    value: '{{tasks.create-cluster.outputs.parameters.create-cluster-output}}'
+                    value: '{{tasks.create-cluster.outputs.parameters.create-cluster-output}}',
                   },
                   {
                     name: 'output',
-                    value: '{{inputs.parameters.output}}'
+                    value: '{{inputs.parameters.output}}',
                   },
                   {
                     name: 'project',
-                    value: '{{inputs.parameters.project}}'
-                  }
-                ]
+                    value: '{{inputs.parameters.project}}',
+                  },
+                ],
               },
-              dependencies: [
-                'analyze',
-                'create-cluster'
-              ]
-            }
-          ]
-        }
+              dependencies: ['analyze', 'create-cluster'],
+            },
+          ],
+        },
       },
       {
         name: 'predict',
         inputs: {
           parameters: [
             {
-              name: 'analyze-output'
+              name: 'analyze-output',
             },
             {
-              name: 'create-cluster-output'
+              name: 'create-cluster-output',
             },
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'project'
+              name: 'project',
             },
             {
-              name: 'train-output'
+              name: 'train-output',
             },
             {
-              name: 'transform-eval'
-            }
-          ]
+              name: 'transform-eval',
+            },
+          ],
         },
         outputs: {
           parameters: [
             {
               name: 'predict-output',
               valueFrom: {
-                path: '/output.txt'
-              }
-            }
-          ]
+                path: '/output.txt',
+              },
+            },
+          ],
         },
         metadata: {},
         container: {
@@ -432,22 +415,22 @@ export default {
             '--model',
             '{{inputs.parameters.train-output}}',
             '--output',
-            '{{inputs.parameters.output}}/{{workflow.name}}/predict'
+            '{{inputs.parameters.output}}/{{workflow.name}}/predict',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'roc',
         inputs: {
           parameters: [
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'predict-output'
-            }
-          ]
+              name: 'predict-output',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
@@ -460,44 +443,44 @@ export default {
             '--predictions',
             '{{inputs.parameters.predict-output}}',
             '--trueclass',
-            'ACTION'
+            'ACTION',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'train',
         inputs: {
           parameters: [
             {
-              name: 'analyze-output'
+              name: 'analyze-output',
             },
             {
-              name: 'create-cluster-output'
+              name: 'create-cluster-output',
             },
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'project'
+              name: 'project',
             },
             {
-              name: 'transform-eval'
+              name: 'transform-eval',
             },
             {
-              name: 'transform-train'
-            }
-          ]
+              name: 'transform-train',
+            },
+          ],
         },
         outputs: {
           parameters: [
             {
               name: 'train-output',
               valueFrom: {
-                path: '/output.txt'
-              }
-            }
-          ]
+                path: '/output.txt',
+              },
+            },
+          ],
         },
         metadata: {},
         container: {
@@ -527,44 +510,44 @@ export default {
             '--conf',
             'gs://ml-pipeline-playground/trainconfcla.json',
             '--output',
-            '{{inputs.parameters.output}}/{{workflow.name}}/model'
+            '{{inputs.parameters.output}}/{{workflow.name}}/model',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'transform',
         inputs: {
           parameters: [
             {
-              name: 'analyze-output'
+              name: 'analyze-output',
             },
             {
-              name: 'create-cluster-output'
+              name: 'create-cluster-output',
             },
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'project'
-            }
-          ]
+              name: 'project',
+            },
+          ],
         },
         outputs: {
           parameters: [
             {
               name: 'transform-eval',
               valueFrom: {
-                path: '/output_eval.txt'
-              }
+                path: '/output_eval.txt',
+              },
             },
             {
               name: 'transform-train',
               valueFrom: {
-                path: '/output_train.txt'
-              }
-            }
-          ]
+                path: '/output_train.txt',
+              },
+            },
+          ],
         },
         metadata: {},
         container: {
@@ -586,22 +569,22 @@ export default {
             '--target',
             'resolution',
             '--output',
-            '{{inputs.parameters.output}}/{{workflow.name}}/transform'
+            '{{inputs.parameters.output}}/{{workflow.name}}/transform',
           ],
-          resources: {}
-        }
+          resources: {},
+        },
       },
       {
         name: 'xgboosttrainer',
         inputs: {
           parameters: [
             {
-              name: 'output'
+              name: 'output',
             },
             {
-              name: 'project'
-            }
-          ]
+              name: 'project',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
@@ -614,65 +597,65 @@ export default {
                 parameters: [
                   {
                     name: 'output',
-                    value: '{{inputs.parameters.output}}'
+                    value: '{{inputs.parameters.output}}',
                   },
                   {
                     name: 'project',
-                    value: '{{inputs.parameters.project}}'
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      }
+                    value: '{{inputs.parameters.project}}',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
     ],
     entrypoint: 'xgboosttrainer',
     arguments: {
       parameters: [
         {
           name: 'output',
-          value: 'gs://yelsayed-2/xgboost'
+          value: 'gs://yelsayed-2/xgboost',
         },
         {
           name: 'project',
-          value: 'yelsayed-2'
+          value: 'yelsayed-2',
         },
         {
           name: 'region',
-          value: 'us-central1'
+          value: 'us-central1',
         },
         {
           name: 'train-data',
-          value: 'gs://ml-pipeline-playground/sfpd/train.csv'
+          value: 'gs://ml-pipeline-playground/sfpd/train.csv',
         },
         {
           name: 'eval-data',
-          value: 'gs://ml-pipeline-playground/sfpd/eval.csv'
+          value: 'gs://ml-pipeline-playground/sfpd/eval.csv',
         },
         {
           name: 'schema',
-          value: 'gs://ml-pipeline-playground/sfpd/schema.json'
+          value: 'gs://ml-pipeline-playground/sfpd/schema.json',
         },
         {
           name: 'target',
-          value: 'resolution'
+          value: 'resolution',
         },
         {
           name: 'rounds',
-          value: '200'
+          value: '200',
         },
         {
           name: 'workers',
-          value: '2'
+          value: '2',
         },
         {
           name: 'true-label',
-          value: 'ACTION'
-        }
-      ]
+          value: 'ACTION',
+        },
+      ],
     },
-    onExit: 'delete-cluster'
+    onExit: 'delete-cluster',
   },
   status: {
     phase: 'Running',
@@ -692,17 +675,15 @@ export default {
           parameters: [
             {
               name: 'output',
-              value: 'gs://yelsayed-2/xgboost'
+              value: 'gs://yelsayed-2/xgboost',
             },
             {
               name: 'project',
-              value: 'yelsayed-2'
-            }
-          ]
+              value: 'yelsayed-2',
+            },
+          ],
         },
-        children: [
-          'job-xgboosttrainingm7t2r-1-2537408167-3348277322'
-        ]
+        children: ['job-xgboosttrainingm7t2r-1-2537408167-3348277322'],
       },
       'job-xgboosttrainingm7t2r-1-2537408167-294182655': {
         id: 'job-xgboosttrainingm7t2r-1-2537408167-294182655',
@@ -712,21 +693,22 @@ export default {
         templateName: 'create-cluster',
         phase: 'Pending',
         boundaryID: 'job-xgboosttrainingm7t2r-1-2537408167-3348277322',
-        message: 'ImagePullBackOff: Back-off pulling image "gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster"',
+        message:
+          'ImagePullBackOff: Back-off pulling image "gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster"',
         startedAt: '2018-10-12T07:19:47Z',
         finishedAt: null,
         inputs: {
           parameters: [
             {
               name: 'output',
-              value: 'gs://yelsayed-2/xgboost'
+              value: 'gs://yelsayed-2/xgboost',
             },
             {
               name: 'project',
-              value: 'yelsayed-2'
-            }
-          ]
-        }
+              value: 'yelsayed-2',
+            },
+          ],
+        },
       },
       'job-xgboosttrainingm7t2r-1-2537408167-3348277322': {
         id: 'job-xgboosttrainingm7t2r-1-2537408167-3348277322',
@@ -742,18 +724,16 @@ export default {
           parameters: [
             {
               name: 'output',
-              value: 'gs://yelsayed-2/xgboost'
+              value: 'gs://yelsayed-2/xgboost',
             },
             {
               name: 'project',
-              value: 'yelsayed-2'
-            }
-          ]
+              value: 'yelsayed-2',
+            },
+          ],
         },
-        children: [
-          'job-xgboosttrainingm7t2r-1-2537408167-294182655'
-        ]
-      }
-    }
-  }
+        children: ['job-xgboosttrainingm7t2r-1-2537408167-294182655'],
+      },
+    },
+  },
 };

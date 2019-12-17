@@ -13,11 +13,17 @@
 // limitations under the License.
 
 // @ts-ignore
-import {Core_v1Api, Custom_objectsApi, KubeConfig, V1ConfigMapKeySelector, V1DeleteOptions} from '@kubernetes/client-node';
+import {
+  Core_v1Api,
+  Custom_objectsApi,
+  KubeConfig,
+  V1ConfigMapKeySelector,
+  V1DeleteOptions,
+} from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import * as Utils from './utils';
-import {IPartialArgoWorkflow} from './workflow-helper';
+import { IPartialArgoWorkflow } from './workflow-helper';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
@@ -32,34 +38,42 @@ const viewerVersion = 'v1beta1';
 const viewerPlural = 'viewers';
 
 // Constants for argo workflow
-const workflowGroup = 'argoproj.io'
-const workflowVersion = 'v1alpha1'
-const workflowPlural = 'workflows'
+const workflowGroup = 'argoproj.io';
+const workflowVersion = 'v1alpha1';
+const workflowPlural = 'workflows';
 
 /** Default pod template spec used to create tensorboard viewer. */
 export const defaultPodTemplateSpec = {
   spec: {
-    containers: [{
-      env: [{
-        name: "GOOGLE_APPLICATION_CREDENTIALS",
-        value: "/secret/gcp-credentials/user-gcp-sa.json"
-      }],
-      volumeMounts: [{
-        name: "gcp-credentials",
-        mountPath: "/secret/gcp-credentials/user-gcp-sa.json",
-        readOnly: true
-      }]
-    }],
-    volumes: [{
-      name: "gcp-credentials",
-      volumeSource: {
-        secret: {
-          secretName: "user-gcp-sa"
-        }
-      }
-    }]
-  }
-}
+    containers: [
+      {
+        env: [
+          {
+            name: 'GOOGLE_APPLICATION_CREDENTIALS',
+            value: '/secret/gcp-credentials/user-gcp-sa.json',
+          },
+        ],
+        volumeMounts: [
+          {
+            name: 'gcp-credentials',
+            mountPath: '/secret/gcp-credentials/user-gcp-sa.json',
+            readOnly: true,
+          },
+        ],
+      },
+    ],
+    volumes: [
+      {
+        name: 'gcp-credentials',
+        volumeSource: {
+          secret: {
+            secretName: 'user-gcp-sa',
+          },
+        },
+      },
+    ],
+  },
+};
 
 export const isInCluster = fs.existsSync(namespaceFilePath);
 
@@ -80,7 +94,11 @@ function getNameOfViewerResource(logdir: string, tfversion: string): string {
  * Create Tensorboard instance via CRD with the given logdir if there is no
  * existing Tensorboard instance.
  */
-export async function newTensorboardInstance(logdir: string, tfversion: string, podTemplateSpec: Object = defaultPodTemplateSpec): Promise<void> {
+export async function newTensorboardInstance(
+  logdir: string,
+  tfversion: string,
+  podTemplateSpec: Object = defaultPodTemplateSpec,
+): Promise<void> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
@@ -102,11 +120,16 @@ export async function newTensorboardInstance(logdir: string, tfversion: string, 
         logDir: logdir,
         tensorflowImage: 'tensorflow/tensorflow:'+tfversion
       },
-      podTemplateSpec
-    }
+      podTemplateSpec,
+    },
   };
-  await k8sV1CustomObjectClient.createNamespacedCustomObject(viewerGroup,
-    viewerVersion, namespace, viewerPlural, body);
+  await k8sV1CustomObjectClient.createNamespacedCustomObject(
+    viewerGroup,
+    viewerVersion,
+    namespace,
+    viewerPlural,
+    body,
+  );
 }
 
 /**
@@ -118,21 +141,29 @@ export async function getTensorboardInstance(logdir: string, tfversion: string):
     throw new Error('Cannot access kubernetes Custom Object API');
   }
 
-  return await (k8sV1CustomObjectClient.getNamespacedCustomObject(
-    viewerGroup, viewerVersion, namespace, viewerPlural,
-    getNameOfViewerResource(logdir, tfversion))).then(
+  return await k8sV1CustomObjectClient
+    .getNamespacedCustomObject(
+      viewerGroup,
+      viewerVersion,
+      namespace,
+      viewerPlural,
+      getNameOfViewerResource(logdir, tfversion),
+    )
+    .then(
       // Viewer CRD pod has tensorboard instance running at port 6006 while
       // viewer CRD service has tensorboard instance running at port 80. Since
       // we return service address here (instead of pod address), so use 80.
-      (viewer: any) => (
-        viewer && viewer.body &&
+      (viewer: any) =>
+        viewer &&
+        viewer.body &&
         viewer.body.spec.tensorboardSpec.logDir == logdir &&
         viewer.body.spec.type == 'tensorboard' &&
-        viewer.body.spec.tensorboardSpec.tensorflowImage == 'tensorflow/tensorflow:'+tfversion) ?
-          `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/` : '',
+        viewer.body.spec.tensorboardSpec.tensorflowImage == 'tensorflow/tensorflow:'+tfversion
+          ? `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`
+          : '',
       // No existing custom object with the given name, i.e., no existing
       // tensorboard instance.
-      (error: any) => ''
+      (error: any) => '',
     );
 }
 
@@ -182,11 +213,12 @@ export function getPodLogs(podName: string): Promise<string> {
   if (!k8sV1Client) {
     throw new Error('Cannot access kubernetes API');
   }
-  return (k8sV1Client.readNamespacedPodLog(podName, namespace, 'main') as any)
-    .then(
-      (response: any) => (response && response.body) ? response.body.toString() : '',
-      (error: any) => {throw new Error(JSON.stringify(error.body));}
-    );
+  return (k8sV1Client.readNamespacedPodLog(podName, namespace, 'main') as any).then(
+    (response: any) => (response && response.body ? response.body.toString() : ''),
+    (error: any) => {
+      throw new Error(JSON.stringify(error.body));
+    },
+  );
 }
 
 /**
@@ -199,7 +231,12 @@ export async function getArgoWorkflow(workflowName: string): Promise<IPartialArg
   }
 
   const res = await k8sV1CustomObjectClient.getNamespacedCustomObject(
-    workflowGroup, workflowVersion, namespace, workflowPlural, workflowName)
+    workflowGroup,
+    workflowVersion,
+    namespace,
+    workflowPlural,
+    workflowName,
+  );
 
   if (res.response.statusCode >= 400) {
     throw new Error(`Unable to query workflow:${workflowName}: Access denied.`);
