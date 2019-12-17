@@ -35,6 +35,7 @@ GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test
 TARGET_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_BASE_SHA}
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
+COMMIT_SHA="$PULL_BASE_SHA"
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -114,7 +115,7 @@ elif [[ ${CLOUDBUILD_FINISHED} == TIMEOUT ]];then
   exit 1
 fi
 
-COMMIT_SHA=$PULL_BASE_SHA source "${DIR}/deploy-cluster.sh"
+source "${DIR}/deploy-cluster.sh"
 echo "cluster deployed"
 
 # Install Argo
