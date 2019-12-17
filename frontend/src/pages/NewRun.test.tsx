@@ -382,9 +382,7 @@ describe('NewRun', () => {
     expect(tree.state()).toHaveProperty('pipeline', MOCK_PIPELINE);
     expect(tree.state()).toHaveProperty('pipelineName', MOCK_PIPELINE.name);
     expect(tree.state()).toHaveProperty('pipelineVersion', MOCK_PIPELINE_VERSION);
-    expect((tree.state() as any).runName).toMatch(
-      /Run.*\(original mock pipeline version name\)/,
-    );
+    expect((tree.state() as any).runName).toMatch(/Run.*\(original mock pipeline version name\)/);
     expect(tree).toMatchSnapshot();
   });
 
