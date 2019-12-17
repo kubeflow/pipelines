@@ -25,7 +25,7 @@ export interface IAWSMetadataCredentials {
 }
 
 /** url for aws metadata store. */
-const metadataUrl = 'http://169.254.169.254/latest/meta-data/';
+const metadataUrl = 'http://169.254.169.254/latest/meta-data';
 
 /**
  * Get the AWS IAM instance profile.

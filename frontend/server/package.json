@@ -15,12 +15,26 @@
   },
   "devDependencies": {
     "@types/express": "^4.11.1",
+    "@types/jest": "^24.0.23",
     "@types/minio": "^7.0.3",
     "@types/node-fetch": "^2.1.2",
+    "jest": "^24.9.0",
+    "ts-jest": "^24.2.0",
     "typescript": "3.3.1"
   },
   "scripts": {
     "build": "tsc --lib es2015 --outDir ./dist --typeRoots ./node_modules/@types *.ts"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": ["**/*test.ts"],
+    "globals": {
+      "ts-jest": {
+        "diagnostics": false,
+        "tsConfig": "../tsconfig.json"
+      }
+    }
   },
   "repository": {
     "type": "git",
