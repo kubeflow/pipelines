@@ -28,11 +28,20 @@ describe('NewRunParameters', () => {
     expect(shallow(<NewRunParameters {...props} />)).toMatchSnapshot();
   });
 
-  it('does not display any text fields if there are parameters', () => {
+  it('does not display any text fields if there are no parameters', () => {
     const props = {
       handleParamChange: jest.fn(),
       initialParams: [],
       titleMessage: 'This pipeline has no parameters',
+    } as NewRunParametersProps;
+    expect(shallow(<NewRunParameters {...props} />)).toMatchSnapshot();
+  });
+
+  it('shows button for json parameters', () => {
+    const props = {
+      handleParamChange: jest.fn(),
+      initialParams: [{ name: 'testParam', value: '{"test":"value"}' }],
+      titleMessage: 'Specify json parameters required by the pipeline',
     } as NewRunParametersProps;
     expect(shallow(<NewRunParameters {...props} />)).toMatchSnapshot();
   });

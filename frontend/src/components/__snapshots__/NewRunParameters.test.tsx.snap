@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`NewRunParameters does not display any text fields if there are parameters 1`] = `
+exports[`NewRunParameters does not display any text fields if there are no parameters 1`] = `
 <div>
   <div
     className="header"
@@ -9,6 +9,66 @@ exports[`NewRunParameters does not display any text fields if there are paramete
   </div>
   <div>
     This pipeline has no parameters
+  </div>
+</div>
+`;
+
+exports[`NewRunParameters shows button for json parameters 1`] = `
+<div>
+  <div
+    className="header"
+  >
+    Run parameters
+  </div>
+  <div>
+    Specify json parameters required by the pipeline
+  </div>
+  <div>
+    <div
+      key="0"
+    >
+      <TextField
+        InputProps={
+          Object {
+            "classes": Object {
+              "disabled": "nonEditableInput",
+            },
+            "endAdornment": <WithStyles(InputAdornment)
+              position="end"
+            >
+              <WithStyles(Button)
+                color="secondary"
+                id="chooseExperimentBtn"
+                onClick={[Function]}
+                style={
+                  Object {
+                    "margin": 0,
+                    "padding": "3px 5px",
+                  }
+                }
+              >
+                Open Editor
+              </WithStyles(Button)>
+            </WithStyles(InputAdornment)>,
+            "readOnly": false,
+          }
+        }
+        className="textField"
+        disabled={false}
+        id="newRunPipelineParam0"
+        label="testParam"
+        onChange={[Function]}
+        required={false}
+        select={false}
+        style={
+          Object {
+            "maxWidth": 600,
+          }
+        }
+        value="{\\"test\\":\\"value\\"}"
+        variant="outlined"
+      />
+    </div>
   </div>
 </div>
 `;
