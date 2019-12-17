@@ -617,6 +617,38 @@ class NewRun extends Page<{}, NewRunState> {
             pipeline,
             pipelineName: (pipeline && pipeline.name) || '',
           });
+          const possiblePipelineVersionId =
+            urlParser.get(QUERY_PARAMS.pipelineVersionId) ||
+            (pipeline.default_version && pipeline.default_version.id);
+          if (possiblePipelineVersionId) {
+            try {
+              const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
+                possiblePipelineVersionId,
+              );
+              this.setStateSafe({
+                parameters: pipelineVersion.parameters || [],
+                pipelineVersion,
+                pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
+                runName: this._getRunNameFromPipelineVersion(
+                  (pipelineVersion && pipelineVersion.name) || '',
+                ),
+              });
+            } catch (err) {
+              urlParser.clear(QUERY_PARAMS.pipelineVersionId);
+              await this.showPageError(
+                `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
+                err,
+              );
+              logger.error(
+                `Failed to retrieve pipeline version: ${possiblePipelineVersionId}`,
+                err,
+              );
+            }
+          } else {
+            this.setStateSafe({
+              runName: this._getRunNameFromPipelineVersion((pipeline && pipeline.name) || ''),
+            });
+          }
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
           await this.showPageError(
@@ -624,26 +656,6 @@ class NewRun extends Page<{}, NewRunState> {
             err,
           );
           logger.error(`Failed to retrieve pipeline: ${possiblePipelineId}`, err);
-        }
-      }
-      const possiblePipelineVersionId = urlParser.get(QUERY_PARAMS.pipelineVersionId);
-      if (possiblePipelineVersionId) {
-        try {
-          const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
-            possiblePipelineVersionId,
-          );
-          this.setStateSafe({
-            parameters: pipelineVersion.parameters || [],
-            pipelineVersion,
-            pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
-          });
-        } catch (err) {
-          urlParser.clear(QUERY_PARAMS.pipelineVersionId);
-          await this.showPageError(
-            `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
-            err,
-          );
-          logger.error(`Failed to retrieve pipeline version: ${possiblePipelineVersionId}`, err);
         }
       }
     }
@@ -1043,6 +1055,24 @@ class NewRun extends Page<{}, NewRunState> {
       const cloneNumber = match[1] ? +match[1] : 1;
       return `Clone (${cloneNumber + 1}) of ${match[2]}`;
     }
+  }
+
+  private _generateRandomString(length: number): string {
+    let d = 0;
+    function randomChar(): string {
+      const r = Math.trunc((d + Math.random() * 16) % 16);
+      d = Math.floor(d / 16);
+      return r.toString(16);
+    }
+    let str = '';
+    for (let i = 0; i < length; ++i) {
+      str += randomChar();
+    }
+    return str;
+  }
+
+  private _getRunNameFromPipelineVersion(pipelineVersionName: string): string {
+    return 'Run of ' + pipelineVersionName + ' (' + this._generateRandomString(5) + ')';
   }
 
   private _validate(): void {
