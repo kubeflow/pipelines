@@ -75,13 +75,8 @@ class PipelineVolume(V1Volume):
             hash_value = hashlib.sha256(bytes(json.dumps(self.to_dict(),
                                                          sort_keys=True),
                                               "utf-8")).hexdigest()
-            name_prefix = "pvolume-"
-            # Name must be no more than 63 characters, so we will keep the last
-            # chars of the hash value
-            hash_len = 63 - len(name_prefix)
-            self.name = (name_prefix + hash_value[len(hash_value)-hash_len:]
-                         if len(hash_value) > hash_len
-                         else name_prefix + hash_value)
+            name = "pvolume-{}".format(hash_value)
+            self.name = name[0:63] if len(name) > 63 else name
         self.dependent_names = []
 
     def after(self, *ops):
