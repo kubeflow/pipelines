@@ -7,7 +7,7 @@ class CreateClusterOp(ResourceOp):
 
     Examples:
 
-        import kfp.dsl.databricks as databricks
+        import databricks
 
         databricks.CreateClusterOp(
             name="createcluster",
@@ -219,7 +219,7 @@ class DeleteClusterOp(ResourceOp):
 
     Example:
 
-        import kfp.dsl.databricks as databricks
+        import databricks
 
         databricks.DeleteClusterOp(
             name="deletecluster",

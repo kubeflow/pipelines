@@ -7,7 +7,7 @@ class CreateJobOp(ResourceOp):
 
     Example:
 
-        import kfp.dsl.databricks as databricks
+        import databricks
 
         databricks.CreateJobOp(
             name="createjob",
@@ -257,7 +257,7 @@ class DeleteJobOp(ResourceOp):
 
     Example:
 
-        import kfp.dsl.databricks as databricks
+        import databricks
 
         databricks.DeleteJobOp(
             name = "deletejob",

@@ -8,18 +8,22 @@ and less error prone, than using the [ResourceOp](
 https://www.kubeflow.org/docs/pipelines/sdk/manipulate-resources/#resourceop) to manipulate
 these Databricks resources.
 
-These are the supported Ops up to date:
+## Supported Ops
 
 - CreateClusterOp, to create a cluster in Databricks.
-- DeleteClusterOp, to delete an existing cluster from Databricks.
-- CreateJobOp, to create a Spark Job in Databricks.
-- DeleteJobOp, to delete an existing Spark Job from Databricks.
-- SubmitRunOp, to submit a Job Run in Databricks.
-- DeleteRunOp, to delete an existing Run.
+- DeleteClusterOp, to delete a cluster created with CreateClusterOp.
+- CreateJobOp, to create a Spark job in Databricks.
+- DeleteJobOp, to delete a job created with CreateJobOp.
+- SubmitRunOp, to submit a job run in Databricks.
+- DeleteRunOp, to delete a run submitted with SubmitRunOp.
+- CreateSecretScopeOp, to create a secret scope in Databricks.
+- DeleteSecretScopeOp, to delete a secret scope created with CreateSecretScopeOp.
+- ImportWorkspaceItemOp, to import an item into a Databricks Workspace.
+- DeleteWorkspaceItemOp, to delete an item imported with ImportWorkspaceItemOp.
 
 For each of these there are two ways a Kubeflow user can create the Ops:
-1) By passing the complete Databricks spec for the Op within a Python Dictionary
-2) By using named parameters
+1) By passing the complete Databricks spec for the Op within a Python Dictionary.
+2) By using named parameters.
 
 ## Setup
 
@@ -169,3 +173,7 @@ Ops:
     https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/jobs)
 - Run Ops: [Azure Databricks Jobs API - Runs Submit](
     https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/jobs#--runs-submit)
+- Secret Scope Ops: [Azure Databricks Secrets API](
+    https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/secrets)
+- Workspace Item Ops: [Azure Databricks Workspace API](
+    https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/workspace)

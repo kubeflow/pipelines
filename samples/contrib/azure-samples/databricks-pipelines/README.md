@@ -11,13 +11,18 @@ resources using the [Azure Databricks for Kubeflow Pipelines](
     https://docs.microsoft.com/en-us/azure/databricks/getting-started/try-databricks?toc=https%3A%2F%2Fdocs.microsoft.com%2Fen-us%2Fazure%2Fazure-databricks%2FTOC.json&bc=https%3A%2F%2Fdocs.microsoft.com%2Fen-us%2Fazure%2Fbread%2Ftoc.json#--step-2-create-an-azure-databricks-workspace)
 2) [Deploy the Azure Databricks Operator for Kubernetes](
     https://github.com/microsoft/azure-databricks-operator/blob/master/docs/deploy.md)
-3) All these samples reference 'sparkpi.jar' library. This library can be found here: [Create and run a 
+3) Some samples reference 'sparkpi.jar' library. This library can be found here: [Create and run a 
 jar job](https://docs.databricks.com/dev-tools/api/latest/examples.html#create-and-run-a-jar-job). 
 Upload it to [Databricks File System](
 https://docs.microsoft.com/en-us/azure/databricks/data/databricks-file-system) using e.g. [DBFS 
 CLI](https://docs.microsoft.com/en-us/azure/databricks/dev-tools/databricks-cli#dbfs-cli).
-4) [Install the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/sdk/install-sdk/)
-5) Install Azure Databricks for Kubeflow Pipelines package:
+4) Some samples that use CreateSecretScopeOp reference a secret in Kubernetes. This secret must be
+created before running these pipelines. For example:
+```bash
+kubectl create secret generic -n kubeflow mysecret --from-literal=username=alex 
+```
+5) [Install the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/sdk/install-sdk/)
+6) Install Azure Databricks for Kubeflow Pipelines package:
 ```
 pip install -e "git+https://github.com/kubeflow/pipelines#egg=kfp-azure-databricks&subdirectory=samples/contrib/azure-samples/kfp-azure-databricks" --upgrade
 ```

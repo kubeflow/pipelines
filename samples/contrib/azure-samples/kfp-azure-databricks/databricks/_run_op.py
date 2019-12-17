@@ -7,7 +7,7 @@ class SubmitRunOp(ResourceOp):
 
     Examples:
 
-        import kfp.dsl.databricks as databricks
+        import databricks
 
         databricks.SubmitRunOp(
             name="submitrun",
@@ -259,7 +259,7 @@ class DeleteRunOp(ResourceOp):
 
     Example:
 
-        import kfp.dsl.databricks as databricks
+        import databricks
 
         databricks.DeleteRunOp(
             name="deleterun",

@@ -39,7 +39,7 @@ def delete_job(job_name):
     )
 
 @dsl.pipeline(
-    name="DatabricksRun",
+    name="DatabricksJob",
     description="A toy pipeline that computes an approximation to pi with Azure Databricks."
 )
 def calc_pipeline(job_name="test-job", run_name="test-job-run", parameter="10"):
