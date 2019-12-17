@@ -54,6 +54,7 @@ import { logger, errorToMessage } from '../lib/Utils';
 import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
 import { CustomRendererProps } from '../components/CustomTable';
 import { Description } from '../components/Description';
+import { NamespaceContext } from '../lib/KubeflowClient';
 
 interface NewRunState {
   description: string;
@@ -107,6 +108,9 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
 };
 
 class NewRun extends Page<{}, NewRunState> {
+  static contextType = NamespaceContext;
+  context!: React.ContextType<typeof NamespaceContext>;
+
   private pipelineSelectorColumns = [
     { label: 'Pipeline name', flex: 1, sortKey: PipelineSortKeys.NAME },
     { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
@@ -987,6 +991,20 @@ class NewRun extends Page<{}, NewRunState> {
         },
         relationship: ApiRelationship.CREATOR,
       });
+    }
+
+    // namespace resource ref is only supported in create run for now
+    if (!this.state.isRecurringRun) {
+      const currentNamespace = this.context;
+      if (currentNamespace) {
+        references.push({
+          key: {
+            id: currentNamespace,
+            type: ApiResourceType.NAMESPACE,
+          },
+          relationship: ApiRelationship.OWNER,
+        });
+      }
     }
 
     let newRun: ApiRun | ApiJob = {

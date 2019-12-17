@@ -158,11 +158,11 @@ export function waitForTensorboardInstance(logdir: string, timeout: number): Pro
   });
 }
 
-export function getPodLogs(podName: string): Promise<string> {
+export function getPodLogs(podName: string, podNamespace?: string): Promise<string> {
   if (!k8sV1Client) {
     throw new Error('Cannot access kubernetes API');
   }
-  return (k8sV1Client.readNamespacedPodLog(podName, namespace, 'main') as any).then(
+  return (k8sV1Client.readNamespacedPodLog(podName, podNamespace || namespace, 'main') as any).then(
     (response: any) => (response && response.body ? response.body.toString() : ''),
     (error: any) => {
       throw new Error(JSON.stringify(error.body));

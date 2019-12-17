@@ -24,6 +24,7 @@ import {
   ApiResourceType,
   ApiRun,
   ApiRunDetail,
+  ApiRelationship,
 } from '../apis/run';
 import { logger } from './Utils';
 import WorkflowParser from './WorkflowParser';
@@ -116,6 +117,20 @@ function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference
   );
 }
 
+function getNamespaceReferenceName(run?: ApiRun | ApiJob): string | undefined {
+  // There should be only one namespace reference.
+  const namespaceRef =
+    run &&
+    run.resource_references &&
+    run.resource_references.find(
+      ref =>
+        ref.relationship === ApiRelationship.OWNER &&
+        ref.key &&
+        ref.key.type === ApiResourceType.NAMESPACE,
+    );
+  return namespaceRef && namespaceRef.key && namespaceRef.key.id;
+}
+
 /**
  * Takes an array of Runs and returns a map where each key represents a single metric, and its value
  * contains the name again, how many of that metric were collected across all supplied Runs, and the
@@ -174,6 +189,7 @@ export default {
   getFirstExperimentReference,
   getFirstExperimentReferenceId,
   getFirstExperimentReferenceName,
+  getNamespaceReferenceName,
   getParametersFromRun,
   getParametersFromRuntime,
   getPipelineId,
