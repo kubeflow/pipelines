@@ -2923,7 +2923,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       label="Run name"
       onChange={[Function]}
       required={true}
-      value=""
+      value="Run of original mock pipeline version name (88888)"
       variant="outlined"
     />
     <Component
@@ -3006,7 +3006,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       <BusyButton
         busy={false}
         className="buttonAction"
-        disabled={true}
+        disabled={false}
         id="startNewRunBtn"
         onClick={[Function]}
         title="Start"
@@ -3024,9 +3024,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             "color": "red",
           }
         }
-      >
-        Run name is required
-      </div>
+      />
     </div>
   </div>
 </div>

@@ -239,6 +239,20 @@ describe('NewRun', () => {
     expect(tree.state()).toHaveProperty('runName', 'run name');
   });
 
+  it('reports validation error when missing the run name', async () => {
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}&${
+      QUERY_PARAMS.pipelineVersionId
+    }=${MOCK_PIPELINE.default_version!.id}`;
+
+    tree = shallow(<TestNewRun {...props} />);
+    await TestUtils.flushPromises();
+
+    (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: null } });
+
+    expect(tree.state()).toHaveProperty('errorMessage', 'Run name is required');
+  });
+
   it('allows updating the run description', async () => {
     tree = shallow(<TestNewRun {...(generateProps() as any)} />);
     await TestUtils.flushPromises();
@@ -376,6 +390,9 @@ describe('NewRun', () => {
   });
 
   it('fetches the associated pipeline if one is present in the query params', async () => {
+    const randomSpy = jest.spyOn(Math, 'random');
+    randomSpy.mockImplementation(() => 0.5);
+
     const props = generateProps();
     props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}&${
       QUERY_PARAMS.pipelineVersionId
@@ -387,8 +404,10 @@ describe('NewRun', () => {
     expect(tree.state()).toHaveProperty('pipeline', MOCK_PIPELINE);
     expect(tree.state()).toHaveProperty('pipelineName', MOCK_PIPELINE.name);
     expect(tree.state()).toHaveProperty('pipelineVersion', MOCK_PIPELINE_VERSION);
-    expect(tree.state()).toHaveProperty('errorMessage', 'Run name is required');
+    expect((tree.state() as any).runName).toMatch(/Run of original mock pipeline version name/);
     expect(tree).toMatchSnapshot();
+
+    randomSpy.mockRestore();
   });
 
   it('shows a page error if getPipeline fails', async () => {
@@ -1103,6 +1122,8 @@ describe('NewRun', () => {
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
       tree = mount(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+
       (tree.instance() as TestNewRun).handleChange('runName')({
         target: { value: 'test run name' },
       });
@@ -1500,6 +1521,8 @@ describe('NewRun', () => {
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
       tree = mount(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+
       (tree.instance() as TestNewRun).handleChange('runName')({
         target: { value: 'test run name' },
       });
@@ -1552,6 +1575,8 @@ describe('NewRun', () => {
 
       tree = TestUtils.mountWithRouter(<TestNewRun {...props} />);
       const instance = tree.instance() as TestNewRun;
+      await TestUtils.flushPromises();
+
       instance.handleChange('runName')({ target: { value: 'test run name' } });
       instance.handleChange('description')({ target: { value: 'test run description' } });
       await TestUtils.flushPromises();
