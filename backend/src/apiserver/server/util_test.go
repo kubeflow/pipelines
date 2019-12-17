@@ -345,33 +345,6 @@ func TestGetUserIdentity(t *testing.T) {
 	assert.Equal(t, "user@google.com", userIdentity)
 }
 
-func TestGetNamespaceFromResourceReferences(t *testing.T) {
-	references := []*api.ResourceReference{
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: "123"},
-			Relationship: api.Relationship_CREATOR,
-		},
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_NAMESPACE, Id: "ns"},
-			Relationship: api.Relationship_OWNER,
-		},
-	}
-	namespace := getNamespaceFromResourceReferences(references)
-	assert.Equal(t, "ns", namespace)
-
-	references = []*api.ResourceReference{
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: "123"},
-			Relationship: api.Relationship_CREATOR,
-		},
-	}
-	namespace = getNamespaceFromResourceReferences(references)
-	assert.Equal(t, "", namespace)
-}
-
 func TestAuthorize_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
