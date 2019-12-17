@@ -43,7 +43,6 @@ describe('NewRun', () => {
   const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
   const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-  const randomSpy = jest.spyOn(Math, 'random');
   const historyPushSpy = jest.fn();
   const historyReplaceSpy = jest.fn();
   const updateBannerSpy = jest.fn();
@@ -155,7 +154,6 @@ describe('NewRun', () => {
     getPipelineSpy.mockImplementation(() => MOCK_PIPELINE);
     getPipelineVersionSpy.mockImplementation(() => MOCK_PIPELINE_VERSION);
     getRunSpy.mockImplementation(() => MOCK_RUN_DETAIL);
-    randomSpy.mockImplementation(() => 0.5);
 
     MOCK_EXPERIMENT = newMockExperiment();
     MOCK_PIPELINE = newMockPipeline();
@@ -369,6 +367,9 @@ describe('NewRun', () => {
   });
 
   it('fetches the associated pipeline if one is present in the query params', async () => {
+    const randomSpy = jest.spyOn(Math, 'random');
+    randomSpy.mockImplementation(() => 0.5);
+
     const props = generateProps();
     props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}&${
       QUERY_PARAMS.pipelineVersionId
@@ -380,8 +381,10 @@ describe('NewRun', () => {
     expect(tree.state()).toHaveProperty('pipeline', MOCK_PIPELINE);
     expect(tree.state()).toHaveProperty('pipelineName', MOCK_PIPELINE.name);
     expect(tree.state()).toHaveProperty('pipelineVersion', MOCK_PIPELINE_VERSION);
-    expect((tree.state() as any).runName).toMatch(/Run.*\(original mock pipeline version name\)/);
+    expect((tree.state() as any).runName).toMatch(/Run of original mock pipeline version name/);
     expect(tree).toMatchSnapshot();
+
+    randomSpy.mockRestore();
   });
 
   it('shows a page error if getPipeline fails', async () => {
