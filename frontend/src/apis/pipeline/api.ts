@@ -341,6 +341,7 @@ export enum ApiResourceType {
   JOB = <any>'JOB',
   PIPELINE = <any>'PIPELINE',
   PIPELINEVERSION = <any>'PIPELINE_VERSION',
+  NAMESPACE = <any>'NAMESPACE',
 }
 
 /**
@@ -797,7 +798,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     },
     /**
      *
-     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_key_type] The type of the resource that referred to.
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_key_type] The type of the resource that referred to.
      * @param {string} [resource_key_id] The ID of the resource that referred to.
      * @param {number} [page_size]
      * @param {string} [page_token]
@@ -812,7 +813,8 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         | 'EXPERIMENT'
         | 'JOB'
         | 'PIPELINE'
-        | 'PIPELINE_VERSION',
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
       resource_key_id?: string,
       page_size?: number,
       page_token?: string,
@@ -1140,7 +1142,7 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_key_type] The type of the resource that referred to.
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_key_type] The type of the resource that referred to.
      * @param {string} [resource_key_id] The ID of the resource that referred to.
      * @param {number} [page_size]
      * @param {string} [page_token]
@@ -1155,7 +1157,8 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         | 'EXPERIMENT'
         | 'JOB'
         | 'PIPELINE'
-        | 'PIPELINE_VERSION',
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
       resource_key_id?: string,
       page_size?: number,
       page_token?: string,
@@ -1321,7 +1324,7 @@ export const PipelineServiceApiFactory = function(
     },
     /**
      *
-     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_key_type] The type of the resource that referred to.
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_key_type] The type of the resource that referred to.
      * @param {string} [resource_key_id] The ID of the resource that referred to.
      * @param {number} [page_size]
      * @param {string} [page_token]
@@ -1336,7 +1339,8 @@ export const PipelineServiceApiFactory = function(
         | 'EXPERIMENT'
         | 'JOB'
         | 'PIPELINE'
-        | 'PIPELINE_VERSION',
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
       resource_key_id?: string,
       page_size?: number,
       page_token?: string,
@@ -1507,7 +1511,7 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
-   * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_key_type] The type of the resource that referred to.
+   * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_key_type] The type of the resource that referred to.
    * @param {string} [resource_key_id] The ID of the resource that referred to.
    * @param {number} [page_size]
    * @param {string} [page_token]
@@ -1523,7 +1527,8 @@ export class PipelineServiceApi extends BaseAPI {
       | 'EXPERIMENT'
       | 'JOB'
       | 'PIPELINE'
-      | 'PIPELINE_VERSION',
+      | 'PIPELINE_VERSION'
+      | 'NAMESPACE',
     resource_key_id?: string,
     page_size?: number,
     page_token?: string,

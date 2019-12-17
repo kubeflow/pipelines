@@ -90,19 +90,20 @@ function workflowNameFromPodName(podName: string) {
 export class PodLogsHandler {
   fromConfig?: (podName: string) => Promise<IMinioRequestConfig>;
 
-  async getPodLogs(podName: string) {
+  async getPodLogs(podName: string, podNamespace?: string) {
     try {
       // retrieve from k8s
       const stream = new PassThrough();
-      stream.end(await getPodLogs(podName));
-      console.log(`Getting logs for pod:${podName}.`);
+      stream.end(await getPodLogs(podName, podNamespace));
+      console.log(`Getting logs for pod:${podName} in namespace ${podNamespace}.`);
       return stream;
     } catch (k8sError) {
-      console.error(`Unable to get logs for pod:${podName}: ${k8sError}`);
+      console.error(`Unable to get logs for pod:${podName}:`, k8sError);
       return this.getPodLogsFromArchive(podName);
     }
   }
 
+  // TODO: support pod in a certain namespace
   async getPodLogsFromArchive(podName: string) {
     try {
       // try argo workflow crd status
@@ -118,14 +119,13 @@ export class PodLogsHandler {
           console.log(`Getting logs for pod:${podName} from ${request.bucket}/${request.key}.`);
           return stream;
         } catch (configError) {
-          console.error(`Unable to get logs for pod:${podName}: ${configError}`);
+          console.error(`Unable to get logs for pod:${podName}:`, configError);
           throw new Error(
             `Unable to retrieve logs from ${podName}: ${workflowError}, ${configError}`,
           );
         }
       }
-      console.error(`Unable to get logs for pod:${podName}: ${workflowError}`);
-      console.error(workflowError);
+      console.error(`Unable to get logs for pod:${podName}:`, workflowError);
       throw new Error(`Unable to retrieve logs from ${podName}: ${workflowError}`);
     }
   }

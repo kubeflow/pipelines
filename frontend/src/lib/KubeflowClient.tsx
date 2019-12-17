@@ -35,8 +35,7 @@ export function init(): void {
   }
 }
 
-const NamespaceContext = React.createContext<string | undefined>(undefined);
-export const NamespaceContextConsumer = NamespaceContext.Consumer;
+export const NamespaceContext = React.createContext<string | undefined>(undefined);
 export class NamespaceContextProvider extends React.Component {
   state = {
     namespace,
