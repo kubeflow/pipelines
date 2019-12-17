@@ -43,16 +43,13 @@ describe('NewRun', () => {
   const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
   const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+  const randomSpy = jest.spyOn(Math, 'random');
   const historyPushSpy = jest.fn();
   const historyReplaceSpy = jest.fn();
   const updateBannerSpy = jest.fn();
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
-
-  const mockMath = Object.create(global.Math);
-  mockMath.random = () => 0.5;
-  global.Math = mockMath;
 
   let MOCK_EXPERIMENT = newMockExperiment();
   let MOCK_PIPELINE = newMockPipeline();
@@ -158,6 +155,7 @@ describe('NewRun', () => {
     getPipelineSpy.mockImplementation(() => MOCK_PIPELINE);
     getPipelineVersionSpy.mockImplementation(() => MOCK_PIPELINE_VERSION);
     getRunSpy.mockImplementation(() => MOCK_RUN_DETAIL);
+    randomSpy.mockImplementation(() => 0.5);
 
     MOCK_EXPERIMENT = newMockExperiment();
     MOCK_PIPELINE = newMockPipeline();
