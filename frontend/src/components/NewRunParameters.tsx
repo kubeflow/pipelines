@@ -63,23 +63,6 @@ class NewRunParameters extends React.Component<NewRunParametersProps, NewRunPara
   public render(): JSX.Element | null {
     const { handleParamChange, initialParams, titleMessage } = this.props;
 
-    this.props.initialParams.map((param: ApiParameter, i: number) => {
-      try {
-        const parsedJson = JSON.parse(param.value || '');
-        // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
-        // about rendering. Note that `typeOf null` returns 'object'
-        if (parsedJson === null || typeof parsedJson !== 'object') {
-          throw new Error('Parsed JSON was neither an array nor an object. Using default renderer');
-        }
-
-        if (typeof this.state.isBeingEdited[i] === 'undefined') {
-          this.state.isBeingEdited[i] = false;
-        }
-      } catch (err) {
-        // do nothing
-      }
-    });
-
     return (
       <div>
         <div className={commonCss.header}>Run parameters</div>
@@ -87,7 +70,25 @@ class NewRunParameters extends React.Component<NewRunParametersProps, NewRunPara
         {!!initialParams.length && (
           <div>
             {initialParams.map((param, i) => {
-              if (typeof this.state.isBeingEdited[i] !== 'undefined') {
+              let isJson = true;
+              let displayValue = param.value || '';
+              try {
+                displayValue = JSON.parse(param.value || '');
+                // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
+                // about rendering. Note that `typeOf null` returns 'object'
+                if (displayValue === null || typeof displayValue !== 'object') {
+                  throw new Error(
+                    'Parsed JSON was neither an array nor an object. Using default renderer',
+                  );
+                }
+
+                if (typeof this.state.isBeingEdited[i] === 'undefined') {
+                  this.state.isBeingEdited[i] = false;
+                }
+              } catch (err) {
+                isJson = false;
+              }
+              if (isJson || typeof this.state.isBeingEdited[i] !== 'undefined') {
                 return (
                   <div key={i}>
                     <TextField
@@ -107,9 +108,18 @@ class NewRunParameters extends React.Component<NewRunParametersProps, NewRunPara
                               color='secondary'
                               id='chooseExperimentBtn'
                               onClick={() => {
-                                const parsedJson = JSON.parse(param.value || '');
+                                if (isJson) {
+                                  if (this.state.isBeingEdited[i]) {
+                                    handleParamChange(i, JSON.stringify(displayValue) || '');
+                                  } else {
+                                    handleParamChange(
+                                      i,
+                                      JSON.stringify(displayValue, null, 2) || '',
+                                    );
+                                  }
+                                }
+
                                 if (this.state.isBeingEdited[i]) {
-                                  handleParamChange(i, JSON.stringify(parsedJson) || '');
                                   this.setState({
                                     isBeingEdited: {
                                       ...this.state.isBeingEdited,
@@ -117,7 +127,6 @@ class NewRunParameters extends React.Component<NewRunParametersProps, NewRunPara
                                     },
                                   });
                                 } else {
-                                  handleParamChange(i, JSON.stringify(parsedJson, null, 2) || '');
                                   this.setState({
                                     isBeingEdited: {
                                       ...this.state.isBeingEdited,
