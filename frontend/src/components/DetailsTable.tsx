@@ -82,7 +82,8 @@ export default (props: DetailsTableProps) => {
                   <span className={css.key}>{key}</span>
                   <Editor
                     width='100%'
-                    height='300px'
+                    minLines={3}
+                    maxLines={20}
                     mode='json'
                     theme='github'
                     highlightActiveLine={true}
