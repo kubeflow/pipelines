@@ -1,6 +1,5 @@
 # This image has the script to kick off the ML pipeline sample e2e test,
 
-# TODO: use google/cloud-sdk:272.0.0, currently some python dependencies break if we use the new version
 FROM google/cloud-sdk:272.0.0
 
 RUN apt-get update -y && \
