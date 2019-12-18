@@ -25,7 +25,7 @@ spec:
         - -e
         - -c
         - |
-          python3 -m pip install kubernetes 'ml-metadata==0.14' --upgrade --quiet --user --no-warn-script-location
+          python3 -m pip install kubernetes 'ml-metadata==0.15.2' --upgrade --quiet --user --no-warn-script-location
           #wget --quiet -O /tmp/metadata_writer.py https://raw.githubusercontent.com/Ark-kun/pipelines/Metadata-Writer-0.1/sdk/metadata_writer/metadata_writer.py
           curl --silent --show-error https://raw.githubusercontent.com/Ark-kun/pipelines/Metadata-Writer-0.1/sdk/metadata_writer/metadata_writer.py >/tmp/metadata_writer.py
           echo "Starting the Metadata writer"
@@ -35,6 +35,10 @@ EOF
 
 import hashlib
 import kubernetes
+
+import ml_metadata
+from ml_metadata.proto import metadata_store_pb2
+from ml_metadata.metadata_store import metadata_store
 
 try:
     kubernetes.config.load_incluster_config()
@@ -47,17 +51,6 @@ except Exception as e:
 
 k8s_api = kubernetes.client.CoreV1Api()
 k8s_watch = kubernetes.watch.Watch()
-
-metadata_configmap_name = 'metadata-configmap'
-metadata_configmap_namespace = 'default' # Not kubeflow
-metadata_db_user = 'root'
-metadata_db_password = ''
-
-
-import ml_metadata
-
-from ml_metadata.proto import metadata_store_pb2
-from ml_metadata.metadata_store import metadata_store
 
 #%%
 
@@ -451,19 +444,15 @@ def add_pod_metadata(
 
 #Connecting to MetadataDB
 
-metadata_configmap_dict = k8s_api.read_namespaced_config_map(
-    name=metadata_configmap_name,
-    namespace=metadata_configmap_namespace,
-).data
+import os
 
-mlmd_connection_config = metadata_store_pb2.ConnectionConfig(
-    mysql=metadata_store_pb2.MySQLDatabaseConfig(
-        host=metadata_configmap_dict['mysql_host'],
-        port=int(metadata_configmap_dict['mysql_port']),
-        database=metadata_configmap_dict['mysql_database'],
-        user=metadata_db_user,
-        password=metadata_db_password,
-    ),
+metadata_service_host = os.environ.get('METADATA_SERVICE_SERVICE_HOST', 'metadata-service')
+metadata_service_port = int(os.environ.get('METADATA_SERVICE_SERVICE_PORT', 8080))
+
+
+mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
+    host=metadata_service_host,
+    port=metadata_service_port,
 )
 mlmd_store = metadata_store.MetadataStore(mlmd_connection_config)
 print("Connected to the metadata store")
