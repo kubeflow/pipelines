@@ -362,38 +362,6 @@ func TestCanAccessNamespaceInResourceReferencesUnauthorized(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestCanAccessRun_Unauthorized(t *testing.T) {
-	clients, manager, experiment := initWithExperiment_KFAM_Unauthorized(t)
-	defer clients.Close()
-	viper.Set(common.MultiUserMode, "true")
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-
-	apiRun := &api.Run{
-		Name: "run1",
-		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters: []*api.Parameter{
-				{Name: "param1", Value: "world"},
-			},
-		},
-		ResourceReferences: []*api.ResourceReference{
-			{
-				Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns"},
-				Relationship: api.Relationship_OWNER,
-			},
-			{
-				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
-				Relationship: api.Relationship_OWNER,
-			},
-		},
-	}
-	runDetail, _ := manager.CreateRun(apiRun)
-
-	err := CanAccessRun(manager, ctx, runDetail.UUID)
-	assert.NotNil(t, err)
-}
-
 func TestCanAccessNamespaceInResourceReferences_Authorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
@@ -408,37 +376,5 @@ func TestCanAccessNamespaceInResourceReferences_Authorized(t *testing.T) {
 		},
 	}
 	err := CanAccessNamespaceInResourceReferences(manager, ctx, references)
-	assert.Nil(t, err)
-}
-
-func TestCanAccessRun_Authorized(t *testing.T) {
-	clients, manager, experiment := initWithExperiment(t)
-	defer clients.Close()
-	viper.Set(common.MultiUserMode, "true")
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-
-	apiRun := &api.Run{
-		Name: "run1",
-		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters: []*api.Parameter{
-				{Name: "param1", Value: "world"},
-			},
-		},
-		ResourceReferences: []*api.ResourceReference{
-			{
-				Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns"},
-				Relationship: api.Relationship_OWNER,
-			},
-			{
-				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
-				Relationship: api.Relationship_OWNER,
-			},
-		},
-	}
-	runDetail, _ := manager.CreateRun(apiRun)
-
-	err := CanAccessRun(manager, ctx, runDetail.UUID)
 	assert.Nil(t, err)
 }

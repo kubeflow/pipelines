@@ -17,7 +17,6 @@ import (
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
@@ -296,26 +295,6 @@ func getUserIdentity(ctx context.Context) (string, error) {
 		return userIdentityHeaderFields[1], nil
 	}
 	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."), "Request header error: there is no user identity header.")
-}
-
-func CanAccessRun(resourceManager *resource.ResourceManager, ctx context.Context, runId string) error {
-	if common.IsMultiUserMode() == false {
-		// Skip authz if not multi-user mode.
-		return nil
-	}
-	runDetail, err := resourceManager.GetRun(runId)
-	if err != nil {
-		return util.Wrap(err, "Failed to authorize with the run Id.")
-	}
-	namespace := model.GetNamespaceFromModelResourceReferences(runDetail.ResourceReferences)
-	if len(namespace) == 0 {
-		return util.NewInternalServerError(errors.New("There is no namespace in the ResourceReferences"), "There is no namespace in the ResourceReferences")
-	}
-	err = isAuthorized(resourceManager, ctx, namespace)
-	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API resource references")
-	}
-	return nil
 }
 
 func CanAccessNamespaceInResourceReferences(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
