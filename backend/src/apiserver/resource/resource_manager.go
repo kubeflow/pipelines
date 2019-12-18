@@ -304,7 +304,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	// Create argo workflow CRD resource
-	newWorkflow, err := r.getWorkflowClient(common.GetNamespaceFromResourceReferences(apiRun.ResourceReferences)).Create(workflow.Get())
+	newWorkflow, err := r.getWorkflowClient(common.GetNamespaceFromAPIResourceReferences(apiRun.ResourceReferences)).Create(workflow.Get())
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
 	}
