@@ -416,7 +416,7 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
         </WithStyles(DialogTitle)>
         <WithStyles(DialogContent)>
           <WithStyles(DialogContentText)>
-            You can stop the current running tensorboard. The tensorboard viewer will also be clean from your GKE workloads.
+            You can stop the current running tensorboard. The tensorboard viewer will also be deleted from your GKE workloads.
           </WithStyles(DialogContentText)>
         </WithStyles(DialogContent)>
         <WithStyles(DialogActions)>
