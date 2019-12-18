@@ -73,6 +73,7 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
 
   source "$DIR/../manifests/kustomize/wi-utils.sh"
   verify_workload_identity_binding "pipeline-runner" $NAMESPACE
+  sleep 60
 fi
 
 popd
