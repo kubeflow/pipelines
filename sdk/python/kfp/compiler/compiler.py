@@ -16,6 +16,7 @@ from collections import defaultdict
 from deprecated import deprecated
 import inspect
 import tarfile
+import uuid
 import zipfile
 from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
@@ -619,9 +620,13 @@ class Compiler(object):
           param['value'] = str(arg.value)
       input_params.append(param)
 
+    # Making the pipeline group name unique to prevent name clashes with templates
+    pipeline_group = pipeline.groups[0]
+    temp_pipeline_group_name = uuid.uuid4().hex
+    pipeline_group.name = temp_pipeline_group_name
+
     # Templates
     templates = self._create_dag_templates(pipeline, op_transformers)
-    templates.sort(key=lambda x: x['name'])
 
     # Exit Handler
     exit_handler = None
@@ -632,12 +637,24 @@ class Compiler(object):
 
     # The whole pipeline workflow
     pipeline_name = pipeline.name or 'Pipeline'
+
+    # Workaround for pipeline name clashing with container template names
+    # TODO: Make sure template names cannot clash at all (container, DAG, workflow)
+    template_map = {template['name'].lower(): template  for template in templates}
+    from ..components._naming import _make_name_unique_by_adding_index
+    pipeline_template_name = _make_name_unique_by_adding_index(pipeline_name, template_map, '-')
+
+    # Restoring the name of the pipeline template
+    pipeline_template = template_map[temp_pipeline_group_name]
+    pipeline_template['name'] = pipeline_template_name
+
+    templates.sort(key=lambda x: x['name'])
     workflow = {
       'apiVersion': 'argoproj.io/v1alpha1',
       'kind': 'Workflow',
-      'metadata': {'generateName': pipeline_name + '-'},
+      'metadata': {'generateName': pipeline_template_name + '-'},
       'spec': {
-        'entrypoint': pipeline_name,
+        'entrypoint': pipeline_template_name,
         'templates': templates,
         'arguments': {'parameters': input_params},
         'serviceAccountName': 'pipeline-runner'

@@ -24,8 +24,8 @@ export default {
     creationTimestamp: '2018-06-06T00:04:49Z',
     labels: {
       'workflows.argoproj.io/completed': 'true',
-      'workflows.argoproj.io/phase': 'Succeeded'
-    }
+      'workflows.argoproj.io/phase': 'Succeeded',
+    },
   },
   spec: {
     templates: [
@@ -37,25 +37,21 @@ export default {
         container: {
           name: '',
           image: 'docker/whalesay:latest',
-          command: [
-            'cowsay'
-          ],
-          args: [
-            '{{workflow.parameters.message}}'
-          ],
-          resources: {}
-        }
-      }
+          command: ['cowsay'],
+          args: ['{{workflow.parameters.message}}'],
+          resources: {},
+        },
+      },
     ],
     entrypoint: 'whalesay1',
     arguments: {
       parameters: [
         {
           name: 'message',
-          value: 'hello world'
-        }
-      ]
-    }
+          value: 'hello world',
+        },
+      ],
+    },
   },
   status: {
     phase: 'Succeeded',
@@ -76,24 +72,20 @@ export default {
             {
               name: 'JSON Data',
               value: JSON.stringify({
-                'string1': 'a',
-                'string2': 'b',
-                'number1': 1,
-                'number2': 2.2,
-                'object': {
-                  'string': 'a',
-                  'number': 2
+                string1: 'a',
+                string2: 'b',
+                number1: 1,
+                number2: 2.2,
+                object: {
+                  string: 'a',
+                  number: 2,
                 },
-                'array': [
-                  'a',
-                  'b',
-                  'c'
-                ]
-              })
-            }
-          ]
-        }
-      }
-    }
-  }
+                array: ['a', 'b', 'c'],
+              }),
+            },
+          ],
+        },
+      },
+    },
+  },
 };

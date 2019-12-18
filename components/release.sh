@@ -27,7 +27,7 @@ images=(
   "ml-pipeline-kubeflow-deployer"
   "ml-pipeline-kubeflow-tf-trainer"
   "ml-pipeline-kubeflow-tf-trainer-gpu"
-  "ml-pipeline-kubeflow-tf"
+  "ml-pipeline-kubeflow-tfjob"
   "ml-pipeline-dataproc-analyze"
   "ml-pipeline-dataproc-create-cluster"
   "ml-pipeline-dataproc-delete-cluster"

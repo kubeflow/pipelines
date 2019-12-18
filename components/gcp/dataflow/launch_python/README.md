@@ -94,7 +94,7 @@ The steps to use the component in a pipeline are:
     ```python
     import kfp.components as comp
 
-    dataflow_python_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/4e7e6e866c1256e641b0c3effc55438e6e4b30f6/components/gcp/dataflow/launch_python/component.yaml')
+    dataflow_python_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a8d3b6977df26a89701cd229f01c1840a8475521/components/gcp/dataflow/launch_python/component.yaml')
     help(dataflow_python_op)
     ```
 

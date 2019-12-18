@@ -64,6 +64,216 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
             <div>
               test-pipeline-id
             </div>
+            <form
+              autoComplete="off"
+            >
+              <WithStyles(FormControl)>
+                <WithStyles(WithFormControlContext(InputLabel))>
+                  Version
+                </WithStyles(WithFormControlContext(InputLabel))>
+                <WithStyles(WithFormControlContext(Select))
+                  inputProps={
+                    Object {
+                      "id": "version-selector",
+                      "name": "selectedVersion",
+                    }
+                  }
+                  onChange={[Function]}
+                  value="test-pipeline-version-id"
+                >
+                  <WithStyles(MenuItem)
+                    key="test-pipeline-version-id"
+                    value="test-pipeline-version-id"
+                  >
+                    test-pipeline-version
+                  </WithStyles(MenuItem)>
+                </WithStyles(WithFormControlContext(Select))>
+              </WithStyles(FormControl)>
+            </form>
+            <div
+              className="summaryKey"
+            >
+              <a
+                target="_blank"
+              >
+                Version source
+              </a>
+            </div>
+            <div
+              className="summaryKey"
+            >
+              Uploaded on
+            </div>
+            <div>
+              9/5/2018, 4:03:02 AM
+            </div>
+            <div
+              className="summaryKey"
+            >
+              Description
+            </div>
+            <Component
+              description="test pipeline description"
+            />
+          </WithStyles(Paper)>
+          <Graph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": undefined,
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            selectedNodeId=""
+          />
+          <SidePanel
+            isOpen={false}
+            onClose={[Function]}
+            title=""
+          >
+            <div
+              className="page"
+            >
+              <div
+                className="absoluteCenter"
+              >
+                Unable to retrieve node info
+              </div>
+            </div>
+          </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex footerInfoOffset"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Static pipeline graph
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`PipelineDetails closes side panel when close button is clicked 2`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Source",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page"
+      >
+        <div
+          className="page"
+          style={
+            Object {
+              "overflow": "hidden",
+              "position": "relative",
+            }
+          }
+        >
+          <WithStyles(Paper)
+            className="summaryCard"
+          >
+            <div
+              style={
+                Object {
+                  "alignItems": "baseline",
+                  "display": "flex",
+                  "justifyContent": "space-between",
+                }
+              }
+            >
+              <div
+                className="header"
+              >
+                Summary
+              </div>
+              <WithStyles(Button)
+                color="secondary"
+                onClick={[Function]}
+              >
+                Hide
+              </WithStyles(Button)>
+            </div>
+            <div
+              className="summaryKey"
+            >
+              ID
+            </div>
+            <div>
+              test-pipeline-id
+            </div>
+            <form
+              autoComplete="off"
+            >
+              <WithStyles(FormControl)>
+                <WithStyles(WithFormControlContext(InputLabel))>
+                  Version
+                </WithStyles(WithFormControlContext(InputLabel))>
+                <WithStyles(WithFormControlContext(Select))
+                  inputProps={
+                    Object {
+                      "id": "version-selector",
+                      "name": "selectedVersion",
+                    }
+                  }
+                  onChange={[Function]}
+                  value="test-pipeline-version-id"
+                >
+                  <WithStyles(MenuItem)
+                    key="test-pipeline-version-id"
+                    value="test-pipeline-version-id"
+                  >
+                    test-pipeline-version
+                  </WithStyles(MenuItem)>
+                </WithStyles(WithFormControlContext(Select))>
+              </WithStyles(FormControl)>
+            </form>
+            <div
+              className="summaryKey"
+            >
+              <a
+                target="_blank"
+              >
+                Version source
+              </a>
+            </div>
             <div
               className="summaryKey"
             >
@@ -301,6 +511,41 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
             <div>
               test-pipeline-id
             </div>
+            <form
+              autoComplete="off"
+            >
+              <WithStyles(FormControl)>
+                <WithStyles(WithFormControlContext(InputLabel))>
+                  Version
+                </WithStyles(WithFormControlContext(InputLabel))>
+                <WithStyles(WithFormControlContext(Select))
+                  inputProps={
+                    Object {
+                      "id": "version-selector",
+                      "name": "selectedVersion",
+                    }
+                  }
+                  onChange={[Function]}
+                  value="test-pipeline-version-id"
+                >
+                  <WithStyles(MenuItem)
+                    key="test-pipeline-version-id"
+                    value="test-pipeline-version-id"
+                  >
+                    test-pipeline-version
+                  </WithStyles(MenuItem)>
+                </WithStyles(WithFormControlContext(Select))>
+              </WithStyles(FormControl)>
+            </form>
+            <div
+              className="summaryKey"
+            >
+              <a
+                target="_blank"
+              >
+                Version source
+              </a>
+            </div>
             <div
               className="summaryKey"
             >
@@ -440,6 +685,41 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
             </div>
             <div>
               test-pipeline-id
+            </div>
+            <form
+              autoComplete="off"
+            >
+              <WithStyles(FormControl)>
+                <WithStyles(WithFormControlContext(InputLabel))>
+                  Version
+                </WithStyles(WithFormControlContext(InputLabel))>
+                <WithStyles(WithFormControlContext(Select))
+                  inputProps={
+                    Object {
+                      "id": "version-selector",
+                      "name": "selectedVersion",
+                    }
+                  }
+                  onChange={[Function]}
+                  value="test-pipeline-version-id"
+                >
+                  <WithStyles(MenuItem)
+                    key="test-pipeline-version-id"
+                    value="test-pipeline-version-id"
+                  >
+                    test-pipeline-version
+                  </WithStyles(MenuItem)>
+                </WithStyles(WithFormControlContext(Select))>
+              </WithStyles(FormControl)>
+            </form>
+            <div
+              className="summaryKey"
+            >
+              <a
+                target="_blank"
+              >
+                Version source
+              </a>
             </div>
             <div
               className="summaryKey"
@@ -674,6 +954,41 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
             </div>
             <div>
               test-pipeline-id
+            </div>
+            <form
+              autoComplete="off"
+            >
+              <WithStyles(FormControl)>
+                <WithStyles(WithFormControlContext(InputLabel))>
+                  Version
+                </WithStyles(WithFormControlContext(InputLabel))>
+                <WithStyles(WithFormControlContext(Select))
+                  inputProps={
+                    Object {
+                      "id": "version-selector",
+                      "name": "selectedVersion",
+                    }
+                  }
+                  onChange={[Function]}
+                  value="test-pipeline-version-id"
+                >
+                  <WithStyles(MenuItem)
+                    key="test-pipeline-version-id"
+                    value="test-pipeline-version-id"
+                  >
+                    test-pipeline-version
+                  </WithStyles(MenuItem)>
+                </WithStyles(WithFormControlContext(Select))>
+              </WithStyles(FormControl)>
+            </form>
+            <div
+              className="summaryKey"
+            >
+              <a
+                target="_blank"
+              >
+                Version source
+              </a>
             </div>
             <div
               className="summaryKey"
