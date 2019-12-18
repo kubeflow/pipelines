@@ -333,7 +333,11 @@ const createTensorboardHandler = async (req, res) => {
 
   try {
     await k8sHelper.newTensorboardInstance(logdir, tfversion, podTemplateSpec);
-    const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(logdir, tfversion, 60 * 1000);
+    const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(
+      logdir,
+      tfversion,
+      60 * 1000,
+    );
     res.send(tensorboardAddress);
   } catch (err) {
     res.status(500).send('Failed to start Tensorboard app: ' + JSON.stringify(err));
@@ -342,19 +346,19 @@ const createTensorboardHandler = async (req, res) => {
 
 const deleteTensorboardHandler = async (req, res) => {
   if (!k8sHelper.isInCluster) {
-    res.status(500).send('Cannot talk to Kubernetes master')
-    return
+    res.status(500).send('Cannot talk to Kubernetes master');
+    return;
   }
   const logdir = decodeURIComponent(req.query.logdir);
-  const tfversion = decodeURIComponent(req.query.tfversion)
-  
+  const tfversion = decodeURIComponent(req.query.tfversion);
+
   try {
     await k8sHelper.deleteTensorboardInstance(logdir, tfversion);
-    res.send('Tensorboard deleted.')
+    res.send('Tensorboard deleted.');
   } catch (err) {
     res.status(500).send('Failed to delete Tensorboard app: ' + JSON.stringify(err));
   }
-}
+};
 
 const logsHandler = async (req, res) => {
   if (!k8sHelper.isInCluster) {
@@ -409,7 +413,7 @@ app.get(BASEPATH + '/apps/tensorboard', getTensorboardHandler);
 app.post('/apps/tensorboard', createTensorboardHandler);
 app.post(BASEPATH + '/apps/tensorboard', createTensorboardHandler);
 
-app.delete('/apps/tensorboard', deleteTensorboardHandler)
+app.delete('/apps/tensorboard', deleteTensorboardHandler);
 app.delete(BASEPATH + '/apps/tensorboard', deleteTensorboardHandler);
 
 app.get('/k8s/pod/logs', logsHandler);

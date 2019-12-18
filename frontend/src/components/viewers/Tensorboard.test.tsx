@@ -47,28 +47,27 @@ describe('Tensorboard', () => {
     jest.resetAllMocks();
     jest.restoreAllMocks();
   });
-  
-  
+
   it('does not break on no config', () => {
-    Apis.getTensorboardApp = jest.fn(() => Promise.resolve(''))
+    Apis.getTensorboardApp = jest.fn(() => Promise.resolve(''));
     tree = shallow(<TensorboardViewer configs={[]} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('does not break on empty data', () => {
-    Apis.getTensorboardApp = jest.fn(() => Promise.resolve(''))
+    Apis.getTensorboardApp = jest.fn(() => Promise.resolve(''));
     const config = { type: PlotType.TENSORBOARD, url: '' };
     tree = shallow(<TensorboardViewer configs={[config]} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('does not break on empty data', () => {
-    Apis.getTensorboardApp = jest.fn(() => Promise.resolve(''))
+    Apis.getTensorboardApp = jest.fn(() => Promise.resolve(''));
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
     tree = shallow(<TensorboardViewer configs={[config]} />);
     expect(tree).toMatchSnapshot();
   });
-  
+
   it('shows a link to the tensorboard instance if exists', async () => {
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
     const mockGetApp = () => Promise.resolve('test/address');
@@ -77,7 +76,7 @@ describe('Tensorboard', () => {
     await mockGetApp;
     expect(tree).toMatchSnapshot();
   });
-  
+
   it('shows start button if no instance exists', async () => {
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
     const defaultVersion = '1.14.0';
@@ -88,10 +87,8 @@ describe('Tensorboard', () => {
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
     expect(spy).toHaveBeenCalledWith(config.url, defaultVersion);
-
-    
   });
-  
+
   it('starts tensorboard instance when button is clicked', async () => {
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
     const getAppMock = () => Promise.resolve('');
@@ -107,7 +104,6 @@ describe('Tensorboard', () => {
     expect(startAppMock).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', defaultVersion);
   });
 
-  
   it('starts tensorboard instance for two configs', async () => {
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
     const config2 = { type: PlotType.TENSORBOARD, url: 'http://test/url2' };
@@ -131,7 +127,6 @@ describe('Tensorboard', () => {
       `Series2${encodeURIComponent(':' + config2.url)}`;
     expect(startAppMock).toHaveBeenCalledWith(expectedUrl, defaultVersion);
   });
-  
 
   it('returns friendly display name', () => {
     expect(TensorboardViewer.prototype.getDisplayName()).toBe('Tensorboard');
@@ -141,12 +136,11 @@ describe('Tensorboard', () => {
     expect(TensorboardViewer.prototype.isAggregatable()).toBeTruthy();
   });
 
-
   it('select a version, then start a tensorboard of the corresponding version', async () => {
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
 
-    Apis.getTensorboardApp = jest.fn(() => Promise.resolve(''))
-    Apis.startTensorboardApp = jest.fn(() => Promise.resolve(''))
+    Apis.getTensorboardApp = jest.fn(() => Promise.resolve(''));
+    Apis.startTensorboardApp = jest.fn(() => Promise.resolve(''));
     tree = mount(<TensorboardViewer configs={[config]} />);
     await TestUtils.flushPromises();
 
@@ -172,14 +166,19 @@ describe('Tensorboard', () => {
     expect(!!tree.state('podAddress')).toBeTruthy();
 
     // delete a tensorboard
-    tree.update()
-    tree.find('#delete').find('Button').simulate('click');
+    tree.update();
+    tree
+      .find('#delete')
+      .find('Button')
+      .simulate('click');
     tree.find('BusyButton').simulate('click');
-    expect(Apis.deleteTensorboardApp).toHaveBeenCalledWith(encodeURIComponent('http://test/url'), tree.state('tensorflowVersion'));
+    expect(Apis.deleteTensorboardApp).toHaveBeenCalledWith(
+      encodeURIComponent('http://test/url'),
+      tree.state('tensorflowVersion'),
+    );
     await TestUtils.flushPromises();
-    tree.update()
+    tree.update();
     // the tree has returned to 'start tensorboard' page
-    expect(tree.findWhere(el => el.text() === 'Start Tensorboard').exists()).toBeTruthy()
+    expect(tree.findWhere(el => el.text() === 'Start Tensorboard').exists()).toBeTruthy();
   });
-  
 });

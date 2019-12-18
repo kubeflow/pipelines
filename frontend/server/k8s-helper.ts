@@ -118,7 +118,7 @@ export async function newTensorboardInstance(
       type: 'tensorboard',
       tensorboardSpec: {
         logDir: logdir,
-        tensorflowImage: 'tensorflow/tensorflow:'+tfversion
+        tensorflowImage: 'tensorflow/tensorflow:' + tfversion,
       },
       podTemplateSpec,
     },
@@ -158,7 +158,7 @@ export async function getTensorboardInstance(logdir: string, tfversion: string):
         viewer.body &&
         viewer.body.spec.tensorboardSpec.logDir == logdir &&
         viewer.body.spec.type == 'tensorboard' &&
-        viewer.body.spec.tensorboardSpec.tensorflowImage == 'tensorflow/tensorflow:'+tfversion
+        viewer.body.spec.tensorboardSpec.tensorflowImage == 'tensorflow/tensorflow:' + tfversion
           ? `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`
           : '',
       // No existing custom object with the given name, i.e., no existing
@@ -173,7 +173,6 @@ export async function getTensorboardInstance(logdir: string, tfversion: string):
  */
 
 export async function deleteTensorboardInstance(logdir: string, tfversion: string): Promise<void> {
-
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
@@ -182,19 +181,28 @@ export async function deleteTensorboardInstance(logdir: string, tfversion: strin
     return;
   }
 
-  const viewerName = getNameOfViewerResource(logdir, tfversion)
-  const deleteOption = new V1DeleteOptions()
+  const viewerName = getNameOfViewerResource(logdir, tfversion);
+  const deleteOption = new V1DeleteOptions();
 
-  await k8sV1CustomObjectClient.deleteNamespacedCustomObject(viewerGroup, viewerVersion, 
-    namespace, viewerPlural, viewerName, deleteOption);
+  await k8sV1CustomObjectClient.deleteNamespacedCustomObject(
+    viewerGroup,
+    viewerVersion,
+    namespace,
+    viewerPlural,
+    viewerName,
+    deleteOption,
+  );
 }
-
 
 /**
  * Polls every second for a running Tensorboard instance with the given logdir,
  * and returns the address of one if found, or rejects if a timeout expires.
  */
-export function waitForTensorboardInstance(logdir: string, tfversion: string, timeout: number): Promise<string> {
+export function waitForTensorboardInstance(
+  logdir: string,
+  tfversion: string,
+  timeout: number,
+): Promise<string> {
   const start = Date.now();
   return new Promise((resolve, reject) => {
     setInterval(async () => {
