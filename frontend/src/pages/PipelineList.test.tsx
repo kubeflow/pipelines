@@ -499,7 +499,7 @@ describe('PipelineList', () => {
     });
   });
 
-  it.only("delete a pipeline and some other pipeline's version together", async () => {
+  it("delete a pipeline and some other pipeline's version together", async () => {
     deletePipelineSpy.mockImplementation(() => Promise.resolve());
     deletePipelineVersionSpy.mockImplementation(() => Promise.resolve());
     listPipelineVersionsSpy.mockImplementation(() => ({
