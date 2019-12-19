@@ -70,7 +70,7 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:b63472062bd80737c7f39e0eda901db0fe23a5e0
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:a8fcec5f702fc2528c87ed6fd698b9cfca8b509e
     args: [
       kfp_component.google.dataproc, create_cluster,
       --project_id, {inputValue: project_id},
