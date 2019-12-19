@@ -31,7 +31,7 @@ exports[`Tensorboard does not break on empty data 1`] = `
               "minHeight": 40,
             }
           }
-          value="1.14.0"
+          value=""
         >
           <WithStyles(ListSubheader)>
             Tensoflow 1.x
@@ -109,127 +109,9 @@ exports[`Tensorboard does not break on empty data 1`] = `
     </div>
     <div>
       <BusyButton
-        busy={true}
+        busy={false}
         className="buttonAction"
-        onClick={[Function]}
-        title="Start Tensorboard"
-      />
-    </div>
-  </div>
-</div>
-`;
-
-exports[`Tensorboard does not break on empty data 2`] = `
-<div>
-  <div>
-    <div
-      className=""
-    >
-      <WithStyles(FormControl)
-        className="Launch Tensorboard"
-        style={
-          Object {
-            "minWidth": 120,
-          }
-        }
-      >
-        <WithStyles(WithFormControlContext(InputLabel))
-          htmlFor="grouped-select"
-        >
-          TF Version
-        </WithStyles(WithFormControlContext(InputLabel))>
-        <WithStyles(WithFormControlContext(Select))
-          input={
-            <WithStyles(Input)
-              id="grouped-select"
-            />
-          }
-          onChange={[Function]}
-          style={
-            Object {
-              "minHeight": 40,
-            }
-          }
-          value="1.14.0"
-        >
-          <WithStyles(ListSubheader)>
-            Tensoflow 1.x
-          </WithStyles(ListSubheader)>
-          <WithStyles(MenuItem)
-            value="1.4.0"
-          >
-            TensorFlow 1.4.0
-          </WithStyles(MenuItem)>
-          <WithStyles(MenuItem)
-            value="1.5.0"
-          >
-            TensorFlow 1.5.0
-          </WithStyles(MenuItem)>
-          <WithStyles(MenuItem)
-            value="1.6.0"
-          >
-            TensorFlow 1.6.0
-          </WithStyles(MenuItem)>
-          <WithStyles(MenuItem)
-            value="1.7.0"
-          >
-            TensorFlow 1.7.0
-          </WithStyles(MenuItem)>
-          <WithStyles(MenuItem)
-            value="1.8.0"
-          >
-            TensorFlow 1.8.0
-          </WithStyles(MenuItem)>
-          <WithStyles(MenuItem)
-            value="1.9.0"
-          >
-            TensorFlow 1.9.0
-          </WithStyles(MenuItem)>
-          <WithStyles(MenuItem)
-            value="1.10.0"
-          >
-            TensorFlow 1.10.0
-          </WithStyles(MenuItem)>
-          <WithStyles(MenuItem)
-            value="1.11.0"
-          >
-            TensorFlow 1.11.0
-          </WithStyles(MenuItem)>
-          <WithStyles(MenuItem)
-            value="1.12.0"
-          >
-            TensorFlow 1.12.0
-          </WithStyles(MenuItem)>
-          <WithStyles(MenuItem)
-            value="1.13.2"
-          >
-            TensorFlow 1.13.2
-          </WithStyles(MenuItem)>
-          <WithStyles(MenuItem)
-            value="1.14.0"
-          >
-            TensorFlow 1.14.0
-          </WithStyles(MenuItem)>
-          <WithStyles(MenuItem)
-            value="1.15.0"
-          >
-            TensorFlow 1.15.0
-          </WithStyles(MenuItem)>
-          <WithStyles(ListSubheader)>
-            TensorFlow 2.x
-          </WithStyles(ListSubheader)>
-          <WithStyles(MenuItem)
-            value="2.0.0"
-          >
-            TensorFlow 2.0.0
-          </WithStyles(MenuItem)>
-        </WithStyles(WithFormControlContext(Select))>
-      </WithStyles(FormControl)>
-    </div>
-    <div>
-      <BusyButton
-        busy={true}
-        className="buttonAction"
+        disabled={true}
         onClick={[Function]}
         title="Start Tensorboard"
       />
@@ -269,7 +151,7 @@ exports[`Tensorboard does not break on no config 1`] = `
               "minHeight": 40,
             }
           }
-          value="1.14.0"
+          value=""
         >
           <WithStyles(ListSubheader)>
             Tensoflow 1.x
@@ -347,8 +229,9 @@ exports[`Tensorboard does not break on no config 1`] = `
     </div>
     <div>
       <BusyButton
-        busy={true}
+        busy={false}
         className="buttonAction"
+        disabled={true}
         onClick={[Function]}
         title="Start Tensorboard"
       />
@@ -482,7 +365,7 @@ exports[`Tensorboard shows start button if no instance exists 1`] = `
               "minHeight": 40,
             }
           }
-          value="1.14.0"
+          value=""
         >
           <WithStyles(ListSubheader)>
             Tensoflow 1.x
@@ -562,6 +445,7 @@ exports[`Tensorboard shows start button if no instance exists 1`] = `
       <BusyButton
         busy={false}
         className="buttonAction"
+        disabled={true}
         onClick={[Function]}
         title="Start Tensorboard"
       />

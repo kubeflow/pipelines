@@ -55,7 +55,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       busy: false,
       deleteDialogOpen: false,
       podAddress: '',
-      tensorflowVersion: '1.14.0',
+      tensorflowVersion: '',
     };
   }
 
@@ -186,6 +186,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
             <div>
               <BusyButton
                 className={commonCss.buttonAction}
+                disabled={!this.state.tensorflowVersion}
                 onClick={this._startTensorboard.bind(this)}
                 busy={this.state.busy}
                 title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`}
@@ -212,11 +213,9 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
-      const podAddress = await Apis.getTensorboardApp(
-        this._buildUrl(),
-        this.state.tensorflowVersion,
-      );
-      this.setState({ busy: false, podAddress });
+      const tbaddress = await Apis.getTensorboardApp(this._buildUrl());
+      const tfversion = await Apis.getTensorboardVersion(this._buildUrl());
+      this.setState({ busy: false, podAddress: tbaddress, tensorflowVersion: tfversion });
     });
   }
 
@@ -240,7 +239,12 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
         encodeURIComponent(this._buildUrl()),
         encodeURIComponent(this.state.tensorflowVersion),
       );
-      this.setState({ busy: false, podAddress: '', deleteDialogOpen: false });
+      this.setState({
+        busy: false,
+        deleteDialogOpen: false,
+        podAddress: '',
+        tensorflowVersion: '',
+      });
     });
   }
 }

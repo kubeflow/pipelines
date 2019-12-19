@@ -85,7 +85,7 @@ if (isInCluster) {
   k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
 }
 
-function getNameOfViewerResource(logdir: string, tfversion: string): string {
+function getNameOfViewerResource(logdir: string): string {
   // TODO: find some hash function with shorter resulting message.
   return 'viewer-' + crypto.SHA1(logdir);
 }
@@ -102,7 +102,7 @@ export async function newTensorboardInstance(
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
-  const currentPod = await getTensorboardInstance(logdir, tfversion);
+  const currentPod = await getTensorboardInstance(logdir);
   if (currentPod) {
     return;
   }
@@ -111,7 +111,7 @@ export async function newTensorboardInstance(
     apiVersion: viewerGroup + '/' + viewerVersion,
     kind: 'Viewer',
     metadata: {
-      name: getNameOfViewerResource(logdir, tfversion),
+      name: getNameOfViewerResource(logdir),
       namespace: namespace,
     },
     spec: {
@@ -136,7 +136,7 @@ export async function newTensorboardInstance(
  * Finds a running Tensorboard instance created via CRD with the given logdir
  * and returns its dns address.
  */
-export async function getTensorboardInstance(logdir: string, tfversion: string): Promise<string> {
+export async function getTensorboardInstance(logdir: string): Promise<string> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
@@ -147,7 +147,7 @@ export async function getTensorboardInstance(logdir: string, tfversion: string):
       viewerVersion,
       namespace,
       viewerPlural,
-      getNameOfViewerResource(logdir, tfversion),
+      getNameOfViewerResource(logdir),
     )
     .then(
       // Viewer CRD pod has tensorboard instance running at port 6006 while
@@ -157,10 +157,45 @@ export async function getTensorboardInstance(logdir: string, tfversion: string):
         viewer &&
         viewer.body &&
         viewer.body.spec.tensorboardSpec.logDir == logdir &&
-        viewer.body.spec.type == 'tensorboard' &&
-        viewer.body.spec.tensorboardSpec.tensorflowImage == 'tensorflow/tensorflow:' + tfversion
+        viewer.body.spec.type == 'tensorboard'
           ? `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`
           : '',
+      // No existing custom object with the given name, i.e., no existing
+      // tensorboard instance.
+      (error: any) => '',
+    );
+}
+
+/**
+ * Finds a running Tensorboard instance created via CRD with the given logdir
+ * and returns its version.
+ */
+export async function getTensorboardInstanceVersion(logdir: string): Promise<string> {
+  if (!k8sV1CustomObjectClient) {
+    throw new Error('Cannot access kubernetes Custom Object API');
+  }
+
+  return await k8sV1CustomObjectClient
+    .getNamespacedCustomObject(
+      viewerGroup,
+      viewerVersion,
+      namespace,
+      viewerPlural,
+      getNameOfViewerResource(logdir),
+    )
+    .then(
+      // Viewer CRD pod has tensorboard instance running at port 6006 while
+      // viewer CRD service has tensorboard instance running at port 80. Since
+      // we return service address here (instead of pod address), so use 80.
+      (viewer: any) => {
+        return viewer &&
+          viewer.body &&
+          viewer.body.spec.tensorboardSpec.logDir == logdir &&
+          viewer.body.spec.type == 'tensorboard' &&
+          viewer.body.spec.tensorboardSpec.tensorflowImage
+          ? viewer.body.spec.tensorboardSpec.tensorflowImage.replace('tensorflow/tensorflow:', '')
+          : ''; // default version(also the only version choice in previous kfp)
+      },
       // No existing custom object with the given name, i.e., no existing
       // tensorboard instance.
       (error: any) => '',
@@ -176,12 +211,12 @@ export async function deleteTensorboardInstance(logdir: string, tfversion: strin
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
-  const currentPod = await getTensorboardInstance(logdir, tfversion);
+  const currentPod = await getTensorboardInstance(logdir);
   if (!currentPod) {
     return;
   }
 
-  const viewerName = getNameOfViewerResource(logdir, tfversion);
+  const viewerName = getNameOfViewerResource(logdir);
   const deleteOption = new V1DeleteOptions();
 
   await k8sV1CustomObjectClient.deleteNamespacedCustomObject(
@@ -209,7 +244,7 @@ export function waitForTensorboardInstance(
       if (Date.now() - start > timeout) {
         reject('Timed out waiting for tensorboard');
       }
-      const tensorboardAddress = await getTensorboardInstance(logdir, tfversion);
+      const tensorboardAddress = await getTensorboardInstance(logdir);
       if (tensorboardAddress) {
         resolve(encodeURIComponent(tensorboardAddress));
       }
