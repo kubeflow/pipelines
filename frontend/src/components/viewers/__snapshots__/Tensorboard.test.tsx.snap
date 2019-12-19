@@ -306,6 +306,7 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
           <WithStyles(Button)
             autoFocus={true}
             color="primary"
+            id="cancel"
             onClick={[Function]}
             style={
               Object {
@@ -319,6 +320,7 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
             busy={false}
             className="buttonAction"
             color="primary"
+            id="confirm"
             onClick={[Function]}
             style={
               Object {

@@ -131,6 +131,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 </DialogContent>
                 <DialogActions>
                   <Button
+                    id={'cancel'}
                     autoFocus={true}
                     onClick={this._handleDeleteClose.bind(this)}
                     style={{ width: 50 }}
@@ -139,6 +140,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                     Cancel
                   </Button>
                   <BusyButton
+                    id={'confirm'}
                     className={commonCss.buttonAction}
                     onClick={this._deleteTensorboard.bind(this)}
                     busy={this.state.busy}

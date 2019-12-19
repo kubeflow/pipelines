@@ -163,9 +163,39 @@ describe('Tensorboard', () => {
     expect(tree.findWhere(el => el.text() === 'Start Tensorboard').exists()).toBeTruthy();
   });
 
-  /*
   it('show version info in delete confirming dialog, \
-  if a tensorboard instance already exists', async () => {
-    
-});*/
+    if a tensorboard instance already exists', async () => {
+    Apis.getTensorboardApp = jest.fn(() => Promise.resolve('podaddress'));
+    Apis.getTensorboardVersion = jest.fn(() => Promise.resolve('1.14.0'));
+    const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
+    tree = mount(<TensorboardViewer configs={[config]} />);
+    await TestUtils.flushPromises();
+    tree.update();
+    tree
+      .find('#delete')
+      .find('Button')
+      .simulate('click');
+    expect(tree.findWhere(el => el.text() === 'Stop Tensorboard 1.14.0?').exists()).toBeTruthy();
+  });
+
+  it('click on cancel on delete tensorboard dialog, then return back to previous page', async () => {
+    Apis.getTensorboardApp = jest.fn(() => Promise.resolve('podaddress'));
+    Apis.getTensorboardVersion = jest.fn(() => Promise.resolve('1.14.0'));
+    const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
+    tree = mount(<TensorboardViewer configs={[config]} />);
+    await TestUtils.flushPromises();
+    tree.update();
+    tree
+      .find('#delete')
+      .find('Button')
+      .simulate('click');
+
+    tree
+      .find('#cancel')
+      .find('Button')
+      .simulate('click');
+    tree.update();
+    expect(tree.findWhere(el => el.text() === 'Open Tensorboard').exists()).toBeTruthy();
+    expect(tree.findWhere(el => el.text() === 'Delete Tensorboard').exists()).toBeTruthy();
+  });
 });
