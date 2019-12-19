@@ -27,7 +27,10 @@ def main():
         description='Launch a python module or file.')
     parser.add_argument('file_or_module', type=str,
         help='Either a python file path or a module name.')
-    parser.add_argument('--ui-metadata-path', type=str,
+    parser.add_argument(
+        '--ui-metadata-path',
+        type=str,
+        default='/mlpipeline-ui-metadata.json',
         help='Path for the file where the mlpipeline-ui-metadata.json data should be written.')
     parser.add_argument('args', nargs=argparse.REMAINDER)
     args = parser.parse_args()
