@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import fetch from 'node-fetch';
-import { thresholdScott } from 'd3';
 
 /** IAWSMetadataCredentials describes the credentials provided by aws metadata store. */
 export interface IAWSMetadataCredentials {

@@ -11,8 +11,20 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { UIServer } from './app';
-import { loadConfigs } from './configs';
+import { Handler } from 'express';
+import fetch from 'node-fetch';
 
-const app = new UIServer(loadConfigs(process.argv, process.env));
-app.start();
+export const clusterNameHandler: Handler = async (_, res) => {
+  const response = await fetch(
+    'http://metadata/computeMetadata/v1/instance/attributes/cluster-name',
+    { headers: { 'Metadata-Flavor': 'Google' } },
+  );
+  res.send(await response.text());
+};
+
+export const projectIdHandler: Handler = async (_, res) => {
+  const response = await fetch('http://metadata/computeMetadata/v1/project/project-id', {
+    headers: { 'Metadata-Flavor': 'Google' },
+  });
+  res.send(await response.text());
+};

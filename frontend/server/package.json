@@ -18,12 +18,23 @@
     "@types/jest": "^24.0.23",
     "@types/minio": "^7.0.3",
     "@types/node-fetch": "^2.1.2",
+    "@types/supertest": "^2.0.8",
+    "@types/tmp": "^0.1.0",
     "jest": "^24.9.0",
+    "supertest": "^4.0.2",
+    "tmp": "^0.1.0",
     "ts-jest": "^24.2.0",
-    "typescript": "3.3.1"
+    "tslint": "^5.20.1",
+    "typescript": "^3.6.4"
   },
   "scripts": {
-    "build": "tsc --lib es2015 --outDir ./dist --typeRoots ./node_modules/@types *.ts"
+    "build": "tsc --lib es2015 --outDir ./dist --typeRoots ./node_modules/@types *.ts",
+    "format": "npx prettier --write './**/*.{ts,tsx}'",
+    "format:check": "npx prettier --check './**/*.{ts,tsx}' || node ../scripts/check-format-error-info.js",
+    "lint": "npx tslint -c ../tslint.prod.json -p ../tsconfig.prod.json",
+    "test": "npx jest",
+    "test:coverage": "npm test -- --coverage",
+    "test:ci": "npm run format:check && npm run lint && npm run test:coverage"
   },
   "jest": {
     "preset": "ts-jest",

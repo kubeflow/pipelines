@@ -131,13 +131,14 @@ export class PodLogsHandler {
   }
 
   setFallbackHandler(minioOptions: MinioClientOptions, bucket: string, prefix: string) {
-    const client = createMinioClient(minioOptions);
     this.fromConfig = async function(podName: string): Promise<IMinioRequestConfig> {
+      // create a new client each time to ensure session token has not expired
+      const client = await createMinioClient(minioOptions);
       const workflowName = workflowNameFromPodName(podName);
       return {
         bucket,
         key: `${prefix}/${workflowName}/${podName}/main.log`,
-        client: await client,
+        client,
       };
     };
     return this;

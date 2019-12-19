@@ -47,7 +47,6 @@ export async function createMinioClient(config: IMinioClientOptionsWithOptionalS
       console.error('unable to get credentials from AWS metadata store.');
     }
   }
-
   return new MinioClient(config as MinioClientOptions);
 }
 
