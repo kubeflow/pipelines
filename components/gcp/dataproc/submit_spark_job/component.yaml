@@ -87,10 +87,10 @@ implementation:
       --args, {inputValue: args},
       --spark_job, {inputValue: spark_job},
       --job, {inputValue: job},
-      --wait_interval, {inputValue: wait_interval},
-      --ui-metadata-path, {outputPath: MLPipeline UI metadata},
+      --wait_interval, {inputValue: wait_interval}
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       job_id: /tmp/kfp/output/dataproc/job_id.txt
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json
