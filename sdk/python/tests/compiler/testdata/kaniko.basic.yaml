@@ -32,13 +32,3 @@ spec:
                 "--destination=gcr.io/mlpipeline/kaniko_image:latest",
                 "--digest-file=/dev/termination-log",
     ]
-    env:
-    - name: GOOGLE_APPLICATION_CREDENTIALS
-      value: /secret/gcp-credentials/user-gcp-sa.json
-    volumeMounts:
-    - mountPath: /secret/gcp-credentials
-      name: gcp-credentials
-  volumes:
-  - name: gcp-credentials
-    secret:
-      secretName: user-gcp-sa

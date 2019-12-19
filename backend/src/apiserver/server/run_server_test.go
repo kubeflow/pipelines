@@ -7,9 +7,12 @@ import (
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestCreateRun(t *testing.T) {
@@ -317,4 +320,70 @@ func TestReportRunMetrics_PartialFailures(t *testing.T) {
 		result.Message = ""
 	}
 	assert.Equal(t, expectedResponse, response)
+}
+
+func TestCanAccessRun_Unauthorized(t *testing.T) {
+	clients, manager, experiment := initWithExperiment_KFAM_Unauthorized(t)
+	defer clients.Close()
+	runServer := RunServer{resourceManager: manager}
+	viper.Set(common.MultiUserMode, "true")
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns"},
+				Relationship: api.Relationship_OWNER,
+			},
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	runDetail, _ := manager.CreateRun(apiRun)
+
+	err := runServer.canAccessRun(ctx, runDetail.UUID)
+	assert.NotNil(t, err)
+}
+
+func TestCanAccessRun_Authorized(t *testing.T) {
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	runServer := RunServer{resourceManager: manager}
+	viper.Set(common.MultiUserMode, "true")
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns"},
+				Relationship: api.Relationship_OWNER,
+			},
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	runDetail, _ := manager.CreateRun(apiRun)
+
+	err := runServer.canAccessRun(ctx, runDetail.UUID)
+	assert.Nil(t, err)
 }
