@@ -81,7 +81,7 @@
       - |-
         /ml/confusion_matrix.py
       "image": |-
-        gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:9670cc1aadfbbed9c52b84ea859ea97aa81213ad
+        gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:90b701d9ec2ce5e5b217896a42232ab75fb4df64
     "inputs":
       "parameters":
       - "name": |-
@@ -160,7 +160,7 @@
             "fieldPath": |-
               metadata.namespace
       "image": |-
-        gcr.io/ml-pipeline/ml-pipeline-gcp:9670cc1aadfbbed9c52b84ea859ea97aa81213ad
+        gcr.io/ml-pipeline/ml-pipeline-gcp:90b701d9ec2ce5e5b217896a42232ab75fb4df64
     "inputs":
       "parameters":
       - "name": |-
@@ -229,7 +229,7 @@
             "fieldPath": |-
               metadata.namespace
       "image": |-
-        gcr.io/ml-pipeline/ml-pipeline-gcp:9670cc1aadfbbed9c52b84ea859ea97aa81213ad
+        gcr.io/ml-pipeline/ml-pipeline-gcp:90b701d9ec2ce5e5b217896a42232ab75fb4df64
     "inputs":
       "parameters":
       - "name": |-
@@ -302,7 +302,7 @@
             "fieldPath": |-
               metadata.namespace
       "image": |-
-        gcr.io/ml-pipeline/ml-pipeline-gcp:9670cc1aadfbbed9c52b84ea859ea97aa81213ad
+        gcr.io/ml-pipeline/ml-pipeline-gcp:90b701d9ec2ce5e5b217896a42232ab75fb4df64
     "inputs":
       "parameters":
       - "name": |-
@@ -393,7 +393,7 @@
             "fieldPath": |-
               metadata.namespace
       "image": |-
-        gcr.io/ml-pipeline/ml-pipeline-gcp:9670cc1aadfbbed9c52b84ea859ea97aa81213ad
+        gcr.io/ml-pipeline/ml-pipeline-gcp:90b701d9ec2ce5e5b217896a42232ab75fb4df64
     "inputs":
       "parameters":
       - "name": |-
@@ -490,7 +490,7 @@
             "fieldPath": |-
               metadata.namespace
       "image": |-
-        gcr.io/ml-pipeline/ml-pipeline-gcp:9670cc1aadfbbed9c52b84ea859ea97aa81213ad
+        gcr.io/ml-pipeline/ml-pipeline-gcp:90b701d9ec2ce5e5b217896a42232ab75fb4df64
     "inputs":
       "parameters":
       - "name": |-
@@ -587,7 +587,7 @@
             "fieldPath": |-
               metadata.namespace
       "image": |-
-        gcr.io/ml-pipeline/ml-pipeline-gcp:9670cc1aadfbbed9c52b84ea859ea97aa81213ad
+        gcr.io/ml-pipeline/ml-pipeline-gcp:90b701d9ec2ce5e5b217896a42232ab75fb4df64
     "inputs":
       "parameters":
       - "name": |-
@@ -860,7 +860,7 @@
       - |-
         /ml/roc.py
       "image": |-
-        gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:9670cc1aadfbbed9c52b84ea859ea97aa81213ad
+        gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:90b701d9ec2ce5e5b217896a42232ab75fb4df64
     "inputs":
       "parameters":
       - "name": |-
