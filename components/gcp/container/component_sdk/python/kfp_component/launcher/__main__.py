@@ -31,7 +31,8 @@ def main():
         '--ui-metadata-path',
         type=str,
         default='/mlpipeline-ui-metadata.json',
-        help='Path for the file where the mlpipeline-ui-metadata.json data should be written.')
+        help='Path for the file where the mlpipeline-ui-metadata.json data '
+             'should be written.')
     parser.add_argument('args', nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
