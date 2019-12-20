@@ -34,7 +34,6 @@ import (
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -56,7 +55,7 @@ type ClientManagerInterface interface {
 	ObjectStore() storage.ObjectStoreInterface
 	ArgoClient() client.ArgoClientInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
-	PodClient() corev1.PodInterface
+	KubernetesCoreClient() client.KubernetesCoreInterface
 	KFAMClient() client.KFAMClientInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
@@ -73,7 +72,7 @@ type ResourceManager struct {
 	objectStore             storage.ObjectStoreInterface
 	argoClient              client.ArgoClientInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
-	podClient               corev1.PodInterface
+	k8sCoreClient           client.KubernetesCoreInterface
 	kfamClient              client.KFAMClientInterface
 	time                    util.TimeInterface
 	uuid                    util.UUIDGeneratorInterface
@@ -91,7 +90,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		objectStore:             clientManager.ObjectStore(),
 		argoClient:              clientManager.ArgoClient(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		podClient:               clientManager.PodClient(),
+		k8sCoreClient:           clientManager.KubernetesCoreClient(),
 		kfamClient:              clientManager.KFAMClient(),
 		time:                    clientManager.Time(),
 		uuid:                    clientManager.UUID(),
@@ -423,6 +422,10 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	if err != nil {
 		return util.Wrap(err, "Retry run failed")
 	}
+	namespace, err := r.GetNamespaceFromRunID(runId)
+	if err != nil {
+		return util.Wrap(err, "Retry run failed")
+	}
 
 	if runDetail.WorkflowRuntimeManifest == "" {
 		return util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry")
@@ -437,16 +440,16 @@ func (r *ResourceManager) RetryRun(runId string) error {
 		return util.Wrap(err, "Retry run failed.")
 	}
 
-	if err = deletePods(r.podClient, podsToDelete); err != nil {
+	if err = deletePods(r.k8sCoreClient, podsToDelete, namespace); err != nil {
 		return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
 	}
 
 	// First try to update workflow
-	updateError := r.updateWorkflow(newWorkflow)
+	updateError := r.updateWorkflow(newWorkflow, namespace)
 	if updateError != nil {
 		// Remove resource version
 		newWorkflow.ResourceVersion = ""
-		newCreatedWorkflow, createError := r.getWorkflowClient("").Create(newWorkflow.Workflow)
+		newCreatedWorkflow, createError := r.getWorkflowClient(namespace).Create(newWorkflow.Workflow)
 		if createError != nil {
 			return util.NewInternalServerError(createError,
 				"Retry run failed. Failed to create or update the run. Update Error: %s, Create Error: %s",
@@ -461,15 +464,15 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	return nil
 }
 
-func (r *ResourceManager) updateWorkflow(newWorkflow *util.Workflow) error {
+func (r *ResourceManager) updateWorkflow(newWorkflow *util.Workflow, namespace string) error {
 	// If fail to get the workflow, return error.
-	latestWorkflow, err := r.getWorkflowClient("").Get(newWorkflow.Name, v1.GetOptions{})
+	latestWorkflow, err := r.getWorkflowClient(namespace).Get(newWorkflow.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	// Update the workflow's resource version to latest.
 	newWorkflow.ResourceVersion = latestWorkflow.ResourceVersion
-	_, err = r.getWorkflowClient("").Update(newWorkflow.Workflow)
+	_, err = r.getWorkflowClient(namespace).Update(newWorkflow.Workflow)
 	return err
 }
 

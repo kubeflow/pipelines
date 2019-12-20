@@ -20,11 +20,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -67,7 +65,7 @@ type ClientManager struct {
 	objectStore            storage.ObjectStoreInterface
 	argoClient             client.ArgoClientInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
-	podClient              v1.PodInterface
+	k8sCoreClient          client.KubernetesCoreInterface
 	kfamClient             client.KFAMClientInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
@@ -113,8 +111,8 @@ func (c *ClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWor
 	return c.swfClient
 }
 
-func (c *ClientManager) PodClient() v1.PodInterface {
-	return c.podClient
+func (c *ClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
+	return c.k8sCoreClient
 }
 
 func (c *ClientManager) KFAMClient() client.KFAMClientInterface {
@@ -153,8 +151,7 @@ func (c *ClientManager) init() {
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
 		common.GetStringConfig(client.PodNamespace), common.GetDurationConfig(initConnectionTimeout))
 
-	c.podClient = client.CreatePodClientOrFatal(
-		common.GetStringConfig(client.PodNamespace), common.GetDurationConfig(initConnectionTimeout))
+	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
