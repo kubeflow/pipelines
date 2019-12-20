@@ -351,7 +351,11 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 	if err != nil {
 		return util.Wrap(err, "Delete run failed")
 	}
-	err = r.getWorkflowClient("").Delete(runDetail.Name, &v1.DeleteOptions{})
+	namespace, err := r.GetNamespaceFromRunID(runID)
+	if err != nil {
+		return util.Wrap(err, "Delete run failed")
+	}
+	err = r.getWorkflowClient(namespace).Delete(runDetail.Name, &v1.DeleteOptions{})
 	if err != nil {
 		// API won't need to delete the workflow CRD
 		// once persistent agent sync the state to DB and set TTL for it.
@@ -397,12 +401,17 @@ func (r *ResourceManager) TerminateRun(runId string) error {
 		return util.Wrap(err, "Terminate run failed")
 	}
 
+	namespace, err := r.GetNamespaceFromRunID(runId)
+	if err != nil {
+		return util.Wrap(err, "Terminate run failed")
+	}
+
 	err = r.runStore.TerminateRun(runId)
 	if err != nil {
 		return util.Wrap(err, "Terminate run failed")
 	}
 
-	err = TerminateWorkflow(r.getWorkflowClient(""), runDetail.Run.Name)
+	err = TerminateWorkflow(r.getWorkflowClient(namespace), runDetail.Run.Name)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to terminate the run")
 	}
@@ -970,4 +979,13 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 
 func (r *ResourceManager) IsRequestAuthorized(userIdentity string, namespace string) (bool, error) {
 	return r.kfamClient.IsAuthorized(userIdentity, namespace)
+}
+
+func (r *ResourceManager) GetNamespaceFromRunID(runId string) (string, error) {
+	runDetail, err := r.GetRun(runId)
+	if err != nil {
+		return "", util.Wrap(err, "Failed to get namespace from run id.")
+	}
+	namespace := model.GetNamespaceFromModelResourceReferences(runDetail.ResourceReferences)
+	return namespace, nil
 }
