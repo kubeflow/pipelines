@@ -258,15 +258,12 @@ export class Apis {
   /**
    * Gets the address (IP + port) of a Tensorboard service given the logdir and tfversion
    */
-  public static getTensorboardApp(logdir: string): Promise<string> {
-    return this._fetch(`apps/tensorboard?logdir=${encodeURIComponent(logdir)}`);
-  }
-
-  /**
-   * Gets the tensorflow image version of a Tensorboard instance given the logdir
-   */
-  public static getTensorboardVersion(logdir: string): Promise<string> {
-    return this._fetch(`apps/tensorboardversion?logdir=${encodeURIComponent(logdir)}`);
+  public static getTensorboardApp(
+    logdir: string,
+  ): Promise<{ podAddress: string; tfVersion: string }> {
+    return this._fetchAndParse<{ podAddress: string; tfVersion: string }>(
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
+    );
   }
 
   /**

@@ -215,8 +215,9 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
-      const tbaddress = await Apis.getTensorboardApp(this._buildUrl());
-      const tfversion = await Apis.getTensorboardVersion(this._buildUrl());
+      const tensorboardInstance = await Apis.getTensorboardApp(this._buildUrl());
+      const tbaddress = tensorboardInstance.podAddress;
+      const tfversion = tensorboardInstance.tfVersion;
       this.setState({ busy: false, podAddress: tbaddress, tensorflowVersion: tfversion });
     });
   }

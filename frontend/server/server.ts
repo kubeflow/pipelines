@@ -327,11 +327,7 @@ const createTensorboardHandler = async (req, res) => {
 
   try {
     await k8sHelper.newTensorboardInstance(logdir, tfversion, podTemplateSpec);
-    const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(
-      logdir,
-      tfversion,
-      60 * 1000,
-    );
+    const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(logdir, 60 * 1000);
     res.send(tensorboardAddress);
   } catch (err) {
     res.status(500).send('Failed to start Tensorboard app: ' + JSON.stringify(err));
@@ -351,23 +347,6 @@ const deleteTensorboardHandler = async (req, res) => {
     res.send('Tensorboard deleted.');
   } catch (err) {
     res.status(500).send('Failed to delete Tensorboard app: ' + JSON.stringify(err));
-  }
-};
-
-const getTensorboardVersionHandler = async (req, res) => {
-  if (!k8sHelper.isInCluster) {
-    res.status(500).send('Cannot talk to Kubernetes master');
-    return;
-  }
-  const logdir = decodeURIComponent(req.query.logdir);
-  if (!logdir) {
-    res.status(404).send('logdir argument is required');
-    return;
-  }
-  try {
-    res.send(await k8sHelper.getTensorboardInstanceVersion(logdir));
-  } catch (err) {
-    res.status(500).send('Failed to get tensorboard version: ' + JSON.stringify(err));
   }
 };
 
@@ -420,9 +399,6 @@ app.get(BASEPATH + '/artifacts/get', artifactsHandler);
 
 app.get('/apps/tensorboard', getTensorboardHandler);
 app.get(BASEPATH + '/apps/tensorboard', getTensorboardHandler);
-
-app.get('/apps/tensorboardversion', getTensorboardVersionHandler);
-app.get(BASEPATH + '/apps/tensorboardversion', getTensorboardVersionHandler);
 
 app.post('/apps/tensorboard', createTensorboardHandler);
 app.post(BASEPATH + '/apps/tensorboard', createTensorboardHandler);

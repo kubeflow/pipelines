@@ -109,19 +109,13 @@ describe('Apis', () => {
   });
 
   it('getTensorboardApp', async () => {
-    const spy = fetchSpy('http://some/address');
-    expect(await Apis.getTensorboardApp('gs://log/dir')).toEqual('http://some/address');
+    const spy = fetchSpy(
+      JSON.stringify({ podAddress: 'http://some/address', tfVersion: '1.14.0' }),
+    );
+    const tensorboardInstance = await Apis.getTensorboardApp('gs://log/dir');
+    expect(tensorboardInstance).toEqual({ podAddress: 'http://some/address', tfVersion: '1.14.0' });
     expect(spy).toHaveBeenCalledWith(
       'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir'),
-      { credentials: 'same-origin' },
-    );
-  });
-
-  it('getTensorboardVersion', async () => {
-    const spy = fetchSpy('http://some/address');
-    expect(await Apis.getTensorboardVersion('gs://log/dir')).toEqual('http://some/address');
-    expect(spy).toHaveBeenCalledWith(
-      'apps/tensorboardversion?logdir=' + encodeURIComponent('gs://log/dir'),
       { credentials: 'same-origin' },
     );
   });
