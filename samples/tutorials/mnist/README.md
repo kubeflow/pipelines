@@ -16,8 +16,8 @@ for data preprocessing, data transformation, model training, and so on.
 In this tutorial, we designed a series of notebooks to demonstrate how to interact with `Kubeflow Pipelines` through
 [Python SDK](https://github.com/kubeflow/pipelines/tree/master/sdk/python/kfp). In particular
 - [00 Kubeflow Cluster Setup](00_Kubeflow_Cluster_Setup.ipynb): this notebook helps you deploy a Kubeflow 
-cluster through CLI. The [UI](https://www.kubeflow.org/docs/gke/deploy/deploy-ui/) method of deploying a Kubeflow 
-cluster does not support Kubeflow v0.7 yet.
+cluster through CLI. Note that it is also possible to deploy the Kubeflow cluster though 
+[UI](https://www.kubeflow.org/docs/gke/deploy/deploy-ui/)
 
 Then, notebooks 01-04 use one concrete use case, i.e., 
 [MNIST classification](https://www.tensorflow.org/tutorials/quickstart/beginner), to demonstrate different ways of
@@ -42,7 +42,7 @@ creating and using a component.
 - [04 Reusable and Pre-build Components as Pipeline](04_Reusable_and_Pre-build_Components_as_Pipeline.ipynb): this 
 notebook combines our built components, together with a pre-build GCP AI Platform components 
 and a lightweight component to compose a pipeline with three steps.
-    - Train a MINIST model and export it to GCS
+    - Train a MNIST model and export it to GCS
     - Deploy the exported Tensorflow model on AI Platform prediction service
     - Test the deployment by calling the end point with test data
 
@@ -64,15 +64,12 @@ for the project and with the following APIs enabled:
 - have installed and setup [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - have installed [gcloud-sdk](https://cloud.google.com/sdk/)
 
-### Setup Environment
-* Deploy a kubeflow cluster through [CLI](https://www.kubeflow.org/docs/gke/deploy/deploy-cli/)
-    - Download and install kfctl
-    - Create user credentials
-    - Setup environment variables
-    - `NOTE` : The [UI](https://www.kubeflow.org/docs/gke/deploy/deploy-ui/) method of deploying a Kubeflow 
-    cluster does not support Kubeflow v0.7 yet
-
-* Create service account
+### Setup Environment and Deploy Kubeflow Cluster
+#### Setup Environment
+* Download kfctl
+* Create user credentials
+* Setup environment variables
+* Create dedicated service account for deployment
 ```bash
 export SA_NAME = [service account name]
 gcloud iam service-accounts create ${SA_NAME}
@@ -81,6 +78,15 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
     --role 'roles/owner'
 gcloud iam service-accounts keys create ~/key.json \
     --iam-account ${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com
+export GOOGLE_APPLICATION_CREDENTIALS=~/key.json
+```
+
+#### Deploy Kubeflow Cluster
+* Deploy kubeflow
+```bash
+mkdir -p ${KF_DIR}
+cd $kf_dir
+kfctl apply -V -f ${CONFIG_URI}
 ```
 
 * Install the lastest version of kfp
@@ -88,20 +94,14 @@ gcloud iam service-accounts keys create ~/key.json \
 pip3 install kfp --upgrade --user
 ```
 
-* Deploy kubefow
-```bash
-mkdir -p ${KF_DIR}
-cd $kf_dir
-kfctl apply -V -f ${CONFIG_URI}
-```
-### Running Notebook
-Please not that the above configuration is required for notebook service running outside Kubeflow environment. 
+## Running Notebook
+Please note that the above configuration is required for notebook service running outside Kubeflow environment. 
 And the examples demonstrated are fully tested on notebook service for the following three situations:
 - Notebook running on your personal computer
-- Notebook on AI Platform, Google Cloud Platform
-- Essentially notebook on any environment outside Kubeflow cluster
+- [Notebook on AI Platform, Google Cloud Platform](https://cloud.google.com/ai-platform-notebooks/)
+- [Notebook running inside Kubeflow cluster](https://www.kubeflow.org/docs/components/jupyter/)
  
-For notebook running inside Kubeflow cluster, for example JupytHub will be deployed together with kubeflow, the 
+For notebook running inside Kubeflow cluster, for example JupyterHub will be deployed together with Kubeflow, the 
 environemt variables, e.g. service account, projects and etc, should have been pre-configured while 
 setting up the cluster.
 
