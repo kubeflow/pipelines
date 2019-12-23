@@ -82,7 +82,7 @@ class AWSInstanceProfileCredentials {
 
   async _fetchCredentials(): Promise<IAWSMetadataCredentials | undefined> {
     try {
-      const resp = await fetch(`${metadataUrl}/iam/security-credentials/${this.profile()}`);
+      const resp = await fetch(`${metadataUrl}/iam/security-credentials/${await this.profile()}`);
       return resp.json();
     } catch (error) {
       console.error(`Unable to fetch credentials from AWS metadata store: ${error}`);

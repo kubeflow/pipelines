@@ -20,8 +20,8 @@ jest.mock('./aws-helper');
 const MockedMinioClient: jest.Mock = MinioClient as any;
 
 describe('createMinioClient', () => {
-  afterEach(() => {
-    MockedMinioClient.mockClear();
+  beforeEach(() => {
+    (MinioClient as any).mockClear();
     (awsInstanceProfileCredentials.getCredentials as jest.Mock).mockClear();
     (awsInstanceProfileCredentials.ok as jest.Mock).mockClear();
   });
