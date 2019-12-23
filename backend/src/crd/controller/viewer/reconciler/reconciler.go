@@ -182,7 +182,7 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 		// "--bind_all",
 	}
 
-	if strings.HasPrefix(view.Spec.TensorboardSpec.TensorflowImage, `tensorflow/tensorflow:2.`) {
+	if !strings.HasPrefix(view.Spec.TensorboardSpec.TensorflowImage, `tensorflow/tensorflow:1.`) {
 		c.Args = append(c.Args, "--bind_all")
 	}
 
