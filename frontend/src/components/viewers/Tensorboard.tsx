@@ -38,11 +38,11 @@ export const css = stylesheet({
     marginBottom: 20,
     width: 150,
   },
-  shortButton: {
-    width: 50,
-  },
   formControl: {
     minWidth: 120,
+  },
+  shortButton: {
+    width: 50,
   },
   select: {
     minHeight: 50,
