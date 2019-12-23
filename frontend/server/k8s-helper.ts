@@ -184,7 +184,7 @@ export async function getTensorboardInstance(
  * and returns the deleted podAddress
  */
 
-export async function deleteTensorboardInstance(logdir: string, tfversion: string): Promise<void> {
+export async function deleteTensorboardInstance(logdir: string): Promise<void> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }

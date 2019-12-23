@@ -135,9 +135,9 @@ describe('Apis', () => {
 
   it('deleteTensorboardApp', async () => {
     const spy = fetchSpy('http://some/address');
-    await Apis.deleteTensorboardApp('gs://log/dir', '1.14.0');
+    await Apis.deleteTensorboardApp('gs://log/dir');
     expect(spy).toHaveBeenCalledWith(
-      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir') + '&tfversion=1.14.0',
+      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir'),
       {
         credentials: 'same-origin',
         method: 'DELETE',

@@ -22,6 +22,8 @@ import { PlotType } from './Viewer';
 import { ReactWrapper, ShallowWrapper, shallow, mount } from 'enzyme';
 
 describe('Tensorboard', () => {
+  const snapshotDiff = require('snapshot-diff');
+
   let tree: ReactWrapper | ShallowWrapper;
   beforeEach(() => {
     jest.clearAllMocks();
@@ -37,19 +39,30 @@ describe('Tensorboard', () => {
     jest.restoreAllMocks();
   });
 
-  it('does not break on no config', async () => {
+  it('base component snapshot', async () => {
     Apis.getTensorboardApp = jest.fn(() => Promise.resolve({ podAddress: '', tfVersion: '' }));
     tree = shallow(<TensorboardViewer configs={[]} />);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
+  it('does not break on no config', async () => {
+    Apis.getTensorboardApp = jest.fn(() => Promise.resolve({ podAddress: '', tfVersion: '' }));
+    tree = shallow(<TensorboardViewer configs={[]} />);
+    const initialHtml = tree.debug();
+
+    await TestUtils.flushPromises();
+    expect(snapshotDiff(tree.debug(), initialHtml)).toMatchSnapshot();
+  });
+
   it('does not break on empty data', async () => {
     Apis.getTensorboardApp = jest.fn(() => Promise.resolve({ podAddress: '', tfVersion: '' }));
     const config = { type: PlotType.TENSORBOARD, url: '' };
     tree = shallow(<TensorboardViewer configs={[config]} />);
+    const initialHtml = tree.debug();
+
     await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    expect(snapshotDiff(tree.debug(), initialHtml)).toMatchSnapshot();
   });
 
   it('shows a link to the tensorboard instance if exists', async () => {
@@ -58,6 +71,7 @@ describe('Tensorboard', () => {
       Promise.resolve({ podAddress: 'test/address', tfVersion: '1.14.0' }),
     );
     tree = shallow(<TensorboardViewer configs={[config]} />);
+
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
@@ -67,9 +81,10 @@ describe('Tensorboard', () => {
     const getAppMock = () => Promise.resolve({ podAddress: '', tfVersion: '' });
     const spy = jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     tree = shallow(<TensorboardViewer configs={[config]} />);
+    const initialHtml = tree.debug();
 
     await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    expect(snapshotDiff(tree.debug(), initialHtml)).toMatchSnapshot();
     expect(spy).toHaveBeenCalledWith(config.url);
   });
 
@@ -131,7 +146,7 @@ describe('Tensorboard', () => {
     expect(Apis.startTensorboardApp).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', '2.0.0');
   });
 
-  it('delete the tensorboard instance, confirm in the dialog, \
+  it('delete the tensorboard instance, confirm in the dialog,\
     then return back to previous page', async () => {
     Apis.getTensorboardApp = jest.fn(() =>
       Promise.resolve({ podAddress: 'podaddress', tfVersion: '1.14.0' }),
@@ -149,10 +164,7 @@ describe('Tensorboard', () => {
       .find('Button')
       .simulate('click');
     tree.find('BusyButton').simulate('click');
-    expect(Apis.deleteTensorboardApp).toHaveBeenCalledWith(
-      encodeURIComponent('http://test/url'),
-      tree.state('tensorflowVersion'),
-    );
+    expect(Apis.deleteTensorboardApp).toHaveBeenCalledWith(encodeURIComponent('http://test/url'));
     await TestUtils.flushPromises();
     tree.update();
     // the tree has returned to 'start tensorboard' page
@@ -192,7 +204,7 @@ describe('Tensorboard', () => {
       .find('#cancel')
       .find('Button')
       .simulate('click');
-    tree.update();
+
     expect(tree.findWhere(el => el.text() === 'Open Tensorboard').exists()).toBeTruthy();
     expect(tree.findWhere(el => el.text() === 'Delete Tensorboard').exists()).toBeTruthy();
   });

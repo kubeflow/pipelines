@@ -294,11 +294,13 @@ const getTensorboardHandler = async (req, res) => {
     res.status(500).send('Cannot talk to Kubernetes master');
     return;
   }
-  const logdir = decodeURIComponent(req.query.logdir);
-  if (!logdir) {
+
+  if (!req.query.logdir) {
     res.status(404).send('logdir argument is required');
     return;
   }
+
+  const logdir = decodeURIComponent(req.query.logdir);
 
   try {
     res.send(await k8sHelper.getTensorboardInstance(logdir));
@@ -312,18 +314,19 @@ const createTensorboardHandler = async (req, res) => {
     res.status(500).send('Cannot talk to Kubernetes master');
     return;
   }
-  const logdir = decodeURIComponent(req.query.logdir);
-  const tfversion = decodeURIComponent(req.query.tfversion);
 
-  if (!logdir) {
+  if (!req.query.logdir) {
     res.status(404).send('logdir argument is required');
     return;
   }
 
-  if (!tfversion) {
+  if (!req.query.tfversion) {
     res.status(404).send('tensorflow version argument is required');
     return;
   }
+
+  const logdir = decodeURIComponent(req.query.logdir);
+  const tfversion = decodeURIComponent(req.query.tfversion);
 
   try {
     await k8sHelper.newTensorboardInstance(logdir, tfversion, podTemplateSpec);
@@ -339,11 +342,16 @@ const deleteTensorboardHandler = async (req, res) => {
     res.status(500).send('Cannot talk to Kubernetes master');
     return;
   }
+
+  if (!req.query.logdir) {
+    res.status(404).send('logdir argument is required');
+    return;
+  }
+
   const logdir = decodeURIComponent(req.query.logdir);
-  const tfversion = decodeURIComponent(req.query.tfversion);
 
   try {
-    await k8sHelper.deleteTensorboardInstance(logdir, tfversion);
+    await k8sHelper.deleteTensorboardInstance(logdir);
     res.send('Tensorboard deleted.');
   } catch (err) {
     res.status(500).send('Failed to delete Tensorboard app: ' + JSON.stringify(err));

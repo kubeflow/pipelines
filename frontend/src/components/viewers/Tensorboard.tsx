@@ -31,6 +31,23 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
+import { classes, stylesheet } from 'typestyle';
+
+export const css = stylesheet({
+  button: {
+    marginBottom: 20,
+    width: 150,
+  },
+  shortButton: {
+    width: 50,
+  },
+  formControl: {
+    minWidth: 120,
+  },
+  select: {
+    minHeight: 50,
+  },
+});
 
 export interface TensorboardViewerConfig extends ViewerConfig {
   url: string;
@@ -71,7 +88,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     this._checkTensorboardApp();
   }
 
-  public onChangeFunc = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
+  public handleVersionSelect = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
     this.setState({ tensorflowVersion: e.target.value as string });
   };
 
@@ -89,16 +106,18 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       <div>
         {this.state.podAddress && (
           <div>
-            <div className={padding(20, 'b')}>{`Tensorboard is running for this output.`}</div>
+            <div
+              className={padding(20, 'b')}
+            >{`Tensorboard ${this.state.tensorflowVersion} is running for this output.`}</div>
             <a
               href={'apis/v1beta1/_proxy/' + podAddress}
               target='_blank'
               className={commonCss.unstyled}
             >
               <Button
-                className={commonCss.buttonAction}
+                className={classes(commonCss.buttonAction, css.button)}
                 disabled={this.state.busy}
-                style={{ marginBottom: 20, width: 150 }}
+                color={'primary'}
               >
                 Open Tensorboard
               </Button>
@@ -106,46 +125,44 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
             <div>
               <Button
-                className={commonCss.buttonAction}
+                className={css.button}
                 disabled={this.state.busy}
                 id={'delete'}
                 title={`stop tensorboard and delete its instance`}
                 onClick={this._handleDeleteOpen.bind(this)}
-                style={{ marginBottom: 20, width: 150 }}
+                color={'default'}
               >
                 Delete Tensorboard
               </Button>
               <Dialog
                 open={this.state.deleteDialogOpen}
-                onClose={this._handleDeleteClose.bind(this)}
+                onClose={this._handleDeleteClose}
                 aria-labelledby='dialog-title'
               >
-                <DialogTitle style={{ cursor: 'move' }} id='dialog-title'>
+                <DialogTitle id='dialog-title'>
                   {`Stop Tensorboard ${this.state.tensorflowVersion}?`}
                 </DialogTitle>
                 <DialogContent>
                   <DialogContentText>
                     You can stop the current running tensorboard. The tensorboard viewer will also
-                    be deleted from your GKE workloads.
+                    be deleted from your workloads.
                   </DialogContentText>
                 </DialogContent>
                 <DialogActions>
                   <Button
+                    className={css.shortButton}
                     id={'cancel'}
                     autoFocus={true}
-                    onClick={this._handleDeleteClose.bind(this)}
-                    style={{ width: 50 }}
+                    onClick={this._handleDeleteClose}
                     color='primary'
                   >
                     Cancel
                   </Button>
                   <BusyButton
-                    id={'confirm'}
-                    className={commonCss.buttonAction}
+                    className={classes(commonCss.buttonAction, css.shortButton)}
                     onClick={this._deleteTensorboard.bind(this)}
                     busy={this.state.busy}
                     color='primary'
-                    style={{ width: 50 }}
                     title={`Stop`}
                   />
                 </DialogActions>
@@ -157,15 +174,14 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
         {!this.state.podAddress && (
           <div>
             <div className={padding(30, 'b')}>
-              <FormControl className='Launch Tensorboard' style={{ minWidth: 120 }}>
+              class
+              <FormControl className={css.formControl}>
                 <InputLabel htmlFor='grouped-select'>TF Version</InputLabel>
                 <Select
+                  className={css.select}
                   value={this.state.tensorflowVersion}
                   input={<Input id='grouped-select' />}
-                  onChange={this.onChangeFunc}
-                  style={{
-                    minHeight: 40,
-                  }}
+                  onChange={this.handleVersionSelect}
                 >
                   <ListSubheader>Tensoflow 1.x</ListSubheader>
                   <MenuItem value={'1.4.0'}>TensorFlow 1.4.0</MenuItem>
@@ -234,14 +250,11 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     });
   }
 
-  private async _deleteTensorboard(): Promise<void> {
+  private _deleteTensorboard = async () => {
     // delete the already opened Tensorboard, clear the podAddress recorded in frontend,
     // and return to the select & start tensorboard page
     this.setState({ busy: true }, async () => {
-      await Apis.deleteTensorboardApp(
-        encodeURIComponent(this._buildUrl()),
-        encodeURIComponent(this.state.tensorflowVersion),
-      );
+      await Apis.deleteTensorboardApp(encodeURIComponent(this._buildUrl()));
       this.setState({
         busy: false,
         deleteDialogOpen: false,
@@ -249,7 +262,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
         tensorflowVersion: '',
       });
     });
-  }
+  };
 }
 
 export default TensorboardViewer;

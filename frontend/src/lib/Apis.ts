@@ -283,11 +283,9 @@ export class Apis {
   /**
    * Delete a deployment and its service of the Tensorboard given the URL
    */
-  public static deleteTensorboardApp(logdir: string, tfversion: string): Promise<string> {
+  public static deleteTensorboardApp(logdir: string): Promise<string> {
     return this._fetch(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(
-        tfversion,
-      )}`,
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
       undefined,
       undefined,
       { method: 'DELETE' },
