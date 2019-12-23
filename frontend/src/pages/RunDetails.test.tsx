@@ -27,7 +27,7 @@ import { PageProps } from './Page';
 import { PlotType } from '../components/viewers/Viewer';
 import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { Workflow } from 'third_party/argo-ui/argo_template';
-import { shallow, ShallowWrapper } from 'enzyme';
+import { shallow, ShallowWrapper, mount, ReactWrapper } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
 
 describe('RunDetails', () => {
@@ -52,7 +52,7 @@ describe('RunDetails', () => {
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
 
   let testRun: ApiRunDetail = {};
-  let tree: ShallowWrapper;
+  let tree: ShallowWrapper | ReactWrapper;
 
   function generateProps(): PageProps {
     const pageProps: PageProps = {
@@ -216,6 +216,26 @@ describe('RunDetails', () => {
     await confirmBtn.onClick();
     expect(retryRunSpy).toHaveBeenCalledTimes(1);
     expect(retryRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
+  });
+
+  it('shows an error dialog when retry API fails', async () => {
+    retryRunSpy.mockImplementation(() => Promise.reject('mocked error'));
+
+    tree = mount(<RunDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as RunDetails;
+    const retryBtn = instance.getInitialToolbarState().actions[ButtonKeys.RETRY];
+    await retryBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Retry');
+    await confirmBtn.onClick();
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        content: 'Failed to retry run: test-run-id with error: ""mocked error""',
+      }),
+    );
+    // There shouldn't be a snackbar on error.
+    expect(updateSnackbarSpy).not.toHaveBeenCalled();
   });
 
   it('has a terminate button', async () => {
