@@ -40,36 +40,38 @@ describe('Tensorboard', () => {
   });
 
   it('base component snapshot', async () => {
-    Apis.getTensorboardApp = jest.fn(() => Promise.resolve({ podAddress: '', tfVersion: '' }));
+    const getAppMock = () => Promise.resolve({ podAddress: '', tfVersion: '' });
+    jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     tree = shallow(<TensorboardViewer configs={[]} />);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
   it('does not break on no config', async () => {
-    Apis.getTensorboardApp = jest.fn(() => Promise.resolve({ podAddress: '', tfVersion: '' }));
+    const getAppMock = () => Promise.resolve({ podAddress: '', tfVersion: '' });
+    jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     tree = shallow(<TensorboardViewer configs={[]} />);
-    const initialHtml = tree.debug();
+    const baseTree = tree.debug();
 
     await TestUtils.flushPromises();
-    expect(snapshotDiff(tree.debug(), initialHtml)).toMatchSnapshot();
+    expect(snapshotDiff(tree.debug(), baseTree)).toMatchSnapshot();
   });
 
   it('does not break on empty data', async () => {
-    Apis.getTensorboardApp = jest.fn(() => Promise.resolve({ podAddress: '', tfVersion: '' }));
+    const getAppMock = () => Promise.resolve({ podAddress: '', tfVersion: '' });
+    jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     const config = { type: PlotType.TENSORBOARD, url: '' };
     tree = shallow(<TensorboardViewer configs={[config]} />);
-    const initialHtml = tree.debug();
+    const baseTree = tree.debug();
 
     await TestUtils.flushPromises();
-    expect(snapshotDiff(tree.debug(), initialHtml)).toMatchSnapshot();
+    expect(snapshotDiff(tree.debug(), baseTree)).toMatchSnapshot();
   });
 
   it('shows a link to the tensorboard instance if exists', async () => {
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
-    Apis.getTensorboardApp = jest.fn(() =>
-      Promise.resolve({ podAddress: 'test/address', tfVersion: '1.14.0' }),
-    );
+    const getAppMock = () => Promise.resolve({ podAddress: 'test/address', tfVersion: '1.14.0' });
+    jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     tree = shallow(<TensorboardViewer configs={[config]} />);
 
     await TestUtils.flushPromises();
@@ -81,10 +83,10 @@ describe('Tensorboard', () => {
     const getAppMock = () => Promise.resolve({ podAddress: '', tfVersion: '' });
     const spy = jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     tree = shallow(<TensorboardViewer configs={[config]} />);
-    const initialHtml = tree.debug();
+    const baseTree = tree.debug();
 
     await TestUtils.flushPromises();
-    expect(snapshotDiff(tree.debug(), initialHtml)).toMatchSnapshot();
+    expect(snapshotDiff(tree.debug(), baseTree)).toMatchSnapshot();
     expect(spy).toHaveBeenCalledWith(config.url);
   });
 
@@ -129,8 +131,11 @@ describe('Tensorboard', () => {
   it('select a version, then start a tensorboard of the corresponding version', async () => {
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
 
-    Apis.getTensorboardApp = jest.fn(() => Promise.resolve({ podAddress: '', tfVersion: '' }));
-    Apis.startTensorboardApp = jest.fn(() => Promise.resolve(''));
+    const getAppMock = jest.fn(() => Promise.resolve({ podAddress: '', tfVersion: '' }));
+    const startAppMock = jest.fn(() => Promise.resolve(''));
+    jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
+    const startAppSpy = jest.spyOn(Apis, 'startTensorboardApp').mockImplementationOnce(startAppMock);
+
     tree = mount(<TensorboardViewer configs={[config]} />);
     await TestUtils.flushPromises();
 
@@ -143,16 +148,17 @@ describe('Tensorboard', () => {
       .hostNodes()
       .simulate('click');
     tree.find('BusyButton').simulate('click');
-    expect(Apis.startTensorboardApp).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', '2.0.0');
+    expect(startAppSpy).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', '2.0.0');
   });
 
   it('delete the tensorboard instance, confirm in the dialog,\
     then return back to previous page', async () => {
-    Apis.getTensorboardApp = jest.fn(() =>
-      Promise.resolve({ podAddress: 'podaddress', tfVersion: '1.14.0' }),
-    );
+    const getAppMock = jest.fn(() => Promise.resolve({ podAddress: 'podaddress', tfVersion: '1.14.0' }));
+    jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
+    const deleteAppMock = jest.fn(() => Promise.resolve(''));
+    const deleteAppSpy = jest.spyOn(Apis, 'deleteTensorboardApp').mockImplementation(deleteAppMock);
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
-    Apis.deleteTensorboardApp = jest.fn(() => Promise.resolve(''));
+
     tree = mount(<TensorboardViewer configs={[config]} />);
     await TestUtils.flushPromises();
     expect(!!tree.state('podAddress')).toBeTruthy();
@@ -164,7 +170,7 @@ describe('Tensorboard', () => {
       .find('Button')
       .simulate('click');
     tree.find('BusyButton').simulate('click');
-    expect(Apis.deleteTensorboardApp).toHaveBeenCalledWith(encodeURIComponent('http://test/url'));
+    expect(deleteAppSpy).toHaveBeenCalledWith(encodeURIComponent('http://test/url'));
     await TestUtils.flushPromises();
     tree.update();
     // the tree has returned to 'start tensorboard' page
@@ -173,9 +179,8 @@ describe('Tensorboard', () => {
 
   it('show version info in delete confirming dialog, \
     if a tensorboard instance already exists', async () => {
-    Apis.getTensorboardApp = jest.fn(() =>
-      Promise.resolve({ podAddress: 'podaddress', tfVersion: '1.14.0' }),
-    );
+    const getAppMock = jest.fn(() => Promise.resolve({ podAddress: 'podaddress', tfVersion: '1.14.0' }));
+    jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
     tree = mount(<TensorboardViewer configs={[config]} />);
     await TestUtils.flushPromises();
@@ -188,9 +193,8 @@ describe('Tensorboard', () => {
   });
 
   it('click on cancel on delete tensorboard dialog, then return back to previous page', async () => {
-    Apis.getTensorboardApp = jest.fn(() =>
-      Promise.resolve({ podAddress: 'podaddress', tfVersion: '1.14.0' }),
-    );
+    const getAppMock = jest.fn(() => Promise.resolve({ podAddress: 'podaddress', tfVersion: '1.14.0' }));
+    jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
     tree = mount(<TensorboardViewer configs={[config]} />);
     await TestUtils.flushPromises();
