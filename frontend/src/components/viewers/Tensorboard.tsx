@@ -253,7 +253,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
   private _deleteTensorboard = async () => {
     // delete the already opened Tensorboard, clear the podAddress recorded in frontend,
-    // and return to the select & start tensorboard page
+    // and return to the select & start tensorboard page 
     this.setState({ busy: true }, async () => {
       await Apis.deleteTensorboardApp(encodeURIComponent(this._buildUrl()));
       this.setState({
