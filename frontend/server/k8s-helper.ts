@@ -104,7 +104,13 @@ export async function newTensorboardInstance(
   }
   const currentPod = await getTensorboardInstance(logdir);
   if (currentPod.podAddress) {
-    return;
+    if (tfversion === currentPod.tfVersion) {
+      return;
+    } else {
+      throw new Error(
+        `There's already an existing tensorboard instance with a different version ${currentPod.tfVersion}`,
+      );
+    }
   }
 
   const body = {

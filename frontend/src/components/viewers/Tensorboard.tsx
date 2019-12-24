@@ -89,7 +89,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   public handleVersionSelect = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
-    this.setState({ tensorflowVersion: e.target.value as string });
+    if (typeof e.target.value !== 'string') {
+      throw new Error('Invalid event value type, expected string');
+    }
+    this.setState({ tensorflowVersion: e.target.value });
   };
 
   public render(): JSX.Element {
@@ -129,7 +132,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 disabled={this.state.busy}
                 id={'delete'}
                 title={`stop tensorboard and delete its instance`}
-                onClick={this._handleDeleteOpen.bind(this)}
+                onClick={this._handleDeleteOpen}
                 color={'default'}
               >
                 Delete Tensorboard
@@ -160,7 +163,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                   </Button>
                   <BusyButton
                     className={classes(commonCss.buttonAction, css.shortButton)}
-                    onClick={this._deleteTensorboard.bind(this)}
+                    onClick={this._deleteTensorboard}
                     busy={this.state.busy}
                     color='primary'
                     title={`Stop`}
@@ -205,7 +208,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
               <BusyButton
                 className={commonCss.buttonAction}
                 disabled={!this.state.tensorflowVersion}
-                onClick={this._startTensorboard.bind(this)}
+                onClick={this._startTensorboard}
                 busy={this.state.busy}
                 title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`}
               />
@@ -231,14 +234,12 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
-      const tensorboardInstance = await Apis.getTensorboardApp(this._buildUrl());
-      const tbaddress = tensorboardInstance.podAddress;
-      const tfversion = tensorboardInstance.tfVersion;
-      this.setState({ busy: false, podAddress: tbaddress, tensorflowVersion: tfversion });
+      const { podAddress, tfVersion } = await Apis.getTensorboardApp(this._buildUrl());
+      this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
     });
   }
 
-  private async _startTensorboard(): Promise<void> {
+  private _startTensorboard = async () => {
     this.setState({ busy: true }, async () => {
       await Apis.startTensorboardApp(
         encodeURIComponent(this._buildUrl()),
@@ -248,7 +249,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
         this._checkTensorboardApp();
       });
     });
-  }
+  };
 
   private _deleteTensorboard = async () => {
     // delete the already opened Tensorboard, clear the podAddress recorded in frontend,
