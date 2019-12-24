@@ -20,6 +20,8 @@ these Databricks resources.
 - DeleteSecretScopeOp, to delete a secret scope created with CreateSecretScopeOp.
 - ImportWorkspaceItemOp, to import an item into a Databricks Workspace.
 - DeleteWorkspaceItemOp, to delete an item imported with ImportWorkspaceItemOp.
+- CreateDbfsBlockOp, to create Dbfs Block in Databricks.
+- DeleteDbfsBlockOp, to delete Dbfs Block created with CreateDbfsBlockOp.
 
 For each of these there are two ways a Kubeflow user can create the Ops:
 1) By passing the complete Databricks spec for the Op within a Python Dictionary.
@@ -177,3 +179,6 @@ Ops:
     https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/secrets)
 - Workspace Item Ops: [Azure Databricks Workspace API](
     https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/workspace)
+- DbfsBlock Ops: [Azure Databricks DBFS API](
+    https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/dbfs)
+

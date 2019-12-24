@@ -8,29 +8,11 @@ import kfp.compiler as compiler
 import databricks
 
 def create_dbfsblock(block_name):
-    # Op not implemented in Azure Databricks for KFP yet
-    return dsl.ResourceOp(
+    return databricks.CreateDbfsBlockOp(
         name="createdbfsblock",
-        k8s_resource={
-            "apiVersion": "databricks.microsoft.com/v1alpha1",
-            "kind": "DbfsBlock",
-            "metadata": {
-                "name":block_name
-            },
-            "spec":{
-                "path": "/data/foo.txt",
-                "data": "QWxlamFuZHJvIENhbXBvcyBNYWdlbmNpbw=="
-            }
-        },
-        action="create",
-        success_condition="status.file_hash",
-        attribute_outputs={
-            "name": "{.metadata.name}",
-            "file_info_path": "{.status.file_info.path}",
-            "file_info_is_dir": "{.status.file_info.is_dir}",
-            "file_info_file_size": "{.status.file_info.file_size}",
-            "file_hash": "{.status.file_hash}"
-        }
+        block_name=block_name,
+        data="QWxlamFuZHJvIENhbXBvcyBNYWdlbmNpbw==",
+        path="/data/foo.txt"
     )
 
 def create_secretscope(scope_name):
@@ -137,17 +119,9 @@ def delete_secretscope(scope_name):
     )
 
 def delete_dbfsblock(block_name):
-    # Op not implemented in Azure Databricks for KFP yet
-    return dsl.ResourceOp(
+    return databricks.DeleteDbfsBlockOp(
         name="deletedbfsblock",
-        k8s_resource={
-            "apiVersion": "databricks.microsoft.com/v1alpha1",
-            "kind": "DbfsBlock",
-            "metadata": {
-                "name":block_name
-            }
-        },
-        action="delete"
+        block_name=block_name
     )
 
 @dsl.pipeline(
