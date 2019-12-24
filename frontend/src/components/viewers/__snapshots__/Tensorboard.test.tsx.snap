@@ -123,8 +123,8 @@ exports[`Tensorboard does not break on empty data 1`] = `
         </WithStyles(FormControl)>
       </div>
       <div>
--       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function: bound ]} busy={false} title=\\"Start Tensorboard\\" />
-+       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function: bound ]} busy={true} title=\\"Start Tensorboard\\" />
+-       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
++       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
       </div>
     </div>
   </div>"
@@ -141,8 +141,8 @@ exports[`Tensorboard does not break on no config 1`] = `
         </WithStyles(FormControl)>
       </div>
       <div>
--       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function: bound ]} busy={false} title=\\"Start Tensorboard\\" />
-+       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function: bound ]} busy={true} title=\\"Start Tensorboard\\" />
+-       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
++       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
       </div>
     </div>
   </div>"
@@ -230,8 +230,8 @@ exports[`Tensorboard shows start button if no instance exists 1`] = `
         </WithStyles(FormControl)>
       </div>
       <div>
--       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function: bound ]} busy={false} title=\\"Start Tensorboard\\" />
-+       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function: bound ]} busy={true} title=\\"Start Tensorboard\\" />
+-       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
++       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
       </div>
     </div>
   </div>"
