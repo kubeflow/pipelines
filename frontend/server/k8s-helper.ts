@@ -18,6 +18,7 @@ import {
   Custom_objectsApi,
   KubeConfig,
   V1ConfigMapKeySelector,
+  V1DeleteOptions,
 } from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
@@ -69,14 +70,21 @@ function getNameOfViewerResource(logdir: string): string {
  */
 export async function newTensorboardInstance(
   logdir: string,
+  tfversion: string,
   podTemplateSpec: Object = defaultPodTemplateSpec,
 ): Promise<void> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
   const currentPod = await getTensorboardInstance(logdir);
-  if (currentPod) {
-    return;
+  if (currentPod.podAddress) {
+    if (tfversion === currentPod.tfVersion) {
+      return;
+    } else {
+      throw new Error(
+        `There's already an existing tensorboard instance with a different version ${currentPod.tfVersion}`,
+      );
+    }
   }
 
   const body = {
@@ -90,8 +98,7 @@ export async function newTensorboardInstance(
       type: 'tensorboard',
       tensorboardSpec: {
         logDir: logdir,
-        // TODO(jingzhang36): tensorflow image version read from input textbox.
-        tensorflowImage: 'tensorflow/tensorflow:1.13.2',
+        tensorflowImage: 'tensorflow/tensorflow:' + tfversion,
       },
       podTemplateSpec,
     },
@@ -107,9 +114,11 @@ export async function newTensorboardInstance(
 
 /**
  * Finds a running Tensorboard instance created via CRD with the given logdir
- * and returns its dns address.
+ * and returns its dns address and its version
  */
-export async function getTensorboardInstance(logdir: string): Promise<string> {
+export async function getTensorboardInstance(
+  logdir: string,
+): Promise<{ podAddress: string; tfVersion: string }> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
@@ -126,17 +135,55 @@ export async function getTensorboardInstance(logdir: string): Promise<string> {
       // Viewer CRD pod has tensorboard instance running at port 6006 while
       // viewer CRD service has tensorboard instance running at port 80. Since
       // we return service address here (instead of pod address), so use 80.
-      (viewer: any) =>
-        viewer &&
-        viewer.body &&
-        viewer.body.spec.tensorboardSpec.logDir == logdir &&
-        viewer.body.spec.type == 'tensorboard'
-          ? `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`
-          : '',
+      (viewer: any) => {
+        if (
+          viewer &&
+          viewer.body &&
+          viewer.body.spec.tensorboardSpec.logDir == logdir &&
+          viewer.body.spec.type == 'tensorboard'
+        ) {
+          const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
+          const version = viewer.body.spec.tensorboardSpec.tensorflowImage
+            ? viewer.body.spec.tensorboardSpec.tensorflowImage.replace('tensorflow/tensorflow:', '')
+            : '';
+          return { podAddress: address, tfVersion: version };
+        } else {
+          return { podAddress: '', tfVersion: '' };
+        }
+      },
       // No existing custom object with the given name, i.e., no existing
       // tensorboard instance.
-      (error: any) => '',
+      (error: any) => {
+        return { podAddress: '', tfVersion: '' };
+      },
     );
+}
+
+/**
+ * Find a running Tensorboard instance with the given logdir, delete the instance
+ * and returns the deleted podAddress
+ */
+
+export async function deleteTensorboardInstance(logdir: string): Promise<void> {
+  if (!k8sV1CustomObjectClient) {
+    throw new Error('Cannot access kubernetes Custom Object API');
+  }
+  const currentPod = await getTensorboardInstance(logdir);
+  if (!currentPod.podAddress) {
+    return;
+  }
+
+  const viewerName = getNameOfViewerResource(logdir);
+  const deleteOption = new V1DeleteOptions();
+
+  await k8sV1CustomObjectClient.deleteNamespacedCustomObject(
+    viewerGroup,
+    viewerVersion,
+    namespace,
+    viewerPlural,
+    viewerName,
+    deleteOption,
+  );
 }
 
 /**
@@ -150,7 +197,8 @@ export function waitForTensorboardInstance(logdir: string, timeout: number): Pro
       if (Date.now() - start > timeout) {
         reject('Timed out waiting for tensorboard');
       }
-      const tensorboardAddress = await getTensorboardInstance(logdir);
+      const tensorboardInstance = await getTensorboardInstance(logdir);
+      const tensorboardAddress = tensorboardInstance.podAddress;
       if (tensorboardAddress) {
         resolve(encodeURIComponent(tensorboardAddress));
       }

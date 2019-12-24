@@ -88,6 +88,7 @@
     "prettier": "1.18.2",
     "react-router-test-context": "^0.1.0",
     "react-test-renderer": "^16.5.2",
+    "snapshot-diff": "^0.6.1",
     "swagger-ts-client": "^0.9.6",
     "ts-node": "^7.0.1",
     "ts-node-dev": "^1.0.0-pre.30",
