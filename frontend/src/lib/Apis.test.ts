@@ -125,8 +125,11 @@ describe('Apis', () => {
   });
 
   it('getTensorboardApp', async () => {
-    const spy = fetchSpy('http://some/address');
-    expect(await Apis.getTensorboardApp('gs://log/dir')).toEqual('http://some/address');
+    const spy = fetchSpy(
+      JSON.stringify({ podAddress: 'http://some/address', tfVersion: '1.14.0' }),
+    );
+    const tensorboardInstance = await Apis.getTensorboardApp('gs://log/dir');
+    expect(tensorboardInstance).toEqual({ podAddress: 'http://some/address', tfVersion: '1.14.0' });
     expect(spy).toHaveBeenCalledWith(
       'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir'),
       { credentials: 'same-origin' },
@@ -135,13 +138,25 @@ describe('Apis', () => {
 
   it('startTensorboardApp', async () => {
     const spy = fetchSpy('http://some/address');
-    await Apis.startTensorboardApp('gs://log/dir');
+    await Apis.startTensorboardApp('gs://log/dir', '1.14.0');
     expect(spy).toHaveBeenCalledWith(
-      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir'),
+      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir') + '&tfversion=1.14.0',
       {
         credentials: 'same-origin',
         headers: { 'content-type': 'application/json' },
         method: 'POST',
+      },
+    );
+  });
+
+  it('deleteTensorboardApp', async () => {
+    const spy = fetchSpy('http://some/address');
+    await Apis.deleteTensorboardApp('gs://log/dir');
+    expect(spy).toHaveBeenCalledWith(
+      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir'),
+      {
+        credentials: 'same-origin',
+        method: 'DELETE',
       },
     );
   });
