@@ -47,6 +47,7 @@ const (
 	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
 	kfamServiceHost        = "PROFILES_KFAM_SERVICE_HOST"
 	kfamServicePort        = "PROFILES_KFAM_SERVICE_PORT"
+	mysqlExtraParams       = "DBConfig.ExtraParams"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -263,6 +264,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 		common.GetStringConfigWithDefault(mysqlServicePort, "3306"),
 		"",
 		common.GetStringConfigWithDefault(mysqlGroupConcatMaxLen, "1024"),
+		common.GetMapConfig(mysqlExtraParams),
 	)
 
 	var db *sql.DB
