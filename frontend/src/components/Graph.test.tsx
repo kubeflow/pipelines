@@ -17,7 +17,7 @@
 import * as dagre from 'dagre';
 import * as React from 'react';
 import { shallow } from 'enzyme';
-import Graph from './Graph';
+import { Graph } from './Graph';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
 import Tooltip from '@material-ui/core/Tooltip';
 

@@ -27,7 +27,7 @@ exports[`RunDetails closes side panel when close button is clicked 1`] = `
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -46,6 +46,7 @@ exports[`RunDetails closes side panel when close button is clicked 1`] = `
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId=""
           />
           <SidePanel
@@ -528,7 +529,7 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -547,6 +548,7 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel
@@ -642,7 +644,7 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -661,6 +663,7 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel
@@ -756,7 +759,7 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -775,6 +778,7 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel
@@ -870,7 +874,7 @@ exports[`RunDetails logs tab shows error banner atop logs area if fetching logs 
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -889,6 +893,7 @@ exports[`RunDetails logs tab shows error banner atop logs area if fetching logs 
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel
@@ -979,7 +984,7 @@ exports[`RunDetails logs tab shows error banner atop logs area if fetching logs 
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -998,6 +1003,7 @@ exports[`RunDetails logs tab shows error banner atop logs area if fetching logs 
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel
@@ -1088,7 +1094,7 @@ exports[`RunDetails logs tab shows warning banner and link to Stackdriver in log
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -1107,6 +1113,7 @@ exports[`RunDetails logs tab shows warning banner and link to Stackdriver in log
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel
@@ -1220,7 +1227,7 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -1239,6 +1246,7 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel
@@ -1334,7 +1342,7 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -1353,6 +1361,7 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel
@@ -1497,7 +1506,7 @@ exports[`RunDetails shows a one-node graph 1`] = `
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -1516,6 +1525,7 @@ exports[`RunDetails shows a one-node graph 1`] = `
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId=""
           />
           <SidePanel
@@ -1574,7 +1584,7 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -1593,6 +1603,7 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel
@@ -1700,7 +1711,7 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -1719,6 +1730,7 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel
@@ -2168,7 +2180,7 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -2187,6 +2199,7 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel
@@ -2307,7 +2320,7 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -2326,6 +2339,7 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel
@@ -2454,7 +2468,7 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
         <div
           className="page"
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -2473,6 +2487,7 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel

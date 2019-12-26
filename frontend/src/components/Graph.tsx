@@ -409,8 +409,11 @@ export class Graph extends React.Component<GraphProps, GraphState> {
   }
 }
 
-export default (props: GraphProps & GraphErrorBoundaryProps) => (
+const EnhancedGraph = (props: GraphProps & GraphErrorBoundaryProps) => (
   <GraphErrorBoundary onError={props.onError}>
     <Graph {...props} />
   </GraphErrorBoundary>
 );
+EnhancedGraph.displayName = 'EnhancedGraph';
+
+export default EnhancedGraph;
