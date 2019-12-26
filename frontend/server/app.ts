@@ -20,7 +20,11 @@ import { UIConfigs } from './configs';
 import { getAddress } from './utils';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz';
 import { getArtifactsHandler } from './handlers/artifacts';
-import { getCreateTensorboardHandler, getTensorboardHandler, deleteTensorboardHandler } from './handlers/tensorboard';
+import {
+  getCreateTensorboardHandler,
+  getTensorboardHandler,
+  deleteTensorboardHandler,
+} from './handlers/tensorboard';
 import { getPodLogsHandler } from './handlers/pod-logs';
 import { clusterNameHandler, projectIdHandler } from './handlers/core';
 import { getAllowCustomVisualizationsHandler } from './handlers/vis';

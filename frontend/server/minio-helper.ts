@@ -48,7 +48,7 @@ export async function createMinioClient(config: MinioClientOptionsWithOptionalSe
         console.error('unable to get credentials from AWS metadata store.');
       }
     } catch (err) {
-      console.error('Unable to get aws instance profile credentials: ', err)
+      console.error('Unable to get aws instance profile credentials: ', err);
     }
   }
   return new MinioClient(config as MinioClientOptions);

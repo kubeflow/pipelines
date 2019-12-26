@@ -121,10 +121,13 @@ export class PodLogsHandler {
           console.log(`Getting logs for pod:${podName} from ${request.bucket}/${request.key}.`);
           return stream;
         } catch (configError) {
-          console.error(`Unable to get logs for pod:${podName} with ARGO_ARCHIVE_* env flags:`, configError);
+          console.error(
+            `Unable to get logs for pod:${podName} with ARGO_ARCHIVE_* env flags:`,
+            configError,
+          );
           throw new Error(
             `Unable to retrieve logs from ${podName} workflow status: ${workflowError}\n` +
-            `Unable to retrieve logs with ARGO_ARCHIVE_* env flags: ${configError}`,
+              `Unable to retrieve logs with ARGO_ARCHIVE_* env flags: ${configError}`,
           );
         }
       }
@@ -167,9 +170,7 @@ export class PodLogsHandler {
     }
 
     const artifacts: ArtifactRecord[] = workflow.status.nodes[podName].outputs.artifacts;
-    const archiveLogs: ArtifactRecord[] = artifacts.filter(
-      (artifact: any) => artifact.archiveLogs,
-    );
+    const archiveLogs: ArtifactRecord[] = artifacts.filter((artifact: any) => artifact.archiveLogs);
 
     if (archiveLogs.length === 0) {
       throw new Error('Unable to find pod log archive information from workflow status.');

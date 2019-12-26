@@ -25,7 +25,7 @@ import { HttpConfigs, AWSConfigs, MinioConfigs } from '../configs';
  */
 interface ArtifactsQueryStrings {
   /** artifact source. */
-  source: "minio" | "s3" | "gcs" | "http" | "https";
+  source: 'minio' | 's3' | 'gcs' | 'http' | 'https';
   /** bucket name. */
   bucket: string;
   /** artifact key/path that is uri encoded.  */
@@ -42,7 +42,7 @@ export function getArtifactsHandler(artifactsConfigs: {
   http: HttpConfigs;
   minio: MinioConfigs;
 }): Handler {
-  const {aws, http, minio} = artifactsConfigs;
+  const { aws, http, minio } = artifactsConfigs;
   return async (req, res) => {
     const { source, bucket, encodedKey } = req.query as Partial<ArtifactsQueryStrings>;
     if (!source) {
@@ -82,10 +82,10 @@ export function getArtifactsHandler(artifactsConfigs: {
 
       case 'http':
       case 'https':
-        getHttpArtifactsHandler(
-          getHttpUrl(source, http.baseUrl || "", bucket, key),
-          http.auth,
-        )(req, res);
+        getHttpArtifactsHandler(getHttpUrl(source, http.baseUrl || '', bucket, key), http.auth)(
+          req,
+          res,
+        );
         break;
 
       default:
@@ -102,7 +102,7 @@ export function getArtifactsHandler(artifactsConfigs: {
  * @param bucket name of the bucket.
  * @param key path to the artifact.
  */
-function getHttpUrl(source: "http" | "https", baseUrl: string, bucket: string, key: string) {
+function getHttpUrl(source: 'http' | 'https', baseUrl: string, bucket: string, key: string) {
   // trim `/` from both ends of the base URL, then append with a single `/` to the end (empty string remains empty)
   baseUrl = baseUrl.replace(/^\/*(.+?)\/*$/, '$1/');
   return `${source}://${baseUrl}${bucket}/${key}`;
