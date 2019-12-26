@@ -14,13 +14,22 @@
 import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper';
 import podLogsHandler from '../workflow-helper';
-import { IArgoConfigs, IMinioConfigs, IAWSConfigs } from '../configs';
+import { ArgoConfigs, MinioConfigs, AWSConfigs } from '../configs';
 
+/**
+ * Returns a handler which attempts to retrieve the logs for the specific pod,
+ * in the following order:
+ * - retrieve with k8s api
+ * - retrieve log archive location from argo workflow status, and retrieve artifact directly
+ * - retrieve log archive with the provided argo archive settings
+ * @param argoOptions fallback options to retrieve log archive
+ * @param artifactsOptions configs and credentials for the different artifact backend
+ */
 export function getPodLogsHandler(
-  argoOptions: IArgoConfigs,
+  argoOptions: ArgoConfigs,
   artifactsOptions: {
-    minio: IMinioConfigs;
-    aws: IAWSConfigs;
+    minio: MinioConfigs;
+    aws: AWSConfigs;
   },
 ): Handler {
   if (argoOptions.archiveLogs) {

@@ -14,40 +14,59 @@
 import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper';
 
-export function getGetTensorboardHandler(): Handler {
+/**
+ * A handler which retrieve the endpoint for a tensorboard instance. The
+ * handler expects a query string `logdir`.
+ */
+export const getTensorboardHandler: Handler = async (req, res) => {
+  if (!k8sHelper.isInCluster) {
+    res.status(500).send('Cannot talk to Kubernetes master');
+    return;
+  }
+  const logdir = decodeURIComponent(req.query.logdir);
+  if (!logdir) {
+    res.status(404).send('logdir argument is required');
+    return;
+  }
+
+  try {
+    res.send(await k8sHelper.getTensorboardInstance(logdir));
+  } catch (err) {
+    res.status(500).send('Failed to list Tensorboard pods: ' + JSON.stringify(err));
+  }
+};
+
+/**
+ * Returns a handler which will create a tensorboard viewer CRD, waits for the
+ * tensorboard instance to be ready, and return the endpoint to the instance.
+ * The handler expects the following query strings in the request:
+ * - `logdir`
+ * - `tfversion`
+ * @param podTemplateSpec Custom pod template specification to be applied on the
+ * tensorboard pod.
+ */
+export function getCreateTensorboardHandler(podTemplateSpec?: object): Handler {
   return async (req, res) => {
     if (!k8sHelper.isInCluster) {
       res.status(500).send('Cannot talk to Kubernetes master');
       return;
     }
-    const logdir = decodeURIComponent(req.query.logdir);
-    if (!logdir) {
+
+    if (!req.query.logdir) {
       res.status(404).send('logdir argument is required');
       return;
     }
 
-    try {
-      res.send(await k8sHelper.getTensorboardInstance(logdir));
-    } catch (err) {
-      res.status(500).send('Failed to list Tensorboard pods: ' + JSON.stringify(err));
-    }
-  };
-}
-
-export function getCreateTensorboardHandler(podTemplateSpec?: Object): Handler {
-  return async (req, res) => {
-    if (!k8sHelper.isInCluster) {
-      res.status(500).send('Cannot talk to Kubernetes master');
+    if (!req.query.tfversion) {
+      res.status(404).send('tensorflow version argument is required');
       return;
     }
+
     const logdir = decodeURIComponent(req.query.logdir);
-    if (!logdir) {
-      res.status(404).send('logdir argument is required');
-      return;
-    }
+    const tfversion = decodeURIComponent(req.query.tfversion);
 
     try {
-      await k8sHelper.newTensorboardInstance(logdir, podTemplateSpec);
+      await k8sHelper.newTensorboardInstance(logdir, tfversion, podTemplateSpec);
       const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(logdir, 60 * 1000);
       res.send(tensorboardAddress);
     } catch (err) {
@@ -55,3 +74,28 @@ export function getCreateTensorboardHandler(podTemplateSpec?: Object): Handler {
     }
   };
 }
+
+/**
+ * A handler that deletes a tensorboard viewer. The handler expects query string
+ * `logdir` in the request.
+ */
+export const deleteTensorboardHandler: Handler = async (req, res) => {
+  if (!k8sHelper.isInCluster) {
+    res.status(500).send('Cannot talk to Kubernetes master');
+    return;
+  }
+
+  if (!req.query.logdir) {
+    res.status(404).send('logdir argument is required');
+    return;
+  }
+
+  const logdir = decodeURIComponent(req.query.logdir);
+
+  try {
+    await k8sHelper.deleteTensorboardInstance(logdir);
+    res.send('Tensorboard deleted.');
+  } catch (err) {
+    res.status(500).send('Failed to delete Tensorboard app: ' + JSON.stringify(err));
+  }
+};

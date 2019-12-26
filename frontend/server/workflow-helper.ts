@@ -14,40 +14,40 @@
 import { PassThrough } from 'stream';
 import { ClientOptions as MinioClientOptions } from 'minio';
 import { getK8sSecret, getArgoWorkflow, getPodLogs } from './k8s-helper';
-import { createMinioClient, IMinioRequestConfig, getObjectStream } from './minio-helper';
+import { createMinioClient, MinioRequestConfig, getObjectStream } from './minio-helper';
 
-export interface IPartialArgoWorkflow {
+export interface PartialArgoWorkflow {
   status: {
-    nodes?: IArgoWorkflowStatusNode;
+    nodes?: ArgoWorkflowStatusNode;
   };
 }
 
-export interface IArgoWorkflowStatusNode {
-  [key: string]: IArgoWorkflowStatusNodeInfo;
+export interface ArgoWorkflowStatusNode {
+  [key: string]: ArgoWorkflowStatusNodeInfo;
 }
 
-export interface IArgoWorkflowStatusNodeInfo {
+export interface ArgoWorkflowStatusNodeInfo {
   outputs?: {
-    artifacts?: IArtifactRecord[];
+    artifacts?: ArtifactRecord[];
   };
 }
 
-export interface IArtifactRecord {
+export interface ArtifactRecord {
   archiveLogs?: boolean;
   name: string;
-  s3?: IS3Artifact;
+  s3?: S3Artifact;
 }
 
-export interface IS3Artifact {
-  accessKeySecret?: ISecretSelector;
+export interface S3Artifact {
+  accessKeySecret?: SecretSelector;
   bucket: string;
   endpoint: string;
   insecure: boolean;
   key: string;
-  secretKeySecret?: ISecretSelector;
+  secretKeySecret?: SecretSelector;
 }
 
-export interface ISecretSelector {
+export interface SecretSelector {
   key: string;
   name: string;
 }
@@ -56,7 +56,7 @@ export interface ISecretSelector {
  * Returns the k8s access key and secret used to connect to the s3 artifactory.
  * @param s3artifact s3artifact object describing the s3 artifactory config for argo workflow.
  */
-async function getMinioClientSecrets({ accessKeySecret, secretKeySecret }: IS3Artifact) {
+async function getMinioClientSecrets({ accessKeySecret, secretKeySecret }: S3Artifact) {
   if (!accessKeySecret || !secretKeySecret) {
     return {};
   }
@@ -72,8 +72,10 @@ async function getMinioClientSecrets({ accessKeySecret, secretKeySecret }: IS3Ar
  */
 
 function urlSplit(uri: string, insecure: boolean) {
-  let chunks = uri.split(':');
-  if (chunks.length == 1) return { host: chunks[0], port: !!insecure ? 80 : 443 };
+  const chunks = uri.split(':');
+  if (chunks.length === 1) {
+    return { host: chunks[0], port: !!insecure ? 80 : 443 };
+  }
   return { host: chunks[0], port: parseInt(chunks[1], 10) };
 }
 
@@ -82,13 +84,13 @@ function urlSplit(uri: string, insecure: boolean) {
  * @param podName name of the pod.
  */
 function workflowNameFromPodName(podName: string) {
-  let chunks = podName.split('-');
+  const chunks = podName.split('-');
   chunks.pop();
   return chunks.join('-');
 }
 
 export class PodLogsHandler {
-  fromConfig?: (podName: string) => Promise<IMinioRequestConfig>;
+  fromConfig?: (podName: string) => Promise<MinioRequestConfig>;
 
   async getPodLogs(podName: string, podNamespace?: string) {
     try {
@@ -119,33 +121,39 @@ export class PodLogsHandler {
           console.log(`Getting logs for pod:${podName} from ${request.bucket}/${request.key}.`);
           return stream;
         } catch (configError) {
-          console.error(`Unable to get logs for pod:${podName}:`, configError);
+          console.error(`Unable to get logs for pod:${podName} with ARGO_ARCHIVE_* env flags:`, configError);
           throw new Error(
-            `Unable to retrieve logs from ${podName}: ${workflowError}, ${configError}`,
+            `Unable to retrieve logs from ${podName} workflow status: ${workflowError}\n` +
+            `Unable to retrieve logs with ARGO_ARCHIVE_* env flags: ${configError}`,
           );
         }
       }
-      console.error(`Unable to get logs for pod:${podName}:`, workflowError);
-      throw new Error(`Unable to retrieve logs from ${podName}: ${workflowError}`);
+      console.error(`Unable to get logs for pod:${podName} from workflow status:`, workflowError);
+      throw new Error(`Unable to retrieve logs from ${podName} workflow status: ${workflowError}`);
     }
   }
 
   setFallbackHandler(minioOptions: MinioClientOptions, bucket: string, prefix: string) {
-    this.fromConfig = async function(podName: string): Promise<IMinioRequestConfig> {
+    this.fromConfig = async (podName: string): Promise<MinioRequestConfig> => {
       // create a new client each time to ensure session token has not expired
       const client = await createMinioClient(minioOptions);
       const workflowName = workflowNameFromPodName(podName);
       return {
         bucket,
-        key: `${prefix}/${workflowName}/${podName}/main.log`,
         client,
+        key: `${prefix}/${workflowName}/${podName}/main.log`,
       };
     };
     return this;
   }
 
-  async fromWorkflow(podName: string): Promise<IMinioRequestConfig> {
-    const workflow = await getArgoWorkflow(workflowNameFromPodName(podName));
+  async fromWorkflow(podName: string): Promise<MinioRequestConfig> {
+    let workflow: PartialArgoWorkflow;
+    try {
+      workflow = await getArgoWorkflow(workflowNameFromPodName(podName));
+    } catch (err) {
+      throw new Error(`Unable to retrieve workflow status: ${err}.`);
+    }
 
     // check if required fields are available
     if (
@@ -154,33 +162,37 @@ export class PodLogsHandler {
       !workflow.status.nodes[podName] ||
       !workflow.status.nodes[podName].outputs ||
       !workflow.status.nodes[podName].outputs.artifacts
-    )
+    ) {
       throw new Error('Unable to find pod info in workflow status to retrieve logs.');
+    }
 
-    const artifacts: IArtifactRecord[] = workflow.status.nodes[podName].outputs.artifacts;
-    const archiveLogs: IArtifactRecord[] = artifacts.filter(
+    const artifacts: ArtifactRecord[] = workflow.status.nodes[podName].outputs.artifacts;
+    const archiveLogs: ArtifactRecord[] = artifacts.filter(
       (artifact: any) => artifact.archiveLogs,
     );
 
-    if (archiveLogs.length === 0)
+    if (archiveLogs.length === 0) {
       throw new Error('Unable to find pod log archive information from workflow status.');
+    }
 
     const s3Artifact = archiveLogs[0].s3;
-    if (!s3Artifact) throw new Error('Unable to find s3 artifact info from workflow status.');
+    if (!s3Artifact) {
+      throw new Error('Unable to find s3 artifact info from workflow status.');
+    }
 
     const { host, port } = urlSplit(s3Artifact.endpoint, s3Artifact.insecure);
     const { accessKey, secretKey } = await getMinioClientSecrets(s3Artifact);
     const client = await createMinioClient({
+      accessKey,
       endPoint: host,
       port,
-      accessKey,
       secretKey,
       useSSL: !s3Artifact.insecure,
     });
     return {
       bucket: s3Artifact.bucket,
-      key: s3Artifact.key,
       client,
+      key: s3Artifact.key,
     };
   }
 }

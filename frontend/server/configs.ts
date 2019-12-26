@@ -14,7 +14,8 @@
 import * as path from 'path';
 import { loadJSON } from './utils';
 export const BASEPATH = '/pipeline';
-export const apiVersion = 'apis/v1beta1';
+export const apiVersion = 'v1beta1';
+export const apiVersionPrefix = `apis/${apiVersion}`;
 
 export enum Deployments {
   NOT_SPECIFIED = 'NOT_SPECIFIED',
@@ -22,7 +23,7 @@ export enum Deployments {
 }
 
 /** converts string to bool */
-const as_bool = (value: string) => ['true', '1'].indexOf(value.toLowerCase()) >= 0;
+const asBool = (value: string) => ['true', '1'].indexOf(value.toLowerCase()) >= 0;
 
 function parseArgs(argv: string[]) {
   if (argv.length < 3) {
@@ -42,7 +43,7 @@ function parseArgs(argv: string[]) {
 export function loadConfigs(
   argv: string[],
   env: NodeJS.ProcessEnv | { [key: string]: string },
-): IConfigs {
+): UIConfigs {
   const { staticDir, port } = parseArgs(argv);
   /** All configurable environment variables can be found here. */
   const {
@@ -56,7 +57,7 @@ export function loadConfigs(
     /** minio client use these to retrieve s3 objects/artifacts */
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
-    /** http/https base URL **/
+    /** http/https base URL */
     HTTP_BASE_URL = '',
     /** http/https fetch with this authorization header key (for example: 'Authorization') */
     HTTP_AUTHORIZATION_KEY = '',
@@ -87,17 +88,25 @@ export function loadConfigs(
   } = env;
 
   return {
-    server: {
-      apiVersion,
-      basePath: BASEPATH,
-      deployment:
-        DEPLOYMENT_STR.toUpperCase() === 'KUBEFLOW'
-          ? Deployments.KUBEFLOW
-          : Deployments.NOT_SPECIFIED,
-      staticDir,
-      port,
+    argo: {
+      archiveArtifactory: ARGO_ARCHIVE_ARTIFACTORY,
+      archiveBucketName: ARGO_ARCHIVE_BUCKETNAME,
+      archiveLogs: asBool(ARGO_ARCHIVE_LOGS),
+      archivePrefix: ARGO_ARCHIVE_PREFIX,
     },
     artifacts: {
+      aws: {
+        accessKey: AWS_ACCESS_KEY_ID,
+        endPoint: 's3.amazonaws.com',
+        secretKey: AWS_SECRET_ACCESS_KEY,
+      },
+      http: {
+        auth: {
+          defaultValue: HTTP_AUTHORIZATION_DEFAULT_VALUE,
+          key: HTTP_AUTHORIZATION_KEY,
+        },
+        baseUrl: HTTP_BASE_URL,
+      },
       minio: {
         accessKey: MINIO_ACCESS_KEY,
         endPoint:
@@ -106,26 +115,8 @@ export function loadConfigs(
             : MINIO_HOST,
         port: parseInt(MINIO_PORT, 10),
         secretKey: MINIO_SECRET_KEY,
-        useSSL: as_bool(MINIO_SSL),
+        useSSL: asBool(MINIO_SSL),
       },
-      aws: {
-        endPoint: 's3.amazonaws.com',
-        accessKey: AWS_ACCESS_KEY_ID,
-        secretKey: AWS_SECRET_ACCESS_KEY,
-      },
-      http: {
-        baseUrl: HTTP_BASE_URL,
-        auth: {
-          key: HTTP_AUTHORIZATION_KEY,
-          defaultValue: HTTP_AUTHORIZATION_DEFAULT_VALUE,
-        },
-      },
-    },
-    argo: {
-      archiveLogs: as_bool(ARGO_ARCHIVE_LOGS),
-      archiveArtifactory: ARGO_ARCHIVE_ARTIFACTORY,
-      archiveBucketName: ARGO_ARCHIVE_BUCKETNAME,
-      archivePrefix: ARGO_ARCHIVE_PREFIX,
     },
     metadata: {
       envoyService: {
@@ -133,81 +124,91 @@ export function loadConfigs(
         port: METADATA_ENVOY_SERVICE_SERVICE_PORT,
       },
     },
-    visualizations: {
-      allowCustomVisualizations: as_bool(ALLOW_CUSTOM_VISUALIZATIONS),
-    },
-    viewer: {
-      tensorboard: {
-        podTemplateSpec: loadJSON<Object | undefined>(VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH),
-      },
-    },
     pipeline: {
       host: ML_PIPELINE_SERVICE_HOST,
       port: ML_PIPELINE_SERVICE_PORT,
     },
+    server: {
+      apiVersionPrefix,
+      basePath: BASEPATH,
+      deployment:
+        DEPLOYMENT_STR.toUpperCase() === 'KUBEFLOW'
+          ? Deployments.KUBEFLOW
+          : Deployments.NOT_SPECIFIED,
+      port,
+      staticDir,
+    },
+    viewer: {
+      tensorboard: {
+        podTemplateSpec: loadJSON<object | undefined>(VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH),
+      },
+    },
+    visualizations: {
+      allowCustomVisualizations: asBool(ALLOW_CUSTOM_VISUALIZATIONS),
+    },
   };
 }
 
-export interface IMinioConfigs {
+export interface MinioConfigs {
   accessKey: string;
   secretKey: string;
   endPoint: string;
   port: number;
   useSSL: boolean;
 }
-export interface IAWSConfigs {
+export interface AWSConfigs {
   endPoint: string;
   accessKey: string;
   secretKey: string;
 }
-export interface IHttpConfigs {
+export interface HttpConfigs {
   baseUrl: string;
   auth: {
     key: string;
     defaultValue: string;
   };
 }
-export interface IPipelineConfigs {
+export interface PipelineConfigs {
   host: string;
   port: string | number;
 }
-export interface IViewerConfigs {
+export interface ViewerConfigs {
   tensorboard: {
-    podTemplateSpec?: Object;
+    podTemplateSpec?: object;
   };
 }
-export interface IVisualizationsConfigs {
+export interface VisualizationsConfigs {
   allowCustomVisualizations: boolean;
 }
-export interface IMetadataConfigs {
+export interface MetadataConfigs {
   envoyService: {
     host: string;
     port: string | number;
   };
 }
-export interface IArgoConfigs {
+export interface ArgoConfigs {
   archiveLogs: boolean;
   archiveArtifactory: string;
   archiveBucketName: string;
   archivePrefix: string;
 }
-export interface IServerConfigs {
+export interface ServerConfigs {
   basePath: string;
   port: string | number;
   staticDir: string;
-  apiVersion: string;
+  apiVersionPrefix: string;
   deployment: Deployments;
 }
-export interface IConfigs {
-  server: IServerConfigs;
+export interface UIConfigs {
+  server: ServerConfigs;
   artifacts: {
-    aws: IAWSConfigs;
-    minio: IMinioConfigs;
-    http: IHttpConfigs;
+    aws: AWSConfigs;
+    minio: MinioConfigs;
+    http: HttpConfigs;
   };
-  argo: IArgoConfigs;
-  metadata: IMetadataConfigs;
-  visualizations: IVisualizationsConfigs;
-  viewer: IViewerConfigs;
-  pipeline: IPipelineConfigs;
+  argo: ArgoConfigs;
+  metadata: MetadataConfigs;
+  visualizations: VisualizationsConfigs;
+  viewer: ViewerConfigs;
+  pipeline: PipelineConfigs;
 }

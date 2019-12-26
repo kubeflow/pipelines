@@ -16,17 +16,28 @@ import * as fs from 'fs';
 import fetch from 'node-fetch';
 import { Handler } from 'express';
 
-export interface IHealthzStats {
+/** HealthzStats describes the ml-pipeline ui server state. */
+export interface HealthzStats {
   apiServerCommitHash: string;
   apiServerReady: boolean;
   buildDate: string;
   frontendCommitHash: string;
 }
 
-export function getHealthzEndpoint(apiServerAddress: string, apiVersion: string) {
-  return `${apiServerAddress}/${apiVersion}/healthz`;
+/**
+ * Returns the url to the ml-pipeline api server healthz endpoint
+ * (of form: `${apiServerAddress}/${apiVersionPrefix}/healthz`).
+ * @param apiServerAddress address for the ml-pipeline api server.
+ * @param apiVersionPrefix prefix to append to the route.
+ */
+export function getHealthzEndpoint(apiServerAddress: string, apiVersionPrefix: string) {
+  return `${apiServerAddress}/${apiVersionPrefix}/healthz`;
 }
 
+/**
+ * Returns the build date and frontend commit hash.
+ * @param currentDir path to the metadata files (BUILD_DATE, COMMIT_HASH).
+ */
 export function getBuildMetadata(currentDir: string = path.resolve(__dirname)) {
   const buildDatePath = path.join(currentDir, 'BUILD_DATE');
   const commitHashPath = path.join(currentDir, 'COMMIT_HASH');
@@ -42,8 +53,13 @@ export function getBuildMetadata(currentDir: string = path.resolve(__dirname)) {
   };
 }
 
+/**
+ * Returns a handler which return the current state of the server.
+ * @param options.healthzStats  partial health stats to be enriched with ml-pipeline metadata.
+ * @param options.healthzEndpoint healthz endpoint for the ml-pipeline api server.
+ */
 export function getHealthzHandler(options: {
-  healthzStats: Partial<IHealthzStats>;
+  healthzStats: Partial<HealthzStats>;
   healthzEndpoint: string;
 }): Handler {
   const { healthzStats = {}, healthzEndpoint } = options;

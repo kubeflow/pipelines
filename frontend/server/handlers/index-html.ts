@@ -19,6 +19,11 @@ import { Deployments } from '../configs';
 const DEFAULT_FLAG = 'window.KFP_FLAGS.DEPLOYMENT=null';
 const KUBEFLOW_CLIENT_PLACEHOLDER = '<script id="kubeflow-client-placeholder"></script>';
 
+/**
+ * Returns a handler which retrieve and modify the index.html.
+ * @param options.staticDir serve the static resources in this folder.
+ * @param options.deployment whether this is a kubeflow deployment.
+ */
 export function getIndexHTMLHandler(options: {
   staticDir: string;
   deployment: Deployments;

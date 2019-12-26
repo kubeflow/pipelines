@@ -13,6 +13,11 @@
 // limitations under the License.
 import { Handler } from 'express';
 
+/**
+ * Return a handler which return whether custom visualization is allowed by the
+ * ml-pipeline ui server.
+ * @param allowed whether custom visualization is permitted.
+ */
 export function getAllowCustomVisualizationsHandler(allowed: boolean): Handler {
   return (_, res) => {
     res.send(allowed);

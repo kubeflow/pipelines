@@ -16,11 +16,11 @@ import * as express from 'express';
 import { Application, static as StaticHandler } from 'express';
 import * as proxy from 'http-proxy-middleware';
 
-import { IConfigs } from './configs';
+import { UIConfigs } from './configs';
 import { getAddress } from './utils';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz';
 import { getArtifactsHandler } from './handlers/artifacts';
-import { getCreateTensorboardHandler, getGetTensorboardHandler } from './handlers/tensorboard';
+import { getCreateTensorboardHandler, getTensorboardHandler, deleteTensorboardHandler } from './handlers/tensorboard';
 import { getPodLogsHandler } from './handlers/pod-logs';
 import { clusterNameHandler, projectIdHandler } from './handlers/core';
 import { getAllowCustomVisualizationsHandler } from './handlers/vis';
@@ -40,15 +40,29 @@ function getRegisterHandler(app: Application, basePath: string) {
   };
 }
 
+/**
+ * UIServer wraps around a express application to:
+ * - proxy requests to ml-pipeline api server
+ * - retrieve artifacts from the various backend
+ * - create and retrieve new viewer instances
+ * - serve static front-end resources (i.e. react app)
+ */
 export class UIServer {
   app: Application;
   httpServer?: Server;
 
-  constructor(public readonly options: IConfigs) {
+  constructor(public readonly options: UIConfigs) {
     this.app = createUIServer(options);
   }
 
+  /**
+   * Starts the http server.
+   * @param port optionally overwrite the provided port to listen to.
+   */
   start(port?: number | string) {
+    if (!!this.httpServer) {
+      throw new Error('UIServer already started.');
+    }
     port = port || this.options.server.port;
     this.httpServer = this.app.listen(port, () => {
       console.log('Server listening at http://localhost:' + port);
@@ -56,56 +70,71 @@ export class UIServer {
     return this.httpServer;
   }
 
+  /**
+   * Stops the http server.
+   */
   close() {
-    return this.httpServer && this.httpServer.close();
+    if (!!this.httpServer) {
+      this.httpServer.close();
+    }
+    this.httpServer = undefined;
+    return this;
   }
 }
 
-function createUIServer(options: IConfigs) {
+function createUIServer(options: UIConfigs) {
   const currDir = path.resolve(__dirname);
   const basePath = options.server.basePath;
-  const apiVersion = options.server.apiVersion;
+  const apiVersionPrefix = options.server.apiVersionPrefix;
   const apiServerAddress = getAddress(options.pipeline);
   const envoyServiceAddress = getAddress(options.metadata.envoyService);
 
   const app: Application = express();
   const registerHandler = getRegisterHandler(app, basePath);
 
-  app.use(function(req, _, next) {
+  /** log to stdout */
+  app.use((req, _, next) => {
     console.info(req.method + ' ' + req.originalUrl);
     next();
   });
 
+  /** Healthz */
   registerHandler(
     app.get,
-    `/${apiVersion}/healthz`,
+    `/${apiVersionPrefix}/healthz`,
     getHealthzHandler({
-      healthzEndpoint: getHealthzEndpoint(apiServerAddress, options.server.apiVersion),
+      healthzEndpoint: getHealthzEndpoint(apiServerAddress, apiVersionPrefix),
       healthzStats: getBuildMetadata(currDir),
     }),
   );
 
+  /** Artifact */
   registerHandler(app.get, '/artifacts/get', getArtifactsHandler(options.artifacts));
 
-  registerHandler(app.get, '/apps/tensorboard', getGetTensorboardHandler());
+  /** Tensorboard viewer */
+  registerHandler(app.get, '/apps/tensorboard', getTensorboardHandler);
+  registerHandler(app.delete, '/apps/tensorboard', deleteTensorboardHandler);
   registerHandler(
     app.post,
     '/apps/tensorboard',
     getCreateTensorboardHandler(options.viewer.tensorboard.podTemplateSpec),
   );
 
+  /** Pod logs */
   registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));
 
+  /** Cluster (GKS only) */
   registerHandler(app.get, '/system/cluster-name', clusterNameHandler);
   registerHandler(app.get, '/system/project-id', projectIdHandler);
 
+  /** Visualization */
   registerHandler(
     app.get,
     '/visualizations/allowed',
     getAllowCustomVisualizationsHandler(options.visualizations.allowCustomVisualizations),
   );
 
-  // Proxy metadata requests to the Envoy instance which will handle routing to the metadata gRPC server
+  /** Proxy metadata requests to the Envoy instance which will handle routing to the metadata gRPC server */
   app.all(
     '/ml_metadata.*',
     proxy({
@@ -119,11 +148,12 @@ function createUIServer(options: IConfigs) {
 
   // Order matters here, since both handlers can match any proxied request with a referer,
   // and we prioritize the basepath-friendly handler
-  proxyMiddleware(app, `${basePath}/${apiVersion}`);
-  proxyMiddleware(app, `/${apiVersion}`);
+  proxyMiddleware(app, `${basePath}/${apiVersionPrefix}`);
+  proxyMiddleware(app, `/${apiVersionPrefix}`);
 
+  /** Proxy to ml-pipeline api server */
   app.all(
-    `/${apiVersion}/*`,
+    `/${apiVersionPrefix}/*`,
     proxy({
       changeOrigin: true,
       onProxyReq: proxyReq => {
@@ -132,29 +162,33 @@ function createUIServer(options: IConfigs) {
       target: apiServerAddress,
     }),
   );
-
   app.all(
-    `${basePath}/${apiVersion}/*`,
+    `${basePath}/${apiVersionPrefix}/*`,
     proxy({
       changeOrigin: true,
       onProxyReq: proxyReq => {
         console.log('Proxied request: ', (proxyReq as any).path);
       },
-      pathRewrite: path =>
-        path.startsWith(basePath) ? path.substr(basePath.length, path.length) : path,
+      pathRewrite: pathStr =>
+        pathStr.startsWith(basePath) ? pathStr.substr(basePath.length, pathStr.length) : pathStr,
       target: apiServerAddress,
     }),
   );
 
-  // These pathes can be matched by static handler. Putting them before it to
-  // override behavior for index html.
+  /**
+   * Modify index.html.
+   * These pathes can be matched by static handler. Putting them before it to
+   * override behavior for index html.
+   */
   const indexHtmlHandler = getIndexHTMLHandler(options.server);
   registerHandler(app.get, '/', indexHtmlHandler);
   registerHandler(app.get, '/index.html', indexHtmlHandler);
 
+  /** Static resource (i.e. react app) */
   app.use(basePath, StaticHandler(options.server.staticDir));
   app.use(StaticHandler(options.server.staticDir));
 
+  /** Fallback to index.html */
   app.get('*', indexHtmlHandler);
 
   return app;

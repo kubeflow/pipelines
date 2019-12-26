@@ -17,37 +17,34 @@ import { Client as MinioClient } from 'minio';
 import { Storage } from '@google-cloud/storage';
 
 import { getTarObjectAsString, getObjectStream, createMinioClient } from '../minio-helper';
-import { IHttpConfigs, IAWSConfigs, IMinioConfigs } from '../configs';
+import { HttpConfigs, AWSConfigs, MinioConfigs } from '../configs';
 
-interface IArtifactsQueryStrings {
-  source: string;
+/**
+ * ArtifactsQueryStrings describes the expected query strings key value pairs
+ * in the artifact request object.
+ */
+interface ArtifactsQueryStrings {
+  /** artifact source. */
+  source: "minio" | "s3" | "gcs" | "http" | "https";
+  /** bucket name. */
   bucket: string;
+  /** artifact key/path that is uri encoded.  */
   encodedKey: string;
 }
 
-export interface IArtifactHandlerOptions {
-  minioOptions: {
-    minioClient: MinioClient;
-  };
-  s3Options: {
-    getS3Client: () => MinioClient;
-  };
-  httpOptions: {
-    baseUrl: string;
-    auth: {
-      key: string;
-      defaultValue: string;
-    };
-  };
-}
-
+/**
+ * Returns an artifact handler which retrieve an artifact from the corresponding
+ * backend (i.e. gcs, minio, s3, http/https).
+ * @param artifactsConfigs configs to retrieve the artifacts from the various backend.
+ */
 export function getArtifactsHandler(artifactsConfigs: {
-  minio: IMinioConfigs;
-  aws: IAWSConfigs;
-  http: IHttpConfigs;
+  aws: AWSConfigs;
+  http: HttpConfigs;
+  minio: MinioConfigs;
 }): Handler {
+  const {aws, http, minio} = artifactsConfigs;
   return async (req, res) => {
-    const { source, bucket, encodedKey } = req.query as Partial<IArtifactsQueryStrings>;
+    const { source, bucket, encodedKey } = req.query as Partial<ArtifactsQueryStrings>;
     if (!source) {
       res.status(500).send('Storage source is missing from artifact request');
       return;
@@ -70,24 +67,24 @@ export function getArtifactsHandler(artifactsConfigs: {
       case 'minio':
         getMinioArtifactHandler({
           bucket,
+          client: new MinioClient(minio),
           key,
-          client: new MinioClient(artifactsConfigs.minio),
         })(req, res);
         break;
 
       case 's3':
         getS3ArtifactHandler({
           bucket,
+          client: await createMinioClient(aws),
           key,
-          client: await createMinioClient(artifactsConfigs.aws),
         })(req, res);
         break;
 
       case 'http':
       case 'https':
         getHttpArtifactsHandler(
-          getHttpUrl(source, artifactsConfigs.http.baseUrl, bucket, key),
-          artifactsConfigs.http.auth,
+          getHttpUrl(source, http.baseUrl || "", bucket, key),
+          http.auth,
         )(req, res);
         break;
 
@@ -98,7 +95,14 @@ export function getArtifactsHandler(artifactsConfigs: {
   };
 }
 
-function getHttpUrl(source: string, baseUrl: string, bucket: string, key: string) {
+/**
+ * Returns the http/https url to retrieve a kfp artifact (of the form: `${source}://${baseUrl}${bucket}/${key}`)
+ * @param source "http" or "https".
+ * @param baseUrl string to prefix the url.
+ * @param bucket name of the bucket.
+ * @param key path to the artifact.
+ */
+function getHttpUrl(source: "http" | "https", baseUrl: string, bucket: string, key: string) {
   // trim `/` from both ends of the base URL, then append with a single `/` to the end (empty string remains empty)
   baseUrl = baseUrl.replace(/^\/*(.+?)\/*$/, '$1/');
   return `${source}://${baseUrl}${bucket}/${key}`;
@@ -120,9 +124,7 @@ function getHttpArtifactsHandler(
       headers[auth.key] =
         req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
     }
-    const response = await fetch(url, {
-      headers: headers,
-    });
+    const response = await fetch(url, { headers });
     const content = await response.buffer();
     res.send(content);
   };

@@ -26,7 +26,9 @@ export function getAddress({
   schema?: string;
 }) {
   namespace = !!namespace ? `.${namespace}` : '';
-  if (!!port) return `${schema}://${host}${namespace}:${port}`;
+  if (!!port) {
+    return `${schema}://${host}${namespace}:${port}`;
+  }
   return `${schema}://${host}${namespace}`;
 }
 
@@ -52,7 +54,9 @@ export function generateRandomString(length: number): string {
 }
 
 export function loadJSON<T>(filepath: string, defaultValue?: T): T {
-  if (!filepath) return defaultValue;
+  if (!filepath) {
+    return defaultValue;
+  }
   try {
     return JSON.parse(readFileSync(filepath, 'utf-8'));
   } catch (error) {
