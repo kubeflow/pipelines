@@ -569,7 +569,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree).toMatchSnapshot();
   });
@@ -589,7 +589,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     expect(tree.state('selectedNodeDetails')).toHaveProperty(
       'phaseMessage',
       'This step is in ' + testRun.run!.status + ' state with this message: some test message',
@@ -611,7 +611,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     await pathsParser;
     await pathsWithStepsParser;
     await loaderSpy;
@@ -652,7 +652,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -669,7 +669,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -685,7 +685,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -701,7 +701,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     await TestUtils.flushPromises();
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     tree.find('SidePanel').simulate('close');
@@ -717,7 +717,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -743,7 +743,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -764,7 +764,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -789,7 +789,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -817,7 +817,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -906,7 +906,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -922,7 +922,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -946,7 +946,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -967,7 +967,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -992,7 +992,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -1018,7 +1018,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -1048,7 +1048,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -1070,7 +1070,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -1093,7 +1093,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -1219,3 +1219,12 @@ describe('RunDetails', () => {
     });
   });
 });
+
+function clickGraphNode(wrapper: ShallowWrapper, nodeId: string) {
+  // TODO: use dom events instead
+  wrapper
+    .find('EnhancedGraph')
+    .dive()
+    .dive()
+    .simulate('click', nodeId);
+}

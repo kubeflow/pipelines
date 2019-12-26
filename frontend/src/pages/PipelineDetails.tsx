@@ -270,6 +270,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                       graph={this.state.graph}
                       selectedNodeId={selectedNodeId}
                       onClick={id => this.setStateSafe({ selectedNodeId: id })}
+                      onError={(message, additionalInfo) =>
+                        this.props.updateBanner({ message, additionalInfo, mode: 'error' })
+                      }
                     />
 
                     <SidePanel
