@@ -1,6 +1,7 @@
 # Kubeflow Pipeline Tutorial 
-[`Kubeflow Pipelines`](https://github.com/kubeflow/pipelines) is a platform for building and deploying portable, scalable machine learning (ML) pipelines or 
-workflows based on Docker containers. The `Kubeflow Pipelines` platform consists of:
+[`Kubeflow Pipelines`](https://github.com/kubeflow/pipelines) is a platform for building and deploying portable, 
+scalable machine learning (ML) pipelines or workflows based on Docker containers. 
+The `Kubeflow Pipelines` platform consists of:
 - A user interface for managing and tracking experiments, jobs, and runs.
 - An engine for scheduling multi-step ML workflows.
 - An SDK for defining and manipulating pipelines and components.
@@ -10,7 +11,7 @@ A pipeline is a description of an ML workflow, including all of the components i
 how they combine in the form of a graph. The pipeline includes the definition of the inputs (parameters) required to 
 run the pipeline and the inputs and outputs of each component. A pipeline component is a self-contained set of user 
 code, packaged as a Docker image, that performs one step in the pipeline. For example, a component can be responsible 
-for data preprocessing, data transformation, model training, and so on. 
+for steps such as data preprocessing, data transformation, and model training.
 
 ## Content Overview:
 In this tutorial, we designed a series of notebooks to demonstrate how to interact with `Kubeflow Pipelines` through
@@ -19,11 +20,11 @@ In this tutorial, we designed a series of notebooks to demonstrate how to intera
 cluster through CLI. Note that it is also possible to deploy the Kubeflow cluster though 
 [UI](https://www.kubeflow.org/docs/gke/deploy/deploy-ui/)
 
-Then, notebooks 01-04 use one concrete use case, i.e., 
+Then, notebooks 01-04 use one concrete use case, 
 [MNIST classification](https://www.tensorflow.org/tutorials/quickstart/beginner), to demonstrate different ways of
 authoring a pipeline component: 
 - [01 Lightweight Python Components](01_Lightweight_Python_Components.ipynb): this notebook demonstrates how to build a 
-component through defining a stand-alone python function and then calling `kfp.components.func_to_container_op(func)` to 
+component through defining a standalone python function and then calling `kfp.components.func_to_container_op(func)` to 
 convert, which can be used in a pipeline.
 
 - [02 Local Development with Docker Image Components](02_Local_Development_with_Docker_Image_Components.ipynb): this 
@@ -42,14 +43,13 @@ creating and using a component.
 - [04 Reusable and Pre-build Components as Pipeline](04_Reusable_and_Pre-build_Components_as_Pipeline.ipynb): this 
 notebook combines our built components, together with a pre-build GCP AI Platform components 
 and a lightweight component to compose a pipeline with three steps.
-    - Train a MNIST model and export it to GCS
-    - Deploy the exported Tensorflow model on AI Platform prediction service
-    - Test the deployment by calling the end point with test data
+    - Train an MNIST model and export it to Google Cloud Storage.
+    - Deploy the exported TensorFlow model on AI Platform Prediction service.
+    - Test the deployment by calling the endpoint with test data.
 
 ## Setups Overview:
 ### Prerequisites
 Before you follow the instructions below to deploy your own Kubeflow cluster, you should
-
 - have a [GCP project setup](https://www.kubeflow.org/docs/gke/deploy/project-setup/) for your Kubeflow deployment 
 with you having the [owner role](https://cloud.google.com/iam/docs/understanding-roles#primitive_role_definitions) 
 for the project and with the following APIs enabled:
@@ -58,51 +58,28 @@ for the project and with the following APIs enabled:
     - [Identity and Access Management(IAM) API](https://pantheon.corp.google.com/apis/library/iam.googleapis.com)
     - [Deployment Manager API](https://pantheon.corp.google.com/apis/library/deploymentmanager.googleapis.com)
     - [Cloud Resource Manager API](https://pantheon.corp.google.com/apis/library/cloudresourcemanager.googleapis.com)
-    - [Cloud Filestore API](https://pantheon.corp.google.com/apis/library/file.googleapis.com)
     - [AI Platform Training & Prediction API](https://pantheon.corp.google.com/apis/library/ml.googleapis.com)
 - have set up [OAuth for Cloud IAP](https://www.kubeflow.org/docs/gke/deploy/oauth-setup/)
 - have installed and setup [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - have installed [gcloud-sdk](https://cloud.google.com/sdk/)
 
-### Setup Environment and Deploy Kubeflow Cluster
-#### Setup Environment
-* Download kfctl
-* Create user credentials
-* Setup environment variables
-* Create dedicated service account for deployment
-```bash
-export SA_NAME = [service account name]
-gcloud iam service-accounts create ${SA_NAME}
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member serviceAccount:${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com \
-    --role 'roles/owner'
-gcloud iam service-accounts keys create ~/key.json \
-    --iam-account ${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com
-export GOOGLE_APPLICATION_CREDENTIALS=~/key.json
-```
+### Setup a Kubeflow cluster through [CLI](https://www.kubeflow.org/docs/gke/deploy/deploy-cli/)
+1. Download [kfctl](https://github.com/kubeflow/kubeflow/releases)
+2. Setup environment variables
+3. Create dedicated service account for deployment
+4. Deploy Kubeflow
+5. Install [Kubeflow Pipelines SDK](https://kubeflow-pipelines.readthedocs.io/en/latest/)
+6. Sanity check
 
-#### Deploy Kubeflow Cluster
-* Deploy kubeflow
-```bash
-mkdir -p ${KF_DIR}
-cd $kf_dir
-kfctl apply -V -f ${CONFIG_URI}
-```
-
-* Install the lastest version of kfp
-```bash
-pip3 install kfp --upgrade --user
-```
-
-## Running Notebook
+## Running the Tutorial Notebooks
 Please note that the above configuration is required for notebook service running outside Kubeflow environment. 
 And the examples demonstrated are fully tested on notebook service for the following three situations:
 - Notebook running on your personal computer
 - [Notebook on AI Platform, Google Cloud Platform](https://cloud.google.com/ai-platform-notebooks/)
 - [Notebook running inside Kubeflow cluster](https://www.kubeflow.org/docs/components/jupyter/)
  
-For notebook running inside Kubeflow cluster, for example JupyterHub will be deployed together with Kubeflow, the 
-environemt variables, e.g. service account, projects and etc, should have been pre-configured while 
+For notebook running inside Kubeflow cluster, for example JupyterHub will be deployed together with Kubeflow Pipeline, 
+the environemt variables such as service account and default project should have been pre-configured while 
 setting up the cluster.
 
 ## Contributors
