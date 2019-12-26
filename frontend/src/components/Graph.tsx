@@ -130,7 +130,7 @@ class GraphErrorBoundary extends React.Component<GraphErrorBoundaryProps> {
   }
 
   render() {
-    return this.state.hasError ? null : this.props.children;
+    return this.state.hasError ? <div className={css.root} /> : this.props.children;
   }
 }
 
