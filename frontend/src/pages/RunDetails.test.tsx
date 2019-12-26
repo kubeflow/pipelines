@@ -1222,12 +1222,9 @@ describe('RunDetails', () => {
 
 function clickGraphNode(wrapper: ShallowWrapper, nodeId: string) {
   // TODO: use dom events instead
-  // Workaround found in: https://github.com/airbnb/enzyme/issues/539#issuecomment-239497107
   wrapper
     .find('EnhancedGraph')
-    .shallow()
-    .first()
-    .shallow()
-    .first()
+    .dive()
+    .dive()
     .simulate('click', nodeId);
 }
