@@ -40,9 +40,9 @@ def pipeline(name : str = None, description : str = None):
   """
   def _pipeline(func):
     if name:
-      func._pipeline_name = name
+      func._component_human_name = name
     if description:
-      func._pipeline_description = description
+      func._component_description = description
 
     if _pipeline_decorator_handler:
       return _pipeline_decorator_handler(func) or func

@@ -227,6 +227,10 @@ def _extract_component_interface(func) -> ComponentSpec:
     def annotation_to_type_struct(annotation):
         if not annotation or annotation == inspect.Parameter.empty:
             return None
+        if hasattr(annotation, 'to_dict'):
+            annotation = annotation.to_dict()
+        if isinstance(annotation, dict):
+            return annotation
         if isinstance(annotation, type):
             if annotation in type_to_type_name:
                 return type_to_type_name[annotation]
@@ -283,7 +287,8 @@ def _extract_component_interface(func) -> ComponentSpec:
             if parameter.default is not inspect.Parameter.empty:
                 input_spec.optional = True
                 if parameter.default is not None:
-                    input_spec.default = serialize_value(parameter.default, type_struct)
+                    outer_type_name = list(type_struct.keys())[0] if isinstance(type_struct, dict) else type_struct
+                    input_spec.default = serialize_value(parameter.default, outer_type_name)
             input_spec._passing_style = passing_style
             input_spec._parameter_name = parameter.name
             inputs.append(input_spec)
@@ -305,6 +310,21 @@ def _extract_component_interface(func) -> ComponentSpec:
             output_spec._passing_style = None
             output_spec._return_tuple_field_name = field_name
             outputs.append(output_spec)
+    # Deprecated dict-based way of declaring multiple outputs. Was only used by the @component decorator
+    elif isinstance(return_ann, dict):
+        import warnings
+        warnings.warn(
+            "The ability to specify multiple outputs using the dict syntax has been deprecated."
+            "It will be removed soon after release 0.1.32."
+            "Please use typing.NamedTuple to declare multiple outputs."
+        )
+        for output_name, output_type_annotation in return_ann.items():
+            output_type_struct = annotation_to_type_struct(output_type_annotation)
+            output_spec = OutputSpec(
+                name=output_name,
+                type=output_type_struct,
+            )
+            outputs.append(output_spec)
     elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
         output_name = _make_name_unique_by_adding_index(single_output_name_const, output_names, '_') # Fixes exotic, but possible collision: `def func(output_path: OutputPath()) -> str: ...`
         output_names.add(output_name)
@@ -321,13 +341,17 @@ def _extract_component_interface(func) -> ComponentSpec:
     component_name = getattr(func, '_component_human_name', None) or _python_function_name_to_component_name(func.__name__)
     description = getattr(func, '_component_description', None) or func.__doc__
     if description:
-        description = description.strip() + '\n' #Interesting: unlike ruamel.yaml, PyYaml cannot handle trailing spaces in the last line (' \n') and switches the style to double-quoted.
+        description = description.strip()
+
+    # TODO: Parse input/output descriptions from the function docstring. See:
+    # https://github.com/rr-/docstring_parser
+    # https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
 
     component_spec = ComponentSpec(
         name=component_name,
         description=description,
-        inputs=inputs,
-        outputs=outputs,
+        inputs=inputs if inputs else None,
+        outputs=outputs if outputs else None,
     )
     return component_spec
 
@@ -360,9 +384,12 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     component_spec = _extract_component_interface(func)
 
+    component_inputs = component_spec.inputs or []
+    component_outputs = component_spec.outputs or []
+
     arguments = []
-    arguments.extend(InputValuePlaceholder(input.name) for input in component_spec.inputs)
-    arguments.extend(OutputPathPlaceholder(output.name) for output in component_spec.outputs)
+    arguments.extend(InputValuePlaceholder(input.name) for input in component_inputs)
+    arguments.extend(OutputPathPlaceholder(output.name) for output in component_outputs)
 
     if use_code_pickling:
         func_code = _capture_function_code_using_cloudpickle(func, modules_to_capture)
@@ -425,10 +452,10 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
             description_repr=repr(component_spec.description or ''),
         ),
     ]
-    outputs_passed_through_func_return_tuple = [output for output in (component_spec.outputs or []) if output._passing_style is None]
-    file_outputs_passed_using_func_parameters = [output for output in (component_spec.outputs or []) if output._passing_style is not None]
+    outputs_passed_through_func_return_tuple = [output for output in component_outputs if output._passing_style is None]
+    file_outputs_passed_using_func_parameters = [output for output in component_outputs if output._passing_style is not None]
     arguments = []
-    for input in component_spec.inputs + file_outputs_passed_using_func_parameters:
+    for input in component_inputs + file_outputs_passed_using_func_parameters:
         param_flag = "--" + input.name.replace("_", "-")
         is_required = isinstance(input, OutputSpec) or not input.optional
         line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default=argparse.SUPPRESS)'.format(
