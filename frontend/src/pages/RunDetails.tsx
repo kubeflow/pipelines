@@ -261,6 +261,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                         graph={graph}
                         selectedNodeId={selectedNodeId}
                         onClick={id => this._selectNode(id)}
+                        onError={(message, additionalInfo) =>
+                          this.props.updateBanner({ message, additionalInfo, mode: 'error' })
+                        }
                       />
 
                       <SidePanel
@@ -785,7 +788,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     }
     this.setStateSafe({ sidepanelBusy: true });
     try {
-      const logs = await Apis.getPodLogs(selectedNodeDetails.id);
+      const logs = await Apis.getPodLogs(
+        selectedNodeDetails.id,
+        RunUtils.getNamespaceReferenceName(this.state.runMetadata),
+      );
       selectedNodeDetails.logs = logs;
       this.setStateSafe({
         logsBannerAdditionalInfo: '',

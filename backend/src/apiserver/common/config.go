@@ -40,6 +40,14 @@ func GetStringConfigWithDefault(configName, value string) string {
 	return viper.GetString(configName)
 }
 
+func GetMapConfig(configName string) map[string]string {
+	if !viper.IsSet(configName) {
+		glog.Infof("Config %s not specified, skipping", configName)
+		return nil
+	}
+	return viper.GetStringMapString(configName)
+}
+
 func GetBoolConfigWithDefault(configName string, value bool) bool {
 	if !viper.IsSet(configName) {
 		return value

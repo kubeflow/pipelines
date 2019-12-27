@@ -18,26 +18,25 @@ import json
 import kfp
 from kfp import components
 from kfp import dsl
-from kfp import gcp
 import os
 import subprocess
 
-confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a8d3b6977df26a89701cd229f01c1840a8475521/components/local/confusion_matrix/component.yaml')
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e4d9e2b67cf39c5f12b9c1477cae11feb1a74dc7/components/local/confusion_matrix/component.yaml')
 
-roc_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a8d3b6977df26a89701cd229f01c1840a8475521/components/local/roc/component.yaml')
+roc_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e4d9e2b67cf39c5f12b9c1477cae11feb1a74dc7/components/local/roc/component.yaml')
 
 dataproc_create_cluster_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/a8d3b6977df26a89701cd229f01c1840a8475521/components/gcp/dataproc/create_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e4d9e2b67cf39c5f12b9c1477cae11feb1a74dc7/components/gcp/dataproc/create_cluster/component.yaml')
 
 dataproc_delete_cluster_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/a8d3b6977df26a89701cd229f01c1840a8475521/components/gcp/dataproc/delete_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e4d9e2b67cf39c5f12b9c1477cae11feb1a74dc7/components/gcp/dataproc/delete_cluster/component.yaml')
 
 dataproc_submit_pyspark_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/a8d3b6977df26a89701cd229f01c1840a8475521/components/gcp/dataproc/submit_pyspark_job/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e4d9e2b67cf39c5f12b9c1477cae11feb1a74dc7/components/gcp/dataproc/submit_pyspark_job/component.yaml'
 )
 
 dataproc_submit_spark_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/a8d3b6977df26a89701cd229f01c1840a8475521/components/gcp/dataproc/submit_spark_job/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e4d9e2b67cf39c5f12b9c1477cae11feb1a74dc7/components/gcp/dataproc/submit_spark_job/component.yaml'
 )
 
 _PYSRC_PREFIX = 'gs://ml-pipeline-playground/dataproc-example' # Common path to python src.
@@ -296,9 +295,6 @@ def xgb_train_pipeline(
             true_score_column=true_label,
             output_dir=output_template
         ).after(_predict_op)
-
-    dsl.get_pipeline_conf().add_op_transformer(
-        gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.yaml')

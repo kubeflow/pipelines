@@ -55,6 +55,19 @@ describe('Apis', () => {
     });
   });
 
+  it('getPodLogs in a specific namespace', async () => {
+    const spy = fetchSpy('http://some/address');
+    expect(await Apis.getPodLogs('some-pod-name', 'some-namespace-name')).toEqual(
+      'http://some/address',
+    );
+    expect(spy).toHaveBeenCalledWith(
+      'k8s/pod/logs?podname=some-pod-name&podnamespace=some-namespace-name',
+      {
+        credentials: 'same-origin',
+      },
+    );
+  });
+
   it('getPodLogs error', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => null);
     window.fetch = jest.fn(() =>
@@ -64,6 +77,9 @@ describe('Apis', () => {
       }),
     );
     expect(Apis.getPodLogs('some-pod-name')).rejects.toThrowError('bad response');
+    expect(Apis.getPodLogs('some-pod-name', 'some-namespace-name')).rejects.toThrowError(
+      'bad response',
+    );
   });
 
   it('getBuildInfo returns build information', async () => {

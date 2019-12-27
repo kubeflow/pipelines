@@ -14,7 +14,9 @@
 
 package model
 
-import "github.com/kubeflow/pipelines/backend/src/apiserver/common"
+import (
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+)
 
 // Resource reference table models the relationship between resources in a loosely coupled way.
 type ResourceReference struct {
@@ -38,4 +40,15 @@ type ResourceReference struct {
 
 	// The json formatted blob of the resource reference.
 	Payload string `gorm:"column:Payload; not null; size:65535 "`
+}
+
+func GetNamespaceFromModelResourceReferences(resourceRefs []*ResourceReference) string {
+	namespace := ""
+	for _, resourceRef := range resourceRefs {
+		if resourceRef.ReferenceType == common.Namespace {
+			namespace = resourceRef.ReferenceUUID
+			break
+		}
+	}
+	return namespace
 }

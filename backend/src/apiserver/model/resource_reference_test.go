@@ -12,38 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package common
+package model
 
 import (
-	"testing"
-
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
-func TestGetNamespaceFromResourceReferences(t *testing.T) {
-	references := []*api.ResourceReference{
+func TestGetNamespaceFromResourceReferencesModel(t *testing.T) {
+	references := []*ResourceReference{
 		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: "123"},
-			Relationship: api.Relationship_CREATOR,
+			ReferenceType: common.Experiment,
+			ReferenceUUID: "123",
+			ReferenceName: "123",
+			Relationship:  common.Creator,
 		},
 		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_NAMESPACE, Id: "ns"},
-			Relationship: api.Relationship_OWNER,
+			ReferenceType: common.Namespace,
+			ReferenceName: "ns",
+			ReferenceUUID: "ns",
+			Relationship:  common.Creator,
 		},
 	}
-	namespace := GetNamespaceFromAPIResourceReferences(references)
+	namespace := GetNamespaceFromModelResourceReferences(references)
 	assert.Equal(t, "ns", namespace)
 
-	references = []*api.ResourceReference{
+	references = []*ResourceReference{
 		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: "123"},
-			Relationship: api.Relationship_CREATOR,
+			ReferenceType: common.Experiment,
+			ReferenceUUID: "123",
+			ReferenceName: "123",
+			Relationship:  common.Creator,
 		},
 	}
-	namespace = GetNamespaceFromAPIResourceReferences(references)
+	namespace = GetNamespaceFromModelResourceReferences(references)
 	assert.Equal(t, "", namespace)
 }

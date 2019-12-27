@@ -45,33 +45,7 @@ const workflowPlural = 'workflows';
 /** Default pod template spec used to create tensorboard viewer. */
 export const defaultPodTemplateSpec = {
   spec: {
-    containers: [
-      {
-        env: [
-          {
-            name: 'GOOGLE_APPLICATION_CREDENTIALS',
-            value: '/secret/gcp-credentials/user-gcp-sa.json',
-          },
-        ],
-        volumeMounts: [
-          {
-            name: 'gcp-credentials',
-            mountPath: '/secret/gcp-credentials/user-gcp-sa.json',
-            readOnly: true,
-          },
-        ],
-      },
-    ],
-    volumes: [
-      {
-        name: 'gcp-credentials',
-        volumeSource: {
-          secret: {
-            secretName: 'user-gcp-sa',
-          },
-        },
-      },
-    ],
+    containers: [{}],
   },
 };
 
@@ -232,11 +206,11 @@ export function waitForTensorboardInstance(logdir: string, timeout: number): Pro
   });
 }
 
-export function getPodLogs(podName: string): Promise<string> {
+export function getPodLogs(podName: string, podNamespace?: string): Promise<string> {
   if (!k8sV1Client) {
     throw new Error('Cannot access kubernetes API');
   }
-  return (k8sV1Client.readNamespacedPodLog(podName, namespace, 'main') as any).then(
+  return (k8sV1Client.readNamespacedPodLog(podName, podNamespace || namespace, 'main') as any).then(
     (response: any) => (response && response.body ? response.body.toString() : ''),
     (error: any) => {
       throw new Error(JSON.stringify(error.body));

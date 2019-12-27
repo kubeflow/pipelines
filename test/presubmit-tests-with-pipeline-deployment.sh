@@ -33,6 +33,7 @@ PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
+ENABLE_WORKLOAD_IDENTITY=true
 
 while [ "$1" != "" ]; do
     case $1 in

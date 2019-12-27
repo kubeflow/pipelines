@@ -76,6 +76,12 @@ To understand more what prettier is: [What is Prettier](https://prettier.io/docs
       },
       "editor.formatOnSave": true,
   },
+  "[typescriptreact]": {
+      "editor.codeActionsOnSave": {
+          "source.organizeImports": true,
+      },
+      "editor.formatOnSave": true,
+  },
   ```
 - For others, refer to https://prettier.io/docs/en/editors.html
 
