@@ -28,8 +28,6 @@ def launch(file_or_module, args):
     Returns:
         The return value from the launched function.
     """
-    if not isinstance(args, list):
-        args = [args]
     try:
         module = importlib.import_module(file_or_module)
     except Exception:
@@ -44,4 +42,4 @@ def launch(file_or_module, args):
         except Exception:
             logging.error('Failed to find the module or file: {}'.format(file_or_module))
             sys.exit(1)
-    return fire.Fire(module, command=[] + args, name=module.__name__)
+    return fire.Fire(module, command=args, name=module.__name__)
