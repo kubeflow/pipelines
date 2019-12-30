@@ -985,8 +985,7 @@ spec:
         app: proxy-agent
     spec:
       containers:
-      - image: gcr.io/ml-pipeline/inverse-proxy-agent:0.1.27
-        imagePullPolicy: IfNotPresent
+      - image: gcr.io/jxzheng-helloworld/proxy-agent:latest
         name: proxy-agent
       serviceAccountName: proxy-agent-runner
 ---

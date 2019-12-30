@@ -19,7 +19,7 @@ images:
   newTag: 0.1.38
 - name: gcr.io/ml-pipeline/viewer-crd-controller
   newTag: 0.1.38
-- name: gcr.io/ml-pipeline/inverse-proxy-agent
-  newTag: 0.1.38
+- name: gcr.io/jxzheng-helloworld/proxy-agent
+  newTag: latest
 - name: gcr.io/ml-pipeline/visualization-server
   newTag: 0.1.38
