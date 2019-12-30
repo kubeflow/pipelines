@@ -28,7 +28,7 @@ def main():
     parser.add_argument('file_or_module', type=str,
         help='Either a python file path or a module name.')
     parser.add_argument(
-        'ui_metadata_path',
+        '--ui_metadata_path',
         type=str,
         default='/mlpipeline-ui-metadata.json',
         help='Path for the file where the mlpipeline-ui-metadata.json data '
@@ -39,7 +39,7 @@ def main():
     if args.ui_metadata_path:
         os.environ['KFP_UI_METADATA_PATH'] = args.ui_metadata_path
 
-    launch(args.file_or_module, [args.args, args.ui_metadata_path])
+    launch(args.file_or_module, args.args)
 
 if __name__ == '__main__':
     main()
