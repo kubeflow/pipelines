@@ -1,0 +1,89 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "${_GCR_PATH}/mnist_train:$COMMIT_SHA",
+        "-t",
+        "${_GCR_PATH}/mnist_train:latest",
+        "${_CODE_PATH}/train",
+        "-f",
+        "${_CODE_PATH}/train/Dockerfile",
+      ]
+    id: "MnistBuildFirstImage"
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "${_GCR_PATH}/mnist_tensorboard:$COMMIT_SHA",
+        "-t",
+        "${_GCR_PATH}/mnist_tensorboard:latest",
+        "${_CODE_PATH}/tensorboard",
+        "-f",
+        "${_CODE_PATH}/tensorboard/Dockerfile",
+      ]
+    id: "MnistBuildSecondImage"
+
+
+  - name: "python:3.7-slim"
+    entrypoint: "/bin/sh"
+    args: [
+        "-c",
+        "cd ${_CODE_PATH};
+        pip3 install cffi==1.12.3 --upgrade;
+        pip3 install kfp==0.1.37;
+        python pipeline.py --commit_id $COMMIT_SHA;
+        cp pipeline.py.zip /workspace/pipeline.zip",
+      ]
+    id: "MnistPackagePipeline"
+
+  - name: "gcr.io/cloud-builders/gsutil"
+    args:
+      [
+        "cp",
+        "/workspace/pipeline.zip",
+        "gs://${_GS_BUCKET}/$COMMIT_SHA/pipeline.zip"
+      ]
+    id: "MnistUploadPipeline"
+    waitFor: ["MnistPackagePipeline"]
+
+
+  - name: "gcr.io/cloud-builders/kubectl"
+    entrypoint: "/bin/sh"
+    args: [
+        "-c",
+        "cd ${_CODE_PATH};
+        apt-get update;
+        apt-get install -y python3-pip;
+        apt-get install -y libssl-dev libffi-dev;
+        /builder/kubectl.bash;
+        pip3 install kfp==0.1.37;
+        pip3 install kubernetes;
+        python3 create_pipeline_version_and_run.py 
+        --tensorboard_bucket gs://${_GS_BUCKET}
+        --package_url https://storage.googleapis.com/${_GS_BUCKET}/$COMMIT_SHA/pipeline.zip
+        --pipeline_id ${_PIPELINE_ID} 
+        --version_name $COMMIT_SHA
+        --gcr_address ${_GCR_PATH}"
+      ]
+    env:
+      - "CLOUDSDK_COMPUTE_ZONE=us-central1-a"
+      - "CLOUDSDK_CONTAINER_CLUSTER=client"
+    id: "MnistCreatePipelineVersionAndRun"
+
+images:
+  - "${_GCR_PATH}/mnist_train:$COMMIT_SHA"
+  - "${_GCR_PATH}/mnist_train:latest"
+  - "${_GCR_PATH}/mnist_tensorboard:$COMMIT_SHA"
+  - "${_GCR_PATH}/mnist_tensorboard:latest"
+
+substitutions:
+  _CODE_PATH: /workspace/mnist
+  _NAMESPACE: kubeflow
+  _GCR_PATH: '[YOUR CLOUD REGISTRY], for example: gcr.io/my-project'
+  _GS_BUCKET: '[YOUR GS BUCKET TO STORE PIPELINE AND LAUNCH TENSORBOARD], for example: Put "my-bucket" here if your bucket is "gs://my-bucket"'
+  _PIPELINE_ID: '[PIPELINE ID TO CREATE A VERSION ON], get it on kfp UI'
+

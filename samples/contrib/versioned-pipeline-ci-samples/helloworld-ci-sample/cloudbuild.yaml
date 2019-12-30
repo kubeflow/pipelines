@@ -1,0 +1,57 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "${_GCR_PATH}/helloworld-ci:$COMMIT_SHA",
+        "-t",
+        "${_GCR_PATH}/helloworld-ci:latest",
+        "--cache-from",
+        "${_GCR_PATH}/helloworld-ci:latest",
+        "${_CODE_PATH}/helloworld",
+      ]
+    id: "BuildImages"
+  - name: "python:3.7-slim"
+    entrypoint: "/bin/sh"
+    args: [
+        "-c",
+        "cd ${_CODE_PATH};
+        pip3 install cffi==1.12.3 --upgrade;
+        pip3 install kfp;
+        python pipeline.py --commit_id $COMMIT_SHA;
+        cp pipeline.py.zip /workspace/pipeline.zip",
+      ]
+    id: "PackagePipeline"
+
+  - name: "gcr.io/cloud-builders/gsutil"
+    args:
+      [
+        "cp",
+        "/workspace/pipeline.zip",
+        "gs://${_GS_BUCKET}/$COMMIT_SHA/pipeline.zip",
+      ]
+    id: "UploadPipeline"
+    waitFor: ["PackagePipeline"]
+
+
+  - name: "gcr.io/cloud-builders/curl"
+    entrypoint: "/bin/sh"
+    args: 
+      [
+        "-c",
+        "curl.bash $COMMIT_SHA ${_PIPELINE_ID} ${_GS_BUCKET} ${_PIPELINE_ENDPOINT} ${_GCR_PATH}"
+      ]
+    id: "CreatePipelineVersionAndRun"
+
+images:
+  - "${_GCR_PATH}/helloworld-ci:$COMMIT_SHA"
+  - "${_GCR_PATH}/helloworld-ci:latest"
+
+substitutions:
+  _GCR_PATH: [Your cloud registry path. For example, gcr.io/myproject]
+  _CODE_PATH: /workspace/hello-world
+  _NAMESPACE: kubeflow
+  _PIPELINE_ID: [Your kubeflow pipeline id to create a version on. Get it from kfp UI.]
+  _GS_BUCKET: [Name of your cloud storage bucket. For example, 'myproject-helloworld']
+  _PIPELINE_ENDPOINT: [Your exposed pipeline endpoint.]

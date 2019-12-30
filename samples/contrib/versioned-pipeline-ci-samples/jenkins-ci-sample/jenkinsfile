@@ -1,0 +1,49 @@
+node {
+    def pipeline_id="[Your pipeline id]"
+    def pipeline_endpoint = "[Your pipeline endpoint]"
+    def gs_bucket = "[Your gs bucket name, for example, my-bucket]"
+
+    // build hello-world image
+    stage("BuildImages"){
+        // step1: specify source
+        checkout scm
+        def imagename = "helloworld-ci:${env.BUILD_ID}"
+        // build image
+        def image = docker.build(imagename, "./helloworld")
+    }
+
+    // package pipeline
+    stage("PackagePipeline"){
+        withPythonEnv('python3'){
+            sh '''
+            pip3 install cffi==1.12.3 --upgrade;
+            pip3 install kfp;
+            python pipeline.py --commit_id $scm.GIT_COMMIT;
+            '''
+        }
+    }
+
+    // upload pipeline to some storage so that it can be accessed by kubeflow pipeline CreatePipelineVersion API
+    // in this example, we set up a local http server to expose jenkins workspace to kfp API
+    stage("UploadPipeline"){
+        //copy pipeline.py.zip to a storage without access control
+        sh"""
+        gsutil cp ./pipeline.py.zip gs://$gs_bucket/$scm.GIT_COMMIT/pipeline.zip
+        """
+    }
+
+    // create pipeline version and a new run
+    stage("CreatePipelineVersionAndRun"){
+        def version_name = "jenkins-ci-$scm.GIT_COMMIT"
+        def run_name = "$scm.GIT_COMMIT-run"
+        
+
+        data = sh(script: """echo '{"name": "$version_name", "package_url": {"pipeline_url": "https://storage.googleapis.com/test-pipeline-version/$scm.GIT_COMMIT/pipeline.zip"}, "resource_references": [{"key": {"id": "$pipeline_id", "type":3}, "relationship":1}]}';""", returnStdout: true).trim()
+        //echo "data is: $data"
+        version=sh(script: """curl -H "Content-Type: application/json" -X POST -d '$data' "$pipeline_endpoint"/apis/v1beta1/pipeline_versions | jq -r ".id";""", returnStdout: true).trim()
+        rundata=sh(script: """echo '{"name": "$run_name", "resource_references": [{"key": {"id": "$version", "type":4}, "relationship":2}]}';""", returnStdout: true).trim()
+        //echo "run data is: $rundata"
+        sh(script: """curl -H "Content-Type: application/json" -X POST -d '$rundata' "$pipeline_endpoint"/apis/v1beta1/runs""")
+        
+    }
+}
