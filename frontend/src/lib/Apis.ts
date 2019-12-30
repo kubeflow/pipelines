@@ -310,7 +310,9 @@ export class Apis {
     return await this._fetchAndParse<ApiPipeline>(
       '/pipelines/upload',
       v1beta1Prefix,
-      `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(pipelineDescription)}`,
+      `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
+        pipelineDescription,
+      )}`,
       {
         body: fd,
         cache: 'no-cache',

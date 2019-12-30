@@ -332,7 +332,11 @@ describe('NewPipelineVersion', () => {
       await TestUtils.flushPromises();
 
       expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
-      expect(uploadPipelineSpy).toHaveBeenLastCalledWith('test pipeline name', 'test pipeline description', file);
+      expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
+        'test pipeline name',
+        'test pipeline description',
+        file,
+      );
       expect(createPipelineSpy).not.toHaveBeenCalled();
     });
   });
