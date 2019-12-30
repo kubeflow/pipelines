@@ -62,11 +62,7 @@ Note: You can recycle the cluster by using the [Dataproc delete cluster componen
 
 To use the component, you  must:
 *   Set up the GCP project by following these [steps](https://cloud.google.com/dataproc/docs/guides/setup-project).
-*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
-
-    ```
-    component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-    ```
+*   The component can authenticate to GCP. Refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication-pipelines/) for details.
 *   Grant the following types of access to the Kubeflow user service account:
     *   Read access to the Cloud Storage buckets which contain the initialization action files.
     *   The role, `roles/dataproc.editor`, on the project.
@@ -114,7 +110,6 @@ EXPERIMENT_NAME = 'Dataproc - Create Cluster'
 
 ```python
 import kfp.dsl as dsl
-import kfp.gcp as gcp
 import json
 @dsl.pipeline(
     name='Dataproc create cluster pipeline',
@@ -140,7 +135,7 @@ def dataproc_create_cluster_pipeline(
         config_bucket=config_bucket, 
         image_version=image_version, 
         cluster=cluster, 
-        wait_interval=wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        wait_interval=wait_interval)
 ```
 
 #### Compile the pipeline

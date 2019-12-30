@@ -73,12 +73,7 @@ The component accepts two types of inputs:
 To use the component, you must:
 
 *   Set up a cloud environment by following this [guide](https://cloud.google.com/ml-engine/docs/tensorflow/getting-started-training-prediction#setup).
-*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
-
-    ```
-    mlengine_train_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-    ```
-
+*   The component can authenticate to GCP. Refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication-pipelines/) for details.
 *   Grant the following access to the Kubeflow user service account: 
     *   Read access to the Cloud Storage buckets which contain the input data, packages, or Docker images.
     *   Write access to the Cloud Storage bucket of the output directory.
@@ -160,7 +155,6 @@ rm -fr ./cloudml-samples-master/ ./master.zip ./dist
 
 ```python
 import kfp.dsl as dsl
-import kfp.gcp as gcp
 import json
 @dsl.pipeline(
     name='CloudML training pipeline',
@@ -199,7 +193,7 @@ def pipeline(
         worker_image_uri=worker_image_uri, 
         training_input=training_input, 
         job_id_prefix=job_id_prefix, 
-        wait_interval=wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        wait_interval=wait_interval)
 ```
 
 #### Compile the pipeline

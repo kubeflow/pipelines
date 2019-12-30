@@ -57,13 +57,7 @@ output_path | The output path of the batch prediction job | GCSPath
 To use the component, you must:
 
 *   Set up a cloud environment by following this [guide](https://cloud.google.com/ml-engine/docs/tensorflow/getting-started-training-prediction#setup).
-*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
-
-    ```python
-    mlengine_predict_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-    ```
-
-
+*   The component can authenticate to GCP. Refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication-pipelines/) for details.
 *   Grant the following types of access to the Kubeflow user service account:
     *   Read access to the Cloud Storage buckets which contains the input data.
     *   Write access to the Cloud Storage bucket of the output directory.
@@ -132,7 +126,6 @@ OUTPUT_GCS_PATH = GCS_WORKING_DIR + '/batch_predict/output/'
 
 ```python
 import kfp.dsl as dsl
-import kfp.gcp as gcp
 import json
 @dsl.pipeline(
     name='CloudML batch predict pipeline',
@@ -161,7 +154,7 @@ def pipeline(
             output_data_format=output_data_format, 
             prediction_input=prediction_input, 
             job_id_prefix=job_id_prefix,
-            wait_interval=wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
+            wait_interval=wait_interval)
 ```
 
 #### Compile the pipeline
