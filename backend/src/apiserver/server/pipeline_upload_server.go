@@ -61,13 +61,13 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 
 	fileNameQueryString := r.URL.Query().Get(NameQueryStringKey)
 	pipelineName, err := GetPipelineName(fileNameQueryString, header.Filename)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid pipeline name."))
+		return
+	}
 	pipelineDescription, err := url.QueryUnescape(r.URL.Query().Get(DescriptionQueryStringKey))
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline description."))
-		return
-	}
-	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid pipeline name."))
 		return
 	}
 	newPipeline, err := s.resourceManager.CreatePipeline(pipelineName, pipelineDescription, pipelineFile)
