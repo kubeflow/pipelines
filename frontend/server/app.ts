@@ -127,7 +127,7 @@ function createUIServer(options: UIConfigs) {
   /** Pod logs */
   registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));
 
-  /** Cluster (GKS only) */
+  /** Cluster metadata (GKE only) */
   registerHandler(app.get, '/system/cluster-name', clusterNameHandler);
   registerHandler(app.get, '/system/project-id', projectIdHandler);
 
