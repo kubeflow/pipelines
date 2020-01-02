@@ -23,7 +23,7 @@ export enum Deployments {
 }
 
 /** converts string to bool */
-const asBool = (value: string) => ['true', '1'].indexOf(value.toLowerCase()) >= 0;
+const asBool = (value: string) => ['true', '1'].includes(value.toLowerCase());
 
 function parseArgs(argv: string[]) {
   if (argv.length < 3) {

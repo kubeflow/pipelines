@@ -26,7 +26,7 @@ import {
   deleteTensorboardHandler,
 } from './handlers/tensorboard';
 import { getPodLogsHandler } from './handlers/pod-logs';
-import { clusterNameHandler, projectIdHandler } from './handlers/core';
+import { clusterNameHandler, projectIdHandler } from './handlers/gke-metadata';
 import { getAllowCustomVisualizationsHandler } from './handlers/vis';
 import { getIndexHTMLHandler } from './handlers/index-html';
 
@@ -64,7 +64,7 @@ export class UIServer {
    * @param port optionally overwrite the provided port to listen to.
    */
   start(port?: number | string) {
-    if (!!this.httpServer) {
+    if (this.httpServer) {
       throw new Error('UIServer already started.');
     }
     port = port || this.options.server.port;
@@ -78,7 +78,7 @@ export class UIServer {
    * Stops the http server.
    */
   close() {
-    if (!!this.httpServer) {
+    if (this.httpServer) {
       this.httpServer.close();
     }
     this.httpServer = undefined;

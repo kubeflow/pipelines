@@ -25,11 +25,9 @@ export function getAddress({
   namespace?: string;
   schema?: string;
 }) {
-  namespace = !!namespace ? `.${namespace}` : '';
-  if (!!port) {
-    return `${schema}://${host}${namespace}:${port}`;
-  }
-  return `${schema}://${host}${namespace}`;
+  namespace = namespace ? `.${namespace}` : '';
+  port = port ? `:${port}` : '';
+  return `${schema}://${host}${namespace}${port}`;
 }
 
 export function equalArrays(a1: any[], a2: any[]): boolean {

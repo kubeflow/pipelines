@@ -41,24 +41,20 @@ export function getIndexHTMLHandler(options: {
 }
 
 function loadIndexHtml(staticDir: string) {
-  try {
-    const filepath = path.resolve(staticDir, 'index.html');
-    const content = fs.readFileSync(filepath).toString();
-    // sanity checking
-    if (!content.includes(DEFAULT_FLAG)) {
-      throw new Error(
-        `Error: cannot find default flag: '${DEFAULT_FLAG}' in index html. Its content: '${content}'.`,
-      );
-    }
-    if (!content.includes(KUBEFLOW_CLIENT_PLACEHOLDER)) {
-      throw new Error(
-        `Error: cannot find kubeflow client placeholder: '${KUBEFLOW_CLIENT_PLACEHOLDER}' in index html. Its content: '${content}'.`,
-      );
-    }
-    return content;
-  } catch (err) {
-    console.error(`Failed to load index.html: ${err}`);
+  const filepath = path.resolve(staticDir, 'index.html');
+  const content = fs.readFileSync(filepath).toString();
+  // sanity checking
+  if (!content.includes(DEFAULT_FLAG)) {
+    throw new Error(
+      `Error: cannot find default flag: '${DEFAULT_FLAG}' in index html. Its content: '${content}'.`,
+    );
   }
+  if (!content.includes(KUBEFLOW_CLIENT_PLACEHOLDER)) {
+    throw new Error(
+      `Error: cannot find kubeflow client placeholder: '${KUBEFLOW_CLIENT_PLACEHOLDER}' in index html. Its content: '${content}'.`,
+    );
+  }
+  return content;
 }
 
 function replaceRuntimeContent(content: string | undefined, deployment: Deployments) {

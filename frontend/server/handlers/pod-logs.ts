@@ -13,7 +13,13 @@
 // limitations under the License.
 import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper';
-import podLogsHandler from '../workflow-helper';
+import {
+  createPodLogsMinioRequestConfig,
+  composePodLogsStreamHandler,
+  getPodLogsStreamFromK8s,
+  getPodLogsStreamFromWorkflow,
+  toGetPodLogsStream,
+} from '../workflow-helper';
 import { ArgoConfigs, MinioConfigs, AWSConfigs } from '../configs';
 
 /**
@@ -32,15 +38,28 @@ export function getPodLogsHandler(
     aws: AWSConfigs;
   },
 ): Handler {
-  if (argoOptions.archiveLogs) {
-    const minioClientOptions =
-      argoOptions.archiveArtifactory === 'minio' ? artifactsOptions.minio : artifactsOptions.aws;
-    podLogsHandler.setFallbackHandler(
-      minioClientOptions,
-      argoOptions.archiveBucketName,
-      argoOptions.archivePrefix,
-    );
-  }
+  const { archiveLogs, archiveArtifactory, archiveBucketName, archivePrefix = '' } = argoOptions;
+
+  // get pod log from the provided bucket and prefix.
+  const getPodLogsStreamFromArchive = toGetPodLogsStream(
+    createPodLogsMinioRequestConfig(
+      archiveArtifactory === 'minio' ? artifactsOptions.minio : artifactsOptions.aws,
+      archiveBucketName,
+      archivePrefix,
+    ),
+  );
+
+  // get the pod log stream (with fallbacks).
+  const getPodLogsStream = composePodLogsStreamHandler(
+    getPodLogsStreamFromK8s,
+    // if archive logs flag is set, then final attempt will try to retrieve the artifacts
+    // from the bucket and prefix provided in the config. Otherwise, only attempts
+    // to read from worflow status if the default handler fails.
+    archiveLogs && archiveBucketName
+      ? composePodLogsStreamHandler(getPodLogsStreamFromWorkflow, getPodLogsStreamFromArchive)
+      : getPodLogsStreamFromWorkflow,
+  );
+
   return async (req, res) => {
     if (!k8sHelper.isInCluster) {
       res.status(500).send('Cannot talk to Kubernetes master');
@@ -58,7 +77,7 @@ export function getPodLogsHandler(
     const podNamespace = decodeURIComponent(req.query.podnamespace || '') || undefined;
 
     try {
-      const stream = await podLogsHandler.getPodLogs(podName, podNamespace);
+      const stream = await getPodLogsStream(podName, podNamespace);
       stream.on('error', err => res.status(500).send('Could not get main container logs: ' + err));
       stream.on('end', () => res.end());
       stream.pipe(res);

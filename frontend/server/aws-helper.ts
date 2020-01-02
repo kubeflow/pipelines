@@ -82,7 +82,7 @@ class AWSInstanceProfileCredentials {
   async ok() {
     try {
       const profile = await this.profile();
-      return !!profile && profile.length > 0;
+      return profile && profile.length > 0;
     } catch (_) {
       return false;
     }

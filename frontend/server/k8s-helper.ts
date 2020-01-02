@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// TODO: refractor k8s helper module so that api that interact with k8s can be
+// mocked and tested. There is currently no way to mock k8s APIs as
+// `k8s-helper.isInCluster` is a constant that is generated when the module is
+// first loaded.
+
 // @ts-ignore
 import {
   Core_v1Api,

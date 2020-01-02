@@ -11,69 +11,103 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import { PassThrough } from 'stream';
 import { Client as MinioClient } from 'minio';
 import { awsInstanceProfileCredentials } from './aws-helper';
-import { createMinioClient } from './minio-helper';
+import { createMinioClient, getTarObjectAsString } from './minio-helper';
 
 jest.mock('minio');
 jest.mock('./aws-helper');
-const MockedMinioClient: jest.Mock = MinioClient as any;
 
-describe('createMinioClient', () => {
+describe('minio-helper', () => {
+  const MockedMinioClient: jest.Mock = MinioClient as any;
+
   beforeEach(() => {
-    (MinioClient as any).mockClear();
-    (awsInstanceProfileCredentials.getCredentials as jest.Mock).mockClear();
-    (awsInstanceProfileCredentials.ok as jest.Mock).mockClear();
+    (MinioClient as any).mockReset();
+    (awsInstanceProfileCredentials.getCredentials as jest.Mock).mockReset();
+    (awsInstanceProfileCredentials.ok as jest.Mock).mockReset();
   });
 
-  it('should create a minio client with the provided configs.', async () => {
-    const client = await createMinioClient({
-      endPoint: 'minio.kubeflow:80',
-      accessKey: 'accesskey',
-      secretKey: 'secretkey',
+  describe('createMinioClient', () => {
+    it('creates a minio client with the provided configs.', async () => {
+      const client = await createMinioClient({
+        accessKey: 'accesskey',
+        endPoint: 'minio.kubeflow:80',
+        secretKey: 'secretkey',
+      });
+
+      expect(client).toBeInstanceOf(MinioClient);
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'minio.kubeflow:80',
+        secretKey: 'secretkey',
+      });
     });
 
-    expect(client).toBeInstanceOf(MinioClient);
-    expect(MockedMinioClient).toHaveBeenCalledWith({
-      endPoint: 'minio.kubeflow:80',
-      accessKey: 'accesskey',
-      secretKey: 'secretkey',
+    it('fallbacks to the provided configs if EC2 metadata is not available.', async () => {
+      const client = await createMinioClient({
+        endPoint: 'minio.kubeflow:80',
+      });
+
+      expect(client).toBeInstanceOf(MinioClient);
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        endPoint: 'minio.kubeflow:80',
+      });
+    });
+
+    it('uses EC2 metadata credentials if access key are not provided.', async () => {
+      (awsInstanceProfileCredentials.getCredentials as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          AccessKeyId: 'AccessKeyId',
+          Code: 'Success',
+          Expiration: new Date(Date.now() + 1000).toISOString(), // expires 1 sec later
+          LastUpdated: '2019-12-17T10:55:38Z',
+          SecretAccessKey: 'SecretAccessKey',
+          Token: 'SessionToken',
+          Type: 'AWS-HMAC',
+        }),
+      );
+      (awsInstanceProfileCredentials.ok as jest.Mock).mockImplementation(() =>
+        Promise.resolve(true),
+      );
+
+      const client = await createMinioClient({ endPoint: 's3.awsamazon.com' });
+
+      expect(client).toBeInstanceOf(MinioClient);
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'AccessKeyId',
+        endPoint: 's3.awsamazon.com',
+        secretKey: 'SecretAccessKey',
+        sessionToken: 'SessionToken',
+      });
     });
   });
 
-  it('should fallback to the provided configs if EC2 metadata is not available.', async () => {
-    const client = await createMinioClient({
-      endPoint: 'minio.kubeflow:80',
-    });
+  describe('getTarObjectAsString', () => {
+    // hello world
+    const tarGzBase64 =
+      'H4sIAFa7DV4AA+3PSwrCMBRG4Y5dxV1BuSGPridgwcItkTZSl++johNBJ0WE803OIHfwZ87j0fq2nmuzGVVNIcitXYqPpntXLojzSb33MToVdTG5rhHdbtLLaa55uk5ZBrMhj23ty9u7T+/rT+TZP3HozYosZbL97tdbAAAAAAAAAAAAAAAAAADfuwAyiYcHACgAAA==';
+    const tarGzBuffer = Buffer.from(tarGzBase64, 'base64');
 
-    expect(client).toBeInstanceOf(MinioClient);
-    expect(MockedMinioClient).toHaveBeenCalledWith({
-      endPoint: 'minio.kubeflow:80',
-    });
-  });
+    it('unpacks the tar gz and return the string "hello world".', async () => {
+      const client = new MinioClient({
+        accessKey: 'minio',
+        endPoint: 'minio-service.kubeflow',
+        secretKey: 'minio123',
+        useSSL: false,
+      });
+      const mockedGetObject: jest.Mock = client.getObject as any;
+      const stream = new PassThrough();
+      stream.end(tarGzBuffer);
+      mockedGetObject.mockResolvedValue(stream);
 
-  it('should use EC2 metadata credentials if access key are not provided.', async () => {
-    (awsInstanceProfileCredentials.getCredentials as jest.Mock).mockImplementation(() =>
-      Promise.resolve({
-        Code: 'Success',
-        LastUpdated: '2019-12-17T10:55:38Z',
-        Type: 'AWS-HMAC',
-        AccessKeyId: 'AccessKeyId',
-        SecretAccessKey: 'SecretAccessKey',
-        Token: 'SessionToken',
-        Expiration: new Date(Date.now() + 1000).toISOString(), // expires 1 sec later
-      }),
-    );
-    (awsInstanceProfileCredentials.ok as jest.Mock).mockImplementation(() => Promise.resolve(true));
+      const content = await getTarObjectAsString({
+        bucket: 'bucket',
+        client,
+        key: 'key',
+      });
 
-    const client = await createMinioClient({ endPoint: 's3.awsamazon.com' });
-
-    expect(client).toBeInstanceOf(MinioClient);
-    expect(MockedMinioClient).toHaveBeenCalledWith({
-      accessKey: 'AccessKeyId',
-      endPoint: 's3.awsamazon.com',
-      secretKey: 'SecretAccessKey',
-      sessionToken: 'SessionToken',
+      expect(content).toBe('hello world\n');
     });
   });
 });

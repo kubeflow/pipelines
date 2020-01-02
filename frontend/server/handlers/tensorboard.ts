@@ -23,11 +23,13 @@ export const getTensorboardHandler: Handler = async (req, res) => {
     res.status(500).send('Cannot talk to Kubernetes master');
     return;
   }
-  const logdir = decodeURIComponent(req.query.logdir);
-  if (!logdir) {
+
+  if (!req.query.logdir) {
     res.status(404).send('logdir argument is required');
     return;
   }
+
+  const logdir = decodeURIComponent(req.query.logdir);
 
   try {
     res.send(await k8sHelper.getTensorboardInstance(logdir));
