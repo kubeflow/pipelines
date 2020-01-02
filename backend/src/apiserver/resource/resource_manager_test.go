@@ -757,7 +757,7 @@ func TestRetryRun_FailedDeletePods(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
 
-	manager.podClient = FakeBadPodClient{}
+	manager.k8sCoreClient = client.NewFakeKubernetesCoreClientWithBadPodClient()
 	err := manager.RetryRun(runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "failed to delete pod")

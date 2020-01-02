@@ -5,7 +5,6 @@ go_library(
     srcs = [
         "client_manager_fake.go",
         "model_converter.go",
-        "pod_fake.go",
         "resource_manager.go",
         "resource_manager_util.go",
         "scheduled_workflow_fake.go",
