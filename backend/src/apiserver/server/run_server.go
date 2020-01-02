@@ -186,14 +186,14 @@ func (s *RunServer) canAccessRun(ctx context.Context, runId string) error {
 		// Skip authz if not multi-user mode.
 		return nil
 	}
-	runDetail, err := s.resourceManager.GetRun(runId)
+	namespace, err := s.resourceManager.GetNamespaceFromRunID(runId)
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize with the run Id.")
 	}
-	namespace := model.GetNamespaceFromModelResourceReferences(runDetail.ResourceReferences)
 	if len(namespace) == 0 {
-		return util.NewInternalServerError(errors.New("There is no namespace in the ResourceReferences"), "There is no namespace in the ResourceReferences")
+		return util.NewInternalServerError(errors.New("There is no namespace found"), "There is no namespace found")
 	}
+
 	err = isAuthorized(s.resourceManager, ctx, namespace)
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize with API resource references")

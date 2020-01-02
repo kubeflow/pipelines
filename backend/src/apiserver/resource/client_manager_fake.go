@@ -20,7 +20,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const (
@@ -40,7 +39,7 @@ type FakeClientManager struct {
 	objectStore                 storage.ObjectStoreInterface
 	ArgoClientFake              *client.FakeArgoClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
-	podClientFake               v1.PodInterface
+	k8sCoreClientFake           *client.FakeKuberneteCoreClient
 	KfamClientFake              client.KFAMClientInterface
 	time                        util.TimeInterface
 	uuid                        util.UUIDGeneratorInterface
@@ -76,7 +75,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		defaultExperimentStore:      storage.NewDefaultExperimentStore(db),
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
-		podClientFake:               FakePodClient{},
+		k8sCoreClientFake:           client.NewFakeKuberneteCoresClient(),
 		KfamClientFake:              client.NewFakeKFAMClientAuthorized(),
 		time:                        time,
 		uuid:                        uuid,
@@ -144,8 +143,8 @@ func (f *FakeClientManager) ScheduledWorkflow() scheduledworkflowclient.Schedule
 	return f.scheduledWorkflowClientFake
 }
 
-func (f *FakeClientManager) PodClient() v1.PodInterface {
-	return f.podClientFake
+func (f *FakeClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
+	return f.k8sCoreClientFake
 }
 
 func (f *FakeClientManager) KFAMClient() client.KFAMClientInterface {
