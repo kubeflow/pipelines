@@ -20,10 +20,9 @@ import TestUtils from '../../TestUtils';
 import { Apis } from '../../lib/Apis';
 import { PlotType } from './Viewer';
 import { ReactWrapper, ShallowWrapper, shallow, mount } from 'enzyme';
+import snapshotDiff from 'snapshot-diff';
 
 describe('Tensorboard', () => {
-  const snapshotDiff = require('snapshot-diff');
-
   let tree: ReactWrapper | ShallowWrapper;
   beforeEach(() => {
     jest.clearAllMocks();
