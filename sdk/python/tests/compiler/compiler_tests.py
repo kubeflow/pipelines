@@ -780,6 +780,9 @@ implementation:
   def test_withparam_output_dict(self):
     self._test_py_compile_yaml('withparam_output_dict')
 
+  def test_withparam_lightweight_out(self):
+    self._test_py_compile_yaml('loop_over_lightweight_output')
+
   def test_py_input_artifact_raw_value(self):
     """Test pipeline input_artifact_raw_value."""
     self._test_py_compile_yaml('input_artifact_raw_value')

@@ -24,6 +24,7 @@ package reconciler
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	viewerV1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta1"
@@ -180,6 +181,11 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 		// when https://github.com/kubeflow/pipelines/issues/2514 is done
 		// "--bind_all",
 	}
+
+	if !strings.HasPrefix(view.Spec.TensorboardSpec.TensorflowImage, `tensorflow/tensorflow:1.`) {
+		c.Args = append(c.Args, "--bind_all")
+	}
+
 	c.Ports = []corev1.ContainerPort{
 		corev1.ContainerPort{ContainerPort: viewerTargetPort},
 	}

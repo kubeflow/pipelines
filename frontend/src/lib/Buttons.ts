@@ -563,7 +563,7 @@ export default class Buttons {
       );
 
       const successfulOps = selectedIds.length - unsuccessfulIds.length;
-      if (useCurrentResource || successfulOps > 0) {
+      if (successfulOps > 0) {
         this._props.updateSnackbar({
           message: `${actionName} succeeded for ${
             useCurrentResource ? 'this' : successfulOps

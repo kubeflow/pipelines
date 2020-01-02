@@ -16,8 +16,8 @@
 
 import * as dagre from 'dagre';
 import * as React from 'react';
-import { shallow } from 'enzyme';
-import Graph from './Graph';
+import { shallow, mount } from 'enzyme';
+import EnhancedGraph, { Graph } from './Graph';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
 import Tooltip from '@material-ui/core/Tooltip';
 
@@ -41,6 +41,10 @@ const newNode = (label: string, isPlaceHolder?: boolean, color?: string, icon?: 
   isPlaceholder: isPlaceHolder || false,
   label,
   width: 10,
+});
+
+beforeEach(() => {
+  jest.restoreAllMocks();
 });
 
 describe('Graph', () => {
@@ -148,5 +152,20 @@ describe('Graph', () => {
     graph.setNode('node2', newNode('node2'));
     graph.setEdge('node1', 'node2');
     expect(shallow(<Graph graph={graph} selectedNodeId='node3' />)).toMatchSnapshot();
+  });
+
+  it('shows an error message when the graph is invalid', () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error');
+    consoleErrorSpy.mockImplementation(() => null);
+    const graph = newGraph();
+    graph.setEdge('node1', 'node2');
+    const onError = jest.fn();
+    expect(mount(<EnhancedGraph graph={graph} onError={onError} />).html()).toMatchSnapshot();
+    expect(onError).toHaveBeenCalledTimes(1);
+    const [message, additionalInfo] = onError.mock.calls[0];
+    expect(message).toEqual('There was an error rendering the graph.');
+    expect(additionalInfo).toEqual(
+      "There was an error rendering the graph. This is likely a bug in Kubeflow Pipelines. Error message: 'Graph definition is invalid. Cannot get node by 'node1'.'.",
+    );
   });
 });

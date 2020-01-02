@@ -477,14 +477,19 @@ class Compiler(object):
           if pipeline_param.op_name is None:
             withparam_value = '{{workflow.parameters.%s}}' % pipeline_param.name
           else:
-            param_name = '%s-%s' % (pipeline_param.op_name, pipeline_param.name)
-            withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (pipeline_param.op_name, param_name)
+            param_name = '%s-%s' % (
+              sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
+            withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (
+                sanitize_k8s_name(pipeline_param.op_name),
+                param_name)
 
             # these loop args are the output of another task
             if 'dependencies' not in task or task['dependencies'] is None:
               task['dependencies'] = []
-            if pipeline_param.op_name not in task['dependencies']:
-              task['dependencies'].append(pipeline_param.op_name)
+            if sanitize_k8s_name(
+                pipeline_param.op_name) not in task['dependencies']:
+              task['dependencies'].append(
+                  sanitize_k8s_name(pipeline_param.op_name))
 
           task['withParam'] = withparam_value
         else:
