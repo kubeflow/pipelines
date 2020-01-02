@@ -151,7 +151,7 @@ data:
   {{ if .Values.managedstorage.databaseNamePrefix }}
   MYSQL_DATABASE: '{{ .Values.managedstorage.databaseNamePrefix }}_metadata'
   {{ else }}
-  mysql_database: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_metadata'
+  MYSQL_DATABASE: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_metadata'
   {{ end }}
   MYSQL_HOST: "mysql"
   MYSQL_PORT: "3306"
