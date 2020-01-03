@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: main
-        image: tensorflow/tensorflow:1.15.0-py3
+        image: python:3.7
         command:
         - sh
         - -e
