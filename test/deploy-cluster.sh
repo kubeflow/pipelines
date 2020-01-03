@@ -32,12 +32,15 @@ function clean_up {
   kubectl get pods --all-namespaces
 
   echo "Dumping all pods info as artifacts..."
+  POD_INFO_DIR="$ARTIFACTS/pods_info"
+  mkdir -p "$POD_INFO_DIR"
   # Refer to https://github.com/kubernetes/test-infra/blob/master/prow/jobs.md#job-environment-variables
   ALL_PODS=($(kubectl get pods -o=custom-columns=:metadata.name -n $NAMESPACE))
   for POD_NAME in "${ALL_PODS[@]}"; do
-    kubectl describe pod $POD_NAME -n $NAMESPACE > "$ARTIFACTS/pod_desc_$POD_NAME.txt"
-    echo "https://console.cloud.google.com/logs/viewer?project=$PROJECT&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22$PROJECT%22%0Aresource.labels.location%3D%22us-east1-b%22%0Aresource.labels.cluster_name%3D%22${TEST_CLUSTER}%22%0Aresource.labels.namespace_name%3D%22$NAMESPACE%22%0Aresource.labels.pod_name%3D%22$POD_NAME%22" \
-      >> "$ARTIFACTS/pod_stackdriver_links.txt"
+    pod_info_file="$POD_INFO_DIR/$POD_NAME.txt"
+    kubectl describe pod $POD_NAME -n $NAMESPACE > "$pod_info_file"
+    echo "Detailed logs: https://console.cloud.google.com/logs/viewer?project=$PROJECT&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22$PROJECT%22%0Aresource.labels.location%3D%22us-east1-b%22%0Aresource.labels.cluster_name%3D%22${TEST_CLUSTER}%22%0Aresource.labels.namespace_name%3D%22$NAMESPACE%22%0Aresource.labels.pod_name%3D%22$POD_NAME%22" \
+      >> "$pod_info_file"
   done
 
   echo "Clean up..."
