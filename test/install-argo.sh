@@ -59,6 +59,4 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
     --role="roles/editor" \
     > /dev/null # hide verbose output
   bind_gsa_and_ksa $ARGO_GSA $ARGO_KSA $PROJECT $NAMESPACE
-
-  verify_workload_identity_binding $ARGO_KSA $NAMESPACE
 fi
