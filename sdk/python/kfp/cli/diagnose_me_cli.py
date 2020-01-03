@@ -1,7 +1,8 @@
 # Lint as: python3
 """CLI interface for KFP diagnose_me tool."""
 
-import json
+import json as json_library
+import sys
 from typing import Dict, Text
 import click
 from .diagnose_me import dev_env
@@ -20,7 +21,7 @@ def diagnose_me():
 @click.option(
     '--json',
     is_flag=True,
-    help='Output in Json fromat, human readable format is set by default.')
+    help='Output in Json format, human readable format is set by default.')
 @click.option(
     '--project-id',
     type=Text,
@@ -28,7 +29,7 @@ def diagnose_me():
 @click.option(
     '--namespace',
     type=Text,
-    help='Namespace to use for Kubernetes cluster. It will use environment default if not specified.'
+    help='Namespace to use for Kubernetes cluster.all-namespaces is used if not specified.'
 )
 @click.pass_context
 def diagnose_me(ctx, json, project_id, namespace):
@@ -46,7 +47,7 @@ def diagnose_me(ctx, json, project_id, namespace):
           'https://cloud.google.com/sdk/install to install the SDK.')
       return
 
-  print('Collecting diagnostic information ...')
+  print('Collecting diagnostic information ...', file=sys.stderr)
 
   # default behaviour dump all configurations
   results = {}
@@ -72,7 +73,7 @@ def print_to_sdtout(results: Dict[str, utility.ExecutorResponse],
   Args:
     results: A dictionary with key:command names and val: Execution response
     human_readable: Print results in human readable format. If set to True
-      command names will be printed as visiual delimiters in new lines. If False
+      command names will be printed as visual delimiters in new lines. If False
       results are printed as a dictionary with command as key.
   """
 
@@ -91,13 +92,13 @@ def print_to_sdtout(results: Dict[str, utility.ExecutorResponse],
     for key, val in results.items():
 
       if val.has_error:
-        outptu_dict[
+        output_dict[
             key.name] = 'Following error occurred during the diagnoses: %s' % (
                 val.stderr)
         continue
-      outptu_dict[key.name] = val.json_output
+      output_dict[key.name] = val.json_output
 
     # Output results in Json format with indentation to make easy to read
     print(
-        json.dumps(
-            outptu_dict, sort_keys=True, indent=2, separators=(',', ': ')))
+        json_library.dumps(
+            output_dict, sort_keys=True, indent=2, separators=(',', ': ')))
