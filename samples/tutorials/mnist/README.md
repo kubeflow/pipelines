@@ -14,8 +14,8 @@ code, packaged as a Docker image, that performs one step in the pipeline. For ex
 for steps such as data preprocessing, data transformation, and model training.
 
 ## Content Overview:
-In this tutorial, we designed a series of notebooks to demonstrate how to interact with `Kubeflow Pipelines` through
-[Python SDK](https://github.com/kubeflow/pipelines/tree/master/sdk/python/kfp). In particular
+In this tutorial, we designed a series of notebooks to demonstrate how to interact with `Kubeflow Pipelines` through the
+[Kubeflow Pipelines SDK](https://github.com/kubeflow/pipelines/tree/master/sdk/python/kfp). In particular
 - [00 Kubeflow Cluster Setup](00_Kubeflow_Cluster_Setup.ipynb): this notebook helps you deploy a Kubeflow 
 cluster through CLI. Note that it is also possible to deploy the Kubeflow cluster though 
 [UI](https://www.kubeflow.org/docs/gke/deploy/deploy-ui/)
@@ -46,30 +46,6 @@ and a lightweight component to compose a pipeline with three steps.
     - Train an MNIST model and export it to Google Cloud Storage.
     - Deploy the exported TensorFlow model on AI Platform Prediction service.
     - Test the deployment by calling the endpoint with test data.
-
-## Setups Overview:
-### Prerequisites
-Before you follow the instructions below to deploy your own Kubeflow cluster, you should
-- have a [GCP project setup](https://www.kubeflow.org/docs/gke/deploy/project-setup/) for your Kubeflow deployment 
-with you having the [owner role](https://cloud.google.com/iam/docs/understanding-roles#primitive_role_definitions) 
-for the project and with the following APIs enabled:
-    - [Compute Engine API](https://pantheon.corp.google.com/apis/library/compute.googleapis.com)
-    - [Kubernetes Engine API](https://pantheon.corp.google.com/apis/library/container.googleapis.com)
-    - [Identity and Access Management(IAM) API](https://pantheon.corp.google.com/apis/library/iam.googleapis.com)
-    - [Deployment Manager API](https://pantheon.corp.google.com/apis/library/deploymentmanager.googleapis.com)
-    - [Cloud Resource Manager API](https://pantheon.corp.google.com/apis/library/cloudresourcemanager.googleapis.com)
-    - [AI Platform Training & Prediction API](https://pantheon.corp.google.com/apis/library/ml.googleapis.com)
-- have set up [OAuth for Cloud IAP](https://www.kubeflow.org/docs/gke/deploy/oauth-setup/)
-- have installed and setup [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-- have installed [gcloud-sdk](https://cloud.google.com/sdk/)
-
-### Setup a Kubeflow cluster through [CLI](https://www.kubeflow.org/docs/gke/deploy/deploy-cli/)
-1. Download [kfctl](https://github.com/kubeflow/kubeflow/releases)
-2. Setup environment variables
-3. Create dedicated service account for deployment
-4. Deploy Kubeflow
-5. Install [Kubeflow Pipelines SDK](https://kubeflow-pipelines.readthedocs.io/en/latest/)
-6. Sanity check
 
 ## Running the Tutorial Notebooks
 Please note that the above configuration is required for notebook service running outside Kubeflow environment. 
