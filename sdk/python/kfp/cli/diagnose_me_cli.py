@@ -87,7 +87,7 @@ def print_to_sdtout(results: Dict[str, utility.ExecutorResponse],
       print(val.parsed_output)
 
   else:
-    outptu_dict = {}
+    output_dict = {}
     for key, val in results.items():
 
       if val.has_error:
