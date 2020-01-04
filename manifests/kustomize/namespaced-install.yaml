@@ -728,6 +728,26 @@ spec:
         - containerPort: 9901
           name: envoy-admin
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-writer
+  labels:
+    app: metadata-writer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metadata-writer
+  template:
+    metadata:
+      labels:
+        app: metadata-writer
+    spec:
+      containers:
+      - name: main
+        image: gcr.io/ml-pipeline/metadata-writer:0.1.40
+---
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:

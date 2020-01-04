@@ -16,4 +16,4 @@ spec:
     spec:
       containers:
       - name: main
-        image: gcr.io/ml-pipeline-test/metadata-writer
+        image: gcr.io/ml-pipeline/metadata-writer:0.1.40
