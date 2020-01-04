@@ -86,7 +86,7 @@ Follow these steps to use the component in a pipeline:
     ```python
     import kfp.components as comp
 
-    dataproc_submit_pig_job_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e4d9e2b67cf39c5f12b9c1477cae11feb1a74dc7/components/gcp/dataproc/submit_pig_job/component.yaml')
+    dataproc_submit_pig_job_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/72e1214abe2bde2e10a0f44d16b162db1a623c63/components/gcp/dataproc/submit_pig_job/component.yaml')
     help(dataproc_submit_pig_job_op)
     ```
 
