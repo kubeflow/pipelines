@@ -167,3 +167,26 @@ metadata:
 data:
   METADATA_GRPC_SERVICE_HOST: "metadata-service"
   METADATA_GRPC_SERVICE_PORT: "8080"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-writer
+  labels:
+    app: metadata-writer
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metadata-writer
+      app.kubernetes.io/name: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: metadata-writer
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: main
+        image: {{ .Values.images.metadatawriter }}

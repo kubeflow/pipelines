@@ -13,6 +13,7 @@ images:
   viewercrd: gcr.io/ml-pipeline/google/pipelines/viewercrd:0.1.31
   visualizationserver: gcr.io/ml-pipeline/google/pipelines/visualizationserver:0.1.31
   metadataenvoy: gcr.io/ml-pipeline/google/pipelines/metadataenvoy:0.1.31
+  metadatawriter: gcr.io/ml-pipeline/google/pipelines/metadatawriter:0.1.40
 
 gcpSecretName: "user-gcp-sa"
 serviceAccountCredential: ""
