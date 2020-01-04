@@ -23,6 +23,14 @@ from kubernetes.client.models import (
 from . import _pipeline
 
 
+def prune_none_dict_values(d: dict) -> dict:
+    return {
+        k: prune_none_dict_values(v) if isinstance(v, dict) else v
+        for k, v in d.items()
+        if v is not None
+    }
+
+
 class PipelineVolume(V1Volume):
     """Representing a volume that is passed between pipeline operators and is
     to be mounted by a ContainerOp or its inherited type.
@@ -72,7 +80,8 @@ class PipelineVolume(V1Volume):
                 init_volume["persistent_volume_claim"] = pvc_volume_source
         super().__init__(**init_volume, **kwargs)
         if not name_provided:
-            hash_value = hashlib.sha256(bytes(json.dumps(self.to_dict(),
+            volume_dict = prune_none_dict_values(self.to_dict())
+            hash_value = hashlib.sha256(bytes(json.dumps(volume_dict,
                                                          sort_keys=True),
                                               "utf-8")).hexdigest()
             name = "pvolume-{}".format(hash_value)
