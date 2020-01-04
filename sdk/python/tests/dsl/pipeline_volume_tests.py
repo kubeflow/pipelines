@@ -70,8 +70,7 @@ class TestPipelineVolume(unittest.TestCase):
         def my_pipeline(param='foo'):
             vol1 = PipelineVolume(pvc="foo")
             vol2 = PipelineVolume(name="provided", pvc="foo")
-            name1 = ("pvolume-127ac63cf2013e9b95c192eb6a2c7d5a023ebeb51f6a1144"
-                     "86e3121")
+            name1 = ("pvolume-4cf668b8c7be134cfcbd7758d1eef9643d1bd7ed9925a98e707635b")
             name2 = "provided"
             self.assertEqual(vol1.name, name1)
             self.assertEqual(vol2.name, name2)
