@@ -32,7 +32,7 @@ function clean_up {
   echo "Status of pods before clean up:"
   kubectl get pods --all-namespaces
 
-  echo "Dumping all pods info as artifacts..."
+  echo "Dumping all pods info as artifacts in directory artifacts/pods_info/*..."
   POD_INFO_DIR="$ARTIFACTS/pods_info"
   mkdir -p "$POD_INFO_DIR"
   # Refer to https://github.com/kubernetes/test-infra/blob/master/prow/jobs.md#job-environment-variables
