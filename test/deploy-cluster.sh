@@ -27,11 +27,12 @@ SHOULD_CLEANUP_CLUSTER=false
 
 function clean_up {
   set +e # the following clean up commands shouldn't exit on error
+  set +x # no need for command history
 
   echo "Status of pods before clean up:"
   kubectl get pods --all-namespaces
 
-  echo "Dumping all pods info as artifacts..."
+  echo "Dumping all pods info as artifacts in directory artifacts/pods_info/*..."
   POD_INFO_DIR="$ARTIFACTS/pods_info"
   mkdir -p "$POD_INFO_DIR"
   # Refer to https://github.com/kubernetes/test-infra/blob/master/prow/jobs.md#job-environment-variables
@@ -47,7 +48,7 @@ function clean_up {
     kubectl get pod $POD_NAME -n $NAMESPACE -o yaml >> "$pod_info_file"
   done
 
-  echo "Clean up..."
+  echo "Clean up cluster..."
   if [ $SHOULD_CLEANUP_CLUSTER == true ]; then
     # --async doesn't wait for this operation to complete, so we can get test
     # results faster
