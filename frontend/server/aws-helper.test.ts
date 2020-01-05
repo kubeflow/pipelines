@@ -21,14 +21,15 @@ function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+beforeEach(() => {
+  awsInstanceProfileCredentials.reset();
+  jest.resetAllMocks();
+});
+
 describe('awsInstanceProfileCredentials', () => {
   const mockedFetch: jest.Mock = fetch as any;
 
   describe('getCredentials', () => {
-    beforeEach(() => {
-      awsInstanceProfileCredentials.reset();
-      mockedFetch.mockReset();
-    });
 
     it('retrieves, caches, and refreshes the AWS EC2 instance profile and session credentials everytime it is called.', async () => {
       let count = 0;

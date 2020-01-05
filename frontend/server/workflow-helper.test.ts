@@ -33,8 +33,7 @@ describe('workflow-helper', () => {
   };
 
   beforeEach(() => {
-    (MinioClient as any).mockReset();
-    (getPodLogs as any).mockReset();
+    jest.resetAllMocks();
   });
 
   describe('composePodLogsStreamHandler', () => {
@@ -123,11 +122,6 @@ describe('workflow-helper', () => {
   });
 
   describe('getPodLogsStreamFromWorkflow', () => {
-    beforeEach(() => {
-      (MinioClient as any).mockReset();
-      (getK8sSecret as any).mockReset();
-      (getArgoWorkflow as any).mockReset();
-    });
 
     it('returns a getPodLogsStream function that retrieves an object stream using the workflow status corresponding to the pod name.', async () => {
       const sampleWorkflow = {

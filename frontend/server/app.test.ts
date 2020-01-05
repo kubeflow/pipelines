@@ -70,10 +70,7 @@ describe('UIServer apis', () => {
   });
 
   beforeEach(() => {
-    (MinioClient as any).mockClear();
-    (fetch as any).mockClear();
-    (GCSStorage as any).mockClear();
-    (getTensorboardInstance as any).mockClear();
+    jest.resetAllMocks();
   });
 
   afterEach(() => {

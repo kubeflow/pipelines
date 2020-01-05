@@ -23,9 +23,7 @@ describe('minio-helper', () => {
   const MockedMinioClient: jest.Mock = MinioClient as any;
 
   beforeEach(() => {
-    (MinioClient as any).mockReset();
-    (awsInstanceProfileCredentials.getCredentials as jest.Mock).mockReset();
-    (awsInstanceProfileCredentials.ok as jest.Mock).mockReset();
+    jest.resetAllMocks();
   });
 
   describe('createMinioClient', () => {
