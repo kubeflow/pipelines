@@ -77,6 +77,7 @@ implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:a8fcec5f702fc2528c87ed6fd698b9cfca8b509e
     args: [
+      --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.dataproc, submit_sparksql_job,
       --project_id, {inputValue: project_id},
       --region, {inputValue: region},
@@ -87,7 +88,6 @@ implementation:
       --sparksql_job, {inputValue: sparksql_job},
       --job, {inputValue: job},
       --wait_interval, {inputValue: wait_interval},
-      --ui-metadata-path, {outputPath: MLPipeline UI metadata},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
