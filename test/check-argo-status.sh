@@ -16,7 +16,6 @@
 
 set -e
 
-ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
 WORKFLOW_FAILED_KEYWORD="phase=Failed"
 PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20 )
@@ -70,8 +69,7 @@ fi
 echo "Argo workflow finished successfully."
 if [[ -n "$TEST_RESULT_FOLDER" ]]; then
   echo "Copy test result"
-  mkdir -p "$ARTIFACT_DIR"
-  gsutil cp -r "${TEST_RESULTS_GCS_DIR}"/* "${ARTIFACT_DIR}" || true
+  gsutil cp -r "${TEST_RESULTS_GCS_DIR}"/* "${ARTIFACTS}" || true
 fi
 
 echo "=========Main workflow=============="
