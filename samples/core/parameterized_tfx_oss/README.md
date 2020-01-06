@@ -5,18 +5,28 @@ learning platform based on TensorFlow. It provides a configuration framework to 
 consisting of TFX components. Kubeflow Pipelines can be used as the orchestrator supporting the 
 execution of a TFX pipeline.
 
-This sample demonstrates how to author a ML pipeline in TFX and run it on a KFP deployment. 
-Please refer to inline comments for the purpose of each step.
+This directory contains two samples that demonstrate how to author a ML pipeline in TFX and run it 
+on a KFP deployment. 
+* `parameterized_tfx_oss.py` is a Python script that outputs a compiled KFP workflow, which you can
+  submit to a KFP deployment to run;
+* `parameterized_tfx_oss.ipynb` is a notebook version of `parameterized_tfx_oss.py`, and it also
+  includes the guidance to setup its dependencies.
 
-In order to successfully compile this sample, you'll need to have a TFX installation at version 0.15.0
-by running `python3 -m pip install tfx==0.15.0`
-After that, run
+Please refer to inline comments for the purpose of each step in both samples.
+
+# Compilation
+* `parameterized_tfx_oss.py`: 
+In order to successfully compile the Python sample, you'll need to have a TFX installation at 
+version 0.15.0 by running `python3 -m pip install tfx==0.15.0`. After that, run
 `python3 parameterized_tfx_oss.py` to compile the TFX pipeline into KFP pipeline package.
+
+* `parameterized_tfx_oss.ipynb`:
 
 # Permission
 
 This pipeline requires Google Cloud Storage permission to run. 
-If KFP was deployed through K8S marketplace, please follow instructions in [the guideline](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials)
+If KFP was deployed through K8S marketplace, please follow instructions in 
+[the guideline](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials)
 to make sure the service account has `storage.admin` role.
 
 ## Caveats
