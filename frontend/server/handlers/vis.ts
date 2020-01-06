@@ -11,8 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { UIServer } from './app';
-import { loadConfigs } from './configs';
+import { Handler } from 'express';
 
-const app = new UIServer(loadConfigs(process.argv, process.env));
-app.start();
+/**
+ * Return a handler which return whether custom visualization is allowed by the
+ * ml-pipeline ui server.
+ * @param allowed whether custom visualization is permitted.
+ */
+export function getAllowCustomVisualizationsHandler(allowed: boolean): Handler {
+  return (_, res) => {
+    res.send(allowed);
+  };
+}

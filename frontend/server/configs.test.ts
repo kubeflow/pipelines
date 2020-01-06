@@ -11,8 +11,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { UIServer } from './app';
+import * as os from 'os';
 import { loadConfigs } from './configs';
 
-const app = new UIServer(loadConfigs(process.argv, process.env));
-app.start();
+describe('loadConfigs', () => {
+  it('should throw error if no static dir provided', () => {
+    const argv = ['node', 'dist/server.js'];
+    expect(() => loadConfigs(argv, {})).toThrowError();
+  });
+
+  it('default port should be 3000', () => {
+    const tmpdir = os.tmpdir();
+    const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {});
+    expect(configs.server.port).toBe(3000);
+    expect(configs.server.staticDir).toBe(tmpdir);
+  });
+});
