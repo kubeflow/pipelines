@@ -30,7 +30,6 @@ describe('awsInstanceProfileCredentials', () => {
   const mockedFetch: jest.Mock = fetch as any;
 
   describe('getCredentials', () => {
-
     it('retrieves, caches, and refreshes the AWS EC2 instance profile and session credentials everytime it is called.', async () => {
       let count = 0;
       const expectedCredentials = [

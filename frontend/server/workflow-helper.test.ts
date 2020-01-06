@@ -122,7 +122,6 @@ describe('workflow-helper', () => {
   });
 
   describe('getPodLogsStreamFromWorkflow', () => {
-
     it('returns a getPodLogsStream function that retrieves an object stream using the workflow status corresponding to the pod name.', async () => {
       const sampleWorkflow = {
         apiVersion: 'argoproj.io/v1alpha1',
