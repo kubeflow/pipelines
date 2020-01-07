@@ -77,28 +77,24 @@ def print_to_sdtout(results: Dict[str, utility.ExecutorResponse],
       results are printed as a dictionary with command as key.
   """
 
+  output_dict = {}
+  human_readable_result = []
+  for key, val in results.items():
+    if val.has_error:
+      output_dict[
+          key.
+          name] = 'Following error occurred during the diagnoses: %s' % val.stderr
+      continue
+
+    output_dict[key.name] = val.json_output
+    human_readable_result.append('================ %s ===================' %
+                                 (key.name))
+    human_readable_result.append(val.parsed_output)
+
   if human_readable:
-    for key, val in results.items():
-      print('\n================', key.name, '===================\n')
-
-      if val.has_error:
-        print('Following error occurred during the diagnoses:', val.stderr)
-        continue
-
-      print(val.parsed_output)
-
+    result = '\n'.join(human_readable_result)
   else:
-    output_dict = {}
-    for key, val in results.items():
+    result = json_library.dumps(
+        output_dict, sort_keys=True, indent=2, separators=(',', ': '))
 
-      if val.has_error:
-        output_dict[
-            key.name] = 'Following error occurred during the diagnoses: %s' % (
-                val.stderr)
-        continue
-      output_dict[key.name] = val.json_output
-
-    # Output results in Json format with indentation to make easy to read
-    print(
-        json_library.dumps(
-            output_dict, sort_keys=True, indent=2, separators=(',', ': ')))
+  print(result)
