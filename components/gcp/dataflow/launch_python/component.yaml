@@ -55,6 +55,7 @@ implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:a8fcec5f702fc2528c87ed6fd698b9cfca8b509e
     args: [
+      --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.dataflow, launch_python,
       --python_file_path, {inputValue: python_file_path},
       --project_id, {inputValue: project_id},
@@ -62,7 +63,6 @@ implementation:
       --requirements_file_path, {inputValue: requirements_file_path},
       --args, {inputValue: args},
       --wait_interval, {inputValue: wait_interval},
-      --ui-metadata-path, {outputPath: MLPipeline UI metadata},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
