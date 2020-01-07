@@ -238,6 +238,10 @@ export async function getArgoWorkflow(workflowName: string): Promise<PartialArgo
     workflowName,
   );
 
+  if (res.response.statusCode == null) {
+    throw new Error(`Unable to query workflow:${workflowName}: No status code present.`);
+  }
+
   if (res.response.statusCode >= 400) {
     throw new Error(`Unable to query workflow:${workflowName}: Access denied.`);
   }
