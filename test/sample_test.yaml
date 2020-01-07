@@ -84,7 +84,8 @@ spec:
               - resource_ops
               - multiple_outputs
               - ai_platform
-              - parameterized_tfx_oss
+              # Temporarily disabled due to #2811
+              # - parameterized_tfx_oss
     # Build and push image
     - name: build-image-by-dockerfile
       retryStrategy:
