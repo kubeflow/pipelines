@@ -64,13 +64,12 @@ cd "${BASE_DIR}/${TEST_DIR}"
 export GO111MODULE=on
 
 echo "Run Initialization test..."
-TEST_RESULT=`go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true 2>&1`
-TEST_EXIT_CODE=$?
+LOG_FILE=$(mktemp)
+TEST_EXIT_CODE=0 # reference for how to save exit code: https://stackoverflow.com/a/18622662
+go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true |& tee $LOG_FILE || TEST_EXIT_CODE=$?
 
-# Log the test result
-printf '%s\n' "$TEST_RESULT"
 # Convert test result to junit.xml
-printf '%s\n' "$TEST_RESULT" | go-junit-report > ${JUNIT_TEST_RESULT}
+cat $LOG_FILE | go-junit-report > ${JUNIT_TEST_RESULT}
 
 echo "Copy test result to GCS ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}"
 gsutil cp ${JUNIT_TEST_RESULT} ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}
