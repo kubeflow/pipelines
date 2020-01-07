@@ -261,6 +261,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                         graph={graph}
                         selectedNodeId={selectedNodeId}
                         onClick={id => this._selectNode(id)}
+                        onError={(message, additionalInfo) =>
+                          this.props.updateBanner({ message, additionalInfo, mode: 'error' })
+                        }
                       />
 
                       <SidePanel
