@@ -96,9 +96,9 @@ export function loadConfigs(
     },
     artifacts: {
       aws: {
-        accessKey: AWS_ACCESS_KEY_ID,
+        accessKey: AWS_ACCESS_KEY_ID || '',
         endPoint: 's3.amazonaws.com',
-        secretKey: AWS_SECRET_ACCESS_KEY,
+        secretKey: AWS_SECRET_ACCESS_KEY || '',
       },
       http: {
         auth: {
@@ -140,7 +140,7 @@ export function loadConfigs(
     },
     viewer: {
       tensorboard: {
-        podTemplateSpec: loadJSON<object | undefined>(VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH),
+        podTemplateSpec: loadJSON<object>(VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH),
       },
     },
     visualizations: {

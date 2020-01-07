@@ -51,7 +51,7 @@ export function generateRandomString(length: number): string {
   return str;
 }
 
-export function loadJSON<T>(filepath: string, defaultValue?: T): T {
+export function loadJSON<T>(filepath?: string, defaultValue?: T): T | undefined {
   if (!filepath) {
     return defaultValue;
   }
