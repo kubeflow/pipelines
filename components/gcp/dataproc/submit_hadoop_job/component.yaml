@@ -82,6 +82,7 @@ implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:a8fcec5f702fc2528c87ed6fd698b9cfca8b509e
     args: [
+      --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.dataproc, submit_hadoop_job,
       --project_id, {inputValue: project_id},
       --region, {inputValue: region},
@@ -92,7 +93,6 @@ implementation:
       --hadoop_job, {inputValue: hadoop_job},
       --job, {inputValue: job},
       --wait_interval, {inputValue: wait_interval},
-      --ui-metadata-path, {outputPath: MLPipeline UI metadata},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
