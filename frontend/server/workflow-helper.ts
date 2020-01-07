@@ -159,18 +159,18 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
     throw new Error(`Unable to retrieve workflow status: ${err}.`);
   }
 
+  let artifacts: ArtifactRecord[] | undefined;
   // check if required fields are available
-  if (
-    !workflow.status ||
-    !workflow.status.nodes ||
-    !workflow.status.nodes[podName] ||
-    !workflow.status.nodes[podName].outputs ||
-    !workflow.status.nodes[podName].outputs.artifacts
-  ) {
+  if (workflow.status && workflow.status.nodes) {
+    const node = workflow.status.nodes[podName];
+    if (node && node.outputs && node.outputs.artifacts) {
+      artifacts = node.outputs.artifacts;
+    }
+  }
+  if (!artifacts) {
     throw new Error('Unable to find pod info in workflow status to retrieve logs.');
   }
 
-  const artifacts: ArtifactRecord[] = workflow.status.nodes[podName].outputs.artifacts;
   const archiveLogs: ArtifactRecord[] = artifacts.filter((artifact: any) => artifact.archiveLogs);
 
   if (archiveLogs.length === 0) {

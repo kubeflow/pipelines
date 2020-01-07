@@ -59,7 +59,8 @@ export function getTarObjectAsString({ bucket, key, client }: MinioRequestConfig
     try {
       const stream = await getObjectStream({ bucket, key, client });
       let contents = '';
-      stream.pipe(new tar.Parse()).on('entry', (entry: Stream) => {
+      // TODO: fix tar.Parse typing problem
+      stream.pipe(new (tar.Parse as any)()).on('entry', (entry: Stream) => {
         entry.on('data', buffer => (contents += buffer.toString()));
       });
       stream.on('end', () => {
