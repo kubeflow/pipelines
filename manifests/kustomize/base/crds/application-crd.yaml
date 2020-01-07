@@ -232,9 +232,3 @@ spec:
               type: integer
           type: object
   version: v1beta1
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
