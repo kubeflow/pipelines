@@ -190,6 +190,7 @@ spec:
       containers:
       - name: main
         image: {{ .Values.images.metadatawriter }}
+      serviceAccountName: kubeflow-pipelines-metadata-writer
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role

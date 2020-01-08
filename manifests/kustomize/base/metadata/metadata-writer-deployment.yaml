@@ -17,3 +17,4 @@ spec:
       containers:
       - name: main
         image: gcr.io/ml-pipeline/metadata-writer:0.1.40
+      serviceAccountName: kubeflow-pipelines-metadata-writer
