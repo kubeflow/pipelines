@@ -600,7 +600,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 
 	if workflow.PersistedFinalState() {
 		// If workflow's final state has being persisted, the workflow should be garbage collected.
-		err := r.getWorkflowClient("").Delete(workflow.Name, &v1.DeleteOptions{})
+		err := r.getWorkflowClient(workflow.Namespace).Delete(workflow.Name, &v1.DeleteOptions{})
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 		}
@@ -668,7 +668,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	}
 
 	if workflow.IsInFinalState() {
-		err := AddWorkflowLabel(r.getWorkflowClient(""), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
+		err := AddWorkflowLabel(r.getWorkflowClient(workflow.Namespace), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
 			return util.Wrap(err, "Failed to add PersistedFinalState label to workflow")
 		}
