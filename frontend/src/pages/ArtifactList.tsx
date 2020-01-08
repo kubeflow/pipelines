@@ -88,7 +88,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
     return {
       actions: {},
       breadcrumbs: [],
-      pageTitle: 'Artifacts',
+      pageTitle: 'Artifacts with Lineage',
     };
   }
 
