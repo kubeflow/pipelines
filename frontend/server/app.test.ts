@@ -171,7 +171,7 @@ describe('UIServer apis', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=minio&bucket=ml-pipeline&encodedKey=hello%2Fworld.txt')
+        .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(200, artifactContent, err => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'minio',
@@ -205,7 +205,7 @@ describe('UIServer apis', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=s3&bucket=ml-pipeline&encodedKey=hello%2Fworld.txt')
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(200, artifactContent, err => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
@@ -237,7 +237,7 @@ describe('UIServer apis', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=s3&bucket=ml-pipeline&encodedKey=hello%2Fworld.txt')
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(200, artifactContent, err => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
@@ -263,7 +263,7 @@ describe('UIServer apis', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=http&bucket=ml-pipeline&encodedKey=hello%2Fworld.txt')
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(200, artifactContent, err => {
           expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello/world.txt', {
             headers: {},
@@ -290,7 +290,7 @@ describe('UIServer apis', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=https&bucket=ml-pipeline&encodedKey=hello%2Fworld.txt')
+        .get('/artifacts/get?source=https&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(200, artifactContent, err => {
           expect(mockedFetch).toBeCalledWith('https://foo.bar/ml-pipeline/hello/world.txt', {
             headers: {
@@ -317,7 +317,7 @@ describe('UIServer apis', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=https&bucket=ml-pipeline&encodedKey=hello%2Fworld.txt')
+        .get('/artifacts/get?source=https&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .set('Authorization', 'inheritedToken')
         .expect(200, artifactContent, err => {
           expect(mockedFetch).toBeCalledWith('https://foo.bar/ml-pipeline/hello/world.txt', {
@@ -346,7 +346,7 @@ describe('UIServer apis', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=gcs&bucket=ml-pipeline&encodedKey=hello%2Fworld.txt')
+        .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(200, artifactContent + '\n', done);
     });
   });

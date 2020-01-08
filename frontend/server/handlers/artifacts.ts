@@ -29,7 +29,7 @@ interface ArtifactsQueryStrings {
   /** bucket name. */
   bucket: string;
   /** artifact key/path that is uri encoded.  */
-  encodedKey: string;
+  key: string;
 }
 
 /**
@@ -44,7 +44,7 @@ export function getArtifactsHandler(artifactsConfigs: {
 }): Handler {
   const { aws, http, minio } = artifactsConfigs;
   return async (req, res) => {
-    const { source, bucket, encodedKey } = req.query as Partial<ArtifactsQueryStrings>;
+    const { source, bucket, key: encodedKey } = req.query as Partial<ArtifactsQueryStrings>;
     if (!source) {
       res.status(500).send('Storage source is missing from artifact request');
       return;
