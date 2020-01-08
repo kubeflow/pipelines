@@ -34,11 +34,16 @@ EOF
 """
 
 import hashlib
+import os
 import kubernetes
 
 import ml_metadata
 from ml_metadata.proto import metadata_store_pb2
 from ml_metadata.metadata_store import metadata_store
+
+
+namespace_to_watch = os.environ.get('NAMESPACE_TO_WATCH', 'default')
+
 
 try:
     kubernetes.config.load_incluster_config()
@@ -476,7 +481,7 @@ METADATA_WRITTEN_LABEL_KEY = 'pipelines.kubeflow.org/metadata_written'
 #%%
 
 def cleanup_pods():
-    for pod in k8s_api.list_pod_for_all_namespaces(label_selector=ARGO_WORKFLOW_LABEL_KEY).items:
+    for pod in k8s_api.list_namespaced_pod(namespace=namespace_to_watch, label_selector=ARGO_WORKFLOW_LABEL_KEY).items:
         patch_pod_metadata(
             namespace=pod.metadata.namespace,
             pod_name=pod.metadata.name,
@@ -539,7 +544,8 @@ pods_with_written_metadata = set()
 while True:
     print("Start watching Kubernetes Pods created by Argo")
     for event in k8s_watch.stream(
-        k8s_api.list_pod_for_all_namespaces,
+        k8s_api.list_namespaced_pod,
+        namespace=namespace_to_watch,
         #label_selector=ARGO_WORKFLOW_LABEL_KEY + ',' + '!' + METADATA_WRITTEN_LABEL_KEY,
         label_selector=ARGO_WORKFLOW_LABEL_KEY,
     ):
