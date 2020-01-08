@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { shallow } from 'enzyme';
+import { mount, shallow } from 'enzyme';
 import NewRunParameters, { NewRunParametersProps } from './NewRunParameters';
 
 describe('NewRunParameters', () => {
@@ -37,13 +37,17 @@ describe('NewRunParameters', () => {
     expect(shallow(<NewRunParameters {...props} />)).toMatchSnapshot();
   });
 
-  it('shows button for json parameters', () => {
+  it('clicking the open editor button for json parameters display an editor', () => {
+    const handleParamChange = jest.fn();
     const props = {
-      handleParamChange: jest.fn(),
+      handleParamChange,
       initialParams: [{ name: 'testParam', value: '{"test":"value"}' }],
       titleMessage: 'Specify json parameters required by the pipeline',
     } as NewRunParametersProps;
-    expect(shallow(<NewRunParameters {...props} />)).toMatchSnapshot();
+    const tree = mount(<NewRunParameters {...props} />);
+    tree.find('Button#chooseExperimentBtn').simulate('click');
+    expect(handleParamChange).toHaveBeenCalledTimes(1);
+    expect(tree.find('Editor')).toMatchSnapshot();
   });
 
   it('fires handleParamChange callback on change', () => {
@@ -56,9 +60,10 @@ describe('NewRunParameters', () => {
       ],
       titleMessage: 'Specify parameters required by the pipeline',
     } as NewRunParametersProps;
-    const tree = shallow(<NewRunParameters {...props} />);
+
+    const tree = mount(<NewRunParameters {...props} />);
     tree
-      .find('#newRunPipelineParam1')
+      .find('input#newRunPipelineParam1')
       .simulate('change', { target: { value: 'test param value' } });
     expect(handleParamChange).toHaveBeenCalledTimes(1);
     expect(handleParamChange).toHaveBeenLastCalledWith(1, 'test param value');

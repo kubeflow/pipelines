@@ -91,17 +91,17 @@ interface EnhancedTextFieldState {
 }
 
 class EnhancedTextField extends React.Component<EnhancedTextFieldProps, EnhancedTextFieldState> {
-
-  public static getDerivedStateFromProps(nextProps: EnhancedTextFieldProps, prevState: EnhancedTextFieldState): EnhancedTextFieldState {
+  public static getDerivedStateFromProps(
+    nextProps: EnhancedTextFieldProps,
+    prevState: EnhancedTextFieldState,
+  ): EnhancedTextFieldState {
     let isJson = true;
     try {
       const displayValue = JSON.parse(nextProps.param.value || '');
       // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
       // about rendering. Note that `typeOf null` returns 'object'
       if (displayValue === null || typeof displayValue !== 'object') {
-        throw new Error(
-          'Parsed JSON was neither an array nor an object. Using default renderer',
-        );
+        throw new Error('Parsed JSON was neither an array nor an object. Using default renderer');
       }
     } catch (err) {
       isJson = false;
@@ -109,7 +109,7 @@ class EnhancedTextField extends React.Component<EnhancedTextFieldProps, Enhanced
     return {
       isEditorOpen: prevState.isEditorOpen,
       isInJsonForm: isJson,
-      isJsonField: prevState.isJsonField || isJson
+      isJsonField: prevState.isJsonField || isJson,
     };
   }
 
@@ -119,14 +119,14 @@ class EnhancedTextField extends React.Component<EnhancedTextFieldProps, Enhanced
     this.state = {
       isEditorOpen: false,
       isInJsonForm: false,
-      isJsonField: false
+      isJsonField: false,
     };
   }
 
   public render(): JSX.Element | null {
-    const {param, index, handleParamChange} = this.props;
+    const { param, index, handleParamChange } = this.props;
 
-    if (this.state.isJsonField){
+    if (this.state.isJsonField) {
       return (
         <>
           <TextField
@@ -151,16 +151,11 @@ class EnhancedTextField extends React.Component<EnhancedTextFieldProps, Enhanced
                         if (this.state.isEditorOpen) {
                           handleParamChange(index, JSON.stringify(displayValue) || '');
                         } else {
-                          handleParamChange(
-                            index,
-                            JSON.stringify(displayValue, null, 2) || '',
-                          );
+                          handleParamChange(index, JSON.stringify(displayValue, null, 2) || '');
                         }
                       }
                       this.setState({
                         isEditorOpen: !this.state.isEditorOpen,
-                        isInJsonForm: this.state.isInJsonForm,
-                        isJsonField: this.state.isJsonField
                       });
                     }}
                     style={{ padding: '3px 5px', margin: 0 }}
@@ -172,7 +167,7 @@ class EnhancedTextField extends React.Component<EnhancedTextFieldProps, Enhanced
               readOnly: false,
             }}
           />
-          {this.state.isEditorOpen && 
+          {this.state.isEditorOpen && (
             <div className={css.row}>
               <Editor
                 width='100%'
@@ -187,7 +182,7 @@ class EnhancedTextField extends React.Component<EnhancedTextFieldProps, Enhanced
                 value={param.value || ''}
               />
             </div>
-          }
+          )}
         </>
       );
     } else {
