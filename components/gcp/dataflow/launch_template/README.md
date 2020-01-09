@@ -37,11 +37,8 @@ job_id | The id of the Cloud Dataflow job that is created.
 
 To use the component, the following requirements must be met:
 - Cloud Dataflow API is enabled.
-- The component is running under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow Pipeline cluster.  For example:
-   ```
-   component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-   ```
-* The Kubeflow user service account is a member of:
+- The component can authenticate to GCP. Refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication-pipelines/) for details.
+- The Kubeflow user service account is a member of:
     - `roles/dataflow.developer` role of the project.
     - `roles/storage.objectViewer` role of the Cloud Storage Object `gcs_path.`
     - `roles/storage.objectCreator` role of the Cloud Storage Object `staging_dir.` 
@@ -102,7 +99,6 @@ OUTPUT_PATH = '{}/out/wc'.format(GCS_WORKING_DIR)
 
 ```python
 import kfp.dsl as dsl
-import kfp.gcp as gcp
 import json
 @dsl.pipeline(
     name='Dataflow launch template pipeline',
@@ -128,7 +124,7 @@ def pipeline(
         location = location, 
         validate_only = validate_only,
         staging_dir = staging_dir,
-        wait_interval = wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        wait_interval = wait_interval))
 ```
 
 #### Compile the pipeline

@@ -58,11 +58,7 @@ job_id | The ID of the created job. | String
 To use the component, you must:
 *   Set up a GCP project by following this [guide](https://cloud.google.com/dataproc/docs/guides/setup-project).
 *   [Create a new cluster](https://cloud.google.com/dataproc/docs/guides/create-cluster).
-*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
-
-    ```
-    component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-    ```
+*   The component can authenticate to GCP. Refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication-pipelines/) for details.
 *   Grant the Kubeflow user service account the role, `roles/dataproc.editor`, on the project.
 
 ## Detailed description
@@ -124,7 +120,6 @@ EXPERIMENT_NAME = 'Dataproc - Submit Pig Job'
 
 ```python
 import kfp.dsl as dsl
-import kfp.gcp as gcp
 import json
 @dsl.pipeline(
     name='Dataproc submit Pig job pipeline',
@@ -150,7 +145,7 @@ def dataproc_submit_pig_job_pipeline(
         script_variables=script_variables, 
         pig_job=pig_job, 
         job=job, 
-        wait_interval=wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        wait_interval=wait_interval)
     
 ```
 

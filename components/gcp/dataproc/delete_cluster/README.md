@@ -43,11 +43,7 @@ ML workflow:
 ## Cautions & requirements
 To use the component, you must:
 *   Set up a GCP project by following this [guide](https://cloud.google.com/dataproc/docs/guides/setup-project).
-*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
-
-    ```
-    component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-    ```
+*   The component can authenticate to GCP. Refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication-pipelines/) for details.
 *   Grant the Kubeflow user service account the role, `roles/dataproc.editor`, on the project.
 
 ## Detailed description
@@ -98,7 +94,6 @@ EXPERIMENT_NAME = 'Dataproc - Delete Cluster'
 
 ```python
 import kfp.dsl as dsl
-import kfp.gcp as gcp
 import json
 @dsl.pipeline(
     name='Dataproc delete cluster pipeline',
@@ -112,7 +107,7 @@ def dataproc_delete_cluster_pipeline(
     dataproc_delete_cluster_op(
         project_id=project_id, 
         region=region, 
-        name=name).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        name=name)
 ```
 
 #### Compile the pipeline
