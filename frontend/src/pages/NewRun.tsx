@@ -798,13 +798,6 @@ class NewRun extends Page<{}, NewRunState> {
       pipeline_spec: {
         parameters: (this.state.parameters || []).map(p => {
           p.value = (p.value || '').trim();
-          // Remove any special formatting for displaying jsons on an editor
-          try {
-            const parsedJson = JSON.stringify(JSON.parse(p.value || ''));
-            p.value = parsedJson;
-          } catch (err) {
-            // do nothing
-          }
           return p;
         }),
         pipeline_id: this.state.pipeline ? this.state.pipeline.id : undefined,

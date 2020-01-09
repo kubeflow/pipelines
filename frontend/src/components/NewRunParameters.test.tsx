@@ -45,8 +45,9 @@ describe('NewRunParameters', () => {
       titleMessage: 'Specify json parameters required by the pipeline',
     } as NewRunParametersProps;
     const tree = mount(<NewRunParameters {...props} />);
-    tree.find('Button#chooseExperimentBtn').simulate('click');
+    tree.find('Button#toggleEditorBtn').simulate('click');
     expect(handleParamChange).toHaveBeenCalledTimes(1);
+    expect(handleParamChange).toHaveBeenLastCalledWith(0, '{\n  "test": "value"\n}');
     expect(tree.find('Editor')).toMatchSnapshot();
   });
 

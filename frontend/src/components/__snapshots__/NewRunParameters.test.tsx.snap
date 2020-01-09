@@ -76,10 +76,10 @@ exports[`NewRunParameters shows parameters 1`] = `
     Specify parameters required by the pipeline
   </div>
   <div>
-    <EnhancedTextField
-      handleParamChange={[MockFunction]}
-      index={0}
+    <ParamEditor
+      id="newRunPipelineParam0"
       key="0"
+      onChange={[Function]}
       param={
         Object {
           "name": "testParam",

@@ -31,6 +31,10 @@ export interface NewRunParametersProps {
 }
 
 const css = stylesheet({
+  button: {
+    margin: 0,
+    padding: '3px 5px',
+  },
   key: {
     color: color.strong,
     flex: '0 0 50%',
@@ -63,11 +67,11 @@ class NewRunParameters extends React.Component<NewRunParametersProps> {
           <div>
             {initialParams.map((param, i) => {
               return (
-                <EnhancedTextField
+                <ParamEditor
                   key={i}
+                  id={`newRunPipelineParam${i}`}
+                  onChange={(value: string) => handleParamChange(i, value)}
                   param={param}
-                  index={i}
-                  handleParamChange={handleParamChange}
                 />
               );
             })}
@@ -78,23 +82,23 @@ class NewRunParameters extends React.Component<NewRunParametersProps> {
   }
 }
 
-interface EnhancedTextFieldProps {
+interface ParamEditorProps {
+  id: string;
+  onChange: (value: string) => void;
   param: ApiParameter;
-  index: number;
-  handleParamChange: (index: number, value: string) => void;
 }
 
-interface EnhancedTextFieldState {
+interface ParamEditorState {
   isEditorOpen: boolean;
   isInJsonForm: boolean;
   isJsonField: boolean;
 }
 
-class EnhancedTextField extends React.Component<EnhancedTextFieldProps, EnhancedTextFieldState> {
+class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
   public static getDerivedStateFromProps(
-    nextProps: EnhancedTextFieldProps,
-    prevState: EnhancedTextFieldState,
-  ): EnhancedTextFieldState {
+    nextProps: ParamEditorProps,
+    prevState: ParamEditorState,
+  ): { isInJsonForm: boolean; isJsonField: boolean } {
     let isJson = true;
     try {
       const displayValue = JSON.parse(nextProps.param.value || '');
@@ -107,7 +111,6 @@ class EnhancedTextField extends React.Component<EnhancedTextFieldProps, Enhanced
       isJson = false;
     }
     return {
-      isEditorOpen: prevState.isEditorOpen,
       isInJsonForm: isJson,
       isJsonField: prevState.isJsonField || isJson,
     };
@@ -124,18 +127,32 @@ class EnhancedTextField extends React.Component<EnhancedTextFieldProps, Enhanced
   }
 
   public render(): JSX.Element | null {
-    const { param, index, handleParamChange } = this.props;
+    const { id, onChange, param } = this.props;
 
-    if (this.state.isJsonField) {
-      return (
-        <>
+    const onClick = () => {
+      if (this.state.isInJsonForm) {
+        const displayValue = JSON.parse(param.value || '');
+        if (this.state.isEditorOpen) {
+          onChange(JSON.stringify(displayValue) || '');
+        } else {
+          onChange(JSON.stringify(displayValue, null, 2) || '');
+        }
+      }
+      this.setState({
+        isEditorOpen: !this.state.isEditorOpen,
+      });
+    };
+
+    return (
+      <>
+        {this.state.isJsonField ? (
           <TextField
-            id={`newRunPipelineParam${index}`}
+            id={id}
             disabled={this.state.isEditorOpen}
             variant='outlined'
             label={param.name}
             value={param.value || ''}
-            onChange={ev => handleParamChange(index, ev.target.value || '')}
+            onChange={ev => onChange(ev.target.value || '')}
             style={{ maxWidth: 600 }}
             className={commonCss.textField}
             InputProps={{
@@ -143,62 +160,47 @@ class EnhancedTextField extends React.Component<EnhancedTextFieldProps, Enhanced
               endAdornment: (
                 <InputAdornment position='end'>
                   <Button
+                    className={css.button}
                     color='secondary'
-                    id='chooseExperimentBtn'
-                    onClick={() => {
-                      if (this.state.isInJsonForm) {
-                        const displayValue = JSON.parse(param.value || '');
-                        if (this.state.isEditorOpen) {
-                          handleParamChange(index, JSON.stringify(displayValue) || '');
-                        } else {
-                          handleParamChange(index, JSON.stringify(displayValue, null, 2) || '');
-                        }
-                      }
-                      this.setState({
-                        isEditorOpen: !this.state.isEditorOpen,
-                      });
-                    }}
-                    style={{ padding: '3px 5px', margin: 0 }}
+                    id='toggleEditorBtn'
+                    onClick={onClick}
                   >
-                    {this.state.isEditorOpen ? 'Close Editor' : 'Open Editor'}
+                    {this.state.isEditorOpen ? 'Close Json Editor' : 'Open Json Editor'}
                   </Button>
                 </InputAdornment>
               ),
               readOnly: false,
             }}
           />
-          {this.state.isEditorOpen && (
-            <div className={css.row}>
-              <Editor
-                width='100%'
-                minLines={3}
-                maxLines={20}
-                mode='json'
-                theme='github'
-                highlightActiveLine={true}
-                showGutter={true}
-                readOnly={false}
-                onChange={text => handleParamChange(index, text || '')}
-                value={param.value || ''}
-              />
-            </div>
-          )}
-        </>
-      );
-    } else {
-      return (
-        <TextField
-          id={`newRunPipelineParam${index}`}
-          key={index}
-          variant='outlined'
-          label={param.name}
-          value={param.value || ''}
-          onChange={ev => handleParamChange(index, ev.target.value || '')}
-          style={{ maxWidth: 600 }}
-          className={commonCss.textField}
-        />
-      );
-    }
+        ) : (
+          <TextField
+            id={id}
+            variant='outlined'
+            label={param.name}
+            value={param.value || ''}
+            onChange={ev => onChange(ev.target.value || '')}
+            style={{ maxWidth: 600 }}
+            className={commonCss.textField}
+          />
+        )}
+        {this.state.isJsonField && this.state.isEditorOpen && (
+          <div className={css.row}>
+            <Editor
+              width='100%'
+              minLines={3}
+              maxLines={20}
+              mode='json'
+              theme='github'
+              highlightActiveLine={true}
+              showGutter={true}
+              readOnly={false}
+              onChange={text => onChange(text || '')}
+              value={param.value || ''}
+            />
+          </div>
+        )}
+      </>
+    );
   }
 }
 
