@@ -112,8 +112,8 @@ steps:
         --gcr_address ${_GCR_PATH}"
       ]
     env:
-      - "CLOUDSDK_COMPUTE_ZONE=us-central1-a"
-      - "CLOUDSDK_CONTAINER_CLUSTER=v38"
+      - "CLOUDSDK_COMPUTE_ZONE=${_CLOUDSDK_COMPUTE_ZONE}"
+      - "CLOUDSDK_CONTAINER_CLUSTER=${_CLOUDSDK_CONTAINER_CLUSTER}"
     id: "KaggleCreatePipelineVersionAndRun"
 
 images:
@@ -136,3 +136,6 @@ substitutions:
   _GCR_PATH: [Your cloud registry address. For example, gcr.io/my-project]
   _GS_BUCKET: [Your cloud storage bucket name. For example, put "my-bucket" here if your bucket is "gs://my-bucket"]
   _PIPELINE_ID: [Your pipeline id. Get it from KFP UI.]
+  _CLOUDSDK_COMPUTE_ZONE: [The zone where your cluster is deployed. For example, us-central1-a]
+  _CLOUDSDK_CONTAINER_CLUSTER: [Your cluster's name. For example, my-cluster]
+  
