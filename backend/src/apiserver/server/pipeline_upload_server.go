@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/golang/glog"
@@ -28,8 +29,9 @@ import (
 
 // These are valid conditions of a ScheduledWorkflow.
 const (
-	FormFileKey        = "uploadfile"
-	NameQueryStringKey = "name"
+	FormFileKey               = "uploadfile"
+	NameQueryStringKey        = "name"
+	DescriptionQueryStringKey = "description"
 )
 
 type PipelineUploadServer struct {
@@ -63,7 +65,13 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid pipeline name."))
 		return
 	}
-	newPipeline, err := s.resourceManager.CreatePipeline(pipelineName, "", pipelineFile)
+	// We don't set a max length for pipeline description here, since in our DB the description type is longtext.
+	pipelineDescription, err := url.QueryUnescape(r.URL.Query().Get(DescriptionQueryStringKey))
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline description."))
+		return
+	}
+	newPipeline, err := s.resourceManager.CreatePipeline(pipelineName, pipelineDescription, pipelineFile)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return
