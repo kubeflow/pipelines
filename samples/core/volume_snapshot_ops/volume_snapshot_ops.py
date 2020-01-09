@@ -30,7 +30,7 @@ def volume_snapshotop_sequential(url):
 
     step1 = dsl.ContainerOp(
         name="step1_ingest",
-        image="google/cloud-sdk:216.0.0",
+        image="google/cloud-sdk:272.0.0",
         command=["sh", "-c"],
         arguments=["mkdir /data/step1 && "
                    "gsutil cat %s | gzip -c >/data/step1/file1.gz" % url],
@@ -81,4 +81,4 @@ def volume_snapshotop_sequential(url):
     )
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(volume_snapshotop_sequential, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(volume_snapshotop_sequential, __file__ + '.yaml')

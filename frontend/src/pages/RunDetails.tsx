@@ -785,7 +785,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     }
     this.setStateSafe({ sidepanelBusy: true });
     try {
-      const logs = await Apis.getPodLogs(selectedNodeDetails.id);
+      const logs = await Apis.getPodLogs(
+        selectedNodeDetails.id,
+        RunUtils.getNamespaceReferenceName(this.state.runMetadata),
+      );
       selectedNodeDetails.logs = logs;
       this.setStateSafe({
         logsBannerAdditionalInfo: '',

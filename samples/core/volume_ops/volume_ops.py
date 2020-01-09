@@ -37,4 +37,4 @@ def volumeop_basic(size):
     )
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(volumeop_basic, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(volumeop_basic, __file__ + '.yaml')

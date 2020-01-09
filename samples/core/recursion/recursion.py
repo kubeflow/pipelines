@@ -66,4 +66,4 @@ def flipcoin():
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(flipcoin, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(flipcoin, __file__ + '.yaml')

@@ -57,7 +57,7 @@ matrix:
       install: &0
         - python3 -m pip install -r $TRAVIS_BUILD_DIR/sdk/python/requirements.txt
         # Additional dependencies
-        - pip3 install coverage coveralls
+        - pip3 install coverage==4.5.4 coveralls==1.9.2
         # Sample test infra dependencies
         - pip3 install minio
         - pip3 install junit_xml

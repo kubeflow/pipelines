@@ -58,6 +58,22 @@ func TestCreateRun(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, *runDetail)
 }
 
+func TestCreateRun_Unauthorized(t *testing.T) {
+	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	defer clients.Close()
+	server := NewRunServer(manager)
+	run := &api.Run{
+		Name:               "123",
+		ResourceReferences: validReference,
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}
+	_, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+}
+
 func TestListRun(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()

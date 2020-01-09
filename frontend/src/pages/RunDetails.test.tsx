@@ -19,7 +19,7 @@ import * as Utils from '../lib/Utils';
 import RunDetails from './RunDetails';
 import TestUtils from '../TestUtils';
 import WorkflowParser from '../lib/WorkflowParser';
-import { ApiRunDetail, ApiResourceType, RunStorageState } from '../apis/run';
+import { ApiRunDetail, ApiResourceType, RunStorageState, ApiRelationship } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { NodePhase } from '../lib/StatusUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
@@ -909,8 +909,31 @@ describe('RunDetails', () => {
         .simulate('switch', 4);
       await getPodLogsSpy;
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
-      expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1');
+      expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1', undefined);
       expect(tree).toMatchSnapshot();
+    });
+
+    it("loads logs in run's namespace", async () => {
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: { nodes: { node1: { id: 'node1' } } },
+      });
+      testRun.run!.resource_references = [
+        {
+          key: { type: ApiResourceType.NAMESPACE, id: 'username' },
+          relationship: ApiRelationship.OWNER,
+        },
+      ];
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      tree.find('Graph').simulate('click', 'node1');
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', 4);
+      await getPodLogsSpy;
+      expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
+      expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1', 'username');
     });
 
     it('shows warning banner and link to Stackdriver in logs area if fetching logs failed and cluster is in GKE', async () => {

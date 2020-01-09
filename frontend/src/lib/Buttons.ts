@@ -17,12 +17,12 @@
 import AddIcon from '@material-ui/icons/Add';
 import CollapseIcon from '@material-ui/icons/UnfoldLess';
 import ExpandIcon from '@material-ui/icons/UnfoldMore';
-import { PageProps } from '../pages/Page';
-import { URLParser } from './URLParser';
-import { RoutePage, QUERY_PARAMS } from '../components/Router';
-import { Apis } from './Apis';
-import { errorToMessage, s } from './Utils';
+import { QUERY_PARAMS, RoutePage } from '../components/Router';
 import { ToolbarActionMap } from '../components/Toolbar';
+import { PageProps } from '../pages/Page';
+import { Apis } from './Apis';
+import { URLParser } from './URLParser';
+import { errorToMessage, s } from './Utils';
 
 export enum ButtonKeys {
   ARCHIVE = 'archive',
@@ -36,9 +36,10 @@ export enum ButtonKeys {
   ENABLE_RECURRING_RUN = 'enableRecurringRun',
   EXPAND = 'expand',
   NEW_EXPERIMENT = 'newExperiment',
+  NEW_PIPELINE_VERSION = 'newPipelineVersion',
   NEW_RUN = 'newRun',
   NEW_RECURRING_RUN = 'newRecurringRun',
-  NEW_RUN_FROM_PIPELINE = 'newRunFromPipeline',
+  NEW_RUN_FROM_PIPELINE_VERSION = 'newRunFromPipelineVersion',
   REFRESH = 'refresh',
   RESTORE = 'restore',
   TERMINATE_RUN = 'terminateRun',
@@ -143,9 +144,11 @@ export default class Buttons {
     return this;
   }
 
+  // Delete resources of the same type, which can be pipeline, pipeline version,
+  // or recurring run config.
   public delete(
     getSelectedIds: () => string[],
-    resourceName: 'pipeline' | 'recurring run config',
+    resourceName: 'pipeline' | 'recurring run config' | 'pipeline version',
     callback: (selectedIds: string[], success: boolean) => void,
     useCurrentResource: boolean,
   ): Buttons {
@@ -153,12 +156,40 @@ export default class Buttons {
       action: () =>
         resourceName === 'pipeline'
           ? this._deletePipeline(getSelectedIds(), useCurrentResource, callback)
+          : resourceName === 'pipeline version'
+          ? this._deletePipelineVersion(getSelectedIds(), useCurrentResource, callback)
           : this._deleteRecurringRun(getSelectedIds()[0], useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource
         ? undefined
         : `Select at least one ${resourceName} to delete`,
       id: 'deleteBtn',
+      title: 'Delete',
+      tooltip: 'Delete',
+    };
+    return this;
+  }
+
+  // Delete pipelines and pipeline versions simultaneously.
+  public deletePipelinesAndPipelineVersions(
+    getSelectedIds: () => string[],
+    getSelectedVersionIds: () => { [pipelineId: string]: string[] },
+    callback: (pipelineId: string | undefined, selectedIds: string[]) => void,
+    useCurrentResource: boolean,
+  ): Buttons {
+    this._map[ButtonKeys.DELETE_RUN] = {
+      action: () => {
+        this._dialogDeletePipelinesAndPipelineVersions(
+          getSelectedIds(),
+          getSelectedVersionIds(),
+          callback,
+        );
+      },
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource
+        ? undefined
+        : `Select at least one pipeline and/or one pipeline version to delete`,
+      id: 'deletePipelinesAndPipelineVersionsBtn',
       title: 'Delete',
       tooltip: 'Delete',
     };
@@ -227,9 +258,12 @@ export default class Buttons {
     return this;
   }
 
-  public newRunFromPipeline(getPipelineId: () => string): Buttons {
-    this._map[ButtonKeys.NEW_RUN_FROM_PIPELINE] = {
-      action: () => this._createNewRunFromPipeline(getPipelineId()),
+  public newRunFromPipelineVersion(
+    getPipelineId: () => string,
+    getPipelineVersionId: () => string,
+  ): Buttons {
+    this._map[ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION] = {
+      action: () => this._createNewRunFromPipelineVersion(getPipelineId(), getPipelineVersionId()),
       icon: AddIcon,
       id: 'createNewRunBtn',
       outlined: true,
@@ -250,6 +284,19 @@ export default class Buttons {
       style: { minWidth: 195 },
       title: 'Create recurring run',
       tooltip: 'Create a new recurring run',
+    };
+    return this;
+  }
+
+  public newPipelineVersion(label: string, getPipelineId?: () => string): Buttons {
+    this._map[ButtonKeys.NEW_PIPELINE_VERSION] = {
+      action: () => this._createNewPipelineVersion(getPipelineId ? getPipelineId() : ''),
+      icon: AddIcon,
+      id: 'createPipelineVersionBtn',
+      outlined: true,
+      style: { minWidth: 160 },
+      title: label,
+      tooltip: 'Upload pipeline or pipeline version',
     };
     return this;
   }
@@ -396,6 +443,24 @@ export default class Buttons {
       callback,
       'Delete',
       'pipeline',
+    );
+  }
+
+  private _deletePipelineVersion(
+    selectedIds: string[],
+    useCurrentResource: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): void {
+    this._dialogActionHandler(
+      selectedIds,
+      `Do you want to delete ${
+        selectedIds.length === 1 ? 'this Pipeline Version' : 'these Pipeline Versions'
+      }? This action cannot be undone.`,
+      useCurrentResource,
+      id => Apis.pipelineServiceApi.deletePipelineVersion(id),
+      callback,
+      'Delete',
+      'pipeline version',
     );
   }
 
@@ -551,16 +616,17 @@ export default class Buttons {
     this._props.history.push(RoutePage.NEW_RUN + searchString);
   }
 
-  private _createNewRunFromPipeline(pipelineId?: string): void {
+  private _createNewRunFromPipelineVersion(pipelineId?: string, pipelineVersionId?: string): void {
     let searchString = '';
     const fromRunId = this._urlParser.get(QUERY_PARAMS.fromRunId);
 
     if (fromRunId) {
       searchString = this._urlParser.build(Object.assign({ [QUERY_PARAMS.fromRunId]: fromRunId }));
     } else {
-      searchString = this._urlParser.build(
-        Object.assign({ [QUERY_PARAMS.pipelineId]: pipelineId || '' }),
-      );
+      searchString = this._urlParser.build({
+        [QUERY_PARAMS.pipelineId]: pipelineId || '',
+        [QUERY_PARAMS.pipelineVersionId]: pipelineVersionId || '',
+      });
     }
 
     this._props.history.push(RoutePage.NEW_RUN + searchString);
@@ -592,5 +658,166 @@ export default class Buttons {
         this._props.updateToolbar({ actions: toolbarActions });
       }
     }
+  }
+
+  private _createNewPipelineVersion(pipelineId?: string): void {
+    const searchString = pipelineId
+      ? this._urlParser.build({
+          [QUERY_PARAMS.pipelineId]: pipelineId,
+        })
+      : '';
+    this._props.history.push(RoutePage.NEW_PIPELINE_VERSION + searchString);
+  }
+
+  private _dialogDeletePipelinesAndPipelineVersions(
+    selectedIds: string[],
+    selectedVersionIds: { [pipelineId: string]: string[] },
+    callback: (pipelineId: string | undefined, selectedIds: string[]) => void,
+  ): void {
+    const numVersionIds = this._deepCountDictionary(selectedVersionIds);
+    const pipelineMessage = this._nouns(selectedIds.length, `pipeline`, `pipelines`);
+    const pipelineVersionMessage = this._nouns(
+      numVersionIds,
+      `pipeline version`,
+      `pipeline versions`,
+    );
+    const andMessage = pipelineMessage !== `` && pipelineVersionMessage !== `` ? ` and ` : ``;
+    this._props.updateDialog({
+      buttons: [
+        {
+          onClick: async () =>
+            await this._deletePipelinesAndPipelineVersions(
+              false,
+              selectedIds,
+              selectedVersionIds,
+              callback,
+            ),
+          text: 'Cancel',
+        },
+        {
+          onClick: async () =>
+            await this._deletePipelinesAndPipelineVersions(
+              true,
+              selectedIds,
+              selectedVersionIds,
+              callback,
+            ),
+          text: 'Delete',
+        },
+      ],
+      onClose: async () =>
+        await this._deletePipelinesAndPipelineVersions(
+          false,
+          selectedIds,
+          selectedVersionIds,
+          callback,
+        ),
+      title: `Delete ` + pipelineMessage + andMessage + pipelineVersionMessage + `?`,
+    });
+  }
+
+  private async _deletePipelinesAndPipelineVersions(
+    confirmed: boolean,
+    selectedIds: string[],
+    selectedVersionIds: { [pipelineId: string]: string[] },
+    callback: (pipelineId: string | undefined, selectedIds: string[]) => void,
+  ): Promise<void> {
+    if (!confirmed) {
+      return;
+    }
+
+    // Since confirmed, delete pipelines first and then pipeline versions from
+    // (other) pipelines.
+
+    // Delete pipelines.
+    const succeededfulIds: Set<string> = new Set<string>(selectedIds);
+    const unsuccessfulIds: string[] = [];
+    const errorMessages: string[] = [];
+    await Promise.all(
+      selectedIds.map(async id => {
+        try {
+          await Apis.pipelineServiceApi.deletePipeline(id);
+        } catch (err) {
+          unsuccessfulIds.push(id);
+          succeededfulIds.delete(id);
+          const errorMessage = await errorToMessage(err);
+          errorMessages.push(`Failed to delete pipeline: ${id} with error: "${errorMessage}"`);
+        }
+      }),
+    );
+
+    // Remove successfully deleted pipelines from selectedVersionIds if exists.
+    const toBeDeletedVersionIds = Object.fromEntries(
+      Object.entries(selectedVersionIds).filter(
+        ([pipelineId, _]) => !succeededfulIds.has(pipelineId),
+      ),
+    );
+
+    // Delete pipeline versions.
+    const unsuccessfulVersionIds: { [pipelineId: string]: string[] } = {};
+    await Promise.all(
+      Object.keys(toBeDeletedVersionIds).map(pipelineId => {
+        toBeDeletedVersionIds[pipelineId].map(async versionId => {
+          try {
+            unsuccessfulVersionIds[pipelineId] = [];
+            await Apis.pipelineServiceApi.deletePipelineVersion(versionId);
+          } catch (err) {
+            unsuccessfulVersionIds[pipelineId].push(versionId);
+            const errorMessage = await errorToMessage(err);
+            errorMessages.push(
+              `Failed to delete pipeline version: ${versionId} with error: "${errorMessage}"`,
+            );
+          }
+        });
+      }),
+    );
+    const selectedVersionIdsCt = this._deepCountDictionary(selectedVersionIds);
+    const unsuccessfulVersionIdsCt = this._deepCountDictionary(unsuccessfulVersionIds);
+
+    // Display successful and/or unsuccessful messages.
+    const pipelineMessage = this._nouns(succeededfulIds.size, `pipeline`, `pipelines`);
+    const pipelineVersionMessage = this._nouns(
+      selectedVersionIdsCt - unsuccessfulVersionIdsCt,
+      `pipeline version`,
+      `pipeline versions`,
+    );
+    const andMessage = pipelineMessage !== `` && pipelineVersionMessage !== `` ? ` and ` : ``;
+    if (pipelineMessage !== `` || pipelineVersionMessage !== ``) {
+      this._props.updateSnackbar({
+        message: `Deletion succeeded for ` + pipelineMessage + andMessage + pipelineVersionMessage,
+        open: true,
+      });
+    }
+    if (unsuccessfulIds.length > 0 || unsuccessfulVersionIdsCt > 0) {
+      this._props.updateDialog({
+        buttons: [{ text: 'Dismiss' }],
+        content: errorMessages.join('\n\n'),
+        title: `Failed to delete some pipelines and/or some pipeline versions`,
+      });
+    }
+
+    // pipelines and pipeline versions that failed deletion will keep to be
+    // checked.
+    callback(undefined, unsuccessfulIds);
+    Object.keys(selectedVersionIds).map(pipelineId =>
+      callback(pipelineId, unsuccessfulVersionIds[pipelineId]),
+    );
+
+    // Refresh
+    this._refresh();
+  }
+
+  private _nouns(count: number, singularNoun: string, pluralNoun: string): string {
+    if (count <= 0) {
+      return ``;
+    } else if (count === 1) {
+      return `${count} ` + singularNoun;
+    } else {
+      return `${count} ` + pluralNoun;
+    }
+  }
+
+  private _deepCountDictionary(dict: { [pipelineId: string]: string[] }): number {
+    return Object.keys(dict).reduce((count, pipelineId) => count + dict[pipelineId].length, 0);
   }
 }
