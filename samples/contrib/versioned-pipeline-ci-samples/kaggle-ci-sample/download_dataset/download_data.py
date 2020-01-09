@@ -7,16 +7,16 @@ def processAndUpload(
 ):
     from google.cloud import storage
     storage_client = storage.Client()
-    bucket = storage_client.get_bucket(bucket_name)
+    bucket = storage_client.get_bucket(bucket_name.strip('gs://'))
     train_blob = bucket.blob('train.csv')
     test_blob = bucket.blob('test.csv')
     train_blob.upload_from_filename('train.csv')
     test_blob.upload_from_filename('test.csv')
 
     with open('train.txt', 'w') as f:
-        f.write('gs://'+bucket_name+'/train.csv')
+        f.write(bucket_name+'/train.csv')
     with open('test.txt', 'w') as f:
-        f.write('gs://'+bucket_name+'/test.csv')
+        f.write(bucket_name+'/test.csv')
 
 if __name__ == '__main__':
     import os

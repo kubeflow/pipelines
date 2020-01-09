@@ -1,7 +1,7 @@
 node {
     def pipeline_id="[Your pipeline id]"
     def pipeline_endpoint = "[Your pipeline endpoint]"
-    def gs_bucket = "[Your gs bucket name, for example, my-bucket]"
+    def gs_bucket = "[Your gs bucket name, for example, gs://my-bucket]"
 
     // build hello-world image
     stage("BuildImages"){
@@ -28,7 +28,7 @@ node {
     stage("UploadPipeline"){
         //copy pipeline.py.zip to a storage without access control
         sh"""
-        gsutil cp ./pipeline.py.zip gs://$gs_bucket/$scm.GIT_COMMIT/pipeline.zip
+        gsutil cp ./pipeline.py.zip $gs_bucket/$scm.GIT_COMMIT/pipeline.zip
         """
     }
 

@@ -29,7 +29,7 @@ steps:
       [
         "cp",
         "/workspace/pipeline.zip",
-        "gs://${_GS_BUCKET}/$COMMIT_SHA/pipeline.zip",
+        "${_GS_BUCKET}/$COMMIT_SHA/pipeline.zip",
       ]
     id: "UploadPipeline"
     waitFor: ["PackagePipeline"]
@@ -53,5 +53,5 @@ substitutions:
   _CODE_PATH: /workspace/hello-world
   _NAMESPACE: kubeflow
   _PIPELINE_ID: [Your kubeflow pipeline id to create a version on. Get it from kfp UI.]
-  _GS_BUCKET: [Name of your cloud storage bucket. For example, 'myproject-helloworld']
+  _GS_BUCKET: [Name of your cloud storage bucket. For example, 'gs://my-bucket']
   _PIPELINE_ENDPOINT: [Your exposed pipeline endpoint.]

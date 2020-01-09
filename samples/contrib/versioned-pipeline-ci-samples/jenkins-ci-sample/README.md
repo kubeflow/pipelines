@@ -9,7 +9,7 @@ To use this sample, you need to:
 * Deploy kubeflow pipeline on GCP.
 * Expose ml-pipeline in your workloads after deploying kubeflow pipeline.
 * Create your gs bucket, and set it public
-* Replace the constants in jenkinsfile to your own configuration.
+* Replace the constants in jenkinsfile to your own configuration according to the instructions in jenkinsfile.
 * Deploy Jenkins on your machine or cloud
 * Set up a Jenkins pipeline with the jenkins file in the folder.
 * Connect Jenkins to your github repo

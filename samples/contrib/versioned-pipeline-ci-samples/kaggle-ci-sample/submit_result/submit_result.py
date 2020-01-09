@@ -7,7 +7,7 @@ def downoadResult(
 ):
     import gcsfs
     fs = gcsfs.GCSFileSystem()
-    fs.get(result_file, 'submission.csv')
+    fs.get(result_file.strip('gs://'), 'submission.csv')
 
 if __name__ == '__main__':
     import argparse

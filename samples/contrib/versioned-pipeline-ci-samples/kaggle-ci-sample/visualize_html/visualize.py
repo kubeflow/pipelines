@@ -8,9 +8,9 @@ def datahtml(
     import seaborn as sns
     import matplotlib.pyplot as plt
     import os
-    image_path = os.path.join('gs://', bucket_name, 'visualization.png')
-    image_url = os.path.join('https://storage.googleapis.com', bucket_name, 'visualization.png')
-    html_path = os.path.join('gs://', bucket_name, 'kaggle.html')
+    image_path = os.path.join(bucket_name, 'visualization.png')
+    image_url = os.path.join('https://storage.googleapis.com', bucket_name.strip('gs://'), 'visualization.png')
+    html_path = os.path.join(bucket_name, 'kaggle.html')
     # ouptut visualization to a file
 
     import pandas as pd

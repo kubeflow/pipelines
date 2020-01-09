@@ -2,10 +2,9 @@ import kfp
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--version_name', help='Required. Name of the new version. Must be unique.', type=str)
-parser.add_argument('--package_url', help='Required. pipeline package url', type=str)
+parser.add_argument('--commit_sha', help='Required. To mark version name and locate pipelien package.', type=str)
 parser.add_argument('--pipeline_id', help = 'Required. pipeline id',type=str)
-parser.add_argument('--bucket_name', help='Required. gs bucket to store files', type=str)
+parser.add_argument('--bucket_name', help='Required. gs bucket that stores files and pipeline.zip.', type=str)
 parser.add_argument('--gcr_address', help='Required. Cloud registry address. For example, gcr.io/my-project', type=str)
 parser.add_argument('--host', help='Host address of kfp.Client. Will be get from cluster automatically', type=str, default='')
 parser.add_argument('--run_name', help='name of the new run.', type=str, default='')
@@ -17,12 +16,13 @@ if args.host:
     client = kfp.Client(host=args.host)
 else:
     client = kfp.Client()
-print(client.pipelines.api_client.configuration.host)
 
+import os
+package_url = os.path.join('https://storage.googleapis.com', bucket_name.strip('gs://'), args.commit_sha, 'pipeline.zip')
 #create version
 version_body = {"name": args.version_name, \
 "code_source_url": args.code_source_url, \
-"package_url": {"pipeline_url": args.package_url}, \
+"package_url": {"pipeline_url": package_url}, \
 "resource_references": [{"key": {"id": args.pipeline_id, "type":3}, "relationship":1}]}
 print('version body: {}'.format(version_body))
 response = client.pipelines.create_pipeline_version(version_body)

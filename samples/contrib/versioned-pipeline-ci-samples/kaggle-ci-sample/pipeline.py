@@ -43,7 +43,7 @@ def kaggle_houseprice(
         command = ['python', 'train.py'],
         arguments = ['--train_file',  '%s' % stepDownloadData.outputs['train_dataset'], 
                      '--test_file', '%s' % stepDownloadData.outputs['test_dataset'],
-                     '--output_bucket', 'gs://'+bucket_name
+                     '--output_bucket', bucket_name
                      ],
         file_outputs = {'result': '/result_path.txt'}
     )
