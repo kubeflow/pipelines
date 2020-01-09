@@ -26,7 +26,7 @@ REQUIRES = [
     'python-dateutil',
     'PyYAML',
     'google-cloud-storage>=1.13.0',
-    'kubernetes>=8.0.0, <=9.0.0',
+    'kubernetes>=8.0.0, <=10.0.0',
     'PyJWT>=1.6.4',
     'cryptography>=2.4.2',
     'google-auth>=1.6.1',
