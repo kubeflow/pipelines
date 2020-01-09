@@ -15,6 +15,7 @@
 # limitations under the License.
 
 set -xe
+set -o pipefail
 
 # K8s Namespace that all resources deployed to
 NAMESPACE=kubeflow
@@ -65,6 +66,7 @@ export GO111MODULE=on
 
 echo "Run Initialization test..."
 LOG_FILE=$(mktemp)
+# Note, "set -o pipefail" at top of file is required to catch exit code of the pipe.
 TEST_EXIT_CODE=0 # reference for how to save exit code: https://stackoverflow.com/a/18622662
 go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true |& tee $LOG_FILE || TEST_EXIT_CODE=$?
 
