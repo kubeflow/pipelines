@@ -71,7 +71,7 @@ TEST_EXIT_CODE=0 # reference for how to save exit code: https://stackoverflow.co
 go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true |& tee $LOG_FILE || TEST_EXIT_CODE=$?
 
 # Convert test result to junit.xml
-cat $LOG_FILE | go-junit-report > ${JUNIT_TEST_RESULT}
+< "$LOG_FILE" go-junit-report > "${JUNIT_TEST_RESULT}"
 
 echo "Copy test result to GCS ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}"
 gsutil cp ${JUNIT_TEST_RESULT} ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}
