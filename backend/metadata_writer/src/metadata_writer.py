@@ -1,37 +1,16 @@
-# Deploy the Metadata Writer PoC using the following command:
-"""
-kubectl create -f - <<EOF
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: metadata-writer-deployment
-  labels:
-    app: metadata-writer
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: metadata-writer
-  template:
-    metadata:
-      labels:
-        app: metadata-writer
-    spec:
-      containers:
-      - name: main
-        image: python:3.7
-        command:
-        - sh
-        - -e
-        - -c
-        - |
-          python3 -m pip install kubernetes 'ml-metadata==0.15.2' --upgrade --quiet --user --no-warn-script-location
-          #wget --quiet -O /tmp/metadata_writer.py https://raw.githubusercontent.com/Ark-kun/pipelines/Metadata-Writer/backend/metadata_writer/src/metadata_writer.py
-          curl --silent --show-error https://raw.githubusercontent.com/Ark-kun/pipelines/Metadata-Writer/backend/metadata_writer/src/metadata_writer.py >/tmp/metadata_writer.py
-          echo "Starting the Metadata writer"
-          python3 -u /tmp/metadata_writer.py
-EOF
-"""
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import hashlib
 import os
