@@ -17,7 +17,7 @@ def datahtml(
     df_train = pd.read_csv(train_file_path)
     sns.set()
     cols = ['SalePrice', 'OverallQual', 'GrLivArea', 'GarageCars', 'TotalBsmtSF', 'FullBath', 'YearBuilt']
-    sns.pairplot(df_train[cols], size = 2.5)
+    sns.pairplot(df_train[cols], height = 2.5)
     plt.savefig('visualization.png')
     from tensorflow.python.lib.io import file_io
     file_io.copy('visualization.png', image_path)
