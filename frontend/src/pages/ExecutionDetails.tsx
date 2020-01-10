@@ -23,14 +23,18 @@ import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
 import { titleCase, getResourceProperty, serviceErrorToString, logger } from '../lib/Utils';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
-import { Execution, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
-import { Apis, ExecutionProperties, ArtifactProperties } from '../lib/Apis';
 import {
+  Execution,
+  ArtifactType,
+  ExecutionProperties,
+  ArtifactProperties,
+  Api,
+  getArtifactTypes,
   GetExecutionsByIDRequest,
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
   GetArtifactsByIDRequest,
-} from '../generated/src/apis/metadata/metadata_store_service_pb';
+} from 'frontend';
 import { EventTypes, getArtifactTypeMap } from '../lib/MetadataUtils';
 import { Event } from '../generated/src/apis/metadata/metadata_store_pb';
 import { Link } from 'react-router-dom';
@@ -122,8 +126,10 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
   }
 
   private async load(): Promise<void> {
+    const metadataStoreServiceClient = Api.getInstance().metadataStoreService;
+
     // this runs parallelly because it's not a critical resource
-    getArtifactTypeMap()
+    getArtifactTypes(metadataStoreServiceClient)
       .then(artifactTypeMap => {
         this.setState({
           artifactTypeMap,
@@ -146,34 +152,37 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
     getEventsRequest.setExecutionIdsList([numberId]);
 
     const [executionResponse, eventResponse] = await Promise.all([
-      Apis.getMetadataServicePromiseClient().getExecutionsByID(getExecutionsRequest),
-      Apis.getMetadataServicePromiseClient().getEventsByExecutionIDs(getEventsRequest),
+      metadataStoreServiceClient.getExecutionsByID(getExecutionsRequest),
+      metadataStoreServiceClient.getEventsByExecutionIDs(getEventsRequest),
     ]);
 
-    if (eventResponse.error) {
-      this.showPageError(serviceErrorToString(eventResponse.error));
+    if (!eventResponse) {
+      this.showPageError('Error fetching event data');
       // events data is optional, no need to skip the following
     }
-    if (executionResponse.error) {
-      this.showPageError(serviceErrorToString(executionResponse.error));
+    if (!executionResponse) {
+      this.showPageError(`Unable to retrieve ${this.fullTypeName} ${this.id}.`);
       return;
     }
-    if (!executionResponse.response || !executionResponse.response.getExecutionsList().length) {
+
+    if (!executionResponse!.getExecutionsList()!.length) {
       this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
       return;
     }
-    if (executionResponse.response.getExecutionsList().length > 1) {
+
+    if (executionResponse!.getExecutionsList().length > 1) {
       this.showPageError(`Found multiple executions with ID: ${this.id}`);
       return;
     }
 
-    const execution = executionResponse.response.getExecutionsList()[0];
+    const execution = executionResponse.getExecutionsList()[0];
+    // @ts-ignore
     const executionName = getResourceProperty(execution, ExecutionProperties.COMPONENT_ID);
     this.props.updateToolbar({
       pageTitle: executionName ? executionName.toString() : '',
     });
 
-    const events = parseEventsByType(eventResponse.response);
+    const events = parseEventsByType(eventResponse);
 
     this.setState({
       events,
@@ -236,10 +245,8 @@ class SectionIO extends Component<
     // loads extra metadata about artifacts
     const request = new GetArtifactsByIDRequest();
     request.setArtifactIdsList(this.props.artifactIds);
-    const { error, response } = await Apis.getMetadataServicePromiseClient().getArtifactsByID(
-      request,
-    );
-    if (error || !response) {
+    const response = await Api.getInstance().metadataStoreService.getArtifactsByID(request);
+    if (!response) {
       return;
     }
 
@@ -252,6 +259,7 @@ class SectionIO extends Component<
       }
       const data: ArtifactInfo = {
         id,
+        // @ts-ignore
         name: (getResourceProperty(artifact, ArtifactProperties.NAME) || '') as string, // TODO: assert name is string
         typeId: artifact.getTypeId(),
         uri: artifact.getUri() || '',

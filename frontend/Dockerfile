@@ -1,4 +1,4 @@
-FROM node:9.4.0 as build
+FROM node:12.3.1 as build
 
 ARG COMMIT_HASH
 ARG DATE

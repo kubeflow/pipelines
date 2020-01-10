@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { Api, Artifact, ArtifactProperties, GetArtifactsByIDRequest, LineageView } from 'frontend';
 import * as React from 'react';
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
@@ -21,20 +22,35 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
-import { titleCase, getResourceProperty, serviceErrorToString } from '../lib/Utils';
+import { getResourceProperty, titleCase } from '../lib/Utils';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
-import { Artifact } from '../generated/src/apis/metadata/metadata_store_pb';
-import { Apis, ArtifactProperties } from '../lib/Apis';
-import { GetArtifactsByIDRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
+import MD2Tabs from '../atoms/MD2Tabs';
+
+export enum ArtifactDetailsTab {
+  OVERVIEW = 0,
+  LINEAGE_EXPLORER = 1,
+}
+
+const tabs = {
+  [ArtifactDetailsTab.OVERVIEW]: {name: 'Overview'},
+  [ArtifactDetailsTab.LINEAGE_EXPLORER]: {name: 'Lineage Explorer'},
+};
+
+const tabNames = Object.values(tabs).map(tabConfig => tabConfig.name);
 
 interface ArtifactDetailsState {
   artifact?: Artifact;
+  selectedTab: ArtifactDetailsTab;
 }
 
 export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
+  private api = Api.getInstance();
+
   constructor(props: {}) {
     super(props);
-    this.state = {};
+    this.state = {
+      selectedTab: ArtifactDetailsTab.OVERVIEW
+    };
     this.load = this.load.bind(this);
   }
 
@@ -63,14 +79,22 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       return <CircularProgress />;
     }
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        {
-          <ResourceInfo
-            resourceType={ResourceType.ARTIFACT}
-            typeName={this.properTypeName}
-            resource={this.state.artifact}
+      <div className={classes(commonCss.page)}>
+        <div className={classes(padding(20, 't'))}>
+          <MD2Tabs
+            tabs={tabNames}
+            selectedTab={this.state.selectedTab}
+            onSwitch={this.switchTab.bind(this)}
           />
-        }
+        </div>
+        {this.state.selectedTab === ArtifactDetailsTab.OVERVIEW && (
+          <div className={classes(padding(20, 'lr'))}>
+            <ResourceInfo typeName={this.properTypeName} resource={this.state.artifact} resourceType={ResourceType.ARTIFACT}/>
+          </div>
+        )}
+        {this.state.selectedTab === ArtifactDetailsTab.LINEAGE_EXPLORER && (
+          <LineageView target={this.state.artifact} />
+        )}
       </div>
     );
   }
@@ -88,36 +112,41 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   }
 
   private async load(): Promise<void> {
-    const getArtifactsRequest = new GetArtifactsByIDRequest();
-    getArtifactsRequest.setArtifactIdsList([this.id]);
-    Apis.getMetadataServiceClient().getArtifactsByID(getArtifactsRequest, (err, res) => {
-      if (err) {
-        this.showPageError(serviceErrorToString(err));
-        return;
-      }
+    const request = new GetArtifactsByIDRequest();
+    request.setArtifactIdsList([Number(this.id)]);
 
-      if (!res || !res.getArtifactsList().length) {
-        this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
-        return;
-      }
+    const response = await this.api.metadataStoreService.getArtifactsByID(request);
 
-      if (res.getArtifactsList().length > 1) {
-        this.showPageError(`Found multiple artifacts with ID: ${this.id}`);
-        return;
-      }
+    if (!response) {
+      this.showPageError(`Unable to retrieve ${this.fullTypeName} ${this.id}.`);
+      return
+    }
 
-      const artifact = res.getArtifactsList()[0];
+    if (!response!.getArtifactsList()!.length) {
+      this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
+      return;
+    }
 
-      const artifactName = getResourceProperty(artifact, ArtifactProperties.NAME);
-      let title = artifactName ? artifactName.toString() : '';
-      const version = getResourceProperty(artifact, ArtifactProperties.VERSION);
-      if (version) {
-        title += ` (version: ${version})`;
-      }
-      this.props.updateToolbar({
-        pageTitle: title,
-      });
-      this.setState({ artifact });
+    if (response!.getArtifactsList().length > 1) {
+      this.showPageError(`Found multiple artifacts with ID: ${this.id}`);
+      return;
+    }
+
+    const artifact = response!.getArtifactsList()[0];
+
+    const artifactName = getResourceProperty(artifact, ArtifactProperties.NAME);
+    let title = artifactName ? artifactName.toString() : '';
+    const version = getResourceProperty(artifact, ArtifactProperties.VERSION);
+    if (version) {
+      title += ` (version: ${version})`;
+    }
+    this.props.updateToolbar({
+      pageTitle: title
     });
+    this.setState({artifact});
+  }
+
+  private switchTab(selectedTab: number) {
+    this.setState({selectedTab});
   }
 }

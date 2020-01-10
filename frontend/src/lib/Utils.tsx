@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { Value, Artifact, Execution } from 'frontend';
 import * as React from 'react';
 import { ApiRun } from '../apis/run';
 import { ApiTrigger } from '../apis/job';
@@ -24,7 +25,6 @@ import { ListRequest } from './Apis';
 import { Row, Column, ExpandState } from '../components/CustomTable';
 import { padding } from '../Css';
 import { classes } from 'typestyle';
-import { Value, Artifact, Execution } from '../generated/src/apis/metadata/metadata_store_pb';
 import { CustomTableRow, css } from '../components/CustomTableRow';
 import { ServiceError } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
 
@@ -138,27 +138,21 @@ export function serviceErrorToString(error: ServiceError): string {
   return `Error: ${error.message}. Code: ${error.code}`;
 }
 
-/**
- * Extracts an int, double, or string from a metadata Value. Returns '' if no value is found.
- * @param value
- */
 export function getMetadataValue(value?: Value): string | number {
   if (!value) {
     return '';
   }
 
-  if (value.hasDoubleValue()) {
-    return value.getDoubleValue() || '';
+  switch (value.getValueCase()) {
+    case Value.ValueCase.DOUBLE_VALUE:
+      return value.getDoubleValue();
+    case Value.ValueCase.INT_VALUE:
+      return value.getIntValue();
+    case Value.ValueCase.STRING_VALUE:
+      return value.getStringValue();
+    case Value.ValueCase.VALUE_NOT_SET:
+      return '';
   }
-
-  if (value.hasIntValue()) {
-    return value.getIntValue() || '';
-  }
-
-  if (value.hasStringValue()) {
-    return value.getStringValue() || '';
-  }
-  return '';
 }
 
 /**

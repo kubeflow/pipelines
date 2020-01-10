@@ -31,16 +31,19 @@ import {
   rowFilterFn,
   groupRows,
   getExpandedRow,
-  serviceErrorToString,
 } from '../lib/Utils';
 import { RoutePageFactory } from '../components/Router';
 import { Link } from 'react-router-dom';
-import { Artifact, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
-import { ArtifactProperties, ArtifactCustomProperties, ListRequest, Apis } from '../lib/Apis';
 import {
-  GetArtifactTypesRequest,
+  Api,
+  Artifact,
+  ArtifactProperties,
+  ArtifactCustomProperties,
+  ListRequest,
+  ArtifactType,
+  getArtifactTypes,
   GetArtifactsRequest,
-} from '../generated/src/apis/metadata/metadata_store_service_pb';
+} from 'frontend';
 import { getArtifactCreationTime } from '../lib/MetadataUtils';
 import { ArtifactLink } from '../components/ArtifactLink';
 
@@ -53,6 +56,8 @@ interface ArtifactListState {
 
 class ArtifactList extends Page<{}, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
+  private api = Api.getInstance();
+  private artifactTypes: Map<number, ArtifactType>;
 
   constructor(props: any) {
     super(props);
@@ -120,21 +125,21 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
-    const { response: res, error: err } = await Apis.getMetadataServicePromiseClient().getArtifacts(
-      new GetArtifactsRequest(),
-    );
-
-    if (err) {
-      // Code === 5 means no record found in backend. This is a temporary workaround.
-      // TODO: remove err.code !== 5 check when backend is fixed.
-      if (err.code !== 5) {
-        this.showPageError(serviceErrorToString(err));
-      }
-      return '';
+    // TODO: Consider making an Api method for returning and caching types
+    if (!this.artifactTypes || !this.artifactTypes.size) {
+      this.artifactTypes = await getArtifactTypes(
+        this.api.metadataStoreService,
+        this.showPageError.bind(this),
+      );
+    }
+    if (!this.state.artifacts!.length) {
+      const artifacts = await this.getArtifacts();
+      this.setState({ artifacts });
+      this.clearBanner();
     }
 
-    const artifacts = (res && res.getArtifactsList()) || [];
-    await this.getRowsFromArtifacts(request, artifacts);
+    // Updates state.rows
+    this.getRowsFromArtifacts(request);
     return '';
   }
 
@@ -157,29 +162,25 @@ class ArtifactList extends Page<{}, ArtifactListState> {
     <ArtifactLink artifactUri={value} />
   );
 
+  private async getArtifacts(): Promise<Artifact[]> {
+    const response = await this.api.metadataStoreService.getArtifacts(new GetArtifactsRequest());
+
+    if (!response) {
+      this.showPageError('Unable to retrieve Artifacts.');
+      return [];
+    }
+
+    return response!.getArtifactsList() || [];
+  }
+
   /**
    * Temporary solution to apply sorting, filtering, and pagination to the
    * local list of artifacts until server-side handling is available
    * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
    * @param request
    */
-  private async getRowsFromArtifacts(request: ListRequest, artifacts: Artifact[]): Promise<void> {
-    const artifactTypesMap = new Map<number, ArtifactType>();
-    // TODO: Consider making an Api method for returning and caching types
-    const {
-      response: res,
-      error: err,
-    } = await Apis.getMetadataServicePromiseClient().getArtifactTypes(
-      new GetArtifactTypesRequest(),
-    );
-    if (err) {
-      this.showPageError(serviceErrorToString(err));
-      return;
-    }
-
-    ((res && res.getArtifactTypesList()) || []).forEach(artifactType => {
-      artifactTypesMap.set(artifactType.getId()!, artifactType);
-    });
+  private async getRowsFromArtifacts(request: ListRequest): Promise<void> {
+    const artifacts = [...this.state.artifacts];
 
     try {
       // TODO: When backend supports sending creation time back when we list
@@ -203,8 +204,8 @@ class ArtifactList extends Page<{}, ArtifactListState> {
           .map(({ artifact, creationTime }) => {
             const typeId = artifact.getTypeId();
             const type =
-              typeId && artifactTypesMap && artifactTypesMap.get(typeId)
-                ? artifactTypesMap.get(typeId)!.getName()
+              typeId && this.artifactTypes && this.artifactTypes.get(typeId)
+                ? this.artifactTypes.get(typeId)!.getName()
                 : typeId;
             return {
               id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link

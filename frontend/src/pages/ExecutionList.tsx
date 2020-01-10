@@ -31,16 +31,19 @@ import {
   rowFilterFn,
   groupRows,
   getExpandedRow,
-  serviceErrorToString,
 } from '../lib/Utils';
 import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from '../components/Router';
-import { Execution, ExecutionType } from '../generated/src/apis/metadata/metadata_store_pb';
-import { ListRequest, ExecutionProperties, ExecutionCustomProperties, Apis } from '../lib/Apis';
 import {
-  GetExecutionsRequest,
+  Api,
+  Execution,
+  ExecutionType,
+  ExecutionProperties,
+  ExecutionCustomProperties,
   GetExecutionTypesRequest,
-} from '../generated/src/apis/metadata/metadata_store_service_pb';
+  ListRequest,
+  GetExecutionsRequest,
+} from 'frontend';
 
 interface ExecutionListState {
   executions: Execution[];
@@ -51,6 +54,8 @@ interface ExecutionListState {
 
 class ExecutionList extends Page<{}, ExecutionListState> {
   private tableRef = React.createRef<CustomTable>();
+  private api = Api.getInstance();
+  private executionTypes: Map<number, ExecutionType>;
 
   constructor(props: any) {
     super(props);
@@ -117,23 +122,49 @@ class ExecutionList extends Page<{}, ExecutionListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
-    const {
-      error: err,
-      response: res,
-    } = await Apis.getMetadataServicePromiseClient().getExecutions(new GetExecutionsRequest());
+    // TODO: Consider making an Api method for returning and caching types
+    if (!this.executionTypes || !this.executionTypes.size) {
+      this.executionTypes = await this.getExecutionTypes();
+    }
+    if (!this.state.executions.length) {
+      const executions = await this.getExecutions();
+      this.setState({ executions });
+      this.clearBanner();
+    }
+    this.setState({
+      rows: this.getRowsFromExecutions(request),
+    });
+    return '';
+  }
 
-    if (err) {
-      // Code === 5 means no record found in backend. This is a temporary workaround.
-      // TODO: remove err.code !== 5 check when backend is fixed.
-      if (err.code !== 5) {
-        this.showPageError(serviceErrorToString(err));
-      }
-      return '';
+  private async getExecutions(): Promise<Execution[]> {
+    const response = await this.api.metadataStoreService.getExecutions(new GetExecutionsRequest());
+
+    if (!response) {
+      this.showPageError('Unable to retrieve Executions.');
+      return [];
     }
 
-    const executions = (res && res.getExecutionsList()) || [];
-    await this.getRowsFromExecutions(request, executions);
-    return '';
+    return response!.getExecutionsList() || [];
+  }
+
+  private async getExecutionTypes(): Promise<Map<number, ExecutionType>> {
+    const response = await this.api.metadataStoreService.getExecutionTypes(
+      new GetExecutionTypesRequest(),
+    );
+
+    if (!response) {
+      this.showPageError('Unable to retrieve Execution Types, some features may not work.');
+      return new Map();
+    }
+
+    const executionTypesMap = new Map<number, ExecutionType>();
+
+    (response!.getExecutionTypesList() || []).forEach(executionType => {
+      executionTypesMap.set(executionType.getId()!, executionType);
+    });
+
+    return executionTypesMap;
   }
 
   private nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
@@ -157,37 +188,15 @@ class ExecutionList extends Page<{}, ExecutionListState> {
    * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
    * @param request
    */
-  private async getRowsFromExecutions(
-    request: ListRequest,
-    executions: Execution[],
-  ): Promise<void> {
-    const executionTypesMap = new Map<number, ExecutionType>();
-    // TODO: Consider making an Api method for returning and caching types
-    const {
-      error: err,
-      response: res,
-    } = await Apis.getMetadataServicePromiseClient().getExecutionTypes(
-      new GetExecutionTypesRequest(),
-    );
-
-    if (err) {
-      this.showPageError(serviceErrorToString(err));
-      return;
-    }
-
-    ((res && res.getExecutionTypesList()) || []).forEach(executionType => {
-      executionTypesMap.set(executionType.getId()!, executionType);
-    });
-
+  private getRowsFromExecutions(request: ListRequest): Row[] {
     const collapsedAndExpandedRows = groupRows(
-      executions
+      this.state.executions
         .map(execution => {
           // Flattens
-          const typeId = execution.getTypeId();
           const type =
-            typeId && executionTypesMap && executionTypesMap.get(typeId)
-              ? executionTypesMap.get(typeId)!.getName()
-              : typeId;
+            this.executionTypes && this.executionTypes.get(execution.getTypeId()!)
+              ? this.executionTypes.get(execution.getTypeId()!)!.getName()
+              : execution.getTypeId();
           return {
             id: `${type}:${execution.getId()}`, // Join with colon so we can build the link
             otherFields: [
@@ -204,11 +213,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
         .sort(rowCompareFn(request, this.state.columns)),
     );
 
-    this.setState({
-      executions,
-      expandedRows: collapsedAndExpandedRows.expandedRows,
-      rows: collapsedAndExpandedRows.collapsedRows,
-    });
+    this.setState({ expandedRows: collapsedAndExpandedRows.expandedRows });
+    return collapsedAndExpandedRows.collapsedRows;
   }
 
   /**
