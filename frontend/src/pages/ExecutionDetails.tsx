@@ -21,7 +21,7 @@ import { RoutePage, RouteParams, RoutePageFactory } from '../components/Router';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
-import { titleCase, getResourceProperty, serviceErrorToString, logger } from '../lib/Utils';
+import { titleCase, getResourceProperty, logger } from '../lib/Utils';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import {
   Execution,
@@ -35,7 +35,7 @@ import {
   GetEventsByExecutionIDsResponse,
   GetArtifactsByIDRequest,
 } from 'frontend';
-import { EventTypes, getArtifactTypeMap } from '../lib/MetadataUtils';
+import { EventTypes } from '../lib/MetadataUtils';
 import { Event } from '../generated/src/apis/metadata/metadata_store_pb';
 import { Link } from 'react-router-dom';
 

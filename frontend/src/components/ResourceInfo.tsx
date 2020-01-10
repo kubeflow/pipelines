@@ -17,7 +17,6 @@ import {Artifact, Execution, getMetadataValue} from 'frontend';
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { color, commonCss } from '../Css';
-import { ArtifactLink } from './ArtifactLink';
 
 export const css = stylesheet({
   field: {
@@ -99,19 +98,5 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
         </dl>
       </section>
     );
-  }
-}
-
-function prettyPrintJsonValue(value: string | number): JSX.Element | number | string {
-  if (typeof value === 'number') {
-    return value;
-  }
-
-  try {
-    const jsonValue = JSON.parse(value);
-    return <pre>{JSON.stringify(jsonValue, null, 2)}</pre>;
-  } catch {
-    // not JSON, return directly
-    return value;
   }
 }

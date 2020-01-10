@@ -119,7 +119,7 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
 
     if (!response) {
       this.showPageError(`Unable to retrieve ${this.fullTypeName} ${this.id}.`);
-      return
+      return;
     }
 
     if (!response!.getArtifactsList()!.length) {
