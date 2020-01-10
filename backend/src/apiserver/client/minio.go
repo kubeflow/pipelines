@@ -25,9 +25,13 @@ import (
 )
 
 func CreateMinioClient(minioServiceHost string, minioServicePort string,
-	accessKey string, secretKey string) (*minio.Client, error) {
-	minioClient, err := minio.New(joinHostPort(minioServiceHost, minioServicePort),
-		accessKey, secretKey, false /* Secure connection */)
+	accessKey string, secretKey string, secure bool, region string) (*minio.Client, error) {
+	endpoint := fmt.Sprintf("%s:%s", minioServiceHost, minioServicePort)
+	minioClient, err := minio.NewWithRegion(endpoint, accessKey, secretKey, secure, region)
+	if err == nil {
+		return minioClient, nil
+	}
+	minioClient, err = minio.New(endpoint, accessKey, secretKey, secure)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error while creating minio client: %+v", err)
 	}
@@ -35,12 +39,12 @@ func CreateMinioClient(minioServiceHost string, minioServicePort string,
 }
 
 func CreateMinioClientOrFatal(minioServiceHost string, minioServicePort string,
-	accessKey string, secretKey string, initConnectionTimeout time.Duration) *minio.Client {
+	accessKey string, secretKey string, secure bool, region string, initConnectionTimeout time.Duration) *minio.Client {
 	var minioClient *minio.Client
 	var err error
 	var operation = func() error {
 		minioClient, err = CreateMinioClient(minioServiceHost, minioServicePort,
-			accessKey, secretKey)
+			accessKey, secretKey, secure, region)
 		if err != nil {
 			return err
 		}

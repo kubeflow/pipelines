@@ -5,7 +5,7 @@
     "DBName": "mlpipeline",
     "GroupConcatMaxLen": "4194304"
   },
-  "ObjectStoreConfig":{
+  "ObjectStoreConfig": {
     "AccessKey": "minio",
     "SecretAccessKey": "minio123",
     "BucketName": "mlpipeline",

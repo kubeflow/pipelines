@@ -36,6 +36,8 @@ import (
 const (
 	minioServiceHost       = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort       = "MINIO_SERVICE_SERVICE_PORT"
+	minioServiceRegion     = "MINIO_SERVICE_REGION"
+	minioServiceSecure     = "MINIO_SERVICE_SECURE"
 	pipelineBucketName     = "MINIO_PIPELINE_BUCKET_NAME"
 	pipelineFolder         = "MINIO_PIPELINE_FOLDER"
 	mysqlServiceHost       = "DBConfig.Host"
@@ -319,6 +321,10 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
 	minioServicePort := common.GetStringConfigWithDefault(
 		"ObjectStoreConfig.Port", os.Getenv(minioServicePort))
+	minioServiceRegion := common.GetStringConfigWithDefault(
+		"ObjectStoreConfig.Region", os.Getenv(minioServiceRegion))
+	minioServiceSecure := common.GetBoolConfigWithDefault(
+		"ObjectStoreConfig.Secure", common.GetBoolFromStringWithDefault(minioServiceSecure, false))
 	accessKey := common.GetStringConfig("ObjectStoreConfig.AccessKey")
 	secretKey := common.GetStringConfig("ObjectStoreConfig.SecretAccessKey")
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", os.Getenv(pipelineBucketName))
@@ -326,7 +332,7 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
-		secretKey, initConnectionTimeout)
+		secretKey, minioServiceSecure, minioServiceRegion, initConnectionTimeout)
 	createMinioBucket(minioClient, bucketName)
 
 	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, pipelineFolder, disableMultipart)
