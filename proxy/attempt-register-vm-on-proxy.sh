@@ -41,6 +41,7 @@ function run-proxy-agent {
 # new VM.
 HOSTNAME=$(kubectl get configmap inverse-proxy-config -o json | jq -r ".data.Hostname // empty")
 if [[ -n "${HOSTNAME}" ]]; then
+  echo "Reuse existing hostname"
   PROXY_URL=$(kubectl get configmap inverse-proxy-config -o json | jq -r ".data.ProxyUrl")
   BACKEND_ID=$(kubectl get configmap inverse-proxy-config -o json | jq -r ".data.BackendId")
   # If ConfigMap already exist, reuse the existing endpoint (a.k.a BACKEND_ID) and same ProxyUrl.
