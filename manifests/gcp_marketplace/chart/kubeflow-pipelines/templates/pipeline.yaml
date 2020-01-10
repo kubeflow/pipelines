@@ -608,6 +608,7 @@ spec:
           name: ml-pipeline-visualizationserver
           ports:
             - containerPort: 8888
+      serviceAccountName: ml-pipeline-visualization-service-account
 ---
 apiVersion: apps/v1beta2
 kind: Deployment
