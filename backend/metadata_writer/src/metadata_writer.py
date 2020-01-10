@@ -14,6 +14,7 @@
 
 import hashlib
 import os
+import sys
 import kubernetes
 
 import ml_metadata
@@ -310,10 +311,10 @@ def link_execution_to_input_artifact(
 ) -> metadata_store_pb2.Artifact:
     artifacts = store.get_artifacts_by_uri(artifact_uri)
     if len(artifacts) == 0:
-        print('Warning: Not found upstream artifact with URI={}.'.format(artifact_uri))
+        print('Error: Not found upstream artifact with URI={}.'.format(artifact_uri), file=sys.stderr)
         return None
     if len(artifacts) > 1:
-        print('Warning: Found multiple artifacts with the same URI. {} Using the last one..'.format(artifacts))
+        print('Error: Found multiple artifacts with the same URI. {} Using the last one..'.format(artifacts), file=sys.stderr)
 
     artifact = artifacts[-1]
 
@@ -525,7 +526,6 @@ while True:
     for event in k8s_watch.stream(
         k8s_api.list_namespaced_pod,
         namespace=namespace_to_watch,
-        #label_selector=ARGO_WORKFLOW_LABEL_KEY + ',' + '!' + METADATA_WRITTEN_LABEL_KEY,
         label_selector=ARGO_WORKFLOW_LABEL_KEY,
     ):
         try:
