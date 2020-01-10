@@ -11,6 +11,7 @@
     "d3": "^5.7.0",
     "d3-dsv": "^1.0.10",
     "dagre": "^0.8.2",
+    "frontend": "kwasi/frontend#7891170",
     "google-protobuf": "^3.6.1",
     "grpc": "^1.15.0",
     "grpc-web": "^1.0.0",
