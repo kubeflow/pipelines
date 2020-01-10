@@ -1,4 +1,4 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: ml-pipeline-visualization-service-account
+  name: ml-pipeline-visualizationserver
