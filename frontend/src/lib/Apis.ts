@@ -260,21 +260,39 @@ export class Apis {
   }
 
   /**
-   * Gets the address (IP + port) of a Tensorboard service given the logdir
+   * Gets the address (IP + port) of a Tensorboard service given the logdir and tfversion
    */
-  public static getTensorboardApp(logdir: string): Promise<string> {
-    return this._fetch(`apps/tensorboard?logdir=${encodeURIComponent(logdir)}`);
+  public static getTensorboardApp(
+    logdir: string,
+  ): Promise<{ podAddress: string; tfVersion: string }> {
+    return this._fetchAndParse<{ podAddress: string; tfVersion: string }>(
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
+    );
   }
 
   /**
    * Starts a deployment and service for Tensorboard given the logdir
    */
-  public static startTensorboardApp(logdir: string): Promise<string> {
+  public static startTensorboardApp(logdir: string, tfversion: string): Promise<string> {
+    return this._fetch(
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(
+        tfversion,
+      )}`,
+      undefined,
+      undefined,
+      { headers: { 'content-type': 'application/json' }, method: 'POST' },
+    );
+  }
+
+  /**
+   * Delete a deployment and its service of the Tensorboard given the URL
+   */
+  public static deleteTensorboardApp(logdir: string): Promise<string> {
     return this._fetch(
       `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
       undefined,
       undefined,
-      { headers: { 'content-type': 'application/json' }, method: 'POST' },
+      { method: 'DELETE' },
     );
   }
 
@@ -284,6 +302,7 @@ export class Apis {
    */
   public static async uploadPipeline(
     pipelineName: string,
+    pipelineDescription: string,
     pipelineData: File,
   ): Promise<ApiPipeline> {
     const fd = new FormData();
@@ -291,7 +310,9 @@ export class Apis {
     return await this._fetchAndParse<ApiPipeline>(
       '/pipelines/upload',
       v1beta1Prefix,
-      `name=${encodeURIComponent(pipelineName)}`,
+      `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
+        pipelineDescription,
+      )}`,
       {
         body: fd,
         cache: 'no-cache',

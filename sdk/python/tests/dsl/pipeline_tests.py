@@ -56,10 +56,10 @@ class TestPipeline(unittest.TestCase):
     def my_pipeline2():
       pass
     
-    self.assertEqual(my_pipeline1._pipeline_name, 'p1')
-    self.assertEqual(my_pipeline2._pipeline_name, 'p2')
-    self.assertEqual(my_pipeline1._pipeline_description, 'description1')
-    self.assertEqual(my_pipeline2._pipeline_description, 'description2')
+    self.assertEqual(my_pipeline1._component_human_name, 'p1')
+    self.assertEqual(my_pipeline2._component_human_name, 'p2')
+    self.assertEqual(my_pipeline1._component_description, 'description1')
+    self.assertEqual(my_pipeline2._component_description, 'description2')
 
   def test_decorator_metadata(self):
     """Test @pipeline decorator with metadata."""
@@ -71,8 +71,8 @@ class TestPipeline(unittest.TestCase):
       pass
 
     golden_meta = ComponentSpec(name='p1', description='description1', inputs=[])
-    golden_meta.inputs.append(InputSpec(name='a', type={'Schema': {'file_type': 'csv'}}, default='good'))
-    golden_meta.inputs.append(InputSpec(name='b', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default="12"))
+    golden_meta.inputs.append(InputSpec(name='a', type={'Schema': {'file_type': 'csv'}}, default='good', optional=True))
+    golden_meta.inputs.append(InputSpec(name='b', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default="12", optional=True))
 
     pipeline_meta = _extract_pipeline_metadata(my_pipeline1)
     self.assertEqual(pipeline_meta, golden_meta)

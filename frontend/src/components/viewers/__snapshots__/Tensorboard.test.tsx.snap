@@ -1,36 +1,151 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Tensorboard does not break on empty data 1`] = `
+exports[`Tensorboard base component snapshot 1`] = `
 <div>
-  <BusyButton
-    busy={true}
-    className="buttonAction"
-    onClick={[Function]}
-    title="Start Tensorboard"
-  />
+  <div>
+    <div
+      className=""
+    >
+      class
+      <WithStyles(FormControl)
+        className="formControl"
+      >
+        <WithStyles(WithFormControlContext(InputLabel))
+          htmlFor="grouped-select"
+        >
+          TF Version
+        </WithStyles(WithFormControlContext(InputLabel))>
+        <WithStyles(WithFormControlContext(Select))
+          className="select"
+          input={
+            <WithStyles(Input)
+              id="grouped-select"
+            />
+          }
+          onChange={[Function]}
+          value=""
+        >
+          <WithStyles(ListSubheader)>
+            Tensoflow 1.x
+          </WithStyles(ListSubheader)>
+          <WithStyles(MenuItem)
+            value="1.4.0"
+          >
+            TensorFlow 1.4.0
+          </WithStyles(MenuItem)>
+          <WithStyles(MenuItem)
+            value="1.5.0"
+          >
+            TensorFlow 1.5.0
+          </WithStyles(MenuItem)>
+          <WithStyles(MenuItem)
+            value="1.6.0"
+          >
+            TensorFlow 1.6.0
+          </WithStyles(MenuItem)>
+          <WithStyles(MenuItem)
+            value="1.7.0"
+          >
+            TensorFlow 1.7.0
+          </WithStyles(MenuItem)>
+          <WithStyles(MenuItem)
+            value="1.8.0"
+          >
+            TensorFlow 1.8.0
+          </WithStyles(MenuItem)>
+          <WithStyles(MenuItem)
+            value="1.9.0"
+          >
+            TensorFlow 1.9.0
+          </WithStyles(MenuItem)>
+          <WithStyles(MenuItem)
+            value="1.10.0"
+          >
+            TensorFlow 1.10.0
+          </WithStyles(MenuItem)>
+          <WithStyles(MenuItem)
+            value="1.11.0"
+          >
+            TensorFlow 1.11.0
+          </WithStyles(MenuItem)>
+          <WithStyles(MenuItem)
+            value="1.12.0"
+          >
+            TensorFlow 1.12.0
+          </WithStyles(MenuItem)>
+          <WithStyles(MenuItem)
+            value="1.13.2"
+          >
+            TensorFlow 1.13.2
+          </WithStyles(MenuItem)>
+          <WithStyles(MenuItem)
+            value="1.14.0"
+          >
+            TensorFlow 1.14.0
+          </WithStyles(MenuItem)>
+          <WithStyles(MenuItem)
+            value="1.15.0"
+          >
+            TensorFlow 1.15.0
+          </WithStyles(MenuItem)>
+          <WithStyles(ListSubheader)>
+            TensorFlow 2.x
+          </WithStyles(ListSubheader)>
+          <WithStyles(MenuItem)
+            value="2.0.0"
+          >
+            TensorFlow 2.0.0
+          </WithStyles(MenuItem)>
+        </WithStyles(WithFormControlContext(Select))>
+      </WithStyles(FormControl)>
+    </div>
+    <div>
+      <BusyButton
+        busy={false}
+        className="buttonAction"
+        disabled={true}
+        onClick={[Function]}
+        title="Start Tensorboard"
+      />
+    </div>
+  </div>
 </div>
 `;
 
-exports[`Tensorboard does not break on empty data 2`] = `
-<div>
-  <BusyButton
-    busy={true}
-    className="buttonAction"
-    onClick={[Function]}
-    title="Start Tensorboard"
-  />
-</div>
+exports[`Tensorboard does not break on empty data 1`] = `
+"Snapshot Diff:
+- First value
++ Second value
+
+@@ -54,9 +54,9 @@
+            </WithStyles(MenuItem)>
+          </WithStyles(WithFormControlContext(Select))>
+        </WithStyles(FormControl)>
+      </div>
+      <div>
+-       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
++       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
+      </div>
+    </div>
+  </div>"
 `;
 
 exports[`Tensorboard does not break on no config 1`] = `
-<div>
-  <BusyButton
-    busy={true}
-    className="buttonAction"
-    onClick={[Function]}
-    title="Start Tensorboard"
-  />
-</div>
+"Snapshot Diff:
+- First value
++ Second value
+
+@@ -54,9 +54,9 @@
+            </WithStyles(MenuItem)>
+          </WithStyles(WithFormControlContext(Select))>
+        </WithStyles(FormControl)>
+      </div>
+      <div>
+-       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
++       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
+      </div>
+    </div>
+  </div>"
 `;
 
 exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
@@ -39,7 +154,7 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
     <div
       className=""
     >
-      Tensorboard is running for this output.
+      Tensorboard 1.14.0 is running for this output.
     </div>
     <a
       className="unstyled"
@@ -47,23 +162,77 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
       target="_blank"
     >
       <WithStyles(Button)
-        className="buttonAction"
+        className="buttonAction button"
+        color="primary"
         disabled={false}
       >
         Open Tensorboard
       </WithStyles(Button)>
     </a>
+    <div>
+      <WithStyles(Button)
+        className="button"
+        color="default"
+        disabled={false}
+        id="delete"
+        onClick={[Function]}
+        title="stop tensorboard and delete its instance"
+      >
+        Delete Tensorboard
+      </WithStyles(Button)>
+      <WithStyles(Dialog)
+        aria-labelledby="dialog-title"
+        onClose={[Function]}
+        open={false}
+      >
+        <WithStyles(DialogTitle)
+          id="dialog-title"
+        >
+          Stop Tensorboard 1.14.0?
+        </WithStyles(DialogTitle)>
+        <WithStyles(DialogContent)>
+          <WithStyles(DialogContentText)>
+            You can stop the current running tensorboard. The tensorboard viewer will also be deleted from your workloads.
+          </WithStyles(DialogContentText)>
+        </WithStyles(DialogContent)>
+        <WithStyles(DialogActions)>
+          <WithStyles(Button)
+            autoFocus={true}
+            className="shortButton"
+            color="primary"
+            id="cancel"
+            onClick={[Function]}
+          >
+            Cancel
+          </WithStyles(Button)>
+          <BusyButton
+            busy={false}
+            className="buttonAction shortButton"
+            color="primary"
+            onClick={[Function]}
+            title="Stop"
+          />
+        </WithStyles(DialogActions)>
+      </WithStyles(Dialog)>
+    </div>
   </div>
 </div>
 `;
 
 exports[`Tensorboard shows start button if no instance exists 1`] = `
-<div>
-  <BusyButton
-    busy={false}
-    className="buttonAction"
-    onClick={[Function]}
-    title="Start Tensorboard"
-  />
-</div>
+"Snapshot Diff:
+- First value
++ Second value
+
+@@ -54,9 +54,9 @@
+            </WithStyles(MenuItem)>
+          </WithStyles(WithFormControlContext(Select))>
+        </WithStyles(FormControl)>
+      </div>
+      <div>
+-       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
++       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
+      </div>
+    </div>
+  </div>"
 `;

@@ -75,8 +75,9 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:b63472062bd80737c7f39e0eda901db0fe23a5e0
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:bae654dc5cf407359ac5f822d03833768739c4c1
     args: [
+      --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.dataproc, submit_sparksql_job,
       --project_id, {inputValue: project_id},
       --region, {inputValue: region},
@@ -86,10 +87,9 @@ implementation:
       --script_variables, {inputValue: script_variables},
       --sparksql_job, {inputValue: sparksql_job},
       --job, {inputValue: job},
-      --wait_interval, {inputValue: wait_interval}
+      --wait_interval, {inputValue: wait_interval},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       job_id: /tmp/kfp/output/dataproc/job_id.txt
-      MLPipeline UI metadata: /mlpipeline-ui-metadata.json

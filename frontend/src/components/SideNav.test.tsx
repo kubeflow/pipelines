@@ -23,6 +23,7 @@ import { LocalStorage } from '../lib/LocalStorage';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { RoutePage } from './Router';
 import { RouterProps } from 'react-router';
+import snapshotDiff from 'snapshot-diff';
 
 const wideWidth = 1000;
 const narrowWidth = 200;
@@ -36,6 +37,8 @@ describe('SideNav', () => {
   const consoleErrorSpy = jest.spyOn(console, 'error');
   const buildInfoSpy = jest.spyOn(Apis, 'getBuildInfo');
   const checkHubSpy = jest.spyOn(Apis, 'isJupyterHubAvailable');
+  const clusterNameSpy = jest.spyOn(Apis, 'getClusterName');
+  const projectIdSpy = jest.spyOn(Apis, 'getProjectId');
   const localStorageHasKeySpy = jest.spyOn(LocalStorage, 'hasKey');
   const localStorageIsCollapsedSpy = jest.spyOn(LocalStorage, 'isNavbarCollapsed');
 
@@ -51,6 +54,8 @@ describe('SideNav', () => {
       frontendCommitHash: '8efb2fcff9f666ba5b101647e909dc9c6889cecb',
     }));
     checkHubSpy.mockImplementation(() => ({ ok: true }));
+    clusterNameSpy.mockImplementation(() => Promise.reject('Error when fetching cluster name'));
+    projectIdSpy.mockImplementation(() => Promise.reject('Error when fetching project ID'));
 
     localStorageHasKeySpy.mockImplementation(() => false);
     localStorageIsCollapsedSpy.mockImplementation(() => false);
@@ -243,6 +248,21 @@ describe('SideNav', () => {
         'https://www.github.com/kubeflow/pipelines/commit/' + buildInfo.apiServerCommitHash,
       date: new Date(buildInfo.buildDate).toLocaleDateString(),
     });
+  });
+
+  it('populates the cluster information using the response from the system endpoints', async () => {
+    const clusterName = 'some-cluster-name';
+    const projectId = 'some-project-id';
+
+    clusterNameSpy.mockImplementationOnce(() => Promise.resolve(clusterName));
+    projectIdSpy.mockImplementationOnce(() => Promise.resolve(projectId));
+    buildInfoSpy.mockImplementationOnce(() => Promise.reject('Error when fetching build info'));
+
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    const baseTree = tree.debug();
+    await TestUtils.flushPromises();
+    tree.update();
+    expect(snapshotDiff(baseTree, tree.debug())).toMatchSnapshot();
   });
 
   it('displays the frontend commit hash if the api server hash is not returned', async () => {
