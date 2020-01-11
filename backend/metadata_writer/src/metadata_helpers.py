@@ -15,6 +15,7 @@
 import os
 import sys
 import ml_metadata
+from time import sleep
 from ml_metadata.proto import metadata_store_pb2
 from ml_metadata.metadata_store import metadata_store
 
@@ -28,7 +29,18 @@ def connect_to_mlmd() -> metadata_store.MetadataStore:
         port=metadata_service_port,
     )
     mlmd_store = metadata_store.MetadataStore(mlmd_connection_config)
-    return mlmd_store
+
+    # Checking the connection to the Metadata store.
+    for _ in range(100):
+        try:
+            _ = mlmd_store.get_context_types()
+            return mlmd_store
+        except Exception as e:
+            print('Failed to access the Metadata store.', file=sys.stderr)
+            print(e)
+            sleep(1)
+
+    raise RuntimeError('Could not connect to the Metadata store.')
 
 
 def get_or_create_artifact_type(store, type_name, properties: dict = None) -> metadata_store_pb2.ArtifactType:
