@@ -2,6 +2,27 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 # Actual image overrides will be added in test scripts.
-images: []
+images:
+- name: gcr.io/ml-pipeline/api-server
+  newName: gcr.io/rui-helloworld-264417/9c1077c5a54a268bb3621fc030d2af017992fdaf/api-server
+  newTag: latest
+- name: gcr.io/ml-pipeline/frontend
+  newName: gcr.io/rui-helloworld-264417/9c1077c5a54a268bb3621fc030d2af017992fdaf/frontend
+  newTag: latest
+- name: gcr.io/ml-pipeline/inverse-proxy-agent
+  newName: gcr.io/rui-helloworld-264417/9c1077c5a54a268bb3621fc030d2af017992fdaf/inverse-proxy-agent
+  newTag: latest
+- name: gcr.io/ml-pipeline/persistenceagent
+  newName: gcr.io/rui-helloworld-264417/9c1077c5a54a268bb3621fc030d2af017992fdaf/persistenceagent
+  newTag: latest
+- name: gcr.io/ml-pipeline/scheduledworkflow
+  newName: gcr.io/rui-helloworld-264417/9c1077c5a54a268bb3621fc030d2af017992fdaf/scheduledworkflow
+  newTag: latest
+- name: gcr.io/ml-pipeline/viewer-crd-controller
+  newName: gcr.io/rui-helloworld-264417/9c1077c5a54a268bb3621fc030d2af017992fdaf/viewer-crd-controller
+  newTag: latest
+- name: gcr.io/ml-pipeline/visualization-server
+  newName: gcr.io/rui-helloworld-264417/9c1077c5a54a268bb3621fc030d2af017992fdaf/visualization-server
+  newTag: latest
 resources:
 - ../../manifests/kustomize/env/dev
