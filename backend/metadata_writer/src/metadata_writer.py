@@ -17,7 +17,7 @@ import os
 import sys
 import kubernetes
 
-from .metadata_helpers import *
+from metadata_helpers import *
 
 
 namespace_to_watch = os.environ.get('NAMESPACE_TO_WATCH', 'default')
