@@ -17,7 +17,7 @@
 import * as React from 'react';
 import NewRun from './NewRun';
 import TestUtils from '../TestUtils';
-import { shallow, ShallowWrapper, ReactWrapper } from 'enzyme';
+import { mount, shallow, ShallowWrapper, ReactWrapper } from 'enzyme';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
@@ -1030,6 +1030,55 @@ describe('NewRun', () => {
         pipeline_spec: {
           parameters: MOCK_PIPELINE.parameters,
           pipeline_id: MOCK_PIPELINE.id,
+        },
+        resource_references: [
+          {
+            key: {
+              id: MOCK_EXPERIMENT.id,
+              type: ApiResourceType.EXPERIMENT,
+            },
+            relationship: ApiRelationship.OWNER,
+          },
+        ],
+      });
+    });
+
+    it('sends a request to Start a run with the json editor open', async () => {
+      const props = generateProps();
+      props.location.search =
+        `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}` +
+        `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
+      tree = TestUtils.mountWithRouter(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({
+        target: { value: 'test run name' },
+      });
+      (tree.instance() as TestNewRun).handleChange('description')({
+        target: { value: 'test run description' },
+      });
+      await TestUtils.flushPromises();
+
+      const pipeline = newMockPipelineWithParameters();
+      pipeline.parameters = [{ name: 'testName', value: 'testValue' }];
+      tree.setState({ pipeline, pipelineName: pipeline.name, parameters: pipeline.parameters });
+      await TestUtils.flushPromises();
+
+      tree
+        .find('input#newRunPipelineParam0')
+        .simulate('change', { target: { value: '{"test2": "value2"}' } });
+
+      tree.find('TextField#newRunPipelineParam0 Button').simulate('click');
+
+      tree.find('BusyButton#startNewRunBtn').simulate('click');
+      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
+      await TestUtils.flushPromises();
+
+      expect(startRunSpy).toHaveBeenCalledTimes(1);
+      expect(startRunSpy).toHaveBeenLastCalledWith({
+        description: 'test run description',
+        name: 'test run name',
+        pipeline_spec: {
+          parameters: [{ name: 'testName', value: '{\n  "test2": "value2"\n}' }],
+          pipeline_id: pipeline.id,
         },
         resource_references: [
           {

@@ -20,7 +20,7 @@ import Button from '@material-ui/core/Button';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import TextField from '@material-ui/core/TextField';
 import { ApiParameter } from '../apis/pipeline';
-import { stylesheet } from 'typestyle';
+import { classes, stylesheet } from 'typestyle';
 import { color, spacing } from '../Css';
 import Editor from './Editor';
 
@@ -48,6 +48,9 @@ const css = stylesheet({
     borderBottom: `1px solid ${color.divider}`,
     display: 'flex',
     padding: `${spacing.units(-5)}px ${spacing.units(-6)}px`,
+  },
+  textfield: {
+    maxWidth: 600,
   },
 });
 
@@ -116,15 +119,11 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
     };
   }
 
-  constructor(props: any) {
-    super(props);
-
-    this.state = {
-      isEditorOpen: false,
-      isInJsonForm: false,
-      isJsonField: false,
-    };
-  }
+  public state = {
+    isEditorOpen: false,
+    isInJsonForm: false,
+    isJsonField: false,
+  };
 
   public render(): JSX.Element | null {
     const { id, onChange, param } = this.props;
@@ -153,18 +152,12 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             label={param.name}
             value={param.value || ''}
             onChange={ev => onChange(ev.target.value || '')}
-            style={{ maxWidth: 600 }}
-            className={commonCss.textField}
+            className={classes(commonCss.textField, css.textfield)}
             InputProps={{
               classes: { disabled: css.nonEditableInput },
               endAdornment: (
                 <InputAdornment position='end'>
-                  <Button
-                    className={css.button}
-                    color='secondary'
-                    id='toggleEditorBtn'
-                    onClick={onClick}
-                  >
+                  <Button className={css.button} color='secondary' onClick={onClick}>
                     {this.state.isEditorOpen ? 'Close Json Editor' : 'Open Json Editor'}
                   </Button>
                 </InputAdornment>
@@ -179,8 +172,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             label={param.name}
             value={param.value || ''}
             onChange={ev => onChange(ev.target.value || '')}
-            style={{ maxWidth: 600 }}
-            className={commonCss.textField}
+            className={classes(commonCss.textField, css.textfield)}
           />
         )}
         {this.state.isJsonField && this.state.isEditorOpen && (

@@ -37,7 +37,7 @@ describe('NewRunParameters', () => {
     expect(shallow(<NewRunParameters {...props} />)).toMatchSnapshot();
   });
 
-  it('clicking the open editor button for json parameters display an editor', () => {
+  it('clicking the open editor button for json parameters displays an editor', () => {
     const handleParamChange = jest.fn();
     const props = {
       handleParamChange,
@@ -45,7 +45,11 @@ describe('NewRunParameters', () => {
       titleMessage: 'Specify json parameters required by the pipeline',
     } as NewRunParametersProps;
     const tree = mount(<NewRunParameters {...props} />);
-    tree.find('Button#toggleEditorBtn').simulate('click');
+    tree
+      .findWhere(el => el.text() === 'Open Json Editor')
+      .hostNodes()
+      .find('Button')
+      .simulate('click');
     expect(handleParamChange).toHaveBeenCalledTimes(1);
     expect(handleParamChange).toHaveBeenLastCalledWith(0, '{\n  "test": "value"\n}');
     expect(tree.find('Editor')).toMatchSnapshot();

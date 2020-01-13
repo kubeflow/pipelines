@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`NewRunParameters clicking the open editor button for json parameters display an editor 1`] = `
+exports[`NewRunParameters clicking the open editor button for json parameters displays an editor 1`] = `
 <Editor
   cursorStart={1}
   editorProps={Object {}}
