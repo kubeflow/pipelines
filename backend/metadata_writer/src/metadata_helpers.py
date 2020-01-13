@@ -36,8 +36,8 @@ def connect_to_mlmd() -> metadata_store.MetadataStore:
             _ = mlmd_store.get_context_types()
             return mlmd_store
         except Exception as e:
-            print('Failed to access the Metadata store.', file=sys.stderr)
-            print(e)
+            print('Failed to access the Metadata store. Exception: "{}"'.format(str(e)), file=sys.stderr)
+            sys.stderr.flush()
             sleep(1)
 
     raise RuntimeError('Could not connect to the Metadata store.')
