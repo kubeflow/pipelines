@@ -64,7 +64,7 @@ interface TensorboardViewerState {
   tensorflowVersion: string;
 }
 
-// TODO(jingzhang36):
+// TODO(jingzhang36): we'll later parse Tensorboard version from mlpipeline-ui-metadata.json file.
 const DefaultTensorboardVersion = '2.0.0';
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
