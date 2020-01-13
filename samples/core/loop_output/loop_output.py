@@ -43,4 +43,4 @@ def pipeline():
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(pipeline, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(pipeline, __file__ + '.yaml')

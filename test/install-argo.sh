@@ -16,6 +16,8 @@
 
 set -ex
 
+ENABLE_WORKLOAD_IDENTITY=${ENABLE_WORKLOAD_IDENTITY:-false}
+
 # Tests work without these lines. TODO: Verify and remove these lines
 kubectl config set-context $(kubectl config current-context) --namespace=default
 echo "Add necessary cluster role bindings"
@@ -38,8 +40,25 @@ fi
 # kubectl create ns argo --dry-run -o yaml | kubectl apply -f -
 # kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
 
+ARGO_KSA="test-runner"
+
 # Some workflows are deployed to the non-default namespace where the GCP credential secret is stored
 # In this case, the default service account in that namespace doesn't have enough permission
 echo "add service account for running the test workflow"
-kubectl create serviceaccount test-runner -n ${NAMESPACE} --dry-run -o yaml | kubectl apply -f -
-kubectl create clusterrolebinding test-admin-binding --clusterrole=cluster-admin --serviceaccount=${NAMESPACE}:test-runner --dry-run -o yaml | kubectl apply -f -
+kubectl create serviceaccount ${ARGO_KSA} -n ${NAMESPACE} --dry-run -o yaml | kubectl apply -f -
+kubectl create clusterrolebinding test-admin-binding --clusterrole=cluster-admin --serviceaccount=${NAMESPACE}:${ARGO_KSA} --dry-run -o yaml | kubectl apply -f -
+
+if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
+  ARGO_GSA="test-argo"
+  # Util library including create_gsa_if_not_present and bind_gsa_and_ksa functions.
+  source "$DIR/../manifests/kustomize/wi-utils.sh"
+  create_gsa_if_not_present $ARGO_GSA
+
+  gcloud projects add-iam-policy-binding $PROJECT \
+    --member="serviceAccount:$ARGO_GSA@$PROJECT.iam.gserviceaccount.com" \
+    --role="roles/editor" \
+    > /dev/null # hide verbose output
+  bind_gsa_and_ksa $ARGO_GSA $ARGO_KSA $PROJECT $NAMESPACE
+
+  verify_workload_identity_binding $ARGO_KSA $NAMESPACE
+fi

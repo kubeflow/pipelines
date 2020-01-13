@@ -99,41 +99,36 @@ service PipelineService {
 
   rpc CreatePipelineVersion(CreatePipelineVersionRequest)
       returns (PipelineVersion) {
-    // TODO(jingzhang36): uncomment when exposing this API method.
-    // option (google.api.http) = {
-    //   post: "/apis/v1beta1/pipeline_versions"
-    //   body: "version"
-    // };
+    option (google.api.http) = {
+      post: "/apis/v1beta1/pipeline_versions"
+      body: "version"
+    };
   }
 
   rpc GetPipelineVersion(GetPipelineVersionRequest) returns (PipelineVersion) {
-    // TODO(jingzhang36): uncomment when exposing this API method.
-    // option (google.api.http) = {
-    //   get: "/apis/v1beta1/pipeline_versions/{version_id}"
-    // };
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipeline_versions/{version_id}"
+    };
   }
 
   rpc ListPipelineVersions(ListPipelineVersionsRequest)
       returns (ListPipelineVersionsResponse) {
-    // TODO(jingzhang36): uncomment when exposing this API method.
-    // option (google.api.http) = {
-    //   get: "/apis/v1beta1/pipeline_versions"
-    // };
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipeline_versions"
+    };
   }
 
   rpc DeletePipelineVersion(DeletePipelineVersionRequest)
       returns (google.protobuf.Empty) {
-    // TODO(jingzhang36): uncomment when exposing this API method.
-    // option (google.api.http) = {
-    //   delete: "/apis/v1beta1/pipeline_versions/{version_id}"
-    // };
+    option (google.api.http) = {
+      delete: "/apis/v1beta1/pipeline_versions/{version_id}"
+    };
   }
 
   rpc GetPipelineVersionTemplate(GetPipelineVersionTemplateRequest) returns (GetTemplateResponse) {
-    // TODO(jingzhang36): uncomment when exposing this API method.
-    // option (google.api.http) = {
-    //   get: "/apis/v1beta1/pipeline_versions/{version_id}/templates"
-    // };
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipeline_versions/{version_id}/templates"
+    };
   }
 }
 

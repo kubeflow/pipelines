@@ -11,21 +11,20 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import {Stream} from 'stream';
+import { Stream } from 'stream';
 import * as tar from 'tar';
-import {Client as MinioClient, ClientOptions as MinioClientOptions} from 'minio';
-import {awsInstanceProfileCredentials} from './aws-helper';
+import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
+import { awsInstanceProfileCredentials } from './aws-helper';
 
-
-/** IMinioRequestConfig describes the info required to retrieve an artifact. */
-export interface IMinioRequestConfig {
-    bucket: string;
-    key: string;
-    client: MinioClient;
+/** MinioRequestConfig describes the info required to retrieve an artifact. */
+export interface MinioRequestConfig {
+  bucket: string;
+  key: string;
+  client: MinioClient;
 }
 
-/** IMinioClientOptionsWithOptionalSecrets wraps around MinioClientOptions where only endPoint is required (accesskey and secretkey are optional). */
-export interface IMinioClientOptionsWithOptionalSecrets extends Partial<MinioClientOptions> {
+/** MinioClientOptionsWithOptionalSecrets wraps around MinioClientOptions where only endPoint is required (accesskey and secretkey are optional). */
+export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClientOptions> {
   endPoint: string;
 }
 
@@ -33,39 +32,46 @@ export interface IMinioClientOptionsWithOptionalSecrets extends Partial<MinioCli
  * Create minio client with aws instance profile credentials if needed.
  * @param config minio client options where `accessKey` and `secretKey` are optional.
  */
-export async function createMinioClient(config: IMinioClientOptionsWithOptionalSecrets) {
-
-    if (!config.accessKey || !config.secretKey) {
-        if (await awsInstanceProfileCredentials.ok()) {
-            const credentials = await awsInstanceProfileCredentials.getCredentials();
-            if (credentials) {
-              const {AccessKeyId: accessKey, SecretAccessKey: secretKey, Token: sessionToken} = credentials;
-              return new MinioClient({...config, accessKey, secretKey, sessionToken});
-            }
-            console.error('unable to get credentials from AWS metadata store.')
+export async function createMinioClient(config: MinioClientOptionsWithOptionalSecrets) {
+  if (!config.accessKey || !config.secretKey) {
+    try {
+      if (await awsInstanceProfileCredentials.ok()) {
+        const credentials = await awsInstanceProfileCredentials.getCredentials();
+        if (credentials) {
+          const {
+            AccessKeyId: accessKey,
+            SecretAccessKey: secretKey,
+            Token: sessionToken,
+          } = credentials;
+          return new MinioClient({ ...config, accessKey, secretKey, sessionToken });
         }
-    }
-    
-    return new MinioClient(config as MinioClientOptions);
-}
-
-export function getTarObjectAsString({bucket, key, client}: IMinioRequestConfig) {
-    return new Promise<string>(async (resolve, reject) => {
-      try {
-        const stream = await getObjectStream({bucket, key, client});
-        let contents = '';
-        stream.pipe(new tar.Parse()).on('entry', (entry: Stream) => {
-          entry.on('data', (buffer) => contents += buffer.toString());
-        });
-        stream.on('end', () => {
-          resolve(contents);
-        });
-      } catch (err) {
-        reject(err);
+        console.error('unable to get credentials from AWS metadata store.');
       }
-    });
+    } catch (err) {
+      console.error('Unable to get aws instance profile credentials: ', err);
+    }
+  }
+  return new MinioClient(config as MinioClientOptions);
 }
 
-export function getObjectStream({bucket, key, client}: IMinioRequestConfig) {
+export function getTarObjectAsString({ bucket, key, client }: MinioRequestConfig) {
+  return new Promise<string>(async (resolve, reject) => {
+    try {
+      const stream = await getObjectStream({ bucket, key, client });
+      let contents = '';
+      // TODO: fix tar.Parse typing problem
+      stream.pipe(new (tar.Parse as any)()).on('entry', (entry: Stream) => {
+        entry.on('data', buffer => (contents += buffer.toString()));
+      });
+      stream.on('end', () => {
+        resolve(contents);
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+export function getObjectStream({ bucket, key, client }: MinioRequestConfig) {
   return client.getObject(bucket, key);
 }

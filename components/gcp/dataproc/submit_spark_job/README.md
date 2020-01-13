@@ -66,13 +66,7 @@ To use the component, you must:
 
 *   Set up a GCP project by following this [guide](https://cloud.google.com/dataproc/docs/guides/setup-project).
 *   [Create a new cluster](https://cloud.google.com/dataproc/docs/guides/create-cluster).
-*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts), in a Kubeflow cluster. For example:
-
-    ```
-    component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-    ```
-
-
+*   The component can authenticate to GCP. Refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication-pipelines/) for details.
 *   Grant the Kubeflow user service account the role `roles/dataproc.editor` on the project.
 
 
@@ -101,7 +95,7 @@ Follow these steps to use the component in a pipeline:
     import kfp.components as comp
 
     dataproc_submit_spark_job_op = comp.load_component_from_url(
-        'https://raw.githubusercontent.com/kubeflow/pipelines/caa2dc56f29b0dce5216bec390b1685fc0cdc4b7/components/gcp/dataproc/submit_spark_job/component.yaml')
+        'https://raw.githubusercontent.com/kubeflow/pipelines/ff116b6f1a0f0cdaafb64fcd04214c169045e6fc/components/gcp/dataproc/submit_spark_job/component.yaml')
     help(dataproc_submit_spark_job_op)
     ```
 
@@ -139,7 +133,6 @@ EXPERIMENT_NAME = 'Dataproc - Submit Spark Job'
 
 ```python
 import kfp.dsl as dsl
-import kfp.gcp as gcp
 import json
 @dsl.pipeline(
     name='Dataproc submit Spark job pipeline',
@@ -165,7 +158,7 @@ def dataproc_submit_spark_job_pipeline(
         args=args, 
         spark_job=spark_job, 
         job=job, 
-        wait_interval=wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        wait_interval=wait_interval)
     
 ```
 

@@ -26,7 +26,6 @@ export type SecurityContext = any;
 export type PersistentVolumeClaim = any;
 export type Affinity = any;
 
-
 export interface VolumeMount {
   name: string;
   mountPath?: string;

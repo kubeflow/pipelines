@@ -64,4 +64,4 @@ def resourceop_basic():
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(resourceop_basic, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(resourceop_basic, __file__ + '.yaml')

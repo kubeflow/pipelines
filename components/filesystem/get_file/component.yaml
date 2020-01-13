@@ -1,0 +1,20 @@
+name: Get file
+description: Get file from directory.
+inputs:
+- {name: Directory, type: Directory}
+- {name: Subpath, type: String}
+outputs:
+- {name: File}
+implementation:
+  container:
+    image: alpine
+    command:
+    - sh
+    - -ex
+    - -c
+    - |
+      mkdir -p "$(dirname "$2")"
+      cp -r "$0/$1" "$2"
+    - inputPath: Directory
+    - inputValue: Subpath
+    - outputPath: File

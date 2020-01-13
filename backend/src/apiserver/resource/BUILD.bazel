@@ -5,16 +5,15 @@ go_library(
     srcs = [
         "client_manager_fake.go",
         "model_converter.go",
-        "pod_fake.go",
         "resource_manager.go",
         "resource_manager_util.go",
         "scheduled_workflow_fake.go",
-        "workflow_fake.go",
     ],
     importpath = "github.com/kubeflow/pipelines/backend/src/apiserver/resource",
     visibility = ["//visibility:public"],
     deps = [
         "//backend/api:go_default_library",
+        "//backend/src/apiserver/client:go_default_library",
         "//backend/src/apiserver/common:go_default_library",
         "//backend/src/apiserver/list:go_default_library",
         "//backend/src/apiserver/model:go_default_library",
@@ -49,6 +48,7 @@ go_test(
     embed = [":go_default_library"],
     deps = [
         "//backend/api:go_default_library",
+        "//backend/src/apiserver/client:go_default_library",
         "//backend/src/apiserver/common:go_default_library",
         "//backend/src/apiserver/model:go_default_library",
         "//backend/src/apiserver/storage:go_default_library",

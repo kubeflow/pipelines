@@ -780,7 +780,21 @@ implementation:
   def test_withparam_output_dict(self):
     self._test_py_compile_yaml('withparam_output_dict')
 
+  def test_withparam_lightweight_out(self):
+    self._test_py_compile_yaml('loop_over_lightweight_output')
+
   def test_py_input_artifact_raw_value(self):
     """Test pipeline input_artifact_raw_value."""
     self._test_py_compile_yaml('input_artifact_raw_value')
 
+  def test_pipeline_name_same_as_task_name(self):
+    def some_name():
+      dsl.ContainerOp(
+        name='some_name',
+        image='alpine:latest',
+      )
+
+    workflow_dict = compiler.Compiler()._compile(some_name)
+    template_names = set(template['name'] for template in workflow_dict['spec']['templates'])
+    self.assertGreater(len(template_names), 1)
+    self.assertEqual(template_names, {'some-name', 'some-name-2'})
