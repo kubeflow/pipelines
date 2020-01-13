@@ -1,4 +1,4 @@
-FROM node:9.4.0 as build
+FROM node:12.14.1 as build
 
 ARG COMMIT_HASH
 ARG DATE
@@ -37,7 +37,7 @@ RUN npm i -D license-checker
 RUN node gen_licenses . && node gen_licenses server && \
     cat dependency-licenses.txt >> server/dependency-licenses.txt
 
-FROM node:9.4.0-alpine
+FROM node:12.14.1-alpine
 
 COPY --from=build ./src/frontend/server /server
 COPY --from=build ./src/frontend/build /client
