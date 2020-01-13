@@ -33,7 +33,13 @@ def connect_to_mlmd() -> metadata_store.MetadataStore:
     for _ in range(100):
         try:
             mlmd_store = metadata_store.MetadataStore(mlmd_connection_config)
-            _ = mlmd_store.get_contexts()
+            # All get requests fail when the DB is empty, so we have to use a put request.
+            # TODO: Replace with _ = mlmd_store.get_context_types() when https://github.com/google/ml-metadata/issues/28 is fixed
+            _ = mlmd_store.put_execution_type(
+                metadata_store_pb2.ExecutionType(
+                    name="DummyExecutionType",
+                )
+            )
             return mlmd_store
         except Exception as e:
             print('Failed to access the Metadata store. Exception: "{}"'.format(str(e)), file=sys.stderr)
