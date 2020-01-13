@@ -84,5 +84,6 @@ try {
     $env:ML_PIPELINE_SERVICE_PORT = 3002
     npm run mock:server 3001
 } finally {
+    # This will run even after ctrl+c or cmd+c
     Clean-Up
 }
