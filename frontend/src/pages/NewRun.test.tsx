@@ -1167,22 +1167,21 @@ describe('NewRun', () => {
 
     it('sends a request to Start a run with the json editor open', async () => {
       const props = generateProps();
+      const pipeline = newMockPipelineWithParameters();
+      pipeline.parameters = [{ name: 'testName', value: 'testValue' }];
       props.location.search =
         `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}` +
-        `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
+        `&${QUERY_PARAMS.pipelineId}=${pipeline.id}`;
       tree = TestUtils.mountWithRouter(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+
+      tree.setState({ parameters: pipeline.parameters });
       (tree.instance() as TestNewRun).handleChange('runName')({
         target: { value: 'test run name' },
       });
       (tree.instance() as TestNewRun).handleChange('description')({
         target: { value: 'test run description' },
       });
-      await TestUtils.flushPromises();
-
-      const pipeline = newMockPipelineWithParameters();
-      pipeline.parameters = [{ name: 'testName', value: 'testValue' }];
-      tree.setState({ pipeline, pipelineName: pipeline.name, parameters: pipeline.parameters });
-      await TestUtils.flushPromises();
 
       tree
         .find('input#newRunPipelineParam0')
@@ -1200,7 +1199,6 @@ describe('NewRun', () => {
         name: 'test run name',
         pipeline_spec: {
           parameters: [{ name: 'testName', value: '{\n  "test2": "value2"\n}' }],
-          pipeline_id: pipeline.id,
         },
         resource_references: [
           {
@@ -1209,6 +1207,13 @@ describe('NewRun', () => {
               type: ApiResourceType.EXPERIMENT,
             },
             relationship: ApiRelationship.OWNER,
+          },
+          {
+            key: {
+              id: 'original-run-pipeline-version-id',
+              type: ApiResourceType.PIPELINEVERSION,
+            },
+            relationship: ApiRelationship.CREATOR,
           },
         ],
       });
