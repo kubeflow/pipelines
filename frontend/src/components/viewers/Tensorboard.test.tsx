@@ -91,20 +91,20 @@ describe('Tensorboard', () => {
 
   it('starts tensorboard instance when button is clicked', async () => {
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
-    const getAppMock = () => Promise.resolve({ podAddress: '', tfVersion: '1.14.0' });
+    const getAppMock = () => Promise.resolve({ podAddress: '', tfVersion: '' });
     const startAppMock = jest.fn(() => Promise.resolve(''));
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     jest.spyOn(Apis, 'startTensorboardApp').mockImplementationOnce(startAppMock);
     tree = shallow(<TensorboardViewer configs={[config]} />);
     await TestUtils.flushPromises();
     tree.find('BusyButton').simulate('click');
-    expect(startAppMock).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', '1.14.0');
+    expect(startAppMock).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', '2.0.0');
   });
 
   it('starts tensorboard instance for two configs', async () => {
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
     const config2 = { type: PlotType.TENSORBOARD, url: 'http://test/url2' };
-    const getAppMock = jest.fn(() => Promise.resolve({ podAddress: '', tfVersion: '1.14.0' }));
+    const getAppMock = jest.fn(() => Promise.resolve({ podAddress: '', tfVersion: '' }));
     const startAppMock = jest.fn(() => Promise.resolve(''));
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     jest.spyOn(Apis, 'startTensorboardApp').mockImplementationOnce(startAppMock);
@@ -116,7 +116,7 @@ describe('Tensorboard', () => {
       `Series1${encodeURIComponent(':' + config.url)}` +
       `${encodeURIComponent(',')}` +
       `Series2${encodeURIComponent(':' + config2.url)}`;
-    expect(startAppMock).toHaveBeenCalledWith(expectedUrl, '1.14.0');
+    expect(startAppMock).toHaveBeenCalledWith(expectedUrl, '2.0.0');
   });
 
   it('returns friendly display name', () => {
@@ -145,11 +145,11 @@ describe('Tensorboard', () => {
       .find('[role="button"]')
       .simulate('click');
     tree
-      .findWhere(el => el.text() === 'TensorFlow 2.0.0')
+      .findWhere(el => el.text() === 'TensorFlow 1.15.0')
       .hostNodes()
       .simulate('click');
     tree.find('BusyButton').simulate('click');
-    expect(startAppSpy).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', '2.0.0');
+    expect(startAppSpy).toHaveBeenCalledWith('http%3A%2F%2Ftest%2Furl', '1.15.0');
   });
 
   it('delete the tensorboard instance, confirm in the dialog,\
