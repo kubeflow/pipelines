@@ -18,7 +18,7 @@ import kfp.dsl as dsl
 from kfp.gcp import use_gcp_secret
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--commit_id', help='Commit Id', type=str)
+parser.add_argument('--commit_id', help='Commit id to github. To tag and identify different versions of images.', type=str)
 args = parser.parse_args()
 
 
