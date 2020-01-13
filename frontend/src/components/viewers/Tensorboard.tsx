@@ -65,7 +65,7 @@ interface TensorboardViewerState {
 }
 
 // TODO(jingzhang36): we'll later parse Tensorboard version from mlpipeline-ui-metadata.json file.
-const DefaultTensorboardVersion = '2.0.0';
+const DEFAULT_TENSORBOARD_VERSION = '2.0.0';
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
   constructor(props: any) {
@@ -75,7 +75,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       busy: false,
       deleteDialogOpen: false,
       podAddress: '',
-      tensorflowVersion: DefaultTensorboardVersion,
+      tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
     };
   }
 
@@ -267,7 +267,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
         busy: false,
         deleteDialogOpen: false,
         podAddress: '',
-        tensorflowVersion: DefaultTensorboardVersion,
+        tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
       });
     });
   };
