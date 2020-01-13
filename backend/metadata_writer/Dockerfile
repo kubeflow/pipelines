@@ -5,4 +5,4 @@ COPY components/license.sh components/third_party_licenses.csv /kfp/metadata_wri
 RUN mkdir /usr/licenses && /kfp/metadata_writer/license.sh /kfp/metadata_writer/third_party_licenses.csv /usr/licenses
 
 COPY backend/metadata_writer/src/* /kfp/metadata_writer/
-CMD python3 /kfp/metadata_writer/metadata_writer.py
+CMD python3 -u /kfp/metadata_writer/metadata_writer.py
