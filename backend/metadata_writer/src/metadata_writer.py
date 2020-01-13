@@ -142,7 +142,7 @@ def output_name_to_argo(name: str) -> str:
 def argo_artifact_to_uri(artifact: dict) -> str:
     if 's3' in artifact:
         s3_artifact = artifact['s3']
-        return 'https:/artifacts/get?source=minio&bucket={bucket}&key={key}'.format(
+        return 'minio://{bucket}/{key}'.format(
             bucket=s3_artifact.get('bucket', ''),
             key=s3_artifact.get('key', ''),
         )
