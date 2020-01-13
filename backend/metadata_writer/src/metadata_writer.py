@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import hashlib
 import os
 import sys
 import kubernetes
+from time import sleep
 
 from metadata_helpers import *
 
@@ -36,12 +38,9 @@ k8s_api = kubernetes.client.CoreV1Api()
 k8s_watch = kubernetes.watch.Watch()
 
 
-#%%
-import json
 patch_retries = 20
 sleep_time = 0.1
 
-from time import sleep
 
 def patch_pod_metadata(
     namespace: str,
@@ -66,32 +65,10 @@ def patch_pod_metadata(
             sleep(sleep_time)
 
 
-def add_pod_metadata(
-    namespace: str,
-    pod_name: str,
-    field: str,
-    key: str,
-    value: str,
-    k8s_api: kubernetes.client.CoreV1Api = None,
-):
-    metadata_patch = {
-        str(field): {str(key): str(value)}
-    }
-    patch_pod_metadata(
-        namespace=namespace,
-        pod_name=pod_name,
-        patch=metadata_patch,
-        k8s_api=k8s_api,
-    )
-
-
-#%%
-
 #Connecting to MetadataDB
 mlmd_store = connect_to_mlmd()
 print("Connected to the metadata store")
 
-#%%
 
 ARGO_OUTPUTS_ANNOTATION_KEY = 'workflows.argoproj.io/outputs'
 ARGO_TEMPLATE_ANNOTATION_KEY = 'workflows.argoproj.io/template'
@@ -106,33 +83,6 @@ ARGO_WORKFLOW_LABEL_KEY = 'workflows.argoproj.io/workflow'
 ARGO_COMPLETED_LABEL_KEY = 'workflows.argoproj.io/completed'
 METADATA_WRITTEN_LABEL_KEY = 'pipelines.kubeflow.org/metadata_written'
 
-
-#%%
-
-def cleanup_pods():
-    for pod in k8s_api.list_namespaced_pod(namespace=namespace_to_watch, label_selector=ARGO_WORKFLOW_LABEL_KEY).items:
-        patch_pod_metadata(
-            namespace=pod.metadata.namespace,
-            pod_name=pod.metadata.name,
-            patch={
-                'annotations': {
-                    METADATA_ARTIFACT_IDS_ANNOTATION_KEY: None,
-                    METADATA_INPUT_ARTIFACT_IDS_ANNOTATION_KEY: None,
-                    METADATA_OUTPUT_ARTIFACT_IDS_ANNOTATION_KEY: None,
-                },
-                'labels': {
-                    METADATA_EXECUTION_ID_LABEL_KEY: None,
-                    METADATA_WRITTEN_LABEL_KEY: None,
-                    METADATA_CONTEXT_ID_LABEL_KEY: None,
-                }
-            },
-        )
-#%%
-
-#cleanup_pods()
-
-
-#%%
 
 def output_name_to_argo(name: str) -> str:
     import re
@@ -159,7 +109,6 @@ def is_tfx_pod(pod) -> bool:
     main_container = main_containers[0]
     return main_container.command and main_container.command[-1].endswith('tfx/orchestration/kubeflow/container_entrypoint.py')
 
-#%%
 
 # Caches (not expected to be persistent)
 # These caches are only used to prevent race conditions. Race conditions happen because the writer can see multiple versions of K8s object before the applied labels show up.
