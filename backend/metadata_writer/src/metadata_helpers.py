@@ -28,12 +28,12 @@ def connect_to_mlmd() -> metadata_store.MetadataStore:
         host=metadata_service_host,
         port=metadata_service_port,
     )
-    mlmd_store = metadata_store.MetadataStore(mlmd_connection_config)
 
     # Checking the connection to the Metadata store.
     for _ in range(100):
         try:
-            _ = mlmd_store.get_context_types()
+            mlmd_store = metadata_store.MetadataStore(mlmd_connection_config)
+            _ = mlmd_store.get_contexts()
             return mlmd_store
         except Exception as e:
             print('Failed to access the Metadata store. Exception: "{}"'.format(str(e)), file=sys.stderr)
