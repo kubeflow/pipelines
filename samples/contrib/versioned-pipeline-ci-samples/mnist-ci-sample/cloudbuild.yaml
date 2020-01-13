@@ -63,7 +63,7 @@ steps:
         pip3 install kfp==0.1.37;
         pip3 install kubernetes;
         python3 create_pipeline_version_and_run.py 
-        --tensorboard_bucket gs://${_GS_BUCKET}
+        --tensorboard_bucket ${_GS_BUCKET}
         --package_url https://storage.googleapis.com/${_GS_BUCKET}/$COMMIT_SHA/pipeline.zip
         --pipeline_id ${_PIPELINE_ID} 
         --version_name $COMMIT_SHA
