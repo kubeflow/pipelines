@@ -17,6 +17,7 @@ import hashlib
 import os
 import sys
 import kubernetes
+import yaml
 from time import sleep
 
 from metadata_helpers import *
@@ -125,12 +126,9 @@ while True:
                 print(event)
 
             # Logging pod changes for debugging
-            try:
-                import yaml
-                with open('/tmp/pod_' + obj.metadata.name + '_' + obj.metadata.resource_version, 'w') as f:
-                    f.write(yaml.dump(obj.to_dict()))
-            except:
-                pass
+            with open('/tmp/pod_' + obj.metadata.name + '_' + obj.metadata.resource_version, 'w') as f:
+                f.write(yaml.dump(obj.to_dict()))
+
             assert obj.kind == 'Pod'
 
             if METADATA_WRITTEN_LABEL_KEY in obj.metadata.labels:
