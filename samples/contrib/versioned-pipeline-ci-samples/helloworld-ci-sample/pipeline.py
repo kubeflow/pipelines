@@ -13,28 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
+import kfp
 import kfp.dsl as dsl
-from kfp.gcp import use_gcp_secret
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--commit_id', help='Commit id to github. To tag and identify different versions of images.', type=str)
-args = parser.parse_args()
-
 
 @dsl.pipeline(
     name='hello world pipeline sample',
     description='A simple sample using curl to interact with kfp'
 )
-def helloworld_ci_pipeline(
-    gcr_address: str
-):
+def helloworld_ci_pipeline():
   import os
-  train = dsl.ContainerOp(
-      name='hello world',
-      image=os.path.join(gcr_address, 'helloworld-ci:', args.commit_id)
-  )
-
+  train_op = kfp.components.load_component_from_file('./component.yaml')
+  train = train_op()
 
 if __name__ == '__main__':
   import kfp.compiler as compiler

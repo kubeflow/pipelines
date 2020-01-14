@@ -19,7 +19,8 @@ steps:
         "cd ${_CODE_PATH};
         pip3 install cffi==1.12.3 --upgrade;
         pip3 install kfp;
-        python pipeline.py --commit_id $COMMIT_SHA;
+        sed -i s/image: helloworld-ci/image: ${_GCR_PATH}/helloworld-ci:$COMMIT_SHA/g component.yaml;
+        python pipeline.py;
         cp pipeline.py.zip /workspace/pipeline.zip",
       ]
     id: "PackagePipeline"
@@ -40,7 +41,7 @@ steps:
     args: 
       [
         "-c",
-        "curl.bash $COMMIT_SHA ${_PIPELINE_ID} ${_GS_BUCKET} ${_PIPELINE_ENDPOINT} ${_GCR_PATH}"
+        "curl.bash $COMMIT_SHA ${_PIPELINE_ID} ${_GS_BUCKET} ${_PIPELINE_ENDPOINT}"
       ]
     id: "CreatePipelineVersionAndRun"
 
@@ -54,4 +55,5 @@ substitutions:
   _NAMESPACE: kubeflow
   _PIPELINE_ID: [Your kubeflow pipeline id to create a version on. Get it from kfp UI.]
   _GS_BUCKET: [Name of your cloud storage bucket. For example, 'gs://my-bucket']
-  _PIPELINE_ENDPOINT: [Your exposed pipeline endpoint.]
+  _PIPELINE_ENDPOINT: [Your exposed pipeline endpoint 'ml-pipeline'. You can expose it in k8s workloads on gcp.
+                       For example: https://0.0.0.1:8888]
