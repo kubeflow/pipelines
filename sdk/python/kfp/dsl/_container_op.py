@@ -769,9 +769,9 @@ class BaseOp(object):
           from kfp.gcp import use_gcp_secret
           task = (
             train_op(...)
-              .set_memory_request('1GB')
+              .set_memory_request('1G')
               .apply(use_gcp_secret('user-gcp-sa'))
-              .set_memory_limit('2GB')
+              .set_memory_limit('2G')
           )
         """
         return mod_func(self) or self
