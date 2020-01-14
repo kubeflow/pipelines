@@ -25,15 +25,7 @@ from metadata_helpers import *
 namespace_to_watch = os.environ.get('NAMESPACE_TO_WATCH', 'default')
 
 
-try:
-    kubernetes.config.load_incluster_config()
-except Exception as e:
-    print(e)
-    try:
-        kubernetes.config.load_kube_config()
-    except Exception as e:
-        print(e)
-
+kubernetes.config.load_incluster_config()
 k8s_api = kubernetes.client.CoreV1Api()
 k8s_watch = kubernetes.watch.Watch()
 
