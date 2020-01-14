@@ -23,6 +23,106 @@
   - "container":
       "args":
       - |-
+        ----output-paths
+      - |-
+        /tmp/outputs/Output/data
+      "command":
+      - |-
+        python3
+      - |-
+        -u
+      - |-
+        -c
+      - |
+        def run_diagnose_me() -> bool:
+            """ This pipeline steps verifies if gcp credentials are configured correctly.
+
+            Raises:
+                RuntimeError: If gcp credentials are not configured correctly
+            """
+
+            # Install pip3 and kfp on this image
+            import subprocess
+            subprocess.run(
+              ['curl', 'https://bootstrap.pypa.io/get-pip.py', '-o', 'get-pip.py'],
+              capture_output=True)
+            subprocess.run(['apt-get', 'install', 'python3-distutils', '--yes'],
+                         capture_output=True)
+            subprocess.run(['python3', 'get-pip.py'], capture_output=True)
+            subprocess.run(['python3', '-m', 'pip', 'install', 'kfp', '--quiet'],
+                         capture_output=True)
+
+            subprocess.run(['kfp', 'diagnose_me'])
+            return True
+
+        def _serialize_bool(bool_value: bool) -> str:
+            if isinstance(bool_value, str):
+                return bool_value
+            if not isinstance(bool_value, bool):
+                raise TypeError('Value "{}" has type "{}" instead of bool.'.format(str(bool_value), str(type(bool_value))))
+            return str(bool_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Run diagnose me', description='This pipeline steps verifies if gcp credentials are configured correctly.\n\n    Raises:\n        RuntimeError: If gcp credentials are not configured correctly\n')
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = run_diagnose_me(**_parsed_args)
+
+        if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+            _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_bool,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      "env":
+      - "name": |-
+          GOOGLE_APPLICATION_CREDENTIALS
+        "value": |-
+          /secret/gcp-credentials/user-gcp-sa.json
+      - "name": |-
+          CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE
+        "value": |-
+          /secret/gcp-credentials/user-gcp-sa.json
+      "image": |-
+        google/cloud-sdk:latest
+      "volumeMounts":
+      - "mountPath": |-
+          /secret/gcp-credentials
+        "name": |-
+          gcp-credentials-user-gcp-sa
+    "metadata":
+      "annotations":
+        "pipelines.kubeflow.org/component_spec": |-
+          {"description": "This pipeline steps verifies if gcp credentials are configured correctly.\n\n    Raises:\n        RuntimeError: If gcp credentials are not configured correctly\n", "inputs": [], "name": "Run diagnose me", "outputs": [{"name": "Output", "type": "Boolean"}]}
+    "name": |-
+      run-diagnose-me
+    "outputs":
+      "artifacts":
+      - "name": |-
+          run-diagnose-me-output
+        "path": |-
+          /tmp/outputs/Output/data
+    "volumes":
+    - "name": |-
+        gcp-credentials-user-gcp-sa
+      "secret":
+        "secretName": |-
+          user-gcp-sa
+  - "container":
+      "args":
+      - |-
         --target-apis
       - |-
         {{inputs.parameters.target_apis}}
@@ -169,14 +269,16 @@
             project_id = ''
             if not project_config.has_error:
                 project_id = project_config.parsed_output['core']['project']
-                print('GCP credentials are configured with access to project: %s ...' %
+                print('GCP credentials are configured with access to project: %s ...\n' %
                       (project_id))
+                print('Following account(s) are active under this pipeline:\n')
+                subprocess.run(['gcloud', 'auth', 'list'])
                 return True
 
             raise RuntimeError(
               'Project configuration is not accessible with error  %s\n' %
               (project_config.stderr) + 'Follow the instructions at\n' +
-              'https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss#permission\n'
+              'https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials \n'
               + 'to verify you have configured the required gcp secret.')
 
         def _serialize_bool(bool_value: bool) -> str:
@@ -246,6 +348,10 @@
           user-gcp-sa
   - "dag":
       "tasks":
+      - "name": |-
+          run-diagnose-me
+        "template": |-
+          run-diagnose-me
       - "arguments":
           "parameters":
           - "name": |-
@@ -259,7 +365,10 @@
           verfiy-gcp-apis
         "template": |-
           verfiy-gcp-apis
-      - "name": |-
+      - "dependencies":
+        - |-
+          run-diagnose-me
+        "name": |-
           verify-gcp-credentials
         "template": |-
           verify-gcp-credentials
