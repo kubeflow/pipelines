@@ -82,15 +82,11 @@ x-google-marketplace:
             resources: ['customresourcedefinitions']
             verbs: ['*']
   clusterConstraints:
-    gcp:
-      nodes:
-        requiredOauthScopes:
-        - https://www.googleapis.com/auth/cloud-platform
     resources:
     - replicas: 3
       requests:
-        cpu: 4
-        memory: 8Gi
+        cpu: 2
+        memory: 4Gi
       affinity:
         simpleNodeAffinity:
           type: REQUIRE_ONE_NODE_PER_REPLICA
