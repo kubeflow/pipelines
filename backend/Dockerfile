@@ -28,7 +28,7 @@ FROM python:3.5 as compiler
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
-RUN python3 -m pip install tfx==0.15.0
+RUN python3 -m pip install pyarrow==0.14.1 tfx==0.15.0
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY sdk sdk

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package common
+
 import (
 	"testing"
 
@@ -33,7 +34,7 @@ func TestGetNamespaceFromResourceReferences(t *testing.T) {
 			Relationship: api.Relationship_OWNER,
 		},
 	}
-	namespace := GetNamespaceFromResourceReferences(references)
+	namespace := GetNamespaceFromAPIResourceReferences(references)
 	assert.Equal(t, "ns", namespace)
 
 	references = []*api.ResourceReference{
@@ -43,6 +44,6 @@ func TestGetNamespaceFromResourceReferences(t *testing.T) {
 			Relationship: api.Relationship_CREATOR,
 		},
 	}
-	namespace = GetNamespaceFromResourceReferences(references)
+	namespace = GetNamespaceFromAPIResourceReferences(references)
 	assert.Equal(t, "", namespace)
 }

@@ -244,7 +244,7 @@ class PipelineList extends Page<{}, PipelineListState> {
 
     try {
       method === ImportMethod.LOCAL
-        ? await Apis.uploadPipeline(name, file!)
+        ? await Apis.uploadPipeline(name, description || '', file!)
         : await Apis.pipelineServiceApi.createPipeline({ name, url: { pipeline_url: url } });
       this.setStateSafe({ uploadDialogOpen: false });
       this.refresh();

@@ -16,20 +16,10 @@ from kubernetes.client import V1Toleration, V1Affinity, V1NodeAffinity, \
   V1NodeSelector, V1NodeSelectorTerm, V1NodeSelectorRequirement, V1PreferredSchedulingTerm
 
 def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume=None, volume_name=None, secret_volume_mount_path='/secret/gcp-credentials'):
-    """An operator that configures the container to use GCP service account.
+    """An operator that configures the container to use GCP service account by service account key
+        stored in a Kubernetes secret.
 
-        The user-gcp-sa secret is created as part of the kubeflow deployment that
-        stores the access token for kubeflow user service account.
-
-        With this service account, the container has a range of GCP APIs to
-        access to. This service account is automatically created as part of the
-        kubeflow deployment.
-
-        For the list of the GCP APIs this service account can access to, check
-        https://github.com/kubeflow/kubeflow/blob/7b0db0d92d65c0746ac52b000cbc290dac7c62b1/deployment/gke/deployment_manager_configs/iam_bindings_template.yaml#L18
-
-        If you want to call the GCP APIs in a different project, grant the kf-user
-        service account access permission.
+        For cluster setup and alternatives to using service account key, check https://www.kubeflow.org/docs/gke/authentication-pipelines/.
     """
 
     # permitted values for secret_name = ['admin-gcp-sa', 'user-gcp-sa']

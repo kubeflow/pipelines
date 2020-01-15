@@ -71,6 +71,13 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: ml-pipeline-visualizationserver
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
   name: ml-pipeline
   labels:
     app.kubernetes.io/name: {{ .Release.Name }}
@@ -608,6 +615,7 @@ spec:
           name: ml-pipeline-visualizationserver
           ports:
             - containerPort: 8888
+      serviceAccountName: ml-pipeline-visualizationserver
 ---
 apiVersion: apps/v1beta2
 kind: Deployment

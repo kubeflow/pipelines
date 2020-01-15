@@ -110,7 +110,31 @@ interface GraphState {
   hoveredNode?: string;
 }
 
-export default class Graph extends React.Component<GraphProps, GraphState> {
+interface GraphErrorBoundaryProps {
+  onError?: (message: string, additionalInfo: string) => void;
+}
+class GraphErrorBoundary extends React.Component<GraphErrorBoundaryProps> {
+  state = {
+    hasError: false,
+  };
+
+  componentDidCatch(error: Error): void {
+    const message = 'There was an error rendering the graph.';
+    const additionalInfo = `${message} This is likely a bug in Kubeflow Pipelines. Error message: '${error.message}'.`;
+    if (this.props.onError) {
+      this.props.onError(message, additionalInfo);
+    }
+    this.setState({
+      hasError: true,
+    });
+  }
+
+  render() {
+    return this.state.hasError ? <div className={css.root} /> : this.props.children;
+  }
+}
+
+export class Graph extends React.Component<GraphProps, GraphState> {
   private LEFT_OFFSET = 100;
   private TOP_OFFSET = 44;
   private EDGE_THICKNESS = 2;
@@ -153,6 +177,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           // deviating from the explicit layout provided by dagre.
           if (i === 1) {
             const sourceNode = graph.node(edgeInfo.v);
+
+            if (!sourceNode) {
+              throw new Error(`Graph definition is invalid. Cannot get node by '${edgeInfo.v}'.`);
+            }
 
             // Set the edge's first segment to start at the bottom or top of the source node.
             yStart = downwardPointingSegment
@@ -380,3 +408,12 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     return color.grey;
   }
 }
+
+const EnhancedGraph = (props: GraphProps & GraphErrorBoundaryProps) => (
+  <GraphErrorBoundary onError={props.onError}>
+    <Graph {...props} />
+  </GraphErrorBoundary>
+);
+EnhancedGraph.displayName = 'EnhancedGraph';
+
+export default EnhancedGraph;

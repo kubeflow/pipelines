@@ -322,7 +322,7 @@ class PythonOpTestCase(unittest.TestCase):
             component_spec.to_dict(),
             {
                 'name': 'My func',
-                'description': 'Function docstring\n',
+                'description': 'Function docstring',
                 'inputs': [
                     {'name': 'required_param'},
                     {'name': 'int_param', 'type': 'Integer', 'default': '42', 'optional': True},
