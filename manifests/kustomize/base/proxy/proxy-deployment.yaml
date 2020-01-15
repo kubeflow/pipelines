@@ -15,6 +15,7 @@ spec:
     spec:
       hostNetwork: true
       containers:
-      - image: gcr.io/jxzheng-helloworld/proxy-agent:latest
+      - image: gcr.io/ml-pipeline/inverse-proxy-agent:0.1.20
+        imagePullPolicy: IfNotPresent
         name: proxy-agent
       serviceAccountName: proxy-agent-runner
