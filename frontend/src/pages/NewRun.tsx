@@ -54,6 +54,7 @@ import { logger, errorToMessage } from '../lib/Utils';
 import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
 import { CustomRendererProps } from '../components/CustomTable';
 import { Description } from '../components/Description';
+import { NamespaceContext } from '../lib/KubeflowClient';
 
 interface NewRunState {
   description: string;
@@ -107,6 +108,9 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
 };
 
 class NewRun extends Page<{}, NewRunState> {
+  static contextType = NamespaceContext;
+  context!: React.ContextType<typeof NamespaceContext>;
+
   private pipelineSelectorColumns = [
     { label: 'Pipeline name', flex: 1, sortKey: PipelineSortKeys.NAME },
     { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
@@ -617,6 +621,38 @@ class NewRun extends Page<{}, NewRunState> {
             pipeline,
             pipelineName: (pipeline && pipeline.name) || '',
           });
+          const possiblePipelineVersionId =
+            urlParser.get(QUERY_PARAMS.pipelineVersionId) ||
+            (pipeline.default_version && pipeline.default_version.id);
+          if (possiblePipelineVersionId) {
+            try {
+              const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
+                possiblePipelineVersionId,
+              );
+              this.setStateSafe({
+                parameters: pipelineVersion.parameters || [],
+                pipelineVersion,
+                pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
+                runName: this._getRunNameFromPipelineVersion(
+                  (pipelineVersion && pipelineVersion.name) || '',
+                ),
+              });
+            } catch (err) {
+              urlParser.clear(QUERY_PARAMS.pipelineVersionId);
+              await this.showPageError(
+                `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
+                err,
+              );
+              logger.error(
+                `Failed to retrieve pipeline version: ${possiblePipelineVersionId}`,
+                err,
+              );
+            }
+          } else {
+            this.setStateSafe({
+              runName: this._getRunNameFromPipelineVersion((pipeline && pipeline.name) || ''),
+            });
+          }
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
           await this.showPageError(
@@ -624,26 +660,6 @@ class NewRun extends Page<{}, NewRunState> {
             err,
           );
           logger.error(`Failed to retrieve pipeline: ${possiblePipelineId}`, err);
-        }
-      }
-      const possiblePipelineVersionId = urlParser.get(QUERY_PARAMS.pipelineVersionId);
-      if (possiblePipelineVersionId) {
-        try {
-          const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
-            possiblePipelineVersionId,
-          );
-          this.setStateSafe({
-            parameters: pipelineVersion.parameters || [],
-            pipelineVersion,
-            pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
-          });
-        } catch (err) {
-          urlParser.clear(QUERY_PARAMS.pipelineVersionId);
-          await this.showPageError(
-            `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
-            err,
-          );
-          logger.error(`Failed to retrieve pipeline version: ${possiblePipelineVersionId}`, err);
         }
       }
     }
@@ -782,7 +798,7 @@ class NewRun extends Page<{}, NewRunState> {
     try {
       const uploadedPipeline =
         method === ImportMethod.LOCAL
-          ? await Apis.uploadPipeline(name, file!)
+          ? await Apis.uploadPipeline(name, description || '', file!)
           : await Apis.pipelineServiceApi.createPipeline({ name, url: { pipeline_url: url } });
       this.setStateSafe(
         {
@@ -977,6 +993,20 @@ class NewRun extends Page<{}, NewRunState> {
       });
     }
 
+    // namespace resource ref is only supported in create run for now
+    if (!this.state.isRecurringRun) {
+      const currentNamespace = this.context;
+      if (currentNamespace) {
+        references.push({
+          key: {
+            id: currentNamespace,
+            type: ApiResourceType.NAMESPACE,
+          },
+          relationship: ApiRelationship.OWNER,
+        });
+      }
+    }
+
     let newRun: ApiRun | ApiJob = {
       description: this.state.description,
       name: this.state.runName,
@@ -1043,6 +1073,24 @@ class NewRun extends Page<{}, NewRunState> {
       const cloneNumber = match[1] ? +match[1] : 1;
       return `Clone (${cloneNumber + 1}) of ${match[2]}`;
     }
+  }
+
+  private _generateRandomString(length: number): string {
+    let d = 0;
+    function randomChar(): string {
+      const r = Math.trunc((d + Math.random() * 16) % 16);
+      d = Math.floor(d / 16);
+      return r.toString(16);
+    }
+    let str = '';
+    for (let i = 0; i < length; ++i) {
+      str += randomChar();
+    }
+    return str;
+  }
+
+  private _getRunNameFromPipelineVersion(pipelineVersionName: string): string {
+    return 'Run of ' + pipelineVersionName + ' (' + this._generateRandomString(5) + ')';
   }
 
   private _validate(): void {

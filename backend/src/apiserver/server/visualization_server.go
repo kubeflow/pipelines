@@ -7,11 +7,14 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type VisualizationServer struct {
@@ -20,6 +23,9 @@ type VisualizationServer struct {
 }
 
 func (s *VisualizationServer) CreateVisualization(ctx context.Context, request *go_client.CreateVisualizationRequest) (*go_client.Visualization, error) {
+	if common.IsMultiUserMode() == true {
+		return nil, util.NewBadRequestError(errors.New("Visualization APIs are temporarily disabled in the multi-user mode until it is fully ready."), "Visualization APIs are temporarily disabled in the multi-user mode until it is fully ready.")
+	}
 	if err := s.validateCreateVisualizationRequest(request); err != nil {
 		return nil, err
 	}

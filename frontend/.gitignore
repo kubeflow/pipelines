@@ -24,3 +24,9 @@ backstop_data/bitmaps_test/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# coverage reports
+coverage
+
+# vscode
+.vscode

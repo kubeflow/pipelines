@@ -21,7 +21,7 @@ from kfp import dsl
 def gcs_download_op(url):
     return dsl.ContainerOp(
         name='GCS - Download',
-        image='google/cloud-sdk:216.0.0',
+        image='google/cloud-sdk:272.0.0',
         command=['sh', '-c'],
         arguments=['gsutil cat $0 | tee $1', url, '/tmp/results.txt'],
         file_outputs={

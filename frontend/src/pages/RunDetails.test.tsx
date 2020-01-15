@@ -19,7 +19,7 @@ import * as Utils from '../lib/Utils';
 import RunDetails from './RunDetails';
 import TestUtils from '../TestUtils';
 import WorkflowParser from '../lib/WorkflowParser';
-import { ApiRunDetail, ApiResourceType, RunStorageState } from '../apis/run';
+import { ApiRunDetail, ApiResourceType, RunStorageState, ApiRelationship } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { NodePhase } from '../lib/StatusUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
@@ -27,7 +27,7 @@ import { PageProps } from './Page';
 import { PlotType } from '../components/viewers/Viewer';
 import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { Workflow } from 'third_party/argo-ui/argo_template';
-import { shallow, ShallowWrapper } from 'enzyme';
+import { shallow, ShallowWrapper, mount, ReactWrapper } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
 
 describe('RunDetails', () => {
@@ -52,7 +52,7 @@ describe('RunDetails', () => {
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
 
   let testRun: ApiRunDetail = {};
-  let tree: ShallowWrapper;
+  let tree: ShallowWrapper | ReactWrapper;
 
   function generateProps(): PageProps {
     const pageProps: PageProps = {
@@ -216,6 +216,26 @@ describe('RunDetails', () => {
     await confirmBtn.onClick();
     expect(retryRunSpy).toHaveBeenCalledTimes(1);
     expect(retryRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
+  });
+
+  it('shows an error dialog when retry API fails', async () => {
+    retryRunSpy.mockImplementation(() => Promise.reject('mocked error'));
+
+    tree = mount(<RunDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as RunDetails;
+    const retryBtn = instance.getInitialToolbarState().actions[ButtonKeys.RETRY];
+    await retryBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Retry');
+    await confirmBtn.onClick();
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        content: 'Failed to retry run: test-run-id with error: ""mocked error""',
+      }),
+    );
+    // There shouldn't be a snackbar on error.
+    expect(updateSnackbarSpy).not.toHaveBeenCalled();
   });
 
   it('has a terminate button', async () => {
@@ -549,7 +569,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree).toMatchSnapshot();
   });
@@ -569,7 +589,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     expect(tree.state('selectedNodeDetails')).toHaveProperty(
       'phaseMessage',
       'This step is in ' + testRun.run!.status + ' state with this message: some test message',
@@ -591,7 +611,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     await pathsParser;
     await pathsWithStepsParser;
     await loaderSpy;
@@ -632,7 +652,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -649,7 +669,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -665,7 +685,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -681,7 +701,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     await TestUtils.flushPromises();
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     tree.find('SidePanel').simulate('close');
@@ -697,7 +717,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -723,7 +743,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -744,7 +764,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -769,7 +789,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -797,7 +817,7 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     tree
       .find('MD2Tabs')
       .at(1)
@@ -886,7 +906,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -902,15 +922,38 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
         .simulate('switch', 4);
       await getPodLogsSpy;
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
-      expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1');
+      expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1', undefined);
       expect(tree).toMatchSnapshot();
+    });
+
+    it("loads logs in run's namespace", async () => {
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: { nodes: { node1: { id: 'node1' } } },
+      });
+      testRun.run!.resource_references = [
+        {
+          key: { type: ApiResourceType.NAMESPACE, id: 'username' },
+          relationship: ApiRelationship.OWNER,
+        },
+      ];
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      clickGraphNode(tree, 'node1');
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', 4);
+      await getPodLogsSpy;
+      expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
+      expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1', 'username');
     });
 
     it('shows warning banner and link to Stackdriver in logs area if fetching logs failed and cluster is in GKE', async () => {
@@ -924,7 +967,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -949,7 +992,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -975,7 +1018,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -1005,7 +1048,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -1027,7 +1070,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -1050,7 +1093,7 @@ describe('RunDetails', () => {
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      tree.find('Graph').simulate('click', 'node1');
+      clickGraphNode(tree, 'node1');
       tree
         .find('MD2Tabs')
         .at(1)
@@ -1176,3 +1219,12 @@ describe('RunDetails', () => {
     });
   });
 });
+
+function clickGraphNode(wrapper: ShallowWrapper, nodeId: string) {
+  // TODO: use dom events instead
+  wrapper
+    .find('EnhancedGraph')
+    .dive()
+    .dive()
+    .simulate('click', nodeId);
+}

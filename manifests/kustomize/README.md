@@ -6,8 +6,10 @@ This folder contains Kubeflow Pipelines Kustomize manifests for a light weight d
 
 Deploy latest version of Kubeflow Pipelines
 ```
-export PIPELINE_VERSION=0.1.34
-for i in {1..2}; do kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml && break || sleep 1; done
+export PIPELINE_VERSION=0.1.40
+kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/crd.yaml
+kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
 ```
 
 Then get the Pipeline URL
@@ -29,9 +31,11 @@ To deploy Kubeflow Pipelines in namespace FOO,
 - Edit [dev/kustomization.yaml](env/dev/kustomization.yaml) or [gcp/kustomization.yaml](env/gcp/kustomization.yaml) namespace section to FOO
 - Then run
 ```
-for i in {1..2}; do kubectl kustomize env/dev | kubectl apply -f - && break || sleep 1; done
+kubectl kustomize base/crd | kubectl apply -f -
+# then 
+kubectl kustomize env/dev | kubectl apply -f -
 # or
-for i in {1..2}; do kubectl kustomize env/gcp | kubectl apply -f - && break || sleep 1; done
+kubectl kustomize env/gcp | kubectl apply -f -
 ```
 
 ### Disable the public endpoint
@@ -39,7 +43,7 @@ By default, the deployment install an [invert proxy agent](https://github.com/go
 - Comment out the proxy component in the [kustomization.yaml](base/kustomization.yaml).
 - Then run
 ```
-for i in {1..2}; do kubectl kustomize . | kubectl apply -f - && break || sleep 1; done
+kubectl kustomize . | kubectl apply -f -
 ```
 
 The UI is still accessible by port-forwarding
@@ -57,8 +61,9 @@ provides a community-maintained manifest for deploying kubeflow pipelines on AWS
 ## Uninstall
 You can uninstall Kubeflow Pipelines by running
 ```
-export PIPELINE_VERSION=0.1.34
-kubectl delete -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/kustomize/namespaced-install.yaml
+export PIPELINE_VERSION=0.1.38
+kubectl delete -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
+kubectl delete -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/crd.yaml
 ```
 
 Or if you deploy through kustomize
@@ -66,6 +71,9 @@ Or if you deploy through kustomize
 kubectl kustomize env/dev | kubectl delete -f -
 # or
 kubectl kustomize env/gcp | kubectl delete -f -
+# then
+kubectl kustomize base/crd | kubectl delete -f -
+
 ```
 
 ## Troubleshooting
