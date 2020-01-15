@@ -31,7 +31,7 @@ To deploy Kubeflow Pipelines in namespace FOO,
 - Edit [dev/kustomization.yaml](env/dev/kustomization.yaml) or [gcp/kustomization.yaml](env/gcp/kustomization.yaml) namespace section to FOO
 - Then run
 ```
-kubectl kustomize base/crd | kubectl apply -f -
+kubectl kustomize base/crds | kubectl apply -f -
 # then 
 kubectl kustomize env/dev | kubectl apply -f -
 # or
@@ -72,7 +72,7 @@ kubectl kustomize env/dev | kubectl delete -f -
 # or
 kubectl kustomize env/gcp | kubectl delete -f -
 # then
-kubectl kustomize base/crd | kubectl delete -f -
+kubectl kustomize base/crds | kubectl delete -f -
 
 ```
 
