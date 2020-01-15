@@ -204,3 +204,6 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
 fi
 
 popd
+
+# Waiting for the KFP resources are ready. TODO: verification of KFP resources
+sleep 60
