@@ -89,15 +89,15 @@ echo "test env prepared"
 time source "${DIR}/build-images.sh"
 echo "KFP images cloudbuild jobs submitted"
 
-#time source "${DIR}/deploy-cluster.sh"
-#echo "cluster deployed"
+time source "${DIR}/deploy-cluster.sh"
+echo "cluster deployed"
 
 time source "${DIR}/check-build-image-status.sh"
 echo "KFP images built"
 
-## Install Argo CLI and test-runner service account
-#time source "${DIR}/install-argo.sh"
-#echo "argo installed"
+# Install Argo CLI and test-runner service account
+time source "${DIR}/install-argo.sh"
+echo "argo installed"
 
 time source "${DIR}/deploy-pipeline-lite.sh"
 echo "KFP lite deployed"
