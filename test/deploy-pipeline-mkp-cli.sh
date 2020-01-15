@@ -44,12 +44,11 @@ else
     # reference: https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam
     SCOPE_ARG="--scopes=storage-rw,cloud-platform"
   fi
-  #  gcloud beta container clusters create ${TEST_CLUSTER} ${SCOPE_ARG} --zone "us-east4-c" --machine-type "n1-standard-2"
   gcloud beta container clusters create ${TEST_CLUSTER} ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG} ${KUBERNETES_VERSION_ARG}
 
 fi
 
-gcloud container clusters get-credentials ${TEST_CLUSTER} --zone "us-east1-b"
+gcloud container clusters get-credentials ${TEST_CLUSTER} --zone ${ZONE}
 
 # when we reuse a cluster when debugging, clean up its kfp installation first
 # this does nothing with a new cluster
