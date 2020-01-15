@@ -1,10 +1,10 @@
 x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
-  publishedVersion: '0.1.35'
+  publishedVersion: '0.1.40'
   publishedVersionMetadata:
     releaseNote: >-
-      Based on 0.1.35 version.
+      Based on 0.1.40 version.
     releaseTypes:
       - Feature
     recommended: false
@@ -85,8 +85,8 @@ x-google-marketplace:
     resources:
     - replicas: 3
       requests:
-        cpu: 4
-        memory: 8Gi
+        cpu: 2
+        memory: 4Gi
       affinity:
         simpleNodeAffinity:
           type: REQUIRE_ONE_NODE_PER_REPLICA

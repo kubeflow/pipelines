@@ -12,18 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// TODO: refractor k8s helper module so that api that interact with k8s can be
+// mocked and tested. There is currently no way to mock k8s APIs as
+// `k8s-helper.isInCluster` is a constant that is generated when the module is
+// first loaded.
+
 // @ts-ignore
 import {
   Core_v1Api,
   Custom_objectsApi,
   KubeConfig,
-  V1ConfigMapKeySelector,
   V1DeleteOptions,
 } from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
-import * as Utils from './utils';
-import { IPartialArgoWorkflow } from './workflow-helper';
+import { PartialArgoWorkflow } from './workflow-helper';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
@@ -71,7 +74,7 @@ function getNameOfViewerResource(logdir: string): string {
 export async function newTensorboardInstance(
   logdir: string,
   tfversion: string,
-  podTemplateSpec: Object = defaultPodTemplateSpec,
+  podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<void> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
@@ -92,15 +95,15 @@ export async function newTensorboardInstance(
     kind: 'Viewer',
     metadata: {
       name: getNameOfViewerResource(logdir),
-      namespace: namespace,
+      namespace,
     },
     spec: {
-      type: 'tensorboard',
+      podTemplateSpec,
       tensorboardSpec: {
         logDir: logdir,
         tensorflowImage: 'tensorflow/tensorflow:' + tfversion,
       },
-      podTemplateSpec,
+      type: 'tensorboard',
     },
   };
   await k8sV1CustomObjectClient.createNamespacedCustomObject(
@@ -139,8 +142,8 @@ export async function getTensorboardInstance(
         if (
           viewer &&
           viewer.body &&
-          viewer.body.spec.tensorboardSpec.logDir == logdir &&
-          viewer.body.spec.type == 'tensorboard'
+          viewer.body.spec.tensorboardSpec.logDir === logdir &&
+          viewer.body.spec.type === 'tensorboard'
         ) {
           const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
           const version = viewer.body.spec.tensorboardSpec.tensorflowImage
@@ -153,7 +156,7 @@ export async function getTensorboardInstance(
       },
       // No existing custom object with the given name, i.e., no existing
       // tensorboard instance.
-      (error: any) => {
+      (_: any) => {
         return { podAddress: '', tfVersion: '' };
       },
     );
@@ -222,7 +225,7 @@ export function getPodLogs(podName: string, podNamespace?: string): Promise<stri
  * Retrieves the argo workflow CRD.
  * @param workflowName name of the argo workflow
  */
-export async function getArgoWorkflow(workflowName: string): Promise<IPartialArgoWorkflow> {
+export async function getArgoWorkflow(workflowName: string): Promise<PartialArgoWorkflow> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
@@ -234,6 +237,10 @@ export async function getArgoWorkflow(workflowName: string): Promise<IPartialArg
     workflowPlural,
     workflowName,
   );
+
+  if (res.response.statusCode == null) {
+    throw new Error(`Unable to query workflow:${workflowName}: No status code present.`);
+  }
 
   if (res.response.statusCode >= 400) {
     throw new Error(`Unable to query workflow:${workflowName}: Access denied.`);

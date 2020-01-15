@@ -163,10 +163,17 @@ describe('Apis', () => {
 
   it('uploadPipeline', async () => {
     const spy = fetchSpy(JSON.stringify({ name: 'resultName' }));
-    const result = await Apis.uploadPipeline('test pipeline name', new File([], 'test name'));
+    const result = await Apis.uploadPipeline(
+      'test pipeline name',
+      'test description',
+      new File([], 'test name'),
+    );
     expect(result).toEqual({ name: 'resultName' });
     expect(spy).toHaveBeenCalledWith(
-      'apis/v1beta1/pipelines/upload?name=' + encodeURIComponent('test pipeline name'),
+      'apis/v1beta1/pipelines/upload?name=' +
+        encodeURIComponent('test pipeline name') +
+        '&description=' +
+        encodeURIComponent('test description'),
       {
         body: expect.anything(),
         cache: 'no-cache',

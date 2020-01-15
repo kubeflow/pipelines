@@ -88,6 +88,12 @@ steps:
          '/workspace/backend/Dockerfile.visualization', '/workspace']
   id: 'buildVisualizationServer'
   waitFor: ["-"]
+- id: 'buildMetadataWriter'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA',
+         '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
+         '/workspace/backend/metadata_writer/Dockerfile', '/workspace']
+  waitFor: ["-"]
 
 # Build the Kubeflow-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
@@ -177,6 +183,7 @@ images:
 - 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA'
 
 # Images for the Kubeflow-based pipeline components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$COMMIT_SHA'

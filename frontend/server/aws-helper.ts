@@ -13,8 +13,8 @@
 // limitations under the License.
 import fetch from 'node-fetch';
 
-/** IAWSMetadataCredentials describes the credentials provided by aws metadata store. */
-export interface IAWSMetadataCredentials {
+/** AWSMetadataCredentials describes the credentials provided by aws metadata store. */
+export interface AWSMetadataCredentials {
   Code: string;
   LastUpdated: string;
   Type: string;
@@ -25,7 +25,7 @@ export interface IAWSMetadataCredentials {
 }
 
 /** url for aws metadata store. */
-const metadataUrl = 'http://169.254.169.254/latest/meta-data/';
+const metadataUrl = 'http://169.254.169.254/latest/meta-data';
 
 /**
  * Get the AWS IAM instance profile.
@@ -39,7 +39,9 @@ async function getIAMInstanceProfile(): Promise<string | undefined> {
     }
     return;
   } catch (error) {
-    console.error(`Unable to fetch credentials from AWS metadata store: ${error}`);
+    console.error(
+      `Unable to fetch credentials from AWS metadata store (${metadataUrl}/iam/security-credentials/): ${error}`,
+    );
     return;
   }
 }
@@ -48,21 +50,52 @@ async function getIAMInstanceProfile(): Promise<string | undefined> {
  * Class to handle the session credentials for AWS ec2 instance profile.
  */
 class AWSInstanceProfileCredentials {
-  _iamProfilePromise = getIAMInstanceProfile();
-  _credentials?: IAWSMetadataCredentials;
+  _iamProfile?: string;
+  _credentials?: AWSMetadataCredentials;
   _expiration: number = 0;
 
-  async ok() {
-    return !!(await this._iamProfilePromise);
+  /** reset all caches */
+  reset() {
+    this._iamProfile = undefined;
+    this._credentials = undefined;
+    this._expiration = 0;
+    return this;
   }
 
-  async _fetchCredentials(): Promise<IAWSMetadataCredentials | undefined> {
+  /**
+   * EC2 Instance profile
+   */
+  async profile() {
+    if (!this._iamProfile) {
+      try {
+        this._iamProfile = await getIAMInstanceProfile();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    return this._iamProfile;
+  }
+
+  /**
+   * Return true only if there is a metadata store and instance profile.
+   */
+  async ok() {
     try {
-      const profile = await this._iamProfilePromise;
+      const profile = await this.profile();
+      return profile && profile.length > 0;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async _fetchCredentials(): Promise<AWSMetadataCredentials | undefined> {
+    try {
+      const profile = await this.profile();
       const resp = await fetch(`${metadataUrl}/iam/security-credentials/${profile}`);
-      return resp.json();
+      const credentials = await resp.json();
+      return credentials;
     } catch (error) {
-      console.error(`Unable to fetch credentials from AWS metadata store:${error}`);
+      console.error(`Unable to fetch credentials from AWS metadata store: ${error}`);
       return;
     }
   }
@@ -70,13 +103,15 @@ class AWSInstanceProfileCredentials {
   /**
    * Get the AWS metadata store session credentials.
    */
-  async getCredentials(): Promise<IAWSMetadataCredentials> {
+  async getCredentials(): Promise<AWSMetadataCredentials | undefined> {
     // query for credentials if going to expire or no credentials yet
     if (Date.now() + 10 >= this._expiration || !this._credentials) {
       this._credentials = await this._fetchCredentials();
-      if (this._credentials.Expiration)
+      if (this._credentials && this._credentials.Expiration) {
         this._expiration = new Date(this._credentials.Expiration).getTime();
-      else this._expiration = -1; // always expire
+      } else {
+        this._expiration = -1; // always retry
+      }
     }
     return this._credentials;
   }

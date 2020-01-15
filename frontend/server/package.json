@@ -3,7 +3,7 @@
   "main": "server.js",
   "dependencies": {
     "@google-cloud/storage": "^2.5.0",
-    "@kubernetes/client-node": "^0.5.3",
+    "@kubernetes/client-node": "^0.8.2",
     "axios": ">=0.19.0",
     "crypto-js": "^3.1.8",
     "express": "^4.16.3",
@@ -11,16 +11,41 @@
     "lodash": ">=4.17.13",
     "minio": "^7.0.0",
     "node-fetch": "^2.1.2",
-    "tar": "^4.4.11"
+    "tar": "^4.4.13"
   },
   "devDependencies": {
+    "@types/crypto-js": "^3.1.43",
     "@types/express": "^4.11.1",
+    "@types/jest": "^24.0.23",
     "@types/minio": "^7.0.3",
+    "@types/node": "^10.17.11",
     "@types/node-fetch": "^2.1.2",
-    "typescript": "3.3.1"
+    "@types/supertest": "^2.0.8",
+    "@types/tar": "^4.0.3",
+    "jest": "^24.9.0",
+    "supertest": "^4.0.2",
+    "ts-jest": "^24.2.0",
+    "tslint": "^5.20.1",
+    "typescript": "^3.6.4"
   },
   "scripts": {
-    "build": "tsc --lib es2015 --outDir ./dist --typeRoots ./node_modules/@types *.ts"
+    "build": "tsc --lib es2015 --outDir ./dist --typeRoots ./node_modules/@types *.ts",
+    "format": "npx prettier --write './**/*.{ts,tsx}'",
+    "format:check": "npx prettier --check './**/*.{ts,tsx}' || node ../scripts/check-format-error-info.js",
+    "lint": "npx tslint -c ../tslint.prod.json -p ../tsconfig.prod.json",
+    "test": "npx jest",
+    "test:coverage": "npm test -- --coverage",
+    "test:ci": "npm run format:check && npm run lint && npm run test:coverage"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "globals": {
+      "ts-jest": {
+        "diagnostics": false,
+        "tsConfig": "../tsconfig.json"
+      }
+    }
   },
   "repository": {
     "type": "git",

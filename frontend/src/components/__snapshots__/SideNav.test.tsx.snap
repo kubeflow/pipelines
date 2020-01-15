@@ -1,5 +1,32 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`SideNav populates the cluster information using the response from the system endpoints 1`] = `
+"Snapshot Diff:
+- First value
++ Second value
+
+@@ -63,7 +63,18 @@
+      <hr className=\\"separator\\" />
+      <WithStyles(IconButton) className=\\"chevron\\" onClick={[Function: bound ]}>
+        <pure(ChevronLeftIcon) />
+      </WithStyles(IconButton)>
+    </div>
+-   <div className=\\"infoVisible\\" />
++   <div className=\\"infoVisible\\">
++     <WithStyles(Tooltip) title=\\"Cluster name: some-cluster-name, Project ID: some-project-id\\" enterDelay={300} placement=\\"top-start\\">
++       <div className=\\"envMetadata\\">
++         <span>
++           Cluster name: 
++         </span>
++         <a href=\\"https://console.cloud.google.com/kubernetes/list?project=some-project-id&filter=name:some-cluster-name\\" className=\\"link unstyled\\" target=\\"_blank\\">
++           some-cluster-name
++         </a>
++       </div>
++     </WithStyles(Tooltip)>
++   </div>
+  </div>"
+`;
+
 exports[`SideNav populates the display build information using the response from the healthz endpoint 1`] = `
 <div
   className="root flexColumn noShrink"
@@ -211,7 +238,7 @@ exports[`SideNav populates the display build information using the response from
       title="Build date: 10/23/2018"
     >
       <div
-        className="buildInfo"
+        className="envMetadata"
       >
         <span>
           Build commit: 
