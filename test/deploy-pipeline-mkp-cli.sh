@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2018 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,87 +15,6 @@
 # limitations under the License.
 
 set -ex
-
-echo "===========START DEPLOY CLUSTER==============="
-TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
-TEST_CLUSTER_DEFAULT=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${COMMIT_SHA:0:7}-${RANDOM}
-TEST_CLUSTER=${TEST_CLUSTER:-${TEST_CLUSTER_DEFAULT}}
-ENABLE_WORKLOAD_IDENTITY=${ENABLE_WORKLOAD_IDENTITY:-false}
-
-cd ${DIR}
-# test if ${TEST_CLUSTER} exists or not
-if gcloud container clusters describe ${TEST_CLUSTER} &>/dev/null; then
-  echo "Use existing test cluster: ${TEST_CLUSTER}"
-else
-  echo "Creating a new test cluster: ${TEST_CLUSTER}"
-  SHOULD_CLEANUP_CLUSTER=true
-  # Machine type and cluster size is the same as kubeflow deployment to
-  # easily compare performance. We can reduce usage later.
-  NODE_POOL_CONFIG_ARG="--num-nodes=3 --machine-type=n1-standard-8 \
-    --enable-autoscaling --max-nodes=8 --min-nodes=3"
-  # Use new kubernetes master to improve workload identity stability.
-  KUBERNETES_VERSION_ARG="--cluster-version=1.14.8-gke.17"
-  if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
-    WI_ARG="--identity-namespace=$PROJECT.svc.id.goog"
-    SCOPE_ARG=
-  else
-    WI_ARG=
-    # "storage-rw" is needed to allow VMs to push to gcr.io when using default GCE service account.
-    # reference: https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam
-    SCOPE_ARG="--scopes=storage-rw,cloud-platform"
-  fi
-  gcloud beta container clusters create ${TEST_CLUSTER} ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG} ${KUBERNETES_VERSION_ARG}
-
-fi
-
-gcloud container clusters get-credentials ${TEST_CLUSTER} --zone ${ZONE}
-
-# when we reuse a cluster when debugging, clean up its kfp installation first
-# this does nothing with a new cluster
-kubectl delete namespace ${NAMESPACE} --wait || echo "No need to delete ${NAMESPACE} namespace. It doesn't exist."
-kubectl create namespace ${NAMESPACE} --dry-run -o yaml | kubectl apply -f -
-
-echo "=================Install Argo===================="
-# Tests work without these lines. TODO: Verify and remove these lines
-kubectl config set-context $(kubectl config current-context) --namespace=default
-echo "Add necessary cluster role bindings"
-ACCOUNT=$(gcloud info --format='value(config.account)')
-kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT --dry-run -o yaml | kubectl apply -f -
-kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default --dry-run -o yaml | kubectl apply -f -
-
-ARGO_VERSION=v2.3.0
-
-# if argo is not installed
-if ! which argo; then
-  echo "install argo"
-  mkdir -p ~/bin/
-  export PATH=~/bin/:$PATH
-  curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
-  chmod +x ~/bin/argo
-fi
-
-ARGO_KSA="test-runner"
-
-# Some workflows are deployed to the non-default namespace where the GCP credential secret is stored
-# In this case, the default service account in that namespace doesn't have enough permission
-echo "add service account for running the test workflow"
-kubectl create serviceaccount ${ARGO_KSA} -n ${NAMESPACE} --dry-run -o yaml | kubectl apply -f -
-kubectl create clusterrolebinding test-admin-binding --clusterrole=cluster-admin --serviceaccount=${NAMESPACE}:${ARGO_KSA} --dry-run -o yaml | kubectl apply -f -
-
-if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
-  ARGO_GSA="test-argo"
-  # Util library including create_gsa_if_not_present and bind_gsa_and_ksa functions.
-  source "$DIR/../manifests/kustomize/wi-utils.sh"
-  create_gsa_if_not_present $ARGO_GSA
-
-  gcloud projects add-iam-policy-binding $PROJECT \
-    --member="serviceAccount:$ARGO_GSA@$PROJECT.iam.gserviceaccount.com" \
-    --role="roles/editor" \
-    > /dev/null # hide verbose output
-  bind_gsa_and_ksa $ARGO_GSA $ARGO_KSA $PROJECT $NAMESPACE
-
-  verify_workload_identity_binding $ARGO_KSA $NAMESPACE
-fi
 
 echo "=================START MKP DEPLOY================"
 
