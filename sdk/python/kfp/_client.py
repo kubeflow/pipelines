@@ -105,6 +105,7 @@ class Client(object):
     api_client = kfp_server_api.api_client.ApiClient(config)
     _add_generated_apis(self, kfp_server_api, api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
+    self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
@@ -296,22 +297,23 @@ class Client(object):
     return self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by)
 
   # TODO: provide default namespace, similar to kubectl default namespaces.
-  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, namespace=None):
-    """Run a specified pipeline.
-
+  def _create_job_config(self, experiment_id, params, pipeline_package_path, pipeline_id, namespace):
+    """Create a JobConfig with spec and resource_references.
     Args:
       experiment_id: The string id of an experiment.
-      job_name: name of the job.
-      pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
-      params: a dictionary with key (string) as param name and value (string) as as param value.
-      pipeline_id: the string ID of a pipeline.
-      namespace: kubernetes namespace where the pipeline runs are created.
+      pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+      params: A dictionary with key (string) as param name and value (string) as param value.
+      pipeline_id: The string ID of a pipeline.
+      namespace: Kubernetes namespace where the pipeline runs are created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized
-
     Returns:
-      A run object. Most important field is id.
+      A JobConfig object with attributes spec and resource_reference.
     """
+    class JobConfig:
+      def __init__(self, spec, resource_references):
+        self.spec = spec
+        self.resource_references = resource_references
 
     pipeline_json_string = None
     if pipeline_package_path:
@@ -338,8 +340,69 @@ class Client(object):
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string,
         parameters=api_params)
+    return JobConfig(spec=spec, resource_references=resource_references)      
+
+  def run_pipeline_recurring(self, experiment_id, job_name, start_time=None, end_time=None, interval_second=600 , max_concurrency=1, params={}, pipeline_package_path=None, pipeline_id=None, namespace=None, enabled=True):
+     """Create a recurring run.
+    Args:
+      experiment_id: The string id of an experiment.
+      job_name: name of the job.
+      start_time: The RFC3339 time string of the time when to start the job.
+      end_time: The RFC3339 time string of the time when to end the job.
+      interval_second: Integer indicating the seconds between two recurring runs.
+      max_concurrency: Integer indicating how many jobs can be run in parallel.
+      pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+      params: A dictionary with key (string) as param name and value (string) as param value.
+      pipeline_id: The string ID of a pipeline.
+      namespace: Kubernetes namespace where the pipeline runs are created.
+        For single user deployment, leave it as None;
+        For multi user, input a namespace where the user is authorized
+      enabled: A bool indicating whether the recurring run is enabled or disabled.
+    Returns:
+      A Job object. Most important field is id.
+    """
+    job_config = self._create_job_config(
+      experiment_id=experiment_id,
+      params=params,
+      pipeline_package_path=pipeline_package_path,
+      pipeline_id=pipeline_id,
+      namespace=namespace)
+    periodic_schedule=kfp_server_api.models.ApiPeriodicSchedule(
+        start_time=start_time, end_time=end_time, interval_second=interval_second)
+    trigger = kfp_server_api.models.ApiTrigger(periodic_schedule=periodic_schedule)
+    job_body = kfp_server_api.models.ApiJob(
+        enabled=enabled,
+        pipeline_spec=job_config.spec,
+        resource_references=job_config.resource_references,
+        name=job_name,
+        trigger=trigger,
+        max_concurrency=max_concurrency)
+    return self._job_api.create_job(body=job_body)
+
+  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, namespace=None):
+    """Run a specified pipeline.
+
+    Args:
+      experiment_id: The string id of an experiment.
+      job_name: name of the job.
+      pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+      params: a dictionary with key (string) as param name and value (string) as as param value.
+      pipeline_id: the string ID of a pipeline.
+      namespace: kubernetes namespace where the pipeline runs are created.
+        For single user deployment, leave it as None;
+        For multi user, input a namespace where the user is authorized
+
+    Returns:
+      A run object. Most important field is id.
+    """
+    job_config = self._create_job_config(
+      experiment_id=experiment_id,
+      params=params,
+      pipeline_package_path=pipeline_package_path,
+      pipeline_id=pipeline_id,
+      namespace=namespace)
     run_body = kfp_server_api.models.ApiRun(
-        pipeline_spec=spec, resource_references=resource_references, name=job_name)
+        pipeline_spec=job_config.spec, resource_references=job_config.resource_references, name=job_name)
 
     response = self._run_api.create_run(body=run_body)
 
