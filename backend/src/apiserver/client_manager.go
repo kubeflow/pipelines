@@ -295,6 +295,11 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 	util.TerminateIfError(err)
 	mysqlConfig.DBName = dbName
+	// When updating, return rows matched instead of rows affected. This counts rows that are being
+	// set as the same values as before. If updating using a primary key and rows matched is 0, then
+	// it means this row is not found.
+	// Config reference: https://github.com/go-sql-driver/mysql#clientfoundrows
+	mysqlConfig.ClientFoundRows = true
 	return mysqlConfig.FormatDSN()
 }
 

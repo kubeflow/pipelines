@@ -19,3 +19,4 @@ spec:
         name: ml-pipeline-visualizationserver
         ports:
         - containerPort: 8888
+      serviceAccountName: ml-pipeline-visualizationserver

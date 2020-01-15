@@ -316,10 +316,13 @@ describe('NewPipelineVersion', () => {
     it('creates pipeline from local file', async () => {
       tree = shallow(<NewPipelineVersion {...generateProps()} />);
 
-      // Set local file, pipeline name and click create
+      // Set local file, pipeline name, pipeline description and click create
       tree.find('#localPackageBtn').simulate('change');
       (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
         target: { value: 'test pipeline name' },
+      });
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineDescription')({
+        target: { value: 'test pipeline description' },
       });
       const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
       (tree.instance() as TestNewPipelineVersion)._onDropForTest([file]);
@@ -329,7 +332,11 @@ describe('NewPipelineVersion', () => {
       await TestUtils.flushPromises();
 
       expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
-      expect(uploadPipelineSpy).toHaveBeenLastCalledWith('test pipeline name', file);
+      expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
+        'test pipeline name',
+        'test pipeline description',
+        file,
+      );
       expect(createPipelineSpy).not.toHaveBeenCalled();
     });
   });

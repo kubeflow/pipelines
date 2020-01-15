@@ -302,6 +302,7 @@ export class Apis {
    */
   public static async uploadPipeline(
     pipelineName: string,
+    pipelineDescription: string,
     pipelineData: File,
   ): Promise<ApiPipeline> {
     const fd = new FormData();
@@ -309,7 +310,9 @@ export class Apis {
     return await this._fetchAndParse<ApiPipeline>(
       '/pipelines/upload',
       v1beta1Prefix,
-      `name=${encodeURIComponent(pipelineName)}`,
+      `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
+        pipelineDescription,
+      )}`,
       {
         body: fd,
         cache: 'no-cache',

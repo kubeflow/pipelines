@@ -57,7 +57,7 @@ provides a community-maintained manifest for deploying kubeflow pipelines on AWS
 ## Uninstall
 You can uninstall Kubeflow Pipelines by running
 ```
-export PIPELINE_VERSION=0.1.31
+export PIPELINE_VERSION=0.1.38
 kubectl delete -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/kustomize/namespaced-install.yaml
 ```
 
