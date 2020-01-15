@@ -37,7 +37,12 @@ fi
 kubectl delete namespace argo --wait || echo "No argo installed"
 
 KFP_MANIFEST_DIR=${DIR}/manifests
-pushd ${KFP_MANIFEST_DIR}
+
+pushd ${KFP_MANIFEST_DIR}/crd
+kustomize build . | kubectl apply -f -
+popd
+
+pushd ${KFP_MANIFEST_DIR}/dev
 
 # This is the recommended approach to do this.
 # reference: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/eschewedFeatures.md#build-time-side-effects-from-cli-args-or-env-variables
@@ -51,8 +56,6 @@ kustomize edit set image gcr.io/ml-pipeline/inverse-proxy-agent=${GCR_IMAGE_BASE
 kustomize edit set image gcr.io/ml-pipeline/metadata-writer=${GCR_IMAGE_BASE_DIR}/metadata-writer:${GCR_IMAGE_TAG}
 cat kustomization.yaml
 
-pwd
-ls
 kustomize build . | kubectl apply -f -
 
 # show current info
