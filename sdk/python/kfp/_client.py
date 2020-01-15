@@ -105,6 +105,7 @@ class Client(object):
     api_client = kfp_server_api.api_client.ApiClient(config)
     _add_generated_apis(self, kfp_server_api, api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
+    self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
@@ -295,7 +296,126 @@ class Client(object):
     """
     return self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by)
 
+
   # TODO: provide default namespace, similar to kubectl default namespaces.
+  def _create_job(self, experiment_id, job_name, start_time, end_time, interval_second, max_concurrency, params, pipeline_package_path, pipeline_id, namespace, enabled=None):
+    """
+    Create a specified job.
+
+    Args:
+    experiment_id: The string id of an experiment.
+    job_name: name of the job.
+    start_time: The string time of the time when to start the job.
+    end_time: The string time of the time when to end the job.
+    interval_second: The time between two recurring runs.
+    max_concurrency: Integer indicating how many jobs can be run in parallel.
+    pipeline_package_path: Local path of the pipeline package(the filename
+        should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+    params: A dictionary with key (string) as param name and value (string)
+        as as param value.
+    pipeline_id: The string ID of a pipeline.
+    namespace: Kubernetes namespace where the pipeline runs are created.
+        For single user deployment, leave it as None;
+        For multi user, input a namespace where the user is authorized
+    enabled: A bool indicating whether the recurring run is enabled or disabled.
+        If enabled is set, the run is assumed to be a recurring run.
+
+    Returns:
+    Either a Run or a Job object. Most important field is id.
+    """
+    pipeline_json_string = None
+    if pipeline_package_path:
+      pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
+      pipeline_json_string = json.dumps(pipeline_obj)
+    api_params = [
+      kfp_server_api.ApiParameter(
+        name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
+        value=str(v),
+      )
+      for k, v in params.items()
+    ]
+    resource_references = []
+
+    key = kfp_server_api.models.ApiResourceKey(
+      id=experiment_id, type=kfp_server_api.models.ApiResourceType.EXPERIMENT
+    )
+    reference = kfp_server_api.models.ApiResourceReference(
+      key=key, relationship=kfp_server_api.models.ApiRelationship.OWNER
+    )
+    resource_references.append(reference)
+    if namespace is not None:
+      key = kfp_server_api.models.ApiResourceKey(
+        id=namespace, type=kfp_server_api.models.ApiResourceType.NAMESPACE
+      )
+      reference = kfp_server_api.models.ApiResourceReference(
+        key=key,
+        name=namespace,
+        relationship=kfp_server_api.models.ApiRelationship.OWNER,
+      )
+      resource_references.append(reference)
+    spec = kfp_server_api.models.ApiPipelineSpec(
+      pipeline_id=pipeline_id,
+      workflow_manifest=pipeline_json_string,
+      parameters=api_params,
+    )
+    if enabled is not None:
+      trigger = kfp_server_api.models.ApiTrigger(
+        periodic_schedule=kfp_server_api.models.ApiPeriodicSchedule(
+          start_time=start_time,
+          end_time=end_time,
+          interval_second=interval_second,
+        )
+      )
+      job_body = kfp_server_api.models.ApiJob(
+        enabled=enabled,
+        pipeline_spec=spec,
+        resource_references=resource_references,
+        name=job_name,
+        trigger=trigger,
+        max_concurrency=max_concurrency,
+      )
+      return self._job_api.create_job(body=job_body)
+    else:
+      run_body = kfp_server_api.models.ApiRun(
+        pipeline_spec=spec, resource_references=resource_references, name=job_name
+      )
+      response = self._run_api.create_run(body=run_body)
+      if self._is_ipython():
+        import IPython
+
+        html = (
+          'Run link <a href="%s/#/runs/details/%s" target="_blank" >here</a>'
+           % (self._get_url_prefix(), response.run.id)
+        )
+        IPython.display.display(IPython.display.HTML(html))
+      return response.run
+
+  def run_pipeline_recurring(self, experiment_id, job_name, start_time=None, end_time=None, interval_second=600 , max_concurrency=1, params={}, pipeline_package_path=None, pipeline_id=None, namespace=None, enabled=True):
+     """
+    Create a recurring run.
+
+    Args:
+    experiment_id: The string id of an experiment.
+    job_name: name of the job.
+    start_time: The time string of the time when to start the job.
+    end_time: The time string of the time when to end the job.
+    interval_second: The time between two recurring runs.
+    max_concurrency: Integer indicating how many jobs can be run in parallel.
+    pipeline_package_path: Local path of the pipeline package(the filename
+        should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+    params: A dictionary with key (string) as param name and value (string)
+        as as param value.
+    pipeline_id: The string ID of a pipeline.
+    namespace: Kubernetes namespace where the pipeline runs are created.
+        For single user deployment, leave it as None;
+        For multi user, input a namespace where the user is authorized
+    enabled: A bool indicating whether the recurring run is enabled or disabled.
+
+    Returns:
+    A Job object. Most important field is id.
+    """
+    return self._create_job(**locals())
+
   def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, namespace=None):
     """Run a specified pipeline.
 
@@ -312,43 +432,7 @@ class Client(object):
     Returns:
       A run object. Most important field is id.
     """
-
-    pipeline_json_string = None
-    if pipeline_package_path:
-      pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
-      pipeline_json_string = json.dumps(pipeline_obj)
-    api_params = [kfp_server_api.ApiParameter(
-        name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
-        value=str(v)) for k,v in params.items()]
-    resource_references = []
-
-    key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
-                                        type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
-    reference = kfp_server_api.models.ApiResourceReference(key=key,
-                                                           relationship=kfp_server_api.models.ApiRelationship.OWNER)
-    resource_references.append(reference)
-    if namespace is not None:
-      key = kfp_server_api.models.ApiResourceKey(id=namespace,
-                                                 type=kfp_server_api.models.ApiResourceType.NAMESPACE)
-      reference = kfp_server_api.models.ApiResourceReference(key=key,
-                                                             name=namespace,
-                                                             relationship=kfp_server_api.models.ApiRelationship.OWNER)
-      resource_references.append(reference)
-    spec = kfp_server_api.models.ApiPipelineSpec(
-        pipeline_id=pipeline_id,
-        workflow_manifest=pipeline_json_string,
-        parameters=api_params)
-    run_body = kfp_server_api.models.ApiRun(
-        pipeline_spec=spec, resource_references=resource_references, name=job_name)
-
-    response = self._run_api.create_run(body=run_body)
-
-    if self._is_ipython():
-      import IPython
-      html = ('Run link <a href="%s/#/runs/details/%s" target="_blank" >here</a>'
-              % (self._get_url_prefix(), response.run.id))
-      IPython.display.display(IPython.display.HTML(html))
-    return response.run
+    return _create_job(**locals())
 
   def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None, pipeline_conf: kfp.dsl.PipelineConf = None, namespace=None):
     '''Runs pipeline on KFP-enabled Kubernetes cluster.
