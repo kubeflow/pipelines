@@ -73,6 +73,13 @@ def dummy_in_0_out_0():
 
 
 class PythonOpTestCase(unittest.TestCase):
+    def setUp(self):
+        self.old_container_task_constructor = kfp.components._components._container_task_constructor
+        kfp.components._components._container_task_constructor = kfp.components._dsl_bridge._create_container_op_from_component_and_arguments
+
+    def tearDown(self):
+        kfp.components._components._container_task_constructor = self.old_container_task_constructor
+
     def helper_test_2_in_1_out_component_using_local_call(self, func, op, arguments=[3., 5.]):
         expected = func(arguments[0], arguments[1])
         if isinstance(expected, tuple):
