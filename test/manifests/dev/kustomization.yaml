@@ -4,4 +4,4 @@ kind: Kustomization
 # Actual image overrides will be added in test scripts.
 images: []
 resources:
-- ../../manifests/kustomize/env/dev
+- ../../../manifests/kustomize/env/dev
