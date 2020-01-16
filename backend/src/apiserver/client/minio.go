@@ -35,28 +35,20 @@ func getEndpoint(host, port string) string {
 
 // createCredentialProvidersChain creates a chained providers credential for a minio client
 func createCredentialProvidersChain(endpoint, accessKey, secretKey, region string) *credentials.Credentials {
-	var providers []credentials.Provider = []credentials.Provider{}
 	// first try with static api key
 	if accessKey != "" && secretKey != "" {
-		staticCred := &credentials.Static{
-			Value: credentials.Value{
-				AccessKeyID:     accessKey,
-				SecretAccessKey: secretKey,
-				SessionToken:    "",
-				SignerType:      credentials.SignatureV4,
-			},
-		}
-		providers = append(providers, staticCred)
+		return credentials.NewStaticV4(accessKey, secretKey, "")
 	}
-
-	minioEnv := &credentials.EnvMinio{}
-	awsEnv := &credentials.EnvAWS{}
-	awsIAM := &credentials.IAM{
-		Client: &http.Client{
-			Transport: http.DefaultTransport,
+	// otherwise use a chained provider: minioEnv -> awsEnv -> IAM
+	providers := []credentials.Provider{
+		&credentials.EnvMinio{},
+		&credentials.EnvAWS{},
+		&credentials.IAM{
+			Client: &http.Client{
+				Transport: http.DefaultTransport,
+			},
 		},
 	}
-	providers = append(providers, minioEnv, awsEnv, awsIAM)
 	return credentials.New(&credentials.Chain{Providers: providers})
 }
 
@@ -65,7 +57,6 @@ func CreateMinioClient(minioServiceHost string, minioServicePort string,
 
 	endpoint := getEndpoint(minioServiceHost, minioServicePort)
 	cred := createCredentialProvidersChain(endpoint, accessKey, secretKey, region)
-
 	minioClient, err := minio.NewWithCredentials(endpoint, cred, secure, region)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error while creating minio client: %+v", err)
