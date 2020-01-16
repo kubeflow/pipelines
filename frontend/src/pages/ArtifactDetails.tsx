@@ -24,7 +24,7 @@ import { CircularProgress } from '@material-ui/core';
 import { titleCase, getResourceProperty, serviceErrorToString } from '../lib/Utils';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { Artifact } from '../generated/src/apis/metadata/metadata_store_pb';
-import { Apis, ArtifactProperties } from '../lib/Apis';
+import { Apis, ArtifactProperties, ArtifactCustomProperties } from '../lib/Apis';
 import { GetArtifactsByIDRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
 
 interface ArtifactDetailsState {
@@ -108,7 +108,9 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
 
       const artifact = res.getArtifactsList()[0];
 
-      const artifactName = getResourceProperty(artifact, ArtifactProperties.NAME);
+      const artifactName =
+        getResourceProperty(artifact, ArtifactProperties.NAME) ||
+        getResourceProperty(artifact, ArtifactCustomProperties.NAME, true);
       let title = artifactName ? artifactName.toString() : '';
       const version = getResourceProperty(artifact, ArtifactProperties.VERSION);
       if (version) {

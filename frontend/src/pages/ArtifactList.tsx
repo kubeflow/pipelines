@@ -210,8 +210,10 @@ class ArtifactList extends Page<{}, ArtifactListState> {
               id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
               otherFields: [
                 getResourceProperty(artifact, ArtifactProperties.PIPELINE_NAME) ||
-                  getResourceProperty(artifact, ArtifactCustomProperties.WORKSPACE, true),
-                getResourceProperty(artifact, ArtifactProperties.NAME),
+                  getResourceProperty(artifact, ArtifactCustomProperties.WORKSPACE, true) ||
+                  getResourceProperty(artifact, ArtifactCustomProperties.RUN_ID, true),
+                getResourceProperty(artifact, ArtifactProperties.NAME) ||
+                  getResourceProperty(artifact, ArtifactCustomProperties.NAME, true),
                 artifact.getId(),
                 type,
                 artifact.getUri(),
