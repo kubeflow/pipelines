@@ -192,8 +192,10 @@ class ExecutionList extends Page<{}, ExecutionListState> {
             id: `${type}:${execution.getId()}`, // Join with colon so we can build the link
             otherFields: [
               getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
-                getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true),
-              getResourceProperty(execution, ExecutionProperties.COMPONENT_ID),
+                getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
+                getResourceProperty(execution, ExecutionCustomProperties.RUN_ID, true),
+              getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
+                getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true),
               getResourceProperty(execution, ExecutionProperties.STATE),
               execution.getId(),
               type,
