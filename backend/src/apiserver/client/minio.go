@@ -16,22 +16,57 @@ package client
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	minio "github.com/minio/minio-go"
+	credentials "github.com/minio/minio-go/pkg/credentials"
 	"github.com/pkg/errors"
 )
 
+func getEndpoint(host, port string) string {
+	if port == "" {
+		return host
+	}
+	return fmt.Sprintf("%s:%s", host, port)
+}
+
+// createCredentialProvidersChain creates a chained providers credential for a minio client
+func createCredentialProvidersChain(endpoint, accessKey, secretKey, region string) *credentials.Credentials {
+	var providers []credentials.Provider = []credentials.Provider{}
+	// first try with static api key
+	if accessKey != "" && secretKey != "" {
+		staticCred := &credentials.Static{
+			Value: credentials.Value{
+				AccessKeyID:     accessKey,
+				SecretAccessKey: secretKey,
+				SessionToken:    "",
+				SignerType:      credentials.SignatureV4,
+			},
+		}
+		providers = append(providers, staticCred)
+	}
+
+	minioEnv := &credentials.EnvMinio{}
+	awsEnv := &credentials.EnvAWS{}
+	awsIAM := &credentials.IAM{
+		Client: &http.Client{
+			Transport: http.DefaultTransport,
+		},
+	}
+	providers = append(providers, minioEnv, awsEnv, awsIAM)
+	return credentials.New(&credentials.Chain{Providers: providers})
+}
+
 func CreateMinioClient(minioServiceHost string, minioServicePort string,
 	accessKey string, secretKey string, secure bool, region string) (*minio.Client, error) {
-	endpoint := fmt.Sprintf("%s:%s", minioServiceHost, minioServicePort)
-	minioClient, err := minio.NewWithRegion(endpoint, accessKey, secretKey, secure, region)
-	if err == nil {
-		return minioClient, nil
-	}
-	minioClient, err = minio.New(endpoint, accessKey, secretKey, secure)
+
+	endpoint := getEndpoint(minioServiceHost, minioServicePort)
+	cred := createCredentialProvidersChain(endpoint, accessKey, secretKey, region)
+
+	minioClient, err := minio.NewWithCredentials(endpoint, cred, secure, region)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error while creating minio client: %+v", err)
 	}
