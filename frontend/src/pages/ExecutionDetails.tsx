@@ -24,7 +24,13 @@ import { CircularProgress } from '@material-ui/core';
 import { titleCase, getResourceProperty, serviceErrorToString, logger } from '../lib/Utils';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { Execution, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
-import { Apis, ExecutionProperties, ArtifactProperties } from '../lib/Apis';
+import {
+  Apis,
+  ExecutionProperties,
+  ArtifactProperties,
+  ExecutionCustomProperties,
+  ArtifactCustomProperties,
+} from '../lib/Apis';
 import {
   GetExecutionsByIDRequest,
   GetEventsByExecutionIDsRequest,
@@ -168,7 +174,9 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
     }
 
     const execution = executionResponse.response.getExecutionsList()[0];
-    const executionName = getResourceProperty(execution, ExecutionProperties.COMPONENT_ID);
+    const executionName =
+      getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
+      getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true);
     this.props.updateToolbar({
       pageTitle: executionName ? executionName.toString() : '',
     });
@@ -252,7 +260,9 @@ class SectionIO extends Component<
       }
       const data: ArtifactInfo = {
         id,
-        name: (getResourceProperty(artifact, ArtifactProperties.NAME) || '') as string, // TODO: assert name is string
+        name: (getResourceProperty(artifact, ArtifactProperties.NAME) ||
+          getResourceProperty(artifact, ArtifactCustomProperties.NAME, true) ||
+          '') as string, // TODO: assert name is string
         typeId: artifact.getTypeId(),
         uri: artifact.getUri() || '',
       };
