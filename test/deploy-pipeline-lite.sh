@@ -42,6 +42,8 @@ pushd ${KFP_MANIFEST_DIR}/crd
 kustomize build . | kubectl apply -f -
 popd
 
+kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+
 pushd ${KFP_MANIFEST_DIR}/dev
 
 # This is the recommended approach to do this.
