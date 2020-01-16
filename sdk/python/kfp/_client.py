@@ -343,7 +343,7 @@ class Client(object):
     return JobConfig(spec=spec, resource_references=resource_references)      
 
   def run_pipeline_recurring(self, experiment_id, job_name, start_time=None, end_time=None, interval_second=600 , max_concurrency=1, params={}, pipeline_package_path=None, pipeline_id=None, namespace=None, enabled=True):
-     """Create a recurring run.
+    """Create a recurring run.
     Args:
       experiment_id: The string id of an experiment.
       job_name: name of the job.
