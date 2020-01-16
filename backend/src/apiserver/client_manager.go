@@ -324,7 +324,7 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 	minioServiceRegion := common.GetStringConfigWithDefault(
 		"ObjectStoreConfig.Region", os.Getenv(minioServiceRegion))
 	minioServiceSecure := common.GetBoolConfigWithDefault(
-		"ObjectStoreConfig.Secure", common.GetBoolFromStringWithDefault(minioServiceSecure, false))
+		"ObjectStoreConfig.Secure", common.GetBoolFromStringWithDefault(os.Getenv(minioServiceSecure), false))
 	accessKey := common.GetStringConfig("ObjectStoreConfig.AccessKey")
 	secretKey := common.GetStringConfig("ObjectStoreConfig.SecretAccessKey")
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", os.Getenv(pipelineBucketName))
