@@ -64,6 +64,17 @@ export enum ExecutionCustomProperties {
   TASK_ID = 'task_id',
 }
 
+/** Known Context properties */
+export enum ContextProperties {
+  PIPELINE_NAME = 'pipeline_name',
+}
+
+/** Known Context custom properties */
+export enum ContextCustomProperties {
+  PIPELINE_NAME = 'pipeline_name',
+  RUN_ID = 'run_id',
+}
+
 export interface ListRequest {
   filter?: string;
   orderAscending?: boolean;
@@ -125,6 +136,16 @@ const metadataServicePromiseClient = {
   getExecutionsByID: makePromiseApi(
     metadataServiceClient.getExecutionsByID.bind(metadataServiceClient),
   ),
+  //getContextTypes: makePromiseApi( # Missing for some reason
+  //  metadataServiceClient.getContextTypes.bind(metadataServiceClient),
+  //),
+  getContextType: makePromiseApi(metadataServiceClient.getContextType.bind(metadataServiceClient)),
+  getContexts: makePromiseApi(metadataServiceClient.getContexts.bind(metadataServiceClient)),
+  getContextsByID: makePromiseApi(
+    metadataServiceClient.getContextsByID.bind(metadataServiceClient),
+  ),
+  getAttributions: makePromiseApi(metadataServiceClient.Attributions.bind(metadataServiceClient)),
+  getAssociations: makePromiseApi(metadataServiceClient.Associations.bind(metadataServiceClient)),
 };
 
 // For cross browser support, fetch should use 'same-origin' as default. This fixes firefox auth issues.

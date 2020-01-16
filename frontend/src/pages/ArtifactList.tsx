@@ -35,8 +35,8 @@ import {
 } from '../lib/Utils';
 import { RoutePageFactory } from '../components/Router';
 import { Link } from 'react-router-dom';
-import { Artifact, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
-import { ArtifactProperties, ArtifactCustomProperties, ListRequest, Apis } from '../lib/Apis';
+import { Artifact, ArtifactType, Context, Attribution } from '../generated/src/apis/metadata/metadata_store_pb';
+import { ArtifactProperties, ArtifactCustomProperties, ContextCustomProperties, ListRequest, Apis } from '../lib/Apis';
 import {
   GetArtifactTypesRequest,
   GetArtifactsRequest,
@@ -181,6 +181,40 @@ class ArtifactList extends Page<{}, ArtifactListState> {
       artifactTypesMap.set(artifactType.getId()!, artifactType);
     });
 
+    const contextsMap = new Map<number, Context>();
+    const {
+      error: contexts_err,
+      response: contexts_res,
+    } = await Apis.getMetadataServicePromiseClient().getContexts(
+      new GetContextsRequest(),
+    );
+
+    if (contexts_err) {
+      this.showPageError(serviceErrorToString(contexts_err));
+      return;
+    }
+
+    ((contexts_res && contexts_res.getContextsList()) || []).forEach(context => {
+      contextsMap.set(context.getId()!, context);
+    });
+
+    const artifactIdToContextIdMap = new Map<number, number>();
+    const {
+      error: attributions_err,
+      response: attributions_res,
+    } = await Apis.getMetadataServicePromiseClient().getAttributions(
+      new GetAttributionsRequest(),
+    );
+
+    if (attributions_err) {
+      this.showPageError(serviceErrorToString(attributions_err));
+      return;
+    }
+
+    ((attributions_res && attributions_res.getAttributionsList()) || []).forEach(attribution => {
+      artifactIdToContextIdMap.set(attribution.getArtifactId()!, attribution.getContextId()!);
+    });
+
     try {
       // TODO: When backend supports sending creation time back when we list
       // artifacts, let's use it directly.
@@ -206,12 +240,16 @@ class ArtifactList extends Page<{}, ArtifactListState> {
               typeId && artifactTypesMap && artifactTypesMap.get(typeId)
                 ? artifactTypesMap.get(typeId)!.getName()
                 : typeId;
+            const artifactId = artifact.getId()!;
+            const contextId = artifactIdToContextIdMap.get(artifactId);
+            const context = contextId ? contextsMap.get(contextId) : undefined;
             return {
               id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
               otherFields: [
                 getResourceProperty(artifact, ArtifactProperties.PIPELINE_NAME) ||
                   getResourceProperty(artifact, ArtifactCustomProperties.WORKSPACE, true) ||
-                  getResourceProperty(artifact, ArtifactCustomProperties.RUN_ID, true),
+                  getResourceProperty(artifact, ArtifactCustomProperties.RUN_ID, true) ||
+                  (context ? getResourceProperty(context, ContextCustomProperties.RUN_ID, true) : undefined),
                 getResourceProperty(artifact, ArtifactProperties.NAME) ||
                   getResourceProperty(artifact, ArtifactCustomProperties.NAME, true),
                 artifact.getId(),

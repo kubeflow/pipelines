@@ -24,7 +24,7 @@ import { ListRequest } from './Apis';
 import { Row, Column, ExpandState } from '../components/CustomTable';
 import { padding } from '../Css';
 import { classes } from 'typestyle';
-import { Value, Artifact, Execution } from '../generated/src/apis/metadata/metadata_store_pb';
+import { Value, Artifact, Execution, Context } from '../generated/src/apis/metadata/metadata_store_pb';
 import { CustomTableRow, css } from '../components/CustomTableRow';
 import { ServiceError } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
 
@@ -123,7 +123,7 @@ export function titleCase(str: string): string {
  * @param fromCustomProperties
  */
 export function getResourceProperty(
-  resource: Artifact | Execution,
+  resource: Artifact | Execution | Context,
   propertyName: string,
   fromCustomProperties = false,
 ): string | number | null {

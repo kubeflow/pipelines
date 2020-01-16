@@ -35,11 +35,12 @@ import {
 } from '../lib/Utils';
 import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from '../components/Router';
-import { Execution, ExecutionType } from '../generated/src/apis/metadata/metadata_store_pb';
-import { ListRequest, ExecutionProperties, ExecutionCustomProperties, Apis } from '../lib/Apis';
+import { Execution, ExecutionType, Context, Association } from '../generated/src/apis/metadata/metadata_store_pb';
+import { ListRequest, ExecutionProperties, ExecutionCustomProperties, ContextCustomProperties, Apis } from '../lib/Apis';
 import {
   GetExecutionsRequest,
   GetExecutionTypesRequest,
+  GetContextsRequest,
 } from '../generated/src/apis/metadata/metadata_store_service_pb';
 
 interface ExecutionListState {
@@ -179,6 +180,41 @@ class ExecutionList extends Page<{}, ExecutionListState> {
       executionTypesMap.set(executionType.getId()!, executionType);
     });
 
+    const contextsMap = new Map<number, Context>();
+    const {
+      error: contexts_err,
+      response: contexts_res,
+    } = await Apis.getMetadataServicePromiseClient().getContexts(
+      new GetContextsRequest(),
+    );
+
+    if (contexts_err) {
+      this.showPageError(serviceErrorToString(contexts_err));
+      return;
+    }
+
+    ((contexts_res && contexts_res.getContextsList()) || []).forEach(context => {
+      contextsMap.set(context.getId()!, context);
+    });
+
+    const executionIdToContextIdMap = new Map<number, number>();
+    const {
+      error: associations_err,
+      response: associations_res,
+    } = await Apis.getMetadataServicePromiseClient().getAssociations(
+      new GetAssociationsRequest(),
+    );
+
+    if (associations_err) {
+      this.showPageError(serviceErrorToString(associations_err));
+      return;
+    }
+
+    ((associations_res && associations_res.getAssociationsList()) || []).forEach(association => {
+      executionIdToContextIdMap.set(association.getExecutionId()!, association.getContextId()!);
+    });
+
+
     const collapsedAndExpandedRows = groupRows(
       executions
         .map(execution => {
@@ -188,12 +224,16 @@ class ExecutionList extends Page<{}, ExecutionListState> {
             typeId && executionTypesMap && executionTypesMap.get(typeId)
               ? executionTypesMap.get(typeId)!.getName()
               : typeId;
+          const executiontId = execution.getId()!;
+          const contextId = executionIdToContextIdMap.get(executionId);
+          const context = contextId ? contextsMap.get(contextId) : undefined;
           return {
             id: `${type}:${execution.getId()}`, // Join with colon so we can build the link
             otherFields: [
               getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
                 getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
-                getResourceProperty(execution, ExecutionCustomProperties.RUN_ID, true),
+                getResourceProperty(execution, ExecutionCustomProperties.RUN_ID, true) ||
+                (context ? getResourceProperty(context, ContextCustomProperties.RUN_ID, true) : undefined),
               getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
                 getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true),
               getResourceProperty(execution, ExecutionProperties.STATE),
