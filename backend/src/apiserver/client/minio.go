@@ -34,7 +34,7 @@ func getEndpoint(host, port string) string {
 }
 
 // createCredentialProvidersChain creates a chained providers credential for a minio client
-func createCredentialProvidersChain(endpoint, accessKey, secretKey, region string) *credentials.Credentials {
+func createCredentialProvidersChain(endpoint, accessKey, secretKey string) *credentials.Credentials {
 	// first try with static api key
 	if accessKey != "" && secretKey != "" {
 		return credentials.NewStaticV4(accessKey, secretKey, "")
@@ -56,7 +56,7 @@ func CreateMinioClient(minioServiceHost string, minioServicePort string,
 	accessKey string, secretKey string, secure bool, region string) (*minio.Client, error) {
 
 	endpoint := getEndpoint(minioServiceHost, minioServicePort)
-	cred := createCredentialProvidersChain(endpoint, accessKey, secretKey, region)
+	cred := createCredentialProvidersChain(endpoint, accessKey, secretKey)
 	minioClient, err := minio.NewWithCredentials(endpoint, cred, secure, region)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error while creating minio client: %+v", err)
