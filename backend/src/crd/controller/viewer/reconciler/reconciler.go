@@ -288,5 +288,5 @@ func (r *Reconciler) maybeDeleteOldestViewer(t viewerV1beta1.ViewerType, namespa
 		}
 	}
 
-	return r.Client.Delete(context.Background(), oldest, nil)
+	return r.Client.Delete(context.Background(), oldest)
 }
