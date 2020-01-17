@@ -67,7 +67,7 @@ func TestUploadPipeline_YAML(t *testing.T) {
 
 	// Verify stored in object store
 	objStore := clientManager.ObjectStore()
-	template, err := objStore.GetFile(resource.DefaultFakeUUID)
+	template, err := objStore.GetFile(objStore.GetPipelineKey(resource.DefaultFakeUUID))
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
@@ -167,7 +167,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 
 	// Verify stored in object store
 	objStore := clientManager.ObjectStore()
-	template, err := objStore.GetFile(resource.DefaultFakeUUID)
+	template, err := objStore.GetFile(objStore.GetPipelineKey(resource.DefaultFakeUUID))
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
@@ -289,7 +289,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 
 	// Verify stored in object store
 	objStore := clientManager.ObjectStore()
-	template, err := objStore.GetFile(resource.DefaultFakeUUID)
+	template, err := objStore.GetFile(objStore.GetPipelineKey(resource.DefaultFakeUUID))
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
@@ -358,7 +358,8 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 	assert.Equal(t, 200, rr.Code)
 
 	// Verify stored in object store
-	template, err := clientManager.ObjectStore().GetFile(resource.DefaultFakeUUID)
+	objStore := clientManager.ObjectStore()
+	template, err := objStore.GetFile(objStore.GetPipelineKey(resource.DefaultFakeUUID))
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
