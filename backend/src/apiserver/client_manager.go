@@ -333,22 +333,22 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
 		secretKey, minioServiceSecure, minioServiceRegion, initConnectionTimeout)
-	createMinioBucket(minioClient, bucketName)
+	createMinioBucket(minioClient, bucketName, minioServiceRegion)
 
 	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, pipelineFolder, disableMultipart)
 }
 
-func createMinioBucket(minioClient *minio.Client, bucketName string) {
+func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
+	// Check to see if we already own this bucket.
+	exists, err := minioClient.BucketExists(bucketName)
+	if exists {
+		glog.Infof("We already own %s\n", bucketName)
+		return
+	}
 	// Create bucket if it does not exist
-	err := minioClient.MakeBucket(bucketName, "")
+	err = minioClient.MakeBucket(bucketName, region)
 	if err != nil {
-		// Check to see if we already own this bucket.
-		exists, err := minioClient.BucketExists(bucketName)
-		if err == nil && exists {
-			glog.Infof("We already own %s\n", bucketName)
-		} else {
-			glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
-		}
+		glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
 	}
 	glog.Infof("Successfully created bucket %s\n", bucketName)
 }
