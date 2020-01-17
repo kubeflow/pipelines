@@ -35,6 +35,7 @@ type ObjectStoreInterface interface {
 	GetFile(filePath string) ([]byte, error)
 	AddAsYamlFile(o interface{}, filePath string) error
 	GetFromYamlFile(o interface{}, filePath string) error
+	GetPipelineKey(pipelineId string) string
 }
 
 // Managing pipeline using Minio
@@ -45,8 +46,8 @@ type MinioObjectStore struct {
 	disableMultipart bool
 }
 
-// appendBaseFolder adds a base folder to any file path passed to the object store.
-func (m *MinioObjectStore) appendBaseFolder(pipelineID string) string {
+// GetPipelineKey adds the configured base folder to pipeline id.
+func (m *MinioObjectStore) GetPipelineKey(pipelineID string) string {
 	return path.Join(m.baseFolder, pipelineID)
 }
 
@@ -60,7 +61,6 @@ func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
 		parts = multipartDefaultSize
 	}
 
-	filePath = m.appendBaseFolder(filePath)
 	_, err := m.minioClient.PutObject(
 		m.bucketName, filePath, bytes.NewReader(file),
 		parts, minio.PutObjectOptions{ContentType: "application/octet-stream"})
@@ -71,7 +71,6 @@ func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
 }
 
 func (m *MinioObjectStore) DeleteFile(filePath string) error {
-	filePath = m.appendBaseFolder(filePath)
 	err := m.minioClient.DeleteObject(m.bucketName, filePath)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to delete %v", filePath)
@@ -80,7 +79,6 @@ func (m *MinioObjectStore) DeleteFile(filePath string) error {
 }
 
 func (m *MinioObjectStore) GetFile(filePath string) ([]byte, error) {
-	filePath = m.appendBaseFolder(filePath)
 	reader, err := m.minioClient.GetObject(m.bucketName, filePath, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get %v", filePath)
