@@ -312,10 +312,15 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 	accessKey := common.GetStringConfig("ObjectStoreConfig.AccessKey")
 	secretKey := common.GetStringConfig("ObjectStoreConfig.SecretAccessKey")
 	bucketName := common.GetStringConfig("ObjectStoreConfig.BucketName")
+	forceV2Signature := common.GetBoolConfigWithDefault("ObjectStoreConfig.ForceV2Signature", false)
 	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
-	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
-		secretKey, initConnectionTimeout)
+	minioClient := client.CreateMinioClientOrFatal(minioServiceHost,
+		minioServicePort,
+		accessKey,
+		secretKey,
+		initConnectionTimeout,
+		forceV2Signature)
 	createMinioBucket(minioClient, bucketName)
 
 	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, disableMultipart)

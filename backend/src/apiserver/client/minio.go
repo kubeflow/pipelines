@@ -24,23 +24,45 @@ import (
 	"github.com/pkg/errors"
 )
 
-func CreateMinioClient(minioServiceHost string, minioServicePort string,
-	accessKey string, secretKey string) (*minio.Client, error) {
-	minioClient, err := minio.New(fmt.Sprintf("%s:%s", minioServiceHost, minioServicePort),
-		accessKey, secretKey, false /* Secure connection */)
+func CreateMinioClient(minioServiceHost string,
+	minioServicePort string,
+	accessKey string,
+	secretKey string,
+	forceV2Signature bool) (*minio.Client, error) {
+	var minioClient *minio.Client
+	var err error
+	if forceV2Signature {
+		minioClient, err = minio.NewV2(fmt.Sprintf("%s:%s", minioServiceHost, minioServicePort),
+			accessKey,
+			secretKey,
+			false /* Secure connection */)
+
+	} else {
+		minioClient, err = minio.New(fmt.Sprintf("%s:%s", minioServiceHost, minioServicePort),
+			accessKey,
+			secretKey,
+			false /* Secure connection */)
+	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error while creating minio client: %+v", err)
 	}
 	return minioClient, nil
 }
 
-func CreateMinioClientOrFatal(minioServiceHost string, minioServicePort string,
-	accessKey string, secretKey string, initConnectionTimeout time.Duration) *minio.Client {
+func CreateMinioClientOrFatal(minioServiceHost string,
+	minioServicePort string,
+	accessKey string,
+	secretKey string,
+	initConnectionTimeout time.Duration,
+	forceV2Signature bool) *minio.Client {
 	var minioClient *minio.Client
 	var err error
 	var operation = func() error {
-		minioClient, err = CreateMinioClient(minioServiceHost, minioServicePort,
-			accessKey, secretKey)
+		minioClient, err = CreateMinioClient(minioServiceHost,
+			minioServicePort,
+			accessKey,
+			secretKey,
+			forceV2Signature)
 		if err != nil {
 			return err
 		}
