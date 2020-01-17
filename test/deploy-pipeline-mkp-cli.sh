@@ -99,28 +99,6 @@ mpdev scripts/install  --deployer=$DEPLOYER_NAME:$GCR_IMAGE_TAG   --parameters='
 echo "Status of pods after mpdev install"
 kubectl get pods -n ${NAMESPACE}
 
-if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
-  # Use static GSAs for testing, so we don't need to GC them.
-  export SYSTEM_GSA="test-kfp-system"
-  export USER_GSA="test-kfp-user"
-
-  kubectl create serviceaccount --namespace $NAMESPACE ml-pipeline-ui
-  kubectl create serviceaccount --namespace $NAMESPACE pipeline-runner
-
-  yes | PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
-    ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
-
-  gcloud projects add-iam-policy-binding $PROJECT \
-    --member="serviceAccount:$SYSTEM_GSA@$PROJECT.iam.gserviceaccount.com" \
-    --role="roles/editor"
-  gcloud projects add-iam-policy-binding $PROJECT \
-    --member="serviceAccount:$USER_GSA@$PROJECT.iam.gserviceaccount.com" \
-    --role="roles/editor"
-
-  source "$DIR/../manifests/kustomize/wi-utils.sh"
-  verify_workload_identity_binding "pipeline-runner" $NAMESPACE
-fi
-
 popd
 
 # Waiting for the KFP resources are ready. TODO: verification of KFP resources
