@@ -43,6 +43,11 @@ func initEnvVars() {
 
 type FakeBadObjectStore struct{}
 
+
+func (m *FakeBadObjectStore) GetPipelineKey(pipelineID string) string {
+	return pipelineID
+}
+
 func (m *FakeBadObjectStore) AddFile(template []byte, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
