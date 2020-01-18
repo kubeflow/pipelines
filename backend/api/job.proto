@@ -32,9 +32,9 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
     key: "default";
     value: {
       schema: {
-        json_schema: {
-          ref: ".api.Status";
-        }
+	json_schema: {
+	  ref: ".api.Status";
+	}
       }
     }
   }
@@ -47,9 +47,9 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
     security: {
       key: "Bearer";
       value: {
-        type: TYPE_API_KEY;
-        in: IN_HEADER;
-        name: "authorization";
+	type: TYPE_API_KEY;
+	in: IN_HEADER;
+	name: "authorization";
       }
     }
   }
@@ -167,7 +167,7 @@ message CronSchedule {
   google.protobuf.Timestamp end_time = 2;
 
   // The cron string. For details how to compose a cron, visit
-  // ttps://en.wikipedia.org/wiki/Cron
+  // https://en.wikipedia.org/wiki/Cron
   string cron = 3;
 }
 
