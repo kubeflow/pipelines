@@ -22,7 +22,7 @@ def _create_container_op_from_component_and_arguments(
     component_spec: ComponentSpec,
     arguments: Mapping[str, Any],
     component_ref: ComponentReference = None,
-) -> 'ContainerOp':
+): # -> 'ContainerOp':
     from .. import dsl
 
     # Check types of the reference arguments and serialize PipelineParams
