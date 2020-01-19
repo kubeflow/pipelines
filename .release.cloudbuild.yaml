@@ -259,6 +259,29 @@ steps:
   id:   'tagArgoWorkflowControllerForMarketplaceTest'
   waitFor: ['PullArgoWorkflowController']
 
+# Marketplace specific deployer and specific primary image
+- id:   'pullMarketplaceDeployer'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA']
+  waitFor: ['-']
+- id:   'tagMarketplaceDeployerVersionNumber'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/pipelines/deployer:$TAG_NAME']
+  waitFor: ['pullMarketplaceDeployer']
+- id:   'tagMarketplaceDeployerVersionNumberTest'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/pipelines-test/deployer:$TAG_NAME']
+  waitFor: ['pullMarketplaceDeployer']
+
+- id:   'tagMarketplacePrimaryVersionNumber'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/pipelines:$TAG_NAME']
+  waitFor: ['pullMarketplaceDeployer']
+- id:   'tagMarketplacePrimaryVersionNumberTest'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/pipelines-test:$TAG_NAME']
+  waitFor: ['pullMarketplaceDeployer']
+
 # Copy the Python SDK
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz', '/workspace/']
@@ -336,6 +359,8 @@ images:
 - 'gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/metadataenvoy:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/metadatawriter:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines/deployer:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines-test/frontend:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines-test/apiserver:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines-test/scheduledworkflow:$TAG_NAME'
@@ -351,5 +376,7 @@ images:
 - 'gcr.io/ml-pipeline/google/pipelines-test/argoworkflowcontroller:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines-test/metadataenvoy:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines-test/metadatawriter:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/deployer:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test:$TAG_NAME'
 timeout: '1200s'
 
