@@ -90,6 +90,10 @@ x-google-marketplace:
       affinity:
         simpleNodeAffinity:
           type: REQUIRE_ONE_NODE_PER_REPLICA
+    gcp:
+      nodes:
+        requiredOauthScopes:
+          - https://www.googleapis.com/auth/cloud-platform
 
 properties:
   name:
