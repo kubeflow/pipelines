@@ -13,16 +13,16 @@ resources:
 
 images:
 - name: gcr.io/ml-pipeline/api-server
-  newTag: 0.1.40
+  newTag: 0.2.0
 - name: gcr.io/ml-pipeline/persistenceagent
-  newTag: 0.1.40
+  newTag: 0.2.0
 - name: gcr.io/ml-pipeline/scheduledworkflow
-  newTag: 0.1.40
+  newTag: 0.2.0
 - name: gcr.io/ml-pipeline/frontend
-  newTag: 0.1.40
+  newTag: 0.2.0
 - name: gcr.io/ml-pipeline/viewer-crd-controller
-  newTag: 0.1.40
+  newTag: 0.2.0
 - name: gcr.io/ml-pipeline/inverse-proxy-agent
-  newTag: 0.1.40
+  newTag: 0.2.0
 - name: gcr.io/ml-pipeline/visualization-server
-  newTag: 0.1.40
+  newTag: 0.2.0
