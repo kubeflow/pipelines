@@ -29,6 +29,10 @@ steps:
   args: ['tag', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/frontend:$TAG_NAME']
   id:   'tagFrontendForMarketplace'
   waitFor: ['pullFrontend']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines-test/frontend:$TAG_NAME']
+  id:   'tagFrontendForMarketplaceTest'
+  waitFor: ['pullFrontend']
 
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA']
@@ -44,6 +48,10 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/apiserver:$TAG_NAME']
   id:   'tagAPIServerForMarketplace'
+  waitFor: ['pullAPIServer']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines-test/apiserver:$TAG_NAME']
+  id:   'tagAPIServerForMarketplaceTest'
   waitFor: ['pullAPIServer']
 
 - name: 'gcr.io/cloud-builders/docker'
@@ -61,6 +69,10 @@ steps:
   args: ['tag', 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/scheduledworkflow:$TAG_NAME']
   id:   'tagScheduledworkflowForMarketplace'
   waitFor: ['pullScheduledworkflow']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines-test/scheduledworkflow:$TAG_NAME']
+  id:   'tagScheduledworkflowForMarketplaceTest'
+  waitFor: ['pullScheduledworkflow']
 
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA']
@@ -76,6 +88,10 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/viewercrd:$TAG_NAME']
   id:   'tagViewerCrdControllerForMarketplace'
+  waitFor: ['pullViewerCrdController']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines-test/viewercrd:$TAG_NAME']
+  id:   'tagViewerCrdControllerForMarketplaceTest'
   waitFor: ['pullViewerCrdController']
 
 - name: 'gcr.io/cloud-builders/docker'
@@ -93,6 +109,10 @@ steps:
   args: ['tag', 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/persistenceagent:$TAG_NAME']
   id:   'tagPersistenceagentForMarketplace'
   waitFor: ['pullPersistenceagent']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines-test/persistenceagent:$TAG_NAME']
+  id:   'tagPersistenceagentForMarketplaceTest'
+  waitFor: ['pullPersistenceagent']
 
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA']
@@ -108,6 +128,10 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/proxyagent:$TAG_NAME']
   id:   'tagInverseProxyAgentForMarketplace'
+  waitFor: ['pullInverseProxyAgent']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines-test/proxyagent:$TAG_NAME']
+  id:   'tagInverseProxyAgentForMarketplaceTest'
   waitFor: ['pullInverseProxyAgent']
 
 - name: 'gcr.io/cloud-builders/docker'
@@ -125,12 +149,21 @@ steps:
   args: ['tag', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/visualizationserver:$TAG_NAME']
   id:   'tagVisualizationServerForMarketplace'
   waitFor: ['pullVisualizationServer']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines-test/visualizationserver:$TAG_NAME']
+  id:   'tagVisualizationServerForMarketplaceTest'
+  waitFor: ['pullVisualizationServer']
 
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.14.0']
   id:   'PullMetadataServer'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.14.0', 'gcr.io/ml-pipeline/google/pipelines/metadataserver:$TAG_NAME']
+  id:   'tagMetadataServerForMarketplace'
+  waitFor: ['PullMetadataServer']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.14.0', 'gcr.io/ml-pipeline/google/pipelines-test/metadataserver:$TAG_NAME']
+  id:   'tagMetadataServerForMarketplaceTest'
   waitFor: ['PullMetadataServer']
 
 - id:   'pullMetadataWriter'
@@ -149,12 +182,21 @@ steps:
   name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/metadatawriter:$TAG_NAME']
   waitFor: ['pullMetadataWriter']
+- id:   'tagMetadataWriterForMarketplaceTest'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines-test/metadatawriter:$TAG_NAME']
+  waitFor: ['pullMetadataWriter']
 
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA']
   id:   'PullMetadataEnvoy'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/metadataenvoy:$TAG_NAME']
+  id:   'tagMetadataEnvoyForMarketplace'
+  waitFor: ['PullMetadataEnvoy']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines-test/metadataenvoy:$TAG_NAME']
+  id:   'tagMetadataEnvoyForMarketplaceTest'
   waitFor: ['PullMetadataEnvoy']
 
 - name: 'gcr.io/cloud-builders/docker'
@@ -162,6 +204,11 @@ steps:
   id:   'PullMinio'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance', 'gcr.io/ml-pipeline/google/pipelines/minio:$TAG_NAME']
+  id:   'tagMinioForMarketplace'
+  waitFor: ['PullMinio']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance', 'gcr.io/ml-pipeline/google/pipelines-test/minio:$TAG_NAME']
+  id:   'tagMinioForMarketplaceTest'
   waitFor: ['PullMinio']
 
 - name: 'gcr.io/cloud-builders/docker'
@@ -169,6 +216,11 @@ steps:
   id:   'PullMysql'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/ml-pipeline/mysql:5.6', 'gcr.io/ml-pipeline/google/pipelines/mysql:$TAG_NAME']
+  id:   'tagMySqlForMarketplace'
+  waitFor: ['PullMysql']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/ml-pipeline/mysql:5.6', 'gcr.io/ml-pipeline/google/pipelines-test/mysql:$TAG_NAME']
+  id:   'tagMySqlForMarketplaceTest'
   waitFor: ['PullMysql']
 
 - name: 'gcr.io/cloud-builders/docker'
@@ -176,6 +228,11 @@ steps:
   id:   'PullCloudsqlProxy'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/cloudsql-docker/gce-proxy:1.14', 'gcr.io/ml-pipeline/google/pipelines/cloudsqlproxy:$TAG_NAME']
+  id:   'tagCloudSqlProxyForMarketplace'
+  waitFor: ['PullCloudsqlProxy']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/cloudsql-docker/gce-proxy:1.14', 'gcr.io/ml-pipeline/google/pipelines-test/cloudsqlproxy:$TAG_NAME']
+  id:   'tagCloudSqlProxyForMarketplaceTest'
   waitFor: ['PullCloudsqlProxy']
 
 - name: 'gcr.io/cloud-builders/docker'
@@ -183,6 +240,11 @@ steps:
   id:   'PullArgoExecutor'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/ml-pipeline/argoexec:v2.3.0-license-compliance', 'gcr.io/ml-pipeline/google/pipelines/argoexecutor:$TAG_NAME']
+  id:   'tagArgoExecutorForMarketplace'
+  waitFor: ['PullArgoExecutor']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/ml-pipeline/argoexec:v2.3.0-license-compliance', 'gcr.io/ml-pipeline/google/pipelines-test/argoexecutor:$TAG_NAME']
+  id:   'tagArgoExecutorForMarketplaceTest'
   waitFor: ['PullArgoExecutor']
 
 - name: 'gcr.io/cloud-builders/docker'
@@ -190,6 +252,11 @@ steps:
   id:   'PullArgoWorkflowController'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/ml-pipeline/workflow-controller:v2.3.0-license-compliance', 'gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:$TAG_NAME']
+  id:   'tagArgoWorkflowControllerForMarketplace'
+  waitFor: ['PullArgoWorkflowController']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/ml-pipeline/workflow-controller:v2.3.0-license-compliance', 'gcr.io/ml-pipeline/google/pipelines-test/argoworkflowcontroller:$TAG_NAME']
+  id:   'tagArgoWorkflowControllerForMarketplaceTest'
   waitFor: ['PullArgoWorkflowController']
 
 # Copy the Python SDK
@@ -269,5 +336,20 @@ images:
 - 'gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/metadataenvoy:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/metadatawriter:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/frontend:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/apiserver:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/scheduledworkflow:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/viewercrd:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/persistenceagent:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/proxyagent:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/visualizationserver:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/metadataserver:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/minio:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/mysql:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/cloudsqlproxy:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/argoexecutor:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/argoworkflowcontroller:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/metadataenvoy:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines-test/metadatawriter:$TAG_NAME'
 timeout: '1200s'
 
