@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"io"
@@ -51,8 +52,10 @@ func TestUploadPipeline_YAML(t *testing.T) {
 	handler := http.HandlerFunc(server.UploadPipeline)
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, 200, rr.Code)
-	// Verify time format is RFC3339
-	assert.Contains(t, rr.Body.String(), `"created_at":"1970-01-01T00:00:01Z"`)
+	// Verify time format is RFC3339. There should be two created_at,
+	// one for pipeline and one for the default version. It means that we should
+	// get 3 if we split the output with the expected expression.
+	assert.Equal(t, 3, len(strings.Split(rr.Body.String(), `"created_at":"1970-01-01T00:00:01Z"`)))
 
 	// Verify stored in object store
 	template, err := clientManager.ObjectStore().GetFile(storage.CreatePipelinePath(resource.DefaultFakeUUID))
