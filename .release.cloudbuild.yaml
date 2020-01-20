@@ -13,6 +13,17 @@
 # limitations under the License.
 
 steps:
+
+# Marketplace Major.Minor parsing
+- id: "parseMajorMinorVersion"
+  name: gcr.io/cloud-builders/docker
+  entrypoint: /bin/bash
+  args:
+    - -ceux
+    - |
+      # Parse major minor version and save to a file for reusing in other steps.
+      echo $TAG_NAME | sed -e "s#[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)#\1.\2#" > /workspace/mm.ver
+
 # Pull and retag the images for the pipeline system
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA']
@@ -468,16 +479,6 @@ steps:
     docker tag gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA gcr.io/ml-pipeline/google/pipelines-test:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines-test:$(cat /workspace/mm.ver)
-
-# Marketplace Major.Minor parsing
-- id: "parseMajorMinorVersion"
-  name: gcr.io/cloud-builders/docker
-  entrypoint: /bin/bash
-  args:
-    - -ceux
-    - |
-      # Parse major minor version and save to a file for reusing in other steps.
-      echo $TAG_NAME | sed -e "s#[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)#\1.\2#" > /workspace/mm.ver
 
 # Copy the Python SDK
 - name: 'gcr.io/cloud-builders/gsutil'
