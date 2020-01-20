@@ -162,4 +162,6 @@ def calc_pipeline(
     delete_dbfsblock_task.after(submit_run_task)
 
 if __name__ == "__main__":
-    compiler.Compiler().compile(calc_pipeline, __file__ + ".tar.gz")
+    compiler.Compiler()._create_and_write_workflow(
+        pipeline_func=calc_pipeline,
+        package_path=__file__ + ".tar.gz")
