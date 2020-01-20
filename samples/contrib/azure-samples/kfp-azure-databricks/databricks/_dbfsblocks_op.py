@@ -138,7 +138,8 @@ class CreateDbfsBlockOp(ResourceOp):
             ValueError: if the file name doesn't exist.
         """
 
-        spec = json.loads(open(file_name).read())
+        with open(file_name) as json_file:
+            spec = json.loads(json_file.read())
         return cls(name=name, k8s_name=k8s_name, block_name=block_name, spec=spec)
 
     @property

@@ -16,7 +16,7 @@ class TestImportWorkspaceItemOp(unittest.TestCase):
                 file_format="SOURCE"
             )
 
-        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
+        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._create_workflow(my_pipeline))
 
     def test_databricks_import_workspaceitem(self):
         def my_pipeline():
@@ -44,7 +44,7 @@ class TestImportWorkspaceItemOp(unittest.TestCase):
             
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_import_workspaceitem_with_spec(self):
         def my_pipeline():
@@ -64,7 +64,7 @@ class TestImportWorkspaceItemOp(unittest.TestCase):
 
             self.assert_res(res, spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_import_workspaceitem_with_spec_and_extra_args(self):
         def my_pipeline():
@@ -92,7 +92,7 @@ class TestImportWorkspaceItemOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_import_workspaceitem_with_json_spec(self):
         def my_pipeline():
@@ -121,7 +121,7 @@ class TestImportWorkspaceItemOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_import_workspaceitem_with_json_file_spec(self):
         def my_pipeline():
@@ -144,7 +144,7 @@ class TestImportWorkspaceItemOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def assert_res(self, res, expected_spec):
         self.assertEqual(res.name, "importworkspaceitem")
@@ -187,7 +187,7 @@ class TestDeleteWorkspaceItemOp(unittest.TestCase):
                 name="deleteworkspaceitem"
             )
 
-        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
+        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._create_workflow(my_pipeline))
 
     def test_databricks_delete_workspaceitem(self):
         def my_pipeline():
@@ -209,7 +209,7 @@ class TestDeleteWorkspaceItemOp(unittest.TestCase):
             self.assertEqual(res.k8s_resource["kind"], "WorkspaceItem")
             self.assertEqual(res.k8s_resource["metadata"]["name"], "test-item")
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
 if __name__ == '__main__':
     unittest.main()

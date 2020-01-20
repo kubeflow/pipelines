@@ -14,7 +14,7 @@ class TestCreateDbfsBlockOp(unittest.TestCase):
                 path="/Users/user@foo.com/ScalaExampleNotebook"
             )
 
-        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
+        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._create_workflow(my_pipeline))
 
     def test_databricks_createdbfsblock(self):
         def my_pipeline():
@@ -37,7 +37,7 @@ class TestCreateDbfsBlockOp(unittest.TestCase):
             
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_createdbfsblock_with_spec(self):
         def my_pipeline():
@@ -55,7 +55,7 @@ class TestCreateDbfsBlockOp(unittest.TestCase):
 
             self.assert_res(res, spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_createdbfsblock_with_spec_and_extra_args(self):
         def my_pipeline():
@@ -79,7 +79,7 @@ class TestCreateDbfsBlockOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_createdbfsblock_with_json_spec(self):
         def my_pipeline():
@@ -104,7 +104,7 @@ class TestCreateDbfsBlockOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_createdbfsblock_with_json_file_spec(self):
         def my_pipeline():
@@ -125,7 +125,7 @@ class TestCreateDbfsBlockOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def assert_res(self, res, expected_spec):
         self.assertEqual(res.name, "createdbfsitem")
@@ -168,7 +168,7 @@ class TestDeletedbfsblockOp(unittest.TestCase):
                 name="deletedbfsblock"
             )
 
-        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
+        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._create_workflow(my_pipeline))
 
     def test_databricks_delete_dbfsblock(self):
         def my_pipeline():
@@ -190,7 +190,7 @@ class TestDeletedbfsblockOp(unittest.TestCase):
             self.assertEqual(res.k8s_resource["kind"], "DbfsBlock")
             self.assertEqual(res.k8s_resource["metadata"]["name"], "createdbfsitem")
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
 if __name__ == '__main__':
     unittest.main()

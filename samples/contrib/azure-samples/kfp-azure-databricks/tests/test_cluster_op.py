@@ -18,7 +18,7 @@ class TestCreateClusterOp(unittest.TestCase):
                 num_workers=2
             )
 
-        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
+        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._create_workflow(my_pipeline))
 
     def test_databricks_create_cluster(self):
         def my_pipeline():
@@ -49,7 +49,7 @@ class TestCreateClusterOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_create_autoscaling_cluster(self):
         def my_pipeline():
@@ -78,7 +78,7 @@ class TestCreateClusterOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_create_cluster_with_spec(self):
         def my_pipeline():
@@ -99,7 +99,7 @@ class TestCreateClusterOp(unittest.TestCase):
 
             self.assert_res(res, spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_create_cluster_with_spec_and_extra_args(self):
         def my_pipeline():
@@ -130,7 +130,7 @@ class TestCreateClusterOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)        
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)        
 
     def test_databricks_create_cluster_with_json_spec(self):
         def my_pipeline():
@@ -164,7 +164,7 @@ class TestCreateClusterOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_create_cluster_with_json_file_spec(self):
         def my_pipeline():
@@ -190,7 +190,7 @@ class TestCreateClusterOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def assert_res(self, res, expected_spec):
         self.assertEqual(res.name, "createcluster")
@@ -234,7 +234,7 @@ class TestDeleteClusterOp(unittest.TestCase):
                 name="deletecluster"
             )
 
-        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
+        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._create_workflow(my_pipeline))
 
     def test_databricks_delete_cluster(self):
         def my_pipeline():
@@ -256,7 +256,7 @@ class TestDeleteClusterOp(unittest.TestCase):
             self.assertEqual(res.k8s_resource["kind"], "Dcluster")
             self.assertEqual(res.k8s_resource["metadata"]["name"], "test-cluster")
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
 if __name__ == '__main__':
     unittest.main()
