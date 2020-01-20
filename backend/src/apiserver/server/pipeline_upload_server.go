@@ -78,7 +78,8 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	err = (&jsonpb.Marshaler{OrigName:true}).Marshal(w, ToApiPipeline(newPipeline))
+	marshaler := &jsonpb.Marshaler{EnumsAsInts: true, OrigName: true}
+	err = marshaler.Marshal(w, ToApiPipeline(newPipeline))
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return
