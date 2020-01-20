@@ -32,7 +32,7 @@ class TestCreateSecretScopeOp(unittest.TestCase):
                 ],
                 acls=[
                     {
-                        "principal": "alejacma@microsoft.com",
+                        "principal": "user@foo.com",
                         "permission": "READ"
                     }
                 ]
@@ -65,7 +65,7 @@ class TestCreateSecretScopeOp(unittest.TestCase):
             ]
             acls = [
                 {
-                    "principal": "alejacma@microsoft.com",
+                    "principal": "user@foo.com",
                     "permission": "READ"
                 }
             ]
@@ -114,7 +114,7 @@ class TestCreateSecretScopeOp(unittest.TestCase):
                 ],
                 "acls": [
                     {
-                        "principal": "alejacma@microsoft.com",
+                        "principal": "user@foo.com",
                         "permission": "READ"
                     }
                 ]
@@ -135,7 +135,7 @@ class TestCreateSecretScopeOp(unittest.TestCase):
             scope_name = "test-secretscope"
             acls = [
                 {
-                    "principal": "alejacma@microsoft.com",
+                    "principal": "user@foo.com",
                     "permission": "READ"
                 }
             ]
@@ -224,7 +224,7 @@ class TestCreateSecretScopeOp(unittest.TestCase):
                 ],
                 "acls": [
                     {
-                        "principal": "alejacma@microsoft.com",
+                        "principal": "user@foo.com",
                         "permission": "READ"
                     }
                 ]
@@ -254,7 +254,7 @@ class TestCreateSecretScopeOp(unittest.TestCase):
                 ],
                 "acls": [
                     {
-                        "principal": "alejacma@microsoft.com",
+                        "principal": "user@foo.com",
                         "permission": "READ"
                     }
                 ]
@@ -299,7 +299,7 @@ class TestCreateSecretScopeOp(unittest.TestCase):
                 ],
                 "acls": [
                     {
-                        "principal": "alejacma@microsoft.com",
+                        "principal": "user@foo.com",
                         "permission": "READ"
                     }
                 ]

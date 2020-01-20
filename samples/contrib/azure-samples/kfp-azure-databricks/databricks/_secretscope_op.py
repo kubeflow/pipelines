@@ -35,7 +35,7 @@ class CreateSecretScopeOp(ResourceOp):
                 ],
                 "acls": [
                     {
-                        "principal": "alejacma@microsoft.com",
+                        "principal": "user@foo.com",
                         "permission": "READ"
                     }
                 ]
@@ -67,7 +67,7 @@ class CreateSecretScopeOp(ResourceOp):
             ],
             acls=[
                 {
-                    "principal": "alejacma@microsoft.com",
+                    "principal": "user@foo.com",
                     "permission": "READ"
                 }
             ]

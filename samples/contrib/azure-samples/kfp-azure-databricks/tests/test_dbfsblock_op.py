@@ -11,7 +11,7 @@ class TestCreateDbfsBlockOp(unittest.TestCase):
             CreateDbfsBlockOp(
                 name="createdbfsitem",
                 data="cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK",
-                path="/Users/alejacma@microsoft.com/ScalaExampleNotebook"
+                path="/Users/user@foo.com/ScalaExampleNotebook"
             )
 
         self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
@@ -20,7 +20,7 @@ class TestCreateDbfsBlockOp(unittest.TestCase):
         def my_pipeline():
             block_name = "createdbfsitem"
             data = "cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK"
-            path = "/Users/alejacma@microsoft.com/ScalaExampleNotebook"
+            path = "/Users/user@foo.com/ScalaExampleNotebook"
             
 
             expected_spec = {
@@ -44,7 +44,7 @@ class TestCreateDbfsBlockOp(unittest.TestCase):
             block_name = "createdbfsitem"
             spec = {
                 "data": "cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK",
-                "path": "/Users/alejacma@microsoft.com/ScalaExampleNotebook"          
+                "path": "/Users/user@foo.com/ScalaExampleNotebook"
             }
 
             res = CreateDbfsBlockOp(
@@ -62,12 +62,12 @@ class TestCreateDbfsBlockOp(unittest.TestCase):
             block_name = "createdbfsitem"
             data = "cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK"
             spec = {
-                "path": "/Users/alejacma@microsoft.com/ScalaExampleNotebook"
+                "path": "/Users/user@foo.com/ScalaExampleNotebook"
             }
 
             expected_spec = {
                 "data": data,
-                "path": "/Users/alejacma@microsoft.com/ScalaExampleNotebook"
+                "path": "/Users/user@foo.com/ScalaExampleNotebook"
             }
 
             res = CreateDbfsBlockOp(
@@ -87,13 +87,13 @@ class TestCreateDbfsBlockOp(unittest.TestCase):
             json_spec = """
             {
                 "data": "cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK",
-                "path": "/Users/alejacma@microsoft.com/ScalaExampleNotebook"
+                "path": "/Users/user@foo.com/ScalaExampleNotebook"
             }
             """
 
             expected_spec = {
                 "data": "cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK",
-                "path": "/Users/alejacma@microsoft.com/ScalaExampleNotebook"
+                "path": "/Users/user@foo.com/ScalaExampleNotebook"
             }
 
             res = CreateDbfsBlockOp.from_json_spec(

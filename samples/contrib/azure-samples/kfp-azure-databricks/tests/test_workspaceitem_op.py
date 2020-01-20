@@ -11,7 +11,7 @@ class TestImportWorkspaceItemOp(unittest.TestCase):
             ImportWorkspaceItemOp(
                 name="importworkspaceitem",
                 content="cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK",
-                path="/Users/alejacma@microsoft.com/ScalaExampleNotebook",
+                path="/Users/user@foo.com/ScalaExampleNotebook",
                 language="SCALA",
                 file_format="SOURCE"
             )
@@ -22,7 +22,7 @@ class TestImportWorkspaceItemOp(unittest.TestCase):
         def my_pipeline():
             item_name = "test-item"
             content = "cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK"
-            path = "/Users/alejacma@microsoft.com/ScalaExampleNotebook"
+            path = "/Users/user@foo.com/ScalaExampleNotebook"
             language = "SCALA"
             file_format = "SOURCE"
 
@@ -51,7 +51,7 @@ class TestImportWorkspaceItemOp(unittest.TestCase):
             item_name = "test-item"
             spec = {
                 "content": "cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK",
-                "path": "/Users/alejacma@microsoft.com/ScalaExampleNotebook",
+                "path": "/Users/user@foo.com/ScalaExampleNotebook",
                 "language": "SCALA",
                 "format": "SOURCE"
             }
@@ -71,14 +71,14 @@ class TestImportWorkspaceItemOp(unittest.TestCase):
             item_name = "test-item"
             content = "cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK"
             spec = {
-                "path": "/Users/alejacma@microsoft.com/ScalaExampleNotebook",
+                "path": "/Users/user@foo.com/ScalaExampleNotebook",
                 "language": "SCALA",
                 "format": "SOURCE"
             }
 
             expected_spec = {
                 "content": "cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK",
-                "path": "/Users/alejacma@microsoft.com/ScalaExampleNotebook",
+                "path": "/Users/user@foo.com/ScalaExampleNotebook",
                 "language": "SCALA",
                 "format": "SOURCE"
             }
@@ -100,7 +100,7 @@ class TestImportWorkspaceItemOp(unittest.TestCase):
             json_spec = """
             {
                 "content": "cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK",
-                "path": "/Users/alejacma@microsoft.com/ScalaExampleNotebook",
+                "path": "/Users/user@foo.com/ScalaExampleNotebook",
                 "language": "SCALA",
                 "format": "SOURCE"
             }
@@ -108,7 +108,7 @@ class TestImportWorkspaceItemOp(unittest.TestCase):
 
             expected_spec = {
                 "content": "cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK",
-                "path": "/Users/alejacma@microsoft.com/ScalaExampleNotebook",
+                "path": "/Users/user@foo.com/ScalaExampleNotebook",
                 "language": "SCALA",
                 "format": "SOURCE"
             }
@@ -131,7 +131,7 @@ class TestImportWorkspaceItemOp(unittest.TestCase):
 
             expected_spec = {
                 "content": "cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK",
-                "path": "/Users/alejacma@microsoft.com/ScalaExampleNotebook",
+                "path": "/Users/user@foo.com/ScalaExampleNotebook",
                 "language": "SCALA",
                 "format": "SOURCE"
             }

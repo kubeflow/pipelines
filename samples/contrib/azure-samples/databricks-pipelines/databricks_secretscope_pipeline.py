@@ -57,7 +57,7 @@ def calc_pipeline(
         byte_secret="aGVsbG93b3JsZA==",
         ref_secret_name="mysecret",
         ref_secret_key="username",
-        principal_name="alejacma@microsoft.com"
+        principal_name="user@foo.com"
     ):
     create_secretscope_task = create_secretscope(
         scope_name,

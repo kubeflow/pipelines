@@ -14,7 +14,7 @@ class ImportWorkspaceItemOp(ResourceOp):
             item_name="test-item",
             spec={
                 "content": "cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK",
-                "path": "/Users/alejacma@microsoft.com/ScalaExampleNotebook",
+                "path": "/Users/user@foo.com/ScalaExampleNotebook",
                 "language": "SCALA",
                 "format": "SOURCE"
             }
@@ -24,7 +24,7 @@ class ImportWorkspaceItemOp(ResourceOp):
             name="importworkspaceitem",
             item_name="test-item",
             content="cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK",
-            path="/Users/alejacma@microsoft.com/ScalaExampleNotebook",
+            path="/Users/user@foo.com/ScalaExampleNotebook",
             language="SCALA",
             file_format="SOURCE"
         )

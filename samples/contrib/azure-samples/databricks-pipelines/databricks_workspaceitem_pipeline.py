@@ -3,12 +3,12 @@ import kfp.dsl as dsl
 import kfp.compiler as compiler
 import databricks
 
-def import_workspace_item(item_name):
+def import_workspace_item(item_name, user):
     return databricks.ImportWorkspaceItemOp(
         name="importworkspaceitem",
         item_name=item_name,
         content="cHJpbnQoImhlbGxvLCB3b3JsZCIpCgoK",
-        path="/Users/alejacma@microsoft.com/ScalaExampleNotebook",
+        path=f"/Users/{user}/ScalaExampleNotebook",
         language="SCALA",
         file_format="SOURCE"
     )
@@ -23,8 +23,8 @@ def delete_workspace_item(item_name):
     name="DatabricksWorkspaceItem",
     description="A toy pipeline that imports some source code into a Databricks Workspace."
 )
-def calc_pipeline(item_name="test-item"):
-    import_workspace_item_task = import_workspace_item(item_name)
+def calc_pipeline(item_name="test-item", user="user@foo.com"):
+    import_workspace_item_task = import_workspace_item(item_name, user)
     delete_workspace_item_task = delete_workspace_item(item_name)
     delete_workspace_item_task.after(import_workspace_item_task)
 

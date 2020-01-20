@@ -41,7 +41,7 @@ def create_secretscope(scope_name):
         ]
     )
 
-def import_workspace_item(item_name):
+def import_workspace_item(item_name, user):
     current_path = Path(__file__).parent
     notebook_file_name = current_path.joinpath("notebooks", "ScalaExampleNotebook")
     notebook = open(notebook_file_name).read().encode("utf-8")
@@ -50,7 +50,7 @@ def import_workspace_item(item_name):
         name="importworkspaceitem",
         item_name=item_name,
         content=notebook_base64,
-        path="/Users/alejacma@microsoft.com/ScalaExampleNotebook",
+        path=f"/Users/{user}/ScalaExampleNotebook",
         language="SCALA",
         file_format="SOURCE"
     )
@@ -67,13 +67,13 @@ def create_cluster(cluster_name):
         num_workers=2
     )
 
-def create_job(job_name, cluster_id):
+def create_job(job_name, cluster_id, user):
     return databricks.CreateJobOp(
         name="createjob",
         job_name=job_name,
         existing_cluster_id=cluster_id,
         notebook_task={
-            "notebook_path": "/Users/alejacma@microsoft.com/ScalaExampleNotebook"
+            "notebook_path": f"/Users/{user}/ScalaExampleNotebook"
         }
     )
 
@@ -135,13 +135,14 @@ def calc_pipeline(
         cluster_name="test-cluster",
         job_name="test-job",
         run_name="test-run",
+        user="user@foo.com",
         parameter1="38",
         parameter2="43"):
     create_dbfsblock_task = create_dbfsblock(dbfsblock_name)
     create_secretscope_task = create_secretscope(secretescope_name)
-    import_workspace_item_task = import_workspace_item(workspaceitem_name)
+    import_workspace_item_task = import_workspace_item(workspaceitem_name, user)
     create_cluster_task = create_cluster(cluster_name)
-    create_job_task = create_job(job_name, create_cluster_task.outputs["cluster_id"])
+    create_job_task = create_job(job_name, create_cluster_task.outputs["cluster_id"], user)
     submit_run_task = submit_run(run_name, job_name, parameter1, parameter2)
     submit_run_task.after(create_dbfsblock_task)
     submit_run_task.after(create_secretscope_task)
