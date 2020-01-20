@@ -442,11 +442,11 @@ steps:
   waitFor: ['-']
 - id:   'tagMarketplaceDeployerVersionNumber'
   name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/pipelines/deployer:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/deployer:$TAG_NAME']
   waitFor: ['pullMarketplaceDeployer']
 - id:   'tagMarketplaceDeployerVersionNumberTest'
   name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/pipelines-test/deployer:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines-test/deployer:$TAG_NAME']
   waitFor: ['pullMarketplaceDeployer']
 - id:   'tagMarketplaceDeployerVersionNumberMajorMinor'
   waitFor: ['pullMarketplaceDeployer', 'parseMajorMinorVersion']
