@@ -498,3 +498,14 @@ class Client(object):
       Exception if pipeline is not found.
     """
     return self._pipelines_api.get_pipeline(id=pipeline_id)
+
+  def delete_pipeline(self, pipeline_id):
+    """Delete pipeline.
+    Args:
+      id of the pipeline.
+    Returns:
+      A response object including details of a pipeline.
+    Throws:
+      Exception if pipeline is not found.
+    """
+    return self._pipelines_api.delete_pipeline(id=pipeline_id)
