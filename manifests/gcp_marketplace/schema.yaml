@@ -75,7 +75,7 @@ x-google-marketplace:
           type: FULL
     metadatawriter:
       properties:
-        images.properties:
+        images.metadatawriter:
           type: FULL
   deployerServiceAccount:
     roles:
