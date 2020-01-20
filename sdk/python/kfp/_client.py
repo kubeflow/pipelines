@@ -504,7 +504,8 @@ class Client(object):
     Args:
       id of the pipeline.
     Returns:
-      A response object including details of a pipeline.
+      Object. If the method is called asynchronously,
+      returns the request thread.
     Throws:
       Exception if pipeline is not found.
     """
