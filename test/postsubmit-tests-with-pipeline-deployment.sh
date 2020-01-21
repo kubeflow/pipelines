@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2020 Google LLC
+# Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -74,7 +74,7 @@ done
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_BASE_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-if [ $KFP_DEPLOYMENT != standalone ]; then
+if [ ${KFP_DEPLOYMENT} != standalone ]; then
   ENABLE_WORKLOAD_IDENTITY=false
 fi
 
@@ -134,9 +134,9 @@ echo "argo installed"
 
 # Deploy the pipeline
 GCR_IMAGE_TAG=${PULL_BASE_SHA}
-if [ $KFP_DEPLOYMENT == standalone ]; then
+if [ ${KFP_DEPLOYMENT} == standalone ]; then
   time source "${DIR}/deploy-pipeline-lite.sh"
-  echo "KFP lite deployed"
+  echo "KFP standalone deployed"
 else
   time source "${DIR}/deploy-pipeline-mkp-cli.sh"
   echo "KFP mkp deployed"
