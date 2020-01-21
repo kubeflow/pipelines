@@ -33,7 +33,6 @@ frontend/test/ui/visual-regression/screenshots/screen
 .idea/
 .ijwb/
 *.iml
-.history/*
 
 # Merge files
 *.orig
