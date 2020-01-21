@@ -1,7 +1,7 @@
 [
   {
     "name": "[Sample] ML - XGBoost - Training with Confusion Matrix",
-    "description": "[GCP Permission requirements](https://github.com/kubeflow/pipelines/blob/master/samples/core/xgboost_training_cm#requirements). [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm). A trainer that does end-to-end distributed training for XGBoost models.",
+    "description": "[GCP Permission requirements](https://github.com/kubeflow/pipelines/blob/master/samples/core/xgboost_training_cm#requirements). [source code](https://github.com/kubeflow/pipelines/blob/master/samples/core/xgboost_training_cm). A trainer that does end-to-end distributed training for XGBoost models.",
     "file": "/samples/core/xgboost_training_cm/xgboost_training_cm.py.yaml"
   },
   {
