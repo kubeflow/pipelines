@@ -7,7 +7,7 @@ class SubmitRunOp(ResourceOp):
 
     Examples:
 
-        import kfp.dsl.databricks as databricks
+        import databricks
 
         databricks.SubmitRunOp(
             name="submitrun",
@@ -243,7 +243,8 @@ class SubmitRunOp(ResourceOp):
             ValueError: if the file name doesn't exist.
         """
 
-        spec = json.loads(open(file_name).read())
+        with open(file_name) as json_file:
+            spec = json.loads(json_file.read())
         return cls(name=name, k8s_name=k8s_name, run_name=run_name, spec=spec)
 
     @property
@@ -259,7 +260,7 @@ class DeleteRunOp(ResourceOp):
 
     Example:
 
-        import kfp.dsl.databricks as databricks
+        import databricks
 
         databricks.DeleteRunOp(
             name="deleterun",
