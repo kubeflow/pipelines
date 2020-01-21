@@ -39,7 +39,7 @@ def delete_job(job_name):
     )
 
 @dsl.pipeline(
-    name="DatabricksRun",
+    name="DatabricksJob",
     description="A toy pipeline that computes an approximation to pi with Azure Databricks."
 )
 def calc_pipeline(job_name="test-job", run_name="test-job-run", parameter="10"):
@@ -52,4 +52,6 @@ def calc_pipeline(job_name="test-job", run_name="test-job-run", parameter="10"):
     delete_job_task.after(delete_run_task)
 
 if __name__ == "__main__":
-    compiler.Compiler().compile(calc_pipeline, __file__ + ".tar.gz")
+    compiler.Compiler()._create_and_write_workflow(
+        pipeline_func=calc_pipeline,
+        package_path=__file__ + ".tar.gz")

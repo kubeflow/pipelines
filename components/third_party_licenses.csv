@@ -194,3 +194,10 @@ grpc-google-logging-v2,https://raw.githubusercontent.com/googleapis/googleapis/m
 grpc-google-pubsub-v1,https://raw.githubusercontent.com/googleapis/googleapis/master/LICENSE,Apache 2.0
 google-cloud-datastore,https://raw.githubusercontent.com/GoogleCloudPlatform/google-cloud-datastore/master/LICENSE,Apache 2.0
 pymongo,https://raw.githubusercontent.com/mongodb/mongo-python-driver/master/LICENSE,Apache 2.0
+google-auth-oauthlib,https://raw.githubusercontent.com/googleapis/google-auth-library-python-oauthlib/master/LICENSE,Apache 2.0
+google-pasta,https://raw.githubusercontent.com/google/pasta/master/LICENSE,Apache 2.0
+Keras-Preprocessing,https://raw.githubusercontent.com/keras-team/keras-preprocessing/master/LICENSE,MIT
+ml-metadata,https://raw.githubusercontent.com/google/ml-metadata/master/LICENSE,Apache 2.0
+opt-einsum,https://raw.githubusercontent.com/dgasmith/opt_einsum/master/LICENSE,MIT
+tensorflow-estimator,https://raw.githubusercontent.com/tensorflow/estimator/master/LICENSE,Apache 2.0
+wrapt,https://github.com/GrahamDumpleton/wrapt/blob/develop/LICENSE,2-Clause BSD
