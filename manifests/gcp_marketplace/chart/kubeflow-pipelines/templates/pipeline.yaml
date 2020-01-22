@@ -555,6 +555,8 @@ spec:
         - env:
             - name: MINIO_NAMESPACE
               value: {{ .Release.Namespace }}
+            - name: ALLOW_CUSTOM_VISUALIZATIONS
+              value: "true"
           image: {{ .Values.images.frontend }}
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-ui
