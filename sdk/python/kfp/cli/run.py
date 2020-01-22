@@ -75,6 +75,15 @@ def get(ctx, watch, run_id):
     namespace = ctx.obj['namespace']
     _display_run(client, namespace, run_id, watch)
 
+@run.command()
+@click.argument("run-id")
+@click.pass_context
+def delete(ctx, run_id):
+    """delete an uploaded KFP run"""
+    client = ctx.obj["client"]
+    client.delete_run(run_id)
+    print(f"{run_id} is deleted")
+
 def _display_run(client, namespace, run_id, watch):
     run = client.get_run(run_id).run
     _print_runs([run])

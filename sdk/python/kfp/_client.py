@@ -440,6 +440,18 @@ class Client(object):
     """
     return self._run_api.get_run(run_id=run_id)
 
+  def delete_run(self, run_id):
+    """Delete run.
+    Args:
+      id of the run.
+    Returns:
+      Object. If the method is called asynchronously,
+      returns the request thread.
+    Throws:
+      Exception if run is not found.
+    """
+    return self._run_api.delete_run(id=run_id)
+
   def wait_for_run_completion(self, run_id, timeout):
     """Wait for a run to complete.
     Args:
