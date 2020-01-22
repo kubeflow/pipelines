@@ -52,10 +52,10 @@ func TestUploadPipeline_YAML(t *testing.T) {
 	assert.Equal(t, 200, rr.Code)
 	// Verify time format is RFC3339.
 	parsedResponse := struct {
-		CreatedAt string	 `json:"created_at"`
+		CreatedAt      string `json:"created_at"`
 		DefaultVersion struct {
-			CreatedAt string	`json:"created_at"`
-		}	`json:"default_version"`
+			CreatedAt string `json:"created_at"`
+		} `json:"default_version"`
 	}{}
 	json.Unmarshal(rr.Body.Bytes(), &parsedResponse)
 	assert.Equal(t, "1970-01-01T00:00:01Z", parsedResponse.CreatedAt)
