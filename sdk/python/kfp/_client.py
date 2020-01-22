@@ -592,6 +592,34 @@ class Client(object):
       response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE, resource_reference_key_id=namespace)
     return response
 
+  def list_recurring_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
+    """List recurring runs.
+    Args:
+      page_token: token for starting of the page.
+      page_size: size of the page.
+      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+      experiment_id: experiment id to filter upon
+    Returns:
+      A response object including a list of recurring_runs and next page token.
+    """
+    if experiment_id is not None:
+      response = self._job_api.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
+    else:
+      response = self._job_api.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by)
+    return response
+
+  def get_recurring_run(self, job_id):
+    """Get recurring_run details.
+    Args:
+      id of the recurring_run.
+    Returns:
+      A response object including details of a recurring_run.
+    Throws:
+      Exception if recurring_run is not found.
+    """
+    return self._job_api.get_job(id=job_id)
+
+
   def get_run(self, run_id):
     """Get run details.
     Args:
