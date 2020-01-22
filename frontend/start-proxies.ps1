@@ -51,20 +51,6 @@ $Namespace = if ($Env:NAMESPACE) {$Env:NAMESPACE} else {"kubeflow"}
 Write-Log "*Preparing dev env for KFP frontend"
 
 Write-Log "*Detecting api server pod names..."
-$METADATA_ENVOY_POD = kubectl get pods -n $Namespace -l component=metadata-envoy -o=custom-columns=:.metadata.name --no-headers
-if (!$METADATA_ENVOY_POD) {
-    Write-Log ">!Couldn't get metadata envoy pod in namespace $Namespace, double check the cluster your kubectl talks to."
-    exit 1
-}
-Write-Log ">+Metadata envoy pod is $METADATA_ENVOY_POD"
-
-$PIPELINE_API_POD = kubectl get pods -n $Namespace -l app=ml-pipeline -o=custom-columns=:.metadata.name --no-headers
-if (!$PIPELINE_API_POD) {
-    Write-Log ">!Couldn't get pipeline api pod in namespace $Namespace, double check the cluster your kubectl talks to."
-    exit 1
-}
-Write-Log ">+Ml pipeline PIPELINE_API api pod is $PIPELINE_API_POD"
-
 Write-Log "*Compiling node server..."
 pushd server;npm run build;popd
 
@@ -79,8 +65,8 @@ pushd server;npm run build;popd
 
 Write-Log "*Starting to port forward backend apis..."
 try {
-    $Script:PrA = Start-Process -ws Hidden -PassThru kubectl "port-forward -n kubeflow $METADATA_ENVOY_POD 9090:9090"
-    $Script:PrB = Start-Process -ws Hidden -PassThru kubectl "port-forward -n kubeflow $PIPELINE_API_POD 3002:8888"
+    $Script:PrA = Start-Process -ws Hidden -PassThru kubectl "port-forward -n kubeflow svc/metadata-envoy-service 9090:9090"
+    $Script:PrB = Start-Process -ws Hidden -PassThru kubectl "port-forward -n kubeflow svc/ml-pipeline 3002:8888"
     $env:ML_PIPELINE_SERVICE_PORT = 3002
     npm run mock:server 3001
 } finally {
