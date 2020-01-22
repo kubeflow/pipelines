@@ -199,8 +199,8 @@ export class OutputArtifactLoader {
     };
   }
 
-  // The markdown can be TFX component output or not.
-  // If the markdown is TFX component output, we return its visualization as HTMLViewerConfig.
+  // The markdown type output can be TFX artifact or not.
+  // If the markdown is indeed TFX artifact, we return its visualization as HTMLViewerConfig.
   // If not, we return MarkdownViewerConfig.
   public static async buildMarkdownViewerConfig(metadata: PlotMetadata): Promise<ViewerConfig> {
     if (!metadata.source) {
@@ -214,11 +214,11 @@ export class OutputArtifactLoader {
       markdownContent = await Apis.readFile(path);
     }
 
-    // Check if the markdown is acutally tfdv output
+    // Check if the markdown is acutally TFDV statistics
     try {
       const outputStr = markdownContent.substr(markdownContent.search('# Outputs:'));
       if (outputStr.search(/\*\*type_name\*\*: ExampleStatisticsPath/) != -1) {
-        // According to the type ExampleStatisticsPath, tfdv visualize_statistics applies to this artifact output.
+        // According to the type ExampleStatisticsPath, tfdv visualize_statistics applies to this artifact.
         const uri = outputStr.match(/\*\*uri\*\*:.*\/eval\//gm);
         if (uri && uri.length > 0) {
           const script = [
@@ -237,7 +237,7 @@ export class OutputArtifactLoader {
         }
       }
     } catch (err) {
-      logger.error('Failed to visualize TFDV artifact', JSON.stringify(err));
+      logger.error('Failed to visualize TFDV artifact: ', JSON.stringify(err));
       // Fail over to MarkdownViewerConfig below
     }
 
