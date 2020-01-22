@@ -1763,6 +1763,24 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
                 >
                   <div
                     className=""
+                    key="0"
+                  >
+                    <PlotCard
+                      configs={
+                        Array [
+                          Object {
+                            "type": "tensorboard",
+                            "url": "some url",
+                          },
+                        ]
+                      }
+                      maxDimension={500}
+                      title="Tensorboard"
+                    />
+                    <Component />
+                  </div>
+                  <div
+                    className=""
                   >
                     <PlotCard
                       configs={
@@ -1777,24 +1795,6 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
                       }
                       maxDimension={500}
                       title="Visualization Creator"
-                    />
-                    <Component />
-                  </div>
-                  <div
-                    className=""
-                    key="0"
-                  >
-                    <PlotCard
-                      configs={
-                        Array [
-                          Object {
-                            "type": "tensorboard",
-                            "url": "some url",
-                          },
-                        ]
-                      }
-                      maxDimension={500}
-                      title="Tensorboard"
                     />
                     <Component />
                   </div>
