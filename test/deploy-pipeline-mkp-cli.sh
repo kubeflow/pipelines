@@ -38,20 +38,19 @@ export APP_INSTANCE_NAME=kubeflow-pipelines-test
 
 # Install mpdev
 BIN_FILE="$HOME/bin/mpdev"
+KFP_MANIFEST_DIR=${DIR}/../manifests/gcp_marketplace
+
 if ! which mpdev; then
   echo "Install mpdev"
   docker pull gcr.io/cloud-marketplace-tools/k8s/dev
   mkdir -p $HOME/bin/
   touch $BIN_FILE
   export PATH=$HOME/bin:$PATH
-  docker run gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev:remove-ui-ownerrefs cat /scripts/dev > "$BIN_FILE"
+  MKP_TOOLS_IMAGE=`grep -i "FROM" ${KFP_MANIFEST_DIR}/deployer/Dockerfile | sed 's/FROM //'`
+  docker run ${MKP_TOOLS_IMAGE} cat /scripts/dev > "$BIN_FILE"
   chmod +x "$BIN_FILE"
 fi
 
-export MARKETPLACE_TOOLS_TAG=remove-ui-ownerrefs
-export MARKETPLACE_TOOLS_IMAGE=gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev
-
-KFP_MANIFEST_DIR=${DIR}/../manifests/gcp_marketplace
 pushd ${KFP_MANIFEST_DIR}
 # Update the version value on schema.yaml and application.yaml
 sed -ri 's/publishedVersion:.*/publishedVersion: '"$GCR_IMAGE_TAG"'/' schema.yaml
