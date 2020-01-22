@@ -216,23 +216,21 @@ export class OutputArtifactLoader {
       markdownContent = await Apis.readFile(path);
     }
 
-    // Check if the markdown is tfdv output
+    // Check if the markdown is acutally tfdv output
     try {
       const outputStr = markdownContent.substr(markdownContent.search('# Outputs:'));
       if (outputStr.search(/\*\*type_name\*\*: ExampleStatisticsPath/) != -1) {
-        // tfdv visualize_statistics applies to this artifact output.
+        // According to the type ExampleStatisticsPath, tfdv visualize_statistics applies to this artifact output.
         const uri = outputStr.match(/\*\*uri\*\*:.*\/eval\//gm);
         if (uri && uri.length > 0) {
-          const visCode =
-          `
-            import tensorflow_data_validation as tfdv
-            stats = tfdv.load_statistics('` + uri[0].substring(8).trim() +  `'stats_tfrecord')
-            tfdv.visualize_statistics(stats)
-          `;
+          const script = [
+            'import tensorflow_data_validation as tfdv',
+            'stats = tfdv.load_statistics(\'' + uri[0].substring(8).trim() + 'stats_tfrecord\')',
+            'tfdv.visualize_statistics(stats)'];
           const specifiedArguments: any = JSON.parse('{}');
-          specifiedArguments.code = visCode.split('\n');
+          specifiedArguments.code = script;
           const visualizationData: ApiVisualization = {
-            arguments: specifiedArguments,
+            arguments: JSON.stringify(specifiedArguments),
             source: '',
             type: ApiVisualizationType.CUSTOM,
           };

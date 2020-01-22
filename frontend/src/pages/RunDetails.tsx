@@ -287,14 +287,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                               <div className={commonCss.page}>
                                 {sidepanelSelectedTab === SidePaneTab.ARTIFACTS && (
                                   <div className={commonCss.page}>
-                                    <div className={padding(20, 'lrt')}>
-                                      <PlotCard
-                                        configs={[visualizationCreatorConfig]}
-                                        title={VisualizationCreator.prototype.getDisplayName()}
-                                        maxDimension={500}
-                                      />
-                                      <Hr />
-                                    </div>
                                     {(selectedNodeDetails.viewerConfigs || []).map((config, i) => {
                                       const title = componentMap[
                                         config.type
@@ -310,6 +302,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                         </div>
                                       );
                                     })}
+                                    <div className={padding(20, 'lrt')}>
+                                      <PlotCard
+                                        configs={[visualizationCreatorConfig]}
+                                        title={VisualizationCreator.prototype.getDisplayName()}
+                                        maxDimension={500}
+                                      />
+                                      <Hr />
+                                    </div>
                                   </div>
                                 )}
 
