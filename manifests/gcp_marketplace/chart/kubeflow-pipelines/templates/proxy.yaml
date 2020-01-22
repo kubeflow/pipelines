@@ -58,4 +58,11 @@ spec:
         - image: {{ .Values.images.proxyagent }}
           imagePullPolicy: IfNotPresent
           name: proxy-agent
-      serviceAccountName: proxy-agent-runner 
+      serviceAccountName: proxy-agent-runner
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inverse-proxy-config
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}

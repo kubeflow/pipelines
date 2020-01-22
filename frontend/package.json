@@ -55,10 +55,10 @@
     "start:proxy-standalone-and-server": "./start-proxy-standalone-and-server.sh",
     "start": "react-scripts-ts start",
     "test": "react-scripts-ts test --env=jsdom",
-    "test:server": "cd ./server && npm test && cd ..",
-    "test:coverage": "npm test -- --env=jsdom --coverage",
+    "test:server:coverage": "cd ./server && npm test -- --coverage && cd ..",
+    "test:coverage": "npm test -- --coverage && npm run test:server:coverage",
     "test:ci": "npm run format:check && npm run lint && npm run test:coverage",
-    "test:ci:prow": "npm set unsafe-perm true && npm ci && npm run test:ci && ./scripts/report-coveralls.sh && npm run test:server",
+    "test:ci:prow": "npm set unsafe-perm true && npm ci && npm run test:ci && ./scripts/report-coveralls.sh",
     "vr-approve": "backstop approve",
     "vr-test": "ts-node -O '{\"module\": \"commonjs\"}' backstop.ts"
   },

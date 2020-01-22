@@ -20,6 +20,7 @@ usage()
 {
     echo "usage: deploy.sh
     [--platform             the deployment platform. Valid values are: [gcp, minikube]. Default is gcp.]
+    [--kfp_deployment       the deployment method of kfp. Valid values are: [standalone, mkp]. Default is standalone.]
     [--workflow_file        the file name of the argo workflow to run]
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
@@ -29,6 +30,7 @@ usage()
 
 PLATFORM=gcp
 PROJECT=ml-pipeline-test
+KFP_DEPLOYMENT=standalone
 TEST_RESULT_BUCKET=ml-pipeline-test
 CLOUDBUILD_PROJECT=ml-pipeline-test
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test
@@ -42,6 +44,9 @@ while [ "$1" != "" ]; do
     case $1 in
              --platform )             shift
                                       PLATFORM=$1
+                                      ;;
+             --kfp_deployment )       shift
+                                      KFP_DEPLOYMENT=$1
                                       ;;
              --workflow_file )        shift
                                       WORKFLOW_FILE=$1
@@ -68,6 +73,10 @@ done
 # Refer to https://github.com/kubernetes/test-infra/blob/e357ffaaeceafe737bd6ab89d2feff132d92ea50/prow/jobs.md for the Prow job environment variables
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_BASE_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+
+if [ ${KFP_DEPLOYMENT} != standalone ]; then
+  ENABLE_WORKLOAD_IDENTITY=false
+fi
 
 echo "postsubmit test starts"
 
@@ -124,8 +133,14 @@ source "${DIR}/install-argo.sh"
 echo "argo installed"
 
 # Deploy the pipeline
-GCR_IMAGE_TAG=${PULL_BASE_SHA} source "${DIR}/deploy-pipeline-lite.sh"
-echo "KFP lite deployed"
+GCR_IMAGE_TAG=${PULL_BASE_SHA}
+if [ ${KFP_DEPLOYMENT} == standalone ]; then
+  time source "${DIR}/deploy-pipeline-lite.sh"
+  echo "KFP standalone deployed"
+else
+  time source "${DIR}/deploy-pipeline-mkp-cli.sh"
+  echo "KFP mkp deployed"
+fi
 
 # Submit the argo job and check the results
 echo "submitting argo workflow for commit ${PULL_BASE_SHA}..."

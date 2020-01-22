@@ -44,6 +44,9 @@ export enum ArtifactProperties {
 export enum ArtifactCustomProperties {
   WORKSPACE = '__kf_workspace__',
   RUN = '__kf_run__',
+  NAME = 'name',
+  PIPELINE_NAME = 'pipeline_name', // TODO: Remove when switching to contexts
+  RUN_ID = 'run_id', // TODO: Remove when switching to contexts
 }
 
 /** Known Execution properties */
@@ -57,6 +60,8 @@ export enum ExecutionProperties {
 /** Known Execution custom properties */
 export enum ExecutionCustomProperties {
   WORKSPACE = '__kf_workspace__',
+  RUN_ID = 'run_id', // TODO: Remove when switching to contexts
+  TASK_ID = 'task_id',
 }
 
 export interface ListRequest {
@@ -302,6 +307,7 @@ export class Apis {
    */
   public static async uploadPipeline(
     pipelineName: string,
+    pipelineDescription: string,
     pipelineData: File,
   ): Promise<ApiPipeline> {
     const fd = new FormData();
@@ -309,7 +315,9 @@ export class Apis {
     return await this._fetchAndParse<ApiPipeline>(
       '/pipelines/upload',
       v1beta1Prefix,
-      `name=${encodeURIComponent(pipelineName)}`,
+      `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
+        pipelineDescription,
+      )}`,
       {
         body: fd,
         cache: 'no-cache',

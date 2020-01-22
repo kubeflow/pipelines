@@ -95,7 +95,7 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:a8fcec5f702fc2528c87ed6fd698b9cfca8b509e
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:bae654dc5cf407359ac5f822d03833768739c4c1
     args: [
       --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.ml_engine, deploy,

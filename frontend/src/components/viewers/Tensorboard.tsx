@@ -64,6 +64,9 @@ interface TensorboardViewerState {
   tensorflowVersion: string;
 }
 
+// TODO(jingzhang36): we'll later parse Tensorboard version from mlpipeline-ui-metadata.json file.
+const DEFAULT_TENSORBOARD_VERSION = '2.0.0';
+
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
   constructor(props: any) {
     super(props);
@@ -72,7 +75,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       busy: false,
       deleteDialogOpen: false,
       podAddress: '',
-      tensorflowVersion: '',
+      tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
     };
   }
 
@@ -177,7 +180,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
         {!this.state.podAddress && (
           <div>
             <div className={padding(30, 'b')}>
-              class
               <FormControl className={css.formControl}>
                 <InputLabel htmlFor='grouped-select'>TF Version</InputLabel>
                 <Select
@@ -235,7 +237,12 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
       const { podAddress, tfVersion } = await Apis.getTensorboardApp(this._buildUrl());
-      this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
+      if (podAddress) {
+        this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
+      } else {
+        // No existing pod
+        this.setState({ busy: false });
+      }
     });
   }
 
@@ -260,7 +267,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
         busy: false,
         deleteDialogOpen: false,
         podAddress: '',
-        tensorflowVersion: '',
+        tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
       });
     });
   };

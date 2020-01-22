@@ -37,6 +37,7 @@ import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
 import { statusToIcon } from './Status';
+import Tooltip from '@material-ui/core/Tooltip';
 
 interface DisplayExperiment extends ApiExperiment {
   last5Runs?: ApiRun[];
@@ -140,13 +141,15 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Link
-        className={commonCss.link}
-        onClick={e => e.stopPropagation()}
-        to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
-      >
-        {props.value}
-      </Link>
+      <Tooltip title={props.value} enterDelay={300} placement='top-start'>
+        <Link
+          className={commonCss.link}
+          onClick={e => e.stopPropagation()}
+          to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
+        >
+          {props.value}
+        </Link>
+      </Tooltip>
     );
   };
 
