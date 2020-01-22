@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.2.0](https://github.com/kubeflow/pipelines/tree/0.2.0) (2020-01-20)
+
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.40...0.2.0)
+
+**Merged pull requests:**
+
+- fix the metadata writer manifest [\#2878](https://github.com/kubeflow/pipelines/pull/2878) ([rmgogogo](https://github.com/rmgogogo))
+- Coverage reporting for frontend server [\#2877](https://github.com/kubeflow/pipelines/pull/2877) ([Bobgy](https://github.com/Bobgy))
+- enlarge timeout to 45m to avoid flakyness [\#2875](https://github.com/kubeflow/pipelines/pull/2875) ([rmgogogo](https://github.com/rmgogogo))
+- Better Hosted Release - automate things as possible as we can [\#2874](https://github.com/kubeflow/pipelines/pull/2874) ([rmgogogo](https://github.com/rmgogogo))
+- Build deployer for each post-submit to avoid manual work [\#2873](https://github.com/kubeflow/pipelines/pull/2873) ([rmgogogo](https://github.com/rmgogogo))
+- from 0.1.40 to 0.2.0 [\#2872](https://github.com/kubeflow/pipelines/pull/2872) ([rmgogogo](https://github.com/rmgogogo))
+- enable full scope for testing version [\#2871](https://github.com/kubeflow/pipelines/pull/2871) ([rmgogogo](https://github.com/rmgogogo))
+- Samples - Updated the TFX-KFP pipeline [\#2867](https://github.com/kubeflow/pipelines/pull/2867) ([Ark-kun](https://github.com/Ark-kun))
+- Frontend - Metadata - Use custom properties in addition to plain properties [\#2854](https://github.com/kubeflow/pipelines/pull/2854) ([Ark-kun](https://github.com/Ark-kun))
+- fix panic in Viewer cleanup [\#2853](https://github.com/kubeflow/pipelines/pull/2853) ([mattnworb](https://github.com/mattnworb))
+- \[Proxy\] Split domain name [\#2851](https://github.com/kubeflow/pipelines/pull/2851) ([numerology](https://github.com/numerology))
+- \[Test\] Add KFP MKP deployment for e2e tests [\#2850](https://github.com/kubeflow/pipelines/pull/2850) ([rui5i](https://github.com/rui5i))
+- Opt out proxy agent configmap [\#2849](https://github.com/kubeflow/pipelines/pull/2849) ([IronPan](https://github.com/IronPan))
+- \[Doc\] Update link of preload TFX sample [\#2839](https://github.com/kubeflow/pipelines/pull/2839) ([numerology](https://github.com/numerology))
+- Fix wrong example with container\_op [\#2838](https://github.com/kubeflow/pipelines/pull/2838) ([kim-sardine](https://github.com/kim-sardine))
+- \[UI\] Simplify start server script and fix local cluster name endpoint [\#2836](https://github.com/kubeflow/pipelines/pull/2836) ([Bobgy](https://github.com/Bobgy))
+- Fix a  typo in Tensorboard.tsx. Add a default TB version. [\#2832](https://github.com/kubeflow/pipelines/pull/2832) ([jingzhang36](https://github.com/jingzhang36))
+- \[UI\] Update node to 12 [\#2830](https://github.com/kubeflow/pipelines/pull/2830) ([Bobgy](https://github.com/Bobgy))
+- visualization server wants kubernetes serivce account too [\#2822](https://github.com/kubeflow/pipelines/pull/2822) ([jingzhang36](https://github.com/jingzhang36))
+- \[testing\] Fix e2e tests timed out, but there's empty test log [\#2810](https://github.com/kubeflow/pipelines/pull/2810) ([Bobgy](https://github.com/Bobgy))
+- \[Sample\] Update the Doc for TFX sample [\#2798](https://github.com/kubeflow/pipelines/pull/2798) ([numerology](https://github.com/numerology))
+- \[UI\] Add editor for json parameters in new run page [\#2747](https://github.com/kubeflow/pipelines/pull/2747) ([drewbutlerbb4](https://github.com/drewbutlerbb4))
+- Bump tensorflow from 1.12.1 to 1.15.0 in /components/kubeflow/dnntrainer/src [\#2743](https://github.com/kubeflow/pipelines/pull/2743) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Update deployer base to 0.1.40 [\#2696](https://github.com/kubeflow/pipelines/pull/2696) ([rmgogogo](https://github.com/rmgogogo))
+- Service - Metadata writer [\#2674](https://github.com/kubeflow/pipelines/pull/2674) ([Ark-kun](https://github.com/Ark-kun))
+- Install application CRD and add pipeline application CR to pipeline standalone [\#2585](https://github.com/kubeflow/pipelines/pull/2585) ([IronPan](https://github.com/IronPan))
+- better handle inverse-proxy configmap for better GC [\#2391](https://github.com/kubeflow/pipelines/pull/2391) ([rmgogogo](https://github.com/rmgogogo))
+
 ## [0.1.40](https://github.com/kubeflow/pipelines/tree/0.1.40) (2020-01-09)
 
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.39...0.1.40)

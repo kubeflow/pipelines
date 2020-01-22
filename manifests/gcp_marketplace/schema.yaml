@@ -73,6 +73,10 @@ x-google-marketplace:
       properties:
         images.metadataenvoy:
           type: FULL
+    metadatawriter:
+      properties:
+        images.metadatawriter:
+          type: FULL
   deployerServiceAccount:
     roles:
       - type: ClusterRole        # This is a cluster-wide ClusterRole

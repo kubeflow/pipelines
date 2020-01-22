@@ -65,6 +65,9 @@ COPY --from=compiler /samples/ /samples/
 # Adding CA certificate so API server can download pipeline through URL
 RUN apt-get update && apt-get install -y ca-certificates
 
+# Pin sample doc links to the commit that built the backend image
+RUN sed "s#/blob/master/#/blob/${COMMIT_SHA}/#g" -i /config/sample_config.json
+
 # Expose apiserver port
 EXPOSE 8888
 

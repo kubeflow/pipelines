@@ -26,3 +26,5 @@ images:
   newTag: 0.2.0
 - name: gcr.io/ml-pipeline/visualization-server
   newTag: 0.2.0
+- name: gcr.io/ml-pipeline/metadata-writer
+  newTag: 0.2.0
