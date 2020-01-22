@@ -202,9 +202,7 @@ export class OutputArtifactLoader {
   // The markdown can be TFX component output or not.
   // If the markdown is TFX component output, we return its visualization as HTMLViewerConfig.
   // If not, we return MarkdownViewerConfig.
-  public static async buildMarkdownViewerConfig(
-    metadata: PlotMetadata,
-  ): Promise<ViewerConfig> {
+  public static async buildMarkdownViewerConfig(metadata: PlotMetadata): Promise<ViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -225,8 +223,9 @@ export class OutputArtifactLoader {
         if (uri && uri.length > 0) {
           const script = [
             'import tensorflow_data_validation as tfdv',
-            'stats = tfdv.load_statistics(\'' + uri[0].substring(8).trim() + 'stats_tfrecord\')',
-            'tfdv.visualize_statistics(stats)'];
+            "stats = tfdv.load_statistics('" + uri[0].substring(8).trim() + "stats_tfrecord')",
+            'tfdv.visualize_statistics(stats)',
+          ];
           const specifiedArguments: any = JSON.parse('{}');
           specifiedArguments.code = script;
           const visualizationData: ApiVisualization = {
@@ -242,10 +241,10 @@ export class OutputArtifactLoader {
       // Fail over to MarkdownViewerConfig below
     }
 
-    return <MarkdownViewerConfig>{
+    return {
       markdownContent,
       type: PlotType.MARKDOWN,
-    };
+    } as MarkdownViewerConfig;
   }
 
   public static async buildRocCurveConfig(metadata: PlotMetadata): Promise<ROCCurveConfig> {
