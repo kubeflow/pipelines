@@ -217,7 +217,7 @@ export class OutputArtifactLoader {
     // Check if the markdown is acutally TFDV statistics
     try {
       const outputStr = markdownContent.substr(markdownContent.search('# Outputs:'));
-      if (outputStr.search(/\*\*type_name\*\*: ExampleStatisticsPath/) != -1) {
+      if (outputStr.search(/\*\*type_name\*\*: ExampleStatisticsPath/) !== -1) {
         // According to the type ExampleStatisticsPath, tfdv visualize_statistics applies to this artifact.
         const uri = outputStr.match(/\*\*uri\*\*:.*\/eval\//gm);
         if (uri && uri.length > 0) {
