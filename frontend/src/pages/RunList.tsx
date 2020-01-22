@@ -28,6 +28,7 @@ import { URLParser } from '../lib/URLParser';
 import { commonCss, color } from '../Css';
 import { formatDateString, logger, errorToMessage, getRunDuration } from '../lib/Utils';
 import { statusToIcon } from './Status';
+import Tooltip from '@material-ui/core/Tooltip';
 
 interface PipelineVersionInfo {
   displayName?: string;
@@ -200,13 +201,15 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Link
-        className={commonCss.link}
-        onClick={e => e.stopPropagation()}
-        to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
-      >
-        {props.value}
-      </Link>
+      <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
+        <Link
+          className={commonCss.link}
+          onClick={e => e.stopPropagation()}
+          to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
+        >
+          {props.value}
+        </Link>
+      </Tooltip>
     );
   };
 

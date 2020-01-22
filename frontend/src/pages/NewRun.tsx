@@ -55,6 +55,8 @@ import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipeline
 import { CustomRendererProps } from '../components/CustomTable';
 import { Description } from '../components/Description';
 import { NamespaceContext } from '../lib/KubeflowClient';
+import { Tooltip } from '@material-ui/core';
+import { NameWithTooltip } from '../components/CustomTableNameColumn';
 
 interface NewRunState {
   description: string;
@@ -112,7 +114,12 @@ class NewRun extends Page<{}, NewRunState> {
   context!: React.ContextType<typeof NamespaceContext>;
 
   private pipelineSelectorColumns = [
-    { label: 'Pipeline name', flex: 1, sortKey: PipelineSortKeys.NAME },
+    {
+      label: 'Pipeline name',
+      flex: 1,
+      sortKey: PipelineSortKeys.NAME,
+      customRenderer: NameWithTooltip,
+    },
     { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
     { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
   ];
@@ -126,7 +133,12 @@ class NewRun extends Page<{}, NewRunState> {
   ];
 
   private experimentSelectorColumns = [
-    { label: 'Experiment name', flex: 1, sortKey: ExperimentSortKeys.NAME },
+    {
+      label: 'Experiment name',
+      flex: 1,
+      sortKey: ExperimentSortKeys.NAME,
+      customRenderer: NameWithTooltip,
+    },
     { label: 'Description', flex: 2 },
     { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
   ];
