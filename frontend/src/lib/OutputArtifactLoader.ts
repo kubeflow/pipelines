@@ -25,6 +25,7 @@ import { ROCCurveConfig } from '../components/viewers/ROCCurve';
 import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
 import { csvParseRows } from 'd3-dsv';
 import { logger, errorToMessage } from './Utils';
+import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 
 export interface PlotMetadata {
   format?: 'csv';
@@ -198,9 +199,12 @@ export class OutputArtifactLoader {
     };
   }
 
+  // The markdown can be TFX component output or not.
+  // If the markdown is TFX component output, we return its visualization as HTMLViewerConfig.
+  // If not, we return MarkdownViewerConfig.
   public static async buildMarkdownViewerConfig(
     metadata: PlotMetadata,
-  ): Promise<MarkdownViewerConfig> {
+  ): Promise<ViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -212,7 +216,35 @@ export class OutputArtifactLoader {
       markdownContent = await Apis.readFile(path);
     }
 
-    return {
+    // Check if the markdown is tfdv output
+    try {
+      const outputStr = markdownContent.substr(markdownContent.search('# Outputs:'));
+      if (outputStr.search(/\*\*type_name\*\*: ExampleStatisticsPath/) != -1) {
+        // tfdv visualize_statistics applies to this artifact output.
+        const uri = outputStr.match(/\*\*uri\*\*:.*\/eval\//gm);
+        if (uri && uri.length > 0) {
+          const visCode =
+          `
+            import tensorflow_data_validation as tfdv
+            stats = tfdv.load_statistics('` + uri[0].substring(8).trim() +  `'stats_tfrecord')
+            tfdv.visualize_statistics(stats)
+          `;
+          const specifiedArguments: any = JSON.parse('{}');
+          specifiedArguments.code = visCode.split('\n');
+          const visualizationData: ApiVisualization = {
+            arguments: specifiedArguments,
+            source: '',
+            type: ApiVisualizationType.CUSTOM,
+          };
+          return Apis.buildPythonVisualizationConfig(visualizationData);
+        }
+      }
+    } catch (err) {
+      logger.error('Failed to visualize TFDV artifact', JSON.stringify(err));
+      // Fail over to MarkdownViewerConfig below
+    }
+
+    return <MarkdownViewerConfig>{
       markdownContent,
       type: PlotType.MARKDOWN,
     };
