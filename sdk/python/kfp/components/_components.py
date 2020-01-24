@@ -176,6 +176,7 @@ def _react_to_incompatible_reference_type(
     argument_type,
     input_name: str,
 ):
+    """Raises error for the case when the argument type is incompatible with the input type."""
     message = 'Argument with type "{}" was passed to the input "{}" that has type "{}".'.format(argument_type, input_name, input_type)
     raise TypeError(message)
 
@@ -185,6 +186,8 @@ def _create_task_spec_from_component_and_arguments(
     arguments: Mapping[str, Any],
     component_ref: ComponentReference = None,
 ) -> TaskSpec:
+    """Constructs a TaskSpec object from component reference and arguments.
+    The function also checks the arguments types and serializes them."""
     if component_ref is None:
         component_ref = ComponentReference(spec=component_spec)
     else:
@@ -348,6 +351,7 @@ def _resolve_command_line_and_paths(
     output_path_generator=_generate_output_file_name,
     argument_serializer=serialize_value,
 ) -> _ResolvedCommandLineAndPaths:
+    """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
     argument_values = arguments
 
     if not isinstance(component_spec.implementation, ContainerImplementation):
