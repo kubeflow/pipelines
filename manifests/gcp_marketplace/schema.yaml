@@ -108,7 +108,17 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
-
+  GCSbucketName:
+    title: |-
+      GCS bucket associated with this deployment.
+    description: |-
+      Many Kubeflow pipelines require access to a GCS bucket for staging. You can provide your
+      bucket name here so that it can be populated automatically as the default bucket to be used
+      for some of the KFP preload samples.
+    type: string
+    default: <your-bucket-name>
+    x-google-marketplace:
+      type: STRING
 required:
   - name
   - namespace
