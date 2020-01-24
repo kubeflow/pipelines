@@ -17,6 +17,8 @@ images:
 
 gcpSecretName: "user-gcp-sa"
 serviceAccountCredential: ""
+gcsConfigName: "gcs-config"
+bucketName: ""
 
 managedstorage:
   enabled: false
