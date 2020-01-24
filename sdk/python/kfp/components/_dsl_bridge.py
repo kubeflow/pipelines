@@ -16,15 +16,14 @@ import copy
 from typing import Any, Mapping
 from ._structures import ComponentSpec, ComponentReference
 from ._components import _default_component_name, _resolve_command_line_and_paths
+from .. import dsl
 
 
 def _create_container_op_from_component_and_arguments(
     component_spec: ComponentSpec,
     arguments: Mapping[str, Any],
     component_ref: ComponentReference = None,
-): # -> 'ContainerOp':
-    from .. import dsl
-
+) -> 'dsl.ContainerOp':
     # Check types of the reference arguments and serialize PipelineParams
     arguments = arguments.copy()
     for input_name, argument_value in arguments.items():
