@@ -17,7 +17,7 @@ images:
 
 gcpSecretName: "user-gcp-sa"
 serviceAccountCredential: ""
-gcsConfigName: "gcs-config"
+gcsConfigName: "kfp-default-storage-config"
 bucketName: ""
 
 managedstorage:
