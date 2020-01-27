@@ -38,14 +38,15 @@ import {
   GetEventsByExecutionIDsResponse,
   GetArtifactsByIDRequest,
 } from 'frontend';
-import { EventTypes, getArtifactTypeMap } from '../lib/MetadataUtils';
+// import { EventTypes } from '../lib/MetadataUtils';
 import { Link } from 'react-router-dom';
+// import {Event} from "../generated/src/apis/metadata/metadata_store_pb";
 
 type ArtifactIdList = number[];
 
 interface ExecutionDetailsState {
   execution?: Execution;
-  events?: Record<EventTypes, ArtifactIdList>;
+  events?: Record<Event.Type, ArtifactIdList>;
   artifactTypeMap?: Map<number, ArtifactType>;
 }
 
@@ -197,8 +198,8 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
 
 function parseEventsByType(
   response: GetEventsByExecutionIDsResponse | null,
-): Record<EventTypes, ArtifactIdList> {
-  const events: Record<EventTypes, ArtifactIdList> = {
+): Record<Event.Type, ArtifactIdList> {
+  const events: Record<Event.Type, ArtifactIdList> = {
     [Event.Type.UNKNOWN]: [],
     [Event.Type.DECLARED_INPUT]: [],
     [Event.Type.INPUT]: [],

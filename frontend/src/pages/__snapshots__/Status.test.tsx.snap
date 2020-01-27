@@ -222,7 +222,7 @@ exports[`Status statusToIcon displays start and end dates if both are provided 1
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -644,7 +644,7 @@ exports[`Status statusToIcon does not display a end date if none was provided 1`
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -1062,7 +1062,7 @@ exports[`Status statusToIcon does not display a start date if none was provided 
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -1480,7 +1480,7 @@ exports[`Status statusToIcon does not display any dates if neither was provided 
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -1894,7 +1894,7 @@ exports[`Status statusToIcon handles an undefined phase 1`] = `
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -2308,7 +2308,7 @@ exports[`Status statusToIcon handles an unknown phase 1`] = `
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -2722,7 +2722,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: ERROR 1`] =
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -3136,7 +3136,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: FAILED 1`] 
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -3550,7 +3550,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: PENDING 1`]
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -3964,7 +3964,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: RUNNING 1`]
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -4378,7 +4378,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: SKIPPED 1`]
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -4792,7 +4792,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: SUCCEEDED 1
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -5206,7 +5206,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: TERMINATED 
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -5620,7 +5620,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: TERMINATING
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -6034,7 +6034,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: UNKNOWN 1`]
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.5,
+          "lineHeight": 1.75,
           "textTransform": "uppercase",
         },
         "caption": Object {

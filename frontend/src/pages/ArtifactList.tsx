@@ -41,10 +41,10 @@ import {
   ArtifactCustomProperties,
   ListRequest,
   ArtifactType,
+  getArtifactCreationTime,
   getArtifactTypes,
   GetArtifactsRequest,
 } from 'frontend';
-import { getArtifactCreationTime } from '../lib/MetadataUtils';
 import { ArtifactLink } from '../components/ArtifactLink';
 
 interface ArtifactListState {
@@ -194,7 +194,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
 
           return {
             artifact,
-            creationTime: await getArtifactCreationTime(artifactId),
+            creationTime: await getArtifactCreationTime(artifactId, this.api.metadataStoreService),
           };
         }),
       );
