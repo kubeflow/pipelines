@@ -24,6 +24,7 @@ import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
 import { getResourceProperty, titleCase } from '../lib/Utils';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
+import { ArtifactCustomProperties } from '../lib/Apis';
 import MD2Tabs from '../atoms/MD2Tabs';
 
 export enum ArtifactDetailsTab {
@@ -132,18 +133,20 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       return;
     }
 
-    const artifact = response!.getArtifactsList()[0];
+    const artifact = response.getArtifactsList()[0];
 
-    const artifactName = getResourceProperty(artifact, ArtifactProperties.NAME);
+    const artifactName =
+      getResourceProperty(artifact, ArtifactProperties.NAME) ||
+      getResourceProperty(artifact, ArtifactCustomProperties.NAME, true);
     let title = artifactName ? artifactName.toString() : '';
     const version = getResourceProperty(artifact, ArtifactProperties.VERSION);
     if (version) {
       title += ` (version: ${version})`;
     }
     this.props.updateToolbar({
-      pageTitle: title
+      pageTitle: title,
     });
-    this.setState({artifact});
+    this.setState({ artifact });
   }
 
   private switchTab(selectedTab: number) {

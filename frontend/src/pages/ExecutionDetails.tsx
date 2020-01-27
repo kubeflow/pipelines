@@ -24,8 +24,11 @@ import { CircularProgress } from '@material-ui/core';
 import { titleCase, getResourceProperty, logger } from '../lib/Utils';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import {
+  Event,
   Execution,
   ArtifactType,
+  ArtifactCustomProperties,
+  ExecutionCustomProperties,
   ExecutionProperties,
   ArtifactProperties,
   Api,
@@ -35,8 +38,7 @@ import {
   GetEventsByExecutionIDsResponse,
   GetArtifactsByIDRequest,
 } from 'frontend';
-import { EventTypes } from '../lib/MetadataUtils';
-import { Event } from '../generated/src/apis/metadata/metadata_store_pb';
+import { EventTypes, getArtifactTypeMap } from '../lib/MetadataUtils';
 import { Link } from 'react-router-dom';
 
 type ArtifactIdList = number[];
@@ -177,7 +179,9 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
 
     const execution = executionResponse.getExecutionsList()[0];
     // @ts-ignore
-    const executionName = getResourceProperty(execution, ExecutionProperties.COMPONENT_ID);
+    const executionName =
+      getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
+      getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true);
     this.props.updateToolbar({
       pageTitle: executionName ? executionName.toString() : '',
     });
@@ -260,7 +264,9 @@ class SectionIO extends Component<
       const data: ArtifactInfo = {
         id,
         // @ts-ignore
-        name: (getResourceProperty(artifact, ArtifactProperties.NAME) || '') as string, // TODO: assert name is string
+        name: (getResourceProperty(artifact, ArtifactProperties.NAME) ||
+          getResourceProperty(artifact, ArtifactCustomProperties.NAME, true) ||
+          '') as string, // TODO: assert name is string
         typeId: artifact.getTypeId(),
         uri: artifact.getUri() || '',
       };

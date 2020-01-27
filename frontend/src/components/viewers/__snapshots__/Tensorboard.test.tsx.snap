@@ -6,7 +6,6 @@ exports[`Tensorboard base component snapshot 1`] = `
     <div
       className=""
     >
-      class
       <WithStyles(FormControl)
         className="formControl"
       >
@@ -23,7 +22,7 @@ exports[`Tensorboard base component snapshot 1`] = `
             />
           }
           onChange={[Function]}
-          value=""
+          value="2.0.0"
         >
           <WithStyles(ListSubheader)>
             Tensoflow 1.x
@@ -103,7 +102,7 @@ exports[`Tensorboard base component snapshot 1`] = `
       <BusyButton
         busy={false}
         className="buttonAction"
-        disabled={true}
+        disabled={false}
         onClick={[Function]}
         title="Start Tensorboard"
       />
@@ -117,14 +116,14 @@ exports[`Tensorboard does not break on empty data 1`] = `
 - First value
 + Second value
 
-@@ -54,9 +54,9 @@
+@@ -53,9 +53,9 @@
             </WithStyles(MenuItem)>
           </WithStyles(WithFormControlContext(Select))>
         </WithStyles(FormControl)>
       </div>
       <div>
--       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
-+       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
+-       <BusyButton className=\\"buttonAction\\" disabled={false} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
++       <BusyButton className=\\"buttonAction\\" disabled={false} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
       </div>
     </div>
   </div>"
@@ -135,14 +134,14 @@ exports[`Tensorboard does not break on no config 1`] = `
 - First value
 + Second value
 
-@@ -54,9 +54,9 @@
+@@ -53,9 +53,9 @@
             </WithStyles(MenuItem)>
           </WithStyles(WithFormControlContext(Select))>
         </WithStyles(FormControl)>
       </div>
       <div>
--       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
-+       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
+-       <BusyButton className=\\"buttonAction\\" disabled={false} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
++       <BusyButton className=\\"buttonAction\\" disabled={false} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
       </div>
     </div>
   </div>"
@@ -224,14 +223,14 @@ exports[`Tensorboard shows start button if no instance exists 1`] = `
 - First value
 + Second value
 
-@@ -54,9 +54,9 @@
+@@ -53,9 +53,9 @@
             </WithStyles(MenuItem)>
           </WithStyles(WithFormControlContext(Select))>
         </WithStyles(FormControl)>
       </div>
       <div>
--       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
-+       <BusyButton className=\\"buttonAction\\" disabled={true} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
+-       <BusyButton className=\\"buttonAction\\" disabled={false} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
++       <BusyButton className=\\"buttonAction\\" disabled={false} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
       </div>
     </div>
   </div>"

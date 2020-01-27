@@ -1,6 +1,60 @@
-# Change Log
+# Changelog
+
+## [0.2.0](https://github.com/kubeflow/pipelines/tree/0.2.0) (2020-01-20)
+
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.40...0.2.0)
+
+**Merged pull requests:**
+
+- fix the metadata writer manifest [\#2878](https://github.com/kubeflow/pipelines/pull/2878) ([rmgogogo](https://github.com/rmgogogo))
+- Coverage reporting for frontend server [\#2877](https://github.com/kubeflow/pipelines/pull/2877) ([Bobgy](https://github.com/Bobgy))
+- enlarge timeout to 45m to avoid flakyness [\#2875](https://github.com/kubeflow/pipelines/pull/2875) ([rmgogogo](https://github.com/rmgogogo))
+- Better Hosted Release - automate things as possible as we can [\#2874](https://github.com/kubeflow/pipelines/pull/2874) ([rmgogogo](https://github.com/rmgogogo))
+- Build deployer for each post-submit to avoid manual work [\#2873](https://github.com/kubeflow/pipelines/pull/2873) ([rmgogogo](https://github.com/rmgogogo))
+- from 0.1.40 to 0.2.0 [\#2872](https://github.com/kubeflow/pipelines/pull/2872) ([rmgogogo](https://github.com/rmgogogo))
+- enable full scope for testing version [\#2871](https://github.com/kubeflow/pipelines/pull/2871) ([rmgogogo](https://github.com/rmgogogo))
+- Samples - Updated the TFX-KFP pipeline [\#2867](https://github.com/kubeflow/pipelines/pull/2867) ([Ark-kun](https://github.com/Ark-kun))
+- Frontend - Metadata - Use custom properties in addition to plain properties [\#2854](https://github.com/kubeflow/pipelines/pull/2854) ([Ark-kun](https://github.com/Ark-kun))
+- fix panic in Viewer cleanup [\#2853](https://github.com/kubeflow/pipelines/pull/2853) ([mattnworb](https://github.com/mattnworb))
+- \[Proxy\] Split domain name [\#2851](https://github.com/kubeflow/pipelines/pull/2851) ([numerology](https://github.com/numerology))
+- \[Test\] Add KFP MKP deployment for e2e tests [\#2850](https://github.com/kubeflow/pipelines/pull/2850) ([rui5i](https://github.com/rui5i))
+- Opt out proxy agent configmap [\#2849](https://github.com/kubeflow/pipelines/pull/2849) ([IronPan](https://github.com/IronPan))
+- \[Doc\] Update link of preload TFX sample [\#2839](https://github.com/kubeflow/pipelines/pull/2839) ([numerology](https://github.com/numerology))
+- Fix wrong example with container\_op [\#2838](https://github.com/kubeflow/pipelines/pull/2838) ([kim-sardine](https://github.com/kim-sardine))
+- \[UI\] Simplify start server script and fix local cluster name endpoint [\#2836](https://github.com/kubeflow/pipelines/pull/2836) ([Bobgy](https://github.com/Bobgy))
+- Fix a  typo in Tensorboard.tsx. Add a default TB version. [\#2832](https://github.com/kubeflow/pipelines/pull/2832) ([jingzhang36](https://github.com/jingzhang36))
+- \[UI\] Update node to 12 [\#2830](https://github.com/kubeflow/pipelines/pull/2830) ([Bobgy](https://github.com/Bobgy))
+- visualization server wants kubernetes serivce account too [\#2822](https://github.com/kubeflow/pipelines/pull/2822) ([jingzhang36](https://github.com/jingzhang36))
+- \[testing\] Fix e2e tests timed out, but there's empty test log [\#2810](https://github.com/kubeflow/pipelines/pull/2810) ([Bobgy](https://github.com/Bobgy))
+- \[Sample\] Update the Doc for TFX sample [\#2798](https://github.com/kubeflow/pipelines/pull/2798) ([numerology](https://github.com/numerology))
+- \[UI\] Add editor for json parameters in new run page [\#2747](https://github.com/kubeflow/pipelines/pull/2747) ([drewbutlerbb4](https://github.com/drewbutlerbb4))
+- Bump tensorflow from 1.12.1 to 1.15.0 in /components/kubeflow/dnntrainer/src [\#2743](https://github.com/kubeflow/pipelines/pull/2743) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Update deployer base to 0.1.40 [\#2696](https://github.com/kubeflow/pipelines/pull/2696) ([rmgogogo](https://github.com/rmgogogo))
+- Service - Metadata writer [\#2674](https://github.com/kubeflow/pipelines/pull/2674) ([Ark-kun](https://github.com/Ark-kun))
+- Install application CRD and add pipeline application CR to pipeline standalone [\#2585](https://github.com/kubeflow/pipelines/pull/2585) ([IronPan](https://github.com/IronPan))
+- better handle inverse-proxy configmap for better GC [\#2391](https://github.com/kubeflow/pipelines/pull/2391) ([rmgogogo](https://github.com/rmgogogo))
+
+## [0.1.40](https://github.com/kubeflow/pipelines/tree/0.1.40) (2020-01-09)
+
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.39...0.1.40)
+
+**Merged pull requests:**
+
+- \[Backend\] Fix report workflow error messages [\#2815](https://github.com/kubeflow/pipelines/pull/2815) ([Bobgy](https://github.com/Bobgy))
+- Pin pyarrow version [\#2813](https://github.com/kubeflow/pipelines/pull/2813) ([numerology](https://github.com/numerology))
+- \[UI\] fix artifact handler query parameter key [\#2809](https://github.com/kubeflow/pipelines/pull/2809) ([Bobgy](https://github.com/Bobgy))
+- Fix node server typing problems [\#2807](https://github.com/kubeflow/pipelines/pull/2807) ([Bobgy](https://github.com/Bobgy))
+- add jiaxiao to the component owners [\#2804](https://github.com/kubeflow/pipelines/pull/2804) ([gaoning777](https://github.com/gaoning777))
+- \[Component\] Fix the component arguments [\#2803](https://github.com/kubeflow/pipelines/pull/2803) ([numerology](https://github.com/numerology))
+- update changelog [\#2801](https://github.com/kubeflow/pipelines/pull/2801) ([gaoning777](https://github.com/gaoning777))
+- \[Manifest/Doc\] Another version bumping [\#2797](https://github.com/kubeflow/pipelines/pull/2797) ([numerology](https://github.com/numerology))
+- Making json output format easier to read [\#2792](https://github.com/kubeflow/pipelines/pull/2792) ([SinaChavoshi](https://github.com/SinaChavoshi))
+- \[Doc\] Change sample/component/sdk documentation to not use `use\_gcp\_secret` [\#2782](https://github.com/kubeflow/pipelines/pull/2782) ([Bobgy](https://github.com/Bobgy))
+- SDK - Bumping the upper version of Kubernetes package [\#2780](https://github.com/kubeflow/pipelines/pull/2780) ([Ark-kun](https://github.com/Ark-kun))
+- Delete namespaced-install.yaml [\#2603](https://github.com/kubeflow/pipelines/pull/2603) ([IronPan](https://github.com/IronPan))
 
 ## [0.1.39](https://github.com/kubeflow/pipelines/tree/0.1.39) (2020-01-06)
+
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.38...0.1.39)
 
 **Merged pull requests:**
@@ -35,6 +89,7 @@
 - End to end mnist pipeline use case [\#2628](https://github.com/kubeflow/pipelines/pull/2628) ([hougangliu](https://github.com/hougangliu))
 
 ## [0.1.38](https://github.com/kubeflow/pipelines/tree/0.1.38) (2019-12-19)
+
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.37...0.1.38)
 
 **Merged pull requests:**
@@ -77,6 +132,29 @@
 - Migrate standalone deployment to workload identity on GCP [\#2619](https://github.com/kubeflow/pipelines/pull/2619) ([Bobgy](https://github.com/Bobgy))
 - SDK/Compiler - Preventing pipeline entrypoint template name from clashing with other template names [\#1555](https://github.com/kubeflow/pipelines/pull/1555) ([Ark-kun](https://github.com/Ark-kun))
 
+## [0.1.37](https://github.com/kubeflow/pipelines/tree/0.1.37) (2019-12-05)
+
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.36...0.1.37)
+
+**Merged pull requests:**
+
+- update server and sdk version to 0.1.37 [\#2701](https://github.com/kubeflow/pipelines/pull/2701) ([hongye-sun](https://github.com/hongye-sun))
+- release-b63472062bd80737c7f39e0eda901db0fe23a5e0 [\#2700](https://github.com/kubeflow/pipelines/pull/2700) ([hongye-sun](https://github.com/hongye-sun))
+- Store ns in db [\#2698](https://github.com/kubeflow/pipelines/pull/2698) ([gaoning777](https://github.com/gaoning777))
+- fix visualization-server doc link [\#2681](https://github.com/kubeflow/pipelines/pull/2681) ([rmgogogo](https://github.com/rmgogogo))
+- Add readable step id for test cloudbuild steps [\#2673](https://github.com/kubeflow/pipelines/pull/2673) ([Bobgy](https://github.com/Bobgy))
+- Configure jest to hide noisy message about no coverage data on .d.ts files [\#2672](https://github.com/kubeflow/pipelines/pull/2672) ([Bobgy](https://github.com/Bobgy))
+- Components - TFX [\#2671](https://github.com/kubeflow/pipelines/pull/2671) ([Ark-kun](https://github.com/Ark-kun))
+- \[Release\] update changelog [\#2666](https://github.com/kubeflow/pipelines/pull/2666) ([numerology](https://github.com/numerology))
+- Components - Filesystem [\#2659](https://github.com/kubeflow/pipelines/pull/2659) ([Ark-kun](https://github.com/Ark-kun))
+- Components - Git clone [\#2658](https://github.com/kubeflow/pipelines/pull/2658) ([Ark-kun](https://github.com/Ark-kun))
+- \[UI\] Get kubeflow namespace from kfp UI [\#2655](https://github.com/kubeflow/pipelines/pull/2655) ([Bobgy](https://github.com/Bobgy))
+- add namespace to the resourcereference [\#2651](https://github.com/kubeflow/pipelines/pull/2651) ([gaoning777](https://github.com/gaoning777))
+- Remove travis CI frontend tests [\#2647](https://github.com/kubeflow/pipelines/pull/2647) ([Bobgy](https://github.com/Bobgy))
+- Frontend - Add support for Minio artifact URIs [\#2645](https://github.com/kubeflow/pipelines/pull/2645) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Python support for arbitrary secret, similar to ".use\_gcp\_secret\('user-gcp-sa'\)" [\#2639](https://github.com/kubeflow/pipelines/pull/2639) ([NikeNano](https://github.com/NikeNano))
+- Open version api in BE proto and auto-generate BE/FE api methods [\#2620](https://github.com/kubeflow/pipelines/pull/2620) ([jingzhang36](https://github.com/jingzhang36))
+
 ## [0.1.36](https://github.com/kubeflow/pipelines/tree/0.1.36) (2019-11-26)
 
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.35...0.1.36)
@@ -108,7 +186,6 @@
 - \[fix\] default yaml.dump to block style [\#2591](https://github.com/kubeflow/pipelines/pull/2591) ([l1990790120](https://github.com/l1990790120))
 - Katib experiment launcher [\#2577](https://github.com/kubeflow/pipelines/pull/2577) ([hougangliu](https://github.com/hougangliu))
 - Add a new field "TensorflowImage" to KFP viewer CRD file template. [\#2544](https://github.com/kubeflow/pipelines/pull/2544) ([jingzhang36](https://github.com/jingzhang36))
-
 
 ## [0.1.35](https://github.com/kubeflow/pipelines/tree/0.1.35) (2019-11-13)
 
@@ -164,7 +241,6 @@
 - SDK - Client - Added API models to the generated API [\#2418](https://github.com/kubeflow/pipelines/pull/2418) ([Ark-kun](https://github.com/Ark-kun))
 - SDK - DSL - Deprecated ArtifactLocation [\#2326](https://github.com/kubeflow/pipelines/pull/2326) ([Ark-kun](https://github.com/Ark-kun))
 - Add external links that make some content easier to discover [\#2068](https://github.com/kubeflow/pipelines/pull/2068) ([Bobgy](https://github.com/Bobgy))
-
 
 ## [0.1.33](https://github.com/kubeflow/pipelines/tree/0.1.33) (2019-11-02)
 
@@ -223,17 +299,17 @@
 - \[Doc\] Update permission requirement in README [\#2422](https://github.com/kubeflow/pipelines/pull/2422) ([numerology](https://github.com/numerology))
 - Adding the core libraries for diagnose\_me tool. [\#2417](https://github.com/kubeflow/pipelines/pull/2417) ([SinaChavoshi](https://github.com/SinaChavoshi))
 - \[Doc\] Minor doc update [\#2394](https://github.com/kubeflow/pipelines/pull/2394) ([numerology](https://github.com/numerology))
-- License crawler for third party golang libraries [\#2393](https://github.com/kubeflow/pipelines/pull/2393) ([Bobgy](https://github.com/Bobgy))
 - update link so that user can easily jump to CAIP after deployment [\#2377](https://github.com/kubeflow/pipelines/pull/2377) ([rmgogogo](https://github.com/rmgogogo))
 - \[Frontend\] Make links in pipeline description clickable [\#2376](https://github.com/kubeflow/pipelines/pull/2376) ([Bobgy](https://github.com/Bobgy))
+- \[Doc\] Fix a typo in MKP guide [\#2342](https://github.com/kubeflow/pipelines/pull/2342) ([numerology](https://github.com/numerology))
 - SDK/CLI: Implement kfp pipeline group [\#2340](https://github.com/kubeflow/pipelines/pull/2340) ([elikatsis](https://github.com/elikatsis))
 - SDK - Tests - Fixed most of the test warnings [\#2336](https://github.com/kubeflow/pipelines/pull/2336) ([Ark-kun](https://github.com/Ark-kun))
 - SDK - Refactoring - Split the K8sHelper class [\#2333](https://github.com/kubeflow/pipelines/pull/2333) ([Ark-kun](https://github.com/Ark-kun))
 - tech writer edits [\#2332](https://github.com/kubeflow/pipelines/pull/2332) ([jay-saldanha](https://github.com/jay-saldanha))
 - Tests - Use base image for frontend tests [\#190](https://github.com/kubeflow/pipelines/pull/190) ([Ark-kun](https://github.com/Ark-kun))
 
-
 ## [0.1.32](https://github.com/kubeflow/pipelines/tree/0.1.32) (2019-10-18)
+
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.31...0.1.32)
 
 **Merged pull requests:**
@@ -248,6 +324,7 @@
 - \[Test/Sample test\] Fix model version in AI platform sample [\#2400](https://github.com/kubeflow/pipelines/pull/2400) ([numerology](https://github.com/numerology))
 - Update Watson ML default framework version [\#2398](https://github.com/kubeflow/pipelines/pull/2398) ([Tomcli](https://github.com/Tomcli))
 - Add Tomcli as kfs component reviewer [\#2396](https://github.com/kubeflow/pipelines/pull/2396) ([Tomcli](https://github.com/Tomcli))
+- License crawler for third party golang libraries [\#2393](https://github.com/kubeflow/pipelines/pull/2393) ([Bobgy](https://github.com/Bobgy))
 - quick custom spec fix [\#2390](https://github.com/kubeflow/pipelines/pull/2390) ([animeshsingh](https://github.com/animeshsingh))
 - add test config comment [\#2389](https://github.com/kubeflow/pipelines/pull/2389) ([gaoning777](https://github.com/gaoning777))
 - Remove jingzhang36 and rmgogogo from frontend reviewer list [\#2388](https://github.com/kubeflow/pipelines/pull/2388) ([Bobgy](https://github.com/Bobgy))
@@ -271,7 +348,6 @@
 - \[Test\] Add unittest against TFX [\#2346](https://github.com/kubeflow/pipelines/pull/2346) ([numerology](https://github.com/numerology))
 - SDK - Python components - Fixed handling multiline decorators [\#2345](https://github.com/kubeflow/pipelines/pull/2345) ([Ark-kun](https://github.com/Ark-kun))
 - \[License\] Fix third-party license [\#2344](https://github.com/kubeflow/pipelines/pull/2344) ([numerology](https://github.com/numerology))
-- \[Doc\] Fix a typo in MKP guide [\#2342](https://github.com/kubeflow/pipelines/pull/2342) ([numerology](https://github.com/numerology))
 - Fix pipeline cannot run bug when using marketplace managed storage [\#2341](https://github.com/kubeflow/pipelines/pull/2341) ([Bobgy](https://github.com/Bobgy))
 - enlarge MKP cluster constraint [\#2339](https://github.com/kubeflow/pipelines/pull/2339) ([rmgogogo](https://github.com/rmgogogo))
 - Add pipeline version api methods [\#2338](https://github.com/kubeflow/pipelines/pull/2338) ([jingzhang36](https://github.com/jingzhang36))

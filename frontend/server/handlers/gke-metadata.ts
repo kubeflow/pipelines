@@ -12,9 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { Handler } from 'express';
+import * as k8sHelper from '../k8s-helper';
 import fetch from 'node-fetch';
 
 export const clusterNameHandler: Handler = async (_, res) => {
+  if (!k8sHelper.isInCluster) {
+    res.status(500).send('Not running in Kubernetes cluster.');
+    return;
+  }
+
   const response = await fetch(
     'http://metadata/computeMetadata/v1/instance/attributes/cluster-name',
     { headers: { 'Metadata-Flavor': 'Google' } },
@@ -23,6 +29,11 @@ export const clusterNameHandler: Handler = async (_, res) => {
 };
 
 export const projectIdHandler: Handler = async (_, res) => {
+  if (!k8sHelper.isInCluster) {
+    res.status(500).send('Not running in Kubernetes cluster.');
+    return;
+  }
+
   const response = await fetch('http://metadata/computeMetadata/v1/project/project-id', {
     headers: { 'Metadata-Flavor': 'Google' },
   });

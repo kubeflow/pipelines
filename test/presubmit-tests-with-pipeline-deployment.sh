@@ -31,7 +31,7 @@ usage()
 PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
-TIMEOUT_SECONDS=1800
+TIMEOUT_SECONDS=2700 # 45 minutes
 NAMESPACE=kubeflow
 ENABLE_WORKLOAD_IDENTITY=true
 
