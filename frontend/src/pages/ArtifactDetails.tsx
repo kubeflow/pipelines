@@ -23,11 +23,12 @@ import {
   LineageView,
   getResourceProperty,
   titleCase,
+  LineageResource,
 } from 'frontend';
 import * as React from 'react';
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
-import { RoutePage, RouteParams } from '../components/Router';
+import {RoutePage, RoutePageFactory, RouteParams} from '../components/Router';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
@@ -52,15 +53,6 @@ interface ArtifactDetailsState {
 }
 
 export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
-  private api = Api.getInstance();
-
-  constructor(props: {}) {
-    super(props);
-    this.state = {
-      selectedTab: ArtifactDetailsTab.OVERVIEW
-    };
-    this.load = this.load.bind(this);
-  }
 
   private get fullTypeName(): string {
     return this.props.match.params[RouteParams.ARTIFACT_TYPE] || '';
@@ -76,6 +68,26 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
 
   private get id(): number {
     return Number(this.props.match.params[RouteParams.ID]);
+  }
+
+  private static buildResourceDetailsPageRoute(
+    resource: LineageResource, typeName: string): string {
+    let route;
+    if (resource instanceof Artifact) {
+      route = RoutePageFactory.artifactDetails(typeName, resource.getId());
+    } else {
+      route = RoutePage.EXECUTION_DETAILS.replace(`:${RouteParams.EXECUTION_TYPE}+`, typeName);
+    }
+    return route.replace(`:${RouteParams.ID}`, String(resource.getId()));
+  }
+  private api = Api.getInstance();
+
+  constructor(props: {}) {
+    super(props);
+    this.state = {
+      selectedTab: ArtifactDetailsTab.OVERVIEW
+    };
+    this.load = this.load.bind(this);
   }
 
   public async componentDidMount(): Promise<void> {
@@ -101,7 +113,10 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
           </div>
         )}
         {this.state.selectedTab === ArtifactDetailsTab.LINEAGE_EXPLORER && (
-          <LineageView target={this.state.artifact} />
+          <LineageView
+            target={this.state.artifact}
+            buildResourceDetailsPageRoute={ArtifactDetails.buildResourceDetailsPageRoute}
+          />
         )}
       </div>
     );
