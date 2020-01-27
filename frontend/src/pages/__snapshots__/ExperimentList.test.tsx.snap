@@ -158,14 +158,20 @@ exports[`ExperimentList renders an empty list with empty state message 1`] = `
 `;
 
 exports[`ExperimentList renders experiment names as links to their details pages 1`] = `
-<Link
-  className="link"
-  onClick={[Function]}
-  replace={false}
-  to="/experiments/details/experiment-id"
+<WithStyles(Tooltip)
+  enterDelay={300}
+  placement="top-start"
+  title="experiment name"
 >
-  experiment name
-</Link>
+  <Link
+    className="link"
+    onClick={[Function]}
+    replace={false}
+    to="/experiments/details/experiment-id"
+  >
+    experiment name
+  </Link>
+</WithStyles(Tooltip)>
 `;
 
 exports[`ExperimentList renders last 5 runs statuses 1`] = `

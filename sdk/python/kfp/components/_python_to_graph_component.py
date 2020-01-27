@@ -74,7 +74,18 @@ def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable, embe
 
     task_map = OrderedDict() #Preserving task order
 
-    def task_construction_handler(task: TaskSpec):
+    from ._components import _create_task_spec_from_component_and_arguments
+    def task_construction_handler(
+        component_spec,
+        arguments,
+        component_ref,
+    ):
+        task = _create_task_spec_from_component_and_arguments(
+            component_spec=component_spec,
+            arguments=arguments,
+            component_ref=component_ref,
+        )
+
         #Rewriting task ids so that they're same every time
         task_id = task.component_ref.spec.name or "Task"
         task_id = _make_name_unique_by_adding_index(task_id, task_map.keys(), ' ')
@@ -94,12 +105,14 @@ def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable, embe
 
     try:
         #Setting the handler to fix and catch the tasks.
-        _components._created_task_transformation_handler.append(task_construction_handler)
+        # FIX: The handler only hooks container component creation
+        old_handler = _components._container_task_constructor
+        _components._container_task_constructor = task_construction_handler
         
         #Calling the pipeline_func with GraphInputArgument instances as arguments 
         pipeline_func_result = pipeline_func(**pipeline_func_args)
     finally:
-        _components._created_task_transformation_handler.pop()
+        _components._container_task_constructor = old_handler
 
 
     # Getting graph outputs

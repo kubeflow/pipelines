@@ -16,11 +16,12 @@
 
 set -x
 
+ZONE=${ZONE:-us-east1-b}
 if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   # activating the service account
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
-gcloud config set compute/zone us-east1-b
+gcloud config set compute/zone ${ZONE}
 gcloud config set core/project ${PROJECT}
 
 #Uploading the source code to GCS:

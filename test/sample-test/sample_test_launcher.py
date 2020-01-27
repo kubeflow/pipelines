@@ -49,15 +49,8 @@ class SampleTest(object):
     self._target_image_prefix = target_image_prefix
     self._namespace = namespace
 
-    # TODO(numerology): special treatment for new TFX::OSS sample. Current decision
-    # is that we directly run its compiled version, for its compilation brings
-    # complex and unstable dependencies. See
-    if test_name == 'parameterized_tfx_oss':
-      self._is_notebook = False
-      self._work_dir = os.path.join(BASE_DIR, 'samples/contrib/', self._test_name)
-    else:
-      self._is_notebook = None
-      self._work_dir = os.path.join(BASE_DIR, 'samples/core/', self._test_name)
+    self._is_notebook = None
+    self._work_dir = os.path.join(BASE_DIR, 'samples/core/', self._test_name)
 
     self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
     self._sample_test_output = self._results_gcs_dir
@@ -140,8 +133,7 @@ class SampleTest(object):
       ])
 
     else:
-      subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
-                       '--output', '%s.yaml' % self._test_name])
+      subprocess.call(['python3', '%s.py' % self._test_name])
 
   def _injection(self):
     """Inject images for pipeline components.
@@ -150,10 +142,8 @@ class SampleTest(object):
     pass
 
   def run_test(self):
-    # TODO(numerology): ad hoc logic for TFX::OSS sample
-    if self._test_name != 'parameterized_tfx_oss':
-      self._compile()
-      self._injection()
+    self._compile()
+    self._injection()
 
     # Overriding the experiment name of pipeline runs
     experiment_name = self._test_name + '-test'
@@ -170,10 +160,7 @@ class SampleTest(object):
       nbchecker.check()
     else:
       os.chdir(TEST_DIR)
-      if self._test_name != 'parameterized_tfx_oss':
-        input_file = os.path.join(self._work_dir, '%s.yaml' % self._test_name)
-      else:
-        input_file = os.path.join(self._work_dir, '%s.tar.gz' % self._test_name)
+      input_file = os.path.join(self._work_dir, '%s.py.yaml' % self._test_name)
 
       pysample_checker = PySampleChecker(testname=self._test_name,
                                          input=input_file,
@@ -221,14 +208,14 @@ class ComponentTest(SampleTest):
           'gcr\.io/ml-pipeline/ml-pipeline-gcp:\w+':self._dataproc_gcp_image
       })
 
-      utils.file_injection('%s.yaml' % self._test_name,
-                           '%s.yaml.tmp' % self._test_name,
+      utils.file_injection('%s.py.yaml' % self._test_name,
+                           '%s.py.yaml.tmp' % self._test_name,
                            subs)
     else:
-      # Only the above two samples need injection for now.
+      # Only the above sample need injection for now.
       pass
-    utils.file_injection('%s.yaml' % self._test_name,
-                         '%s.yaml.tmp' % self._test_name,
+    utils.file_injection('%s.py.yaml' % self._test_name,
+                         '%s.py.yaml.tmp' % self._test_name,
                          subs)
 
 

@@ -1,5 +1,12 @@
 # Kubeflow Pipelines for GKE Marketplace
 
+> **Alpha version:** 
+Kubeflow Pipelines on GCP Marketplace is currently in **Alpha** with limited 
+support. The Kubeflow team is interested in any feedback you may have, in 
+particular with regards to usability of the feature. Please raise any issues
+or discussion items in the
+[Kubeflow Pipelines issue tracker](https://github.com/kubeflow/pipelines/issues).
+
 Kubeflow Pipelines can be installed using either of the following approaches:
 
 * [Using the Google Cloud Platform Console](#using-install-platform-console)

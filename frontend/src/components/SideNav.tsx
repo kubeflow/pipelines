@@ -54,11 +54,6 @@ export const css = stylesheet({
   active: {
     color: sideNavColors.fgActive + ' !important',
   },
-  buildInfo: {
-    color: sideNavColors.fgDefault,
-    marginBottom: 16,
-    marginLeft: 30,
-  },
   button: {
     '&:hover': {
       backgroundColor: sideNavColors.hover,
@@ -108,6 +103,11 @@ export const css = stylesheet({
   },
   collapsedSeparator: {
     margin: '20px !important',
+  },
+  envMetadata: {
+    color: sideNavColors.fgDefault,
+    marginBottom: 16,
+    marginLeft: 30,
   },
   icon: {
     height: 20,
@@ -178,8 +178,14 @@ interface SideNavProps extends RouterProps {
   page: string;
 }
 
+interface GkeMetadata {
+  clusterName: string;
+  projectId: string;
+}
+
 interface SideNavState {
   displayBuildInfo?: DisplayBuildInfo;
+  gkeMetadata?: GkeMetadata;
   collapsed: boolean;
   jupyterHubAvailable: boolean;
   manualCollapseState: boolean;
@@ -207,22 +213,35 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
     window.addEventListener('resize', this._maybeResize.bind(this));
     this._maybeResize();
 
-    // Fetch build info
-    let displayBuildInfo: DisplayBuildInfo | undefined;
-    try {
+    async function fetchBuildInfo() {
       const buildInfo = await Apis.getBuildInfo();
       const commitHash = buildInfo.apiServerCommitHash || buildInfo.frontendCommitHash || '';
-      displayBuildInfo = {
+      return {
         commitHash: commitHash ? commitHash.substring(0, 7) : 'unknown',
         commitUrl:
           'https://www.github.com/kubeflow/pipelines' + (commitHash ? `/commit/${commitHash}` : ''),
         date: buildInfo.buildDate ? new Date(buildInfo.buildDate).toLocaleDateString() : 'unknown',
       };
-    } catch (err) {
-      logger.error('Failed to retrieve build info', err);
     }
+    async function fetchGkeMetadata() {
+      const [clusterName, projectId] = await Promise.all([
+        Apis.getClusterName(),
+        Apis.getProjectId(),
+      ]);
+      return { clusterName, projectId };
+    }
+    const [displayBuildInfo, gkeMetadata] = await Promise.all([
+      fetchBuildInfo().catch(err => {
+        logger.error('Failed to retrieve build info', err);
+        return undefined;
+      }),
+      fetchGkeMetadata().catch(err => {
+        logger.error('Failed to retrieve GKE metadata', err);
+        return undefined;
+      }),
+    ]);
 
-    this.setStateSafe({ displayBuildInfo });
+    this.setStateSafe({ displayBuildInfo, gkeMetadata });
   }
 
   public componentWillUnmount(): void {
@@ -231,7 +250,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
 
   public render(): JSX.Element {
     const page = this.props.page;
-    const { collapsed, displayBuildInfo } = this.state;
+    const { collapsed, displayBuildInfo, gkeMetadata } = this.state;
     const iconColor = {
       active: sideNavColors.fgActive,
       inactive: sideNavColors.fgDefault,
@@ -457,13 +476,31 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
           </IconButton>
         </div>
         <div className={collapsed ? css.infoHidden : css.infoVisible}>
+          {gkeMetadata && (
+            <Tooltip
+              title={`Cluster name: ${gkeMetadata.clusterName}, Project ID: ${gkeMetadata.projectId}`}
+              enterDelay={300}
+              placement='top-start'
+            >
+              <div className={css.envMetadata}>
+                <span>Cluster name: </span>
+                <a
+                  href={`https://console.cloud.google.com/kubernetes/list?project=${gkeMetadata.projectId}&filter=name:${gkeMetadata.clusterName}`}
+                  className={classes(css.link, commonCss.unstyled)}
+                  target='_blank'
+                >
+                  {gkeMetadata.clusterName}
+                </a>
+              </div>
+            </Tooltip>
+          )}
           {displayBuildInfo && (
             <Tooltip
               title={'Build date: ' + displayBuildInfo.date}
               enterDelay={300}
               placement={'top-start'}
             >
-              <div className={css.buildInfo}>
+              <div className={css.envMetadata}>
                 <span>Build commit: </span>
                 <a
                   href={displayBuildInfo.commitUrl}

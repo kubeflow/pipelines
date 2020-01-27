@@ -24,8 +24,8 @@ export default {
     creationTimestamp: '2018-06-06T00:04:49Z',
     labels: {
       'workflows.argoproj.io/completed': 'true',
-      'workflows.argoproj.io/phase': 'Succeeded'
-    }
+      'workflows.argoproj.io/phase': 'Succeeded',
+    },
   },
   spec: {
     templates: [
@@ -37,25 +37,21 @@ export default {
         container: {
           name: '',
           image: 'docker/whalesay:latest',
-          command: [
-            'cowsay'
-          ],
-          args: [
-            '{{workflow.parameters.message}}'
-          ],
-          resources: {}
-        }
-      }
+          command: ['cowsay'],
+          args: ['{{workflow.parameters.message}}'],
+          resources: {},
+        },
+      },
     ],
     entrypoint: 'whalesay1',
     arguments: {
       parameters: [
         {
           name: 'message',
-          value: 'hello world'
-        }
-      ]
-    }
+          value: 'hello world',
+        },
+      ],
+    },
   },
   status: {
     phase: 'Succeeded',
@@ -70,8 +66,8 @@ export default {
         templateName: 'whalesay1',
         phase: 'Succeeded',
         startedAt: '2018-06-06T00:04:49Z',
-        finishedAt: '2018-06-06T00:05:23Z'
-      }
-    }
-  }
+        finishedAt: '2018-06-06T00:05:23Z',
+      },
+    },
+  },
 };

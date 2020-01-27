@@ -133,6 +133,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
             color="primary"
           />
           <WithStyles(IconButton)
+            aria-label="Expand"
             className="expandButton"
             onClick={[Function]}
           >
@@ -356,6 +357,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(IconButton)
+            aria-label="Expand"
             className="expandButton"
             onClick={[Function]}
           >
@@ -1055,6 +1057,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
             color="primary"
           />
           <WithStyles(IconButton)
+            aria-label="Expand"
             className="expandButton expandButtonExpanded"
             onClick={[Function]}
           >

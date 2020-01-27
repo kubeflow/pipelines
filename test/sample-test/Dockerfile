@@ -1,10 +1,10 @@
 # This image has the script to kick off the ML pipeline sample e2e test,
 
-FROM google/cloud-sdk:236.0.0
+FROM google/cloud-sdk:272.0.0
 
-RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev && \
-    apt-get install --no-install-recommends -y -q libssl-dev libffi-dev wget ssh
+RUN apt-get update -y
+RUN apt-get install --no-install-recommends -y -q libssl-dev libffi-dev wget ssh
+RUN apt-get install --no-install-recommends -y -q default-jre default-jdk python3-setuptools python3-dev gcc
 
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 
@@ -19,6 +19,7 @@ RUN pip3 install google-api-python-client==1.7.0
 RUN pip3 install google-cloud-storage==1.17.0
 RUN pip3 install fire==0.2.1
 RUN pip3 install yamale==2.0
+RUN pip3 install apache-beam[gcp]==2.17 pyarrow==0.14.1 tfx==0.15.0
 
 # Install python client, including DSL compiler.
 COPY ./sdk/python /sdk/python

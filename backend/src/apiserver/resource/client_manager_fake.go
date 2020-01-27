@@ -15,12 +15,11 @@
 package resource
 
 import (
-	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const (
@@ -38,9 +37,10 @@ type FakeClientManager struct {
 	dBStatusStore               storage.DBStatusStoreInterface
 	defaultExperimentStore      storage.DefaultExperimentStoreInterface
 	objectStore                 storage.ObjectStoreInterface
-	workflowClientFake          *FakeWorkflowClient
+	ArgoClientFake              *client.FakeArgoClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
-	podClientFake               v1.PodInterface
+	k8sCoreClientFake           *client.FakeKuberneteCoreClient
+	KfamClientFake              client.KFAMClientInterface
 	time                        util.TimeInterface
 	uuid                        util.UUIDGeneratorInterface
 }
@@ -69,13 +69,14 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		pipelineStore:               storage.NewPipelineStore(db, time, uuid),
 		jobStore:                    storage.NewJobStore(db, time),
 		runStore:                    storage.NewRunStore(db, time),
-		workflowClientFake:          NewWorkflowClientFake(),
+		ArgoClientFake:              client.NewFakeArgoClient(),
 		resourceReferenceStore:      storage.NewResourceReferenceStore(db),
 		dBStatusStore:               storage.NewDBStatusStore(db),
 		defaultExperimentStore:      storage.NewDefaultExperimentStore(db),
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
-		podClientFake:               FakePodClient{},
+		k8sCoreClientFake:           client.NewFakeKuberneteCoresClient(),
+		KfamClientFake:              client.NewFakeKFAMClientAuthorized(),
 		time:                        time,
 		uuid:                        uuid,
 	}, nil
@@ -114,8 +115,8 @@ func (f *FakeClientManager) DB() *storage.DB {
 	return f.db
 }
 
-func (f *FakeClientManager) Workflow() workflowclient.WorkflowInterface {
-	return f.workflowClientFake
+func (f *FakeClientManager) ArgoClient() client.ArgoClientInterface {
+	return f.ArgoClientFake
 }
 
 func (f *FakeClientManager) JobStore() storage.JobStoreInterface {
@@ -142,8 +143,12 @@ func (f *FakeClientManager) ScheduledWorkflow() scheduledworkflowclient.Schedule
 	return f.scheduledWorkflowClientFake
 }
 
-func (f *FakeClientManager) PodClient() v1.PodInterface {
-	return f.podClientFake
+func (f *FakeClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
+	return f.k8sCoreClientFake
+}
+
+func (f *FakeClientManager) KFAMClient() client.KFAMClientInterface {
+	return f.KfamClientFake
 }
 
 func (f *FakeClientManager) Close() error {

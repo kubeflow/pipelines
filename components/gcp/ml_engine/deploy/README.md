@@ -70,14 +70,7 @@ The accepted file formats are:
 To use the component, you must:
 
 *   [Set up the cloud environment](https://cloud.google.com/ml-engine/docs/tensorflow/getting-started-training-prediction#setup).
-*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
-
-    ```
-    ```python
-    mlengine_deploy_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-
-    ```
-
+*   The component can authenticate to GCP. Refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication-pipelines/) for details.
 *   Grant read access to the Cloud Storage bucket that contains the trained model to the Kubeflow user service account.
 
 ## Detailed description
@@ -110,7 +103,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 mlengine_deploy_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/4e7e6e866c1256e641b0c3effc55438e6e4b30f6/components/gcp/ml_engine/deploy/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/ff116b6f1a0f0cdaafb64fcd04214c169045e6fc/components/gcp/ml_engine/deploy/component.yaml')
 help(mlengine_deploy_op)
 ```
 
@@ -136,7 +129,6 @@ TRAINED_MODEL_PATH = 'gs://ml-pipeline-playground/samples/ml_engine/census/train
 
 ```python
 import kfp.dsl as dsl
-import kfp.gcp as gcp
 import json
 @dsl.pipeline(
     name='CloudML deploy pipeline',
@@ -163,7 +155,7 @@ def pipeline(
         version=version, 
         replace_existing_version=replace_existing_version, 
         set_default=set_default, 
-        wait_interval=wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        wait_interval=wait_interval)
 ```
 
 #### Compile the pipeline

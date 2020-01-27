@@ -2,24 +2,29 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 bases:
+- application
 - argo
-- crds
 - pipeline
 - proxy
 - metadata
 
+resources:
+  - pipeline-application.yaml
+
 images:
 - name: gcr.io/ml-pipeline/api-server
-  newTag: 0.1.36
+  newTag: 0.2.0
 - name: gcr.io/ml-pipeline/persistenceagent
-  newTag: 0.1.36
+  newTag: 0.2.0
 - name: gcr.io/ml-pipeline/scheduledworkflow
-  newTag: 0.1.36
+  newTag: 0.2.0
 - name: gcr.io/ml-pipeline/frontend
-  newTag: 0.1.36
+  newTag: 0.2.0
 - name: gcr.io/ml-pipeline/viewer-crd-controller
-  newTag: 0.1.36
+  newTag: 0.2.0
 - name: gcr.io/ml-pipeline/inverse-proxy-agent
-  newTag: 0.1.36
+  newTag: 0.2.0
 - name: gcr.io/ml-pipeline/visualization-server
-  newTag: 0.1.36
+  newTag: 0.2.0
+- name: gcr.io/ml-pipeline/metadata-writer
+  newTag: 0.2.0

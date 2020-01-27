@@ -18,14 +18,15 @@ export default {
     name: 'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c',
     namespace: 'default',
     // tslint:disable-next-line:max-line-length
-    selfLink: '/apis/argoproj.io/v1alpha1/namespaces/default/workflows/hello-world-61985dbf-4299-458b-a183-1f2c2436c21c',
+    selfLink:
+      '/apis/argoproj.io/v1alpha1/namespaces/default/workflows/hello-world-61985dbf-4299-458b-a183-1f2c2436c21c',
     uid: 'ef2a4a61-6e84-11e8-bba7-42010a8a0fc2',
     resourceVersion: '10690686',
     creationTimestamp: '2018-06-12T21:09:46Z',
     labels: {
       'workflows.argoproj.io/completed': 'true',
-      'workflows.argoproj.io/phase': 'Succeeded'
-    }
+      'workflows.argoproj.io/phase': 'Succeeded',
+    },
   },
   spec: {
     templates: [
@@ -39,10 +40,10 @@ export default {
             {
               name: 'say',
               template: 'say',
-              arguments: {}
-            }
-          ]
-        ]
+              arguments: {},
+            },
+          ],
+        ],
       },
       {
         name: 'say',
@@ -52,18 +53,14 @@ export default {
         container: {
           name: '',
           image: 'docker/whalesay:latest',
-          command: [
-            'cowsay'
-          ],
-          args: [
-            'hello world'
-          ],
-          resources: {}
-        }
-      }
+          command: ['cowsay'],
+          args: ['hello world'],
+          resources: {},
+        },
+      },
     ],
     entrypoint: 'whalesay',
-    arguments: {}
+    arguments: {},
   },
   status: {
     phase: 'Succeeded',
@@ -79,9 +76,7 @@ export default {
         phase: 'Succeeded',
         startedAt: '2018-06-12T21:09:46Z',
         finishedAt: '2018-06-12T21:09:47Z',
-        children: [
-          'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c-2303694156'
-        ]
+        children: ['hello-world-61985dbf-4299-458b-a183-1f2c2436c21c-2303694156'],
       },
       'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c-2303694156': {
         id: 'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c-2303694156',
@@ -92,9 +87,7 @@ export default {
         boundaryID: 'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c',
         startedAt: '2018-06-12T21:09:46Z',
         finishedAt: '2018-06-12T21:09:47Z',
-        children: [
-          'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c-3584189705'
-        ]
+        children: ['hello-world-61985dbf-4299-458b-a183-1f2c2436c21c-3584189705'],
       },
       'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c-3584189705': {
         id: 'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c-3584189705',
@@ -105,8 +98,8 @@ export default {
         phase: 'Succeeded',
         boundaryID: 'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c',
         startedAt: '2018-06-12T21:09:46Z',
-        finishedAt: '2018-06-12T21:09:47Z'
-      }
-    }
-  }
+        finishedAt: '2018-06-12T21:09:47Z',
+      },
+    },
+  },
 };

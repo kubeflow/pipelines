@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._metadata import _extract_component_metadata
 from ._pipeline_param import PipelineParam
 from .types import check_types, InconsistentTypeException
 from ._ops_group import Graph
@@ -67,7 +66,8 @@ def component(func):
   from functools import wraps
   @wraps(func)
   def _component(*args, **kargs):
-    component_meta = _extract_component_metadata(func)
+    from ..components._python_op import _extract_component_interface
+    component_meta = _extract_component_interface(func)
     if kfp.TYPE_CHECK:
       arg_index = 0
       for arg in args:

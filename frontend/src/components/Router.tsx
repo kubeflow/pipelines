@@ -42,6 +42,7 @@ import Toolbar, { ToolbarProps } from './Toolbar';
 import { Route, Switch, Redirect } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss } from '../Css';
+import NewPipelineVersion from '../pages/NewPipelineVersion';
 
 export type RouteConfig = { path: string; Component: React.ComponentType<any>; view?: any };
 
@@ -58,6 +59,7 @@ export enum QUERY_PARAMS {
   isRecurring = 'recurring',
   firstRunInExperiment = 'firstRunInExperiment',
   pipelineId = 'pipelineId',
+  pipelineVersionId = 'pipelineVersionId',
   fromRunId = 'fromRun',
   runlist = 'runlist',
   view = 'view',
@@ -66,6 +68,7 @@ export enum QUERY_PARAMS {
 export enum RouteParams {
   experimentId = 'eid',
   pipelineId = 'pid',
+  pipelineVersionId = 'vid',
   runId = 'rid',
   ARTIFACT_TYPE = 'artifactType',
   EXECUTION_TYPE = 'executionType',
@@ -91,9 +94,11 @@ export const RoutePage = {
   EXPERIMENTS: '/experiments',
   EXPERIMENT_DETAILS: `/experiments/details/:${RouteParams.experimentId}`,
   NEW_EXPERIMENT: '/experiments/new',
+  NEW_PIPELINE_VERSION: '/pipeline_versions/new',
   NEW_RUN: '/runs/new',
   PIPELINES: '/pipelines',
-  PIPELINE_DETAILS: `/pipelines/details/:${RouteParams.pipelineId}?`, // pipelineId is optional
+  PIPELINE_DETAILS: `/pipelines/details/:${RouteParams.pipelineId}/version/:${RouteParams.pipelineVersionId}?`,
+  PIPELINE_DETAILS_NO_VERSION: `/pipelines/details/:${RouteParams.pipelineId}?`, // pipelineId is optional
   RECURRING_RUN: `/recurringrun/details/:${RouteParams.runId}`,
   RUNS: '/runs',
   RUN_DETAILS: `/runs/details/:${RouteParams.runId}`,
@@ -149,9 +154,11 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     },
     { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
     { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
+    { path: RoutePage.NEW_PIPELINE_VERSION, Component: NewPipelineVersion },
     { path: RoutePage.NEW_RUN, Component: NewRun },
     { path: RoutePage.PIPELINES, Component: PipelineList },
     { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
+    { path: RoutePage.PIPELINE_DETAILS_NO_VERSION, Component: PipelineDetails },
     { path: RoutePage.RUNS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.RUNS },
     { path: RoutePage.RECURRING_RUN, Component: RecurringRunDetails },
     { path: RoutePage.RUN_DETAILS, Component: RunDetails },

@@ -17,14 +17,12 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"time"
 
-	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -37,19 +35,21 @@ import (
 )
 
 const (
-	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
-	mysqlServiceHost = "DBConfig.Host"
-	mysqlServicePort = "DBConfig.Port"
-	mysqlUser        = "DBConfig.User"
-	mysqlPassword    = "DBConfig.Password"
-	mysqlDBName      = "DBConfig.DBName"
-	mysqlGroupConcatMaxLen 	= "DBConfig.GroupConcatMaxLen"
+	minioServiceHost       = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort       = "MINIO_SERVICE_SERVICE_PORT"
+	mysqlServiceHost       = "DBConfig.Host"
+	mysqlServicePort       = "DBConfig.Port"
+	mysqlUser              = "DBConfig.User"
+	mysqlPassword          = "DBConfig.Password"
+	mysqlDBName            = "DBConfig.DBName"
+	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
+	kfamServiceHost        = "PROFILES_KFAM_SERVICE_HOST"
+	kfamServicePort        = "PROFILES_KFAM_SERVICE_PORT"
+	mysqlExtraParams       = "DBConfig.ExtraParams"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
 
-	podNamespace          = "POD_NAMESPACE"
 	initConnectionTimeout = "InitConnectionTimeout"
 )
 
@@ -64,9 +64,10 @@ type ClientManager struct {
 	dBStatusStore          storage.DBStatusStoreInterface
 	defaultExperimentStore storage.DefaultExperimentStoreInterface
 	objectStore            storage.ObjectStoreInterface
-	wfClient               workflowclient.WorkflowInterface
+	argoClient             client.ArgoClientInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
-	podClient              v1.PodInterface
+	k8sCoreClient          client.KubernetesCoreInterface
+	kfamClient             client.KFAMClientInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 }
@@ -103,16 +104,20 @@ func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
 	return c.objectStore
 }
 
-func (c *ClientManager) Workflow() workflowclient.WorkflowInterface {
-	return c.wfClient
+func (c *ClientManager) ArgoClient() client.ArgoClientInterface {
+	return c.argoClient
 }
 
 func (c *ClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
 	return c.swfClient
 }
 
-func (c *ClientManager) PodClient() v1.PodInterface {
-	return c.podClient
+func (c *ClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
+	return c.k8sCoreClient
+}
+
+func (c *ClientManager) KFAMClient() client.KFAMClientInterface {
+	return c.kfamClient
 }
 
 func (c *ClientManager) Time() util.TimeInterface {
@@ -142,18 +147,19 @@ func (c *ClientManager) init() {
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
 
-	c.wfClient = client.CreateWorkflowClientOrFatal(
-		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
+	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
-		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
+		common.GetStringConfig(client.PodNamespace), common.GetDurationConfig(initConnectionTimeout))
 
-	c.podClient = client.CreatePodClientOrFatal(
-		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
+	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
 
+	if common.IsMultiUserMode() {
+		c.kfamClient = client.NewKFAMClient(common.GetStringConfig(kfamServiceHost), common.GetStringConfig(kfamServicePort))
+	}
 	glog.Infof("Client manager initialized successfully")
 }
 
@@ -232,6 +238,16 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to update pipeline description type. Error: %s", response.Error)
 	}
 
+	// If the old unique index idx_pipeline_version_uuid_name on pipeline_versions exists, remove it.
+	rows, err := db.Raw(`show index from pipeline_versions where Key_name="idx_pipeline_version_uuid_name"`).Rows()
+	if err != nil {
+		glog.Fatalf("Failed to query pipeline_version table's indices. Error: %s", err)
+	}
+	if rows.Next() {
+		db.Exec(`drop index idx_pipeline_version_uuid_name on pipeline_versions`)
+	}
+	rows.Close()
+
 	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
 }
 
@@ -245,6 +261,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 		common.GetStringConfigWithDefault(mysqlServicePort, "3306"),
 		"",
 		common.GetStringConfigWithDefault(mysqlGroupConcatMaxLen, "1024"),
+		common.GetMapConfig(mysqlExtraParams),
 	)
 
 	var db *sql.DB
@@ -278,6 +295,11 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 	util.TerminateIfError(err)
 	mysqlConfig.DBName = dbName
+	// When updating, return rows matched instead of rows affected. This counts rows that are being
+	// set as the same values as before. If updating using a primary key and rows matched is 0, then
+	// it means this row is not found.
+	// Config reference: https://github.com/go-sql-driver/mysql#clientfoundrows
+	mysqlConfig.ClientFoundRows = true
 	return mysqlConfig.FormatDSN()
 }
 

@@ -13,5 +13,5 @@
 # limitations under the License.
 
 test_name: default_sample_test
-test_timeout: 1200
+test_timeout: 2700
 run_pipeline: True

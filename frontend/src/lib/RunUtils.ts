@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
+import { orderBy } from 'lodash';
+import { ApiParameter, ApiPipelineVersion } from 'src/apis/pipeline';
+import { Workflow } from 'third_party/argo-ui/argo_template';
 import { ApiJob } from '../apis/job';
 import {
-  ApiRun,
-  ApiResourceType,
-  ApiResourceReference,
-  ApiRunDetail,
   ApiPipelineRuntime,
+  ApiResourceReference,
+  ApiResourceType,
+  ApiRun,
+  ApiRunDetail,
+  ApiRelationship,
 } from '../apis/run';
-import { orderBy } from 'lodash';
-import { ApiParameter } from 'src/apis/pipeline';
-import { Workflow } from 'third_party/argo-ui/argo_template';
-import WorkflowParser from './WorkflowParser';
 import { logger } from './Utils';
+import WorkflowParser from './WorkflowParser';
 
 export interface MetricMetadata {
   count: number;
@@ -66,6 +67,32 @@ function getPipelineName(run?: ApiRun | ApiJob): string | null {
   return (run && run.pipeline_spec && run.pipeline_spec.pipeline_name) || null;
 }
 
+function getPipelineVersionId(run?: ApiRun | ApiJob): string | null {
+  return run &&
+    run.resource_references &&
+    run.resource_references.some(
+      ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINEVERSION,
+    )
+    ? run.resource_references.find(
+        ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINEVERSION,
+      )!.key!.id!
+    : null;
+}
+
+function getPipelineIdFromApiPipelineVersion(
+  pipelineVersion?: ApiPipelineVersion,
+): string | undefined {
+  return pipelineVersion &&
+    pipelineVersion.resource_references &&
+    pipelineVersion.resource_references.some(
+      ref => ref.key && ref.key.type && ref.key.id && ref.key.type === ApiResourceType.PIPELINE,
+    )
+    ? pipelineVersion.resource_references.find(
+        ref => ref.key && ref.key.type && ref.key.id && ref.key.type === ApiResourceType.PIPELINE,
+      )!.key!.id!
+    : undefined;
+}
+
 function getWorkflowManifest(run?: ApiRun | ApiJob): string | null {
   return (run && run.pipeline_spec && run.pipeline_spec.workflow_manifest) || null;
 }
@@ -88,6 +115,20 @@ function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference
   return ((run && run.resource_references) || []).filter(
     ref => (ref.key && ref.key.type && ref.key.type === ApiResourceType.EXPERIMENT) || false,
   );
+}
+
+function getNamespaceReferenceName(run?: ApiRun | ApiJob): string | undefined {
+  // There should be only one namespace reference.
+  const namespaceRef =
+    run &&
+    run.resource_references &&
+    run.resource_references.find(
+      ref =>
+        ref.relationship === ApiRelationship.OWNER &&
+        ref.key &&
+        ref.key.type === ApiResourceType.NAMESPACE,
+    );
+  return namespaceRef && namespaceRef.key && namespaceRef.key.id;
 }
 
 /**
@@ -148,10 +189,13 @@ export default {
   getFirstExperimentReference,
   getFirstExperimentReferenceId,
   getFirstExperimentReferenceName,
+  getNamespaceReferenceName,
   getParametersFromRun,
   getParametersFromRuntime,
   getPipelineId,
+  getPipelineIdFromApiPipelineVersion,
   getPipelineName,
+  getPipelineVersionId,
   getRecurringRunId,
   getWorkflowManifest,
   runsToMetricMetadataMap,

@@ -1864,3 +1864,5 @@ exports[`Graph renders a graph with two disparate nodes 1`] = `
   </div>
 </div>
 `;
+
+exports[`Graph shows an error message when the graph is invalid 1`] = `"<div class=\\"root\\"></div>"`;

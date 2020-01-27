@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import kfp
 from kfp import dsl
 
 def echo_op():
@@ -28,3 +29,6 @@ def echo_op():
 )
 def hello_world_pipeline():
     echo_task = echo_op()
+
+if __name__ == '__main__':
+    kfp.compiler.Compiler().compile(hello_world_pipeline, __file__ + '.yaml')
