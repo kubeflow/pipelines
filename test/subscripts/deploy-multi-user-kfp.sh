@@ -68,7 +68,7 @@ pushd $KF_DIR
 kfctl apply -V -f ${CONFIG_URI}
 gcloud container clusters get-credentials ${KF_NAME} --zone ${ZONE} --project ${PROJECT}
 # Temporarily workarounds a GKE workload identity not working issue.
-gcloud container clusters upgrade ${KF_NAME} --master --cluster-version 1.14.8-gke.17
+gcloud container clusters upgrade ${KF_NAME} --master --cluster-version 1.14.8-gke.33
 
 function wait-cluster-ready {
   # wait for all deployments / stateful sets to be successful
