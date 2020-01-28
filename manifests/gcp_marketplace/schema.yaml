@@ -108,6 +108,7 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
+
 required:
   - name
   - namespace
