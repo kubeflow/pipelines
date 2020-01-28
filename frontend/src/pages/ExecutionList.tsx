@@ -14,7 +14,20 @@
  * limitations under the License.
  */
 
+import {
+  Api,
+  Execution,
+  ExecutionType,
+  ExecutionProperties,
+  ExecutionCustomProperties,
+  GetExecutionsRequest,
+  GetExecutionTypesRequest,
+  ListRequest,
+  getResourceProperty,
+} from 'frontend';
 import * as React from 'react';
+import { Link } from 'react-router-dom';
+import { classes } from 'typestyle';
 import CustomTable, {
   Column,
   Row,
@@ -23,27 +36,9 @@ import CustomTable, {
 } from '../components/CustomTable';
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
-import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import {
-  getResourceProperty,
-  rowCompareFn,
-  rowFilterFn,
-  groupRows,
-  getExpandedRow,
-} from '../lib/Utils';
-import { Link } from 'react-router-dom';
+import { rowCompareFn, rowFilterFn, groupRows, getExpandedRow } from '../lib/Utils';
 import { RoutePage, RouteParams } from '../components/Router';
-import {
-  Api,
-  Execution,
-  ExecutionType,
-  ExecutionProperties,
-  ExecutionCustomProperties,
-  GetExecutionTypesRequest,
-  ListRequest,
-  GetExecutionsRequest,
-} from 'frontend';
 
 interface ExecutionListState {
   executions: Execution[];
@@ -55,7 +50,7 @@ interface ExecutionListState {
 class ExecutionList extends Page<{}, ExecutionListState> {
   private tableRef = React.createRef<CustomTable>();
   private api = Api.getInstance();
-  private executionTypes: Map<number, ExecutionType>;
+  private executionTypesMap: Map<number, ExecutionType>;
 
   constructor(props: any) {
     super(props);
@@ -123,8 +118,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
 
   private async reload(request: ListRequest): Promise<string> {
     // TODO: Consider making an Api method for returning and caching types
-    if (!this.executionTypes || !this.executionTypes.size) {
-      this.executionTypes = await this.getExecutionTypes();
+    if (!this.executionTypesMap || !this.executionTypesMap.size) {
+      this.executionTypesMap = await this.getExecutionTypes();
     }
     if (!this.state.executions.length) {
       const executions = await this.getExecutions();
@@ -194,8 +189,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
         .map(execution => {
           // Flattens
           const type =
-            this.executionTypes && this.executionTypes.get(execution.getTypeId()!)
-              ? this.executionTypes.get(execution.getTypeId()!)!.getName()
+            this.executionTypesMap && this.executionTypesMap.get(execution.getTypeId()!)
+              ? this.executionTypesMap.get(execution.getTypeId()!)!.getName()
               : execution.getTypeId();
           return {
             id: `${type}:${execution.getId()}`, // Join with colon so we can build the link

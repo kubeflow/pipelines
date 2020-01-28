@@ -25,12 +25,7 @@ import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import {
-  rowCompareFn,
-  rowFilterFn,
-  groupRows,
-  getExpandedRow,
-} from '../lib/Utils';
+import { rowCompareFn, rowFilterFn, groupRows, getExpandedRow } from '../lib/Utils';
 import { RoutePageFactory } from '../components/Router';
 import { Link } from 'react-router-dom';
 import {
@@ -57,7 +52,7 @@ interface ArtifactListState {
 class ArtifactList extends Page<{}, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
   private api = Api.getInstance();
-  private artifactTypes: Map<number, ArtifactType>;
+  private artifactTypesMap: Map<number, ArtifactType>;
 
   constructor(props: any) {
     super(props);
@@ -126,8 +121,8 @@ class ArtifactList extends Page<{}, ArtifactListState> {
 
   private async reload(request: ListRequest): Promise<string> {
     // TODO: Consider making an Api method for returning and caching types
-    if (!this.artifactTypes || !this.artifactTypes.size) {
-      this.artifactTypes = await getArtifactTypes(
+    if (!this.artifactTypesMap || !this.artifactTypesMap.size) {
+      this.artifactTypesMap = await getArtifactTypes(
         this.api.metadataStoreService,
         this.showPageError.bind(this),
       );
@@ -204,8 +199,8 @@ class ArtifactList extends Page<{}, ArtifactListState> {
           .map(({ artifact, creationTime }) => {
             const typeId = artifact.getTypeId();
             const type =
-              typeId && this.artifactTypes && this.artifactTypes.get(typeId)
-                ? this.artifactTypes.get(typeId)!.getName()
+              typeId && this.artifactTypesMap && this.artifactTypesMap.get(typeId)
+                ? this.artifactTypesMap.get(typeId)!.getName()
                 : typeId;
             return {
               id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link

@@ -14,33 +14,33 @@
  * limitations under the License.
  */
 
-import React, { Component } from 'react';
-import { Page } from './Page';
-import { ToolbarProps } from '../components/Toolbar';
-import { RoutePage, RouteParams, RoutePageFactory } from '../components/Router';
-import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
-import { titleCase, getResourceProperty, logger } from '../lib/Utils';
-import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import {
+  Api,
+  ArtifactCustomProperties,
+  ArtifactProperties,
+  ArtifactType,
   Event,
   Execution,
-  ArtifactType,
-  ArtifactCustomProperties,
   ExecutionCustomProperties,
   ExecutionProperties,
-  ArtifactProperties,
-  Api,
-  getArtifactTypes,
+  GetArtifactsByIDRequest,
   GetExecutionsByIDRequest,
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
-  GetArtifactsByIDRequest,
+  getArtifactTypes,
+  getResourceProperty,
+  logger,
+  titleCase,
 } from 'frontend';
-// import { EventTypes } from '../lib/MetadataUtils';
+import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
-// import {Event} from "../generated/src/apis/metadata/metadata_store_pb";
+import { classes, stylesheet } from 'typestyle';
+import { Page } from './Page';
+import { ToolbarProps } from '../components/Toolbar';
+import { RoutePage, RouteParams, RoutePageFactory } from '../components/Router';
+import { commonCss, padding } from '../Css';
+import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 
 type ArtifactIdList = number[];
 

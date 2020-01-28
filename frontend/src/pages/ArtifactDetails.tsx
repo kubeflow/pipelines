@@ -28,7 +28,7 @@ import {
 import * as React from 'react';
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
-import {RoutePage, RoutePageFactory, RouteParams} from '../components/Router';
+import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
@@ -41,8 +41,8 @@ export enum ArtifactDetailsTab {
 }
 
 const tabs = {
-  [ArtifactDetailsTab.OVERVIEW]: {name: 'Overview'},
-  [ArtifactDetailsTab.LINEAGE_EXPLORER]: {name: 'Lineage Explorer'},
+  [ArtifactDetailsTab.OVERVIEW]: { name: 'Overview' },
+  [ArtifactDetailsTab.LINEAGE_EXPLORER]: { name: 'Lineage Explorer' },
 };
 
 const tabNames = Object.values(tabs).map(tabConfig => tabConfig.name);
@@ -53,7 +53,6 @@ interface ArtifactDetailsState {
 }
 
 export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
-
   private get fullTypeName(): string {
     return this.props.match.params[RouteParams.ARTIFACT_TYPE] || '';
   }
@@ -71,7 +70,9 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   }
 
   private static buildResourceDetailsPageRoute(
-    resource: LineageResource, typeName: string): string {
+    resource: LineageResource,
+    typeName: string,
+  ): string {
     let route;
     if (resource instanceof Artifact) {
       route = RoutePageFactory.artifactDetails(typeName, resource.getId());
@@ -85,7 +86,7 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   constructor(props: {}) {
     super(props);
     this.state = {
-      selectedTab: ArtifactDetailsTab.OVERVIEW
+      selectedTab: ArtifactDetailsTab.OVERVIEW,
     };
     this.load = this.load.bind(this);
   }
@@ -109,7 +110,11 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
         </div>
         {this.state.selectedTab === ArtifactDetailsTab.OVERVIEW && (
           <div className={classes(padding(20, 'lr'))}>
-            <ResourceInfo typeName={this.properTypeName} resource={this.state.artifact} resourceType={ResourceType.ARTIFACT}/>
+            <ResourceInfo
+              resourceType={ResourceType.ARTIFACT}
+              typeName={this.properTypeName}
+              resource={this.state.artifact}
+            />
           </div>
         )}
         {this.state.selectedTab === ArtifactDetailsTab.LINEAGE_EXPLORER && (
@@ -172,6 +177,6 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   }
 
   private switchTab(selectedTab: number) {
-    this.setState({selectedTab});
+    this.setState({ selectedTab });
   }
 }
