@@ -24,7 +24,7 @@ class TestSubmitRunOp(unittest.TestCase):
                 }
             )
 
-        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
+        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._create_workflow(my_pipeline))
 
     def test_databricks_submit_run_with_job_name_and_jar_params(self):
         def my_pipeline():
@@ -47,7 +47,7 @@ class TestSubmitRunOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_submit_run_with_job_name_and_python_params(self):
         def my_pipeline():
@@ -70,7 +70,7 @@ class TestSubmitRunOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_submit_run_with_job_name_and_spark_submit_params(self):
         def my_pipeline():
@@ -93,7 +93,7 @@ class TestSubmitRunOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_submit_run_with_job_name_and_notebook_params(self):
         def my_pipeline():
@@ -119,7 +119,7 @@ class TestSubmitRunOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_submit_run_with_new_cluster_and_spark_jar_task(self):
         def my_pipeline():
@@ -154,7 +154,7 @@ class TestSubmitRunOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_submit_run_with_new_cluster_and_spark_python_task(self):
         def my_pipeline():
@@ -186,7 +186,7 @@ class TestSubmitRunOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_submit_run_with_new_cluster_and_spark_submit_task(self):
         def my_pipeline():
@@ -220,7 +220,7 @@ class TestSubmitRunOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_submit_run_with_existing_cluster_and_notebook_task(self):
         def my_pipeline():
@@ -248,7 +248,7 @@ class TestSubmitRunOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_submit_run_with_spec(self):
         def my_pipeline():
@@ -276,7 +276,7 @@ class TestSubmitRunOp(unittest.TestCase):
 
             self.assert_res(res, spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_submit_run_with_spec_and_extra_args(self):
         def my_pipeline():
@@ -327,7 +327,7 @@ class TestSubmitRunOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_submit_run_with_json_spec(self):
         def my_pipeline():
@@ -375,7 +375,7 @@ class TestSubmitRunOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_submit_run_with_json_file_spec(self):
         def my_pipeline():
@@ -408,7 +408,7 @@ class TestSubmitRunOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def assert_res(self, res, expected_spec):
         self.assertEqual(res.name, "submitrun")
@@ -466,7 +466,7 @@ class TestDeleteRunOp(unittest.TestCase):
                 name="deleterun"
             )
 
-        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
+        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._create_workflow(my_pipeline))
 
     def test_databricks_delete_run(self):
         def my_pipeline():
@@ -488,7 +488,7 @@ class TestDeleteRunOp(unittest.TestCase):
             self.assertEqual(res.k8s_resource["kind"], "Run")
             self.assertEqual(res.k8s_resource["metadata"]["name"], "test-run")
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
 if __name__ == '__main__':
     unittest.main()

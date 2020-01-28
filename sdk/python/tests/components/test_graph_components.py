@@ -325,7 +325,11 @@ implementation:
       graph out 4: '42'
 '''
         op = comp.load_component_from_text(component_text)
-        task = op('graph 1', 'graph 2')
+        old_value = comp._components._always_expand_graph_components = True
+        try:
+            task = op('graph 1', 'graph 2')
+        finally:
+            comp._components._always_expand_graph_components = old_value
         self.assertIn('out3_1', str(task.outputs['graph out 1'])) # Checks that the outputs coming from tasks in nested subgraphs are properly resolved.
         self.assertIn('out1_2', str(task.outputs['graph out 2']))
         self.assertEqual(task.outputs['graph out 3'], 'graph 2')

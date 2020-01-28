@@ -58,7 +58,7 @@ INSTANCE_ZONE="/"$(curl http://metadata.google.internal/computeMetadata/v1/insta
 INSTANCE_ZONE="${INSTANCE_ZONE##/*/}"
 
 # Get latest Proxy server URL
-curl -O https://storage.googleapis.com/dl-platform-public-configs/proxy-agent-config.json
+wget https://storage.googleapis.com/ml-pipeline/proxy-agent-config.json
 PROXY_URL=$(python ${DIR}/get_proxy_url.py --config-file-path "proxy-agent-config.json" --location "${INSTANCE_ZONE}" --version "latest")
 if [[ -z "${PROXY_URL}" ]]; then
     echo "Proxy URL for the zone ${INSTANCE_ZONE} no found, exiting."

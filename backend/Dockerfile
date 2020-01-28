@@ -28,7 +28,7 @@ FROM python:3.5 as compiler
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
-RUN python3 -m pip install pyarrow==0.14.1 tfx==0.15.0
+RUN python3 -m pip install apache-beam[gcp]==2.17 pyarrow==0.14.1 tfx==0.15.0
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY sdk sdk
@@ -64,6 +64,9 @@ COPY --from=compiler /samples/ /samples/
 
 # Adding CA certificate so API server can download pipeline through URL
 RUN apt-get update && apt-get install -y ca-certificates
+
+# Pin sample doc links to the commit that built the backend image
+RUN sed "s#/blob/master/#/blob/${COMMIT_SHA}/#g" -i /config/sample_config.json
 
 # Expose apiserver port
 EXPOSE 8888
