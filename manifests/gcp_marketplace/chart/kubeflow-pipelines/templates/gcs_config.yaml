@@ -6,4 +6,4 @@ metadata:
   labels:
     app.kubernetes.io/name: "{{ .Release.Name }}"
 data:
-  bucket_name: "{{ .Values.bucketName}}"
+  bucket_name: '{{ printf "%s-%s" .Release.Name randAlphaNum 10}}'
