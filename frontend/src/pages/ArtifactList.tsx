@@ -26,7 +26,6 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import {
-  getResourceProperty,
   rowCompareFn,
   rowFilterFn,
   groupRows,
@@ -43,6 +42,7 @@ import {
   ArtifactType,
   getArtifactCreationTime,
   getArtifactTypes,
+  getResourceProperty,
   GetArtifactsRequest,
 } from 'frontend';
 import { ArtifactLink } from '../components/ArtifactLink';

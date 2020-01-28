@@ -26,7 +26,6 @@ import { Row, Column, ExpandState } from '../components/CustomTable';
 import { padding } from '../Css';
 import { classes } from 'typestyle';
 import { CustomTableRow, css } from '../components/CustomTableRow';
-// import { ServiceError } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -133,10 +132,6 @@ export function getResourceProperty(
 
   return (props && props.get(propertyName) && getMetadataValue(props.get(propertyName))) || null;
 }
-
-// export function serviceErrorToString(error: ServiceError): string {
-//   return `Error: ${error.message}. Code: ${error.code}`;
-// }
 
 export function getMetadataValue(value?: Value): string | number {
   if (!value) {
