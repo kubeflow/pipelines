@@ -264,7 +264,6 @@ class SectionIO extends Component<
       }
       const data: ArtifactInfo = {
         id,
-        // @ts-ignore
         name: (getResourceProperty(artifact, ArtifactProperties.NAME) ||
           getResourceProperty(artifact, ArtifactCustomProperties.NAME, true) ||
           '') as string, // TODO: assert name is string
