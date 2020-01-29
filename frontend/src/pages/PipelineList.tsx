@@ -112,6 +112,7 @@ class PipelineList extends Page<{}, PipelineListState> {
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
+        {this._template_ui()}
         <CustomTable
           ref={this._tableRef}
           columns={columns}
@@ -138,6 +139,22 @@ class PipelineList extends Page<{}, PipelineListState> {
     if (this._tableRef.current) {
       await this._tableRef.current.reload();
     }
+  }
+
+  private _template_ui(): JSX.Element {
+    return (<div>
+      <p className={classes(commonCss.header2)}>Getting Started - Build a pipeline</p>
+      <p className={classes(commonCss.textField, padding(20, 'lr'))}>Classification<a className={classes(commonCss.link, padding(20, 'lr'))}
+        href="https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb">
+          Start Here</a></p>
+      <p>The table below provides a few demo and tutorial pipelines, and also
+         allows you to upload your own pipelines. You can access additional
+         samples and tutorials at
+        <a className={classes(commonCss.link)}
+          href="https://github.com/kubeflow/pipelines/tree/master/samples"> pipelines Github Repo.</a>
+      </p>
+    </div>
+    );
   }
 
   private _toggleRowExpand(rowIndex: number): void {
