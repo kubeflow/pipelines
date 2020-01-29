@@ -188,10 +188,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
       this.state.executions
         .map(execution => {
           // Flattens
-          const type =
-            this.executionTypesMap && this.executionTypesMap.get(execution.getTypeId()!)
-              ? this.executionTypesMap.get(execution.getTypeId()!)!.getName()
-              : execution.getTypeId();
+          const executionType = this.executionTypesMap!.get(execution.getTypeId());
+          const type = executionType ? executionType.getName() : execution.getTypeId();
           return {
             id: `${type}:${execution.getId()}`, // Join with colon so we can build the link
             otherFields: [
