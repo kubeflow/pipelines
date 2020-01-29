@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+
 	"github.com/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -31,7 +32,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
-var runColumns = []string{"UUID", "DisplayName", "Name", "StorageState", "Namespace", "Description",
+const (
+	tableName      = "run_details"
+	experimentUUID = "ExperimentUUID"
+)
+
+var runColumns = []string{"UUID", experimentUUID, "DisplayName", "Name", "StorageState", "Namespace", "Description",
 	"CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineName", "PipelineSpecManifest",
 	"WorkflowSpecManifest", "Parameters", "pipelineRuntimeManifest", "WorkflowRuntimeManifest",
 }
@@ -143,8 +149,20 @@ func (s *RunStore) ListRuns(
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	filterContext *common.FilterContext) (string, []interface{}, error) {
-	filteredSelectBuilder, err := list.FilterOnResourceReference("run_details", runColumns,
-		common.Run, selectCount, filterContext)
+
+	var filteredSelectBuilder sq.SelectBuilder
+	var err error
+
+	refKey := filterContext.ReferenceKey
+	if refKey != nil && refKey.Type == experimentUUID {
+		// for performance reasons need to special treat experiment ID filter on runs
+		// currently only the run table have experiment UUID column
+		filteredSelectBuilder, err = list.FilterRunOnExperiment(tableName, runColumns,
+			selectCount, refKey.ID)
+	} else {
+		filteredSelectBuilder, err = list.FilterOnResourceReference(tableName, runColumns,
+			common.Run, selectCount, filterContext)
+	}
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
@@ -169,7 +187,7 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 	sql, args, err := s.addMetricsAndResourceReferences(
 		sq.Select(runColumns...).
-			From("run_details").
+			From(tableName).
 			Where(sq.Eq{"UUID": runId}).
 			Limit(1)).
 		ToSql()
@@ -217,12 +235,13 @@ func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.Sele
 func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, error) {
 	var runs []*model.RunDetail
 	for rows.Next() {
-		var uuid, displayName, name, storageState, namespace, description, pipelineId, pipelineName, pipelineSpecManifest,
+		var uuid, experimentUUID, displayName, name, storageState, namespace, description, pipelineId, pipelineName, pipelineSpecManifest,
 			workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec int64
 		var metricsInString, resourceReferencesInString sql.NullString
 		err := rows.Scan(
 			&uuid,
+			&experimentUUID,
 			&displayName,
 			&name,
 			&storageState,
@@ -260,6 +279,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 		}
 		runs = append(runs, &model.RunDetail{Run: model.Run{
 			UUID:               uuid,
+			ExperimentUUID:     experimentUUID,
 			DisplayName:        displayName,
 			Name:               name,
 			StorageState:       storageState,
@@ -317,9 +337,10 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 	}
 
 	runSql, runArgs, err := sq.
-		Insert("run_details").
+		Insert(tableName).
 		SetMap(sq.Eq{
 			"UUID":                    r.UUID,
+			experimentUUID:            r.ExperimentUUID,
 			"DisplayName":             r.DisplayName,
 			"Name":                    r.Name,
 			"StorageState":            r.StorageState,
@@ -373,7 +394,7 @@ func (s *RunStore) UpdateRun(runID string, condition string, finishedAtInSec int
 	}
 
 	sql, args, err := sq.
-		Update("run_details").
+		Update(tableName).
 		SetMap(sq.Eq{
 			"Conditions":              condition,
 			"FinishedAtInSec":         finishedAtInSec,
@@ -428,7 +449,7 @@ func (s *RunStore) CreateOrUpdateRun(runDetail *model.RunDetail) error {
 
 func (s *RunStore) ArchiveRun(runId string) error {
 	sql, args, err := sq.
-		Update("run_details").
+		Update(tableName).
 		SetMap(sq.Eq{
 			"StorageState": api.Run_STORAGESTATE_ARCHIVED.String(),
 		}).
@@ -451,7 +472,7 @@ func (s *RunStore) ArchiveRun(runId string) error {
 
 func (s *RunStore) UnarchiveRun(runId string) error {
 	sql, args, err := sq.
-		Update("run_details").
+		Update(tableName).
 		SetMap(sq.Eq{
 			"StorageState": api.Run_STORAGESTATE_AVAILABLE.String(),
 		}).
@@ -473,7 +494,7 @@ func (s *RunStore) UnarchiveRun(runId string) error {
 }
 
 func (s *RunStore) DeleteRun(id string) error {
-	runSql, runArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": id}).ToSql()
+	runSql, runArgs, err := sq.Delete(tableName).Where(sq.Eq{"UUID": id}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to create query to delete run: %s", id)
