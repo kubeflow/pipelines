@@ -40,13 +40,13 @@ export enum ArtifactDetailsTab {
   LINEAGE_EXPLORER = 1,
 }
 
-const tabs = {
+const TABS = {
   [ArtifactDetailsTab.OVERVIEW]: { name: 'Overview' },
   [ArtifactDetailsTab.LINEAGE_EXPLORER]: { name: 'Lineage Explorer' },
 };
 
-const tabNames = [ArtifactDetailsTab.OVERVIEW, ArtifactDetailsTab.LINEAGE_EXPLORER].map(
-  tabConfig => tabs[tabConfig].name,
+const TAB_NAMES = [ArtifactDetailsTab.OVERVIEW, ArtifactDetailsTab.LINEAGE_EXPLORER].map(
+  tabConfig => TABS[tabConfig].name,
 );
 
 interface ArtifactDetailsState {
@@ -101,7 +101,11 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     return (
       <div className={classes(commonCss.page)}>
         <div className={classes(padding(20, 't'))}>
-          <MD2Tabs tabs={tabNames} selectedTab={this.state.selectedTab} onSwitch={this.switchTab} />
+          <MD2Tabs
+            tabs={TAB_NAMES}
+            selectedTab={this.state.selectedTab}
+            onSwitch={this.switchTab}
+          />
         </div>
         {this.state.selectedTab === ArtifactDetailsTab.OVERVIEW && (
           <div className={classes(padding(20, 'lr'))}>
