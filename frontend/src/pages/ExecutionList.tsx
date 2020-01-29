@@ -24,7 +24,7 @@ import {
   GetExecutionTypesRequest,
   ListRequest,
   getResourceProperty,
-} from 'frontend';
+} from '@kubeflow/frontend';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { classes } from 'typestyle';

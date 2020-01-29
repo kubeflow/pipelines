@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { CircularProgress } from '@material-ui/core';
 import {
   Api,
   ArtifactCustomProperties,
@@ -32,7 +31,8 @@ import {
   getResourceProperty,
   logger,
   titleCase,
-} from 'frontend';
+} from '@kubeflow/frontend';
+import { CircularProgress } from '@material-ui/core';
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';

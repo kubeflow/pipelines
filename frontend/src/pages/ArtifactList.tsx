@@ -14,20 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import CustomTable, {
-  Column,
-  Row,
-  ExpandState,
-  CustomRendererProps,
-} from '../components/CustomTable';
-import { Page } from './Page';
-import { ToolbarProps } from '../components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
-import { rowCompareFn, rowFilterFn, groupRows, getExpandedRow } from '../lib/Utils';
-import { RoutePageFactory } from '../components/Router';
-import { Link } from 'react-router-dom';
 import {
   Api,
   Artifact,
@@ -39,7 +25,21 @@ import {
   getArtifactTypes,
   getResourceProperty,
   GetArtifactsRequest,
-} from 'frontend';
+} from '@kubeflow/frontend';
+import * as React from 'react';
+import { Link } from 'react-router-dom';
+import { classes } from 'typestyle';
+import CustomTable, {
+  Column,
+  Row,
+  ExpandState,
+  CustomRendererProps,
+} from '../components/CustomTable';
+import { Page } from './Page';
+import { ToolbarProps } from '../components/Toolbar';
+import { commonCss, padding } from '../Css';
+import { rowCompareFn, rowFilterFn, groupRows, getExpandedRow } from '../lib/Utils';
+import { RoutePageFactory } from '../components/Router';
 import { ArtifactLink } from '../components/ArtifactLink';
 
 interface ArtifactListState {

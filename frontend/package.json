@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@kubeflow/frontend": "kubeflow/frontend#756476a",
     "@material-ui/core": "3.7.1",
     "@material-ui/icons": "^3.0.1",
     "@types/js-yaml": "^3.11.2",
@@ -10,7 +11,6 @@
     "d3": "^5.7.0",
     "d3-dsv": "^1.0.10",
     "dagre": "^0.8.2",
-    "frontend": "kubeflow/frontend#756476a",
     "google-protobuf": "^3.6.1",
     "http-proxy-middleware": "^0.19.0",
     "immer": "^1.7.4",
@@ -67,6 +67,7 @@
     "@types/enzyme": "^3.10.3",
     "@types/enzyme-adapter-react-16": "^1.0.5",
     "@types/express": "^4.16.0",
+    "@types/google-protobuf": "^3.7.2",
     "@types/http-proxy-middleware": "^0.17.5",
     "@types/jest": "^23.3.2",
     "@types/js-yaml": "^3.11.2",

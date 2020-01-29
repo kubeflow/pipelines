@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Artifact, Execution, getMetadataValue } from 'frontend';
+import { Artifact, Execution, getMetadataValue } from '@kubeflow/frontend';
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { color, commonCss } from '../Css';
@@ -88,8 +88,8 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
           {propertyMap
             .getEntryList()
             // TODO: __ALL_META__ is something of a hack, is redundant, and can be ignored
-            .filter((k: any) => k[0] !== '__ALL_META__')
-            .map((k: any) => (
+            .filter(k => k[0] !== '__ALL_META__')
+            .map(k => (
               <div className={css.field} key={k[0]}>
                 <dt className={css.term}>{k[0]}</dt>
                 <dd className={css.value}>
@@ -100,7 +100,7 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
         </dl>
         <h2 className={commonCss.header2}>Custom Properties</h2>
         <dl className={css.resourceInfo}>
-          {customPropertyMap.getEntryList().map((k: any) => (
+          {customPropertyMap.getEntryList().map(k => (
             <div className={css.field} key={k[0]}>
               <dt className={css.term}>{k[0]}</dt>
               <dd className={css.value}>

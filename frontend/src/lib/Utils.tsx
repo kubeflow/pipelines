@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Value, Artifact, Execution } from 'frontend';
+import { Value, Artifact, Execution } from '@kubeflow/frontend';
 import * as React from 'react';
 import { ApiRun } from '../apis/run';
 import { ApiTrigger } from '../apis/job';

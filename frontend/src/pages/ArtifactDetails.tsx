@@ -24,7 +24,7 @@ import {
   getResourceProperty,
   titleCase,
   LineageResource,
-} from 'frontend';
+} from '@kubeflow/frontend';
 import * as React from 'react';
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
@@ -45,7 +45,9 @@ const tabs = {
   [ArtifactDetailsTab.LINEAGE_EXPLORER]: { name: 'Lineage Explorer' },
 };
 
-const tabNames = Object.values(tabs).map(tabConfig => tabConfig.name);
+const tabNames = [ArtifactDetailsTab.OVERVIEW, ArtifactDetailsTab.LINEAGE_EXPLORER].map(
+  tabConfig => tabs[tabConfig].name,
+);
 
 interface ArtifactDetailsState {
   artifact?: Artifact;
@@ -81,15 +83,12 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     }
     return route.replace(`:${RouteParams.ID}`, String(resource.getId()));
   }
-  private api = Api.getInstance();
 
-  constructor(props: {}) {
-    super(props);
-    this.state = {
-      selectedTab: ArtifactDetailsTab.OVERVIEW,
-    };
-    this.load = this.load.bind(this);
-  }
+  public state: ArtifactDetailsState = {
+    selectedTab: ArtifactDetailsTab.OVERVIEW,
+  };
+
+  private api = Api.getInstance();
 
   public async componentDidMount(): Promise<void> {
     return this.load();
@@ -102,11 +101,7 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     return (
       <div className={classes(commonCss.page)}>
         <div className={classes(padding(20, 't'))}>
-          <MD2Tabs
-            tabs={tabNames}
-            selectedTab={this.state.selectedTab}
-            onSwitch={this.switchTab.bind(this)}
-          />
+          <MD2Tabs tabs={tabNames} selectedTab={this.state.selectedTab} onSwitch={this.switchTab} />
         </div>
         {this.state.selectedTab === ArtifactDetailsTab.OVERVIEW && (
           <div className={classes(padding(20, 'lr'))}>
@@ -139,7 +134,7 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     return this.load();
   }
 
-  private async load(): Promise<void> {
+  private load = async (): Promise<void> => {
     const request = new GetArtifactsByIDRequest();
     request.setArtifactIdsList([Number(this.id)]);
 
@@ -174,9 +169,9 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       pageTitle: title,
     });
     this.setState({ artifact });
-  }
+  };
 
-  private switchTab(selectedTab: number) {
+  private switchTab = (selectedTab: number) => {
     this.setState({ selectedTab });
-  }
+  };
 }
