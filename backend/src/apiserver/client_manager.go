@@ -20,13 +20,13 @@ import (
 	"os"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -232,6 +232,10 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	if initializePipelineVersions {
 		initPipelineVersionsFromPipelines(db)
 	}
+	err = backfillExperimentIDToRunTable(db)
+	if err != nil {
+		glog.Fatalf("Failed to backfill experiment UUID in run_details table: %s", err)
+	}
 
 	response = db.Model(&model.Pipeline{}).ModifyColumn("Description", "longtext not null")
 	if response.Error != nil {
@@ -373,4 +377,45 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 	tx.Exec("update pipelines set DefaultVersionId=UUID;")
 
 	tx.Commit()
+}
+
+func backfillExperimentIDToRunTable(db *gorm.DB) (retError error) {
+	// check if there is any row in the run table has experiment ID being empty
+	query, args, err := sq.Select("ExperimentUUID").
+		From("run_details").
+		Where(sq.Eq{"ExperimentUUID": ""}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	var emptyExperimentUUID = false
+	rows, err := db.DB().Query(query, args)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for !emptyExperimentUUID && rows.Next() {
+		emptyExperimentUUID = true
+	}
+
+	// no row in run_details table has empty ExperimentUUID
+	if !emptyExperimentUUID {
+		return nil
+	}
+
+	_, err = db.DB().Exec(`
+		UPDATE 
+			run_details, resource_references
+		SET
+			run_details.ExperimentUUID = resource_references.ReferenceUUID
+		WHERE
+			run_details.UUID = resource_references.ResourceUUID
+			AND resource_references.ResourceType = 'Run'
+			AND resource_references.ReferenceType = 'Experiment'
+			AND run_details.ExperimentUUID = ''
+	`)
+	return err
 }
