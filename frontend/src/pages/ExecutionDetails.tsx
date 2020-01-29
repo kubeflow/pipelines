@@ -168,7 +168,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
       return;
     }
 
-    if (!executionResponse!.getExecutionsList()!.length) {
+    if (!executionResponse!.getExecutionsList().length) {
       this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
       return;
     }

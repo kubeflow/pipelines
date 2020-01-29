@@ -149,7 +149,7 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       return;
     }
 
-    if (!response!.getArtifactsList()!.length) {
+    if (!response!.getArtifactsList().length) {
       this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
       return;
     }

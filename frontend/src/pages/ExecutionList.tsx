@@ -156,7 +156,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
     const executionTypesMap = new Map<number, ExecutionType>();
 
     (response!.getExecutionTypesList() || []).forEach(executionType => {
-      executionTypesMap.set(executionType.getId()!, executionType);
+      executionTypesMap.set(executionType.getId(), executionType);
     });
 
     return executionTypesMap;
