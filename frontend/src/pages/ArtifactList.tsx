@@ -134,7 +134,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
     }
 
     // Updates state.rows
-    this.getRowsFromArtifacts(request);
+    await this.getRowsFromArtifacts(request);
     return '';
   }
 
