@@ -38,7 +38,13 @@ import CustomTable, {
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import { commonCss, padding } from '../Css';
-import { rowCompareFn, rowFilterFn, groupRows, getExpandedRow } from '../lib/Utils';
+import {
+  rowCompareFn,
+  rowFilterFn,
+  groupRows,
+  getExpandedRow,
+  CollapsedAndExpandedRows,
+} from '../lib/Utils';
 import { RoutePageFactory } from '../components/Router';
 import { ArtifactLink } from '../components/ArtifactLink';
 
@@ -127,14 +133,18 @@ class ArtifactList extends Page<{}, ArtifactListState> {
         this.showPageError.bind(this),
       );
     }
-    if (!this.state.artifacts!.length) {
+    if (!this.state.artifacts.length) {
       const artifacts = await this.getArtifacts();
-      this.setState({ artifacts });
       this.clearBanner();
+      const collapsedAndExpandedRows = await this.getRowsFromArtifacts(request, artifacts);
+      if (collapsedAndExpandedRows) {
+        this.setState({
+          artifacts,
+          expandedRows: collapsedAndExpandedRows.expandedRows,
+          rows: collapsedAndExpandedRows.collapsedRows,
+        });
+      }
     }
-
-    // Updates state.rows
-    await this.getRowsFromArtifacts(request);
     return '';
   }
 
@@ -173,10 +183,12 @@ class ArtifactList extends Page<{}, ArtifactListState> {
    * local list of artifacts until server-side handling is available
    * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
    * @param request
+   * @param artifacts
    */
-  private async getRowsFromArtifacts(request: ListRequest): Promise<void> {
-    const artifacts = [...this.state.artifacts];
-
+  private async getRowsFromArtifacts(
+    request: ListRequest,
+    artifacts: Artifact[],
+  ): Promise<CollapsedAndExpandedRows | undefined> {
     try {
       // TODO: When backend supports sending creation time back when we list
       // artifacts, let's use it directly.
@@ -194,7 +206,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
         }),
       );
 
-      const collapsedAndExpandedRows = groupRows(
+      return groupRows(
         artifactsWithCreationTimes
           .map(({ artifact, creationTime }) => {
             const typeId = artifact.getTypeId();
@@ -220,12 +232,6 @@ class ArtifactList extends Page<{}, ArtifactListState> {
           .filter(rowFilterFn(request))
           .sort(rowCompareFn(request, this.state.columns)),
       );
-
-      this.setState({
-        artifacts,
-        expandedRows: collapsedAndExpandedRows.expandedRows,
-        rows: collapsedAndExpandedRows.collapsedRows,
-      });
     } catch (err) {
       if (err.message) {
         this.showPageError(err.message, err);
@@ -233,6 +239,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
         this.showPageError('Unknown error', err);
       }
     }
+    return;
   }
 
   /**

@@ -37,7 +37,13 @@ import CustomTable, {
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import { commonCss, padding } from '../Css';
-import { rowCompareFn, rowFilterFn, groupRows, getExpandedRow } from '../lib/Utils';
+import {
+  rowCompareFn,
+  rowFilterFn,
+  groupRows,
+  getExpandedRow,
+  CollapsedAndExpandedRows,
+} from '../lib/Utils';
 import { RoutePage, RouteParams } from '../components/Router';
 
 interface ExecutionListState {
@@ -125,10 +131,12 @@ class ExecutionList extends Page<{}, ExecutionListState> {
       const executions = await this.getExecutions();
       this.setState({ executions });
       this.clearBanner();
+      const collapsedAndExpandedRows = this.getRowsFromExecutions(request, executions);
+      this.setState({
+        expandedRows: collapsedAndExpandedRows.expandedRows,
+        rows: collapsedAndExpandedRows.collapsedRows,
+      });
     }
-    this.setState({
-      rows: this.getRowsFromExecutions(request),
-    });
     return '';
   }
 
@@ -182,10 +190,14 @@ class ExecutionList extends Page<{}, ExecutionListState> {
    * local list of executions until server-side handling is available
    * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
    * @param request
+   * @param executions
    */
-  private getRowsFromExecutions(request: ListRequest): Row[] {
-    const collapsedAndExpandedRows = groupRows(
-      this.state.executions
+  private getRowsFromExecutions(
+    request: ListRequest,
+    executions: Execution[],
+  ): CollapsedAndExpandedRows {
+    return groupRows(
+      executions
         .map(execution => {
           // Flattens
           const executionType = this.executionTypesMap!.get(execution.getTypeId());
@@ -207,9 +219,6 @@ class ExecutionList extends Page<{}, ExecutionListState> {
         .filter(rowFilterFn(request))
         .sort(rowCompareFn(request, this.state.columns)),
     );
-
-    this.setState({ expandedRows: collapsedAndExpandedRows.expandedRows });
-    return collapsedAndExpandedRows.collapsedRows;
   }
 
   /**
