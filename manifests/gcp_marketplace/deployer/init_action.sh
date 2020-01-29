@@ -34,7 +34,7 @@ function deploy_bucket() {
     kubectl create configmap -n "gcs-config" "${NAMESPACE}" --from-literal bucket_name="${bucket_name}"
     break
   done
-  if [ ! "bucket_is_set" = true ]; then
+  if [ ! "$bucket_is_set" = true ]; then
     echo "Cannot successfully create bucket after ${NUM_RETRIES} attempts."
     return 1
   fi
