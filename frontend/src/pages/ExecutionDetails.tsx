@@ -179,7 +179,6 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
     }
 
     const execution = executionResponse.getExecutionsList()[0];
-    // @ts-ignore
     const executionName =
       getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
       getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true);
