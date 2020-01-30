@@ -171,7 +171,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   private async getArtifacts(): Promise<Artifact[]> {
     try {
       const response = await this.api.metadataStoreService.getArtifacts(new GetArtifactsRequest());
-      response.getArtifactsList();
+      return response.getArtifactsList();
     } catch (err) {
       // Code === 5 means no record found in backend. This is a temporary workaround.
       // TODO: remove err.code !== 5 check when backend is fixed.
