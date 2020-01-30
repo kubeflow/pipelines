@@ -67,8 +67,7 @@ function replaceRuntimeContent(content: string | undefined, deployment: Deployme
       );
   }
   if (content && deployment === Deployments.MARKETPLACE) {
-    return content
-      .replace(DEFAULT_FLAG, 'window.KFP_FLAGS.DEPLOYMENT="MARKETPLACE"')
+    return content.replace(DEFAULT_FLAG, 'window.KFP_FLAGS.DEPLOYMENT="MARKETPLACE"');
   }
   return content;
 }

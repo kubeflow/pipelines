@@ -82,7 +82,7 @@ describe('UIServer apis', () => {
     });
 
     it('responds with a modified index.html if it is a kubeflow deployment', done => {
-  const expectedIndexHtml = `
+      const expectedIndexHtml = `
 <html>
 <head>
   <script>
@@ -102,7 +102,7 @@ describe('UIServer apis', () => {
     });
 
     it('responds with flag DEPLOYMENT=MARKETPLACE if it is a marketplace deployment', done => {
-  const expectedIndexHtml = `
+      const expectedIndexHtml = `
 <html>
 <head>
   <script>
@@ -119,7 +119,7 @@ describe('UIServer apis', () => {
         .get('/')
         .expect('Content-Type', 'text/html; charset=utf-8')
         .expect(200, expectedIndexHtml, done);
-    })
+    });
   });
 
   describe('/apis/v1beta1/healthz', () => {
