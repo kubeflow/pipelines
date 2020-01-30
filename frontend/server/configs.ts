@@ -20,6 +20,7 @@ export const apiVersionPrefix = `apis/${apiVersion}`;
 export enum Deployments {
   NOT_SPECIFIED = 'NOT_SPECIFIED',
   KUBEFLOW = 'KUBEFLOW',
+  MARKETPLACE = 'MARKETPLACE',
 }
 
 /** converts string to bool */

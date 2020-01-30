@@ -31,7 +31,9 @@ export class GettingStarted extends Page<{}, {}> {
     };
   }
 
-  public async refresh() {}
+  public async refresh() {
+    // do nothing
+  }
 
   public render(): JSX.Element {
     return (
