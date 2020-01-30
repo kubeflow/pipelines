@@ -44,7 +44,7 @@ export const css = stylesheet({
   },
   detailsButton: {
     backgroundColor: color.background,
-  },  
+  },
   icon: {
     height: '18px',
     padding: spacing.units(-4),
@@ -124,9 +124,17 @@ class Banner extends React.Component<BannerProps, BannerState> {
           {this.props.message}
         </div>
         <div className={commonCss.flex}>
-        <a className={css.troubleShootingLink} href="https://www.kubeflow.org/docs/pipelines/troubleshooting">Troubleshooting guide</a>
+          <a
+            className={css.troubleShootingLink}
+            href='https://www.kubeflow.org/docs/pipelines/troubleshooting'
+          >
+            Troubleshooting guide
+          </a>
           {this.props.additionalInfo && (
-            <Button className={classes(css.button, css.detailsButton)} onClick={this._showAdditionalInfo.bind(this)}>
+            <Button
+              className={classes(css.button, css.detailsButton)}
+              onClick={this._showAdditionalInfo.bind(this)}
+            >
               Details
             </Button>
           )}
