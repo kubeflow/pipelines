@@ -36,7 +36,7 @@ import { RouterProps } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, commonCss } from '../Css';
 import { logger } from '../lib/Utils';
-import { KFP_FLAGS, Deployments } from 'src/lib/Flags';
+import { KFP_FLAGS, Deployments } from '../lib/Flags';
 
 export const sideNavColors = {
   bg: '#f8fafb',

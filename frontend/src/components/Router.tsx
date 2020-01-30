@@ -43,8 +43,8 @@ import { Route, Switch, Redirect } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss } from '../Css';
 import NewPipelineVersion from '../pages/NewPipelineVersion';
-import { GettingStarted } from 'src/pages/GettingStarted';
-import { KFP_FLAGS, Deployments } from 'src/lib/Flags';
+import { GettingStarted } from '../pages/GettingStarted';
+import { KFP_FLAGS, Deployments } from '../lib/Flags';
 
 export type RouteConfig = { path: string; Component: React.ComponentType<any>; view?: any };
 

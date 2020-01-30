@@ -133,8 +133,10 @@ export function loadConfigs(
       apiVersionPrefix,
       basePath: BASEPATH,
       deployment:
-        DEPLOYMENT_STR.toUpperCase() === 'KUBEFLOW'
+        DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
           ? Deployments.KUBEFLOW
+          : DEPLOYMENT_STR.toUpperCase() === Deployments.MARKETPLACE
+          ? Deployments.MARKETPLACE
           : Deployments.NOT_SPECIFIED,
       port,
       staticDir,
