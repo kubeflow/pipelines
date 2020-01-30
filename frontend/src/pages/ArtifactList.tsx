@@ -168,14 +168,17 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   );
 
   private async getArtifacts(): Promise<Artifact[]> {
-    const response = await this.api.metadataStoreService.getArtifacts(new GetArtifactsRequest());
-
-    if (!response) {
-      this.showPageError('Unable to retrieve Artifacts.');
-      return [];
+    try {
+      const response = await this.api.metadataStoreService.getArtifacts(new GetArtifactsRequest());
+      response.getArtifactsList();
+    } catch (err) {
+      // Code === 5 means no record found in backend. This is a temporary workaround.
+      // TODO: remove err.code !== 5 check when backend is fixed.
+      if (err.code !== 5) {
+        this.showPageError('Unable to retrieve Artifacts.');
+      }
     }
-
-    return response!.getArtifactsList() || [];
+    return [];
   }
 
   /**
@@ -210,10 +213,8 @@ class ArtifactList extends Page<{}, ArtifactListState> {
         artifactsWithCreationTimes
           .map(({ artifact, creationTime }) => {
             const typeId = artifact.getTypeId();
-            const type =
-              typeId && this.artifactTypesMap && this.artifactTypesMap.get(typeId)
-                ? this.artifactTypesMap.get(typeId)!.getName()
-                : typeId;
+            const artifactType = this.artifactTypesMap!.get(typeId);
+            const type = artifactType ? artifactType.getName() : artifact.getTypeId();
             return {
               id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
               otherFields: [

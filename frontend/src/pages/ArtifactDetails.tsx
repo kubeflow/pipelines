@@ -34,6 +34,7 @@ import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import MD2Tabs from '../atoms/MD2Tabs';
+import { serviceErrorToString } from '../lib/Utils';
 
 export enum ArtifactDetailsTab {
   OVERVIEW = 0,
@@ -142,37 +143,36 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     const request = new GetArtifactsByIDRequest();
     request.setArtifactIdsList([Number(this.id)]);
 
-    const response = await this.api.metadataStoreService.getArtifactsByID(request);
+    try {
+      const response = await this.api.metadataStoreService.getArtifactsByID(request);
 
-    if (!response) {
-      this.showPageError(`Unable to retrieve ${this.fullTypeName} ${this.id}.`);
-      return;
+      if (response.getArtifactsList().length === 0) {
+        this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
+        return;
+      }
+
+      if (response.getArtifactsList().length > 1) {
+        this.showPageError(`Found multiple artifacts with ID: ${this.id}`);
+        return;
+      }
+
+      const artifact = response.getArtifactsList()[0];
+
+      const artifactName =
+        getResourceProperty(artifact, ArtifactProperties.NAME) ||
+        getResourceProperty(artifact, ArtifactCustomProperties.NAME, true);
+      let title = artifactName ? artifactName.toString() : '';
+      const version = getResourceProperty(artifact, ArtifactProperties.VERSION);
+      if (version) {
+        title += ` (version: ${version})`;
+      }
+      this.props.updateToolbar({
+        pageTitle: title,
+      });
+      this.setState({ artifact });
+    } catch (err) {
+      this.showPageError(serviceErrorToString(err));
     }
-
-    if (!response!.getArtifactsList().length) {
-      this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
-      return;
-    }
-
-    if (response!.getArtifactsList().length > 1) {
-      this.showPageError(`Found multiple artifacts with ID: ${this.id}`);
-      return;
-    }
-
-    const artifact = response.getArtifactsList()[0];
-
-    const artifactName =
-      getResourceProperty(artifact, ArtifactProperties.NAME) ||
-      getResourceProperty(artifact, ArtifactCustomProperties.NAME, true);
-    let title = artifactName ? artifactName.toString() : '';
-    const version = getResourceProperty(artifact, ArtifactProperties.VERSION);
-    if (version) {
-      title += ` (version: ${version})`;
-    }
-    this.props.updateToolbar({
-      pageTitle: title,
-    });
-    this.setState({ artifact });
   };
 
   private switchTab = (selectedTab: number) => {

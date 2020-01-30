@@ -43,6 +43,7 @@ import {
   groupRows,
   getExpandedRow,
   CollapsedAndExpandedRows,
+  serviceErrorToString,
 } from '../lib/Utils';
 import { RoutePage, RouteParams } from '../components/Router';
 
@@ -123,51 +124,58 @@ class ExecutionList extends Page<{}, ExecutionListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
-    // TODO: Consider making an Api method for returning and caching types
-    if (!this.executionTypesMap || !this.executionTypesMap.size) {
-      this.executionTypesMap = await this.getExecutionTypes();
-    }
-    if (!this.state.executions.length) {
-      const executions = await this.getExecutions();
-      this.setState({ executions });
-      this.clearBanner();
-      const collapsedAndExpandedRows = this.getRowsFromExecutions(request, executions);
-      this.setState({
-        expandedRows: collapsedAndExpandedRows.expandedRows,
-        rows: collapsedAndExpandedRows.collapsedRows,
-      });
+    try {
+      // TODO: Consider making an Api method for returning and caching types
+      if (!this.executionTypesMap || !this.executionTypesMap.size) {
+        this.executionTypesMap = await this.getExecutionTypes();
+      }
+      if (!this.state.executions.length) {
+        const executions = await this.getExecutions();
+        this.setState({ executions });
+        this.clearBanner();
+        const collapsedAndExpandedRows = this.getRowsFromExecutions(request, executions);
+        this.setState({
+          expandedRows: collapsedAndExpandedRows.expandedRows,
+          rows: collapsedAndExpandedRows.collapsedRows,
+        });
+      }
+    } catch (err) {
+      this.showPageError(serviceErrorToString(err));
     }
     return '';
   }
 
   private async getExecutions(): Promise<Execution[]> {
-    const response = await this.api.metadataStoreService.getExecutions(new GetExecutionsRequest());
-
-    if (!response) {
-      this.showPageError('Unable to retrieve Executions.');
-      return [];
+    try {
+      const response = await this.api.metadataStoreService.getExecutions(
+        new GetExecutionsRequest(),
+      );
+      return response.getExecutionsList();
+    } catch (err) {
+      // Code === 5 means no record found in backend. This is a temporary workaround.
+      // TODO: remove err.code !== 5 check when backend is fixed.
+      this.showPageError(serviceErrorToString(err));
     }
-
-    return response!.getExecutionsList() || [];
+    return [];
   }
 
   private async getExecutionTypes(): Promise<Map<number, ExecutionType>> {
-    const response = await this.api.metadataStoreService.getExecutionTypes(
-      new GetExecutionTypesRequest(),
-    );
+    try {
+      const response = await this.api.metadataStoreService.getExecutionTypes(
+        new GetExecutionTypesRequest(),
+      );
 
-    if (!response) {
-      this.showPageError('Unable to retrieve Execution Types, some features may not work.');
-      return new Map();
+      const executionTypesMap = new Map<number, ExecutionType>();
+
+      response.getExecutionTypesList().forEach(executionType => {
+        executionTypesMap.set(executionType.getId(), executionType);
+      });
+
+      return executionTypesMap;
+    } catch (err) {
+      this.showPageError(serviceErrorToString(err));
     }
-
-    const executionTypesMap = new Map<number, ExecutionType>();
-
-    (response!.getExecutionTypesList() || []).forEach(executionType => {
-      executionTypesMap.set(executionType.getId(), executionType);
-    });
-
-    return executionTypesMap;
+    return new Map();
   }
 
   private nameCustomRenderer: React.FC<CustomRendererProps<string>> = (

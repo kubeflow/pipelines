@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { Value, Artifact, Execution } from '@kubeflow/frontend';
 import * as React from 'react';
 import { ApiRun } from '../apis/run';
 import { ApiTrigger } from '../apis/job';
@@ -106,48 +105,13 @@ export function s(items: any[] | number): string {
   return length === 1 ? '' : 's';
 }
 
-/** Title cases a string by capitalizing the first letter of each word. */
-export function titleCase(str: string): string {
-  return str
-    .split(/[\s_-]/)
-    .map(w => `${w.charAt(0).toUpperCase()}${w.slice(1)}`)
-    .join(' ');
+interface ServiceError {
+  code: number;
+  message: string;
 }
 
-/**
- * Safely extracts the named property or custom property from the provided
- * Artifact or Execution.
- * @param resource
- * @param propertyName
- * @param fromCustomProperties
- */
-export function getResourceProperty(
-  resource: Artifact | Execution,
-  propertyName: string,
-  fromCustomProperties = false,
-): string | number | null {
-  const props = fromCustomProperties
-    ? resource.getCustomPropertiesMap()
-    : resource.getPropertiesMap();
-
-  return (props && props.get(propertyName) && getMetadataValue(props.get(propertyName))) || null;
-}
-
-export function getMetadataValue(value?: Value): string | number {
-  if (!value) {
-    return '';
-  }
-
-  switch (value.getValueCase()) {
-    case Value.ValueCase.DOUBLE_VALUE:
-      return value.getDoubleValue();
-    case Value.ValueCase.INT_VALUE:
-      return value.getIntValue();
-    case Value.ValueCase.STRING_VALUE:
-      return value.getStringValue();
-    case Value.ValueCase.VALUE_NOT_SET:
-      return '';
-  }
+export function serviceErrorToString(error: ServiceError): string {
+  return `Error: ${error.message}. Code: ${error.code}`;
 }
 
 /**

@@ -41,6 +41,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { RoutePage, RouteParams, RoutePageFactory } from '../components/Router';
 import { commonCss, padding } from '../Css';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
+import { serviceErrorToString } from '../lib/Utils';
 
 type ArtifactIdList = number[];
 
@@ -154,44 +155,29 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
     const getEventsRequest = new GetEventsByExecutionIDsRequest();
     getEventsRequest.setExecutionIdsList([numberId]);
 
-    const [executionResponse, eventResponse] = await Promise.all([
-      metadataStoreServiceClient.getExecutionsByID(getExecutionsRequest),
-      metadataStoreServiceClient.getEventsByExecutionIDs(getEventsRequest),
-    ]);
+    try {
+      const [executionResponse, eventResponse] = await Promise.all([
+        metadataStoreServiceClient.getExecutionsByID(getExecutionsRequest),
+        metadataStoreServiceClient.getEventsByExecutionIDs(getEventsRequest),
+      ]);
 
-    if (!eventResponse) {
-      this.showPageError('Error fetching event data');
-      // events data is optional, no need to skip the following
+      const execution = executionResponse.getExecutionsList()[0];
+      const executionName =
+        getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
+        getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true);
+      this.props.updateToolbar({
+        pageTitle: executionName ? executionName.toString() : '',
+      });
+
+      const events = parseEventsByType(eventResponse);
+
+      this.setState({
+        events,
+        execution,
+      });
+    } catch (err) {
+      this.showPageError(serviceErrorToString(err));
     }
-    if (!executionResponse) {
-      this.showPageError(`Unable to retrieve ${this.fullTypeName} ${this.id}.`);
-      return;
-    }
-
-    if (!executionResponse!.getExecutionsList().length) {
-      this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
-      return;
-    }
-
-    if (executionResponse!.getExecutionsList().length > 1) {
-      this.showPageError(`Found multiple executions with ID: ${this.id}`);
-      return;
-    }
-
-    const execution = executionResponse.getExecutionsList()[0];
-    const executionName =
-      getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
-      getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true);
-    this.props.updateToolbar({
-      pageTitle: executionName ? executionName.toString() : '',
-    });
-
-    const events = parseEventsByType(eventResponse);
-
-    this.setState({
-      events,
-      execution,
-    });
   }
 }
 
@@ -249,31 +235,32 @@ class SectionIO extends Component<
     // loads extra metadata about artifacts
     const request = new GetArtifactsByIDRequest();
     request.setArtifactIdsList(this.props.artifactIds);
-    const response = await Api.getInstance().metadataStoreService.getArtifactsByID(request);
-    if (!response) {
+
+    try {
+      const response = await Api.getInstance().metadataStoreService.getArtifactsByID(request);
+
+      const artifactDataMap = {};
+      response.getArtifactsList().forEach(artifact => {
+        const id = artifact.getId();
+        if (!id) {
+          logger.error('Artifact has empty id', artifact.toObject());
+          return;
+        }
+        artifactDataMap[id] = {
+          id,
+          name: (getResourceProperty(artifact, ArtifactProperties.NAME) ||
+            getResourceProperty(artifact, ArtifactCustomProperties.NAME, true) ||
+            '') as string, // TODO: assert name is string
+          typeId: artifact.getTypeId(),
+          uri: artifact.getUri() || '',
+        };
+      });
+      this.setState({
+        artifactDataMap,
+      });
+    } catch (err) {
       return;
     }
-
-    const artifactDataMap = {};
-    response.getArtifactsList().forEach(artifact => {
-      const id = artifact.getId();
-      if (!id) {
-        logger.error('Artifact has empty id', artifact.toObject());
-        return;
-      }
-      const data: ArtifactInfo = {
-        id,
-        name: (getResourceProperty(artifact, ArtifactProperties.NAME) ||
-          getResourceProperty(artifact, ArtifactCustomProperties.NAME, true) ||
-          '') as string, // TODO: assert name is string
-        typeId: artifact.getTypeId(),
-        uri: artifact.getUri() || '',
-      };
-      artifactDataMap[id] = data;
-    });
-    this.setState({
-      artifactDataMap,
-    });
   }
 
   public render(): JSX.Element | null {
