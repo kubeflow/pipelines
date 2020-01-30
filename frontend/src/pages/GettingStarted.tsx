@@ -21,7 +21,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import Markdown from 'markdown-to-jsx';
 import { ExternalLink } from '../atoms/ExternalLink';
 import { cssRaw, classes } from 'typestyle';
-import { commonCss, padding } from 'src/Css';
+import { commonCss, padding } from '../Css';
 
 const options = {
   overrides: { a: { component: ExternalLink } },
