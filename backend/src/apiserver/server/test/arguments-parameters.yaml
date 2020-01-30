@@ -23,10 +23,6 @@ spec:
     - name: param1
       value: hello
     - name: param2
-    - name: bucket
-      value: "<your-gcs-bucket>"
-    - name: project-id
-      value: "<your-project-id>"
 
   templates:
   - name: whalesay

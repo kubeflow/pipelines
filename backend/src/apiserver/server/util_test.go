@@ -135,13 +135,12 @@ func TestParameterPatch(t *testing.T) {
   file, _ := os.Open("test/arguments-parameters.yaml")
 	fileBytes, err := ReadPipelineFile("arguments-parameters.yaml", file, MaxFileLength)
 	patchMap := map[string]string{
-  				"<your-gcs-bucket>": "test-gcs-bucket",
-  				"<your-project-id>": "test-gcp-project",
+  				"hello": "new-hello",
   			}
 	fileBytes, err = PatchPipelineDefaultParameter(fileBytes, patchMap)
 	assert.Nil(t, err)
 
-	expectedFileBytes, _ := ioutil.ReadFile("test/arguments-parameters.yaml")
+	expectedFileBytes, _ := ioutil.ReadFile("test/patched-arguments-parameters.yaml")
   assert.Equal(t, expectedFileBytes, fileBytes)
 }
 
