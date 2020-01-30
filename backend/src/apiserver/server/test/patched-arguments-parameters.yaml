@@ -20,21 +20,21 @@ spec:
   entrypoint: whalesay
   arguments:
     parameters:
-    - name: param1
-      value: hello
-    - name: param2
-    - name: bucket
-      value: "<your-gcs-bucket>"
-    - name: project-id
-      value: "<your-project-id>"
+      - name: param1
+        value: hello
+      - name: param2
+      - name: bucket
+        value: "test-gcs-bucket"
+      - name: project-id
+        value: "test-gcp-project"
 
   templates:
-  - name: whalesay
-    inputs:
-      parameters:
-      - name: param1
-      - name: param2
-    container:
-      image: docker/whalesay:latest
-      command: [cowsay]
-      args: ["{{inputs.parameters.param1}}-{{inputs.parameters.param2}}"]
+    - name: whalesay
+      inputs:
+        parameters:
+          - name: param1
+          - name: param2
+      container:
+        image: docker/whalesay:latest
+        command: [cowsay]
+        args: ["{{inputs.parameters.param1}}-{{inputs.parameters.param2}}"]
