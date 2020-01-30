@@ -53,4 +53,4 @@ export NAMESPACE
 deploy_bucket "${NAME}-default" 10
 
 # Invoke normal deployer routine.
-/bin/bash /bin/deploy.sh
+/bin/bash /bin/core_deploy.sh

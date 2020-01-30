@@ -9,6 +9,8 @@ RUN tar -C /usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz
 RUN /usr/local/gcloud/google-cloud-sdk/install.sh
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
-ADD deployer/init_action.sh /bin/init_action.sh
+# move the old entrypoint, because mpdev tool will call it directly, whatever entrypoint is.
+RUN mv bin/deploy.sh bin/core_deploy.sh
+ADD deployer/init_action.sh /bin/deploy.sh
 
-ENTRYPOINT ["/bin/bash", "/bin/init_action.sh"]
+ENTRYPOINT ["/bin/bash", "/bin/deploy.sh"]
