@@ -41,9 +41,9 @@ import (
 )
 
 const (
-  HasDefaultBucketEnvVar = "HASDEFAULTBUCKET"
-  ProjectIDEnvVar = "PROJECTID"
-  DefaultBucketNameEnvVar = "BUCKETNAME"
+	HasDefaultBucketEnvVar  = "HASDEFAULTBUCKET"
+	ProjectIDEnvVar         = "PROJECTID"
+	DefaultBucketNameEnvVar = "BUCKETNAME"
 )
 
 var (
@@ -197,22 +197,22 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		}
 		// Patch the default bucket name read from ConfigMap
 		if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
-		  defaultBucket := common.GetStringConfig(DefaultBucketNameEnvVar)
-		  projectId := common.GetStringConfig(ProjectIDEnvVar)
-		  patchMap := map[string]string {
-		      "<your-gcs-bucket>": defaultBucket,
-		      "<your-project-id>": projectId,
-		  }
-      if config.Name == "[Sample] ML - XGBoost - Training with Confusion Matrix" {
-        pipelineFile, err := server.PatchPipelineDefaultParameter(pipelineFile, patchMap)
-      }
-      if config.Name == "[Sample] Unified DSL - Taxi Tip Prediction Model Trainer" {
-        pipelineFile, err := server.PatchPipelineDefaultParameter(pipelineFile, patchMap)
-      }
-      if err != nil {
-        return fmt.Errorf("Failed to patch default value to %s. Error: %v", config.Name, err)
-      }
-    }
+			defaultBucket := common.GetStringConfig(DefaultBucketNameEnvVar)
+			projectId := common.GetStringConfig(ProjectIDEnvVar)
+			patchMap := map[string]string{
+				"<your-gcs-bucket>": defaultBucket,
+				"<your-project-id>": projectId,
+			}
+			if config.Name == "[Sample] ML - XGBoost - Training with Confusion Matrix" {
+				pipelineFile, err := server.PatchPipelineDefaultParameter(pipelineFile, patchMap)
+			}
+			if config.Name == "[Sample] Unified DSL - Taxi Tip Prediction Model Trainer" {
+				pipelineFile, err := server.PatchPipelineDefaultParameter(pipelineFile, patchMap)
+			}
+			if err != nil {
+				return fmt.Errorf("Failed to patch default value to %s. Error: %v", config.Name, err)
+			}
+		}
 		_, configErr = resourceManager.CreatePipeline(config.Name, config.Description, pipelineFile)
 		if configErr != nil {
 			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
@@ -233,8 +233,6 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 	glog.Info("All samples are loaded.")
 	return nil
 }
-
-
 
 func initConfig() {
 	// Import environment variable, support nested vars e.g. OBJECTSTORECONFIG_ACCESSKEY
