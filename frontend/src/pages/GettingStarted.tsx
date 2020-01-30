@@ -56,24 +56,24 @@ This section contains demo and tutorial pipelines.
 cssRaw(`
 .kfp-start-page li {
   font-size: 14px;
-  margin-block-start: 1em;
-  margin-block-end: 1em;
+  margin-block-start: 0.83em;
+  margin-block-end: 0.83em;
   margin-left: 2em;
 }
 .kfp-start-page p {
   font-size: 14px;
-  margin-block-start: 1em;
-  margin-block-end: 1em;
+  margin-block-start: 0.83em;
+  margin-block-end: 0.83em;
 }
 .kfp-start-page h2 {
   font-size: 18px;
-  margin-block-start: 0.83em;
-  margin-block-end: 0.83em;
+  margin-block-start: 1em;
+  margin-block-end: 1em;
 }
 .kfp-start-page h3 {
   font-size: 16px;
-  margin-block-start: 0.83em;
-  margin-block-end: 0.83em;
+  margin-block-start: 1em;
+  margin-block-end: 1em;
 }
 `);
 
