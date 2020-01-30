@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/jsonpb"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -76,25 +76,14 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return
 	}
-	apiPipeline := ToApiPipeline(newPipeline)
-	createdAt := time.Unix(apiPipeline.CreatedAt.Seconds, int64(apiPipeline.CreatedAt.Nanos)).UTC().Format(time.RFC3339)
-	apiPipeline.CreatedAt = nil
-	// Create an anonymous struct to stream time conforming RFC3339 format "1970-01-01T00:00:01Z"
-	// Otherwise it returns "created_at":{"seconds":1}
-	pipeline := struct {
-		api.Pipeline
-		CreatedAtDateTime string `json:"created_at"`
-	}{
-		*apiPipeline,
-		createdAt,
-	}
-	pipelineJson, err := json.Marshal(pipeline)
+
+	w.Header().Set("Content-Type", "application/json")
+	marshaler := &jsonpb.Marshaler{EnumsAsInts: true, OrigName: true}
+	err = marshaler.Marshal(w, ToApiPipeline(newPipeline))
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(pipelineJson)
 }
 
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {
