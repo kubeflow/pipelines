@@ -25,7 +25,7 @@ function deploy_bucket() {
   for i in $(seq 1 ${NUM_RETRIES})
   do
     bucket_is_set=true
-    bucket_name="${BASE_NAME}-$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)"
+    bucket_name="${BASE_NAME}-$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 10 | head -n 1)"
     gsutil mb "gs://${bucket_name}/" || bucket_is_set=false
     if [ ! "$bucket_is_set" = true ]; then
       continue
