@@ -46,8 +46,8 @@ function set_bucket_and_configmap() {
   else
     echo "Cannot successfully create bucket after ${NUM_RETRIES} attempts. Fall back to not specifying default bucket."
     kubectl create configmap -n "${NAMESPACE}" "${CONFIG_NAME}" \
-      --from-literal bucket_name="${bucket_name}" \
-      --from-literal has_default_bucket="true" \
+      --from-literal bucket_name="<your-bucket>" \
+      --from-literal has_default_bucket="false" \
       --from-literal project_id="${GCP_PROJECT_ID}"
   fi
 }
