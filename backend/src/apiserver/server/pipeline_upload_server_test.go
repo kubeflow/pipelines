@@ -16,16 +16,15 @@ package server
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"testing"
-
-	"io"
-
 	"os"
+	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -51,8 +50,16 @@ func TestUploadPipeline_YAML(t *testing.T) {
 	handler := http.HandlerFunc(server.UploadPipeline)
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, 200, rr.Code)
-	// Verify time format is RFC3339
-	assert.Contains(t, rr.Body.String(), `"created_at":"1970-01-01T00:00:01Z"`)
+	// Verify time format is RFC3339.
+	parsedResponse := struct {
+		CreatedAt      string `json:"created_at"`
+		DefaultVersion struct {
+			CreatedAt string `json:"created_at"`
+		} `json:"default_version"`
+	}{}
+	json.Unmarshal(rr.Body.Bytes(), &parsedResponse)
+	assert.Equal(t, "1970-01-01T00:00:01Z", parsedResponse.CreatedAt)
+	assert.Equal(t, "1970-01-01T00:00:01Z", parsedResponse.DefaultVersion.CreatedAt)
 
 	// Verify stored in object store
 	template, err := clientManager.ObjectStore().GetFile(storage.CreatePipelinePath(resource.DefaultFakeUUID))
