@@ -43,6 +43,7 @@ import { Route, Switch, Redirect } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss } from '../Css';
 import NewPipelineVersion from '../pages/NewPipelineVersion';
+import { GettingStarted } from 'src/pages/GettingStarted';
 
 export type RouteConfig = { path: string; Component: React.ComponentType<any>; view?: any };
 
@@ -85,6 +86,7 @@ export const RoutePrefix = {
 
 // tslint:disable-next-line:variable-name
 export const RoutePage = {
+  START: '/start',
   ARCHIVE: '/archive',
   ARTIFACTS: '/artifacts',
   ARTIFACT_DETAILS: `/artifact_types/:${RouteParams.ARTIFACT_TYPE}+/artifacts/:${RouteParams.ID}`,
@@ -142,6 +144,7 @@ export interface RouterProps {
 // This component is made as a wrapper to separate toolbar state for different pages.
 const Router: React.FC<RouterProps> = ({ configs }) => {
   const routes: RouteConfig[] = configs || [
+    { path: RoutePage.START, Component: GettingStarted },
     { path: RoutePage.ARCHIVE, Component: Archive },
     { path: RoutePage.ARTIFACTS, Component: ArtifactList },
     { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails },
@@ -170,7 +173,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
       <Route
         exact={true}
         path={'/'}
-        render={({ ...props }) => <Redirect to={RoutePage.PIPELINES} {...props} />}
+        render={({ ...props }) => <Redirect to={RoutePage.START} {...props} />}
       />
 
       {/* Normal routes */}

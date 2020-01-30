@@ -270,6 +270,35 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
           <div
             className={classes(
               css.indicator,
+              !page.startsWith(RoutePage.START) && css.indicatorHidden,
+            )}
+          />
+          <Tooltip
+            title={'Getting Started'}
+            enterDelay={300}
+            placement={'right-start'}
+            disableFocusListener={!collapsed}
+            disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}
+          >
+            <Link id='gettingStartedBtn' to={RoutePage.START} className={commonCss.unstyled}>
+              <Button
+                className={classes(
+                  css.button,
+                  page.startsWith(RoutePage.START) && css.active,
+                  collapsed && css.collapsedButton,
+                )}
+              >
+                <DescriptionIcon />
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>
+                  Getting Started
+                </span>
+              </Button>
+            </Link>
+          </Tooltip>
+          <div
+            className={classes(
+              css.indicator,
               !page.startsWith(RoutePage.PIPELINES) && css.indicatorHidden,
             )}
           />
