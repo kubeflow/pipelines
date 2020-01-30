@@ -54,6 +54,22 @@ export const css = stylesheet({
   refreshButton: {
     backgroundColor: color.background,
   },
+  troubleShootingLink: {
+    $nest: {
+      '&:hover': {
+        color: color.theme,
+        textDecoration: 'underline',
+      },
+    },
+    alignItems: 'center',
+    color: color.secondaryText,
+    cursor: 'pointer',
+    display: 'flex !important',
+    flexShrink: 0,
+    fontWeight: 'bold',
+    textDecoration: 'none',
+  },
+
 });
 
 export interface BannerProps {
@@ -111,6 +127,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
           {this.props.message}
         </div>
         <div className={commonCss.flex}>
+        <a className={css.troubleShootingLink} href="https://www.kubeflow.org/docs/pipelines/troubleshooting">Troubleshooting guide</a>
           {this.props.additionalInfo && (
             <Button className={css.button} onClick={this._showAdditionalInfo.bind(this)}>
               Details

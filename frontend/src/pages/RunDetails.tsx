@@ -275,11 +275,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                         {!!selectedNodeDetails && (
                           <React.Fragment>
                             {!!selectedNodeDetails.phaseMessage && (
-                              <div>
-                                <Banner mode='warning' message={selectedNodeDetails.phaseMessage}/>
-                                <a className={classes(commonCss.link,padding(70,'lr'))} href="https://www.kubeflow.org/docs/pipelines/troubleshooting"> Learn more about troubleshooting Pipelines and environment configurations here.</a>
-                                <br/><br/>
-                              </div>
+                              <Banner mode='warning' message={selectedNodeDetails.phaseMessage}/>
                             )}
                             <div className={commonCss.page}>
                               <MD2Tabs
