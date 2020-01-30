@@ -43,6 +43,7 @@ import {
   rowFilterFn,
   groupRows,
   getExpandedRow,
+  serviceErrorToString,
   CollapsedAndExpandedRows,
 } from '../lib/Utils';
 import { RoutePageFactory } from '../components/Router';
@@ -175,7 +176,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
       // Code === 5 means no record found in backend. This is a temporary workaround.
       // TODO: remove err.code !== 5 check when backend is fixed.
       if (err.code !== 5) {
-        this.showPageError('Unable to retrieve Artifacts.');
+        this.showPageError(serviceErrorToString(err));
       }
     }
     return [];
