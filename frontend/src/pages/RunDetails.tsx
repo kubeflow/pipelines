@@ -275,7 +275,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                         {!!selectedNodeDetails && (
                           <React.Fragment>
                             {!!selectedNodeDetails.phaseMessage && (
-                              <Banner mode='warning' message={selectedNodeDetails.phaseMessage}/>
+                              <Banner mode='warning' message={selectedNodeDetails.phaseMessage} />
                             )}
                             <div className={commonCss.page}>
                               <MD2Tabs

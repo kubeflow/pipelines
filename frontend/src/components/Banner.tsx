@@ -69,7 +69,6 @@ export const css = stylesheet({
     fontWeight: 'bold',
     textDecoration: 'none',
   },
-
 });
 
 export interface BannerProps {
