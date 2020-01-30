@@ -14,29 +14,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function deploy_bucket() {
+function set_bucket_and_configmap() {
   # Helper function to deploy bucket with a unique name. The unique name is ${BASE_NAME} + random
-  # unique string.
+  # unique string. Also detect the current GCP project ID and populate the properties into a
+  # config map.
   #
   # Usage:
-  # deploy_bucket BASE_NAME NUM_RETRIES
+  # set_bucket_and_configmap BASE_NAME NUM_RETRIES
   BASE_NAME=$1
   NUM_RETRIES=$2
+  CONFIG_NAME="gcp-default-config"
+
   for i in $(seq 1 ${NUM_RETRIES})
   do
     bucket_is_set=true
     bucket_name="${BASE_NAME}-$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 10 | head -n 1)"
     gsutil mb "gs://${bucket_name}/" || bucket_is_set=false
-    if [ ! "$bucket_is_set" = true ]; then
-      continue
+    if [ "$bucket_is_set" = true ]; then
+      break
     fi
-    # Populate configmap, with name gcs-config
-    kubectl create configmap -n "${NAMESPACE}" "gcs-config" --from-literal bucket_name="${bucket_name}"
-    break
   done
-  if [ ! "$bucket_is_set" = true ]; then
-    echo "Cannot successfully create bucket after ${NUM_RETRIES} attempts."
-    return 1
+  # Detect GCP project
+  GCP_PROJECT_ID=$(curl -H "Metadata-Flavor: Google" -w '\n' "http://metadata.google.internal/computeMetadata/v1/project/project-id")
+
+  # Populate configmap, with name gcp-default-config
+  if [ "${bucket_is_set}" = true ]; then
+    kubectl create configmap -n "${NAMESPACE}" "${CONFIG_NAME}" \
+      --from-literal bucket_name="${bucket_name}" \
+      --from-literal has_default_bucket="true" \
+      --from-literal project_id="${GCP_PROJECT_ID}"
+  else
+    echo "Cannot successfully create bucket after ${NUM_RETRIES} attempts. Fall back to not specifying default bucket."
+    kubectl create configmap -n "${NAMESPACE}" "${CONFIG_NAME}" \
+      --from-literal bucket_name="${bucket_name}" \
+      --from-literal has_default_bucket="true" \
+      --from-literal project_id="${GCP_PROJECT_ID}"
   fi
 }
 
@@ -50,7 +62,7 @@ NAMESPACE="$(/bin/print_config.py \
 export NAME
 export NAMESPACE
 
-deploy_bucket "${NAME}-default" 10
+set_bucket_and_configmap "${NAME}-default" 10
 
 # Invoke normal deployer routine.
 /bin/bash /bin/core_deploy.sh
