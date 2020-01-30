@@ -189,7 +189,7 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) 
 func PatchPipelineDefaultParameter(file []byte, toPatch map[string]string) ([]byte, error) {
   pipelineRawString := string(file)
   for key, value := range toPatch {
-    strings.ReplaceAll(pipelineRawString, key, value)
+    strings.Replace(pipelineRawString, key, value)
   }
   return []byte(pipelineRawString), nil
 }
