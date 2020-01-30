@@ -42,12 +42,12 @@ KFP_MANIFEST_DIR=${DIR}/../manifests/gcp_marketplace
 
 if ! which mpdev; then
   echo "Install mpdev"
-  docker pull gcr.io/cloud-marketplace-tools/k8s/dev
+  sudo docker pull gcr.io/cloud-marketplace-tools/k8s/dev
   mkdir -p $HOME/bin/
   touch $BIN_FILE
   export PATH=$HOME/bin:$PATH
   MKP_TOOLS_IMAGE=`grep -i "FROM" ${KFP_MANIFEST_DIR}/deployer/Dockerfile | sed 's/FROM //'`
-  docker run ${MKP_TOOLS_IMAGE} cat /scripts/dev > "$BIN_FILE"
+  sudo docker run ${MKP_TOOLS_IMAGE} cat /scripts/dev > "$BIN_FILE"
   chmod +x "$BIN_FILE"
 fi
 
@@ -61,9 +61,9 @@ export REGISTRY=gcr.io/$(gcloud config get-value project | tr ':' '/')
 export APP_NAME=$COMMIT_SHA
 export DEPLOYER_NAME=$REGISTRY/$APP_NAME/deployer
 
-docker build --tag $DEPLOYER_NAME -f deployer/Dockerfile .
+sudo docker build --tag $DEPLOYER_NAME -f deployer/Dockerfile .
 
-docker push $DEPLOYER_NAME:$GCR_IMAGE_TAG
+sudo docker push $DEPLOYER_NAME:$GCR_IMAGE_TAG
 
 # Copy rest images and rename current images
 export MKP_VERSION=$GCR_IMAGE_TAG
