@@ -18,8 +18,64 @@ import * as React from 'react';
 import Buttons from '../lib/Buttons';
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
+import Markdown from 'markdown-to-jsx';
+import { ExternalLink } from '../atoms/ExternalLink';
+import { cssRaw, classes } from 'typestyle';
+import { commonCss, padding } from 'src/Css';
+
+const options = {
+  overrides: { a: { component: ExternalLink } },
+};
+
+const PAGE_CONTENT_MD = `
+Build a end-to-end ML pipeline with TFX  [Start Here](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb) (Alpha)
+
+## Demos and Tutorials
+
+This section contains demo and tutorial pipelines.
+
+**Demos** - Try an end-to-end demonstration pipeline.
+
+  * [TFX pipeline demo](https://www.google.com) \\- A trainer that does end-to-end distributed training for XGBoost models. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss)
+  * [XGBoost Pipeline](https://www.google.com) \\- Example pipeline that does classification with model analysis based on a public taxi cab BigQuery dataset. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
+
+
+**Tutorials** - Learn pipeline concepts by following a tutorial.
+
+  * [Name of Tutorial 1] - \\<tutorial 1 description\\>. [source code]()
+  * [Name of Tutorial 2] - \\<tutorial 2 description\\>. [source code]()
+
+  You can find additional tutorials and samples [here]()
+
+### Additional resources and documentation
+  * [TFX Landing page]()
+  * [Hosted Pipeline documentation]()
+  * [Troubleshooting guide]()
+`;
+
+cssRaw(`
+.kfp-start-page li {
+  font-size: 14px;
+  margin-block-start: 1em;
+  margin-block-end: 1em;
+  margin-left: 2em;
+}
+.kfp-start-page p {
+  font-size: 14px;
+  margin-block-start: 1em;
+  margin-block-end: 1em;
+}
+.kfp-start-page h2 {
+  font-size: 18px;
+  margin-block-start: 0.83em;
+  margin-block-end: 0.83em;
+}
+.kfp-start-page h3 {
+  font-size: 16px;
+  margin-block-start: 0.83em;
+  margin-block-end: 0.83em;
+}
+`);
 
 export class GettingStarted extends Page<{}, {}> {
   public getInitialToolbarState(): ToolbarProps {
@@ -27,7 +83,7 @@ export class GettingStarted extends Page<{}, {}> {
     return {
       actions: buttons.getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Getting Started',
+      pageTitle: 'Getting Started: Build your own pipeline',
     };
   }
 
@@ -37,29 +93,8 @@ export class GettingStarted extends Page<{}, {}> {
 
   public render(): JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <div>
-          <p className={classes(commonCss.header2)}>Getting Started - Build a pipeline</p>
-          <p className={classes(commonCss.textField, padding(20, 'lr'))}>
-            Classification
-            <a
-              className={classes(commonCss.link, padding(20, 'lr'))}
-              href='https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb'
-            >
-              Start Here
-            </a>
-          </p>
-          <p>
-            The table below provides a few demo and tutorial pipelines, and also allows you to
-            upload your own pipelines. You can access additional samples and tutorials at
-            <a
-              className={classes(commonCss.link)}
-              href='https://github.com/kubeflow/pipelines/tree/master/samples'
-            >
-              pipelines Github Repo.
-            </a>
-          </p>
-        </div>
+      <div className={classes(commonCss.page, padding(20, 'lr'), 'kfp-start-page')}>
+        <Markdown options={options}>{PAGE_CONTENT_MD}</Markdown>
       </div>
     );
   }
