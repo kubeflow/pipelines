@@ -215,6 +215,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
 	}
 
+	response = db.Model(&model.RunDetail{}).AddIndex("experimentuuid_createatinsec", "ExperimentUUID", "CreatedAtInSec")
+	if response.Error != nil {
+		glog.Fatalf("Failed to create index experimentuuid_createatinsec on run_details. Error: %s", response.Error)
+	}
+
 	response = db.Model(&model.RunMetric{}).
 		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
