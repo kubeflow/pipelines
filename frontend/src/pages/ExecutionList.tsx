@@ -154,7 +154,9 @@ class ExecutionList extends Page<{}, ExecutionListState> {
     } catch (err) {
       // Code === 5 means no record found in backend. This is a temporary workaround.
       // TODO: remove err.code !== 5 check when backend is fixed.
-      this.showPageError(serviceErrorToString(err));
+      if (err.code !== 5) {
+        this.showPageError(serviceErrorToString(err));
+      }
     }
     return [];
   }

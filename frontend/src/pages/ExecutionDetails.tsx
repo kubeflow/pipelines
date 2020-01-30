@@ -161,6 +161,14 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
         metadataStoreServiceClient.getEventsByExecutionIDs(getEventsRequest),
       ]);
 
+      if (!executionResponse.getExecutionsList().length) {
+        this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
+      }
+
+      if (executionResponse.getExecutionsList().length > 1) {
+        this.showPageError(`Found multiple executions with ID: ${this.id}`);
+      }
+
       const execution = executionResponse.getExecutionsList()[0];
       const executionName =
         getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
