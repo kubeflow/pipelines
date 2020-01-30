@@ -34,6 +34,7 @@ func TestCreateRun(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "123"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
