@@ -189,6 +189,14 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		if configErr != nil {
 			return fmt.Errorf("Failed to decompress the file %s. Error: %v", config.Name, configErr)
 		}
+		// Patch the default bucket name read from ConfigMap
+		if config.Name == "[Sample] ML - XGBoost - Training with Confusion Matrix" {
+		  // TODO(numerology): patch project id and gcs path
+
+		}
+		if config.Name == "[Sample] Unified DSL - Taxi Tip Prediction Model Trainer" {
+      // TODO(numerology): patch gcs path
+		}
 		_, configErr = resourceManager.CreatePipeline(config.Name, config.Description, pipelineFile)
 		if configErr != nil {
 			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
@@ -209,6 +217,8 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 	glog.Info("All samples are loaded.")
 	return nil
 }
+
+
 
 func initConfig() {
 	// Import environment variable, support nested vars e.g. OBJECTSTORECONFIG_ACCESSKEY
