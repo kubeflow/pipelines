@@ -203,12 +203,7 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 				"<your-gcs-bucket>": defaultBucket,
 				"<your-project-id>": projectId,
 			}
-			if config.Name == "[Sample] ML - XGBoost - Training with Confusion Matrix" {
-				pipelineFile, err := server.PatchPipelineDefaultParameter(pipelineFile, patchMap)
-			}
-			if config.Name == "[Sample] Unified DSL - Taxi Tip Prediction Model Trainer" {
-				pipelineFile, err := server.PatchPipelineDefaultParameter(pipelineFile, patchMap)
-			}
+			pipelineFile, err = server.PatchPipelineDefaultParameter(pipelineFile, patchMap)
 			if err != nil {
 				return fmt.Errorf("Failed to patch default value to %s. Error: %v", config.Name, err)
 			}
