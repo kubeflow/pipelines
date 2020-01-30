@@ -12,5 +12,6 @@ ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 # move the old entrypoint, because mpdev tool will call it directly, whatever entrypoint is.
 RUN mv bin/deploy.sh bin/core_deploy.sh
 ADD deployer/init_action.sh /bin/deploy.sh
+RUN chmod 755 /bin/deploy.sh
 
 ENTRYPOINT ["/bin/bash", "/bin/deploy.sh"]
