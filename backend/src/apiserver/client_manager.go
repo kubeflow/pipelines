@@ -380,19 +380,14 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 
 func backfillExperimentIDToRunTable(db *gorm.DB) (retError error) {
 	// check if there is any row in the run table has experiment ID being empty
-	var emptyExperimentUUID = false
 	rows, err := db.CommonDB().Query(`SELECT ExperimentUUID FROM run_details WHERE ExperimentUUID = '' LIMIT 1`)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
-	for !emptyExperimentUUID && rows.Next() {
-		emptyExperimentUUID = true
-	}
-
 	// no row in run_details table has empty ExperimentUUID
-	if !emptyExperimentUUID {
+	if !rows.Next() {
 		return nil
 	}
 
