@@ -20,7 +20,6 @@ import (
 	"os"
 	"time"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
@@ -381,17 +380,8 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 
 func backfillExperimentIDToRunTable(db *gorm.DB) (retError error) {
 	// check if there is any row in the run table has experiment ID being empty
-	query, args, err := sq.Select("ExperimentUUID").
-		From("run_details").
-		Where(sq.Eq{"ExperimentUUID": ""}).
-		Limit(1).
-		ToSql()
-	if err != nil {
-		return err
-	}
-
 	var emptyExperimentUUID = false
-	rows, err := db.DB().Query(query, args)
+	rows, err := db.CommonDB().Query(`SELECT ExperimentUUID FROM run_details WHERE ExperimentUUID = '' LIMIT 1`)
 	if err != nil {
 		return err
 	}
@@ -406,7 +396,7 @@ func backfillExperimentIDToRunTable(db *gorm.DB) (retError error) {
 		return nil
 	}
 
-	_, err = db.DB().Exec(`
+	_, err = db.CommonDB().Exec(`
 		UPDATE 
 			run_details, resource_references
 		SET
