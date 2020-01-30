@@ -106,12 +106,12 @@ export function s(items: any[] | number): string {
 }
 
 interface ServiceError {
-  code: number;
   message: string;
+  code?: number;
 }
 
 export function serviceErrorToString(error: ServiceError): string {
-  return `Error: ${error.message}. Code: ${error.code}`;
+  return `Error: ${error.message}.${error.code ? ` Code: ${error.code}` : ''}`;
 }
 
 /**
