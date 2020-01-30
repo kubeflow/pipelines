@@ -31,7 +31,7 @@ function deploy_bucket() {
       continue
     fi
     # Populate configmap, with name gcs-config
-    kubectl create configmap -n "gcs-config" "${NAMESPACE}" --from-literal bucket_name="${bucket_name}"
+    kubectl create configmap -n "${NAMESPACE}" "gcs-config" --from-literal bucket_name="${bucket_name}"
     break
   done
   if [ ! "$bucket_is_set" = true ]; then
