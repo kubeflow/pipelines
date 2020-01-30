@@ -47,7 +47,7 @@ exports[`Banner shows "Details" button and has dialog when there is additional i
       Troubleshooting guide
     </a>
     <WithStyles(Button)
-      className="button"
+      className="button detailsButton"
       onClick={[Function]}
     >
       Details

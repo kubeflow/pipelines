@@ -42,6 +42,9 @@ export const css = stylesheet({
     maxHeight: '32px',
     minWidth: '75px',
   },
+  detailsButton: {
+    backgroundColor: color.background,
+  },  
   icon: {
     height: '18px',
     padding: spacing.units(-4),
@@ -55,19 +58,14 @@ export const css = stylesheet({
     backgroundColor: color.background,
   },
   troubleShootingLink: {
-    $nest: {
-      '&:hover': {
-        color: color.theme,
-        textDecoration: 'underline',
-      },
-    },
     alignItems: 'center',
-    color: color.secondaryText,
+    color: color.theme,
     cursor: 'pointer',
     display: 'flex !important',
     flexShrink: 0,
     fontWeight: 'bold',
-    textDecoration: 'none',
+    padding: spacing.units(-4),
+    textDecoration: 'underline',
   },
 });
 
@@ -128,7 +126,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
         <div className={commonCss.flex}>
         <a className={css.troubleShootingLink} href="https://www.kubeflow.org/docs/pipelines/troubleshooting">Troubleshooting guide</a>
           {this.props.additionalInfo && (
-            <Button className={css.button} onClick={this._showAdditionalInfo.bind(this)}>
+            <Button className={classes(css.button, css.detailsButton)} onClick={this._showAdditionalInfo.bind(this)}>
               Details
             </Button>
           )}
