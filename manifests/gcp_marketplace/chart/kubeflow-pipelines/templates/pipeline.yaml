@@ -639,6 +639,21 @@ spec:
     spec:
       containers:
         - env:
+            - name: HASDEFAULTBUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Value.gcpDefaultConfigName}}
+                  key: "has_default_bucket"
+            - name: BUCKETNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Value.gcpDefaultConfigName}}
+                  key: "bucket_name"
+            - name: PROJECTID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Value.gcpDefaultConfigName}}
+                  key: "project_id"
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
