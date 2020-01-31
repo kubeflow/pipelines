@@ -182,6 +182,18 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) 
 	return processedFile, nil
 }
 
+// Mutate default values of specified pipeline file.
+// Args:
+//  file: pipeline file in bytes.
+//  toPatch: mapping from the old value to its new value.
+func PatchPipelineDefaultParameter(file []byte, toPatch map[string]string) ([]byte, error) {
+  pipelineRawString := string(file)
+  for key, value := range toPatch {
+    pipelineRawString = strings.Replace(pipelineRawString, key, value, -1)
+  }
+  return []byte(pipelineRawString), nil
+}
+
 func printParameters(params []*api.Parameter) string {
 	var s strings.Builder
 	for _, p := range params {

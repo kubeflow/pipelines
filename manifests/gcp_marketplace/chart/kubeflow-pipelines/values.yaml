@@ -17,6 +17,7 @@ images:
 
 gcpSecretName: "user-gcp-sa"
 serviceAccountCredential: ""
+gcpDefaultConfigName: "gcp-default-config"
 
 managedstorage:
   enabled: false

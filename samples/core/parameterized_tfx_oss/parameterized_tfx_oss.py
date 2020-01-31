@@ -49,7 +49,7 @@ _data_root_param = dsl.PipelineParam(
 
 # Path of pipeline root, should be a GCS path.
 pipeline_root = os.path.join(
-    'gs://your-bucket', 'tfx_taxi_simple', kfp.dsl.RUN_ID_PLACEHOLDER
+    'gs://<your-gcs-bucket>', 'tfx_taxi_simple', kfp.dsl.RUN_ID_PLACEHOLDER
 )
 
 

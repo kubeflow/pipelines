@@ -40,6 +40,12 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+const (
+	HasDefaultBucketEnvVar  = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar         = "PROJECT_ID"
+	DefaultBucketNameEnvVar = "BUCKET_NAME"
+)
+
 var (
 	rpcPortFlag      = flag.String("rpcPortFlag", ":8887", "RPC Port")
 	httpPortFlag     = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
@@ -188,6 +194,19 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		pipelineFile, configErr := server.ReadPipelineFile(config.File, reader, server.MaxFileLength)
 		if configErr != nil {
 			return fmt.Errorf("Failed to decompress the file %s. Error: %v", config.Name, configErr)
+		}
+		// Patch the default bucket name read from ConfigMap
+		if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
+			defaultBucket := common.GetStringConfig(DefaultBucketNameEnvVar)
+			projectId := common.GetStringConfig(ProjectIDEnvVar)
+			patchMap := map[string]string{
+				"<your-gcs-bucket>": defaultBucket,
+				"<your-project-id>": projectId,
+			}
+			pipelineFile, err = server.PatchPipelineDefaultParameter(pipelineFile, patchMap)
+			if err != nil {
+				return fmt.Errorf("Failed to patch default value to %s. Error: %v", config.Name, err)
+			}
 		}
 		_, configErr = resourceManager.CreatePipeline(config.Name, config.Description, pipelineFile)
 		if configErr != nil {
