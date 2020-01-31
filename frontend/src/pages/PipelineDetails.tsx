@@ -201,7 +201,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           <MD2Tabs
             selectedTab={selectedTab}
             onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })}
-            tabs={['Graph', 'Source']}
+            tabs={['Graph', 'YAML']}
           />
           <div className={commonCss.page}>
             {selectedTab === 0 && (
