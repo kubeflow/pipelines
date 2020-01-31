@@ -17,7 +17,7 @@ from typing import NamedTuple
 
 def run_diagnose_me(
     bucket: str, execution_mode: str, target_apis: str
-) -> NamedTuple('Outputs', [('bucket', str), ('project_id', str)]):
+) -> NamedTuple('Outputs', [('bucket', str), ('project_id', 'GCPProjectID')]):
     """ Performs environment verification specific to this pipeline.
 
       args:
