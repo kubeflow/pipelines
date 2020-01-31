@@ -201,3 +201,5 @@ ml-metadata,https://raw.githubusercontent.com/google/ml-metadata/master/LICENSE,
 opt-einsum,https://raw.githubusercontent.com/dgasmith/opt_einsum/master/LICENSE,MIT
 tensorflow-estimator,https://raw.githubusercontent.com/tensorflow/estimator/master/LICENSE,Apache 2.0
 wrapt,https://github.com/GrahamDumpleton/wrapt/blob/develop/LICENSE,2-Clause BSD
+tensorflow-serving-api,https://raw.githubusercontent.com/tensorflow/serving/master/LICENSE,Apache 2.0
+tfx-bsl,https://raw.githubusercontent.com/tensorflow/tfx-bsl/master/LICENSE,Apache 2.0
