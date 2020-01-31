@@ -639,17 +639,17 @@ spec:
     spec:
       containers:
         - env:
-            - name: HASDEFAULTBUCKET
+            - name: HAS_DEFAULT_BUCKET
               valueFrom:
                 configMapKeyRef:
                   name: {{ .Values.gcpDefaultConfigName}}
                   key: "has_default_bucket"
-            - name: BUCKETNAME
+            - name: BUCKET_NAME
               valueFrom:
                 configMapKeyRef:
                   name: {{ .Values.gcpDefaultConfigName}}
                   key: "bucket_name"
-            - name: PROJECTID
+            - name: PROJECT_ID
               valueFrom:
                 configMapKeyRef:
                   name: {{ .Values.gcpDefaultConfigName}}

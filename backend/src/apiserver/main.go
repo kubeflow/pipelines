@@ -41,9 +41,9 @@ import (
 )
 
 const (
-	HasDefaultBucketEnvVar  = "HASDEFAULTBUCKET"
-	ProjectIDEnvVar         = "PROJECTID"
-	DefaultBucketNameEnvVar = "BUCKETNAME"
+	HasDefaultBucketEnvVar  = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar         = "PROJECT_ID"
+	DefaultBucketNameEnvVar = "BUCKET_NAME"
 )
 
 var (
