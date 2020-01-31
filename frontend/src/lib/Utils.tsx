@@ -24,9 +24,7 @@ import { ListRequest } from './Apis';
 import { Row, Column, ExpandState } from '../components/CustomTable';
 import { padding } from '../Css';
 import { classes } from 'typestyle';
-import { Value, Artifact, Execution } from '../generated/src/apis/metadata/metadata_store_pb';
 import { CustomTableRow, css } from '../components/CustomTableRow';
-import { ServiceError } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -107,58 +105,13 @@ export function s(items: any[] | number): string {
   return length === 1 ? '' : 's';
 }
 
-/** Title cases a string by capitalizing the first letter of each word. */
-export function titleCase(str: string): string {
-  return str
-    .split(/[\s_-]/)
-    .map(w => `${w.charAt(0).toUpperCase()}${w.slice(1)}`)
-    .join(' ');
-}
-
-/**
- * Safely extracts the named property or custom property from the provided
- * Artifact or Execution.
- * @param resource
- * @param propertyName
- * @param fromCustomProperties
- */
-export function getResourceProperty(
-  resource: Artifact | Execution,
-  propertyName: string,
-  fromCustomProperties = false,
-): string | number | null {
-  const props = fromCustomProperties
-    ? resource.getCustomPropertiesMap()
-    : resource.getPropertiesMap();
-
-  return (props && props.get(propertyName) && getMetadataValue(props.get(propertyName))) || null;
+interface ServiceError {
+  message: string;
+  code?: number;
 }
 
 export function serviceErrorToString(error: ServiceError): string {
-  return `Error: ${error.message}. Code: ${error.code}`;
-}
-
-/**
- * Extracts an int, double, or string from a metadata Value. Returns '' if no value is found.
- * @param value
- */
-export function getMetadataValue(value?: Value): string | number {
-  if (!value) {
-    return '';
-  }
-
-  if (value.hasDoubleValue()) {
-    return value.getDoubleValue() || '';
-  }
-
-  if (value.hasIntValue()) {
-    return value.getIntValue() || '';
-  }
-
-  if (value.hasStringValue()) {
-    return value.getStringValue() || '';
-  }
-  return '';
+  return `Error: ${error.message}.${error.code ? ` Code: ${error.code}` : ''}`;
 }
 
 /**

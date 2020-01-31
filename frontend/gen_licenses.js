@@ -29,6 +29,11 @@ const path = require('path');
 const start = path.resolve(process.cwd(), process.argv[2]);
 let licenseMissing = 0;
 const whitelist = new Map([
+  ['@jest/environment', 'third_party/jest/LICENSE'],
+  ['@jest/reporters', 'third_party/jest/LICENSE'],
+  ['@jest/test-sequencer', 'third_party/jest/LICENSE'],
+  ['@jest/transform', 'third_party/jest/LICENSE'],
+  ['eslint-module-utils', 'third_party/eslint/LICENSE'],
   ['@kubernetes/client-node', 'third_party/@kubernetes/client-node/LICENSE'],
   ['expect', 'third_party/jest/LICENSE'],
   ['jest-config', 'third_party/jest/LICENSE'],
@@ -47,6 +52,7 @@ const whitelist = new Map([
   ['jest-runtime', 'third_party/jest/LICENSE'],
   ['jest-snapshot', 'third_party/jest/LICENSE'],
   ['jest-util', 'third_party/jest/LICENSE'],
+  ['mamacro', 'third_party/mamacro/LICENSE'],
 ]);
 
 licenseChecker.init({

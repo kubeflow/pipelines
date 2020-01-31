@@ -20,49 +20,10 @@ import { ApiPipeline, PipelineServiceApi } from '../apis/pipeline';
 import { RunServiceApi } from '../apis/run';
 import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization';
 import { PlotType } from '../components/viewers/Viewer';
-import {
-  MetadataStoreServiceClient,
-  ServiceError,
-  UnaryResponse,
-} from '../generated/src/apis/metadata/metadata_store_service_pb_service';
 import * as Utils from './Utils';
 import { StoragePath } from './WorkflowParser';
 
 const v1beta1Prefix = 'apis/v1beta1';
-
-/** Known Artifact properties */
-export enum ArtifactProperties {
-  ALL_META = '__ALL_META__',
-  CREATE_TIME = 'create_time',
-  DESCRIPTION = 'description',
-  NAME = 'name',
-  PIPELINE_NAME = 'pipeline_name',
-  VERSION = 'version',
-}
-
-/** Known Artifact custom properties */
-export enum ArtifactCustomProperties {
-  WORKSPACE = '__kf_workspace__',
-  RUN = '__kf_run__',
-  NAME = 'name',
-  PIPELINE_NAME = 'pipeline_name', // TODO: Remove when switching to contexts
-  RUN_ID = 'run_id', // TODO: Remove when switching to contexts
-}
-
-/** Known Execution properties */
-export enum ExecutionProperties {
-  NAME = 'name', // currently not available in api, use component_id instead
-  COMPONENT_ID = 'component_id',
-  PIPELINE_NAME = 'pipeline_name',
-  STATE = 'state',
-}
-
-/** Known Execution custom properties */
-export enum ExecutionCustomProperties {
-  WORKSPACE = '__kf_workspace__',
-  RUN_ID = 'run_id', // TODO: Remove when switching to contexts
-  TASK_ID = 'task_id',
-}
 
 export interface ListRequest {
   filter?: string;
@@ -80,52 +41,6 @@ export interface BuildInfo {
 }
 
 let customVisualizationsAllowed: boolean;
-
-type Callback<R> = (err: ServiceError | null, res: R | null) => void;
-type MetadataApiMethod<T, R> = (request: T, callback: Callback<R>) => UnaryResponse;
-type PromiseBasedMetadataApiMethod<T, R> = (
-  request: T,
-) => Promise<{ response: R | null; error: ServiceError | null }>;
-
-/**
- * Converts a callback based api method to promise based api method.
- */
-function makePromiseApi<T, R>(
-  apiMethod: MetadataApiMethod<T, R>,
-): PromiseBasedMetadataApiMethod<T, R> {
-  return (request: T) =>
-    new Promise((resolve, reject) => {
-      const handler = (error: ServiceError | null, response: R | null) => {
-        // resolve both response and error to keep type information
-        resolve({ response, error });
-      };
-      apiMethod(request, handler);
-    });
-}
-const metadataServiceClient = new MetadataStoreServiceClient('');
-// TODO: add all other api methods we need here.
-const metadataServicePromiseClient = {
-  getArtifactTypes: makePromiseApi(
-    metadataServiceClient.getArtifactTypes.bind(metadataServiceClient),
-  ),
-  getArtifacts: makePromiseApi(metadataServiceClient.getArtifacts.bind(metadataServiceClient)),
-  getArtifactsByID: makePromiseApi(
-    metadataServiceClient.getArtifactsByID.bind(metadataServiceClient),
-  ),
-  getEventsByArtifactIDs: makePromiseApi(
-    metadataServiceClient.getEventsByArtifactIDs.bind(metadataServiceClient),
-  ),
-  getEventsByExecutionIDs: makePromiseApi(
-    metadataServiceClient.getEventsByExecutionIDs.bind(metadataServiceClient),
-  ),
-  getExecutionTypes: makePromiseApi(
-    metadataServiceClient.getExecutionTypes.bind(metadataServiceClient),
-  ),
-  getExecutions: makePromiseApi(metadataServiceClient.getExecutions.bind(metadataServiceClient)),
-  getExecutionsByID: makePromiseApi(
-    metadataServiceClient.getExecutionsByID.bind(metadataServiceClient),
-  ),
-};
 
 // For cross browser support, fetch should use 'same-origin' as default. This fixes firefox auth issues.
 // Refrence: https://github.com/github/fetch#sending-cookies
@@ -338,16 +253,6 @@ export class Apis {
    */
   public static async getProjectId(): Promise<string> {
     return this._fetch('system/project-id');
-  }
-
-  public static getMetadataServiceClient(): MetadataStoreServiceClient {
-    return metadataServiceClient;
-  }
-
-  // It will be a lot of boilerplate to type the following method, omit it here.
-  // tslint:disable-next-line:typedef
-  public static getMetadataServicePromiseClient() {
-    return metadataServicePromiseClient;
   }
 
   private static _experimentServiceApi?: ExperimentServiceApi;
