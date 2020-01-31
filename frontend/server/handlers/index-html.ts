@@ -66,5 +66,8 @@ function replaceRuntimeContent(content: string | undefined, deployment: Deployme
         `<script id="kubeflow-client-placeholder" src="/dashboard_lib.bundle.js"></script>`,
       );
   }
+  if (content && deployment === Deployments.MARKETPLACE) {
+    return content.replace(DEFAULT_FLAG, 'window.KFP_FLAGS.DEPLOYMENT="MARKETPLACE"');
+  }
   return content;
 }
