@@ -60,12 +60,8 @@ export const css = stylesheet({
   troubleShootingLink: {
     alignItems: 'center',
     color: color.theme,
-    cursor: 'pointer',
-    display: 'flex !important',
-    flexShrink: 0,
     fontWeight: 'bold',
     padding: spacing.units(-4),
-    textDecoration: 'underline',
   },
 });
 
