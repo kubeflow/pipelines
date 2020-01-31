@@ -28,6 +28,8 @@ const options = {
 };
 
 const PAGE_CONTENT_MD = `
+## Build your own pipeline
+
 Build a end-to-end ML pipeline with TFX  [Start Here](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb) (Alpha)
 
 ## Demos and Tutorials
@@ -83,7 +85,7 @@ export class GettingStarted extends Page<{}, {}> {
     return {
       actions: buttons.getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Getting Started: Build your own pipeline',
+      pageTitle: 'Getting Started',
     };
   }
 
