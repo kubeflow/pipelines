@@ -14,7 +14,7 @@
 
 import copy
 from typing import Any, Mapping
-from ._structures import ComponentSpec, ComponentReference
+from .structures import ComponentSpec, ComponentReference
 from ._components import _default_component_name, _resolve_command_line_and_paths
 from .. import dsl
 

@@ -24,7 +24,6 @@ import { Storage as GCSStorage } from '@google-cloud/storage';
 import { UIServer } from './app';
 import { loadConfigs } from './configs';
 import * as minioHelper from './minio-helper';
-import { getTensorboardInstance } from './k8s-helper';
 
 jest.mock('minio');
 jest.mock('node-fetch');
@@ -45,15 +44,6 @@ describe('UIServer apis', () => {
   window.KFP_FLAGS.DEPLOYMENT=null
   </script>
   <script id="kubeflow-client-placeholder"></script>
-</head>
-</html>`;
-  const expectedIndexHtml = `
-<html>
-<head>
-  <script>
-  window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"
-  </script>
-  <script id="kubeflow-client-placeholder" src="/dashboard_lib.bundle.js"></script>
 </head>
 </html>`;
 
@@ -92,7 +82,36 @@ describe('UIServer apis', () => {
     });
 
     it('responds with a modified index.html if it is a kubeflow deployment', done => {
+      const expectedIndexHtml = `
+<html>
+<head>
+  <script>
+  window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"
+  </script>
+  <script id="kubeflow-client-placeholder" src="/dashboard_lib.bundle.js"></script>
+</head>
+</html>`;
       const configs = loadConfigs(argv, { DEPLOYMENT: 'kubeflow' });
+      app = new UIServer(configs);
+
+      const request = requests(app.start());
+      request
+        .get('/')
+        .expect('Content-Type', 'text/html; charset=utf-8')
+        .expect(200, expectedIndexHtml, done);
+    });
+
+    it('responds with flag DEPLOYMENT=MARKETPLACE if it is a marketplace deployment', done => {
+      const expectedIndexHtml = `
+<html>
+<head>
+  <script>
+  window.KFP_FLAGS.DEPLOYMENT="MARKETPLACE"
+  </script>
+  <script id="kubeflow-client-placeholder"></script>
+</head>
+</html>`;
+      const configs = loadConfigs(argv, { DEPLOYMENT: 'marketplace' });
       app = new UIServer(configs);
 
       const request = requests(app.start());
