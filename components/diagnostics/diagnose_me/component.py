@@ -16,8 +16,8 @@ from typing import NamedTuple
 
 
 def run_diagnose_me(
-    bucket: str, execution_mode: str, target_apis: str
-) -> NamedTuple('Outputs', [('bucket', str), ('project_id', 'GCPProjectID')]):
+    bucket: str, execution_mode: str, project_id:str , target_apis: str
+) -> NamedTuple('Outputs', [('bucket', str), ('project_id', str)]):
     """ Performs environment verification specific to this pipeline.
 
       args:
@@ -61,9 +61,8 @@ def run_diagnose_me(
     # from project configuration
     project_config = gcp.get_gcp_configuration(
         gcp.Commands.GET_GCLOUD_DEFAULT, human_readable=False)
-    project_id = ''
     if not project_config.has_error:
-        project_id = project_config.parsed_output['core']['project']
+        auth_project_id = project_config.parsed_output['core']['project']
         print('GCP credentials are configured with access to project: %s ...\n' % (project_id))
         print('Following account(s) are active under this pipeline:\n')
         subprocess.run(['gcloud', 'auth', 'list'])
@@ -73,6 +72,12 @@ def run_diagnose_me(
             'Project configuration is not accessible with error  %s\n' %
             (project_config.stderr),
             file=sys.stderr)
+        config_error_observed = True
+
+    if auth_project_id is not project_id:
+        print(
+            'User provided project ID %s does not match the configuration %s\n' %
+            (project_id,auth_project_id), file=sys.stderr)
         config_error_observed = True
 
     # Get project buckets
@@ -112,7 +117,7 @@ def run_diagnose_me(
 
     if api_config_results.has_error:
         print('could not retrieve API status with error: %s' %
-                           (api_config_results.stderr),sys.stderr)
+                           (api_config_results.stderr),file=sys.stderr)
         config_error_observed = True
 
     print('Checking APIs status ...')
@@ -129,7 +134,7 @@ def run_diagnose_me(
             print(
                 'API \"%s\" is not accessible or not enabled. To enable this api go to ' % (api) +
                 'https://pantheon.corp.google.com/apis/library/%s?project=%s' %
-                (api, project_id),sys.stderr)
+                (api, project_id),file=sys.stderr)
             config_error_observed = True
 
     if 'HALT_ON_ERROR' in execution_mode and config_error_observed:

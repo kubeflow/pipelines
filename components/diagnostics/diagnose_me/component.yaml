@@ -1,24 +1,9 @@
 name: Run diagnose me
-description: |-
-  Performs environment verification specific to this pipeline.
-
-        args:
-            bucket:
-                string name of the bucket to be checked. Must be of the format
-                gs://bucket_root/any/path/here/is/ignored where any path beyond root
-                is ignored.
-            execution_mode:
-                If set to HALT_ON_ERROR will case any error to raise an exception.
-                This is intended to stop the data processing of a pipeline. Can set
-                to False to only report Errors/Warnings.
-            target_apis:
-                String consisting of a comma separated list of apis to be verified.
-        Raises:
-            RuntimeError: If configuration is not setup properly and
-            HALT_ON_ERROR flag is set.
+outputs:
+- {name: bucket, type: String}
+- {name: project_id, type: String}
 implementation:
   container:
-    image: google/cloud-sdk:276.0.0
     command:
     - python3
     - -u
@@ -27,8 +12,8 @@ implementation:
       from typing import NamedTuple
 
       def run_diagnose_me(
-          bucket: str, execution_mode: str, target_apis: str
-      ) -> NamedTuple('Outputs', [('bucket', str), ('project_id', 'GCPProjectID')]):
+          bucket: str, execution_mode: str, project_id:str , target_apis: str
+      ) -> NamedTuple('Outputs', [('bucket', str), ('project_id', str)]):
           """ Performs environment verification specific to this pipeline.
 
             args:
@@ -72,9 +57,8 @@ implementation:
           # from project configuration
           project_config = gcp.get_gcp_configuration(
               gcp.Commands.GET_GCLOUD_DEFAULT, human_readable=False)
-          project_id = ''
           if not project_config.has_error:
-              project_id = project_config.parsed_output['core']['project']
+              auth_project_id = project_config.parsed_output['core']['project']
               print('GCP credentials are configured with access to project: %s ...\n' % (project_id))
               print('Following account(s) are active under this pipeline:\n')
               subprocess.run(['gcloud', 'auth', 'list'])
@@ -84,6 +68,12 @@ implementation:
                   'Project configuration is not accessible with error  %s\n' %
                   (project_config.stderr),
                   file=sys.stderr)
+              config_error_observed = True
+
+          if auth_project_id is not project_id:
+              print(
+                  'User provided project ID %s does not match the configuration %s\n' %
+                  (project_id,auth_project_id), sys.stderr)
               config_error_observed = True
 
           # Get project buckets
@@ -166,6 +156,7 @@ implementation:
       _parser = argparse.ArgumentParser(prog='Run diagnose me', description='Performs environment verification specific to this pipeline.\n\n      args:\n          bucket:\n              string name of the bucket to be checked. Must be of the format\n              gs://bucket_root/any/path/here/is/ignored where any path beyond root\n              is ignored.\n          execution_mode:\n              If set to HALT_ON_ERROR will case any error to raise an exception.\n              This is intended to stop the data processing of a pipeline. Can set\n              to False to only report Errors/Warnings.\n          target_apis:\n              String consisting of a comma separated list of apis to be verified.\n      Raises:\n          RuntimeError: If configuration is not setup properly and\n          HALT_ON_ERROR flag is set.')
       _parser.add_argument("--bucket", dest="bucket", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--execution-mode", dest="execution_mode", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--project-id", dest="project_id", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--target-apis", dest="target_apis", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
       _parsed_args = vars(_parser.parse_args())
@@ -178,7 +169,7 @@ implementation:
 
       _output_serializers = [
           _serialize_str,
-          str,
+          _serialize_str,
 
       ]
 
@@ -195,15 +186,33 @@ implementation:
     - {inputValue: bucket}
     - --execution-mode
     - {inputValue: execution_mode}
+    - --project-id
+    - {inputValue: project_id}
     - --target-apis
     - {inputValue: target_apis}
     - '----output-paths'
     - {outputPath: bucket}
     - {outputPath: project_id}
+    image: google/cloud-sdk:276.0.0
+description: |-
+  Performs environment verification specific to this pipeline.
+
+        args:
+            bucket:
+                string name of the bucket to be checked. Must be of the format
+                gs://bucket_root/any/path/here/is/ignored where any path beyond root
+                is ignored.
+            execution_mode:
+                If set to HALT_ON_ERROR will case any error to raise an exception.
+                This is intended to stop the data processing of a pipeline. Can set
+                to False to only report Errors/Warnings.
+            target_apis:
+                String consisting of a comma separated list of apis to be verified.
+        Raises:
+            RuntimeError: If configuration is not setup properly and
+            HALT_ON_ERROR flag is set.
 inputs:
 - {name: bucket, type: String}
 - {name: execution_mode, type: String}
+- {name: project_id, type: String}
 - {name: target_apis, type: String}
-outputs:
-- {name: bucket, type: String}
-- {name: project_id, type: GCPProjectID}
