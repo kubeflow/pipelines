@@ -65,7 +65,9 @@ fi
 
 echo "Downloading Docker build context from $CONTEXT_GCS_URI..."
 downloaded_code_archive_file=$(mktemp)
-gsutil cp "$CONTEXT_GCS_URI" "$downloaded_code_archive_file"
+for i in $(seq 10); do
+    gsutil cp "$CONTEXT_GCS_URI" "$downloaded_code_archive_file" || sleep 20
+fi
 tar -xzf "$downloaded_code_archive_file" --directory .
 
 echo "Waiting for Docker-in-Docker daemon to start..."
