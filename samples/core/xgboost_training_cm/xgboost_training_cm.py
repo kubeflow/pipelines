@@ -21,14 +21,9 @@ from kfp import dsl
 import os
 import subprocess
 
-diagnose_me_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/edcbe8d08cd39fea9871c5ac70178efb20ecd0ed/components/diagnostics/diagnose_me/component.yaml')
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/ff116b6f1a0f0cdaafb64fcd04214c169045e6fc/components/local/confusion_matrix/component.yaml')
 
-confusion_matrix_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/ff116b6f1a0f0cdaafb64fcd04214c169045e6fc/components/local/confusion_matrix/component.yaml')
-
-roc_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/ff116b6f1a0f0cdaafb64fcd04214c169045e6fc/components/local/roc/component.yaml')
+roc_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/ff116b6f1a0f0cdaafb64fcd04214c169045e6fc/components/local/roc/component.yaml')
 
 dataproc_create_cluster_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/ff116b6f1a0f0cdaafb64fcd04214c169045e6fc/components/gcp/dataproc/create_cluster/component.yaml')
@@ -44,8 +39,7 @@ dataproc_submit_spark_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/ff116b6f1a0f0cdaafb64fcd04214c169045e6fc/components/gcp/dataproc/submit_spark_job/component.yaml'
 )
 
-# Common path to python src.
-_PYSRC_PREFIX = 'gs://ml-pipeline-playground/dataproc-example'
+_PYSRC_PREFIX = 'gs://ml-pipeline-playground/dataproc-example' # Common path to python src.
 
 _XGBOOST_PKG = 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar'
 
@@ -55,11 +49,11 @@ _PREDICTOR_MAIN_CLS = 'ml.dmlc.xgboost4j.scala.example.spark.XGBoostPredictor'
 
 
 def delete_directory_from_gcs(dir_path):
-    """Delete a GCS dir recursively. Ignore errors."""
-    try:
-        subprocess.call(['gsutil', '-m', 'rm', '-r', dir_path])
-    except:
-        pass
+  """Delete a GCS dir recursively. Ignore errors."""
+  try:
+    subprocess.call(['gsutil', '-m', 'rm', '-r', dir_path])
+  except:
+    pass
 
 
 # ! Please do not forget to enable the Dataproc API in your cluster https://console.developers.google.com/apis/api/dataproc.googleapis.com/overview
@@ -69,28 +63,28 @@ def delete_directory_from_gcs(dir_path):
 
 
 def dataproc_analyze_op(
-        project,
-        region,
-        cluster_name,
-        schema,
-        train_data,
-        output):
-    """Submit dataproc analyze as a pyspark job.
-    :param project: GCP project ID.
-    :param region: Which zone to run this analyze.
-    :param cluster_name: Name of the cluster.
-    :param schema: GCS path to the schema.
-    :param train_data: GCS path to the training data.
-    :param output: GCS path to store the output.
-    """
-    return dataproc_submit_pyspark_op(
-        project_id=project,
-        region=region,
-        cluster_name=cluster_name,
-        main_python_file_uri=os.path.join(_PYSRC_PREFIX, 'analyze_run.py'),
-        args=['--output', str(output), '--train',
-              str(train_data), '--schema', str(schema)]
-    )
+    project,
+    region,
+    cluster_name,
+    schema,
+    train_data,
+    output):
+  """Submit dataproc analyze as a pyspark job.
+
+  :param project: GCP project ID.
+  :param region: Which zone to run this analyze.
+  :param cluster_name: Name of the cluster.
+  :param schema: GCS path to the schema.
+  :param train_data: GCS path to the training data.
+  :param output: GCS path to store the output.
+  """
+  return dataproc_submit_pyspark_op(
+      project_id=project,
+      region=region,
+      cluster_name=cluster_name,
+      main_python_file_uri=os.path.join(_PYSRC_PREFIX, 'analyze_run.py'),
+      args=['--output', str(output), '--train', str(train_data), '--schema', str(schema)]
+  )
 
 
 def dataproc_transform_op(
@@ -103,39 +97,40 @@ def dataproc_transform_op(
     analysis,
     output
 ):
-    """Submit dataproc transform as a pyspark job.
-    :param project: GCP project ID.
-    :param region: Which zone to run this analyze.
-    :param cluster_name: Name of the cluster.
-    :param train_data: GCS path to the training data.
-    :param eval_data: GCS path of the eval csv file.
-    :param target: Target column name.
-    :param analysis: GCS path of the analysis results
-    :param output: GCS path to use for output.
-    """
+  """Submit dataproc transform as a pyspark job.
 
-    # Remove existing [output]/train and [output]/eval if they exist.
-    delete_directory_from_gcs(os.path.join(output, 'train'))
-    delete_directory_from_gcs(os.path.join(output, 'eval'))
+  :param project: GCP project ID.
+  :param region: Which zone to run this analyze.
+  :param cluster_name: Name of the cluster.
+  :param train_data: GCS path to the training data.
+  :param eval_data: GCS path of the eval csv file.
+  :param target: Target column name.
+  :param analysis: GCS path of the analysis results
+  :param output: GCS path to use for output.
+  """
 
-    return dataproc_submit_pyspark_op(
-        project_id=project,
-        region=region,
-        cluster_name=cluster_name,
-        main_python_file_uri=os.path.join(_PYSRC_PREFIX,
-                                          'transform_run.py'),
-        args=[
-            '--output',
-            str(output),
-            '--analysis',
-            str(analysis),
-            '--target',
-            str(target),
-            '--train',
-            str(train_data),
-            '--eval',
-            str(eval_data)
-        ])
+  # Remove existing [output]/train and [output]/eval if they exist.
+  delete_directory_from_gcs(os.path.join(output, 'train'))
+  delete_directory_from_gcs(os.path.join(output, 'eval'))
+
+  return dataproc_submit_pyspark_op(
+      project_id=project,
+      region=region,
+      cluster_name=cluster_name,
+      main_python_file_uri=os.path.join(_PYSRC_PREFIX,
+                                        'transform_run.py'),
+      args=[
+        '--output',
+        str(output),
+        '--analysis',
+        str(analysis),
+        '--target',
+        str(target),
+        '--train',
+        str(train_data),
+        '--eval',
+        str(eval_data)
+      ])
 
 
 def dataproc_train_op(
@@ -152,27 +147,27 @@ def dataproc_train_op(
     is_classification=True
 ):
 
-    if is_classification:
-        config = 'gs://ml-pipeline-playground/trainconfcla.json'
-    else:
-        config = 'gs://ml-pipeline-playground/trainconfreg.json'
+  if is_classification:
+    config='gs://ml-pipeline-playground/trainconfcla.json'
+  else:
+    config='gs://ml-pipeline-playground/trainconfreg.json'
 
-    return dataproc_submit_spark_op(
-        project_id=project,
-        region=region,
-        cluster_name=cluster_name,
-        main_class=_TRAINER_MAIN_CLS,
-        spark_job=json.dumps({'jarFileUris': [_XGBOOST_PKG]}),
-        args=json.dumps([
-            str(config),
-            str(rounds),
-            str(workers),
-            str(analysis),
-            str(target),
-            str(train_data),
-            str(eval_data),
-            str(output)
-        ]))
+  return dataproc_submit_spark_op(
+      project_id=project,
+      region=region,
+      cluster_name=cluster_name,
+      main_class=_TRAINER_MAIN_CLS,
+      spark_job=json.dumps({ 'jarFileUris': [_XGBOOST_PKG]}),
+      args=json.dumps([
+        str(config),
+        str(rounds),
+        str(workers),
+        str(analysis),
+        str(target),
+        str(train_data),
+        str(eval_data),
+        str(output)
+      ]))
 
 
 def dataproc_predict_op(
@@ -186,22 +181,21 @@ def dataproc_predict_op(
     output
 ):
 
-    return dataproc_submit_spark_op(
-        project_id=project,
-        region=region,
-        cluster_name=cluster_name,
-        main_class=_PREDICTOR_MAIN_CLS,
-        spark_job=json.dumps({'jarFileUris': [_XGBOOST_PKG]}),
-        args=json.dumps([
-            str(model),
-            str(data),
-            str(analysis),
-            str(target),
-            str(output)
-        ]))
+  return dataproc_submit_spark_op(
+      project_id=project,
+      region=region,
+      cluster_name=cluster_name,
+      main_class=_PREDICTOR_MAIN_CLS,
+      spark_job=json.dumps({ 'jarFileUris': [_XGBOOST_PKG]}),
+      args=json.dumps([
+        str(model),
+        str(data),
+        str(analysis),
+        str(target),
+        str(output)
+      ]))
 
 # =======================================================================
-
 
 @dsl.pipeline(
     name='XGBoost Trainer',
@@ -240,8 +234,8 @@ def xgb_train_pipeline(
             region=region,
             name=cluster_name,
             initialization_actions=[
-                os.path.join(_PYSRC_PREFIX,
-                             'initialization_actions.sh'),
+              os.path.join(_PYSRC_PREFIX,
+                           'initialization_actions.sh'),
             ],
             image_version='1.2'
         )
@@ -301,7 +295,6 @@ def xgb_train_pipeline(
             true_score_column=true_label,
             output_dir=output_template
         ).after(_predict_op)
-
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.yaml')
