@@ -774,12 +774,13 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
       }
       logger.error('in _loadSelectedNodeOutputs, after');
-//      const tfxAutomaticVisualizations = await this.buildTFXArtifactViewerConfig(selectedNodeDetails.id);
-//      tfxAutomaticVisualizations.fi
+      const tfxAutomaticVisualizations: ViewerConfig[] = await OutputArtifactLoader.buildTFXArtifactViewerConfig(
+        selectedNodeDetails.id,
+      );
       const generatedConfigs = generatedVisualizations
         .filter(visualization => visualization.nodeId === selectedNodeDetails.id)
         .map(visualization => visualization.config);
-      viewerConfigs = viewerConfigs.concat(generatedConfigs);
+      viewerConfigs = tfxAutomaticVisualizations.concat(viewerConfigs).concat(generatedConfigs);
 
       selectedNodeDetails.viewerConfigs = viewerConfigs;
       this.setStateSafe({ selectedNodeDetails });

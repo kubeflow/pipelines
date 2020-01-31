@@ -59,7 +59,6 @@ export interface OutputMetadata {
 
 export class OutputArtifactLoader {
   public static async load(outputPath: StoragePath): Promise<ViewerConfig[]> {
-    logger.error('outputPath bucket = ' + outputPath.bucket + ', key = ' + outputPath.key);
     let plotMetadataList: PlotMetadata[] = [];
     try {
       const metadataFile = await Apis.readFile(outputPath);
@@ -80,33 +79,28 @@ export class OutputArtifactLoader {
       // TODO: error dialog
     }
 
-    const configs: Array<Promise<ViewerConfig | null>> = plotMetadataList.map(async metadata => {
-      switch (metadata.type) {
-        case PlotType.CONFUSION_MATRIX:
-          return await this.buildConfusionMatrixConfig(metadata);
-        case PlotType.MARKDOWN:
-          return await this.buildMarkdownViewerConfig(metadata);
-        case PlotType.TABLE:
-          return await this.buildPagedTableConfig(metadata);
-        case PlotType.TENSORBOARD:
-          return await this.buildTensorboardConfig(metadata);
-        case PlotType.WEB_APP:
-          return await this.buildHtmlViewerConfig(metadata);
-        case PlotType.ROC:
-          return await this.buildRocCurveConfig(metadata);
-        default:
-          logger.error('Unknown plot type: ' + metadata.type);
-          return null;
-      }
-    });
-    const plotMetadata = plotMetadataList.find(async metadata => {
-      return metadata.type === PlotType.MARKDOWN;
-    });
-    let tfxArtifacts: Array<ViewerConfig | null> = [];
-    if (plotMetadata) {
-      tfxArtifacts = await this.buildTFXArtifactViewerConfig(plotMetadata);
-    }
-    return tfxArtifacts.concat(await Promise.all(configs)).filter(c => !!c) as ViewerConfig[];
+    const configs: Array<ViewerConfig | null> = await Promise.all(
+      plotMetadataList.map(async metadata => {
+        switch (metadata.type) {
+          case PlotType.CONFUSION_MATRIX:
+            return await this.buildConfusionMatrixConfig(metadata);
+          case PlotType.MARKDOWN:
+            return await this.buildMarkdownViewerConfig(metadata);
+          case PlotType.TABLE:
+            return await this.buildPagedTableConfig(metadata);
+          case PlotType.TENSORBOARD:
+            return await this.buildTensorboardConfig(metadata);
+          case PlotType.WEB_APP:
+            return await this.buildHtmlViewerConfig(metadata);
+          case PlotType.ROC:
+            return await this.buildRocCurveConfig(metadata);
+          default:
+            logger.error('Unknown plot type: ' + metadata.type);
+            return null;
+        }
+      }),
+    );
+    return configs.filter(c => !!c) as ViewerConfig[];
   }
 
   public static async buildConfusionMatrixConfig(
@@ -289,7 +283,7 @@ export class OutputArtifactLoader {
     });
     if (!foundExecution) {
       logger.verbose("Couldn't find corresponding execution in context");
-      throw new Error('Couldn\'t find corresponding execution in context');
+      throw new Error("Couldn't find corresponding execution in context");
     }
     return foundExecution;
   }
@@ -373,7 +367,7 @@ export class OutputArtifactLoader {
         const trainUri = uri + '/train/stats_tfrecord';
         tfdvArtifactsPaths.push(evalUri);
         tfdvArtifactsPaths.push(trainUri);
-      } 
+      }
     });
     return tfdvArtifactsPaths;
   }
@@ -386,10 +380,10 @@ export class OutputArtifactLoader {
         'import tensorflow_data_validation as tfdv',
         "stats = tfdv.load_statistics('" + artifactPath + "')",
         'tfdv.visualize_statistics(stats)',
-//        "stats = tfdv.load_schema_text('" + artifactPath + "')",
-//        'tfdv.display_schema(stats)',
-//        "anomalies = tfdv.load_anomalies_text('" + artifactPath + "/anomalies.pbtxt" + "')",
-//        'tfdv.display_anomalies(anomalies)',
+        //        "stats = tfdv.load_schema_text('" + artifactPath + "')",
+        //        'tfdv.display_schema(stats)',
+        //        "anomalies = tfdv.load_anomalies_text('" + artifactPath + "/anomalies.pbtxt" + "')",
+        //        'tfdv.display_anomalies(anomalies)',
       ];
       const specifiedArguments: any = JSON.parse('{}');
       specifiedArguments.code = script;
@@ -453,7 +447,6 @@ export class OutputArtifactLoader {
       if (!visualization.htmlContent) {
         throw new Error('Failed to build TFMA artifact visualization');
       }
-      // logger.error(visualization.htmlContent);
       return {
         htmlContent: visualization.htmlContent,
         type: PlotType.WEB_APP,
@@ -462,36 +455,13 @@ export class OutputArtifactLoader {
   }
 
   public static async buildTFXArtifactViewerConfig(
-    metadata: PlotMetadata,
+    kfpPodName: string,
   ): Promise<HTMLViewerConfig[]> {
-    if (!metadata.source) {
-      throw new Error('Malformed metadata, property "source" is required.');
-    }
-    let markdownContent = '';
-    if (metadata.storage === 'inline') {
-      markdownContent = metadata.source;
-    } else {
-      const path = WorkflowParser.parseStoragePath(metadata.source);
-      markdownContent = await Apis.readFile(path);
-    }
-
     // Since artifact types don't change per run, this can be optimized further so
     // that we don't fetch them on every page load.
     const artifactTypes = await this.getArtifactTypes();
     if (!artifactTypes) {
       throw new Error('Failed getting artifact types');
-    }
-
-    const kfpPodNameLine = markdownContent.match(/\*\*kfp\\_pod\\_name\*\*:.*/gm);
-    const kfpPodName =
-      (kfpPodNameLine &&
-        kfpPodNameLine.length > 0 &&
-        kfpPodNameLine[0].length > 20 &&
-        kfpPodNameLine[0].substr(20).trim()) ||
-      '';
-    if (!kfpPodName || kfpPodName.length === 0) {
-      logger.verbose('KFP pod name missing from markdown');
-      return [];
     }
 
     const context = await this.getMlmdContext(kfpPodName);
