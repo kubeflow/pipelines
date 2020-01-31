@@ -133,3 +133,5 @@ pycrypto,https://raw.githubusercontent.com/dlitz/pycrypto/master/COPYRIGHT,Publi
 pygobject,https://raw.githubusercontent.com/GNOME/pygobject/mainline/COPYING,LGPL
 pyxdg,https://cgit.freedesktop.org/xdg/pyxdg/plain/COPYING,LGPL
 SecretStorage,https://raw.githubusercontent.com/mitya57/secretstorage/master/LICENSE,BSD-3
+Mako,https://raw.githubusercontent.com/sqlalchemy/mako/master/LICENSE,MIT
+
