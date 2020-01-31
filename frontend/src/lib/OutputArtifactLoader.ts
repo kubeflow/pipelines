@@ -27,19 +27,18 @@ import { csvParseRows } from 'd3-dsv';
 import { logger, errorToMessage } from './Utils';
 import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 import {
-  GetArtifactTypesRequest,
-  GetArtifactsByIDRequest,
-  GetContextByTypeAndNameRequest,
-  GetExecutionsByContextRequest,
-  GetEventsByExecutionIDsRequest,
-} from '../generated/src/apis/metadata/metadata_store_service_pb';
-import {
+  Api,
   Artifact,
   ArtifactType,
   Context,
   Event,
   Execution,
-} from '../generated/src/apis/metadata/metadata_store_pb';
+  GetArtifactTypesRequest,
+  GetArtifactsByIDRequest,
+  GetContextByTypeAndNameRequest,
+  GetExecutionsByContextRequest,
+  GetEventsByExecutionIDsRequest,
+} from '@kubeflow/frontend';
 
 export interface PlotMetadata {
   format?: 'csv';
@@ -188,16 +187,15 @@ export class OutputArtifactLoader {
 
   public static async buildTensorboardConfig(
     metadata: PlotMetadata,
-  ): Promise<TensorboardViewerConfig | null> {
+  ): Promise<TensorboardViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
-    return null;
-    //    WorkflowParser.parseStoragePath(metadata.source);
-    //    return {
-    //      type: PlotType.TENSORBOARD,
-    //      url: metadata.source,
-    //    };
+    WorkflowParser.parseStoragePath(metadata.source);
+    return {
+      type: PlotType.TENSORBOARD,
+      url: metadata.source,
+    };
   }
 
   public static async buildHtmlViewerConfig(metadata: PlotMetadata): Promise<HTMLViewerConfig> {
@@ -234,7 +232,7 @@ export class OutputArtifactLoader {
     const {
       response: res,
       error: err,
-    } = await Apis.getMetadataServicePromiseClient().getContextByTypeAndName(request);
+    } = await Api.getInstance().metadataStoreService().getContextByTypeAndName(request);
     if (err) {
       throw new Error('Failed to getContextsByTypeAndName: ' + JSON.stringify(err));
     }
@@ -260,7 +258,7 @@ export class OutputArtifactLoader {
     const {
       response: res,
       error: err,
-    } = await Apis.getMetadataServicePromiseClient().getExecutionsByContext(request);
+    } = await Api.getInstance().metadataStoreService().getExecutionsByContext(request);
     if (err) {
       throw new Error('Failed to getExecutionsByContext: ' + JSON.stringify(err));
     }
@@ -299,7 +297,7 @@ export class OutputArtifactLoader {
     const {
       response: res,
       error: err,
-    } = await Apis.getMetadataServicePromiseClient().getEventsByExecutionIDs(request);
+    } = await Api.getInstance().metadataStoreService().getEventsByExecutionIDs(request);
     if (err) {
       throw new Error('Failed to getExecutionsByExecutionIDs: ' + JSON.stringify(err));
     }
@@ -320,7 +318,7 @@ export class OutputArtifactLoader {
     const {
       response: artifactsRes,
       error: artifactsErr,
-    } = await Apis.getMetadataServicePromiseClient().getArtifactsByID(artifactsRequest);
+    } = await Api.getInstance().metadataStoreService().getArtifactsByID(artifactsRequest);
     if (artifactsErr) {
       throw new Error('Failed to getArtifactsByID: ' + JSON.stringify(artifactsErr));
     }
@@ -334,7 +332,7 @@ export class OutputArtifactLoader {
     const {
       response: res,
       error: err,
-    } = await Apis.getMetadataServicePromiseClient().getArtifactTypes(request);
+    } = await Api.getInstance().metadataStoreService().getArtifactTypes(request);
     if (err) {
       throw new Error('Failed to getArtifactTypes: ' + JSON.stringify(err));
     }
