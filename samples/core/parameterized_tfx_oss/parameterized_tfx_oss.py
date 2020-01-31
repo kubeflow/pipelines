@@ -40,7 +40,8 @@ from tfx.proto import trainer_pb2
 # Path to the module file, should be a GCS path.
 _taxi_module_file_param = data_types.RuntimeParameter(
     name='module-file',
-    default='gs://ml-pipeline-playground/tfx_taxi_simple/modules/tfx_taxi_utils_1205.py',
+    default=
+    'gs://ml-pipeline-playground/tfx_taxi_simple/modules/tfx_taxi_utils_1205.py',
     ptype=Text,
 )
 
@@ -58,8 +59,8 @@ pipeline_root = os.path.join(
 
 
 def _create_test_pipeline(
-    pipeline_root: Text, csv_input_location: Text, taxi_module_file: Text,
-    enable_cache: bool
+    pipeline_root: Text, csv_input_location: data_types.RuntimeParameter,
+    taxi_module_file: data_types.RuntimeParameter, enable_cache: bool
 ):
   """Creates a simple Kubeflow-based Chicago Taxi TFX pipeline.
 
@@ -144,8 +145,8 @@ if __name__ == '__main__':
   enable_cache = True
   pipeline = _create_test_pipeline(
       pipeline_root,
-      str(_data_root_param),
-      str(_taxi_module_file_param),
+      _data_root_param,
+      _taxi_module_file_param,
       enable_cache=enable_cache,
   )
   # Make sure the version of TFX image used is consistent with the version of
@@ -154,9 +155,12 @@ if __name__ == '__main__':
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
       # TODO: remove this override when KubeflowDagRunnerConfig doesn't default to use_gcp_secret op.
-      pipeline_operator_funcs=list(filter(
-          lambda operator: operator.__name__.find('gcp_secret') == -1,
-          kubeflow_dag_runner.get_default_pipeline_operator_funcs())),
+      pipeline_operator_funcs=list(
+          filter(
+              lambda operator: operator.__name__.find('gcp_secret') == -1,
+              kubeflow_dag_runner.get_default_pipeline_operator_funcs()
+          )
+      ),
       tfx_image='tensorflow/tfx:0.21.0rc0',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
