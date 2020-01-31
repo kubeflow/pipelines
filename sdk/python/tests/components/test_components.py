@@ -111,7 +111,7 @@ implementation:
         actual_component_spec = task_factory1.component_spec
         actual_component_spec_dict = actual_component_spec.to_dict()
         expected_component_spec_dict = load_yaml(component_text)
-        expected_component_spec = kfp.components._structures.ComponentSpec.from_dict(expected_component_spec_dict)
+        expected_component_spec = kfp.components.structures.ComponentSpec.from_dict(expected_component_spec_dict)
         self.assertEqual(expected_component_spec_dict, actual_component_spec_dict)
         self.assertEqual(expected_component_spec, task_factory1.component_spec)
 

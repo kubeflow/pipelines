@@ -25,8 +25,7 @@ from collections import OrderedDict
 from typing import Any, List, Mapping, NamedTuple, Sequence, Union
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
-from ._structures import ComponentSpec
-from ._structures import *
+from .structures import *
 from ._data_passing import serialize_value, type_name_to_type
 
 
