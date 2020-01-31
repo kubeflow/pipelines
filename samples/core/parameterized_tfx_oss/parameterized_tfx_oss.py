@@ -153,7 +153,7 @@ if __name__ == '__main__':
       pipeline_operator_funcs=list(filter(
           lambda operator: operator.__name__.find('gcp_secret') == -1,
           kubeflow_dag_runner.get_default_pipeline_operator_funcs())),
-      tfx_image='tensorflow/tfx:0.15.0',
+      tfx_image='tensorflow/tfx:0.21.0rc0',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
       output_filename=__file__ + '.yaml', config=config
