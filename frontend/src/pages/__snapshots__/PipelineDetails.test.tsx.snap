@@ -189,7 +189,7 @@ exports[`PipelineDetails collapses summary card when summary shown state is fals
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -1085,7 +1085,7 @@ exports[`PipelineDetails shows empty pipeline details with no graph 1`] = `
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
