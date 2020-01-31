@@ -43,6 +43,8 @@ import { Route, Switch, Redirect } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss } from '../Css';
 import NewPipelineVersion from '../pages/NewPipelineVersion';
+import { GettingStarted } from '../pages/GettingStarted';
+import { KFP_FLAGS, Deployments } from '../lib/Flags';
 
 export type RouteConfig = { path: string; Component: React.ComponentType<any>; view?: any };
 
@@ -102,6 +104,7 @@ export const RoutePage = {
   RECURRING_RUN: `/recurringrun/details/:${RouteParams.runId}`,
   RUNS: '/runs',
   RUN_DETAILS: `/runs/details/:${RouteParams.runId}`,
+  START: '/start',
 };
 
 export const RoutePageFactory = {
@@ -139,9 +142,13 @@ export interface RouterProps {
   configs?: RouteConfig[]; // only used in tests
 }
 
+const DEFAULT_ROUTE =
+  KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE ? RoutePage.START : RoutePage.PIPELINES;
+
 // This component is made as a wrapper to separate toolbar state for different pages.
 const Router: React.FC<RouterProps> = ({ configs }) => {
   const routes: RouteConfig[] = configs || [
+    { path: RoutePage.START, Component: GettingStarted },
     { path: RoutePage.ARCHIVE, Component: Archive },
     { path: RoutePage.ARTIFACTS, Component: ArtifactList },
     { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails },
@@ -170,7 +177,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
       <Route
         exact={true}
         path={'/'}
-        render={({ ...props }) => <Redirect to={RoutePage.PIPELINES} {...props} />}
+        render={({ ...props }) => <Redirect to={DEFAULT_ROUTE} {...props} />}
       />
 
       {/* Normal routes */}

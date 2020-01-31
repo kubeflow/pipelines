@@ -14,7 +14,14 @@ exports[`Banner defaults to error mode 1`] = `
   </div>
   <div
     className="flex"
-  />
+  >
+    <a
+      className="troubleShootingLink"
+      href="https://www.kubeflow.org/docs/pipelines/troubleshooting"
+    >
+      Troubleshooting guide
+    </a>
+  </div>
 </div>
 `;
 
@@ -33,8 +40,14 @@ exports[`Banner shows "Details" button and has dialog when there is additional i
   <div
     className="flex"
   >
+    <a
+      className="troubleShootingLink"
+      href="https://www.kubeflow.org/docs/pipelines/troubleshooting"
+    >
+      Troubleshooting guide
+    </a>
     <WithStyles(Button)
-      className="button"
+      className="button detailsButton"
       onClick={[Function]}
     >
       Details
@@ -79,6 +92,12 @@ exports[`Banner shows "Refresh" button when passed a refresh function 1`] = `
   <div
     className="flex"
   >
+    <a
+      className="troubleShootingLink"
+      href="https://www.kubeflow.org/docs/pipelines/troubleshooting"
+    >
+      Troubleshooting guide
+    </a>
     <WithStyles(Button)
       className="button refreshButton"
       onClick={[Function]}
@@ -103,7 +122,14 @@ exports[`Banner uses error mode when instructed 1`] = `
   </div>
   <div
     className="flex"
-  />
+  >
+    <a
+      className="troubleShootingLink"
+      href="https://www.kubeflow.org/docs/pipelines/troubleshooting"
+    >
+      Troubleshooting guide
+    </a>
+  </div>
 </div>
 `;
 
@@ -121,6 +147,13 @@ exports[`Banner uses warning mode when instructed 1`] = `
   </div>
   <div
     className="flex"
-  />
+  >
+    <a
+      className="troubleShootingLink"
+      href="https://www.kubeflow.org/docs/pipelines/troubleshooting"
+    >
+      Troubleshooting guide
+    </a>
+  </div>
 </div>
 `;
