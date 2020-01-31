@@ -287,14 +287,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                               <div className={commonCss.page}>
                                 {sidepanelSelectedTab === SidePaneTab.ARTIFACTS && (
                                   <div className={commonCss.page}>
-                                    <div className={padding(20, 'lrt')}>
-                                      <PlotCard
-                                        configs={[visualizationCreatorConfig]}
-                                        title={VisualizationCreator.prototype.getDisplayName()}
-                                        maxDimension={500}
-                                      />
-                                      <Hr />
-                                    </div>
                                     {(selectedNodeDetails.viewerConfigs || []).map((config, i) => {
                                       const title = componentMap[
                                         config.type
@@ -310,6 +302,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                         </div>
                                       );
                                     })}
+                                    <div className={padding(20, 'lrt')}>
+                                      <PlotCard
+                                        configs={[visualizationCreatorConfig]}
+                                        title={VisualizationCreator.prototype.getDisplayName()}
+                                        maxDimension={500}
+                                      />
+                                      <Hr />
+                                    </div>
                                   </div>
                                 )}
 
@@ -690,6 +690,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     const outputPathsList = WorkflowParser.loadAllOutputPathsWithStepNames(workflow);
 
+    logger.error('in _loadAllOutputs, before');
     const configLists = await Promise.all(
       outputPathsList.map(({ stepName, path }) =>
         OutputArtifactLoader.load(path).then(configs =>
@@ -697,6 +698,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         ),
       ),
     );
+    logger.error('in _loadAllOutputs, after');
     const allArtifactConfigs = flatten(configLists);
 
     this.setStateSafe({ allArtifactConfigs });
@@ -767,9 +769,13 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       );
       // Load the viewer configurations from the output paths
       let viewerConfigs: ViewerConfig[] = [];
+      logger.error('in _loadSelectedNodeOutputs, before, node ID = ' + selectedNodeDetails.id);
       for (const path of outputPaths) {
         viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
       }
+      logger.error('in _loadSelectedNodeOutputs, after');
+//      const tfxAutomaticVisualizations = await this.buildTFXArtifactViewerConfig(selectedNodeDetails.id);
+//      tfxAutomaticVisualizations.fi
       const generatedConfigs = generatedVisualizations
         .filter(visualization => visualization.nodeId === selectedNodeDetails.id)
         .map(visualization => visualization.config);

@@ -25,6 +25,21 @@ import { ROCCurveConfig } from '../components/viewers/ROCCurve';
 import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
 import { csvParseRows } from 'd3-dsv';
 import { logger, errorToMessage } from './Utils';
+import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
+import {
+  GetArtifactTypesRequest,
+  GetArtifactsByIDRequest,
+  GetContextByTypeAndNameRequest,
+  GetExecutionsByContextRequest,
+  GetEventsByExecutionIDsRequest,
+} from '../generated/src/apis/metadata/metadata_store_service_pb';
+import {
+  Artifact,
+  ArtifactType,
+  Context,
+  Event,
+  Execution,
+} from '../generated/src/apis/metadata/metadata_store_pb';
 
 export interface PlotMetadata {
   format?: 'csv';
@@ -44,6 +59,7 @@ export interface OutputMetadata {
 
 export class OutputArtifactLoader {
   public static async load(outputPath: StoragePath): Promise<ViewerConfig[]> {
+    logger.error('outputPath bucket = ' + outputPath.bucket + ', key = ' + outputPath.key);
     let plotMetadataList: PlotMetadata[] = [];
     try {
       const metadataFile = await Apis.readFile(outputPath);
@@ -64,29 +80,33 @@ export class OutputArtifactLoader {
       // TODO: error dialog
     }
 
-    const configs: Array<ViewerConfig | null> = await Promise.all(
-      plotMetadataList.map(async metadata => {
-        switch (metadata.type) {
-          case PlotType.CONFUSION_MATRIX:
-            return await this.buildConfusionMatrixConfig(metadata);
-          case PlotType.MARKDOWN:
-            return await this.buildMarkdownViewerConfig(metadata);
-          case PlotType.TABLE:
-            return await this.buildPagedTableConfig(metadata);
-          case PlotType.TENSORBOARD:
-            return await this.buildTensorboardConfig(metadata);
-          case PlotType.WEB_APP:
-            return await this.buildHtmlViewerConfig(metadata);
-          case PlotType.ROC:
-            return await this.buildRocCurveConfig(metadata);
-          default:
-            logger.error('Unknown plot type: ' + metadata.type);
-            return null;
-        }
-      }),
-    );
-
-    return configs.filter(c => !!c) as ViewerConfig[];
+    const configs: Array<Promise<ViewerConfig | null>> = plotMetadataList.map(async metadata => {
+      switch (metadata.type) {
+        case PlotType.CONFUSION_MATRIX:
+          return await this.buildConfusionMatrixConfig(metadata);
+        case PlotType.MARKDOWN:
+          return await this.buildMarkdownViewerConfig(metadata);
+        case PlotType.TABLE:
+          return await this.buildPagedTableConfig(metadata);
+        case PlotType.TENSORBOARD:
+          return await this.buildTensorboardConfig(metadata);
+        case PlotType.WEB_APP:
+          return await this.buildHtmlViewerConfig(metadata);
+        case PlotType.ROC:
+          return await this.buildRocCurveConfig(metadata);
+        default:
+          logger.error('Unknown plot type: ' + metadata.type);
+          return null;
+      }
+    });
+    const plotMetadata = plotMetadataList.find(async metadata => {
+      return metadata.type === PlotType.MARKDOWN;
+    });
+    let tfxArtifacts: Array<ViewerConfig | null> = [];
+    if (plotMetadata) {
+      tfxArtifacts = await this.buildTFXArtifactViewerConfig(plotMetadata);
+    }
+    return tfxArtifacts.concat(await Promise.all(configs)).filter(c => !!c) as ViewerConfig[];
   }
 
   public static async buildConfusionMatrixConfig(
@@ -174,15 +194,16 @@ export class OutputArtifactLoader {
 
   public static async buildTensorboardConfig(
     metadata: PlotMetadata,
-  ): Promise<TensorboardViewerConfig> {
+  ): Promise<TensorboardViewerConfig | null> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
-    WorkflowParser.parseStoragePath(metadata.source);
-    return {
-      type: PlotType.TENSORBOARD,
-      url: metadata.source,
-    };
+    return null;
+    //    WorkflowParser.parseStoragePath(metadata.source);
+    //    return {
+    //      type: PlotType.TENSORBOARD,
+    //      url: metadata.source,
+    //    };
   }
 
   public static async buildHtmlViewerConfig(metadata: PlotMetadata): Promise<HTMLViewerConfig> {
@@ -196,6 +217,304 @@ export class OutputArtifactLoader {
       htmlContent,
       type: PlotType.WEB_APP,
     };
+  }
+
+  public static async getMlmdContext(kfpPodName: string): Promise<Context> {
+    if (kfpPodName.split('-').length < 3) {
+      throw new Error('kfpPodName has fewer than 3 parts');
+    }
+
+    const pipelineName = kfpPodName
+      .split('-')
+      .slice(0, -2)
+      .join('_');
+    const runID = kfpPodName
+      .split('-')
+      .slice(0, -1)
+      .join('-');
+    const contextName = pipelineName + '.' + runID;
+
+    const request = new GetContextByTypeAndNameRequest();
+    request.setTypeName('run');
+    request.setContextName(contextName);
+    const {
+      response: res,
+      error: err,
+    } = await Apis.getMetadataServicePromiseClient().getContextByTypeAndName(request);
+    if (err) {
+      throw new Error('Failed to getContextsByTypeAndName: ' + JSON.stringify(err));
+    }
+
+    const context = res && res.getContext();
+    if (!context) {
+      throw new Error("getContextByTypeAndName didn't have a context");
+    }
+    return context;
+  }
+
+  public static async getExecutionInContextWithPodName(
+    kfpPodName: string,
+    context: Context,
+  ): Promise<Execution> {
+    const contextId = context.getId();
+    if (!contextId) {
+      throw new Error('Context must have an ID');
+    }
+
+    const request = new GetExecutionsByContextRequest();
+    request.setContextId(contextId);
+    const {
+      response: res,
+      error: err,
+    } = await Apis.getMetadataServicePromiseClient().getExecutionsByContext(request);
+    if (err) {
+      throw new Error('Failed to getExecutionsByContext: ' + JSON.stringify(err));
+    }
+
+    const executionList = (res && res.getExecutionsList()) || [];
+    const foundExecution = executionList.find(execution => {
+      const properties = execution.getPropertiesMap();
+      const executionPodName = properties.get('kfp_pod_name');
+      if (!executionPodName) {
+        return false;
+      }
+      const executionState = properties.get('state');
+      if (!executionState) {
+        return false;
+      }
+      return (
+        executionPodName.getStringValue() === kfpPodName &&
+        executionState.getStringValue() === 'complete'
+      );
+    });
+    if (!foundExecution) {
+      logger.verbose("Couldn't find corresponding execution in context");
+      throw new Error('Couldn\'t find corresponding execution in context');
+    }
+    return foundExecution;
+  }
+
+  public static async getOutputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
+    const executionId = execution.getId();
+    if (!executionId) {
+      throw new Error('Execution must have an ID');
+    }
+
+    const request = new GetEventsByExecutionIDsRequest();
+    request.addExecutionIds(executionId);
+    const {
+      response: res,
+      error: err,
+    } = await Apis.getMetadataServicePromiseClient().getEventsByExecutionIDs(request);
+    if (err) {
+      throw new Error('Failed to getExecutionsByExecutionIDs: ' + JSON.stringify(err));
+    }
+
+    const eventsList = (res && res.getEventsList()) || [];
+    const outputArtifactIds: number[] = [];
+    eventsList.forEach(event => {
+      if (event.getType() === Event.Type.OUTPUT) {
+        const artifactId = event.getArtifactId();
+        if (artifactId) {
+          outputArtifactIds.push(artifactId);
+        }
+      }
+    });
+
+    const artifactsRequest = new GetArtifactsByIDRequest();
+    outputArtifactIds.forEach(artifactId => artifactsRequest.addArtifactIds(artifactId));
+    const {
+      response: artifactsRes,
+      error: artifactsErr,
+    } = await Apis.getMetadataServicePromiseClient().getArtifactsByID(artifactsRequest);
+    if (artifactsErr) {
+      throw new Error('Failed to getArtifactsByID: ' + JSON.stringify(artifactsErr));
+    }
+
+    const artifactsList = (artifactsRes && artifactsRes.getArtifactsList()) || [];
+    return artifactsList;
+  }
+
+  public static async getArtifactTypes(): Promise<ArtifactType[]> {
+    const request = new GetArtifactTypesRequest();
+    const {
+      response: res,
+      error: err,
+    } = await Apis.getMetadataServicePromiseClient().getArtifactTypes(request);
+    if (err) {
+      throw new Error('Failed to getArtifactTypes: ' + JSON.stringify(err));
+    }
+    const artifactTypes = (res && res.getArtifactTypesList()) || [];
+    return artifactTypes;
+  }
+
+  public static filterTfdvArtifactsPaths(
+    artifactTypes: ArtifactType[],
+    artifacts: Artifact[],
+  ): string[] {
+    const tfdvArtifactTypes = artifactTypes.filter(artifactType => {
+      return artifactType.getName() === 'ExampleStatistics';
+      //return artifactType.getName() === 'Schema';
+      //return artifactType.getName() === 'ExampleAnomalies';
+    });
+    const tfdvArtifactTypeIds = tfdvArtifactTypes.map(artifactType => {
+      return artifactType.getId();
+    });
+    const tfdvArtifacts = artifacts.filter(artifact => {
+      return tfdvArtifactTypeIds.includes(artifact.getTypeId());
+    });
+
+    const tfdvArtifactsPaths: string[] = [];
+    tfdvArtifacts.forEach(tfdvArtifact => {
+      const uri = tfdvArtifact.getUri();
+      if (uri && uri.length > 0) {
+        // tfdvArtifactsPaths.push(uri);
+        const evalUri = uri + '/eval/stats_tfrecord';
+        const trainUri = uri + '/train/stats_tfrecord';
+        tfdvArtifactsPaths.push(evalUri);
+        tfdvArtifactsPaths.push(trainUri);
+      } 
+    });
+    return tfdvArtifactsPaths;
+  }
+
+  public static getTfdvArtifactViewers(
+    tfdvArtifactPaths: string[],
+  ): Array<Promise<HTMLViewerConfig>> {
+    return tfdvArtifactPaths.map(async artifactPath => {
+      const script = [
+        'import tensorflow_data_validation as tfdv',
+        "stats = tfdv.load_statistics('" + artifactPath + "')",
+        'tfdv.visualize_statistics(stats)',
+//        "stats = tfdv.load_schema_text('" + artifactPath + "')",
+//        'tfdv.display_schema(stats)',
+//        "anomalies = tfdv.load_anomalies_text('" + artifactPath + "/anomalies.pbtxt" + "')",
+//        'tfdv.display_anomalies(anomalies)',
+      ];
+      const specifiedArguments: any = JSON.parse('{}');
+      specifiedArguments.code = script;
+      const visualizationData: ApiVisualization = {
+        arguments: JSON.stringify(specifiedArguments),
+        source: '',
+        type: ApiVisualizationType.CUSTOM,
+      };
+      const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
+      if (!visualization.htmlContent) {
+        throw new Error('Failed to build TFDV artifact visualization');
+      }
+      return {
+        htmlContent: visualization.htmlContent,
+        type: PlotType.WEB_APP,
+      } as HTMLViewerConfig;
+    });
+  }
+
+  public static filterTfmaArtifactsPaths(
+    artifactTypes: ArtifactType[],
+    artifacts: Artifact[],
+  ): string[] {
+    const tfmaArtifactTypes = artifactTypes.filter(artifactType => {
+      return artifactType.getName() === 'ModelEvaluation';
+    });
+    const tfmaArtifactTypeIds = tfmaArtifactTypes.map(artifactType => {
+      return artifactType.getId();
+    });
+    const tfmaArtifacts = artifacts.filter(artifact => {
+      return tfmaArtifactTypeIds.includes(artifact.getTypeId());
+    });
+
+    const tfmaArtifactPaths: string[] = [];
+    tfmaArtifacts.forEach(artifact => {
+      const uri = artifact.getUri();
+      if (uri && uri.length > 0) {
+        tfmaArtifactPaths.push(uri);
+      }
+    });
+    return tfmaArtifactPaths;
+  }
+
+  public static getTfmaArtifactViewers(
+    tfmaArtifactPaths: string[],
+  ): Array<Promise<HTMLViewerConfig>> {
+    return tfmaArtifactPaths.map(async artifactPath => {
+      const script = [
+        'import tensorflow_model_analysis as tfma',
+        "tfma_result = tfma.load_eval_result('" + artifactPath + "')",
+        'tfma.view.render_slicing_metrics(tfma_result)',
+      ];
+      const specifiedArguments: any = JSON.parse('{}');
+      specifiedArguments.code = script;
+      const visualizationData: ApiVisualization = {
+        arguments: JSON.stringify(specifiedArguments),
+        source: '',
+        type: ApiVisualizationType.CUSTOM,
+      };
+      const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
+      if (!visualization.htmlContent) {
+        throw new Error('Failed to build TFMA artifact visualization');
+      }
+      // logger.error(visualization.htmlContent);
+      return {
+        htmlContent: visualization.htmlContent,
+        type: PlotType.WEB_APP,
+      } as HTMLViewerConfig;
+    });
+  }
+
+  public static async buildTFXArtifactViewerConfig(
+    metadata: PlotMetadata,
+  ): Promise<HTMLViewerConfig[]> {
+    if (!metadata.source) {
+      throw new Error('Malformed metadata, property "source" is required.');
+    }
+    let markdownContent = '';
+    if (metadata.storage === 'inline') {
+      markdownContent = metadata.source;
+    } else {
+      const path = WorkflowParser.parseStoragePath(metadata.source);
+      markdownContent = await Apis.readFile(path);
+    }
+
+    // Since artifact types don't change per run, this can be optimized further so
+    // that we don't fetch them on every page load.
+    const artifactTypes = await this.getArtifactTypes();
+    if (!artifactTypes) {
+      throw new Error('Failed getting artifact types');
+    }
+
+    const kfpPodNameLine = markdownContent.match(/\*\*kfp\\_pod\\_name\*\*:.*/gm);
+    const kfpPodName =
+      (kfpPodNameLine &&
+        kfpPodNameLine.length > 0 &&
+        kfpPodNameLine[0].length > 20 &&
+        kfpPodNameLine[0].substr(20).trim()) ||
+      '';
+    if (!kfpPodName || kfpPodName.length === 0) {
+      logger.verbose('KFP pod name missing from markdown');
+      return [];
+    }
+
+    const context = await this.getMlmdContext(kfpPodName);
+    if (!context) {
+      throw new Error('Failed finding corresponding MLMD context');
+    }
+
+    const execution = await this.getExecutionInContextWithPodName(kfpPodName, context);
+    if (!execution) {
+      logger.verbose('Failed finding corresponding MLMD execution');
+      return [];
+    }
+
+    const artifacts = await this.getOutputArtifactsInExecution(execution);
+    if (!artifacts) {
+      throw new Error('Failed finding output artifacts in execution');
+    }
+
+    const tfdvArtifactPaths = this.filterTfdvArtifactsPaths(artifactTypes, artifacts);
+    const tfmaArtifactPaths = this.filterTfmaArtifactsPaths(artifactTypes, artifacts);
+    const tfdvArtifactViewerConfigs = this.getTfdvArtifactViewers(tfdvArtifactPaths);
+    const tfmaArtifactViewerConfigs = this.getTfmaArtifactViewers(tfmaArtifactPaths);
+    return Promise.all(tfdvArtifactViewerConfigs.concat(tfmaArtifactViewerConfigs));
   }
 
   public static async buildMarkdownViewerConfig(
@@ -215,7 +534,7 @@ export class OutputArtifactLoader {
     return {
       markdownContent,
       type: PlotType.MARKDOWN,
-    };
+    } as MarkdownViewerConfig;
   }
 
   public static async buildRocCurveConfig(metadata: PlotMetadata): Promise<ROCCurveConfig> {

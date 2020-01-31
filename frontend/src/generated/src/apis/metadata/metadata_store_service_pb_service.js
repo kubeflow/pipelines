@@ -181,6 +181,15 @@ MetadataStoreService.GetContextTypesByID = {
   responseType: src_apis_metadata_metadata_store_service_pb.GetContextTypesByIDResponse
 };
 
+MetadataStoreService.GetContextTypes = {
+  methodName: "GetContextTypes",
+  service: MetadataStoreService,
+  requestStream: false,
+  responseStream: false,
+  requestType: src_apis_metadata_metadata_store_service_pb.GetContextTypesRequest,
+  responseType: src_apis_metadata_metadata_store_service_pb.GetContextTypesResponse
+};
+
 MetadataStoreService.GetArtifacts = {
   methodName: "GetArtifacts",
   service: MetadataStoreService,
@@ -260,6 +269,15 @@ MetadataStoreService.GetContextsByType = {
   responseStream: false,
   requestType: src_apis_metadata_metadata_store_service_pb.GetContextsByTypeRequest,
   responseType: src_apis_metadata_metadata_store_service_pb.GetContextsByTypeResponse
+};
+
+MetadataStoreService.GetContextByTypeAndName = {
+  methodName: "GetContextByTypeAndName",
+  service: MetadataStoreService,
+  requestStream: false,
+  responseStream: false,
+  requestType: src_apis_metadata_metadata_store_service_pb.GetContextByTypeAndNameRequest,
+  responseType: src_apis_metadata_metadata_store_service_pb.GetContextByTypeAndNameResponse
 };
 
 MetadataStoreService.GetArtifactsByURI = {
@@ -939,6 +957,37 @@ MetadataStoreServiceClient.prototype.getContextTypesByID = function getContextTy
   };
 };
 
+MetadataStoreServiceClient.prototype.getContextTypes = function getContextTypes(requestMessage, metadata, callback) {
+  if (arguments.length === 2) {
+    callback = arguments[1];
+  }
+  var client = grpc.unary(MetadataStoreService.GetContextTypes, {
+    request: requestMessage,
+    host: this.serviceHost,
+    metadata: metadata,
+    transport: this.options.transport,
+    debug: this.options.debug,
+    onEnd: function (response) {
+      if (callback) {
+        if (response.status !== grpc.Code.OK) {
+          var err = new Error(response.statusMessage);
+          err.code = response.status;
+          err.metadata = response.trailers;
+          callback(err, null);
+        } else {
+          callback(null, response.message);
+        }
+      }
+    }
+  });
+  return {
+    cancel: function () {
+      callback = null;
+      client.close();
+    }
+  };
+};
+
 MetadataStoreServiceClient.prototype.getArtifacts = function getArtifacts(requestMessage, metadata, callback) {
   if (arguments.length === 2) {
     callback = arguments[1];
@@ -1192,6 +1241,37 @@ MetadataStoreServiceClient.prototype.getContextsByType = function getContextsByT
     callback = arguments[1];
   }
   var client = grpc.unary(MetadataStoreService.GetContextsByType, {
+    request: requestMessage,
+    host: this.serviceHost,
+    metadata: metadata,
+    transport: this.options.transport,
+    debug: this.options.debug,
+    onEnd: function (response) {
+      if (callback) {
+        if (response.status !== grpc.Code.OK) {
+          var err = new Error(response.statusMessage);
+          err.code = response.status;
+          err.metadata = response.trailers;
+          callback(err, null);
+        } else {
+          callback(null, response.message);
+        }
+      }
+    }
+  });
+  return {
+    cancel: function () {
+      callback = null;
+      client.close();
+    }
+  };
+};
+
+MetadataStoreServiceClient.prototype.getContextByTypeAndName = function getContextByTypeAndName(requestMessage, metadata, callback) {
+  if (arguments.length === 2) {
+    callback = arguments[1];
+  }
+  var client = grpc.unary(MetadataStoreService.GetContextByTypeAndName, {
     request: requestMessage,
     host: this.serviceHost,
     metadata: metadata,

@@ -175,6 +175,15 @@ type MetadataStoreServiceGetContextTypesByID = {
   readonly responseType: typeof src_apis_metadata_metadata_store_service_pb.GetContextTypesByIDResponse;
 };
 
+type MetadataStoreServiceGetContextTypes = {
+  readonly methodName: string;
+  readonly service: typeof MetadataStoreService;
+  readonly requestStream: false;
+  readonly responseStream: false;
+  readonly requestType: typeof src_apis_metadata_metadata_store_service_pb.GetContextTypesRequest;
+  readonly responseType: typeof src_apis_metadata_metadata_store_service_pb.GetContextTypesResponse;
+};
+
 type MetadataStoreServiceGetArtifacts = {
   readonly methodName: string;
   readonly service: typeof MetadataStoreService;
@@ -254,6 +263,15 @@ type MetadataStoreServiceGetContextsByType = {
   readonly responseStream: false;
   readonly requestType: typeof src_apis_metadata_metadata_store_service_pb.GetContextsByTypeRequest;
   readonly responseType: typeof src_apis_metadata_metadata_store_service_pb.GetContextsByTypeResponse;
+};
+
+type MetadataStoreServiceGetContextByTypeAndName = {
+  readonly methodName: string;
+  readonly service: typeof MetadataStoreService;
+  readonly requestStream: false;
+  readonly responseStream: false;
+  readonly requestType: typeof src_apis_metadata_metadata_store_service_pb.GetContextByTypeAndNameRequest;
+  readonly responseType: typeof src_apis_metadata_metadata_store_service_pb.GetContextByTypeAndNameResponse;
 };
 
 type MetadataStoreServiceGetArtifactsByURI = {
@@ -358,6 +376,7 @@ export class MetadataStoreService {
   static readonly GetExecutionTypes: MetadataStoreServiceGetExecutionTypes;
   static readonly GetContextType: MetadataStoreServiceGetContextType;
   static readonly GetContextTypesByID: MetadataStoreServiceGetContextTypesByID;
+  static readonly GetContextTypes: MetadataStoreServiceGetContextTypes;
   static readonly GetArtifacts: MetadataStoreServiceGetArtifacts;
   static readonly GetExecutions: MetadataStoreServiceGetExecutions;
   static readonly GetContexts: MetadataStoreServiceGetContexts;
@@ -367,6 +386,7 @@ export class MetadataStoreService {
   static readonly GetArtifactsByType: MetadataStoreServiceGetArtifactsByType;
   static readonly GetExecutionsByType: MetadataStoreServiceGetExecutionsByType;
   static readonly GetContextsByType: MetadataStoreServiceGetContextsByType;
+  static readonly GetContextByTypeAndName: MetadataStoreServiceGetContextByTypeAndName;
   static readonly GetArtifactsByURI: MetadataStoreServiceGetArtifactsByURI;
   static readonly GetEventsByExecutionIDs: MetadataStoreServiceGetEventsByExecutionIDs;
   static readonly GetEventsByArtifactIDs: MetadataStoreServiceGetEventsByArtifactIDs;
@@ -581,6 +601,15 @@ export class MetadataStoreServiceClient {
     requestMessage: src_apis_metadata_metadata_store_service_pb.GetContextTypesByIDRequest,
     callback: (error: ServiceError|null, responseMessage: src_apis_metadata_metadata_store_service_pb.GetContextTypesByIDResponse|null) => void
   ): UnaryResponse;
+  getContextTypes(
+    requestMessage: src_apis_metadata_metadata_store_service_pb.GetContextTypesRequest,
+    metadata: grpc.Metadata,
+    callback: (error: ServiceError|null, responseMessage: src_apis_metadata_metadata_store_service_pb.GetContextTypesResponse|null) => void
+  ): UnaryResponse;
+  getContextTypes(
+    requestMessage: src_apis_metadata_metadata_store_service_pb.GetContextTypesRequest,
+    callback: (error: ServiceError|null, responseMessage: src_apis_metadata_metadata_store_service_pb.GetContextTypesResponse|null) => void
+  ): UnaryResponse;
   getArtifacts(
     requestMessage: src_apis_metadata_metadata_store_service_pb.GetArtifactsRequest,
     metadata: grpc.Metadata,
@@ -661,6 +690,15 @@ export class MetadataStoreServiceClient {
   getContextsByType(
     requestMessage: src_apis_metadata_metadata_store_service_pb.GetContextsByTypeRequest,
     callback: (error: ServiceError|null, responseMessage: src_apis_metadata_metadata_store_service_pb.GetContextsByTypeResponse|null) => void
+  ): UnaryResponse;
+  getContextByTypeAndName(
+    requestMessage: src_apis_metadata_metadata_store_service_pb.GetContextByTypeAndNameRequest,
+    metadata: grpc.Metadata,
+    callback: (error: ServiceError|null, responseMessage: src_apis_metadata_metadata_store_service_pb.GetContextByTypeAndNameResponse|null) => void
+  ): UnaryResponse;
+  getContextByTypeAndName(
+    requestMessage: src_apis_metadata_metadata_store_service_pb.GetContextByTypeAndNameRequest,
+    callback: (error: ServiceError|null, responseMessage: src_apis_metadata_metadata_store_service_pb.GetContextByTypeAndNameResponse|null) => void
   ): UnaryResponse;
   getArtifactsByURI(
     requestMessage: src_apis_metadata_metadata_store_service_pb.GetArtifactsByURIRequest,

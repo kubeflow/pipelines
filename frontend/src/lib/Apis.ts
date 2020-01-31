@@ -112,6 +112,13 @@ const metadataServicePromiseClient = {
   getArtifactsByID: makePromiseApi(
     metadataServiceClient.getArtifactsByID.bind(metadataServiceClient),
   ),
+  getContextByTypeAndName: makePromiseApi(
+    metadataServiceClient.getContextByTypeAndName.bind(metadataServiceClient),
+  ),
+  getContextTypes: makePromiseApi(
+    metadataServiceClient.getContextTypes.bind(metadataServiceClient),
+  ),
+  getContexts: makePromiseApi(metadataServiceClient.getContexts.bind(metadataServiceClient)),
   getEventsByArtifactIDs: makePromiseApi(
     metadataServiceClient.getEventsByArtifactIDs.bind(metadataServiceClient),
   ),
@@ -122,6 +129,9 @@ const metadataServicePromiseClient = {
     metadataServiceClient.getExecutionTypes.bind(metadataServiceClient),
   ),
   getExecutions: makePromiseApi(metadataServiceClient.getExecutions.bind(metadataServiceClient)),
+  getExecutionsByContext: makePromiseApi(
+    metadataServiceClient.getExecutionsByContext.bind(metadataServiceClient),
+  ),
   getExecutionsByID: makePromiseApi(
     metadataServiceClient.getExecutionsByID.bind(metadataServiceClient),
   ),
