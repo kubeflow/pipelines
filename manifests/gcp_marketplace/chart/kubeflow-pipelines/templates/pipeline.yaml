@@ -681,8 +681,7 @@ spec:
                   name: mysql-credential
                   key: password
             {{ end }}
-          # image: {{ .Values.images.apiserver }}
-          image: gcr.io/ml-pipeline/google/pipelines:jxzheng-test
+          image: {{ .Values.images.apiserver }}
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server
           ports:
