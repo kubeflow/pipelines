@@ -211,4 +211,4 @@ description: |
 name: Run diagnose me
 outputs:
 - {type: String, name: bucket}
-- {type: String, name: project_id}
+- {type: GCPProjectID, name: project_id}
