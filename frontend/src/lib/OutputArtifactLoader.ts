@@ -481,10 +481,11 @@ export class OutputArtifactLoader {
     }
 
     const tfdvArtifactPaths = this.filterTfdvArtifactsPaths(artifactTypes, artifacts);
-    const tfmaArtifactPaths = this.filterTfmaArtifactsPaths(artifactTypes, artifacts);
+    //const tfmaArtifactPaths = this.filterTfmaArtifactsPaths(artifactTypes, artifacts);
     const tfdvArtifactViewerConfigs = this.getTfdvArtifactViewers(tfdvArtifactPaths);
-    const tfmaArtifactViewerConfigs = this.getTfmaArtifactViewers(tfmaArtifactPaths);
-    return Promise.all(tfdvArtifactViewerConfigs.concat(tfmaArtifactViewerConfigs));
+    //const tfmaArtifactViewerConfigs = this.getTfmaArtifactViewers(tfmaArtifactPaths);
+    //return Promise.all(tfdvArtifactViewerConfigs.concat(tfmaArtifactViewerConfigs));
+    return Promise.all(tfdvArtifactViewerConfigs);
   }
 
   public static async buildMarkdownViewerConfig(

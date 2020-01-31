@@ -690,7 +690,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     const outputPathsList = WorkflowParser.loadAllOutputPathsWithStepNames(workflow);
 
-    logger.error('in _loadAllOutputs, before');
     const configLists = await Promise.all(
       outputPathsList.map(({ stepName, path }) =>
         OutputArtifactLoader.load(path).then(configs =>
@@ -698,7 +697,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         ),
       ),
     );
-    logger.error('in _loadAllOutputs, after');
     const allArtifactConfigs = flatten(configLists);
 
     this.setStateSafe({ allArtifactConfigs });
@@ -769,14 +767,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       );
       // Load the viewer configurations from the output paths
       let viewerConfigs: ViewerConfig[] = [];
-      logger.error('in _loadSelectedNodeOutputs, before, node ID = ' + selectedNodeDetails.id);
       for (const path of outputPaths) {
         viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
       }
-      logger.error('in _loadSelectedNodeOutputs, after');
-      const tfxAutomaticVisualizations: ViewerConfig[] = await OutputArtifactLoader.buildTFXArtifactViewerConfig(
-        selectedNodeDetails.id,
-      );
+      const tfxAutomaticVisualizations: ViewerConfig[] = await OutputArtifactLoader.buildTFXArtifactViewerConfig(selectedNodeDetails.id);
       const generatedConfigs = generatedVisualizations
         .filter(visualization => visualization.nodeId === selectedNodeDetails.id)
         .map(visualization => visualization.config);
