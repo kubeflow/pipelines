@@ -25,7 +25,7 @@ from kubernetes.client.models import (
 )
 
 from . import _pipeline_param
-from ..components._structures import ComponentSpec
+from ..components.structures import ComponentSpec
 
 # generics
 T = TypeVar('T')

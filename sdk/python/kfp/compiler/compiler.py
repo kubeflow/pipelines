@@ -28,7 +28,7 @@ from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
 from ._op_to_template import _op_to_template
 from ._default_transformers import add_pod_env
 
-from ..components._structures import InputSpec
+from ..components.structures import InputSpec
 from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
