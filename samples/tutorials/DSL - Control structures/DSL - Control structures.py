@@ -16,10 +16,10 @@ from kfp.components import func_to_container_op, InputPath, OutputPath
 # %%
 
 @func_to_container_op
-def get_random_int_op(min: int, max: int) -> int:
-    """Generate a random number between min and max (inclusive)."""
+def get_random_int_op(minimum: int, maximum: int) -> int:
+    """Generate a random number between minimum and maximum (inclusive)."""
     import random
-    result = random.randint(min, max)
+    result = random.randint(minimum, maximum)
     print(result)
     return result
 
