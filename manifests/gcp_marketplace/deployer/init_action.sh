@@ -25,18 +25,19 @@ function set_bucket_and_configmap() {
   NUM_RETRIES=$2
   CONFIG_NAME="gcp-default-config"
 
+  # Detect GCP project
+  GCP_PROJECT_ID=$(curl -H "Metadata-Flavor: Google" -w '\n' "http://metadata.google.internal/computeMetadata/v1/project/project-id")
+
   for i in $(seq 1 ${NUM_RETRIES})
   do
     bucket_is_set=true
     bucket_name="${BASE_NAME}-$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 10 | head -n 1)"
-    gsutil mb "gs://${bucket_name}/" || bucket_is_set=false
+    gsutil mb -p ${GCP_PROJECT_ID} "gs://${bucket_name}/" || bucket_is_set=false
     if [ "$bucket_is_set" = true ]; then
       break
     fi
   done
-  # Detect GCP project
-  GCP_PROJECT_ID=$(curl -H "Metadata-Flavor: Google" -w '\n' "http://metadata.google.internal/computeMetadata/v1/project/project-id")
-
+  
   # Populate configmap, with name gcp-default-config
   if [ "${bucket_is_set}" = true ]; then
     kubectl create configmap -n "${NAMESPACE}" "${CONFIG_NAME}" \

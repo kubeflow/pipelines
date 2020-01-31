@@ -642,17 +642,17 @@ spec:
             - name: HASDEFAULTBUCKET
               valueFrom:
                 configMapKeyRef:
-                  name: {{ .Value.gcpDefaultConfigName}}
+                  name: {{ .Values.gcpDefaultConfigName}}
                   key: "has_default_bucket"
             - name: BUCKETNAME
               valueFrom:
                 configMapKeyRef:
-                  name: {{ .Value.gcpDefaultConfigName}}
+                  name: {{ .Values.gcpDefaultConfigName}}
                   key: "bucket_name"
             - name: PROJECTID
               valueFrom:
                 configMapKeyRef:
-                  name: {{ .Value.gcpDefaultConfigName}}
+                  name: {{ .Values.gcpDefaultConfigName}}
                   key: "project_id"
             - name: POD_NAMESPACE
               valueFrom:
@@ -681,7 +681,8 @@ spec:
                   name: mysql-credential
                   key: password
             {{ end }}
-          image: {{ .Values.images.apiserver }}
+          # image: {{ .Values.images.apiserver }}
+          image: gcr.io/ml-pipeline/google/pipelines:jxzheng-test
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server
           ports:
