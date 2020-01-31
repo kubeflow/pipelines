@@ -67,7 +67,7 @@ def flipcoin_pipeline():
 # ## Exit handlers
 # You can use `with dsl.ExitHandler(exit_task):` context to execute a task when the rest of the pipeline finishes (succeeds or fails)
 
-
+# %%
 @func_to_container_op
 def fail_op():
     """Fails."""
