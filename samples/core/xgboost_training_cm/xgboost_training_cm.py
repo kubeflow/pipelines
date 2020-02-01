@@ -21,6 +21,9 @@ from kfp import dsl
 import os
 import subprocess
 
+diagnose_me_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/df450617af6e385da8c436628afafb1c76ca6c79/components/diagnostics/diagnose_me/component.yaml')
+
 confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/ff116b6f1a0f0cdaafb64fcd04214c169045e6fc/components/local/confusion_matrix/component.yaml')
 
 roc_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/ff116b6f1a0f0cdaafb64fcd04214c169045e6fc/components/local/roc/component.yaml')
@@ -210,6 +213,8 @@ def xgb_train_pipeline(
     eval_data='gs://ml-pipeline-playground/sfpd/eval.csv',
     schema='gs://ml-pipeline-playground/sfpd/schema.json',
     target='resolution',
+    execution_mode='HALT_ON_ERROR',
+    required_apis='stackdriver.googleapis.com, storage-api.googleapis.com, bigquery.googleapis.com, dataflow.googleapis.com, dataproc.googleapis.com',
     rounds=200,
     workers=2,
     true_label='ACTION',
@@ -223,7 +228,13 @@ def xgb_train_pipeline(
     transform_output_eval = os.path.join(output_template, 'eval', 'part-*')
     train_output = os.path.join(output_template, 'train_output')
     predict_output = os.path.join(output_template, 'predict_output')
-
+    
+    _diagnose_me_op = diagnose_me_op(
+        bucket=output,
+        execution_mode=execution_mode,
+        project_id=project, 
+        target_apis=required_apis)
+    
     with dsl.ExitHandler(exit_op=dataproc_delete_cluster_op(
         project_id=project,
         region=region,
@@ -238,7 +249,7 @@ def xgb_train_pipeline(
                            'initialization_actions.sh'),
             ],
             image_version='1.2'
-        )
+        ).after(_diagnose_me_op)
 
         _analyze_op = dataproc_analyze_op(
             project=project,
