@@ -1,19 +1,9 @@
-inputs:
-- {type: String, name: bucket}
-- {type: String, name: execution_mode}
-- {type: String, name: target_apis}
+name: Run diagnose me
+outputs:
+- {name: bucket, type: String}
+- {name: project_id, type: String}
 implementation:
   container:
-    args:
-    - --bucket
-    - {inputValue: bucket}
-    - --execution-mode
-    - {inputValue: execution_mode}
-    - --target-apis
-    - {inputValue: target_apis}
-    - '----output-paths'
-    - {outputPath: bucket}
-    - {outputPath: project_id}
     command:
     - python3
     - -u
@@ -22,7 +12,7 @@ implementation:
       from typing import NamedTuple
 
       def run_diagnose_me(
-          bucket: str, execution_mode: str, target_apis: str
+          bucket: str, execution_mode: str, project_id:str , target_apis: str
       ) -> NamedTuple('Outputs', [('bucket', str), ('project_id', str)]):
           """ Performs environment verification specific to this pipeline.
 
@@ -67,9 +57,8 @@ implementation:
           # from project configuration
           project_config = gcp.get_gcp_configuration(
               gcp.Commands.GET_GCLOUD_DEFAULT, human_readable=False)
-          project_id = ''
           if not project_config.has_error:
-              project_id = project_config.parsed_output['core']['project']
+              auth_project_id = project_config.parsed_output['core']['project']
               print('GCP credentials are configured with access to project: %s ...\n' % (project_id))
               print('Following account(s) are active under this pipeline:\n')
               subprocess.run(['gcloud', 'auth', 'list'])
@@ -79,6 +68,12 @@ implementation:
                   'Project configuration is not accessible with error  %s\n' %
                   (project_config.stderr),
                   file=sys.stderr)
+              config_error_observed = True
+
+          if auth_project_id != project_id:
+              print(
+                  'User provided project ID %s does not match the configuration %s\n' %
+                  (project_id,auth_project_id), file=sys.stderr)
               config_error_observed = True
 
           # Get project buckets
@@ -117,8 +112,9 @@ implementation:
           api_status = {}
 
           if api_config_results.has_error:
-              raise RuntimeError('could not retrieve API status with error: %s' %
-                                 (api_config_results.stderr))
+              print('could not retrieve API status with error: %s' %
+                                 (api_config_results.stderr),file=sys.stderr)
+              config_error_observed = True
 
           print('Checking APIs status ...')
           for item in api_config_results.parsed_output:
@@ -128,23 +124,17 @@ implementation:
 
           # Check if target apis are enabled
           api_check_results = True
-          error_list = []
           for api in target_apis.replace(' ', '').split(','):
               if 'ENABLED' != api_status.get(api, 'DISABLED'):
                   api_check_results = False
-                  error_list.append(
-                      'API \"%s\" is not enabled. To enable this api go to ' % (api) +
+                  print(
+                      'API \"%s\" is not accessible or not enabled. To enable this api go to ' % (api) +
                       'https://pantheon.corp.google.com/apis/library/%s?project=%s' %
-                      (api, project_id))
-
-          if not api_check_results:
-              config_error_observed = True
-              print(
-                  'Required APIs are not enabled:\n' + '\n'.join(error_list),
-                  file=sys.stderr)
+                      (api, project_id),file=sys.stderr)
+                  config_error_observed = True
 
           if 'HALT_ON_ERROR' in execution_mode and config_error_observed:
-              raise RuntimeError('There was an error in your environment configuration. See above for details.\n'+
+              raise RuntimeError('There was an error in your environment configuration.\n'+
                   'Note that resolving such issues generally require a deep knowledge of Kubernetes.\n'+
                   '\n'+
                   'We highly recommend that you recreate the cluster and check "Allow access ..." \n'+
@@ -163,9 +153,10 @@ implementation:
           return str_value
 
       import argparse
-      _parser = argparse.ArgumentParser(prog='Run diagnose me', description='Performs environment verification specific to this pipeline.\n\n      args:\n          bucket:\n              string name of the bucket to be checked. Must be of the format\n              gs://bucket_root/any/path/here/is/ignored where any path beyond root\n              is ignored.\n          execution_mode:\n              If set to HALT_ON_ERROR will case any error to raise an exception.\n              This is intended to stop the data processing of a pipeline. Can set\n              to False to only report Errors/Warnings.\n          target_apis:\n              String consisting of a comma separated list of apis to be verified.\n      Raises:\n          RuntimeError: If configuration is not setup properly and\n          HALT_ON_ERROR flag is set.\n')
+      _parser = argparse.ArgumentParser(prog='Run diagnose me', description='Performs environment verification specific to this pipeline.\n\n      args:\n          bucket:\n              string name of the bucket to be checked. Must be of the format\n              gs://bucket_root/any/path/here/is/ignored where any path beyond root\n              is ignored.\n          execution_mode:\n              If set to HALT_ON_ERROR will case any error to raise an exception.\n              This is intended to stop the data processing of a pipeline. Can set\n              to False to only report Errors/Warnings.\n          target_apis:\n              String consisting of a comma separated list of apis to be verified.\n      Raises:\n          RuntimeError: If configuration is not setup properly and\n          HALT_ON_ERROR flag is set.')
       _parser.add_argument("--bucket", dest="bucket", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--execution-mode", dest="execution_mode", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--project-id", dest="project_id", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--target-apis", dest="target_apis", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
       _parsed_args = vars(_parser.parse_args())
@@ -190,8 +181,20 @@ implementation:
               pass
           with open(output_file, 'w') as f:
               f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --bucket
+    - {inputValue: bucket}
+    - --execution-mode
+    - {inputValue: execution_mode}
+    - --project-id
+    - {inputValue: project_id}
+    - --target-apis
+    - {inputValue: target_apis}
+    - '----output-paths'
+    - {outputPath: bucket}
+    - {outputPath: project_id}
     image: google/cloud-sdk:276.0.0
-description: |
+description: |-
   Performs environment verification specific to this pipeline.
 
         args:
@@ -208,7 +211,8 @@ description: |
         Raises:
             RuntimeError: If configuration is not setup properly and
             HALT_ON_ERROR flag is set.
-name: Run diagnose me
-outputs:
-- {type: String, name: bucket}
-- {type: String, name: project_id}
+inputs:
+- {name: bucket, type: String}
+- {name: execution_mode, type: String}
+- {name: project_id, type: String}
+- {name: target_apis, type: String}
