@@ -459,12 +459,14 @@ export class OutputArtifactLoader {
     // that we don't fetch them on every page load.
     const artifactTypes = await this.getArtifactTypes();
     if (!artifactTypes) {
-      throw new Error('Failed getting artifact types');
+      logger.error('Failed getting artifact types');
+      return [];
     }
 
     const context = await this.getMlmdContext(kfpPodName);
     if (!context) {
-      throw new Error('Failed finding corresponding MLMD context');
+      logger.error('Failed finding corresponding MLMD context');
+      return [];
     }
 
     const execution = await this.getExecutionInContextWithPodName(kfpPodName, context);
