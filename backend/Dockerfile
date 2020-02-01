@@ -45,7 +45,7 @@ COPY ./samples .
 #I think it's better to just use a shell loop though.
 #RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
 #The "for" loop breaks on all whitespace, so we either need to override IFS or use the "read" command instead.
-RUN  set -e; find core -maxdepth 2 -name '*.py' -type f | while read pipeline; do python3 $pipeline; done
+RUN  set -e; find core tutorials -maxdepth 2 -name '*.py' -type f | while read pipeline; do python3 "$pipeline"; done
 
 FROM debian:stretch
 
@@ -66,7 +66,7 @@ COPY --from=compiler /samples/ /samples/
 RUN apt-get update && apt-get install -y ca-certificates
 
 # Pin sample doc links to the commit that built the backend image
-RUN sed "s#/blob/master/#/blob/${COMMIT_SHA}/#g" -i /config/sample_config.json
+RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_config.json
 
 # Expose apiserver port
 EXPOSE 8888
