@@ -34,10 +34,15 @@ import {
   Event,
   Execution,
   GetArtifactTypesRequest,
+  GetArtifactTypesResponse,
   GetArtifactsByIDRequest,
+  GetArtifactsByIDResponse,
   GetContextByTypeAndNameRequest,
+  GetContextByTypeAndNameResponse,
   GetExecutionsByContextRequest,
+  GetExecutionsByContextResponse,
   GetEventsByExecutionIDsRequest,
+  GetEventsByExecutionIDsResponse,
 } from '@kubeflow/frontend';
 
 export interface PlotMetadata {
@@ -229,11 +234,10 @@ export class OutputArtifactLoader {
     const request = new GetContextByTypeAndNameRequest();
     request.setTypeName('run');
     request.setContextName(contextName);
-    const {
-      response: res,
-      error: err,
-    } = await Api.getInstance().metadataStoreService().getContextByTypeAndName(request);
-    if (err) {
+    let res: GetContextByTypeAndNameResponse;
+    try {
+      res = await Api.getInstance().metadataStoreService.getContextByTypeAndName(request);
+    } catch (err) {
       throw new Error('Failed to getContextsByTypeAndName: ' + JSON.stringify(err));
     }
 
@@ -255,11 +259,10 @@ export class OutputArtifactLoader {
 
     const request = new GetExecutionsByContextRequest();
     request.setContextId(contextId);
-    const {
-      response: res,
-      error: err,
-    } = await Api.getInstance().metadataStoreService().getExecutionsByContext(request);
-    if (err) {
+    let res: GetExecutionsByContextResponse;
+    try {
+      res = await Api.getInstance().metadataStoreService.getExecutionsByContext(request);
+    } catch (err) {
       throw new Error('Failed to getExecutionsByContext: ' + JSON.stringify(err));
     }
 
@@ -294,11 +297,10 @@ export class OutputArtifactLoader {
 
     const request = new GetEventsByExecutionIDsRequest();
     request.addExecutionIds(executionId);
-    const {
-      response: res,
-      error: err,
-    } = await Api.getInstance().metadataStoreService().getEventsByExecutionIDs(request);
-    if (err) {
+    let res: GetEventsByExecutionIDsResponse;
+    try {
+    res = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
+    } catch (err) {
       throw new Error('Failed to getExecutionsByExecutionIDs: ' + JSON.stringify(err));
     }
 
@@ -315,11 +317,10 @@ export class OutputArtifactLoader {
 
     const artifactsRequest = new GetArtifactsByIDRequest();
     outputArtifactIds.forEach(artifactId => artifactsRequest.addArtifactIds(artifactId));
-    const {
-      response: artifactsRes,
-      error: artifactsErr,
-    } = await Api.getInstance().metadataStoreService().getArtifactsByID(artifactsRequest);
-    if (artifactsErr) {
+    let artifactsRes: GetArtifactsByIDResponse;
+    try {
+      artifactsRes = await Api.getInstance().metadataStoreService.getArtifactsByID(artifactsRequest);
+    } catch (artifactsErr) {
       throw new Error('Failed to getArtifactsByID: ' + JSON.stringify(artifactsErr));
     }
 
@@ -329,11 +330,10 @@ export class OutputArtifactLoader {
 
   public static async getArtifactTypes(): Promise<ArtifactType[]> {
     const request = new GetArtifactTypesRequest();
-    const {
-      response: res,
-      error: err,
-    } = await Api.getInstance().metadataStoreService().getArtifactTypes(request);
-    if (err) {
+    let res: GetArtifactTypesResponse;
+    try {
+      res = await Api.getInstance().metadataStoreService.getArtifactTypes(request);
+    } catch (err) {
       throw new Error('Failed to getArtifactTypes: ' + JSON.stringify(err));
     }
     const artifactTypes = (res && res.getArtifactTypesList()) || [];
