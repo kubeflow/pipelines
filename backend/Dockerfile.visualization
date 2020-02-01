@@ -17,10 +17,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM tensorflow/tensorflow:1.13.1-py3
+FROM tensorflow/tensorflow:2.1.0-py3
 
 RUN apt-get update \
-  && apt-get install -y wget curl tar
+  && apt-get install -y wget curl tar \
+  pkg-config libcairo2-dev libgirepository1.0-dev # For the pygobject and pycairo package setup due to licensing
 
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
 RUN mkdir -p /usr/local/gcloud
