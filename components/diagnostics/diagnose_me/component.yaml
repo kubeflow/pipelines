@@ -70,10 +70,10 @@ implementation:
                   file=sys.stderr)
               config_error_observed = True
 
-          if auth_project_id is not project_id:
+          if auth_project_id != project_id:
               print(
                   'User provided project ID %s does not match the configuration %s\n' %
-                  (project_id,auth_project_id), sys.stderr)
+                  (project_id,auth_project_id), file=sys.stderr)
               config_error_observed = True
 
           # Get project buckets
@@ -113,7 +113,7 @@ implementation:
 
           if api_config_results.has_error:
               print('could not retrieve API status with error: %s' %
-                                 (api_config_results.stderr),sys.stderr)
+                                 (api_config_results.stderr),file=sys.stderr)
               config_error_observed = True
 
           print('Checking APIs status ...')
@@ -130,7 +130,7 @@ implementation:
                   print(
                       'API \"%s\" is not accessible or not enabled. To enable this api go to ' % (api) +
                       'https://pantheon.corp.google.com/apis/library/%s?project=%s' %
-                      (api, project_id),sys.stderr)
+                      (api, project_id),file=sys.stderr)
                   config_error_observed = True
 
           if 'HALT_ON_ERROR' in execution_mode and config_error_observed:

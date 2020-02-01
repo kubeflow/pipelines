@@ -74,7 +74,7 @@ def run_diagnose_me(
             file=sys.stderr)
         config_error_observed = True
 
-    if auth_project_id is not project_id:
+    if auth_project_id != project_id:
         print(
             'User provided project ID %s does not match the configuration %s\n' %
             (project_id,auth_project_id), file=sys.stderr)
