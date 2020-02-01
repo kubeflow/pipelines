@@ -30,7 +30,7 @@ const options = {
 const PAGE_CONTENT_MD = `
 ## Build your own pipeline
 
-Build a end-to-end ML pipeline with TFX  [Start Here](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb) (Alpha)
+Build an end-to-end ML pipeline with TFX  [Start Here](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb) (Alpha)
 
 ## Demos and Tutorials
 
@@ -38,21 +38,22 @@ This section contains demo and tutorial pipelines.
 
 **Demos** - Try an end-to-end demonstration pipeline.
 
-  * [TFX pipeline demo](https://www.google.com) \\- A trainer that does end-to-end distributed training for XGBoost models. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss)
-  * [XGBoost Pipeline](https://www.google.com) \\- Example pipeline that does classification with model analysis based on a public taxi cab BigQuery dataset. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
+  * [TFX pipeline demo](#/pipelines) - A trainer that does end-to-end distributed training for XGBoost models. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss)
+  * [XGBoost Pipeline](#/pipelines) - Example pipeline that does classification with model analysis based on a public taxi cab BigQuery dataset. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
 
 
 **Tutorials** - Learn pipeline concepts by following a tutorial.
 
-  * [Name of Tutorial 1] - \\<tutorial 1 description\\>. [source code]()
-  * [Name of Tutorial 2] - \\<tutorial 2 description\\>. [source code]()
+  * [Data passing in python components](#/pipelines) - Shows how to pass data between python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
+  * [DSL - Control structures](#/pipelines) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
 
   You can find additional tutorials and samples [here]()
 
 ### Additional resources and documentation
-  * [TFX Landing page]()
-  * [Hosted Pipeline documentation]()
-  * [Troubleshooting guide]()
+  * [TFX Landing page](https://www.tensorflow.org/tfx)
+  * [Hosted Pipeline documentation](https://cloud.google.com/ai-platform)
+  * [Troubleshooting guide](https://www.kubeflow.org/docs/pipelines/troubleshooting/)
+  * [Kubeflow Pipeline Open source documentation](https://www.kubeflow.org/docs/pipelines/)
 `;
 
 cssRaw(`
