@@ -104,6 +104,7 @@ export class OutputArtifactLoader {
         }
       }),
     );
+
     return configs.filter(c => !!c) as ViewerConfig[];
   }
 
@@ -505,7 +506,7 @@ export class OutputArtifactLoader {
     return {
       markdownContent,
       type: PlotType.MARKDOWN,
-    } as MarkdownViewerConfig;
+    };
   }
 
   public static async buildRocCurveConfig(metadata: PlotMetadata): Promise<ROCCurveConfig> {
