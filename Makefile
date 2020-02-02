@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ifndef GOOS
+GOOS := $(shell go env GOOS)
+endif
+
+ifndef GOARCH
+GOARCH := $(shell go env GOARCH)
+endif
+
 .PHONY: all
 all: build
 
@@ -28,10 +36,7 @@ build:
 
 .PHONY: bins
 bins:
-	bazel --bazelrc=tools/bazel_builder/bazelrc \
-		build -c opt backend/src/apiserver:apiserver && \
-		cp bazel-bin/backend/src/apiserver/darwin_amd64_stripped/apiserver ./ && \
-		chmod +wx apiserver
+	go build -i -o apiserver ./backend/src/apiserver
 
 .PHONY: start
 start: bins
