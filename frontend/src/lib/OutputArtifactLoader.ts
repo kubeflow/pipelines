@@ -242,7 +242,8 @@ export class OutputArtifactLoader {
     try {
       res = await Api.getInstance().metadataStoreService.getContextByTypeAndName(request);
     } catch (err) {
-      throw new Error('Failed to getContextsByTypeAndName: ' + JSON.stringify(err));
+      err.message = 'Failed to getContextsByTypeAndName: ' + err.message;
+      throw err;
     }
 
     const context = res && res.getContext();
@@ -267,7 +268,8 @@ export class OutputArtifactLoader {
     try {
       res = await Api.getInstance().metadataStoreService.getExecutionsByContext(request);
     } catch (err) {
-      throw new Error('Failed to getExecutionsByContext: ' + JSON.stringify(err));
+      err.message = 'Failed to getExecutionsByContext: ' + err.message;
+      return err;
     }
 
     const executionList = (res && res.getExecutionsList()) || [];
@@ -305,7 +307,8 @@ export class OutputArtifactLoader {
     try {
     res = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
     } catch (err) {
-      throw new Error('Failed to getExecutionsByExecutionIDs: ' + JSON.stringify(err));
+      err.message = 'Failed to getExecutionsByExecutionIDs: ' + err.message;
+      return err;
     }
 
     const eventsList = (res && res.getEventsList()) || [];
@@ -325,7 +328,8 @@ export class OutputArtifactLoader {
     try {
       artifactsRes = await Api.getInstance().metadataStoreService.getArtifactsByID(artifactsRequest);
     } catch (artifactsErr) {
-      throw new Error('Failed to getArtifactsByID: ' + JSON.stringify(artifactsErr));
+      artifactsErr.message = 'Failed to getArtifactsByID: ' + artifactsErr.message;
+      return artifactsErr;
     }
 
     const artifactsList = (artifactsRes && artifactsRes.getArtifactsList()) || [];
@@ -338,7 +342,8 @@ export class OutputArtifactLoader {
     try {
       res = await Api.getInstance().metadataStoreService.getArtifactTypes(request);
     } catch (err) {
-      throw new Error('Failed to getArtifactTypes: ' + JSON.stringify(err));
+      err.message = 'Failed to getArtifactTypes: ' + err.message;
+      return err;
     }
     const artifactTypes = (res && res.getArtifactTypesList()) || [];
     return artifactTypes;
