@@ -217,16 +217,19 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async getMlmdContext(kfpPodName: string): Promise<Context> {
-    if (kfpPodName.split('-').length < 3) {
+  public static async getMlmdContext(argoPodName: string): Promise<Context> {
+    if (argoPodName.split('-').length < 3) {
       throw new Error('kfpPodName has fewer than 3 parts');
     }
 
-    const pipelineName = kfpPodName
+    // argoPodName has the general form "pipelineName-workflowId-executionId".
+    // All components of a pipeline within a single run will have the same
+    // "pipelineName-workflowId" prefix.
+    const pipelineName = argoPodName
       .split('-')
       .slice(0, -2)
       .join('_');
-    const runID = kfpPodName
+    const runID = argoPodName
       .split('-')
       .slice(0, -1)
       .join('-');
@@ -250,7 +253,7 @@ export class OutputArtifactLoader {
   }
 
   public static async getExecutionInContextWithPodName(
-    kfpPodName: string,
+    argoPodName: string,
     context: Context,
   ): Promise<Execution> {
     const contextId = context.getId();
@@ -279,7 +282,7 @@ export class OutputArtifactLoader {
         return false;
       }
       return (
-        executionPodName.getStringValue() === kfpPodName &&
+        executionPodName.getStringValue() === argoPodName &&
         executionState.getStringValue() === 'complete'
       );
     });
@@ -347,8 +350,6 @@ export class OutputArtifactLoader {
   ): string[] {
     const tfdvArtifactTypes = artifactTypes.filter(artifactType => {
       return artifactType.getName() === 'ExampleStatistics';
-      //return artifactType.getName() === 'Schema';
-      //return artifactType.getName() === 'ExampleAnomalies';
     });
     const tfdvArtifactTypeIds = tfdvArtifactTypes.map(artifactType => {
       return artifactType.getId();
@@ -361,7 +362,6 @@ export class OutputArtifactLoader {
     tfdvArtifacts.forEach(tfdvArtifact => {
       const uri = tfdvArtifact.getUri();
       if (uri && uri.length > 0) {
-        // tfdvArtifactsPaths.push(uri);
         const evalUri = uri + '/eval/stats_tfrecord';
         const trainUri = uri + '/train/stats_tfrecord';
         tfdvArtifactsPaths.push(evalUri);
@@ -377,28 +377,23 @@ export class OutputArtifactLoader {
     return tfdvArtifactPaths.map(async artifactPath => {
       const script = [
         'import tensorflow_data_validation as tfdv',
-        "stats = tfdv.load_statistics('" + artifactPath + "')",
+        "stats = tfdv.load_statistics('${artifactPath}')",
         'tfdv.visualize_statistics(stats)',
-        //        "stats = tfdv.load_schema_text('" + artifactPath + "')",
-        //        'tfdv.display_schema(stats)',
-        //        "anomalies = tfdv.load_anomalies_text('" + artifactPath + "/anomalies.pbtxt" + "')",
-        //        'tfdv.display_anomalies(anomalies)',
       ];
-      const specifiedArguments: any = JSON.parse('{}');
-      specifiedArguments.code = script;
       const visualizationData: ApiVisualization = {
-        arguments: JSON.stringify(specifiedArguments),
+        arguments: JSON.stringify({code: script}),
         source: '',
         type: ApiVisualizationType.CUSTOM,
       };
       const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
       if (!visualization.htmlContent) {
+        // TODO: Improve error message with details.
         throw new Error('Failed to build TFDV artifact visualization');
       }
       return {
         htmlContent: visualization.htmlContent,
         type: PlotType.WEB_APP,
-      } as HTMLViewerConfig;
+      };
     });
   }
 
@@ -406,15 +401,10 @@ export class OutputArtifactLoader {
     artifactTypes: ArtifactType[],
     artifacts: Artifact[],
   ): string[] {
-    const tfmaArtifactTypes = artifactTypes.filter(artifactType => {
-      return artifactType.getName() === 'ModelEvaluation';
-    });
-    const tfmaArtifactTypeIds = tfmaArtifactTypes.map(artifactType => {
-      return artifactType.getId();
-    });
-    const tfmaArtifacts = artifacts.filter(artifact => {
-      return tfmaArtifactTypeIds.includes(artifact.getTypeId());
-    });
+    const tfmaArtifactTypeIds = artifactTypes
+      .filter(artifactType => artifactType.getName() == 'ModelEvaluation')
+      .map(artifactType => artifactType.getId());
+    const tfmaArtifacts = artifacts.filter(artifact => tfmaArtifactTypeIds.includes(artifact.getTypeId()));
 
     const tfmaArtifactPaths: string[] = [];
     tfmaArtifacts.forEach(artifact => {
@@ -432,29 +422,28 @@ export class OutputArtifactLoader {
     return tfmaArtifactPaths.map(async artifactPath => {
       const script = [
         'import tensorflow_model_analysis as tfma',
-        "tfma_result = tfma.load_eval_result('" + artifactPath + "')",
+        "tfma_result = tfma.load_eval_result('${artifactPath}')",
         'tfma.view.render_slicing_metrics(tfma_result)',
       ];
-      const specifiedArguments: any = JSON.parse('{}');
-      specifiedArguments.code = script;
       const visualizationData: ApiVisualization = {
-        arguments: JSON.stringify(specifiedArguments),
+        arguments: JSON.stringify({code: script}),
         source: '',
         type: ApiVisualizationType.CUSTOM,
       };
       const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
       if (!visualization.htmlContent) {
+        // TODO: Improve error message with details.
         throw new Error('Failed to build TFMA artifact visualization');
       }
       return {
         htmlContent: visualization.htmlContent,
         type: PlotType.WEB_APP,
-      } as HTMLViewerConfig;
+      };
     });
   }
 
   public static async buildTFXArtifactViewerConfig(
-    kfpPodName: string,
+    argoPodName: string,
   ): Promise<HTMLViewerConfig[]> {
     // Since artifact types don't change per run, this can be optimized further so
     // that we don't fetch them on every page load.
@@ -464,13 +453,13 @@ export class OutputArtifactLoader {
       return [];
     }
 
-    const context = await this.getMlmdContext(kfpPodName);
+    const context = await this.getMlmdContext(argoPodName);
     if (!context) {
       logger.error('Failed finding corresponding MLMD context');
       return [];
     }
 
-    const execution = await this.getExecutionInContextWithPodName(kfpPodName, context);
+    const execution = await this.getExecutionInContextWithPodName(argoPodName, context);
     if (!execution) {
       logger.verbose('Failed finding corresponding MLMD execution');
       return [];
@@ -481,11 +470,10 @@ export class OutputArtifactLoader {
       throw new Error('Failed finding output artifacts in execution');
     }
 
+    // TODO: Visualize other artifact types, such as Anomalies and Schema, using TFDV
+    // as well as ModelEvaluation using TFMA.
     const tfdvArtifactPaths = this.filterTfdvArtifactsPaths(artifactTypes, artifacts);
-    //const tfmaArtifactPaths = this.filterTfmaArtifactsPaths(artifactTypes, artifacts);
     const tfdvArtifactViewerConfigs = this.getTfdvArtifactViewers(tfdvArtifactPaths);
-    //const tfmaArtifactViewerConfigs = this.getTfmaArtifactViewers(tfmaArtifactPaths);
-    //return Promise.all(tfdvArtifactViewerConfigs.concat(tfmaArtifactViewerConfigs));
     return Promise.all(tfdvArtifactViewerConfigs);
   }
 
