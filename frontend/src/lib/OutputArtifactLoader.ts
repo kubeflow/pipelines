@@ -409,7 +409,7 @@ export class OutputArtifactLoader {
     artifacts: Artifact[],
   ): string[] {
     const tfmaArtifactTypeIds = artifactTypes
-      .filter(artifactType => artifactType.getName() == 'ModelEvaluation')
+      .filter(artifactType => artifactType.getName() === 'ModelEvaluation')
       .map(artifactType => artifactType.getId());
     const tfmaArtifacts = artifacts.filter(artifact =>
       tfmaArtifactTypeIds.includes(artifact.getTypeId()),
