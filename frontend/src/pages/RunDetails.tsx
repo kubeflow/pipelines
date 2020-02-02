@@ -774,7 +774,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       const generatedConfigs = generatedVisualizations
         .filter(visualization => visualization.nodeId === selectedNodeDetails.id)
         .map(visualization => visualization.config);
-      viewerConfigs = tfxAutomaticVisualizations.concat(viewerConfigs).concat(generatedConfigs);
+      viewerConfigs = [...tfxAutomaticVisualizations, ...viewerConfigs, ...generatedConfigs];
 
       selectedNodeDetails.viewerConfigs = viewerConfigs;
       this.setStateSafe({ selectedNodeDetails });
