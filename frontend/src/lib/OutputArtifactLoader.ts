@@ -305,7 +305,7 @@ export class OutputArtifactLoader {
     request.addExecutionIds(executionId);
     let res: GetEventsByExecutionIDsResponse;
     try {
-    res = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
+      res = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
     } catch (err) {
       err.message = 'Failed to getExecutionsByExecutionIDs: ' + err.message;
       return err;
@@ -326,7 +326,9 @@ export class OutputArtifactLoader {
     outputArtifactIds.forEach(artifactId => artifactsRequest.addArtifactIds(artifactId));
     let artifactsRes: GetArtifactsByIDResponse;
     try {
-      artifactsRes = await Api.getInstance().metadataStoreService.getArtifactsByID(artifactsRequest);
+      artifactsRes = await Api.getInstance().metadataStoreService.getArtifactsByID(
+        artifactsRequest,
+      );
     } catch (artifactsErr) {
       artifactsErr.message = 'Failed to getArtifactsByID: ' + artifactsErr.message;
       return artifactsErr;
@@ -386,7 +388,7 @@ export class OutputArtifactLoader {
         'tfdv.visualize_statistics(stats)',
       ];
       const visualizationData: ApiVisualization = {
-        arguments: JSON.stringify({code: script}),
+        arguments: JSON.stringify({ code: script }),
         source: '',
         type: ApiVisualizationType.CUSTOM,
       };
@@ -409,7 +411,9 @@ export class OutputArtifactLoader {
     const tfmaArtifactTypeIds = artifactTypes
       .filter(artifactType => artifactType.getName() == 'ModelEvaluation')
       .map(artifactType => artifactType.getId());
-    const tfmaArtifacts = artifacts.filter(artifact => tfmaArtifactTypeIds.includes(artifact.getTypeId()));
+    const tfmaArtifacts = artifacts.filter(artifact =>
+      tfmaArtifactTypeIds.includes(artifact.getTypeId()),
+    );
 
     const tfmaArtifactPaths: string[] = [];
     tfmaArtifacts.forEach(artifact => {
@@ -431,7 +435,7 @@ export class OutputArtifactLoader {
         'tfma.view.render_slicing_metrics(tfma_result)',
       ];
       const visualizationData: ApiVisualization = {
-        arguments: JSON.stringify({code: script}),
+        arguments: JSON.stringify({ code: script }),
         source: '',
         type: ApiVisualizationType.CUSTOM,
       };
