@@ -26,7 +26,32 @@ build:
 	# Delete vendor directory
 	rm -rf vendor
 
+.PHONY: bins
+bins:
+	bazel --bazelrc=tools/bazel_builder/bazelrc \
+		build -c opt backend/src/apiserver:apiserver && \
+		cp bazel-bin/backend/src/apiserver/darwin_amd64_stripped/apiserver ./ && \
+		chmod +wx apiserver
+
+.PHONY: start
+start: bins
+	./apiserver --config=backend/src/apiserver/config/ \
+		--sampleconfig=backend/src/apiserver/config/sample_config.json \
+		  -logtostderr=true
+
+.PHONY: dlv
+dlv:
+	dlv --headless --listen=:2345 --api-version=2 --accept-multiclient debug ./backend/src/apiserver -- \
+		--config=backend/src/apiserver/config/ \
+		--sampleconfig=backend/src/apiserver/config/sample_config.json \
+		-logtostderr=true
+
 .PHONY: test
 test:
 	# test backend server
 	cd backend/src/ && go test -count=1 ./...
+
+.PHONY: clean
+clean:
+	rm -rf bazel-*
+	rm -f apiserver
