@@ -770,7 +770,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       for (const path of outputPaths) {
         viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
       }
-      const tfxAutomaticVisualizations: ViewerConfig[] = await OutputArtifactLoader.buildTFXArtifactViewerConfig(selectedNodeDetails.id);
+      const tfxAutomaticVisualizations: ViewerConfig[] = await OutputArtifactLoader.buildTFXArtifactViewerConfig(selectedNodeDetails.id).catch(() => []);
       const generatedConfigs = generatedVisualizations
         .filter(visualization => visualization.nodeId === selectedNodeDetails.id)
         .map(visualization => visualization.config);
