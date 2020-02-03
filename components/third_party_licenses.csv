@@ -209,3 +209,4 @@ pycrypto,https://raw.githubusercontent.com/dlitz/pycrypto/master/COPYRIGHT,Publi
 pygobject,https://raw.githubusercontent.com/GNOME/pygobject/mainline/COPYING,LGPL
 pyxdg,https://cgit.freedesktop.org/xdg/pyxdg/plain/COPYING,LGPL
 SecretStorage,https://raw.githubusercontent.com/mitya57/secretstorage/master/LICENSE,BSD-3
+typing-extensions,https://raw.githubusercontent.com/python/typing/master/typing_extensions/LICENSE,Python Software Foundation License
