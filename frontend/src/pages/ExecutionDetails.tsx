@@ -198,6 +198,8 @@ function parseEventsByType(
     [Event.Type.INPUT]: [],
     [Event.Type.DECLARED_OUTPUT]: [],
     [Event.Type.OUTPUT]: [],
+    [Event.Type.INTERNAL_INPUT]: [],
+    [Event.Type.INTERNAL_OUTPUT]: [],
   };
 
   if (!response) {
