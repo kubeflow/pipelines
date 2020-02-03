@@ -65,6 +65,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
           onSelectionChange={this._selectionChanged.bind(this)}
           ref={this._runlistRef}
           storageState={RunStorageState.AVAILABLE}
+          hideMetricMetadata={true}
           {...this.props}
         />
       </div>
