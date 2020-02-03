@@ -37,7 +37,7 @@ function set_bucket_and_configmap() {
       break
     fi
   done
-  
+
   # Populate configmap, with name gcp-default-config
   if [ "${bucket_is_set}" = true ]; then
     kubectl create configmap -n "${NAMESPACE}" "${CONFIG_NAME}" \
@@ -52,18 +52,3 @@ function set_bucket_and_configmap() {
       --from-literal project_id="${GCP_PROJECT_ID}"
   fi
 }
-
-# Helper script for auto-provision bucket in KFP MKP deployment.
-NAME="$(/bin/print_config.py \
-    --xtype NAME \
-    --values_mode raw)"
-NAMESPACE="$(/bin/print_config.py \
-    --xtype NAMESPACE \
-    --values_mode raw)"
-export NAME
-export NAMESPACE
-
-set_bucket_and_configmap "${NAME}-default" 10
-
-# Invoke normal deployer routine.
-/bin/bash /bin/core_deploy.sh
