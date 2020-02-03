@@ -217,7 +217,11 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async getMlmdContext(argoPodName: string): Promise<Context> {
+  /**
+   * @throws error when network error
+   * @returns context, returns undefined when context with the pod name not found
+   */
+  private static async getMlmdContext(argoPodName: string): Promise<Context | undefined> {
     if (argoPodName.split('-').length < 3) {
       throw new Error('argoPodName has fewer than 3 parts');
     }
@@ -246,17 +250,17 @@ export class OutputArtifactLoader {
       throw err;
     }
 
-    const context = res.getContext();
-    if (!context) {
-      throw new Error("getContextByTypeAndName didn't have a context");
-    }
-    return context;
+    return res.getContext();
   }
 
-  public static async getExecutionInContextWithPodName(
+  /**
+   * @throws error when network error
+   * @returns execution, returns undefined when not found or not yet complete
+   */
+  private static async getExecutionInContextWithPodName(
     argoPodName: string,
     context: Context,
-  ): Promise<Execution> {
+  ): Promise<Execution | undefined> {
     const contextId = context.getId();
     if (!contextId) {
       throw new Error('Context must have an ID');
@@ -274,28 +278,23 @@ export class OutputArtifactLoader {
 
     const executionList = res.getExecutionsList();
     const foundExecution = executionList.find(execution => {
-      const properties = execution.getPropertiesMap();
-      const executionPodName = properties.get('kfp_pod_name');
-      if (!executionPodName) {
-        return false;
-      }
-      const executionState = properties.get('state');
-      if (!executionState) {
-        return false;
-      }
-      return (
-        executionPodName.getStringValue() === argoPodName &&
-        executionState.getStringValue() === 'complete'
-      );
+      const executionPodName = execution.getPropertiesMap().get('kfp_pod_name');
+      return executionPodName && executionPodName.getStringValue() === argoPodName;
     });
     if (!foundExecution) {
-      logger.verbose("Couldn't find corresponding execution in context");
-      throw new Error("Couldn't find corresponding execution in context");
+      return undefined; // Not found, this is expected to happen normally when there's no mlmd data.
+    }
+    const state = foundExecution.getPropertiesMap().get('state');
+    if (!state || state.getStringValue() !== 'complete') {
+      return undefined; // Execution doesn't have a valid state, or it has not finished.
     }
     return foundExecution;
   }
 
-  public static async getOutputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
+  /**
+   * @throws error when network error or invalid data
+   */
+  private static async getOutputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
     const executionId = execution.getId();
     if (!executionId) {
       throw new Error('Execution must have an ID');
@@ -311,16 +310,10 @@ export class OutputArtifactLoader {
       throw err;
     }
 
-    const eventsList = res.getEventsList();
-    const outputArtifactIds: number[] = [];
-    eventsList.forEach(event => {
-      if (event.getType() === Event.Type.OUTPUT) {
-        const artifactId = event.getArtifactId();
-        if (artifactId) {
-          outputArtifactIds.push(artifactId);
-        }
-      }
-    });
+    const outputArtifactIds = res
+      .getEventsList()
+      .filter(event => event.getType() === Event.Type.OUTPUT && event.getArtifactId())
+      .map(event => event.getArtifactId());
 
     const artifactsRequest = new GetArtifactsByIDRequest();
     artifactsRequest.setArtifactIdsList(outputArtifactIds);
@@ -334,11 +327,10 @@ export class OutputArtifactLoader {
       throw artifactsErr;
     }
 
-    const artifactsList = (artifactsRes && artifactsRes.getArtifactsList()) || [];
-    return artifactsList;
+    return artifactsRes.getArtifactsList();
   }
 
-  public static async getArtifactTypes(): Promise<ArtifactType[]> {
+  private static async getArtifactTypes(): Promise<ArtifactType[]> {
     const request = new GetArtifactTypesRequest();
     let res: GetArtifactTypesResponse;
     try {
@@ -347,38 +339,30 @@ export class OutputArtifactLoader {
       err.message = 'Failed to getArtifactTypes: ' + err.message;
       throw err;
     }
-    const artifactTypes = (res && res.getArtifactTypesList()) || [];
-    return artifactTypes;
+    return res.getArtifactTypesList();
   }
 
-  public static filterTfdvArtifactsPaths(
+  private static filterTfdvArtifactsPaths(
     artifactTypes: ArtifactType[],
     artifacts: Artifact[],
   ): string[] {
-    const tfdvArtifactTypes = artifactTypes.filter(artifactType => {
-      return artifactType.getName() === 'ExampleStatistics';
-    });
-    const tfdvArtifactTypeIds = tfdvArtifactTypes.map(artifactType => {
-      return artifactType.getId();
-    });
-    const tfdvArtifacts = artifacts.filter(artifact => {
-      return tfdvArtifactTypeIds.includes(artifact.getTypeId());
-    });
+    const tfdvArtifactTypeIds = artifactTypes
+      .filter(artifactType => artifactType.getName() === 'ExampleStatistics')
+      .map(artifactType => artifactType.getId());
+    const tfdvArtifacts = artifacts.filter(artifact =>
+      tfdvArtifactTypeIds.includes(artifact.getTypeId()),
+    );
 
-    const tfdvArtifactsPaths: string[] = [];
-    tfdvArtifacts.forEach(tfdvArtifact => {
-      const uri = tfdvArtifact.getUri();
-      if (uri && uri.length > 0) {
-        const evalUri = uri + '/eval/stats_tfrecord';
-        const trainUri = uri + '/train/stats_tfrecord';
-        tfdvArtifactsPaths.push(evalUri);
-        tfdvArtifactsPaths.push(trainUri);
-      }
-    });
+    const tfdvArtifactsPaths = tfdvArtifacts
+      .filter(artifact => artifact.getUri()) // uri not empty
+      .flatMap(artifact => [
+        artifact.getUri() + '/eval/stats_tfrecord', // eval uri
+        artifact.getUri() + '/train/stats_tfrecord', // train uri
+      ]);
     return tfdvArtifactsPaths;
   }
 
-  public static getTfdvArtifactViewers(
+  private static getTfdvArtifactViewers(
     tfdvArtifactPaths: string[],
   ): Array<Promise<HTMLViewerConfig>> {
     return tfdvArtifactPaths.map(async artifactPath => {
@@ -404,7 +388,7 @@ export class OutputArtifactLoader {
     });
   }
 
-  public static filterTfmaArtifactsPaths(
+  private static filterTfmaArtifactsPaths(
     artifactTypes: ArtifactType[],
     artifacts: Artifact[],
   ): string[] {
@@ -415,17 +399,11 @@ export class OutputArtifactLoader {
       tfmaArtifactTypeIds.includes(artifact.getTypeId()),
     );
 
-    const tfmaArtifactPaths: string[] = [];
-    tfmaArtifacts.forEach(artifact => {
-      const uri = artifact.getUri();
-      if (uri && uri.length > 0) {
-        tfmaArtifactPaths.push(uri);
-      }
-    });
+    const tfmaArtifactPaths = tfmaArtifacts.map(artifact => artifact.getUri()).filter(uri => uri); // uri not empty
     return tfmaArtifactPaths;
   }
 
-  public static getTfmaArtifactViewers(
+  private static getTfmaArtifactViewers(
     tfmaArtifactPaths: string[],
   ): Array<Promise<HTMLViewerConfig>> {
     return tfmaArtifactPaths.map(async artifactPath => {
@@ -451,32 +429,47 @@ export class OutputArtifactLoader {
     });
   }
 
+  /**
+   * @throws error on exceptions
+   * @returns config array, also returns empty array when expected erros happen
+   */
   public static async buildTFXArtifactViewerConfig(
     argoPodName: string,
   ): Promise<HTMLViewerConfig[]> {
+    // Error handling assumptions:
+    // * Context/execution/artifact nodes are not expected to be in MLMD. Thus, any
+    // errors associated with the nodes not being found are expected.
+    // * RPC errors to MLMD are unexpected.
+    // * Being unable to find an execution node with a matching argoPodName is expected, as this should only work on TFX >= 0.21.
+    // * Once we have URIs for artifacts that we want to display, any errors displaying them are unexpected.
+    //
+    // With that in mind, buildTFXArtifactViewerConfig() returns an empty list for expected errors,
+    // and throws/forwards for unexpected errors.
+
     // Since artifact types don't change per run, this can be optimized further so
     // that we don't fetch them on every page load.
     const artifactTypes = await this.getArtifactTypes();
-    if (!artifactTypes) {
-      logger.error('Failed getting artifact types');
+    if (artifactTypes.length === 0) {
+      // There are no artifact types data.
       return [];
     }
 
     const context = await this.getMlmdContext(argoPodName);
     if (!context) {
-      logger.error('Failed finding corresponding MLMD context');
+      // Failed finding corresponding MLMD context.
       return [];
     }
 
     const execution = await this.getExecutionInContextWithPodName(argoPodName, context);
     if (!execution) {
-      logger.verbose('Failed finding corresponding MLMD execution');
+      // Failed finding corresponding MLMD execution.
       return [];
     }
 
     const artifacts = await this.getOutputArtifactsInExecution(execution);
-    if (!artifacts) {
-      throw new Error('Failed finding output artifacts in execution');
+    if (artifacts.length === 0) {
+      // There are no artifacts in this execution.
+      return [];
     }
 
     // TODO: Visualize other artifact types, such as Anomalies and Schema, using TFDV
