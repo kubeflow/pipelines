@@ -218,218 +218,6 @@ export class OutputArtifactLoader {
   }
 
   /**
-   * @throws error when network error
-   * @returns context, returns undefined when context with the pod name not found
-   */
-  private static async getMlmdContext(argoPodName: string): Promise<Context | undefined> {
-    if (argoPodName.split('-').length < 3) {
-      throw new Error('argoPodName has fewer than 3 parts');
-    }
-
-    // argoPodName has the general form "pipelineName-workflowId-executionId".
-    // All components of a pipeline within a single run will have the same
-    // "pipelineName-workflowId" prefix.
-    const pipelineName = argoPodName
-      .split('-')
-      .slice(0, -2)
-      .join('_');
-    const runID = argoPodName
-      .split('-')
-      .slice(0, -1)
-      .join('-');
-    const contextName = pipelineName + '.' + runID;
-
-    const request = new GetContextByTypeAndNameRequest();
-    request.setTypeName('run');
-    request.setContextName(contextName);
-    let res: GetContextByTypeAndNameResponse;
-    try {
-      res = await Api.getInstance().metadataStoreService.getContextByTypeAndName(request);
-    } catch (err) {
-      err.message = 'Failed to getContextsByTypeAndName: ' + err.message;
-      throw err;
-    }
-
-    return res.getContext();
-  }
-
-  /**
-   * @throws error when network error
-   * @returns execution, returns undefined when not found or not yet complete
-   */
-  private static async getExecutionInContextWithPodName(
-    argoPodName: string,
-    context: Context,
-  ): Promise<Execution | undefined> {
-    const contextId = context.getId();
-    if (!contextId) {
-      throw new Error('Context must have an ID');
-    }
-
-    const request = new GetExecutionsByContextRequest();
-    request.setContextId(contextId);
-    let res: GetExecutionsByContextResponse;
-    try {
-      res = await Api.getInstance().metadataStoreService.getExecutionsByContext(request);
-    } catch (err) {
-      err.message = 'Failed to getExecutionsByContext: ' + err.message;
-      throw err;
-    }
-
-    const executionList = res.getExecutionsList();
-    const foundExecution = executionList.find(execution => {
-      const executionPodName = execution.getPropertiesMap().get('kfp_pod_name');
-      return executionPodName && executionPodName.getStringValue() === argoPodName;
-    });
-    if (!foundExecution) {
-      return undefined; // Not found, this is expected to happen normally when there's no mlmd data.
-    }
-    const state = foundExecution.getPropertiesMap().get('state');
-    if (!state || state.getStringValue() !== 'complete') {
-      return undefined; // Execution doesn't have a valid state, or it has not finished.
-    }
-    return foundExecution;
-  }
-
-  /**
-   * @throws error when network error or invalid data
-   */
-  private static async getOutputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
-    const executionId = execution.getId();
-    if (!executionId) {
-      throw new Error('Execution must have an ID');
-    }
-
-    const request = new GetEventsByExecutionIDsRequest();
-    request.addExecutionIds(executionId);
-    let res: GetEventsByExecutionIDsResponse;
-    try {
-      res = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
-    } catch (err) {
-      err.message = 'Failed to getExecutionsByExecutionIDs: ' + err.message;
-      throw err;
-    }
-
-    const outputArtifactIds = res
-      .getEventsList()
-      .filter(event => event.getType() === Event.Type.OUTPUT && event.getArtifactId())
-      .map(event => event.getArtifactId());
-
-    const artifactsRequest = new GetArtifactsByIDRequest();
-    artifactsRequest.setArtifactIdsList(outputArtifactIds);
-    let artifactsRes: GetArtifactsByIDResponse;
-    try {
-      artifactsRes = await Api.getInstance().metadataStoreService.getArtifactsByID(
-        artifactsRequest,
-      );
-    } catch (artifactsErr) {
-      artifactsErr.message = 'Failed to getArtifactsByID: ' + artifactsErr.message;
-      throw artifactsErr;
-    }
-
-    return artifactsRes.getArtifactsList();
-  }
-
-  private static async getArtifactTypes(): Promise<ArtifactType[]> {
-    const request = new GetArtifactTypesRequest();
-    let res: GetArtifactTypesResponse;
-    try {
-      res = await Api.getInstance().metadataStoreService.getArtifactTypes(request);
-    } catch (err) {
-      err.message = 'Failed to getArtifactTypes: ' + err.message;
-      throw err;
-    }
-    return res.getArtifactTypesList();
-  }
-
-  private static filterTfdvArtifactsPaths(
-    artifactTypes: ArtifactType[],
-    artifacts: Artifact[],
-  ): string[] {
-    const tfdvArtifactTypeIds = artifactTypes
-      .filter(artifactType => artifactType.getName() === 'ExampleStatistics')
-      .map(artifactType => artifactType.getId());
-    const tfdvArtifacts = artifacts.filter(artifact =>
-      tfdvArtifactTypeIds.includes(artifact.getTypeId()),
-    );
-
-    const tfdvArtifactsPaths = tfdvArtifacts
-      .filter(artifact => artifact.getUri()) // uri not empty
-      .flatMap(artifact => [
-        artifact.getUri() + '/eval/stats_tfrecord', // eval uri
-        artifact.getUri() + '/train/stats_tfrecord', // train uri
-      ]);
-    return tfdvArtifactsPaths;
-  }
-
-  private static getTfdvArtifactViewers(
-    tfdvArtifactPaths: string[],
-  ): Array<Promise<HTMLViewerConfig>> {
-    return tfdvArtifactPaths.map(async artifactPath => {
-      const script = [
-        'import tensorflow_data_validation as tfdv',
-        `stats = tfdv.load_statistics('${artifactPath}')`,
-        'tfdv.visualize_statistics(stats)',
-      ];
-      const visualizationData: ApiVisualization = {
-        arguments: JSON.stringify({ code: script }),
-        source: '',
-        type: ApiVisualizationType.CUSTOM,
-      };
-      const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
-      if (!visualization.htmlContent) {
-        // TODO: Improve error message with details.
-        throw new Error('Failed to build TFDV artifact visualization');
-      }
-      return {
-        htmlContent: visualization.htmlContent,
-        type: PlotType.WEB_APP,
-      };
-    });
-  }
-
-  private static filterTfmaArtifactsPaths(
-    artifactTypes: ArtifactType[],
-    artifacts: Artifact[],
-  ): string[] {
-    const tfmaArtifactTypeIds = artifactTypes
-      .filter(artifactType => artifactType.getName() === 'ModelEvaluation')
-      .map(artifactType => artifactType.getId());
-    const tfmaArtifacts = artifacts.filter(artifact =>
-      tfmaArtifactTypeIds.includes(artifact.getTypeId()),
-    );
-
-    const tfmaArtifactPaths = tfmaArtifacts.map(artifact => artifact.getUri()).filter(uri => uri); // uri not empty
-    return tfmaArtifactPaths;
-  }
-
-  private static getTfmaArtifactViewers(
-    tfmaArtifactPaths: string[],
-  ): Array<Promise<HTMLViewerConfig>> {
-    return tfmaArtifactPaths.map(async artifactPath => {
-      const script = [
-        'import tensorflow_model_analysis as tfma',
-        `tfma_result = tfma.load_eval_result('${artifactPath}')`,
-        'tfma.view.render_slicing_metrics(tfma_result)',
-      ];
-      const visualizationData: ApiVisualization = {
-        arguments: JSON.stringify({ code: script }),
-        source: '',
-        type: ApiVisualizationType.CUSTOM,
-      };
-      const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
-      if (!visualization.htmlContent) {
-        // TODO: Improve error message with details.
-        throw new Error('Failed to build TFMA artifact visualization');
-      }
-      return {
-        htmlContent: visualization.htmlContent,
-        type: PlotType.WEB_APP,
-      };
-    });
-  }
-
-  /**
    * @throws error on exceptions
    * @returns config array, also returns empty array when expected erros happen
    */
@@ -448,25 +236,25 @@ export class OutputArtifactLoader {
 
     // Since artifact types don't change per run, this can be optimized further so
     // that we don't fetch them on every page load.
-    const artifactTypes = await this.getArtifactTypes();
+    const artifactTypes = await getArtifactTypes();
     if (artifactTypes.length === 0) {
       // There are no artifact types data.
       return [];
     }
 
-    const context = await this.getMlmdContext(argoPodName);
+    const context = await getMlmdContext(argoPodName);
     if (!context) {
       // Failed finding corresponding MLMD context.
       return [];
     }
 
-    const execution = await this.getExecutionInContextWithPodName(argoPodName, context);
+    const execution = await getExecutionInContextWithPodName(argoPodName, context);
     if (!execution) {
       // Failed finding corresponding MLMD execution.
       return [];
     }
 
-    const artifacts = await this.getOutputArtifactsInExecution(execution);
+    const artifacts = await getOutputArtifactsInExecution(execution);
     if (artifacts.length === 0) {
       // There are no artifacts in this execution.
       return [];
@@ -474,8 +262,8 @@ export class OutputArtifactLoader {
 
     // TODO: Visualize other artifact types, such as Anomalies and Schema, using TFDV
     // as well as ModelEvaluation using TFMA.
-    const tfdvArtifactPaths = this.filterTfdvArtifactsPaths(artifactTypes, artifacts);
-    const tfdvArtifactViewerConfigs = this.getTfdvArtifactViewers(tfdvArtifactPaths);
+    const tfdvArtifactPaths = filterTfdvArtifactsPaths(artifactTypes, artifacts);
+    const tfdvArtifactViewerConfigs = getTfdvArtifactViewers(tfdvArtifactPaths);
     return Promise.all(tfdvArtifactViewerConfigs);
   }
 
@@ -538,3 +326,209 @@ export class OutputArtifactLoader {
     };
   }
 }
+
+/**
+ * @throws error when network error
+ * @returns context, returns undefined when context with the pod name not found
+ */
+async function getMlmdContext(argoPodName: string): Promise<Context | undefined> {
+  if (argoPodName.split('-').length < 3) {
+    throw new Error('argoPodName has fewer than 3 parts');
+  }
+
+  // argoPodName has the general form "pipelineName-workflowId-executionId".
+  // All components of a pipeline within a single run will have the same
+  // "pipelineName-workflowId" prefix.
+  const pipelineName = argoPodName
+    .split('-')
+    .slice(0, -2)
+    .join('_');
+  const runID = argoPodName
+    .split('-')
+    .slice(0, -1)
+    .join('-');
+  const contextName = pipelineName + '.' + runID;
+
+  const request = new GetContextByTypeAndNameRequest();
+  request.setTypeName('run');
+  request.setContextName(contextName);
+  let res: GetContextByTypeAndNameResponse;
+  try {
+    res = await Api.getInstance().metadataStoreService.getContextByTypeAndName(request);
+  } catch (err) {
+    err.message = 'Failed to getContextsByTypeAndName: ' + err.message;
+    throw err;
+  }
+
+  return res.getContext();
+}
+
+/**
+ * @throws error when network error
+ * @returns execution, returns undefined when not found or not yet complete
+ */
+async function getExecutionInContextWithPodName(
+  argoPodName: string,
+  context: Context,
+): Promise<Execution | undefined> {
+  const contextId = context.getId();
+  if (!contextId) {
+    throw new Error('Context must have an ID');
+  }
+
+  const request = new GetExecutionsByContextRequest();
+  request.setContextId(contextId);
+  let res: GetExecutionsByContextResponse;
+  try {
+    res = await Api.getInstance().metadataStoreService.getExecutionsByContext(request);
+  } catch (err) {
+    err.message = 'Failed to getExecutionsByContext: ' + err.message;
+    throw err;
+  }
+
+  const executionList = res.getExecutionsList();
+  const foundExecution = executionList.find(execution => {
+    const executionPodName = execution.getPropertiesMap().get('kfp_pod_name');
+    return executionPodName && executionPodName.getStringValue() === argoPodName;
+  });
+  if (!foundExecution) {
+    return undefined; // Not found, this is expected to happen normally when there's no mlmd data.
+  }
+  const state = foundExecution.getPropertiesMap().get('state');
+  if (!state || state.getStringValue() !== 'complete') {
+    return undefined; // Execution doesn't have a valid state, or it has not finished.
+  }
+  return foundExecution;
+}
+
+/**
+ * @throws error when network error or invalid data
+ */
+async function getOutputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
+  const executionId = execution.getId();
+  if (!executionId) {
+    throw new Error('Execution must have an ID');
+  }
+
+  const request = new GetEventsByExecutionIDsRequest();
+  request.addExecutionIds(executionId);
+  let res: GetEventsByExecutionIDsResponse;
+  try {
+    res = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
+  } catch (err) {
+    err.message = 'Failed to getExecutionsByExecutionIDs: ' + err.message;
+    throw err;
+  }
+
+  const outputArtifactIds = res
+    .getEventsList()
+    .filter(event => event.getType() === Event.Type.OUTPUT && event.getArtifactId())
+    .map(event => event.getArtifactId());
+
+  const artifactsRequest = new GetArtifactsByIDRequest();
+  artifactsRequest.setArtifactIdsList(outputArtifactIds);
+  let artifactsRes: GetArtifactsByIDResponse;
+  try {
+    artifactsRes = await Api.getInstance().metadataStoreService.getArtifactsByID(artifactsRequest);
+  } catch (artifactsErr) {
+    artifactsErr.message = 'Failed to getArtifactsByID: ' + artifactsErr.message;
+    throw artifactsErr;
+  }
+
+  return artifactsRes.getArtifactsList();
+}
+
+async function getArtifactTypes(): Promise<ArtifactType[]> {
+  const request = new GetArtifactTypesRequest();
+  let res: GetArtifactTypesResponse;
+  try {
+    res = await Api.getInstance().metadataStoreService.getArtifactTypes(request);
+  } catch (err) {
+    err.message = 'Failed to getArtifactTypes: ' + err.message;
+    throw err;
+  }
+  return res.getArtifactTypesList();
+}
+
+function filterTfdvArtifactsPaths(artifactTypes: ArtifactType[], artifacts: Artifact[]): string[] {
+  const tfdvArtifactTypeIds = artifactTypes
+    .filter(artifactType => artifactType.getName() === 'ExampleStatistics')
+    .map(artifactType => artifactType.getId());
+  const tfdvArtifacts = artifacts.filter(artifact =>
+    tfdvArtifactTypeIds.includes(artifact.getTypeId()),
+  );
+
+  const tfdvArtifactsPaths = tfdvArtifacts
+    .filter(artifact => artifact.getUri()) // uri not empty
+    .flatMap(artifact => [
+      artifact.getUri() + '/eval/stats_tfrecord', // eval uri
+      artifact.getUri() + '/train/stats_tfrecord', // train uri
+    ]);
+  return tfdvArtifactsPaths;
+}
+
+function getTfdvArtifactViewers(tfdvArtifactPaths: string[]): Array<Promise<HTMLViewerConfig>> {
+  return tfdvArtifactPaths.map(async artifactPath => {
+    const script = [
+      'import tensorflow_data_validation as tfdv',
+      `stats = tfdv.load_statistics('${artifactPath}')`,
+      'tfdv.visualize_statistics(stats)',
+    ];
+    const visualizationData: ApiVisualization = {
+      arguments: JSON.stringify({ code: script }),
+      source: '',
+      type: ApiVisualizationType.CUSTOM,
+    };
+    const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
+    if (!visualization.htmlContent) {
+      // TODO: Improve error message with details.
+      throw new Error('Failed to build TFDV artifact visualization');
+    }
+    return {
+      htmlContent: visualization.htmlContent,
+      type: PlotType.WEB_APP,
+    };
+  });
+}
+
+// TODO: add tfma back
+// function filterTfmaArtifactsPaths(
+//   artifactTypes: ArtifactType[],
+//   artifacts: Artifact[],
+// ): string[] {
+//   const tfmaArtifactTypeIds = artifactTypes
+//     .filter(artifactType => artifactType.getName() === 'ModelEvaluation')
+//     .map(artifactType => artifactType.getId());
+//   const tfmaArtifacts = artifacts.filter(artifact =>
+//     tfmaArtifactTypeIds.includes(artifact.getTypeId()),
+//   );
+
+//   const tfmaArtifactPaths = tfmaArtifacts.map(artifact => artifact.getUri()).filter(uri => uri); // uri not empty
+//   return tfmaArtifactPaths;
+// }
+
+// async function getTfmaArtifactViewers(
+//   tfmaArtifactPaths: string[],
+// ): Array<Promise<HTMLViewerConfig>> {
+//   return tfmaArtifactPaths.map(async artifactPath => {
+//     const script = [
+//       'import tensorflow_model_analysis as tfma',
+//       `tfma_result = tfma.load_eval_result('${artifactPath}')`,
+//       'tfma.view.render_slicing_metrics(tfma_result)',
+//     ];
+//     const visualizationData: ApiVisualization = {
+//       arguments: JSON.stringify({ code: script }),
+//       source: '',
+//       type: ApiVisualizationType.CUSTOM,
+//     };
+//     const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
+//     if (!visualization.htmlContent) {
+//       // TODO: Improve error message with details.
+//       throw new Error('Failed to build TFMA artifact visualization');
+//     }
+//     return {
+//       htmlContent: visualization.htmlContent,
+//       type: PlotType.WEB_APP,
+//     };
+//   });
+// }
