@@ -1365,7 +1365,7 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
             selectedNodeId="node1"
           />
           <SidePanel
-            isBusy={false}
+            isBusy={true}
             isOpen={true}
             onClose={[Function]}
             title="node1"
@@ -1607,7 +1607,7 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
             selectedNodeId="node1"
           />
           <SidePanel
-            isBusy={false}
+            isBusy={true}
             isOpen={true}
             onClose={[Function]}
             title="node1"
@@ -1763,6 +1763,24 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
                 >
                   <div
                     className=""
+                    key="0"
+                  >
+                    <PlotCard
+                      configs={
+                        Array [
+                          Object {
+                            "type": "tensorboard",
+                            "url": "some url",
+                          },
+                        ]
+                      }
+                      maxDimension={500}
+                      title="Tensorboard"
+                    />
+                    <Component />
+                  </div>
+                  <div
+                    className=""
                   >
                     <PlotCard
                       configs={
@@ -1777,24 +1795,6 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
                       }
                       maxDimension={500}
                       title="Visualization Creator"
-                    />
-                    <Component />
-                  </div>
-                  <div
-                    className=""
-                    key="0"
-                  >
-                    <PlotCard
-                      configs={
-                        Array [
-                          Object {
-                            "type": "tensorboard",
-                            "url": "some url",
-                          },
-                        ]
-                      }
-                      maxDimension={500}
-                      title="Tensorboard"
                     />
                     <Component />
                   </div>
@@ -2343,7 +2343,7 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
             selectedNodeId="node1"
           />
           <SidePanel
-            isBusy={false}
+            isBusy={true}
             isOpen={true}
             onClose={[Function]}
             title="node1"
@@ -2491,7 +2491,7 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
             selectedNodeId="node1"
           />
           <SidePanel
-            isBusy={false}
+            isBusy={true}
             isOpen={true}
             onClose={[Function]}
             title="node1"
