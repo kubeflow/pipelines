@@ -219,7 +219,7 @@ export class OutputArtifactLoader {
 
   public static async getMlmdContext(argoPodName: string): Promise<Context> {
     if (argoPodName.split('-').length < 3) {
-      throw new Error('kfpPodName has fewer than 3 parts');
+      throw new Error('argoPodName has fewer than 3 parts');
     }
 
     // argoPodName has the general form "pipelineName-workflowId-executionId".
@@ -246,7 +246,7 @@ export class OutputArtifactLoader {
       throw err;
     }
 
-    const context = res && res.getContext();
+    const context = res.getContext();
     if (!context) {
       throw new Error("getContextByTypeAndName didn't have a context");
     }
@@ -269,10 +269,10 @@ export class OutputArtifactLoader {
       res = await Api.getInstance().metadataStoreService.getExecutionsByContext(request);
     } catch (err) {
       err.message = 'Failed to getExecutionsByContext: ' + err.message;
-      return err;
+      throw err;
     }
 
-    const executionList = (res && res.getExecutionsList()) || [];
+    const executionList = res.getExecutionsList();
     const foundExecution = executionList.find(execution => {
       const properties = execution.getPropertiesMap();
       const executionPodName = properties.get('kfp_pod_name');
@@ -308,10 +308,10 @@ export class OutputArtifactLoader {
       res = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
     } catch (err) {
       err.message = 'Failed to getExecutionsByExecutionIDs: ' + err.message;
-      return err;
+      throw err;
     }
 
-    const eventsList = (res && res.getEventsList()) || [];
+    const eventsList = res.getEventsList();
     const outputArtifactIds: number[] = [];
     eventsList.forEach(event => {
       if (event.getType() === Event.Type.OUTPUT) {
@@ -323,7 +323,7 @@ export class OutputArtifactLoader {
     });
 
     const artifactsRequest = new GetArtifactsByIDRequest();
-    outputArtifactIds.forEach(artifactId => artifactsRequest.addArtifactIds(artifactId));
+    artifactsRequest.setArtifactIdsList(outputArtifactIds);
     let artifactsRes: GetArtifactsByIDResponse;
     try {
       artifactsRes = await Api.getInstance().metadataStoreService.getArtifactsByID(
@@ -331,7 +331,7 @@ export class OutputArtifactLoader {
       );
     } catch (artifactsErr) {
       artifactsErr.message = 'Failed to getArtifactsByID: ' + artifactsErr.message;
-      return artifactsErr;
+      throw artifactsErr;
     }
 
     const artifactsList = (artifactsRes && artifactsRes.getArtifactsList()) || [];
@@ -345,7 +345,7 @@ export class OutputArtifactLoader {
       res = await Api.getInstance().metadataStoreService.getArtifactTypes(request);
     } catch (err) {
       err.message = 'Failed to getArtifactTypes: ' + err.message;
-      return err;
+      throw err;
     }
     const artifactTypes = (res && res.getArtifactTypesList()) || [];
     return artifactTypes;
@@ -384,7 +384,7 @@ export class OutputArtifactLoader {
     return tfdvArtifactPaths.map(async artifactPath => {
       const script = [
         'import tensorflow_data_validation as tfdv',
-        "stats = tfdv.load_statistics('${artifactPath}')",
+        `stats = tfdv.load_statistics('${artifactPath}')`,
         'tfdv.visualize_statistics(stats)',
       ];
       const visualizationData: ApiVisualization = {
@@ -431,7 +431,7 @@ export class OutputArtifactLoader {
     return tfmaArtifactPaths.map(async artifactPath => {
       const script = [
         'import tensorflow_model_analysis as tfma',
-        "tfma_result = tfma.load_eval_result('${artifactPath}')",
+        `tfma_result = tfma.load_eval_result('${artifactPath}')`,
         'tfma.view.render_slicing_metrics(tfma_result)',
       ];
       const visualizationData: ApiVisualization = {
