@@ -62,6 +62,7 @@ export interface RunListProps extends RouteComponentProps {
   disableSorting?: boolean;
   experimentIdMask?: string;
   hideExperimentColumn?: boolean;
+  hideMetricMetadata?: boolean;
   noFilterBox?: boolean;
   onError: (message: string, error: Error) => void;
   onSelectionChange?: (selectedRunIds: string[]) => void;
@@ -112,7 +113,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       });
     }
 
-    if (metricMetadata.length) {
+    if (metricMetadata.length && !this.props.hideMetricMetadata) {
       // This is a column of empty cells with a left border to separate the metrics from the other
       // columns.
       columns.push({
@@ -158,7 +159,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       if (!this.props.hideExperimentColumn) {
         row.otherFields.splice(3, 0, r.experiment);
       }
-      if (displayMetrics.length) {
+      if (displayMetrics.length && !this.props.hideMetricMetadata) {
         row.otherFields.push(''); // Metric buffer column
         row.otherFields.push(...(displayMetrics as any));
       }
