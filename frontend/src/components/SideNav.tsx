@@ -56,8 +56,10 @@ export const css = stylesheet({
     color: sideNavColors.fgActive + ' !important',
   },
   button: {
-    '&:hover': {
-      backgroundColor: sideNavColors.hover,
+    $nest: {
+      '&::hover': {
+        backgroundColor: sideNavColors.hover,
+      },
     },
     borderRadius: 0,
     color: sideNavColors.fgDefault,

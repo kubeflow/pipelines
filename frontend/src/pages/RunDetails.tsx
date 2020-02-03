@@ -47,7 +47,13 @@ import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, color, fonts, fontsize } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { flatten } from 'lodash';
-import { formatDateString, getRunDurationFromWorkflow, logger, errorToMessage } from '../lib/Utils';
+import {
+  formatDateString,
+  getRunDurationFromWorkflow,
+  logger,
+  errorToMessage,
+  serviceErrorToString,
+} from '../lib/Utils';
 import { statusToIcon } from './Status';
 import VisualizationCreator, {
   VisualizationCreatorConfig,
@@ -772,7 +778,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       }
       const tfxAutomaticVisualizations: ViewerConfig[] = await OutputArtifactLoader.buildTFXArtifactViewerConfig(
         selectedNodeDetails.id,
-      ).catch(() => []);
+      ).catch(err => {
+        this.showPageError(serviceErrorToString(err), err);
+        return [];
+      });
       const generatedConfigs = generatedVisualizations
         .filter(visualization => visualization.nodeId === selectedNodeDetails.id)
         .map(visualization => visualization.config);
