@@ -690,3 +690,14 @@ spec:
             - containerPort: 8888
             - containerPort: 8887
       serviceAccountName: ml-pipeline
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gcp-default-config
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+data:
+  bucket_name: "<your-bucket>"
+  has_default_bucket: "false"
+  project_id: ""

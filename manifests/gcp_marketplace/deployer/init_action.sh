@@ -38,19 +38,16 @@ function set_bucket_and_configmap() {
     fi
   done
   
-  # Populate configmap, with name gcp-default-config
-  if [ "${bucket_is_set}" = true ]; then
-    kubectl create configmap -n "${NAMESPACE}" "${CONFIG_NAME}" \
-      --from-literal bucket_name="${bucket_name}" \
-      --from-literal has_default_bucket="true" \
-      --from-literal project_id="${GCP_PROJECT_ID}"
-  else
-    echo "Cannot successfully create bucket after ${NUM_RETRIES} attempts. Fall back to not specifying default bucket."
-    kubectl create configmap -n "${NAMESPACE}" "${CONFIG_NAME}" \
-      --from-literal bucket_name="<your-bucket>" \
-      --from-literal has_default_bucket="false" \
-      --from-literal project_id="${GCP_PROJECT_ID}"
-  fi
+  # Update value of configmap gcp-default-config
+  PATCH_TEMP='{"data": {"bucket_name":"'${bucket_name}'","has_default_bucket":"'${bucket_is_set}'","project_id":"'${GCP_PROJECT_ID}'"}}'
+  PATCH_JSON=$(printf "${PATCH_TEMP}" "${bucket_name}" "${bucket_is_set}" "${GCP_PROJECT_ID}")
+  echo "PACTH_JSON: ${PATCH_JSON}"
+
+  kubectl patch configmap/gcp-default-config \
+    --type merge \
+    --patch "${PATCH_JSON}"
+
+  echo "Patched configmap/gcp-default-config"
 }
 
 # Helper script for auto-provision bucket in KFP MKP deployment.
@@ -63,7 +60,8 @@ NAMESPACE="$(/bin/print_config.py \
 export NAME
 export NAMESPACE
 
-set_bucket_and_configmap "${NAME}-default" 10
-
 # Invoke normal deployer routine.
 /bin/bash /bin/core_deploy.sh
+
+# Do post-intsallation initialization
+set_bucket_and_configmap "${NAME}-default" 10
