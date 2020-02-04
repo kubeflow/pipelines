@@ -65,5 +65,4 @@ export NAMESPACE
 
 set_bucket_and_configmap "${NAME}-default" 10
 
-# Invoke normal deployer routine.
-/bin/bash /bin/core_deploy.sh
+echo "init_action done"
