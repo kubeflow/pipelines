@@ -28,6 +28,12 @@ function set_bucket_and_configmap() {
   # Detect GCP project
   GCP_PROJECT_ID=$(curl -H "Metadata-Flavor: Google" -w '\n' "http://metadata.google.internal/computeMetadata/v1/project/project-id")
 
+  # Check whether ConfigMap is already exist
+  if kubectl get configmap ${CONFIG_NAME}; then
+    echo "Already has a configmap map there"
+    return 0
+  fi
+
   for i in $(seq 1 ${NUM_RETRIES})
   do
     bucket_is_set=true
@@ -65,5 +71,4 @@ export NAMESPACE
 
 set_bucket_and_configmap "${NAME}-default" 10
 
-# Invoke normal deployer routine.
-/bin/bash /bin/core_deploy.sh
+echo "init_action done"
