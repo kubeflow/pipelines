@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import digits
+import string
+import random
 import time
 import logging
 import json
@@ -455,7 +456,7 @@ class Client(object):
         parameters=api_params)
     
     trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(cron="0 0 9 ? * 2-6")
-    job_id = ''.join(choice(ascii_uppercase + digits) for i in range(12))
+    job_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
     schedule_body = kfp_server_api.models.ApiJob(
         id=job_id,
         name="TestScheduling",
