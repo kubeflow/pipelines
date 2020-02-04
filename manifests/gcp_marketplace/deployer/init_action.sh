@@ -51,17 +51,4 @@ function set_bucket_and_configmap() {
 }
 
 # Helper script for auto-provision bucket in KFP MKP deployment.
-NAME="$(/bin/print_config.py \
-    --xtype NAME \
-    --values_mode raw)"
-NAMESPACE="$(/bin/print_config.py \
-    --xtype NAMESPACE \
-    --values_mode raw)"
-export NAME
-export NAMESPACE
-
-# Invoke normal deployer routine.
-/bin/bash /bin/core_deploy.sh
-
-# Do post-intsallation initialization
 set_bucket_and_configmap "${NAME}-default" 10

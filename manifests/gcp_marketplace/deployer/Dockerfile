@@ -10,8 +10,10 @@ RUN /usr/local/gcloud/google-cloud-sdk/install.sh
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
 # move the old entrypoint, because mpdev tool will call it directly, whatever entrypoint is.
-RUN mv /bin/deploy.sh /bin/core_deploy.sh
-ADD deployer/init_action.sh /bin/deploy.sh
+RUN mv /bin/deploy.sh /bin/src_deploy.sh
+ADD deployer/init_action.sh /bin/init_action.sh
+RUN chmod 755 /bin/init_action.sh
+RUN awk '{sub(/clean_iam_resources.sh/,"init_action.sh\n\nclean_iam_resources.sh")}1' /bin/src_deploy.sh > /bin/deploy.sh
 RUN chmod 755 /bin/deploy.sh
 
 ENTRYPOINT ["/bin/bash", "/bin/deploy.sh"]
