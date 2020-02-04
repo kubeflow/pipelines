@@ -238,6 +238,7 @@ func initConfig() {
 	// Set configuration file name. The format is auto detected in this case.
 	viper.SetConfigName("config")
 	viper.AddConfigPath(*configPath)
+	viper.AddConfigPath("/etc/apiconfig")
 	err := viper.ReadInConfig()
 	if err != nil {
 		glog.Fatalf("Fatal error config file: %s", err)

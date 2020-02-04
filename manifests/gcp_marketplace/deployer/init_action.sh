@@ -39,8 +39,10 @@ function set_bucket_and_configmap() {
   done
   
   # Update value of configmap gcp-default-config
-  PATCH_TEMP='{"data": {"bucket_name":"'${bucket_name}'","has_default_bucket":"'${bucket_is_set}'","project_id":"'${GCP_PROJECT_ID}'"}}'
-  PATCH_JSON=$(printf "${PATCH_TEMP}" "${bucket_name}" "${bucket_is_set}" "${GCP_PROJECT_ID}")
+  PATCH_TEMP='{"data": {"config.yaml": "{bucket_name:'${bucket_name}', project_id:'${GCP_PROJECT_ID}'}"}}'
+  PATCH_JSON=$(printf "${PATCH_TEMP}" "${bucket_name}" "${GCP_PROJECT_ID}")
+  #PATCH_TEMP='{"data": {"bucket_name":"'${bucket_name}'","has_default_bucket":"'${bucket_is_set}'","project_id":"'${GCP_PROJECT_ID}'"}}'
+  #PATCH_JSON=$(printf "${PATCH_TEMP}" "${bucket_name}" "${bucket_is_set}" "${GCP_PROJECT_ID}")
   echo "PACTH_JSON: ${PATCH_JSON}"
 
   kubectl patch configmap/gcp-default-config \
