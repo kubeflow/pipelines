@@ -38,7 +38,7 @@ def get_gcp_access_token():
     """
     args = ['gcloud', 'auth', 'print-access-token']
     # Casting to string to accommodate API server request schema.
-    return str(subprocess.check_output(args).rstrip())
+    return subprocess.check_output(args).rstrip().decode("utf-8")
 
 def get_auth_token(client_id, other_client_id, other_client_secret):
     """Gets auth token from default service account or user account."""
