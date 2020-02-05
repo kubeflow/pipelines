@@ -1,5 +1,51 @@
 # Changelog
 
+# Change Log
+
+## [0.2.1](https://github.com/kubeflow/pipelines/tree/0.2.1) (2020-02-02)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.2.0...0.2.1)
+
+**Merged pull requests:**
+
+- Bump version for release 0.2.1 of Pipelines [\#2961](https://github.com/kubeflow/pipelines/pull/2961) ([neuromage](https://github.com/neuromage))
+- Release 85945e10920757efab999217c836403c024b09e3 [\#2960](https://github.com/kubeflow/pipelines/pull/2960) ([neuromage](https://github.com/neuromage))
+- \[Doc\] Improve vscode settings documentation [\#2959](https://github.com/kubeflow/pipelines/pull/2959) ([Bobgy](https://github.com/Bobgy))
+- \[UI\] Updating starting page UI links [\#2955](https://github.com/kubeflow/pipelines/pull/2955) ([SinaChavoshi](https://github.com/SinaChavoshi))
+- Adding diagnose me component to XGboost sample [\#2953](https://github.com/kubeflow/pipelines/pull/2953) ([SinaChavoshi](https://github.com/SinaChavoshi))
+- \[Frontend\] Change Tab name from source to YAML [\#2951](https://github.com/kubeflow/pipelines/pull/2951) ([numerology](https://github.com/numerology))
+- Bump TFX dependency to 0.21.0rc0 [\#2949](https://github.com/kubeflow/pipelines/pull/2949) ([numerology](https://github.com/numerology))
+- diagnose me component [\#2948](https://github.com/kubeflow/pipelines/pull/2948) ([SinaChavoshi](https://github.com/SinaChavoshi))
+- Visualizations - Updated the TFMA and TFDV versions [\#2946](https://github.com/kubeflow/pipelines/pull/2946) ([Ark-kun](https://github.com/Ark-kun))
+- Samples - Add and change preloaded samples [\#2944](https://github.com/kubeflow/pipelines/pull/2944) ([Ark-kun](https://github.com/Ark-kun))
+- Adding support for getting all configmaps [\#2941](https://github.com/kubeflow/pipelines/pull/2941) ([SinaChavoshi](https://github.com/SinaChavoshi))
+- \[Fix\]\[Test\] Fix post submit test on mkp deployment [\#2939](https://github.com/kubeflow/pipelines/pull/2939) ([rui5i](https://github.com/rui5i))
+- \[Backend\] Patch default bucket name and project ID [\#2938](https://github.com/kubeflow/pipelines/pull/2938) ([numerology](https://github.com/numerology))
+- \[UI\] Getting started page for hosted pipelines [\#2935](https://github.com/kubeflow/pipelines/pull/2935) ([Bobgy](https://github.com/Bobgy))
+- \[MKP\] Add initializaion action for MKP deployer [\#2932](https://github.com/kubeflow/pipelines/pull/2932) ([numerology](https://github.com/numerology))
+- Metadata: Update Metadata server version to v0.21.1 [\#2931](https://github.com/kubeflow/pipelines/pull/2931) ([dushyanthsc](https://github.com/dushyanthsc))
+- \[UI\] Adding Troubleshooting guide link to Error / Warning Banner [\#2930](https://github.com/kubeflow/pipelines/pull/2930) ([SinaChavoshi](https://github.com/SinaChavoshi))
+- \[MLMD\]\[Lineage\] Integrate Lineage View into KFP [\#2918](https://github.com/kubeflow/pipelines/pull/2918) ([kwasi](https://github.com/kwasi))
+- Tests - Fixed presubmit tests [\#2912](https://github.com/kubeflow/pipelines/pull/2912) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Components -  Added the create\_component\_from\_func alias [\#2911](https://github.com/kubeflow/pipelines/pull/2911) ([Ark-kun](https://github.com/Ark-kun))
+- \[Fix\] Temporarily pin beam version to 2.17 [\#2909](https://github.com/kubeflow/pipelines/pull/2909) ([numerology](https://github.com/numerology))
+- Backend - Annotate Workflow with the run name [\#2902](https://github.com/kubeflow/pipelines/pull/2902) ([Ark-kun](https://github.com/Ark-kun))
+- Metadata: Updating metadata server version from 0.14.0 to v0.21.0 [\#2901](https://github.com/kubeflow/pipelines/pull/2901) ([dushyanthsc](https://github.com/dushyanthsc))
+- \[Test\] Read mkp tools image from manifest docker file [\#2900](https://github.com/kubeflow/pipelines/pull/2900) ([rui5i](https://github.com/rui5i))
+- \[SDK\] kfp client should not silently fail using gcloud [\#2896](https://github.com/kubeflow/pipelines/pull/2896) ([Bobgy](https://github.com/Bobgy))
+- \[UI\] Add tooltips to table name columns so they can be read fully [\#2894](https://github.com/kubeflow/pipelines/pull/2894) ([Bobgy](https://github.com/Bobgy))
+- Have custom visualization on by default [\#2891](https://github.com/kubeflow/pipelines/pull/2891) ([jingzhang36](https://github.com/jingzhang36))
+- Add numerology to test OWNERS [\#2890](https://github.com/kubeflow/pipelines/pull/2890) ([numerology](https://github.com/numerology))
+- Manifests/Kustomize: Add metadata-writer to images [\#2882](https://github.com/kubeflow/pipelines/pull/2882) ([elikatsis](https://github.com/elikatsis))
+- changelog for 0.2.0 [\#2881](https://github.com/kubeflow/pipelines/pull/2881) ([rmgogogo](https://github.com/rmgogogo))
+- Pin sample doc links during backend image build [\#2880](https://github.com/kubeflow/pipelines/pull/2880) ([Bobgy](https://github.com/Bobgy))
+- Make created\_at value follows RFC3339 time format. [\#2876](https://github.com/kubeflow/pipelines/pull/2876) ([jiyongjung0](https://github.com/jiyongjung0))
+- SDK - Components refactoring [\#2865](https://github.com/kubeflow/pipelines/pull/2865) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Components - Made it easier to access component spec classes [\#2860](https://github.com/kubeflow/pipelines/pull/2860) ([Ark-kun](https://github.com/Ark-kun))
+- \[Test\] - Add kfp deployment method in test post submit script [\#2859](https://github.com/kubeflow/pipelines/pull/2859) ([rui5i](https://github.com/rui5i))
+- Kfp diagnose\_me pipeline [\#2843](https://github.com/kubeflow/pipelines/pull/2843) ([SinaChavoshi](https://github.com/SinaChavoshi))
+- \[Windows\] PowerShell script added to start proxies for front-end UI [\#2835](https://github.com/kubeflow/pipelines/pull/2835) ([avdaredevil](https://github.com/avdaredevil))
+- Add new Ops to Azure Databricks for KFP: secretscope, workspaceitem & dbfsblock [\#2817](https://github.com/kubeflow/pipelines/pull/2817) ([magencio](https://github.com/magencio))
+
 ## [0.2.0](https://github.com/kubeflow/pipelines/tree/0.2.0) (2020-01-20)
 
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.40...0.2.0)
