@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { Stream } from 'stream';
-import * as tar from 'tar';
+import * as tar from 'tar-stream';
+import * as gunzip from 'gunzip-maybe';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
 import { awsInstanceProfileCredentials } from './aws-helper';
 
@@ -58,14 +59,25 @@ export function getTarObjectAsString({ bucket, key, client }: MinioRequestConfig
   return new Promise<string>(async (resolve, reject) => {
     try {
       const stream = await getObjectStream({ bucket, key, client });
-      let contents = '';
-      // TODO: fix tar.Parse typing problem
-      stream.pipe(new (tar.Parse as any)()).on('entry', (entry: Stream) => {
-        entry.on('data', buffer => (contents += buffer.toString()));
+      const extract = tar.extract();
+      let emitOnce = false;
+      extract.once('entry', function(_header, stream, next) {
+        let content = '';
+        stream.on('data', buffer => (content += buffer.toString()));
+        stream.on('end', () => {
+          emitOnce = true;
+          resolve(content);
+          next();
+        });
+        stream.resume(); // just auto drain the stream
       });
-      stream.on('end', () => {
-        resolve(contents);
+      extract.on('end', function() {
+        if (!emitOnce) {
+          resolve('');
+        }
       });
+      extract.on('error', reject);
+      stream.pipe(gunzip()).pipe(extract);
     } catch (err) {
       reject(err);
     }
