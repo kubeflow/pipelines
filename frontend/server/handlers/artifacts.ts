@@ -46,7 +46,7 @@ export function getArtifactsHandler(artifactsConfigs: {
 }): Handler {
   const { aws, http, minio } = artifactsConfigs;
   return async (req, res) => {
-    const { source, bucket, key: encodedKey, peek = -1 } = req.query as Partial<
+    const { source, bucket, key: encodedKey, peek = 0 } = req.query as Partial<
       ArtifactsQueryStrings
     >;
     if (!source) {

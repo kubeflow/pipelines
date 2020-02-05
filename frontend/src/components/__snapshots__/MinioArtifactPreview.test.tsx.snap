@@ -1,0 +1,139 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MinioArtifactPreview handles empty artifact 1`] = `
+<MinioArtifactPreview
+  artifact={Object {}}
+/>
+`;
+
+exports[`MinioArtifactPreview handles invalid artifact: no bucket 1`] = `
+<MinioArtifactPreview
+  artifact={
+    Object {
+      "accessKeySecret": Object {
+        "key": "accesskey",
+        "name": "minio",
+        "optional": false,
+      },
+      "bucket": "",
+      "endpoint": "minio.kubeflow",
+      "key": "bar",
+      "secretKeySecret": Object {
+        "key": "secretkey",
+        "name": "minio",
+        "optional": false,
+      },
+    }
+  }
+/>
+`;
+
+exports[`MinioArtifactPreview handles invalid artifact: no key 1`] = `
+<MinioArtifactPreview
+  artifact={
+    Object {
+      "accessKeySecret": Object {
+        "key": "accesskey",
+        "name": "minio",
+        "optional": false,
+      },
+      "bucket": "foo",
+      "endpoint": "minio.kubeflow",
+      "key": "",
+      "secretKeySecret": Object {
+        "key": "secretkey",
+        "name": "minio",
+        "optional": false,
+      },
+    }
+  }
+/>
+`;
+
+exports[`MinioArtifactPreview handles minio artifact 1`] = `
+<MinioArtifactPreview
+  artifact={
+    Object {
+      "accessKeySecret": Object {
+        "key": "accesskey",
+        "name": "minio",
+        "optional": false,
+      },
+      "bucket": "foo",
+      "endpoint": "minio.kubeflow",
+      "key": "bar",
+      "secretKeySecret": Object {
+        "key": "secretkey",
+        "name": "minio",
+        "optional": false,
+      },
+    }
+  }
+>
+  <div>
+    <a
+      href="artifacts/get?source=minio&bucket=foo&key=bar"
+      rel="noreferrer noopener"
+      target="_blank"
+      title="minio://foo/bar"
+    >
+      minio://foo/bar
+    </a>
+    <div>
+      <small>
+        <pre />
+      </small>
+    </div>
+  </div>
+</MinioArtifactPreview>
+`;
+
+exports[`MinioArtifactPreview handles null artifact 1`] = `
+<MinioArtifactPreview
+  artifact={null}
+/>
+`;
+
+exports[`MinioArtifactPreview handles s3 artifact 1`] = `
+<MinioArtifactPreview
+  artifact={
+    Object {
+      "accessKeySecret": Object {
+        "key": "accesskey",
+        "name": "minio",
+        "optional": false,
+      },
+      "bucket": "foo",
+      "endpoint": "s3.amazonaws.com",
+      "key": "bar",
+      "secretKeySecret": Object {
+        "key": "secretkey",
+        "name": "minio",
+        "optional": false,
+      },
+    }
+  }
+>
+  <div>
+    <a
+      href="artifacts/get?source=s3&bucket=foo&key=bar"
+      rel="noreferrer noopener"
+      target="_blank"
+      title="s3://foo/bar"
+    >
+      s3://foo/bar
+    </a>
+    <div>
+      <small>
+        <pre />
+      </small>
+    </div>
+  </div>
+</MinioArtifactPreview>
+`;
+
+exports[`MinioArtifactPreview handles undefined artifact 1`] = `
+<MinioArtifactPreview
+  artifact={undefined}
+/>
+`;

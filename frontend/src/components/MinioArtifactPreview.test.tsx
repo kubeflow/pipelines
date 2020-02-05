@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Google LLC
+ * Copyright 2019-2020 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the 'License');
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import React from 'react';
+import { mount } from 'enzyme'
+import MinioArtifactPreview from './MinioArtifactPreview';
 
-import MinioArtifactLink from './MinioArtifactLink';
-
-describe('MinioArtifactLink', () => {
+describe('MinioArtifactPreview', () => {
   it('handles undefined artifact', () => {
-    expect(MinioArtifactLink(undefined as any)).toMatchSnapshot();
+    expect(<MinioArtifactPreview artifact={undefined as any} />).toMatchSnapshot();
   });
 
   it('handles null artifact', () => {
-    expect(MinioArtifactLink(null as any)).toMatchSnapshot();
+    expect(<MinioArtifactPreview artifact={null as any} />).toMatchSnapshot();
   });
 
   it('handles empty artifact', () => {
-    expect(MinioArtifactLink({} as any)).toMatchSnapshot();
+    expect(<MinioArtifactPreview artifact={{} as any} />).toMatchSnapshot();
   });
 
   it('handles invalid artifact: no bucket', () => {
@@ -37,7 +38,7 @@ describe('MinioArtifactLink', () => {
       key: 'bar',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    expect(MinioArtifactLink(s3artifact)).toMatchSnapshot();
+    expect(<MinioArtifactPreview artifact={s3artifact as any} />).toMatchSnapshot();
   });
 
   it('handles invalid artifact: no key', () => {
@@ -48,7 +49,7 @@ describe('MinioArtifactLink', () => {
       key: '',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    expect(MinioArtifactLink(s3artifact)).toMatchSnapshot();
+    expect(<MinioArtifactPreview artifact={s3artifact as any} />).toMatchSnapshot();
   });
 
   it('handles s3 artifact', () => {
@@ -59,7 +60,8 @@ describe('MinioArtifactLink', () => {
       key: 'bar',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    expect(MinioArtifactLink(s3artifact)).toMatchSnapshot();
+    const wrapper = mount(<MinioArtifactPreview artifact={s3artifact} />)
+    expect(wrapper).toMatchSnapshot()
   });
 
   it('handles minio artifact', () => {
@@ -70,6 +72,7 @@ describe('MinioArtifactLink', () => {
       key: 'bar',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    expect(MinioArtifactLink(minioartifact)).toMatchSnapshot();
+    const wrapper = mount(<MinioArtifactPreview artifact={minioartifact} />)
+    expect(wrapper).toMatchSnapshot()
   });
 });

@@ -19,6 +19,7 @@ import { stylesheet } from 'typestyle';
 import { color, spacing, commonCss } from '../Css';
 import { KeyValue } from '../lib/StaticGraphParser';
 import Editor from './Editor';
+import MinioArtifactPreview, {isS3Artifact} from './MinioArtifactPreview';
 import 'brace';
 import 'brace/ext/language_tools';
 import 'brace/mode/json';
@@ -51,7 +52,6 @@ export const css = stylesheet({
 interface DetailsTableProps {
   fields: Array<KeyValue<string | S3Artifact>>;
   title?: string;
-  valueComponent?: React.FC<S3Artifact>;
 }
 
 function isString(x: any): x is string {
@@ -97,14 +97,13 @@ const DetailsTable = (props: DetailsTableProps) => {
               // do nothing
             }
           }
-          // If the value isn't a JSON object, just display it as is
+          // If value is an Argo S3Artifact obj, show the preview
+          // Otherwise just display it as is
           return (
             <div key={i} className={css.row}>
               <span className={css.key}>{key}</span>
               <span className={css.valueText}>
-                {props.valueComponent && !!value && !isString(value)
-                  ? props.valueComponent(value)
-                  : value}
+                {isS3Artifact(value) ? <MinioArtifactPreview artifact={value} /> : value}
               </span>
             </div>
           );

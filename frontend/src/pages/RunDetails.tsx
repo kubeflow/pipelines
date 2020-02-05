@@ -21,7 +21,7 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import CompareTable from '../components/CompareTable';
 import CompareUtils from '../lib/CompareUtils';
 import DetailsTable from '../components/DetailsTable';
-import MinioArtifactLink from '../components/MinioArtifactLink';
+import MinioArtifactPreview from '../components/MinioArtifactPreview';
 import Graph from '../components/Graph';
 import Hr from '../atoms/Hr';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
@@ -320,7 +320,6 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     <DetailsTable
                                       title='Input artifacts'
                                       fields={inputArtifacts}
-                                      valueComponent={MinioArtifactLink}
                                     />
 
                                     <DetailsTable title='Output parameters' fields={outputParams} />
@@ -328,7 +327,6 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     <DetailsTable
                                       title='Output artifacts'
                                       fields={outputArtifacts}
-                                      valueComponent={MinioArtifactLink}
                                     />
                                   </div>
                                 )}

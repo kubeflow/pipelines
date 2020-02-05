@@ -22,6 +22,7 @@ import {
   getRunDuration,
   getRunDurationFromWorkflow,
   logger,
+  isS3Endpoint,
 } from './Utils';
 
 describe('Utils', () => {
@@ -253,4 +254,27 @@ describe('Utils', () => {
       expect(generateMinioArtifactUrl('ZZZ://my-bucket/a/b/c')).toBe(undefined);
     });
   });
+
+  describe('isS3Endpoint', () => {
+    it('checks a valid s3 endpoint', () => {
+      expect(isS3Endpoint('s3.amazonaws.com')).toBe(true);
+    })
+
+    it('checks a valid s3 regional endpoint', () => {
+      expect(isS3Endpoint('s3.dualstack.us-east-1.amazonaws.com')).toBe(true);
+    })
+
+    it('checks a valid s3 cn endpoint', () => {
+      expect(isS3Endpoint('s3.cn-north-1.amazonaws.com.cn')).toBe(true);
+    })
+
+    it('checks an invalid s3 endpoint', () => {
+      expect(isS3Endpoint('amazonaws.com')).toBe(false);
+    })
+
+    it('checks non-s3 endpoint', () => {
+      expect(isS3Endpoint('minio.kubeflow')).toBe(false);
+    })
+
+  })
 });

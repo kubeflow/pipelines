@@ -215,8 +215,21 @@ exports[`DetailsTable does render arrays as JSON 2`] = `
 </Fragment>
 `;
 
-exports[`DetailsTable does render values with the provided valueComponent 1`] = `
-<Fragment>
+exports[`DetailsTable does render previews if the values of the fields are S3Artifacts obj 1`] = `
+<Component
+  fields={
+    Array [
+      Array [
+        "key",
+        Object {
+          "bucket": "someBucket",
+          "endpoint": "s3.amazonaws.com",
+          "key": "foobar",
+        },
+      ],
+    ]
+  }
+>
   <div>
     <div
       className="row"
@@ -230,13 +243,35 @@ exports[`DetailsTable does render values with the provided valueComponent 1`] = 
       <span
         className="valueText"
       >
-        <a>
-          foobar
-        </a>
+        <MinioArtifactPreview
+          artifact={
+            Object {
+              "bucket": "someBucket",
+              "endpoint": "s3.amazonaws.com",
+              "key": "foobar",
+            }
+          }
+        >
+          <div>
+            <a
+              href="artifacts/get?source=s3&bucket=someBucket&key=foobar"
+              rel="noreferrer noopener"
+              target="_blank"
+              title="s3://someBucket/foobar"
+            >
+              s3://someBucket/foobar
+            </a>
+            <div>
+              <small>
+                <pre />
+              </small>
+            </div>
+          </div>
+        </MinioArtifactPreview>
       </span>
     </div>
   </div>
-</Fragment>
+</Component>
 `;
 
 exports[`DetailsTable shows a row with a title 1`] = `
