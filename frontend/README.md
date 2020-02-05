@@ -68,7 +68,7 @@ To understand more what prettier is: [What is Prettier](https://prettier.io/docs
 
 - For vscode, install the plugin "Prettier - Code formatter" and it will pick
   this project's config automatically.
-  Recommend setting the following for vscode to autoformat + organize import on save.
+  Recommend setting the following in [settings.json](https://code.visualstudio.com/docs/getstarted/settings#_settings-file-locations) for vscode to autoformat + organize import on save.
   ```
   "[typescript]": {
       "editor.codeActionsOnSave": {

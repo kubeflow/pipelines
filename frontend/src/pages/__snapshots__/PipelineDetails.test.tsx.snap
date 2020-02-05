@@ -13,7 +13,7 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -189,7 +189,7 @@ exports[`PipelineDetails collapses summary card when summary shown state is fals
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -287,7 +287,7 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -463,7 +463,7 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -733,7 +733,7 @@ exports[`PipelineDetails shows correct versions in version selector 1`] = `
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -909,7 +909,7 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -1085,7 +1085,7 @@ exports[`PipelineDetails shows empty pipeline details with no graph 1`] = `
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -1123,7 +1123,7 @@ exports[`PipelineDetails shows pipeline source code when config tab is clicked 1
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />

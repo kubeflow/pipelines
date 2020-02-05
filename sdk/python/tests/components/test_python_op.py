@@ -301,7 +301,7 @@ class PythonOpTestCase(unittest.TestCase):
 
         component_spec = comp._python_op._extract_component_interface(my_func)
 
-        from kfp.components._structures import InputSpec, OutputSpec
+        from kfp.components.structures import InputSpec, OutputSpec
         self.assertEqual(
             component_spec.inputs,
             [

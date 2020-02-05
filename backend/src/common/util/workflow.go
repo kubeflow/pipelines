@@ -115,8 +115,8 @@ func isScheduledWorkflow(reference metav1.OwnerReference) bool {
 	}
 
 	if reference.APIVersion == gvk.GroupVersion().String() &&
-			reference.Kind == gvk.Kind &&
-			reference.UID != "" {
+		reference.Kind == gvk.Kind &&
+		reference.UID != "" {
 		return true
 	}
 	return false
@@ -215,6 +215,13 @@ func (w *Workflow) SetLabels(key string, value string) {
 		w.Labels = make(map[string]string)
 	}
 	w.Labels[key] = value
+}
+
+func (w *Workflow) SetAnnotations(key string, value string) {
+	if w.Annotations == nil {
+		w.Annotations = make(map[string]string)
+	}
+	w.Annotations[key] = value
 }
 
 func (w *Workflow) ReplaceUID(id string) error {

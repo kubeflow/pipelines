@@ -5,6 +5,7 @@ exports[`AllRunsList renders all runs 1`] = `
   className="page"
 >
   <RunList
+    hideMetricMetadata={true}
     history={
       Object {
         "push": [MockFunction],
