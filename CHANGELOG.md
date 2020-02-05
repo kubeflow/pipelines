@@ -2,6 +2,27 @@
 
 # Change Log
 
+## [0.2.2](https://github.com/kubeflow/pipelines/tree/0.2.2) (2020-02-05)
+
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.2.1...0.2.2)
+
+**Merged pull requests:**
+
+- better default bucket name, less resource request [\#2989](https://github.com/kubeflow/pipelines/pull/2989) ([rmgogogo](https://github.com/rmgogogo))
+- bump version to 0.2.2 [\#2988](https://github.com/kubeflow/pipelines/pull/2988) ([rmgogogo](https://github.com/rmgogogo))
+- \[SDK\] Fix CLI authentication [\#2986](https://github.com/kubeflow/pipelines/pull/2986) ([numerology](https://github.com/numerology))
+- Another fix of licenses [\#2984](https://github.com/kubeflow/pipelines/pull/2984) ([numerology](https://github.com/numerology))
+- Another license fix [\#2982](https://github.com/kubeflow/pipelines/pull/2982) ([numerology](https://github.com/numerology))
+- fix for Init Action [\#2980](https://github.com/kubeflow/pipelines/pull/2980) ([rmgogogo](https://github.com/rmgogogo))
+- \[Frontend\] Use latest kf frontend with bug fixes [\#2976](https://github.com/kubeflow/pipelines/pull/2976) ([Bobgy](https://github.com/Bobgy))
+- \[License\] Another license fix [\#2975](https://github.com/kubeflow/pipelines/pull/2975) ([numerology](https://github.com/numerology))
+- Fix third party license [\#2972](https://github.com/kubeflow/pipelines/pull/2972) ([numerology](https://github.com/numerology))
+- pin envoy [\#2968](https://github.com/kubeflow/pipelines/pull/2968) ([rmgogogo](https://github.com/rmgogogo))
+- Clean up metric columns [\#2964](https://github.com/kubeflow/pipelines/pull/2964) ([jingzhang36](https://github.com/jingzhang36))
+- Update changelog for 0.2.1 release. [\#2962](https://github.com/kubeflow/pipelines/pull/2962) ([neuromage](https://github.com/neuromage))
+- Bump version for release 0.2.1 of Pipelines [\#2961](https://github.com/kubeflow/pipelines/pull/2961) ([neuromage](https://github.com/neuromage))
+- Add support for automatic visualization of TFX artifacts [\#2957](https://github.com/kubeflow/pipelines/pull/2957) ([Realsen](https://github.com/Realsen))
+
 ## [0.2.1](https://github.com/kubeflow/pipelines/tree/0.2.1) (2020-02-02)
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.2.0...0.2.1)
 
