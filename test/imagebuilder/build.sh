@@ -71,7 +71,7 @@ for i in $(seq 10); do
     else
         sleep 20
     fi
-fi
+done
 tar -xzf "$downloaded_code_archive_file" --directory .
 
 echo "Waiting for Docker-in-Docker daemon to start..."
