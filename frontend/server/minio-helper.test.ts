@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import * as zlib from 'zlib';
 import { PassThrough } from 'stream';
 import { Client as MinioClient } from 'minio';
 import { awsInstanceProfileCredentials } from './aws-helper';
@@ -86,8 +87,9 @@ describe('minio-helper', () => {
     const tarGzBase64 =
       'H4sIAFa7DV4AA+3PSwrCMBRG4Y5dxV1BuSGPridgwcItkTZSl++johNBJ0WE803OIHfwZ87j0fq2nmuzGVVNIcitXYqPpntXLojzSb33MToVdTG5rhHdbtLLaa55uk5ZBrMhj23ty9u7T+/rT+TZP3HozYosZbL97tdbAAAAAAAAAAAAAAAAAADfuwAyiYcHACgAAA==';
     const tarGzBuffer = Buffer.from(tarGzBase64, 'base64');
+    const tarBuffer = zlib.gunzipSync(tarGzBuffer);
 
-    it('unpacks the tar gz and return the string "hello world".', async () => {
+    it('unpacks the tarball with gzip and return the string "hello world".', async () => {
       const client = new MinioClient({
         accessKey: 'minio',
         endPoint: 'minio-service.kubeflow',
@@ -97,6 +99,27 @@ describe('minio-helper', () => {
       const mockedGetObject: jest.Mock = client.getObject as any;
       const stream = new PassThrough();
       stream.end(tarGzBuffer);
+      mockedGetObject.mockResolvedValue(stream);
+
+      const content = await getTarObjectAsString({
+        bucket: 'bucket',
+        client,
+        key: 'key',
+      });
+
+      expect(content).toBe('hello world\n');
+    });
+
+    it('unpacks the tarball w/o gzip and return the string "hello world".', async () => {
+      const client = new MinioClient({
+        accessKey: 'minio',
+        endPoint: 'minio-service.kubeflow',
+        secretKey: 'minio123',
+        useSSL: false,
+      });
+      const mockedGetObject: jest.Mock = client.getObject as any;
+      const stream = new PassThrough();
+      stream.end(tarBuffer);
       mockedGetObject.mockResolvedValue(stream);
 
       const content = await getTarObjectAsString({
