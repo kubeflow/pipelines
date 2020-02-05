@@ -292,8 +292,23 @@ export function generateGcsConsoleUri(gcsUri: string): string | undefined {
 
 const MINIO_URI_PREFIX = 'minio://';
 
-function generateArtifactUrl(source: string, bucket: string, key: string): string {
-  return `artifacts/get?source=${source}&bucket=${bucket}&key=${key}`;
+/**
+ * Generates the path component of the url to retrieve an artifact.
+ *
+ * @param source source of the artifact. Can be "minio", "s3", "http", "https", or "gcs".
+ * @param bucket bucket where the artifact is stored.
+ * @param key path to the artifact.
+ * @param peek number of characters or bytes to return. If not provided, the entire content of the artifact will be returned.
+ */
+export function generateArtifactUrl(
+  source: string,
+  bucket: string,
+  key: string,
+  peek?: number,
+): string {
+  return encodeURI(
+    `artifacts/get?source=${source}&bucket=${bucket}&key=${key}${peek ? `&peek=${peek}` : ''}`,
+  );
 }
 
 /**
@@ -302,7 +317,7 @@ function generateArtifactUrl(source: string, bucket: string, key: string): strin
  * @param minioUri Minio uri that starts with minio://, like minio://ml-pipeline/path/file
  * @returns A URL that leads to the artifact data. Returns undefined when minioUri is not valid.
  */
-export function generateMinioArtifactUrl(minioUri: string): string | undefined {
+export function generateMinioArtifactUrl(minioUri: string, peek?: number): string | undefined {
   if (!minioUri.startsWith(MINIO_URI_PREFIX)) {
     return undefined;
   }
@@ -312,5 +327,14 @@ export function generateMinioArtifactUrl(minioUri: string): string | undefined {
   if (matches == null) {
     return undefined;
   }
-  return generateArtifactUrl('minio', matches[1], matches[2]);
+  return generateArtifactUrl('minio', matches[1], matches[2], peek);
+}
+
+/**
+ * Check if the provided string is an S3 endpoint (can be any region).
+ *
+ * @param endpoint minio endpoint to check.
+ */
+export function isS3Endpoint(endpoint: string = ''): boolean {
+  return !!endpoint.match(/s3.{0,}\.amazonaws\.com\.?.{0,}/i);
 }

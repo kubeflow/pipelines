@@ -17,7 +17,7 @@
 import * as React from 'react';
 
 import DetailsTable from './DetailsTable';
-import { shallow } from 'enzyme';
+import { shallow, mount } from 'enzyme';
 
 describe('DetailsTable', () => {
   it('shows no rows', () => {
@@ -123,10 +123,13 @@ describe('DetailsTable', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('does render values with the provided valueComponent', () => {
-    const valueComponent: React.FC<any> = ({ key }) => <a>{key}</a>;
-    const tree = shallow(
-      <DetailsTable fields={[['key', { key: 'foobar' } as any]]} valueComponent={valueComponent} />,
+  it('does render previews if the values of the fields are S3Artifacts obj', () => {
+    const tree = mount(
+      <DetailsTable
+        fields={[
+          ['key', { key: 'foobar', bucket: 'someBucket', endpoint: 's3.amazonaws.com' } as any],
+        ]}
+      />,
     );
     expect(tree).toMatchSnapshot();
   });
