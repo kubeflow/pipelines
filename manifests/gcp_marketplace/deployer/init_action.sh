@@ -15,14 +15,13 @@
 # limitations under the License.
 
 function set_bucket_and_configmap() {
-  # Helper function to deploy bucket with a unique name. The unique name is ${BASE_NAME} + random
-  # unique string. Also detect the current GCP project ID and populate the properties into a
+  # Helper function to deploy bucket with a unique name. 
+  # Also detect the current GCP project ID and populate the properties into a
   # config map.
   #
   # Usage:
-  # set_bucket_and_configmap BASE_NAME NUM_RETRIES
-  BASE_NAME=$1
-  NUM_RETRIES=$2
+  # set_bucket_and_configmap NUM_RETRIES
+  NUM_RETRIES=$1
   CONFIG_NAME="gcp-default-config"
 
   # Detect GCP project
@@ -37,7 +36,7 @@ function set_bucket_and_configmap() {
   for i in $(seq 1 ${NUM_RETRIES})
   do
     bucket_is_set=true
-    bucket_name="${BASE_NAME}-$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 10 | head -n 1)"
+    bucket_name="hostedkfp-default-$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 10 | head -n 1)"
     gsutil mb -p ${GCP_PROJECT_ID} "gs://${bucket_name}/" || bucket_is_set=false
     if [ "$bucket_is_set" = true ]; then
       break
@@ -69,6 +68,6 @@ NAMESPACE="$(/bin/print_config.py \
 export NAME
 export NAMESPACE
 
-set_bucket_and_configmap "${NAME}-default" 10
+set_bucket_and_configmap 10
 
 echo "init_action done"
