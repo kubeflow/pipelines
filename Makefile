@@ -12,20 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifndef GOOS
-GOOS := $(shell go env GOOS)
-endif
-
-ifndef GOARCH
-GOARCH := $(shell go env GOARCH)
-endif
-
-.PHONY: all
 all: build
 
-.PHONY: build
 build:
-	# Create vendor directories with all dependencies.
+  # Create vendor directories with all dependencies.
 	go mod vendor
 	# Extract go licenses into a single file. This assume licext is install globally through
 	# npm install -g license-extractor
@@ -33,30 +23,3 @@ build:
 	licext --mode merge --source vendor/ --target third_party/license.txt --overwrite
 	# Delete vendor directory
 	rm -rf vendor
-
-.PHONY: bins
-bins:
-	go build -i -o apiserver ./backend/src/apiserver
-
-.PHONY: start
-start: bins
-	./apiserver --config=backend/src/apiserver/config/ \
-		--sampleconfig=backend/src/apiserver/config/sample_config.json \
-		  -logtostderr=true
-
-.PHONY: dlv
-dlv:
-	dlv --headless --listen=:2345 --api-version=2 --accept-multiclient debug ./backend/src/apiserver -- \
-		--config=backend/src/apiserver/config/ \
-		--sampleconfig=backend/src/apiserver/config/sample_config.json \
-		-logtostderr=true
-
-.PHONY: test
-test:
-	# test backend server
-	cd backend/src/ && go test -count=1 ./...
-
-.PHONY: clean
-clean:
-	rm -rf bazel-*
-	rm -f apiserver
