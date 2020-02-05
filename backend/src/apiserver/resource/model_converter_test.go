@@ -81,11 +81,12 @@ func TestToModelRunDetail(t *testing.T) {
 
 	expectedModelRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:        "123",
-			DisplayName: "name1",
-			Name:        "workflow-name",
-			Conditions:  "running",
-			Description: "this is a run",
+			UUID:           "123",
+			ExperimentUUID: experiment.UUID,
+			DisplayName:    "name1",
+			Name:           "workflow-name",
+			Conditions:     "running",
+			Description:    "this is a run",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: "workflow spec",
 				Parameters:           `[{"name":"param2","value":"world"}]`,
