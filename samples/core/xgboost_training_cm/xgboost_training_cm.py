@@ -18,26 +18,28 @@ import json
 import kfp
 from kfp import components
 from kfp import dsl
-from kfp import gcp
 import os
 import subprocess
 
-confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/caa2dc56f29b0dce5216bec390b1685fc0cdc4b7/components/local/confusion_matrix/component.yaml')
+diagnose_me_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/df450617af6e385da8c436628afafb1c76ca6c79/components/diagnostics/diagnose_me/component.yaml')
 
-roc_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/caa2dc56f29b0dce5216bec390b1685fc0cdc4b7/components/local/roc/component.yaml')
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/local/confusion_matrix/component.yaml')
+
+roc_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/local/roc/component.yaml')
 
 dataproc_create_cluster_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/caa2dc56f29b0dce5216bec390b1685fc0cdc4b7/components/gcp/dataproc/create_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/gcp/dataproc/create_cluster/component.yaml')
 
 dataproc_delete_cluster_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/caa2dc56f29b0dce5216bec390b1685fc0cdc4b7/components/gcp/dataproc/delete_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/gcp/dataproc/delete_cluster/component.yaml')
 
 dataproc_submit_pyspark_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/caa2dc56f29b0dce5216bec390b1685fc0cdc4b7/components/gcp/dataproc/submit_pyspark_job/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/gcp/dataproc/submit_pyspark_job/component.yaml'
 )
 
 dataproc_submit_spark_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/caa2dc56f29b0dce5216bec390b1685fc0cdc4b7/components/gcp/dataproc/submit_spark_job/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/gcp/dataproc/submit_spark_job/component.yaml'
 )
 
 _PYSRC_PREFIX = 'gs://ml-pipeline-playground/dataproc-example' # Common path to python src.
@@ -203,14 +205,16 @@ def dataproc_predict_op(
     description='A trainer that does end-to-end distributed training for XGBoost models.'
 )
 def xgb_train_pipeline(
-    output='gs://your-gcs-bucket',
-    project='your-gcp-project',
+    output='gs://<your-gcs-bucket>',
+    project='<your-project-id>',
     cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER,
     region='us-central1',
     train_data='gs://ml-pipeline-playground/sfpd/train.csv',
     eval_data='gs://ml-pipeline-playground/sfpd/eval.csv',
     schema='gs://ml-pipeline-playground/sfpd/schema.json',
     target='resolution',
+    execution_mode='HALT_ON_ERROR',
+    required_apis='stackdriver.googleapis.com, storage-api.googleapis.com, bigquery.googleapis.com, dataflow.googleapis.com, dataproc.googleapis.com',
     rounds=200,
     workers=2,
     true_label='ACTION',
@@ -224,7 +228,13 @@ def xgb_train_pipeline(
     transform_output_eval = os.path.join(output_template, 'eval', 'part-*')
     train_output = os.path.join(output_template, 'train_output')
     predict_output = os.path.join(output_template, 'predict_output')
-
+    
+    _diagnose_me_op = diagnose_me_op(
+        bucket=output,
+        execution_mode=execution_mode,
+        project_id=project, 
+        target_apis=required_apis)
+    
     with dsl.ExitHandler(exit_op=dataproc_delete_cluster_op(
         project_id=project,
         region=region,
@@ -239,7 +249,7 @@ def xgb_train_pipeline(
                            'initialization_actions.sh'),
             ],
             image_version='1.2'
-        )
+        ).after(_diagnose_me_op)
 
         _analyze_op = dataproc_analyze_op(
             project=project,
@@ -297,8 +307,5 @@ def xgb_train_pipeline(
             output_dir=output_template
         ).after(_predict_op)
 
-    dsl.get_pipeline_conf().add_op_transformer(
-        gcp.use_gcp_secret('user-gcp-sa'))
-
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.yaml')

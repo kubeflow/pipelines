@@ -59,8 +59,9 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:9670cc1aadfbbed9c52b84ea859ea97aa81213ad
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:85945e10920757efab999217c836403c024b09e3
     args: [
+      --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.bigquery, query,
       --query, {inputValue: query},
       --project_id, {inputValue: project_id},
@@ -68,10 +69,9 @@ implementation:
       --table_id, {inputValue: table_id},
       --dataset_location, {inputValue: dataset_location},
       --output_gcs_path, {inputValue: output_gcs_path},
-      --job_config, {inputValue: job_config}
+      --job_config, {inputValue: job_config},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       output_gcs_path: /tmp/kfp/output/bigquery/query-output-path.txt
-      MLPipeline UI metadata: /mlpipeline-ui-metadata.json

@@ -60,6 +60,19 @@ spec:
 {{ end }}
 ---
 {{ if not .Values.managedstorage.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
@@ -101,17 +114,4 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: minio-pvc
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: minio-pvc
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
 {{ end }}

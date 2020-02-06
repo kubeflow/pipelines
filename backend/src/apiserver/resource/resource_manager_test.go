@@ -15,15 +15,15 @@
 package resource
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
-	"encoding/json"
-
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
@@ -297,11 +297,13 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID: experiment.UUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -329,7 +331,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.workflowClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -337,14 +339,17 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 
 func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
+	expectedExperimentUUID := runDetail.ExperimentUUID
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID: expectedExperimentUUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -370,7 +375,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.workflowClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -422,11 +427,13 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID: experiment.UUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -460,7 +467,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.workflowClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -554,7 +561,7 @@ func TestCreateRun_CreateWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	manager.workflowClient = &FakeBadWorkflowClient{}
+	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
@@ -612,7 +619,7 @@ func TestDeleteRun_CrdFailure(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()
 
-	manager.workflowClient = &FakeBadWorkflowClient{}
+	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
 	err := manager.DeleteRun(runDetail.UUID)
 	//assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	//assert.Contains(t, err.Error(), "some error")
@@ -678,7 +685,7 @@ func TestDeleteExperiment_CrdFailure(t *testing.T) {
 	store, manager, experiment := initWithExperiment(t)
 	defer store.Close()
 
-	manager.workflowClient = &FakeBadWorkflowClient{}
+	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
 	err := manager.DeleteExperiment(experiment.UUID)
 	assert.Nil(t, err)
 }
@@ -704,7 +711,7 @@ func TestTerminateRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "Terminating", actualRunDetail.Conditions)
 
-	isTerminated, err := store.workflowClientFake.isTerminated(runDetail.Run.Name)
+	isTerminated, err := store.ArgoClientFake.IsTerminated(runDetail.Run.Name)
 	assert.Nil(t, err)
 	assert.True(t, isTerminated)
 }
@@ -757,7 +764,7 @@ func TestRetryRun_FailedDeletePods(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
 
-	manager.podClient = FakeBadPodClient{}
+	manager.k8sCoreClient = client.NewFakeKubernetesCoreClientWithBadPodClient()
 	err := manager.RetryRun(runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "failed to delete pod")
@@ -767,7 +774,7 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
 
-	manager.workflowClient = &FakeBadWorkflowClient{}
+	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
 	err := manager.RetryRun(runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to create or update the run")
@@ -1101,6 +1108,7 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 
 func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
+	expectedExperimentUUID := run.ExperimentUUID
 	defer store.Close()
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
@@ -1116,6 +1124,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	assert.Nil(t, err)
 	expectedRun := model.Run{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
+		ExperimentUUID: expectedExperimentUUID,
 		DisplayName:    "run1",
 		Name:           "workflow-name",
 		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -1291,7 +1300,7 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	err := manager.ReportWorkflowResource(workflow)
 	assert.Nil(t, err)
 
-	wf, err := store.workflowClientFake.Get(run.Run.Name, v1.GetOptions{})
+	wf, err := store.ArgoClientFake.Workflow("").Get(run.Run.Name, v1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, wf.Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }
@@ -1314,7 +1323,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing
 
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFailed(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
-	manager.workflowClient = &FakeBadWorkflowClient{}
+	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
 	defer store.Close()
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{

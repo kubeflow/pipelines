@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: container
-        image: gcr.io/tfx-oss-public/ml_metadata_store_server:0.14.0
+        image: gcr.io/tfx-oss-public/ml_metadata_store_server:v0.21.1
         env:
         - name: DBCONFIG_USER
           valueFrom:
@@ -31,18 +31,18 @@ spec:
         - name: MYSQL_DATABASE
           valueFrom:
             configMapKeyRef:
-              name: metadata-configmap
-              key: mysql_database
+              name: metadata-mysql-configmap
+              key: MYSQL_DATABASE
         - name: MYSQL_HOST
           valueFrom:
             configMapKeyRef:
-              name: metadata-configmap
-              key: mysql_host
+              name: metadata-mysql-configmap
+              key: MYSQL_HOST
         - name: MYSQL_PORT
           valueFrom:
             configMapKeyRef:
-              name: metadata-configmap
-              key: mysql_port
+              name: metadata-mysql-configmap
+              key: MYSQL_PORT
         command: ["/bin/metadata_store_server"]
         args: ["--grpc_port=8080",
                "--mysql_config_database=$(MYSQL_DATABASE)",

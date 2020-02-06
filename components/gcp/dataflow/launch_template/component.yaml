@@ -63,8 +63,9 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:9670cc1aadfbbed9c52b84ea859ea97aa81213ad
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:85945e10920757efab999217c836403c024b09e3
     args: [
+      --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.dataflow, launch_template,
       --project_id, {inputValue: project_id},
       --gcs_path, {inputValue: gcs_path},
@@ -78,4 +79,3 @@ implementation:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       job_id: /tmp/kfp/output/dataflow/job_id.txt
-      MLPipeline UI metadata: /mlpipeline-ui-metadata.json

@@ -14,7 +14,21 @@
  * limitations under the License.
  */
 
+import {
+  Api,
+  Artifact,
+  ArtifactProperties,
+  ArtifactCustomProperties,
+  ListRequest,
+  ArtifactType,
+  getArtifactCreationTime,
+  getArtifactTypes,
+  getResourceProperty,
+  GetArtifactsRequest,
+} from '@kubeflow/frontend';
 import * as React from 'react';
+import { Link } from 'react-router-dom';
+import { classes } from 'typestyle';
 import CustomTable, {
   Column,
   Row,
@@ -23,25 +37,16 @@ import CustomTable, {
 } from '../components/CustomTable';
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
-import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import {
-  getResourceProperty,
   rowCompareFn,
   rowFilterFn,
   groupRows,
   getExpandedRow,
   serviceErrorToString,
+  CollapsedAndExpandedRows,
 } from '../lib/Utils';
 import { RoutePageFactory } from '../components/Router';
-import { Link } from 'react-router-dom';
-import { Artifact, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
-import { ArtifactProperties, ArtifactCustomProperties, ListRequest, Apis } from '../lib/Apis';
-import {
-  GetArtifactTypesRequest,
-  GetArtifactsRequest,
-} from '../generated/src/apis/metadata/metadata_store_service_pb';
-import { getArtifactCreationTime } from '../lib/MetadataUtils';
 import { ArtifactLink } from '../components/ArtifactLink';
 
 interface ArtifactListState {
@@ -53,6 +58,8 @@ interface ArtifactListState {
 
 class ArtifactList extends Page<{}, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
+  private api = Api.getInstance();
+  private artifactTypesMap: Map<number, ArtifactType>;
 
   constructor(props: any) {
     super(props);
@@ -120,21 +127,25 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
-    const { response: res, error: err } = await Apis.getMetadataServicePromiseClient().getArtifacts(
-      new GetArtifactsRequest(),
-    );
-
-    if (err) {
-      // Code === 5 means no record found in backend. This is a temporary workaround.
-      // TODO: remove err.code !== 5 check when backend is fixed.
-      if (err.code !== 5) {
-        this.showPageError(serviceErrorToString(err));
-      }
-      return '';
+    // TODO: Consider making an Api method for returning and caching types
+    if (!this.artifactTypesMap || !this.artifactTypesMap.size) {
+      this.artifactTypesMap = await getArtifactTypes(
+        this.api.metadataStoreService,
+        this.showPageError.bind(this),
+      );
     }
-
-    const artifacts = (res && res.getArtifactsList()) || [];
-    await this.getRowsFromArtifacts(request, artifacts);
+    if (!this.state.artifacts.length) {
+      const artifacts = await this.getArtifacts();
+      this.clearBanner();
+      const collapsedAndExpandedRows = await this.getRowsFromArtifacts(request, artifacts);
+      if (collapsedAndExpandedRows) {
+        this.setState({
+          artifacts,
+          expandedRows: collapsedAndExpandedRows.expandedRows,
+          rows: collapsedAndExpandedRows.collapsedRows,
+        });
+      }
+    }
     return '';
   }
 
@@ -157,30 +168,31 @@ class ArtifactList extends Page<{}, ArtifactListState> {
     <ArtifactLink artifactUri={value} />
   );
 
+  private async getArtifacts(): Promise<Artifact[]> {
+    try {
+      const response = await this.api.metadataStoreService.getArtifacts(new GetArtifactsRequest());
+      return response.getArtifactsList();
+    } catch (err) {
+      // Code === 5 means no record found in backend. This is a temporary workaround.
+      // TODO: remove err.code !== 5 check when backend is fixed.
+      if (err.code !== 5) {
+        this.showPageError(serviceErrorToString(err));
+      }
+    }
+    return [];
+  }
+
   /**
    * Temporary solution to apply sorting, filtering, and pagination to the
    * local list of artifacts until server-side handling is available
    * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
    * @param request
+   * @param artifacts
    */
-  private async getRowsFromArtifacts(request: ListRequest, artifacts: Artifact[]): Promise<void> {
-    const artifactTypesMap = new Map<number, ArtifactType>();
-    // TODO: Consider making an Api method for returning and caching types
-    const {
-      response: res,
-      error: err,
-    } = await Apis.getMetadataServicePromiseClient().getArtifactTypes(
-      new GetArtifactTypesRequest(),
-    );
-    if (err) {
-      this.showPageError(serviceErrorToString(err));
-      return;
-    }
-
-    ((res && res.getArtifactTypesList()) || []).forEach(artifactType => {
-      artifactTypesMap.set(artifactType.getId()!, artifactType);
-    });
-
+  private async getRowsFromArtifacts(
+    request: ListRequest,
+    artifacts: Artifact[],
+  ): Promise<CollapsedAndExpandedRows | undefined> {
     try {
       // TODO: When backend supports sending creation time back when we list
       // artifacts, let's use it directly.
@@ -193,25 +205,25 @@ class ArtifactList extends Page<{}, ArtifactListState> {
 
           return {
             artifact,
-            creationTime: await getArtifactCreationTime(artifactId),
+            creationTime: await getArtifactCreationTime(artifactId, this.api.metadataStoreService),
           };
         }),
       );
 
-      const collapsedAndExpandedRows = groupRows(
+      return groupRows(
         artifactsWithCreationTimes
           .map(({ artifact, creationTime }) => {
             const typeId = artifact.getTypeId();
-            const type =
-              typeId && artifactTypesMap && artifactTypesMap.get(typeId)
-                ? artifactTypesMap.get(typeId)!.getName()
-                : typeId;
+            const artifactType = this.artifactTypesMap!.get(typeId);
+            const type = artifactType ? artifactType.getName() : artifact.getTypeId();
             return {
               id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
               otherFields: [
                 getResourceProperty(artifact, ArtifactProperties.PIPELINE_NAME) ||
-                  getResourceProperty(artifact, ArtifactCustomProperties.WORKSPACE, true),
-                getResourceProperty(artifact, ArtifactProperties.NAME),
+                  getResourceProperty(artifact, ArtifactCustomProperties.WORKSPACE, true) ||
+                  getResourceProperty(artifact, ArtifactCustomProperties.RUN_ID, true),
+                getResourceProperty(artifact, ArtifactProperties.NAME) ||
+                  getResourceProperty(artifact, ArtifactCustomProperties.NAME, true),
                 artifact.getId(),
                 type,
                 artifact.getUri(),
@@ -222,12 +234,6 @@ class ArtifactList extends Page<{}, ArtifactListState> {
           .filter(rowFilterFn(request))
           .sort(rowCompareFn(request, this.state.columns)),
       );
-
-      this.setState({
-        artifacts,
-        expandedRows: collapsedAndExpandedRows.expandedRows,
-        rows: collapsedAndExpandedRows.collapsedRows,
-      });
     } catch (err) {
       if (err.message) {
         this.showPageError(err.message, err);
@@ -235,6 +241,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
         this.showPageError('Unknown error', err);
       }
     }
+    return;
   }
 
   /**

@@ -22,6 +22,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	MultiUserMode     string = "MULTIUSER"
+)
 
 func GetStringConfig(configName string) string {
 	if !viper.IsSet(configName) {
@@ -35,6 +38,14 @@ func GetStringConfigWithDefault(configName, value string) string {
 		return value
 	}
 	return viper.GetString(configName)
+}
+
+func GetMapConfig(configName string) map[string]string {
+	if !viper.IsSet(configName) {
+		glog.Infof("Config %s not specified, skipping", configName)
+		return nil
+	}
+	return viper.GetStringMapString(configName)
 }
 
 func GetBoolConfigWithDefault(configName string, value bool) bool {
@@ -53,4 +64,8 @@ func GetDurationConfig(configName string) time.Duration {
 		glog.Fatalf("Please specify flag %s", configName)
 	}
 	return viper.GetDuration(configName)
+}
+
+func IsMultiUserMode() bool {
+	return GetBoolConfigWithDefault(MultiUserMode, false)
 }

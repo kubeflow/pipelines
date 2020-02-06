@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+
 	"github.com/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -31,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
-var runColumns = []string{"UUID", "DisplayName", "Name", "StorageState", "Namespace", "Description",
+var runColumns = []string{"UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "Description",
 	"CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineName", "PipelineSpecManifest",
 	"WorkflowSpecManifest", "Parameters", "pipelineRuntimeManifest", "WorkflowRuntimeManifest",
 }
@@ -143,8 +144,20 @@ func (s *RunStore) ListRuns(
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	filterContext *common.FilterContext) (string, []interface{}, error) {
-	filteredSelectBuilder, err := list.FilterOnResourceReference("run_details", runColumns,
-		common.Run, selectCount, filterContext)
+
+	var filteredSelectBuilder sq.SelectBuilder
+	var err error
+
+	refKey := filterContext.ReferenceKey
+	if refKey != nil && refKey.Type == "ExperimentUUID" {
+		// for performance reasons need to special treat experiment ID filter on runs
+		// currently only the run table have experiment UUID column
+		filteredSelectBuilder, err = list.FilterRunOnExperiment("run_details", runColumns,
+			selectCount, refKey.ID)
+	} else {
+		filteredSelectBuilder, err = list.FilterOnResourceReference("run_details", runColumns,
+			common.Run, selectCount, filterContext)
+	}
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
@@ -217,12 +230,13 @@ func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.Sele
 func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, error) {
 	var runs []*model.RunDetail
 	for rows.Next() {
-		var uuid, displayName, name, storageState, namespace, description, pipelineId, pipelineName, pipelineSpecManifest,
+		var uuid, experimentUUID, displayName, name, storageState, namespace, description, pipelineId, pipelineName, pipelineSpecManifest,
 			workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec int64
 		var metricsInString, resourceReferencesInString sql.NullString
 		err := rows.Scan(
 			&uuid,
+			&experimentUUID,
 			&displayName,
 			&name,
 			&storageState,
@@ -260,6 +274,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 		}
 		runs = append(runs, &model.RunDetail{Run: model.Run{
 			UUID:               uuid,
+			ExperimentUUID:     experimentUUID,
 			DisplayName:        displayName,
 			Name:               name,
 			StorageState:       storageState,
@@ -320,6 +335,7 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 		Insert("run_details").
 		SetMap(sq.Eq{
 			"UUID":                    r.UUID,
+			"ExperimentUUID":          r.ExperimentUUID,
 			"DisplayName":             r.DisplayName,
 			"Name":                    r.Name,
 			"StorageState":            r.StorageState,

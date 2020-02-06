@@ -1,5 +1,5 @@
 #!/bin/bash -e
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,13 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 while getopts ":hp:t:i:" opt; do
   case "${opt}" in
     h) echo "-p: project name"
-        echo "-t: tag name"
-        echo "-i: image name. If provided, project name and tag name are not necessary"
-        exit
+       echo "-t: tag name"
+       echo "-i: image name. If provided, project name and tag name are not necessary"
+       exit
       ;;
     p) PROJECT_ID=${OPTARG}
       ;;
@@ -33,56 +32,28 @@ while getopts ":hp:t:i:" opt; do
   esac
 done
 
-LOCAL_LAUNCHER_IMAGE_NAME=ml-pipeline-kubeflow-tf
-LOCAL_TRAINER_IMAGE_NAME=ml-pipeline-kubeflow-tf-trainer
-
-if [ -z "${PROJECT_ID}" ]; then
-  PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
-fi
-
-if [ -z "${TAG_NAME}" ]; then
-  TAG_NAME=$(date +v%Y%m%d)-$(git describe --tags --always --dirty)-$(git diff | shasum -a256 | cut -c -6)
-fi
-
 mkdir -p ./build
 rsync -arvp ./src/ ./build/
+rsync -arvp ../common/ ./build/
 
 cp ../../license.sh ./build
 cp ../../third_party_licenses.csv ./build
 
-# Build the trainer image
+LOCAL_LAUNCHER_IMAGE_NAME=ml-pipeline-kubeflow-tfjob
+
+docker build -t ${LOCAL_LAUNCHER_IMAGE_NAME} .
+if [ -z "${TAG_NAME}" ]; then
+  TAG_NAME=$(date +v%Y%m%d)-$(git describe --tags --always --dirty)-$(git diff | shasum -a256 | cut -c -6)
+fi
 if [ -z "${LAUNCHER_IMAGE_NAME}" ]; then
-  TRAINER_IMAGE_NAME=gcr.io/${PROJECT_ID}/${LOCAL_TRAINER_IMAGE_NAME}:${TAG_NAME}
-else
-  # construct the trainer image name as "laucher_image_name"-trainer:"launcher_image_tag"
-  colon_index=`expr index "${LAUNCHER_IMAGE_NAME}" :`
-  if [ $colon_index == '0' ]; then
-    TRAINER_IMAGE_NAME=${LAUNCHER_IMAGE_NAME}-trainer
-  else
-    tag=${LAUNCHER_IMAGE_NAME:$colon_index}
-    TRAINER_IMAGE_NAME=${LAUNCHER_IMAGE_NAME:0:$colon_index-1}-trainer:${tag}
+  if [ -z "${PROJECT_ID}" ]; then
+    PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
   fi
-fi
-
-bash_dir=`dirname $0`
-bash_dir_abs=`realpath $bash_dir`
-parent_dir=`dirname ${bash_dir_abs}`
-trainer_dir=${parent_dir}/dnntrainer
-cd ${trainer_dir}
-if [ -z "${LAUNCHER_IMAGE_NAME}" ]; then
-  ./build_image.sh -p ${PROJECT_ID} -t ${TAG_NAME}
-else
-  ./build_image.sh -i ${TRAINER_IMAGE_NAME}
-fi
-cd -
-
-docker build -t ${LOCAL_LAUNCHER_IMAGE_NAME} . --build-arg TRAINER_IMAGE_NAME=${TRAINER_IMAGE_NAME}
-if [ -z "${LAUNCHER_IMAGE_NAME}" ]; then
   docker tag ${LOCAL_LAUNCHER_IMAGE_NAME} gcr.io/${PROJECT_ID}/${LOCAL_LAUNCHER_IMAGE_NAME}:${TAG_NAME}
   docker push gcr.io/${PROJECT_ID}/${LOCAL_LAUNCHER_IMAGE_NAME}:${TAG_NAME}
 else
-  docker tag ${LOCAL_LAUNCHER_IMAGE_NAME} "${LAUNCHER_IMAGE_NAME}"
-  docker push "${LAUNCHER_IMAGE_NAME}"
+  docker tag ${LOCAL_LAUNCHER_IMAGE_NAME} ${LAUNCHER_IMAGE_NAME}:${TAG_NAME}
+  docker push ${LAUNCHER_IMAGE_NAME}:${TAG_NAME}
 fi
 
 rm -rf ./build

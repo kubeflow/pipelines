@@ -26,13 +26,13 @@ REQUIRES = [
     'python-dateutil',
     'PyYAML',
     'google-cloud-storage>=1.13.0',
-    'kubernetes>=8.0.0, <=9.0.0',
+    'kubernetes>=8.0.0, <=10.0.0',
     'PyJWT>=1.6.4',
     'cryptography>=2.4.2',
     'google-auth>=1.6.1',
     'requests_toolbelt>=0.8.0',
     'cloudpickle==1.1.1',
-    'kfp-server-api >= 0.1.18, <= 0.1.25',  #Update the upper version whenever a new version of the kfp-server-api package is released. Update the lower version when there is a breaking change in kfp-server-api.
+    'kfp-server-api >= 0.1.18, <= 0.1.40',  #Update the upper version whenever a new version of the kfp-server-api package is released. Update the lower version when there is a breaking change in kfp-server-api.
     'argo-models == 2.2.1a',  #2.2.1a is equivalent to argo 2.2.1
     'jsonschema >= 3.0.1',
     'tabulate == 0.8.3',
@@ -71,6 +71,7 @@ setup(
         'kfp.components.structures.kubernetes',
         'kfp.containers',
         'kfp.dsl',
+        'kfp.dsl.extensions',
         'kfp.notebook',
     ],
     classifiers=[

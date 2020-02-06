@@ -16,16 +16,15 @@ package server
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"testing"
-
-	"io"
-
 	"os"
+	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -51,8 +50,16 @@ func TestUploadPipeline_YAML(t *testing.T) {
 	handler := http.HandlerFunc(server.UploadPipeline)
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, 200, rr.Code)
-	// Verify time format is RFC3339
-	assert.Contains(t, rr.Body.String(), `"created_at":"1970-01-01T00:00:01Z"`)
+	// Verify time format is RFC3339.
+	parsedResponse := struct {
+		CreatedAt      string `json:"created_at"`
+		DefaultVersion struct {
+			CreatedAt string `json:"created_at"`
+		} `json:"default_version"`
+	}{}
+	json.Unmarshal(rr.Body.Bytes(), &parsedResponse)
+	assert.Equal(t, "1970-01-01T00:00:01Z", parsedResponse.CreatedAt)
+	assert.Equal(t, "1970-01-01T00:00:01Z", parsedResponse.DefaultVersion.CreatedAt)
 
 	// Verify stored in object store
 	template, err := clientManager.ObjectStore().GetFile(storage.CreatePipelinePath(resource.DefaultFakeUUID))
@@ -224,4 +231,54 @@ func TestUploadPipeline_FileNameTooLong(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, 400, rr.Code)
 	assert.Contains(t, string(rr.Body.Bytes()), "Pipeline name too long")
+}
+
+func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := PipelineUploadServer{resourceManager: resourceManager}
+	b := &bytes.Buffer{}
+	w := multipart.NewWriter(b)
+	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
+	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	w.Close()
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s&description=%s", url.PathEscape("foo bar"), url.PathEscape("description of foo bar")), bytes.NewReader(b.Bytes()))
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(server.UploadPipeline)
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, 200, rr.Code)
+
+	// Verify stored in object store
+	template, err := clientManager.ObjectStore().GetFile(storage.CreatePipelinePath(resource.DefaultFakeUUID))
+	assert.Nil(t, err)
+	assert.NotNil(t, template)
+
+	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
+	assert.Nil(t, err)
+	// Verify metadata in db
+	pkgsExpect := []*model.Pipeline{
+		{
+			UUID:             resource.DefaultFakeUUID,
+			CreatedAtInSec:   1,
+			Name:             "foo bar",
+			Parameters:       "[]",
+			Status:           model.PipelineReady,
+			DefaultVersionId: resource.DefaultFakeUUID,
+			DefaultVersion: &model.PipelineVersion{
+				UUID:           resource.DefaultFakeUUID,
+				CreatedAtInSec: 1,
+				Name:           "foo bar",
+				Parameters:     "[]",
+				Status:         model.PipelineVersionReady,
+				PipelineId:     resource.DefaultFakeUUID,
+			},
+			Description: "description of foo bar",
+		}}
+	pkg, total_size, str, err := clientManager.PipelineStore().ListPipelines(opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, total_size)
+	assert.Equal(t, str, "")
+	assert.Equal(t, pkgsExpect, pkg)
 }

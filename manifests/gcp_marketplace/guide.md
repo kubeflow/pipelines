@@ -1,5 +1,12 @@
 # Deploy Kubeflow Pipelines from Google Cloud Marketplace
 
+> **Alpha version:** 
+Kubeflow Pipelines on GCP Marketplace is currently in **Alpha** with limited 
+support. The Kubeflow team is interested in any feedback you may have, in 
+particular with regards to usability of the feature. Please raise any issues
+or discussion items in the
+[Kubeflow Pipelines issue tracker](https://github.com/kubeflow/pipelines/issues).
+
 Go to [Google Cloud Marketplace](https://console.cloud.google.com/marketplace) to deploy Kubeflow Pipelines by using a graphical interface.
 You can go to the [Marketplace page for Kubeflow Pipelines](https://console.cloud.google.com/marketplace/details/google-cloud-ai-platform/kubeflow-pipelines) directly, or search for "Kubeflow Pipelines" from the Marketplace landing page.
 

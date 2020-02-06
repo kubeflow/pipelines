@@ -71,6 +71,13 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: ml-pipeline-visualizationserver
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
   name: ml-pipeline
   labels:
     app.kubernetes.io/name: {{ .Release.Name }}
@@ -548,6 +555,10 @@ spec:
         - env:
             - name: MINIO_NAMESPACE
               value: {{ .Release.Namespace }}
+            - name: ALLOW_CUSTOM_VISUALIZATIONS
+              value: "true"
+            - name: DEPLOYMENT
+              value: MARKETPLACE
           image: {{ .Values.images.frontend }}
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-ui
@@ -608,6 +619,7 @@ spec:
           name: ml-pipeline-visualizationserver
           ports:
             - containerPort: 8888
+      serviceAccountName: ml-pipeline-visualizationserver
 ---
 apiVersion: apps/v1beta2
 kind: Deployment
@@ -629,6 +641,21 @@ spec:
     spec:
       containers:
         - env:
+            - name: HAS_DEFAULT_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.gcpDefaultConfigName}}
+                  key: "has_default_bucket"
+            - name: BUCKET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.gcpDefaultConfigName}}
+                  key: "bucket_name"
+            - name: PROJECT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.gcpDefaultConfigName}}
+                  key: "project_id"
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:

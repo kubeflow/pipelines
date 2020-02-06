@@ -8,3 +8,7 @@ resources:
   - metadata-service.yaml
   - metadata-envoy-deployment.yaml
   - metadata-envoy-service.yaml
+  - metadata-writer-deployment.yaml
+  - metadata-writer-role.yaml
+  - metadata-writer-rolebinding.yaml
+  - metadata-writer-sa.yaml
