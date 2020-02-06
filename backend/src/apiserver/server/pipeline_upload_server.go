@@ -25,6 +25,7 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/pkg/errors"
 )
 
 // These are valid conditions of a ScheduledWorkflow.
@@ -32,6 +33,8 @@ const (
 	FormFileKey               = "uploadfile"
 	NameQueryStringKey        = "name"
 	DescriptionQueryStringKey = "description"
+	// Pipeline Id in the query string specifies a pipeline when creating versions.
+	PipelineKey = "pipelineid"
 )
 
 type PipelineUploadServer struct {
@@ -48,7 +51,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 	glog.Infof("Upload pipeline called")
 	file, header, err := r.FormFile(FormFileKey)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to read pipeline form file"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to read pipeline from file"))
 		return
 	}
 	defer file.Close()
@@ -96,25 +99,44 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 	glog.Infof("Upload pipeline version called")
 	file, header, err := r.FormFile(FormFileKey)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to read pipeline form file"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to read pipeline version from file"))
 		return
 	}
 	defer file.Close()
 
 	pipelineFile, err := ReadPipelineFile(header.Filename, file, MaxFileLength)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline file."))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline version file."))
 		return
 	}
 
-	fileNameQueryString := r.URL.Query().Get(NameQueryStringKey)
-	pipelineVersionName, err := GetPipelineName(fileNameQueryString, header.Filename)
+	versionNameQueryString := r.URL.Query().Get(NameQueryStringKey)
+	// If new version's name is not included in query string, use file name.
+	pipelineVersionName, err := GetPipelineName(versionNameQueryString, header.Filename)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid pipeline version name."))
 		return
 	}
+
+	pipelineId := r.URL.Query().Get(PipelineKey)
+	if len(pipelineId) == 0 {
+		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Please specify a pipeline id when creating versions."))
+		return
+	}
+
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
-		&api.PipelineVersion{Name: pipelineVersionName}, pipelineFile)
+		&api.PipelineVersion{
+			Name: pipelineVersionName,
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   pipelineId,
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		}, pipelineFile)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline version"))
 		return
