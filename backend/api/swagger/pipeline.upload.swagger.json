@@ -176,6 +176,28 @@
         }
       }
     },
+    "apiRelationship": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN_RELATIONSHIP",
+        "OWNER",
+        "CREATOR"
+      ],
+      "default": "UNKNOWN_RELATIONSHIP"
+    },
+    "apiResourceKey": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/apiResourceType",
+          "description": "The type of the resource that referred to."
+        },
+        "id": {
+          "type": "string",
+          "description": "The ID of the resource that referred to."
+        }
+      }
+    },
     "apiResourceReference": {
       "type": "object",
       "properties": {
@@ -191,6 +213,18 @@
           "description": "Required field. The relationship from referred resource to the object."
         }
       }
+    },
+    "apiResourceType": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN_RESOURCE_TYPE",
+        "EXPERIMENT",
+        "JOB",
+        "PIPELINE",
+        "PIPELINE_VERSION",
+        "NAMESPACE"
+      ],
+      "default": "UNKNOWN_RESOURCE_TYPE"
     },
     "apiStatus": {
       "type": "object",
