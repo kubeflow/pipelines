@@ -44,3 +44,5 @@ func (c *PipelineUploadClientFake) UploadFile(filePath string,
 		return getDefaultUploadedPipeline(), nil
 	}
 }
+
+// TODO(jingzhang36): add UploadPipelineVersion fake to be used in integration test.

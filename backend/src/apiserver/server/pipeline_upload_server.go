@@ -86,6 +86,54 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 	}
 }
 
+// HTTP multipart endpoint for uploading pipeline version file.
+// https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html
+// This endpoint is not exposed through grpc endpoint, since grpc-gateway can't convert the gRPC
+// endpoint to the HTTP endpoint.
+// See https://github.com/grpc-ecosystem/grpc-gateway/issues/500
+// Thus we create the HTTP endpoint directly and using swagger to auto generate the HTTP client.
+func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *http.Request) {
+	glog.Infof("Upload pipeline version called")
+	file, header, err := r.FormFile(FormFileKey)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to read pipeline form file"))
+		return
+	}
+	defer file.Close()
+
+	pipelineFile, err := ReadPipelineFile(header.Filename, file, MaxFileLength)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline file."))
+		return
+	}
+
+	fileNameQueryString := r.URL.Query().Get(NameQueryStringKey)
+	pipelineVersionName, err := GetPipelineName(fileNameQueryString, header.Filename)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid pipeline version name."))
+		return
+	}
+	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
+		&api.PipelineVersion{Name: pipelineVersionName}, pipelineFile)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline version"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	marshaler := &jsonpb.Marshaler{EnumsAsInts: true, OrigName: true}
+	createdPipelineVersion, err := ToApiPipelineVersion(newPipelineVersion)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline version"))
+		return
+	}
+	err = marshaler.Marshal(w, createdPipelineVersion)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline version"))
+		return
+	}
+}
+
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {
 	glog.Errorf("Failed to upload pipelines. Error: %+v", err)
 	w.WriteHeader(code)
