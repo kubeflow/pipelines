@@ -19,7 +19,6 @@ implementation:
       --true_score_column,  {inputValue: True score column},
       --target_lambda,      {inputValue: Target lambda},
       --output,             {inputValue: Output dir},
+      --ui-metadata-output-path, {outputPath: MLPipeline UI metadata},
+      --metrics-output-path, {outputPath: MLPipeline Metrics},
     ]
-    fileOutputs:
-      MLPipeline UI metadata: /mlpipeline-ui-metadata.json
-      MLPipeline Metrics:     /mlpipeline-metrics.json
