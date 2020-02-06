@@ -22,7 +22,7 @@ spec:
     parameters:
     - name: image-build-context-gcs-uri
     - name: image-builder-image
-      value: gcr.io/ml-pipeline-test/image-builder:v20200131-aa3ac629
+      value: gcr.io/ml-pipeline-test/image-builder:v20200205-0f608371
     - name: target-image-prefix
     - name: test-results-gcs-dir
     - name: initialization-test-image-suffix
