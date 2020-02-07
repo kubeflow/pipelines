@@ -18,24 +18,24 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"github.com/fsnotify/fsnotify"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/spf13/viper"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
-	"fmt"
-	"os"
-
+	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -94,7 +94,7 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	if err != nil {
 		glog.Fatalf("Failed to start RPC server: %v", err)
 	}
-	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor))
+	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor), grpc.MaxRecvMsgSize(math.MaxInt32))
 	api.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager))
 	api.RegisterExperimentServiceServer(s, server.NewExperimentServer(resourceManager))
 	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager))
