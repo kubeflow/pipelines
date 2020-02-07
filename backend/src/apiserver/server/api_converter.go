@@ -143,14 +143,8 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 			value = *param.Value
 			// Patch the GCS default values if available
 			if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
-				defaultBucket := common.GetStringConfig(DefaultBucketNameEnvVar)
-				projectId := common.GetStringConfig(ProjectIDEnvVar)
-				patchMap := map[string]string{
-					"{{kfp-default-bucket}}": defaultBucket,
-					"{{kfp-project-id}}":     projectId,
-				}
 				var err error
-				value, err = PatchPipelineDefaultParameter(value, patchMap)
+				value, err = PatchPipelineDefaultParameter(value)
 				if err != nil {
 					return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 				}
