@@ -1,13 +1,17 @@
-name: tensorboard visualization
-description: visualize training in tensorboard
+name: train model
+description: train and test
 inputs:
-  - {name: logdir, type: string}
+  - {name: train_file, type: string}
+  - {name: test_file, type: string}
+  - {name: bucket_name, type: string}
 outputs:
-  - {name: MLPipeline UI metadata, type: UI metadata}
+  - {name: result, type: string}
 implementation:
   container:
     image: tensorboard_image_location
-    command: ['python', '/tensorboard.py']
-    args: ['--logdir', {inputValue: logdir}]
+    command: ['python', 'train.py']
+    args: ['--train_file', {inputValue: train_file},
+           '--test_file', {inputValue: test_file},
+           '--bucket_name', {inputValue: bucket_name}]
     fileOutputs: 
-      MLPipeline UI metadata: /mlpipeline-ui-metadata.json
+      result: /result_path.txt

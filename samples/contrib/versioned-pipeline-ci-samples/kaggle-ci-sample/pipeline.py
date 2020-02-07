@@ -16,29 +16,23 @@ def kaggle_houseprice(
     downloadDataStep = downloadDataOp(bucket_name=bucket_name).apply(use_gcp_secret('user-gcp-sa'))
 
     visualizeTableOp = components.load_component_from_file('./visualize_table/component.yaml')
-    visualizeTableStep = visualizeTableOp(train_file_path='%s'%downloadDataStep.outputs['train_dataset']).apply(use_gcp_secret('user-gcp-sa'))
+    visualizeTableStep = visualizeTableOp(train_file_path='%s' % downloadDataStep.outputs['train_dataset']).apply(use_gcp_secret('user-gcp-sa'))
 
     visualizeHTMLOp = components.load_component_from_file('./visualize_html/component.yaml')
-    visualizeHTMLStep = visualizeHTMLOp(train_file_path='%s'%downloadDataStep.outputs['train_dataset'],
+    visualizeHTMLStep = visualizeHTMLOp(train_file_path='%s' % downloadDataStep.outputs['train_dataset'],
                                         commit_sha=commit_sha,
                                         bucket_name=bucket_name).apply(use_gcp_secret('user-gcp-sa'))
 
-    stepTrainModel = dsl.ContainerOp(
-        name = 'train model',
-        image = os.path.join(args.gcr_address, 'kaggle_train:latest'),
-        command = ['python', 'train.py'],
-        arguments = ['--train_file',  '%s' % downloadDataStep.outputs['train_dataset'], 
-                     '--test_file', '%s' % downloadDataStep.outputs['test_dataset'],
-                     '--output_bucket', bucket_name
-                     ],
-        file_outputs = {'result': '/result_path.txt'}
-    ).apply(use_gcp_secret('user-gcp-sa'))
+    trainModelOp = components.load_component_from_file('./train_model/component.yaml')
+    trainModelStep = trainModelOp(train_file='%s' % downloadDataStep.outputs['train_dataset'],
+                                  test_file='%s' % downloadDataStep.outputs['test_dataset'],
+                                  bucket_name=bucket_name).apply(use_gcp_secret('user-gcp-sa'))
 
     stepSubmitResult = dsl.ContainerOp(
         name = 'submit result to kaggle competition',
         image = os.path.join(args.gcr_address, 'kaggle_submit:latest'),
         command = ['python', 'submit_result.py'],
-        arguments = ['--result_file', '%s' % stepTrainModel.outputs['result'],
+        arguments = ['--result_file', '%s' % trainModelStep.outputs['result'],
                      '--submit_message', 'submit']
     ).apply(use_gcp_secret('user-gcp-sa'))
 
