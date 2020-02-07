@@ -16,6 +16,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -23,6 +24,12 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+)
+
+const (
+	HasDefaultBucketEnvVar  = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar         = "PROJECT_ID"
+	DefaultBucketNameEnvVar = "BUCKET_NAME"
 )
 
 func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
@@ -134,6 +141,20 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 		var value string
 		if param.Value != nil {
 			value = *param.Value
+			// Patch the GCS default values if available
+			if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
+				defaultBucket := common.GetStringConfig(DefaultBucketNameEnvVar)
+				projectId := common.GetStringConfig(ProjectIDEnvVar)
+				patchMap := map[string]string{
+					"{{kfp-default-bucket}}": defaultBucket,
+					"{{kfp-project-id}}":     projectId,
+				}
+				var err error
+				value, err = PatchPipelineDefaultParameter(value, patchMap)
+				if err != nil {
+					return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+				}
+			}
 		}
 		apiParam := api.Parameter{
 			Name:  param.Name,
