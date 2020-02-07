@@ -1,10 +1,10 @@
-This image is the base image for Kubeflow Pipelines [Prow job](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubeflow/kubeflow-postsubmits.yaml#L245). Including presubmit and postsubmit jobs.
+This image is the base image for Kubeflow Pipelines [Prow job](https://github.com/kubernetes/test-infra/blob/6555278147dfff550706b41c3f69f41ecf5a8c5a/config/jobs/kubeflow/kubeflow-postsubmits.yaml#L245). Including presubmit and postsubmit jobs.
 
 ## How to build the image
 To build this Docker image, run the following Docker command from the directory containing the image's files:
 
 ``` 
-docker build -t test-worker . 
+docker build -t gcr.io/ml-pipeline-test/test-worker:${WHATEVER_TAG_VERSION} . 
 ```
 ## Where to push the image
 This image stores in the repo ml-pipeline-test, which is a public GCR repo. To push the image, run the following command:
