@@ -16,6 +16,15 @@ steps:
   - name: "gcr.io/cloud-builders/docker"
     args:
       [
+        "push",
+        "${_GCR_PATH}/mnist_train:$COMMIT_SHA",
+      ]
+    id: "MnistPushFirstImage"
+    waitFor: ["MnistBuildFirstImage"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
         "build",
         "-t",
         "${_GCR_PATH}/mnist_tensorboard:$COMMIT_SHA",
@@ -27,6 +36,14 @@ steps:
       ]
     id: "MnistBuildSecondImage"
 
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "${_GCR_PATH}/mnist_tensorboard:$COMMIT_SHA",
+      ]
+    id: "MnistPushSecondImage"
+    waitFor: ["MnistBuildSecondImage"]
 
   - name: "python:3.7-slim"
     entrypoint: "/bin/sh"
@@ -75,9 +92,7 @@ steps:
     id: "MnistCreatePipelineVersionAndRun"
 
 images:
-  - "${_GCR_PATH}/mnist_train:$COMMIT_SHA"
   - "${_GCR_PATH}/mnist_train:latest"
-  - "${_GCR_PATH}/mnist_tensorboard:$COMMIT_SHA"
   - "${_GCR_PATH}/mnist_tensorboard:latest"
 
 substitutions:
@@ -85,5 +100,5 @@ substitutions:
   _NAMESPACE: kubeflow
   _GCR_PATH: gcr.io/alert-ability-264507
   _GS_BUCKET: gs://dldaisy-test-bucket
-  _PIPELINE_ID: f6f8558a-6eec-4ef4-b343-a650473ee613]
+  _PIPELINE_ID: f6f8558a-6eec-4ef4-b343-a650473ee613
 
