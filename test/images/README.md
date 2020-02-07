@@ -7,7 +7,7 @@ To build this Docker image, run the following Docker command from the directory 
 docker build -t gcr.io/ml-pipeline-test/test-worker:${WHATEVER_TAG_VERSION} . 
 ```
 ## Where to push the image
-This image stores in the repo ml-pipeline-test, which is a public GCR repo. To push the image, run the following command:
+This image is stored in the repo ml-pipeline-test, which is a public GCR repo. To push the image, run the following command:
 1. Configure docker to use the gcloud command-line tool as a credential helper:
 
 ``` 
