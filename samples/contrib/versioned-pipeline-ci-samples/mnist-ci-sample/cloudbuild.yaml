@@ -35,6 +35,8 @@ steps:
         "cd ${_CODE_PATH};
         pip3 install cffi==1.12.3 --upgrade;
         pip3 install kfp==0.1.37;
+        sed -i s/image: train_image_location/image: ${_GCR_PATH}/mnist_train:$COMMIT_SHA/g ./train/component.yaml;
+        sed -i s/image: tensorboard_image_location/image: ${_GCR_PATH}/mnist_tensorboard:$COMMIT_SHA/g ./tensorboard/component.yaml;
         python pipeline.py --gcr_address ${_GCR_PATH};
         cp pipeline.py.zip /workspace/pipeline.zip",
       ]
@@ -83,5 +85,5 @@ substitutions:
   _NAMESPACE: kubeflow
   _GCR_PATH: gcr.io/alert-ability-264507
   _GS_BUCKET: gs://dldaisy-test-bucket
-  _PIPELINE_ID: f6f8558a-6eec-4ef4-b343-a650473ee613
+  _PIPELINE_ID: f6f8558a-6eec-4ef4-b343-a650473ee613]
 
