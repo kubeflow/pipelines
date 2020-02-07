@@ -37,8 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// This automatically runs before all the tests.
-func init() {
+func initEnvVars() {
 	viper.Set(common.PodNamespace, "test-ns")
 }
 
@@ -73,6 +72,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 
 // Util function to create an initial state with pipeline uploaded
 func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
 	p, err := manager.CreatePipeline("p1", "", []byte(testWorkflow.ToStringForStore()))
@@ -81,6 +81,7 @@ func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *mode
 }
 
 func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
 	experiment := &model.Experiment{Name: "e1"}
@@ -90,6 +91,7 @@ func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 }
 
 func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment, *model.Pipeline) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
 	experiment := &model.Experiment{Name: "e1"}
