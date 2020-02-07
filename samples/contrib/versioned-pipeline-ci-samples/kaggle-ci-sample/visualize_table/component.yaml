@@ -1,5 +1,5 @@
-name: tensorboard visualization
-description: visualize training in tensorboard
+name: visualize table
+description: visualize dataset in table
 inputs:
   - {name: train_file_path, type: string}
 outputs:

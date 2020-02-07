@@ -1,13 +1,17 @@
-name: tensorboard visualization
-description: visualize training in tensorboard
+name: visualize in html
+description: visualize dataset in picture written in html
 inputs:
-  - {name: logdir, type: string}
+  - {name: train_file_path, type: string}
+  - {name: commit_sha, type: string}
+  - {name: bucket_name, type: string}
 outputs:
   - {name: MLPipeline UI metadata, type: UI metadata}
 implementation:
   container:
     image: tensorboard_image_location
-    command: ['python', '/tensorboard.py']
-    args: ['--logdir', {inputValue: logdir}]
+    command: ['python', 'visualize.py']
+    args: ['--train_file_path', {inputValue: train_file_path},
+           '--commit_sha', {inputValue: commit_sha},
+           '--bucket_name', {inputValue: bucket_name}]
     fileOutputs: 
       MLPipeline UI metadata: /mlpipeline-ui-metadata.json

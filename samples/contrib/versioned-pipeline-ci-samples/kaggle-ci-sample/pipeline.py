@@ -15,18 +15,13 @@ def kaggle_houseprice(
     downloadDataOp = components.load_component_from_file('./download_dataset/component.yaml')
     downloadDataStep = downloadDataOp(bucket_name=bucket_name).apply(use_gcp_secret('user-gcp-sa'))
 
-    visualizeDataOp = components.load_component_from_file('./visualize_table/component.yaml')
-    visualizeTanleStep = visualizeDataOp(train_file_path='%s' % downloadDataStep.outputs['train_dataset']).apply(use_gcp_secret('user-gcp-sa'))
+    visualizeTableOp = components.load_component_from_file('./visualize_table/component.yaml')
+    visualizeTableStep = visualizeTableOp(train_file_path='%s'%downloadDataStep.outputs['train_dataset']).apply(use_gcp_secret('user-gcp-sa'))
 
-    stepVisualizeHTML = dsl.ContainerOp(
-        name = 'visualize dataset in html',
-        image = os.path.join(args.gcr_address, 'kaggle_visualize_html:latest'),
-        command = ['python', 'visualize.py'],
-        arguments = ['--train_file_path', '%s' % downloadDataStep.outputs['train_dataset'],
-                     '--commit_sha', commit_sha,
-                     '--bucket_name', bucket_name],
-        output_artifact_paths={'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'}
-    ).apply(use_gcp_secret('user-gcp-sa'))
+    visualizeHTMLOp = components.load_component_from_file('./visualize_html/component.yaml')
+    visualizeHTMLStep = visualizeHTMLOp(train_file_path='%s'%downloadDataStep.outputs['train_dataset'],
+                                        commit_sha=commit_sha,
+                                        bucket_name=bucket_name).apply(use_gcp_secret('user-gcp-sa'))
 
     stepTrainModel = dsl.ContainerOp(
         name = 'train model',
