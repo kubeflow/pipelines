@@ -1,5 +1,7 @@
 name: tensorboard visualization
 description: visualize training in tensorboard
+inputs:
+  - {name: logdir, type: string}
 outputs:
   - {name: MLPipeline UI metadata, type: UI metadata}
 implementation:

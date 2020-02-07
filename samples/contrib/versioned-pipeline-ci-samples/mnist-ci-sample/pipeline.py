@@ -19,7 +19,7 @@ def mnist_pipeline(
    ).apply(use_gcp_secret('user-gcp-sa'))
 
    visualize_op = components.load_component_from_file('./tensorboard/component.yaml')
-   visualize_step = visualize_op(tensorboard_image='gcr.io/alert-ability-264507/mnist_tensorboard:latest', logdir=train_step.outputs['logdir']).apply(use_gcp_secret('user-gcp-sa'))
+   visualize_step = visualize_op(tensorboard_image='gcr.io/alert-ability-264507/mnist_tensorboard:latest', logdir='%s' % train_step.outputs['logdir']).apply(use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
    import argparse
