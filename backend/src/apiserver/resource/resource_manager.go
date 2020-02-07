@@ -28,6 +28,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -42,9 +43,9 @@ const (
 	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
 	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
 	defaultServiceAccount                     = "default-editor"
-	HasDefaultBucketEnvVar  = "HAS_DEFAULT_BUCKET"
-  	ProjectIDEnvVar         = "PROJECT_ID"
-  	DefaultBucketNameEnvVar = "BUCKET_NAME"
+	HasDefaultBucketEnvVar                    = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar                           = "PROJECT_ID"
+	DefaultBucketNameEnvVar                   = "BUCKET_NAME"
 )
 
 type ClientManagerInterface interface {
@@ -172,12 +173,21 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 }
 
 func (r *ResourceManager) CreatePipeline(name string, description string, pipelineFile []byte) (*model.Pipeline, error) {
-	// Extract the parameter from the pipeline
-
-	// TODO(numerology): move the patching logic here.
+	// Patch the GCS default values if available
 	if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
-
+		defaultBucket := common.GetStringConfig(DefaultBucketNameEnvVar)
+		projectId := common.GetStringConfig(ProjectIDEnvVar)
+		patchMap := map[string]string{
+			"<your-gcs-bucket>": defaultBucket,
+			"<your-project-id>": projectId,
+		}
+		var err error
+		pipelineFile, err = server.PatchPipelineDefaultParameter(pipelineFile, patchMap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+		}
 	}
+	// Extract the parameter from the pipeline
 	params, err := util.GetParameters(pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
