@@ -40,12 +40,6 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-const (
-	HasDefaultBucketEnvVar  = "HAS_DEFAULT_BUCKET"
-	ProjectIDEnvVar         = "PROJECT_ID"
-	DefaultBucketNameEnvVar = "BUCKET_NAME"
-)
-
 var (
 	rpcPortFlag      = flag.String("rpcPortFlag", ":8887", "RPC Port")
 	httpPortFlag     = flag.String("httpPortFlag", ":8888", "Http Proxy Port")

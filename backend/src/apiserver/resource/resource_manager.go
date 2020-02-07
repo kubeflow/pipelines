@@ -42,6 +42,9 @@ const (
 	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
 	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
 	defaultServiceAccount                     = "default-editor"
+	HasDefaultBucketEnvVar  = "HAS_DEFAULT_BUCKET"
+  	ProjectIDEnvVar         = "PROJECT_ID"
+  	DefaultBucketNameEnvVar = "BUCKET_NAME"
 )
 
 type ClientManagerInterface interface {
@@ -170,6 +173,11 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 
 func (r *ResourceManager) CreatePipeline(name string, description string, pipelineFile []byte) (*model.Pipeline, error) {
 	// Extract the parameter from the pipeline
+
+	// TODO(numerology): move the patching logic here.
+	if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
+
+	}
 	params, err := util.GetParameters(pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
