@@ -140,6 +140,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	// https://github.com/grpc-ecosystem/grpc-gateway/issues/410
 	pipelineUploadServer := server.NewPipelineUploadServer(resourceManager)
 	topMux.HandleFunc("/apis/v1beta1/pipelines/upload", pipelineUploadServer.UploadPipeline)
+	topMux.HandleFunc("/apis/v1beta1/pipelines/upload_version", pipelineUploadServer.UploadPipelineVersion)
 	topMux.HandleFunc("/apis/v1beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfig("COMMIT_SHA")+`"}`)
 	})

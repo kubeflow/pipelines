@@ -58,7 +58,8 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
     --member="serviceAccount:$ARGO_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor" \
     > /dev/null # hide verbose output
-  bind_gsa_and_ksa $ARGO_GSA $ARGO_KSA $PROJECT $NAMESPACE
+  source "$DIR/scripts/retry.sh"
+  retry bind_gsa_and_ksa $ARGO_GSA $ARGO_KSA $PROJECT $NAMESPACE
 
   verify_workload_identity_binding $ARGO_KSA $NAMESPACE
 fi

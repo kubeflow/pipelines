@@ -154,3 +154,10 @@ func (f *FakeClientManager) KFAMClient() client.KFAMClientInterface {
 func (f *FakeClientManager) Close() error {
 	return f.db.Close()
 }
+
+// Update the uuid used in this fake client manager
+func (f *FakeClientManager) UpdateUUID(uuid util.UUIDGeneratorInterface) {
+	f.uuid = uuid
+	f.experimentStore = storage.NewExperimentStore(f.db, f.time, uuid)
+	f.pipelineStore = storage.NewPipelineStore(f.db, f.time, uuid)
+}
