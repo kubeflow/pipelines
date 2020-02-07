@@ -310,3 +310,5 @@ func (s *JobApiTestSuite) checkArgParamsRun(t *testing.T, run *run_model.APIRun,
 func TestJobApi(t *testing.T) {
 	suite.Run(t, new(JobApiTestSuite))
 }
+
+// TODO(jingzhang36): include UploadPipelineVersion in integration test
