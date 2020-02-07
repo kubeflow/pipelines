@@ -4,21 +4,16 @@ This image is the base image for Kubeflow Pipelines [Prow job](https://github.co
 To build this Docker image, run the following Docker command from the directory containing the image's files:
 
 ``` 
-docker build -t gcr.io/ml-pipeline-test/test-worker:${WHATEVER_TAG_VERSION} . 
+docker build -t gcr.io/ml-pipeline-test/test-worker:latest . 
 ```
 ## Where to push the image
-This image stores in the repo ml-pipeline-test, which is a public GCR repo. To push the image, run the following command:
+This image is stored in the repo ml-pipeline-test, which is a public GCR repo. To push the image, run the following command:
 1. Configure docker to use the gcloud command-line tool as a credential helper:
 
 ``` 
 gcloud auth configure-docker 
 ```
-2. Tag the image with a registry name:
-
-``` 
-docker tag test-worker gcr.io/ml-pipeline-test/test-worker:latest 
-```
-3. Push the image to Container Registry:
+2. Push the image to Container Registry:
 
 ``` 
 docker push gcr.io/ml-pipeline-test/test-worker:latest 
