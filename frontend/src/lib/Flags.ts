@@ -18,5 +18,5 @@ export const KFP_FLAGS = {
         window['KFP_FLAGS']['DEPLOYMENT'] === Deployments.MARKETPLACE
         ? Deployments.MARKETPLACE
         : DEPLOYMENT_DEFAULT
-      : DEPLOYMENT_DEFAULT
+      : DEPLOYMENT_DEFAULT,
 };
