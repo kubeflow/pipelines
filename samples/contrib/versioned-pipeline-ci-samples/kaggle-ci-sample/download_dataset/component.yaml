@@ -9,7 +9,7 @@ implementation:
   container:
     image: tensorboard_image_location
     command: ['python', 'download_data.py']
-    args: ['--logdir', {inputValue: logdir}]
+    args: ['--bucket_name', {inputValue: bucket_name}]
     fileOutputs: 
       train_dataset: /train.txt
       test_dataset: /test.txt
