@@ -10,13 +10,8 @@ def mnist_pipeline(
    storage_bucket: str,
    ):
    import os
-   train_step = dsl.ContainerOp(
-       name='train mnist model',
-       image = os.path.join(args.gcr_address, 'mnist_train:latest'),
-       command = ['python', '/mnist.py'],
-       arguments = ['--storage_bucket', storage_bucket],
-       file_outputs = {'logdir': '/logdir.txt'},
-   ).apply(use_gcp_secret('user-gcp-sa'))
+   train_op = components.load_component_from_file('./train/component.yaml')
+   train_step = train_op(storage_bucket=storage_bucket).apply(use_gcp_secret('user-gcp-sa'))
 
    visualize_op = components.load_component_from_file('./tensorboard/component.yaml')
    visualize_step = visualize_op(logdir='%s' % train_step.outputs['logdir']).apply(use_gcp_secret('user-gcp-sa'))
