@@ -607,18 +607,14 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	}
 	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
-	namespace := workflow.Namespace
-	if len(namespace) == 0 {
-		if common.IsMultiUserMode() {
-			return util.NewInvalidInputError("Workflow missing namespace")
-		} else {
-			namespace = common.GetPodNamespace()
-		}
+	if len(workflow.Namespace) == 0 {
+		workflow.Namespace = common.GetPodNamespace()
+		// return util.NewInvalidInputError("Workflow missing the namespace")
 	}
 
 	if workflow.PersistedFinalState() {
 		// If workflow's final state has being persisted, the workflow should be garbage collected.
-		err := r.getWorkflowClient(namespace).Delete(workflow.Name, &v1.DeleteOptions{})
+		err := r.getWorkflowClient(workflow.Namespace).Delete(workflow.Name, &v1.DeleteOptions{})
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 		}
@@ -648,7 +644,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 				DisplayName:      workflow.Name,
 				Name:             workflow.Name,
 				StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-				Namespace:        namespace,
+				Namespace:        workflow.Namespace,
 				CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
 				ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
 				FinishedAtInSec:  workflow.FinishedAt(),
@@ -686,7 +682,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	}
 
 	if workflow.IsInFinalState() {
-		err := AddWorkflowLabel(r.getWorkflowClient(namespace), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
+		err := AddWorkflowLabel(r.getWorkflowClient(workflow.Namespace), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
 			return util.Wrap(err, "Failed to add PersistedFinalState label to workflow")
 		}

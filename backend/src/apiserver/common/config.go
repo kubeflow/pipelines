@@ -23,9 +23,8 @@ import (
 )
 
 const (
-	MultiUserMode       string = "MULTIUSER"
-	podNamespace        string = "POD_NAMESPACE"
-	podNamespaceDefault string = "kubeflow"
+	MultiUserMode string = "MULTIUSER"
+	PodNamespace  string = "POD_NAMESPACE"
 )
 
 func GetStringConfig(configName string) string {
@@ -73,5 +72,5 @@ func IsMultiUserMode() bool {
 }
 
 func GetPodNamespace() string {
-	return GetStringConfigWithDefault(podNamespace, podNamespaceDefault)
+	return GetStringConfig(PodNamespace)
 }

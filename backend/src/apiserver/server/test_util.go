@@ -20,9 +20,11 @@ import (
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,6 +65,11 @@ var validReferencesOfExperimentAndPipelineVersion = []*api.ResourceReference{
 		},
 		Relationship: api.Relationship_CREATOR,
 	},
+}
+
+// This automatically runs before all the tests.
+func init() {
+	viper.Set(common.PodNamespace, "kubeflow-test")
 }
 
 func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {

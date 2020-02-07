@@ -30,11 +30,17 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
+
+// This automatically runs before all the tests.
+func init() {
+	viper.Set(common.PodNamespace, "kubeflow-test")
+}
 
 type FakeBadObjectStore struct{}
 
@@ -1292,10 +1298,10 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:   run.Name,
+			Name:      run.Name,
 			Namespace: namespace,
-			UID:    types.UID(run.UUID),
-			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
 	})
