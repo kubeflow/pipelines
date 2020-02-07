@@ -53,7 +53,7 @@ This section contains demo and tutorial pipelines.
   * [TFX Landing page](https://www.tensorflow.org/tfx)
   * [Hosted Pipeline documentation](https://cloud.google.com/ai-platform)
   * [Troubleshooting guide](https://www.kubeflow.org/docs/pipelines/troubleshooting/)
-  * [Kubeflow Pipeline Open source documentation](https://www.kubeflow.org/docs/pipelines/)
+  * [Kubeflow Pipeline open source documentation](https://www.kubeflow.org/docs/pipelines/)
 `;
 
 cssRaw(`
