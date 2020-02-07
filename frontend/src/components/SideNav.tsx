@@ -294,7 +294,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
                       collapsed && css.collapsedButton,
                     )}
                   >
-                    <DescriptionIcon />
+                    <DescriptionIcon style={{ width: 20, height: 20 }} />
                     <span className={classes(collapsed && css.collapsedLabel, css.label)}>
                       Getting Started
                     </span>
