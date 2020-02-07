@@ -72,10 +72,11 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   yes | PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
     ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
 
-  gcloud projects add-iam-policy-binding $PROJECT \
+  source "${DIR}/scripts/retry.sh"
+  retry gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$SYSTEM_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor"
-  gcloud projects add-iam-policy-binding $PROJECT \
+  retry gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$USER_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor"
 
