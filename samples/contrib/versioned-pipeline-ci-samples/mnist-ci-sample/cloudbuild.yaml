@@ -52,8 +52,8 @@ steps:
         "cd ${_CODE_PATH};
         pip3 install cffi==1.12.3 --upgrade;
         pip3 install kfp==0.1.37;
-        sed -i 's|image: train_image_location|image: ${_GCR_PATH}/mnist_train:latest|g' ./train/component.yaml;
-        sed -i 's|image: tensorboard_image_location|image: ${_GCR_PATH}/mnist_tensorboard:latest|g' ./tensorboard/component.yaml;
+        sed -i 's|image: train_image_location|image: ${_GCR_PATH}/mnist_train:$COMMIT_SHA|g' ./train/component.yaml;
+        sed -i 's|image: tensorboard_image_location|image: ${_GCR_PATH}/mnist_tensorboard:$COMMIT_SHA|g' ./tensorboard/component.yaml;
         python pipeline.py --gcr_address ${_GCR_PATH};
         cp pipeline.py.zip /workspace/pipeline.zip",
       ]
@@ -87,8 +87,8 @@ steps:
         --pipeline_id ${_PIPELINE_ID}"
       ]
     env:
-      - "CLOUDSDK_COMPUTE_ZONE=us-central1-a"
-      - "CLOUDSDK_CONTAINER_CLUSTER=sample"
+      - "CLOUDSDK_COMPUTE_ZONE=[Your cluster zone, for example: us-central1-a]"
+      - "CLOUDSDK_CONTAINER_CLUSTER=[Your cluster name, for example: my-cluster]"
     id: "MnistCreatePipelineVersionAndRun"
 
 images:
@@ -98,7 +98,8 @@ images:
 substitutions:
   _CODE_PATH: /workspace/samples/contrib/versioned-pipeline-ci-samples/mnist-ci-sample
   _NAMESPACE: kubeflow
-  _GCR_PATH: gcr.io/alert-ability-264507
-  _GS_BUCKET: gs://dldaisy-test-bucket
-  _PIPELINE_ID: f6f8558a-6eec-4ef4-b343-a650473ee613
+  _GCR_PATH: [Your cloud registry path. For example, gcr.io/my-project-id]
+  _GS_BUCKET: [Name of your cloud storage bucket. For example, gs://my-project-bucket]
+  _PIPELINE_ID: [Your kubeflow pipeline id to create a version on. Get it from Kubeflow Pipeline UI.
+                 For example, f6f8558a-6eec-4ef4-b343-a650473ee613]
 
