@@ -1182,6 +1182,49 @@
           "PipelineUploadService"
         ]
       }
+    },
+    "/apis/v1beta1/pipelines/upload_version": {
+      "post": {
+        "operationId": "UploadPipelineVersion",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiPipelineVersion"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "uploadfile",
+            "in": "formData",
+            "required": true,
+            "type": "file",
+            "description": "The pipeline to upload. Maximum size of 32MB is supported."
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineUploadService"
+        ]
+      }
     }
   },
   "definitions": {

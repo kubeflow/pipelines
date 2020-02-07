@@ -25,6 +25,7 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/pkg/errors"
 )
 
 // These are valid conditions of a ScheduledWorkflow.
@@ -32,6 +33,8 @@ const (
 	FormFileKey               = "uploadfile"
 	NameQueryStringKey        = "name"
 	DescriptionQueryStringKey = "description"
+	// Pipeline Id in the query string specifies a pipeline when creating versions.
+	PipelineKey = "pipelineid"
 )
 
 type PipelineUploadServer struct {
@@ -48,7 +51,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 	glog.Infof("Upload pipeline called")
 	file, header, err := r.FormFile(FormFileKey)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to read pipeline form file"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to read pipeline from file"))
 		return
 	}
 	defer file.Close()
@@ -82,6 +85,73 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 	err = marshaler.Marshal(w, ToApiPipeline(newPipeline))
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
+		return
+	}
+}
+
+// HTTP multipart endpoint for uploading pipeline version file.
+// https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html
+// This endpoint is not exposed through grpc endpoint, since grpc-gateway can't convert the gRPC
+// endpoint to the HTTP endpoint.
+// See https://github.com/grpc-ecosystem/grpc-gateway/issues/500
+// Thus we create the HTTP endpoint directly and using swagger to auto generate the HTTP client.
+func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *http.Request) {
+	glog.Infof("Upload pipeline version called")
+	file, header, err := r.FormFile(FormFileKey)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to read pipeline version from file"))
+		return
+	}
+	defer file.Close()
+
+	pipelineFile, err := ReadPipelineFile(header.Filename, file, MaxFileLength)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline version file."))
+		return
+	}
+
+	versionNameQueryString := r.URL.Query().Get(NameQueryStringKey)
+	// If new version's name is not included in query string, use file name.
+	pipelineVersionName, err := GetPipelineName(versionNameQueryString, header.Filename)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid pipeline version name."))
+		return
+	}
+
+	pipelineId := r.URL.Query().Get(PipelineKey)
+	if len(pipelineId) == 0 {
+		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Please specify a pipeline id when creating versions."))
+		return
+	}
+
+	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
+		&api.PipelineVersion{
+			Name: pipelineVersionName,
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   pipelineId,
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		}, pipelineFile)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline version"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	marshaler := &jsonpb.Marshaler{EnumsAsInts: true, OrigName: true}
+	createdPipelineVersion, err := ToApiPipelineVersion(newPipelineVersion)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline version"))
+		return
+	}
+	err = marshaler.Marshal(w, createdPipelineVersion)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline version"))
 		return
 	}
 }
