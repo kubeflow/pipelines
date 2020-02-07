@@ -1,9 +1,12 @@
 name: tensorboard visualization
 description: visualize training in tensorboard
+outputs:
+  - {name: MLPipeline UI metadata, type: UI metadata}
 implementation:
   container:
     image: gcr.io/alert-ability-264507/mnist_tensorboard:latest
     command: ['python', '/tensorboard.py']
     args: ['--logdir', {inputValue: logdir}]
-    fileOutputs: {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'}
+    fileOutputs: 
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json
     
