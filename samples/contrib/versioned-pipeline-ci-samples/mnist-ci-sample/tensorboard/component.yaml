@@ -2,8 +2,8 @@ name: tensorboard visualization
 description: visualize training in tensorboard
 implementation:
   container:
-    image: {inputValue: tensorboard_image},
-    command: ['python', '/tensorboard.py'],
-    args: ['--logdir', {inputValue: logdir}],
+    image: {inputValue: tensorboard_image}
+    command: ['python', '/tensorboard.py']
+    args: ['--logdir', {inputValue: logdir}]
     file_outputs: {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'}
     
