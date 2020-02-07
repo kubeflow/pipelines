@@ -15,13 +15,8 @@ def kaggle_houseprice(
     downloadDataOp = components.load_component_from_file('./download_dataset/component.yaml')
     downloadDataStep = downloadDataOp(bucket_name=bucket_name).apply(use_gcp_secret('user-gcp-sa'))
 
-    stepVisualizeTable = dsl.ContainerOp(
-        name = 'visualize dataset in table',
-        image = os.path.join(args.gcr_address, 'kaggle_visualize_table:latest'),
-        command = ['python', 'visualize.py'],
-        arguments = ['--train_file_path', '%s' % downloadDataStep.outputs['train_dataset']],
-        output_artifact_paths={'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'}
-    ).apply(use_gcp_secret('user-gcp-sa'))
+    visualizeDataOp = components.load_component_from_file('./visualize_table/component.yaml')
+    visualizeTanleStep = visualizeDataOp(train_file_path='%s' % downloadDataStep.outputs['train_dataset']).apply(use_gcp_secret('user-gcp-sa'))
 
     stepVisualizeHTML = dsl.ContainerOp(
         name = 'visualize dataset in html',
