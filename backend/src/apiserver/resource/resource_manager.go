@@ -178,8 +178,8 @@ func (r *ResourceManager) CreatePipeline(name string, description string, pipeli
 		defaultBucket := common.GetStringConfig(DefaultBucketNameEnvVar)
 		projectId := common.GetStringConfig(ProjectIDEnvVar)
 		patchMap := map[string]string{
-			"<your-gcs-bucket>": defaultBucket,
-			"<your-project-id>": projectId,
+			"{{kfp-default-bucket}}": defaultBucket,
+			"{{kfp-project-id}}":     projectId,
 		}
 		var err error
 		pipelineFile, err = server.PatchPipelineDefaultParameter(pipelineFile, patchMap)
