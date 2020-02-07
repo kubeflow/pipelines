@@ -23,7 +23,9 @@ import (
 )
 
 const (
-	MultiUserMode     string = "MULTIUSER"
+	MultiUserMode       string = "MULTIUSER"
+	podNamespace        string = "POD_NAMESPACE"
+	podNamespaceDefault string = "kubeflow"
 )
 
 func GetStringConfig(configName string) string {
@@ -68,4 +70,8 @@ func GetDurationConfig(configName string) time.Duration {
 
 func IsMultiUserMode() bool {
 	return GetBoolConfigWithDefault(MultiUserMode, false)
+}
+
+func GetPodNamespace() string {
+	return GetStringConfigWithDefault(podNamespace, podNamespaceDefault)
 }

@@ -1287,11 +1287,13 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 
 func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
+	namespace := "kubeflow"
 	defer store.Close()
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:   run.Name,
+			Namespace: namespace,
 			UID:    types.UID(run.UUID),
 			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
@@ -1300,7 +1302,7 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	err := manager.ReportWorkflowResource(workflow)
 	assert.Nil(t, err)
 
-	wf, err := store.ArgoClientFake.Workflow("").Get(run.Run.Name, v1.GetOptions{})
+	wf, err := store.ArgoClientFake.Workflow(namespace).Get(run.Run.Name, v1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, wf.Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }

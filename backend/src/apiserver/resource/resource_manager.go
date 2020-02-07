@@ -304,8 +304,16 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		}
 	}
 
+	namespace := common.GetNamespaceFromAPIResourceReferences(apiRun.ResourceReferences)
+	if len(namespace) == 0 {
+		if multiuserMode {
+			return nil, util.NewInvalidInputError("Run should specify namespace")
+		} else {
+			namespace = common.GetPodNamespace()
+		}
+	}
 	// Create argo workflow CRD resource
-	newWorkflow, err := r.getWorkflowClient(common.GetNamespaceFromAPIResourceReferences(apiRun.ResourceReferences)).Create(workflow.Get())
+	newWorkflow, err := r.getWorkflowClient(namespace).Create(workflow.Get())
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
 	}
@@ -599,10 +607,18 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	}
 	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
+	namespace := workflow.Namespace
+	if len(namespace) == 0 {
+		if common.IsMultiUserMode() {
+			return util.NewInvalidInputError("Workflow missing namespace")
+		} else {
+			namespace = common.GetPodNamespace()
+		}
+	}
 
 	if workflow.PersistedFinalState() {
 		// If workflow's final state has being persisted, the workflow should be garbage collected.
-		err := r.getWorkflowClient(workflow.Namespace).Delete(workflow.Name, &v1.DeleteOptions{})
+		err := r.getWorkflowClient(namespace).Delete(workflow.Name, &v1.DeleteOptions{})
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 		}
@@ -632,7 +648,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 				DisplayName:      workflow.Name,
 				Name:             workflow.Name,
 				StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-				Namespace:        workflow.Namespace,
+				Namespace:        namespace,
 				CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
 				ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
 				FinishedAtInSec:  workflow.FinishedAt(),
@@ -670,7 +686,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	}
 
 	if workflow.IsInFinalState() {
-		err := AddWorkflowLabel(r.getWorkflowClient(workflow.Namespace), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
+		err := AddWorkflowLabel(r.getWorkflowClient(namespace), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
 			return util.Wrap(err, "Failed to add PersistedFinalState label to workflow")
 		}
@@ -992,5 +1008,15 @@ func (r *ResourceManager) GetNamespaceFromRunID(runId string) (string, error) {
 		return "", util.Wrap(err, "Failed to get namespace from run id.")
 	}
 	namespace := model.GetNamespaceFromModelResourceReferences(runDetail.ResourceReferences)
+	if len(namespace) == 0 {
+		if common.IsMultiUserMode() {
+			// All runs should have namespace in multi user mode.
+			return "", errors.New("Invalid db data: run doesn't have a namespace resource reference")
+		} else {
+			// When db model doesn't have namespace stored (e.g. legacy runs), use
+			// pod namespace as default.
+			return common.GetPodNamespace(), nil
+		}
+	}
 	return namespace, nil
 }
