@@ -28,13 +28,9 @@ def kaggle_houseprice(
                                   test_file='%s' % downloadDataStep.outputs['test_dataset'],
                                   bucket_name=bucket_name).apply(use_gcp_secret('user-gcp-sa'))
 
-    stepSubmitResult = dsl.ContainerOp(
-        name = 'submit result to kaggle competition',
-        image = os.path.join(args.gcr_address, 'kaggle_submit:latest'),
-        command = ['python', 'submit_result.py'],
-        arguments = ['--result_file', '%s' % trainModelStep.outputs['result'],
-                     '--submit_message', 'submit']
-    ).apply(use_gcp_secret('user-gcp-sa'))
+    submitResultOp = components.load_component_from_file('./submit_result/component.yaml')
+    submitResultStep = submitResultOp(result_file='%s' % trainModelStep.outputs['result'],
+                                      submit_message='submit').apply(use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
     import kfp.compiler as compiler
