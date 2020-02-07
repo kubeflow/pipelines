@@ -608,8 +608,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
 	if len(workflow.Namespace) == 0 {
-		workflow.Namespace = common.GetPodNamespace()
-		// return util.NewInvalidInputError("Workflow missing the namespace")
+		return util.NewInvalidInputError("Workflow missing namespace")
 	}
 
 	if workflow.PersistedFinalState() {

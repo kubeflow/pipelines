@@ -69,7 +69,7 @@ var validReferencesOfExperimentAndPipelineVersion = []*api.ResourceReference{
 
 // This automatically runs before all the tests.
 func init() {
-	viper.Set(common.PodNamespace, "kubeflow-test")
+	viper.Set(common.PodNamespace, "test-ns")
 }
 
 func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {
