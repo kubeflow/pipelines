@@ -149,7 +149,7 @@ func (c *ClientManager) init() {
 	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
-		common.GetStringConfig(client.PodNamespace), common.GetDurationConfig(initConnectionTimeout))
+		common.GetPodNamespace(), common.GetDurationConfig(initConnectionTimeout))
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
@@ -397,7 +397,7 @@ func backfillExperimentIDToRunTable(db *gorm.DB) (retError error) {
 	}
 
 	_, err = db.CommonDB().Exec(`
-		UPDATE 
+		UPDATE
 			run_details, resource_references
 		SET
 			run_details.ExperimentUUID = resource_references.ReferenceUUID
