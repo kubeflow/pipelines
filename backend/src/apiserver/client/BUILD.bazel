@@ -7,9 +7,9 @@ go_library(
         "argo_fake.go",
         "kfam.go",
         "kfam_fake.go",
-        "minio.go",
         "kubernetes_core.go",
         "kubernetes_core_fake.go",
+        "minio.go",
         "pod_fake.go",
         "scheduled_workflow.go",
         "sql.go",
@@ -43,8 +43,14 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    srcs = ["kfam_test.go"],
+    srcs = [
+        "kfam_test.go",
+        "sql_test.go",
+    ],
     data = glob(["test/**/*"]),  # keep
     embed = [":go_default_library"],
-    deps = ["@com_github_stretchr_testify//assert:go_default_library"],
+    deps = [
+        "@com_github_go_sql_driver_mysql//:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+    ],
 )

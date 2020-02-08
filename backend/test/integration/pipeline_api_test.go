@@ -215,3 +215,5 @@ func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 func TestPipelineAPI(t *testing.T) {
 	suite.Run(t, new(PipelineApiTest))
 }
+
+// TODO(jingzhang36): include UploadPipelineVersion in integration test

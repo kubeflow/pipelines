@@ -44,6 +44,10 @@ const (
 	LabelKeyWorkflowRunId = "pipeline/runid"
 	LabelKeyWorkflowPersistedFinalState = "pipeline/persistedFinalState"
 
+	// LabelKeyWorkflowEpoch is a Workflow annotation key.
+	// It captures the the name of the Run.
+	AnnotationKeyRunName = "pipelines.kubeflow.org/run_name"
+
 	AnnotationKeyIstioSidecarInject = "sidecar.istio.io/inject"
 	AnnotationValueIstioSidecarInjectEnabled = "true"
 	AnnotationValueIstioSidecarInjectDisabled = "false"

@@ -285,6 +285,8 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	workflow.OverrideParameters(parameters)
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, runId)
+	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
+	workflow.SetAnnotations(util.AnnotationKeyRunName, apiRun.Name)
 	// Replace {{workflow.uid}} with runId
 	err = workflow.ReplaceUID(runId)
 	if err != nil {

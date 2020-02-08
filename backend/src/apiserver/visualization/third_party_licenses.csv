@@ -120,3 +120,19 @@ wcwidth,https://github.com/jquast/wcwidth/blob/master/LICENSE.txt,MIT
 webencodings,https://github.com/gsnedders/python-webencodings/blob/master/LICENSE,BSD-3
 widgetsnbextension,https://github.com/jupyter-widgets/ipywidgets/blob/master/widgetsnbextension/LICENSE,BSD-3
 zipp,https://github.com/jaraco/zipp/blob/master/LICENSE,MIT
+google-pasta,https://raw.githubusercontent.com/google/pasta/master/LICENSE,Apache 2.0
+opt-einsum,https://raw.githubusercontent.com/dgasmith/opt_einsum/master/LICENSE,MIT
+tensorflow-serving-api,https://raw.githubusercontent.com/tensorflow/serving/master/LICENSE,Apache 2.0
+tfx-bsl,https://raw.githubusercontent.com/tensorflow/tfx-bsl/master/LICENSE,Apache 2.0
+wrapt,https://github.com/GrahamDumpleton/wrapt/blob/develop/LICENSE,2-Clause BSD
+asn1crypto,https://raw.githubusercontent.com/wbond/asn1crypto/master/LICENSE,MIT
+cryptography,https://raw.githubusercontent.com/pyca/cryptography/master/LICENSE,Apache or BSD
+keyring,https://raw.githubusercontent.com/jaraco/keyring/master/LICENSE,MIT
+keyrings.alt,https://raw.githubusercontent.com/jaraco/keyrings.alt/master/LICENSE,MIT
+pycrypto,https://raw.githubusercontent.com/dlitz/pycrypto/master/COPYRIGHT,Public Domain
+pygobject,https://raw.githubusercontent.com/GNOME/pygobject/mainline/COPYING,LGPL
+pyxdg,https://cgit.freedesktop.org/xdg/pyxdg/plain/COPYING,LGPL
+SecretStorage,https://raw.githubusercontent.com/mitya57/secretstorage/master/LICENSE,BSD-3
+Mako,https://raw.githubusercontent.com/sqlalchemy/mako/master/LICENSE,MIT
+typing,https://raw.githubusercontent.com/python/typing/master/typing_extensions/LICENSE,Python Software Foundation License
+typing-extensions,https://raw.githubusercontent.com/python/typing/master/typing_extensions/LICENSE,Python Software Foundation License

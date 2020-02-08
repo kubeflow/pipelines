@@ -36,6 +36,7 @@ import { RouterProps } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, commonCss } from '../Css';
 import { logger } from '../lib/Utils';
+import { KFP_FLAGS, Deployments } from '../lib/Flags';
 
 export const sideNavColors = {
   bg: '#f8fafb',
@@ -55,8 +56,10 @@ export const css = stylesheet({
     color: sideNavColors.fgActive + ' !important',
   },
   button: {
-    '&:hover': {
-      backgroundColor: sideNavColors.hover,
+    $nest: {
+      '&::hover': {
+        backgroundColor: sideNavColors.hover,
+      },
     },
     borderRadius: 0,
     color: sideNavColors.fgDefault,
@@ -267,6 +270,39 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
         )}
       >
         <div style={{ flexGrow: 1 }}>
+          {KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE && (
+            <>
+              <div
+                className={classes(
+                  css.indicator,
+                  !page.startsWith(RoutePage.START) && css.indicatorHidden,
+                )}
+              />
+              <Tooltip
+                title={'Getting Started'}
+                enterDelay={300}
+                placement={'right-start'}
+                disableFocusListener={!collapsed}
+                disableHoverListener={!collapsed}
+                disableTouchListener={!collapsed}
+              >
+                <Link id='gettingStartedBtn' to={RoutePage.START} className={commonCss.unstyled}>
+                  <Button
+                    className={classes(
+                      css.button,
+                      page.startsWith(RoutePage.START) && css.active,
+                      collapsed && css.collapsedButton,
+                    )}
+                  >
+                    <DescriptionIcon />
+                    <span className={classes(collapsed && css.collapsedLabel, css.label)}>
+                      Getting Started
+                    </span>
+                  </Button>
+                </Link>
+              </Tooltip>
+            </>
+          )}
           <div
             className={classes(
               css.indicator,

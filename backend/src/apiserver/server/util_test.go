@@ -131,6 +131,19 @@ func TestReadPipelineFile_YAML(t *testing.T) {
 	assert.Equal(t, expectedFileBytes, fileBytes)
 }
 
+func TestParameterPatch(t *testing.T) {
+  file, _ := os.Open("test/arguments-parameters.yaml")
+	fileBytes, err := ReadPipelineFile("arguments-parameters.yaml", file, MaxFileLength)
+	patchMap := map[string]string{
+  				"hello": "new-hello",
+  			}
+	fileBytes, err = PatchPipelineDefaultParameter(fileBytes, patchMap)
+	assert.Nil(t, err)
+
+	expectedFileBytes, _ := ioutil.ReadFile("test/patched-arguments-parameters.yaml")
+  assert.Equal(t, expectedFileBytes, fileBytes)
+}
+
 func TestReadPipelineFile_Zip(t *testing.T) {
 	file, _ := os.Open("test/arguments_zip/arguments-parameters.zip")
 	pipelineFile, err := ReadPipelineFile("arguments-parameters.zip", file, MaxFileLength)

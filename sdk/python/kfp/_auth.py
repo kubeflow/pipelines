@@ -39,7 +39,8 @@ def get_gcp_access_token():
     token = None
     args = ['gcloud', 'auth', 'print-access-token']
     try:
-      token = subprocess.check_output(args).rstrip()
+      # Casting to string to accommodate API server request schema.
+      token = subprocess.check_output(args).rstrip().decode("utf-8")
     except subprocess.CalledProcessError as e:
       logging.warning('Failed to get GCP access token: %s', e)
     return token

@@ -16,4 +16,4 @@ const css = stylesheet({
 
 export const ExternalLink: React.FC<
   DetailedHTMLProps<AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>
-> = props => <a {...props} className={css.link} target='_blank' rel='noreferrer noopener' />;
+> = props => <a {...props} className={css.link} target='_blank' rel='noopener' />;

@@ -297,11 +297,13 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID: experiment.UUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -337,14 +339,17 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 
 func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
+	expectedExperimentUUID := runDetail.ExperimentUUID
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID: expectedExperimentUUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -422,11 +427,13 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID: experiment.UUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -1101,6 +1108,7 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 
 func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
+	expectedExperimentUUID := run.ExperimentUUID
 	defer store.Close()
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
@@ -1116,6 +1124,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	assert.Nil(t, err)
 	expectedRun := model.Run{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
+		ExperimentUUID: expectedExperimentUUID,
 		DisplayName:    "run1",
 		Name:           "workflow-name",
 		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
