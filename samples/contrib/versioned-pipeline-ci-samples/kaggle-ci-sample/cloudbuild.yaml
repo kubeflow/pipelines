@@ -121,6 +121,11 @@ steps:
         "cd ${_CODE_PATH};
         pip3 install cffi==1.12.3 --upgrade;
         pip3 install kfp==0.1.38;
+        sed -i 's|image: download_image_location|image: ${_GCR_PATH}/kaggle_download:$COMMIT_SHA|g' ./download_dataset/component.yaml;
+        sed -i 's|image: visualizetable_image_location|image: ${_GCR_PATH}/kaggle_visualize_table:$COMMIT_SHA|g' ./visualize_table/component.yaml;
+        sed -i 's|image: visualizehtml_image_location|image: ${_GCR_PATH}/kaggle_visualize_html:$COMMIT_SHA|g' ./visualize_html/component.yaml;
+        sed -i 's|image: train_image_location|image: ${_GCR_PATH}/kaggle_train:$COMMIT_SHA|g' ./train_model/component.yaml;
+        sed -i 's|image: submit_image_location|image: ${_GCR_PATH}/kaggle_submit:$COMMIT_SHA|g' ./submit_result/component.yaml;
         python pipeline.py
         --gcr_address ${_GCR_PATH};
         cp pipeline.py.zip /workspace/pipeline.zip",
