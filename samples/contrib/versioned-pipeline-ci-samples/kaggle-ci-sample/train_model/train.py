@@ -22,7 +22,7 @@ limitations under the License.
 def train(
     train_file,
     test_file,
-    output_bucket
+    bucket_name
 ):
     train = pd.read_csv(train_file)
     test = pd.read_csv(test_file)
@@ -187,7 +187,7 @@ def train(
 
     ## Saving to CSV
     import os
-    result_path = os.path.join(output_bucket, 'submission.csv')
+    result_path = os.path.join(bucket_name, 'submission.csv')
     pd.DataFrame({'Id': test.Id, 'SalePrice': Final_labels}).to_csv(result_path, index =False)
 
     with open('/result_path.txt', 'w') as f:
@@ -209,8 +209,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--train_file', type=str)
     parser.add_argument('--test_file', type=str)
-    parser.add_argument('--output_bucket', type=str)
+    parser.add_argument('--bucket_name', type=str)
 
     args = parser.parse_args()
-    train(args.train_file, args.test_file, args.output_bucket)
+    train(args.train_file, args.test_file, args.bucket_name)
 
