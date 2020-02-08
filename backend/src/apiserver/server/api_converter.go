@@ -25,12 +25,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-const (
-	HasDefaultBucketEnvVar  = "HAS_DEFAULT_BUCKET"
-	ProjectIDEnvVar         = "PROJECT_ID"
-	DefaultBucketNameEnvVar = "BUCKET_NAME"
-)
-
 func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
 	return &api.Experiment{
 		Id:          experiment.UUID,
