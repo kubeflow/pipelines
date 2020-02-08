@@ -32,7 +32,7 @@ implementation:
                 HALT_ON_ERROR flag is set.
             """
 
-          # Installing pip3 and kfp, since the base image 'google/cloud-sdk:276.0.0'
+          # Installing pip3 and kfp, since the base image 'google/cloud-sdk:279.0.0'
           # does not come with pip3 pre-installed.
           import subprocess
           subprocess.run(
@@ -193,7 +193,7 @@ implementation:
     - '----output-paths'
     - {outputPath: bucket}
     - {outputPath: project_id}
-    image: google/cloud-sdk:276.0.0
+    image: google/cloud-sdk:279.0.0
 description: |-
   Performs environment verification specific to this pipeline.
 
