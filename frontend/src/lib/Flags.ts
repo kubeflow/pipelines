@@ -3,6 +3,10 @@ export enum Deployments {
   MARKETPLACE = 'MARKETPLACE',
 }
 
+const DEPLOYMENT_DEFAULT = undefined;
+// Uncomment this to debug marketplace:
+// const DEPLOYMENT_DEFAULT = Deployments.MARKETPLACE;
+
 export const KFP_FLAGS = {
   DEPLOYMENT:
     // tslint:disable-next-line:no-string-literal
@@ -13,6 +17,6 @@ export const KFP_FLAGS = {
         : // tslint:disable-next-line:no-string-literal
         window['KFP_FLAGS']['DEPLOYMENT'] === Deployments.MARKETPLACE
         ? Deployments.MARKETPLACE
-        : undefined
-      : undefined,
+        : DEPLOYMENT_DEFAULT
+      : DEPLOYMENT_DEFAULT,
 };
