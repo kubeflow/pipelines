@@ -41,7 +41,7 @@ from tfx.proto import trainer_pb2
 _taxi_module_file_param = data_types.RuntimeParameter(
     name='module-file',
     default=
-    'gs://ml-pipeline-playground/tfx_taxi_simple/modules/tfx_taxi_utils_1205.py',
+    'gs://ml-pipeline-playground/tfx_taxi_simple/modules/taxi_utils.py',
     ptype=Text,
 )
 
