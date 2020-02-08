@@ -1,0 +1,389 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"name": "My pipeline"}'
+  generateName: my-pipeline-
+spec:
+  arguments:
+    parameters: []
+  entrypoint: my-pipeline
+  serviceAccountName: pipeline-runner
+  templates:
+    -
+      name: consume
+      metadata:
+        annotations:
+          pipelines.kubeflow.org/component_spec: '{"inputs": [{"name": "param1"}], "name": "Consume"}'
+      inputs:
+        parameters:
+          -
+            name: produce-list-output
+      container:
+        image: "tensorflow/tensorflow:1.13.2-py3"
+        command:
+          - python3
+          - "-u"
+          - "-c"
+          - |
+              def consume(param1):
+                  print(param1)
+              
+              import argparse
+              _parser = argparse.ArgumentParser(prog='Consume', description='')
+              _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+              _parsed_args = vars(_parser.parse_args())
+              _output_files = _parsed_args.pop("_output_paths", [])
+              
+              _outputs = consume(**_parsed_args)
+              
+              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+                  _outputs = [_outputs]
+              
+              _output_serializers = [
+              
+              ]
+              
+              import os
+              for idx, output_file in enumerate(_output_files):
+                  try:
+                      os.makedirs(os.path.dirname(output_file))
+                  except OSError:
+                      pass
+                  with open(output_file, 'w') as f:
+                      f.write(_output_serializers[idx](_outputs[idx]))]
+        args:
+          - "--param1"
+          - "{{inputs.parameters.produce-list-output}}"
+    -
+      name: consume-2
+      metadata:
+        annotations:
+          pipelines.kubeflow.org/component_spec: '{"inputs": [{"name": "param1"}], "name": "Consume"}'
+      inputs:
+        parameters:
+          -
+            name: produce-str-output
+      container:
+        image: "tensorflow/tensorflow:1.13.2-py3"
+        command:
+          - python3
+          - "-u"
+          - "-c"
+          - |
+              def consume(param1):
+                  print(param1)
+              
+              import argparse
+              _parser = argparse.ArgumentParser(prog='Consume', description='')
+              _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+              _parsed_args = vars(_parser.parse_args())
+              _output_files = _parsed_args.pop("_output_paths", [])
+              
+              _outputs = consume(**_parsed_args)
+              
+              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+                  _outputs = [_outputs]
+              
+              _output_serializers = [
+              
+              ]
+              
+              import os
+              for idx, output_file in enumerate(_output_files):
+                  try:
+                      os.makedirs(os.path.dirname(output_file))
+                  except OSError:
+                      pass
+                  with open(output_file, 'w') as f:
+                      f.write(_output_serializers[idx](_outputs[idx]))
+        args:
+          - "--param1"
+          - "{{inputs.parameters.produce-str-output}}"
+    -
+      name: consume-3
+      metadata:
+        annotations:
+          pipelines.kubeflow.org/component_spec: '{"inputs": [{"name": "param1"}], "name": "Consume"}'
+      inputs:
+        parameters:
+          -
+            name: produce-list-output-loop-item
+      container:
+        image: "tensorflow/tensorflow:1.13.2-py3"
+        command:
+          - python3
+          - "-u"
+          - "-c"
+          - |
+              def consume(param1):
+                  print(param1)
+              
+              import argparse
+              _parser = argparse.ArgumentParser(prog='Consume', description='')
+              _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+              _parsed_args = vars(_parser.parse_args())
+              _output_files = _parsed_args.pop("_output_paths", [])
+              
+              _outputs = consume(**_parsed_args)
+              
+              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+                  _outputs = [_outputs]
+              
+              _output_serializers = [
+              
+              ]
+              
+              import os
+              for idx, output_file in enumerate(_output_files):
+                  try:
+                      os.makedirs(os.path.dirname(output_file))
+                  except OSError:
+                      pass
+                  with open(output_file, 'w') as f:
+                      f.write(_output_serializers[idx](_outputs[idx]))
+        args:
+          - "--param1"
+          - "{{inputs.parameters.produce-list-output-loop-item}}"
+    -
+      name: consume-4
+      metadata:
+        annotations:
+          pipelines.kubeflow.org/component_spec: '{"inputs": [{"name": "param1"}], "name": "Consume"}'
+      inputs:
+        parameters:
+          -
+            name: produce-list-output-loop-item-subvar-aaa
+      container:
+        image: "tensorflow/tensorflow:1.13.2-py3"
+        command:
+          - python3
+          - "-u"
+          - "-c"
+          - |
+              def consume(param1):
+                  print(param1)
+              
+              import argparse
+              _parser = argparse.ArgumentParser(prog='Consume', description='')
+              _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+              _parsed_args = vars(_parser.parse_args())
+              _output_files = _parsed_args.pop("_output_paths", [])
+              
+              _outputs = consume(**_parsed_args)
+              
+              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+                  _outputs = [_outputs]
+              
+              _output_serializers = [
+              
+              ]
+              
+              import os
+              for idx, output_file in enumerate(_output_files):
+                  try:
+                      os.makedirs(os.path.dirname(output_file))
+                  except OSError:
+                      pass
+                  with open(output_file, 'w') as f:
+                      f.write(_output_serializers[idx](_outputs[idx]))
+        args:
+          - "--param1"
+          - "{{inputs.parameters.produce-list-output-loop-item-subvar-aaa}}"
+    -
+      name: for-loop-for-loop-95e50821-1
+      inputs:
+        parameters:
+          -
+            name: produce-list-output
+          -
+            name: produce-list-output-loop-item
+          -
+            name: produce-list-output-loop-item-subvar-aaa
+          -
+            name: produce-str-output
+      dag:
+        tasks:
+          -
+            name: consume
+            template: consume
+            arguments:
+              parameters:
+                -
+                  name: produce-list-output
+                  value: "{{inputs.parameters.produce-list-output}}"
+          -
+            name: consume-2
+            template: consume-2
+            arguments:
+              parameters:
+                -
+                  name: produce-str-output
+                  value: "{{inputs.parameters.produce-str-output}}"
+          -
+            name: consume-3
+            template: consume-3
+            arguments:
+              parameters:
+                -
+                  name: produce-list-output-loop-item
+                  value: "{{inputs.parameters.produce-list-output-loop-item}}"
+          -
+            name: consume-4
+            template: consume-4
+            arguments:
+              parameters:
+                -
+                  name: produce-list-output-loop-item-subvar-aaa
+                  value: "{{inputs.parameters.produce-list-output-loop-item-subvar-aaa}}"
+    -
+      name: my-pipeline
+      dag:
+        tasks:
+          -
+            arguments:
+              parameters:
+                -
+                  name: produce-list-output
+                  value: "{{tasks.produce-list.outputs.parameters.produce-list-output}}"
+                -
+                  name: produce-list-output-loop-item
+                  value: "{{item}}"
+                -
+                  name: produce-list-output-loop-item-subvar-aaa
+                  value: "{{item.aaa}}"
+                -
+                  name: produce-str-output
+                  value: "{{tasks.produce-str.outputs.parameters.produce-str-output}}"
+            dependencies:
+              - produce-list
+              - produce-str
+            name: for-loop-for-loop-95e50821-1
+            template: for-loop-for-loop-95e50821-1
+            withParam: "{{tasks.produce-list.outputs.parameters.produce-list-output}}"
+          -
+            name: produce-list
+            template: produce-list
+          -
+            name: produce-str
+            template: produce-str
+    -
+      name: produce-list
+      metadata:
+        annotations:
+          pipelines.kubeflow.org/component_spec: '{"name": "Produce list", "outputs": [{"name": "Output", "type": "JsonArray"}]}'
+      outputs:
+        artifacts:
+          -
+            name: produce-list-output
+            path: /tmp/outputs/Output/data
+        parameters:
+          -
+            name: produce-list-output
+            valueFrom:
+              path: /tmp/outputs/Output/data
+      container:
+        image: "tensorflow/tensorflow:1.13.2-py3"
+        command:
+          - python3
+          - "-u"
+          - "-c"
+          - |
+              def produce_list() -> list:
+                  return ["1", "2"]
+              
+              def _serialize_json(obj) -> str:
+                  if isinstance(obj, str):
+                      return obj
+                  import json
+                  def default_serializer(obj):
+                      if hasattr(obj, 'to_struct'):
+                          return obj.to_struct()
+                      else:
+                          raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+                  return json.dumps(obj, default=default_serializer)
+              
+              import argparse
+              _parser = argparse.ArgumentParser(prog='Produce list', description='')
+              _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+              _parsed_args = vars(_parser.parse_args())
+              _output_files = _parsed_args.pop("_output_paths", [])
+              
+              _outputs = produce_list(**_parsed_args)
+              
+              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+                  _outputs = [_outputs]
+              
+              _output_serializers = [
+                  _serialize_json,
+              
+              ]
+              
+              import os
+              for idx, output_file in enumerate(_output_files):
+                  try:
+                      os.makedirs(os.path.dirname(output_file))
+                  except OSError:
+                      pass
+                  with open(output_file, 'w') as f:
+                      f.write(_output_serializers[idx](_outputs[idx]))
+        args:
+          - "----output-paths"
+          - /tmp/outputs/Output/data
+    -
+      name: produce-str
+      metadata:
+        annotations:
+          pipelines.kubeflow.org/component_spec: '{"name": "Produce str", "outputs": [{"name": "Output", "type": "String"}]}'
+      outputs:
+        artifacts:
+          -
+            name: produce-str-output
+            path: /tmp/outputs/Output/data
+        parameters:
+          -
+            name: produce-str-output
+            valueFrom:
+              path: /tmp/outputs/Output/data
+      container:
+        image: "tensorflow/tensorflow:1.13.2-py3"
+        command:
+          - python3
+          - "-u"
+          - "-c"
+          - |
+              def produce_str() -> str:
+                  return "Hello"
+              
+              def _serialize_str(str_value: str) -> str:
+                  if not isinstance(str_value, str):
+                      raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+                  return str_value
+              
+              import argparse
+              _parser = argparse.ArgumentParser(prog='Produce str', description='')
+              _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+              _parsed_args = vars(_parser.parse_args())
+              _output_files = _parsed_args.pop("_output_paths", [])
+              
+              _outputs = produce_str(**_parsed_args)
+              
+              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+                  _outputs = [_outputs]
+              
+              _output_serializers = [
+                  _serialize_str,
+              
+              ]
+              
+              import os
+              for idx, output_file in enumerate(_output_files):
+                  try:
+                      os.makedirs(os.path.dirname(output_file))
+                  except OSError:
+                      pass
+                  with open(output_file, 'w') as f:
+                      f.write(_output_serializers[idx](_outputs[idx]))
+        args:
+          - "----output-paths"
+          - /tmp/outputs/Output/data
