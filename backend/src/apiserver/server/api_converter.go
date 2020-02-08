@@ -16,7 +16,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -141,14 +140,6 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 		var value string
 		if param.Value != nil {
 			value = *param.Value
-			// Patch the GCS default values if available
-			if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
-				var err error
-				value, err = PatchPipelineDefaultParameter(value)
-				if err != nil {
-					return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
-				}
-			}
 		}
 		apiParam := api.Parameter{
 			Name:  param.Name,

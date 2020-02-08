@@ -22,7 +22,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -454,55 +453,6 @@ func TestToApiJobs(t *testing.T) {
 				Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
 				PipelineId:   "2",
 				PipelineName: "p2",
-			},
-		},
-	}
-	assert.Equal(t, expectedJobs, apiJobs)
-}
-
-func TestToApiJobsWithParameterPatching(t *testing.T) {
-	viper.Set(HasDefaultBucketEnvVar, "true")
-	viper.Set(ProjectIDEnvVar, "test-project-id")
-	viper.Set(DefaultBucketNameEnvVar, "test-default-bucket")
-	modelJob1 := model.Job{
-		UUID:        "job1",
-		DisplayName: "name 1",
-		Name:        "name1",
-		Enabled:     true,
-		Trigger: model.Trigger{
-			CronSchedule: model.CronSchedule{
-				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				Cron:                       util.StringPointer("1 * *"),
-			},
-		},
-		MaxConcurrency: 1,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
-			PipelineName: "p1",
-			Parameters:   `[{"name":"my-project","value":"{{kfp-project-id}}"}, {"name":"my-bucket", "value":"{{kfp-default-bucket}}"}]`,
-		},
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
-	}
-
-	apiJobs := ToApiJobs([]*model.Job{&modelJob1})
-	expectedJobs := []*api.Job{
-		{
-			Id:             "job1",
-			Name:           "name 1",
-			Enabled:        true,
-			CreatedAt:      &timestamp.Timestamp{Seconds: 1},
-			UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
-			MaxConcurrency: 1,
-			Trigger: &api.Trigger{
-				Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
-					StartTime: &timestamp.Timestamp{Seconds: 1},
-					Cron:      "1 * *",
-				}}},
-			PipelineSpec: &api.PipelineSpec{
-				Parameters:   []*api.Parameter{{Name: "my-project", Value: "test-project-id"}, {Name: "my-bucket", Value: "test-default-bucket"}},
-				PipelineId:   "1",
-				PipelineName: "p1",
 			},
 		},
 	}
