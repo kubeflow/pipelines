@@ -7,7 +7,7 @@ outputs:
   - {name: test_dataset, type: string}
 implementation:
   container:
-    image: tensorboard_image_location
+    image: gcr.io/alert-ability-264507/kaggle_download:latest
     command: ['python', 'download_data.py']
     args: ['--bucket_name', {inputValue: bucket_name}]
     fileOutputs: 

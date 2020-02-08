@@ -8,7 +8,7 @@ outputs:
   - {name: result, type: string}
 implementation:
   container:
-    image: tensorboard_image_location
+    image: gcr.io/alert-ability-264507/kaggle_train:latest
     command: ['python', 'train.py']
     args: ['--train_file', {inputValue: train_file},
            '--test_file', {inputValue: test_file},

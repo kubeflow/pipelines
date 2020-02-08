@@ -5,7 +5,7 @@ inputs:
   - {name: submit_message, type: string}
 implementation:
   container:
-    image: tensorboard_image_location
+    image: gcr.io/alert-ability-264507/kaggle_submit:latest
     command: ['python', 'submit_result.py']
     args: ['--result_file', {inputValue: result_file},
            '--submit_message', {inputValue: submit_message}]

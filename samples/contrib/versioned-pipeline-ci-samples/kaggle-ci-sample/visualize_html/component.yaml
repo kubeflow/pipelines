@@ -8,7 +8,7 @@ outputs:
   - {name: MLPipeline UI metadata, type: UI metadata}
 implementation:
   container:
-    image: tensorboard_image_location
+    image: gcr.io/alert-ability-264507/kaggle_visualize_html:latest
     command: ['python', 'visualize.py']
     args: ['--train_file_path', {inputValue: train_file_path},
            '--commit_sha', {inputValue: commit_sha},
