@@ -16,6 +16,15 @@ steps:
   - name: "gcr.io/cloud-builders/docker"
     args:
       [
+        "push",
+        "${_GCR_PATH}/kaggle_download:$COMMIT_SHA",
+      ]
+    id: "PushDownloadDataImage"
+    waitFor: ["BuildDownloadDataImage"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
         "build",
         "-t",
         "${_GCR_PATH}/kaggle_visualize_table:$COMMIT_SHA",
@@ -26,6 +35,15 @@ steps:
         "${_CODE_PATH}/visualize_table/Dockerfile",
       ]
     id: "BuildVisualizeTableImage"
+  
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "${_GCR_PATH}/kaggle_visualize_table:$COMMIT_SHA",
+      ]
+    id: "PushVisualizeTableImage"
+    waitFor: ["BuildVisualizeTableImage"]
 
   - name: "gcr.io/cloud-builders/docker"
     args:
@@ -41,6 +59,14 @@ steps:
       ]
     id: "BuildVisualizeHTMLImage"
 
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "${_GCR_PATH}/kaggle_visualize_html:$COMMIT_SHA",
+      ]
+    id: "PushVisualizeHTMLImage"
+    waitFor: ["BuildVisualizeHTMLImage"]
 
   - name: "gcr.io/cloud-builders/docker"
     args:
@@ -59,6 +85,15 @@ steps:
   - name: "gcr.io/cloud-builders/docker"
     args:
       [
+        "push",
+        "${_GCR_PATH}/kaggle_train:$COMMIT_SHA",
+      ]
+    id: "PushTrainImage"
+    waitFor: ["BuildTrainImage"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
         "build",
         "-t",
         "${_GCR_PATH}/kaggle_submit:$COMMIT_SHA",
@@ -69,6 +104,15 @@ steps:
         "${_CODE_PATH}/submit_result/Dockerfile",
       ]
     id: "BuildSubmitImage"
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "${_GCR_PATH}/kaggle_submit:$COMMIT_SHA",
+      ]
+    id: "PushSubmitImage"
+    waitFor: ["BuildSubmitImage"]
 
   - name: "python:3.7-slim"
     entrypoint: "/bin/sh"
@@ -117,12 +161,6 @@ steps:
     id: "KaggleCreatePipelineVersionAndRun"
 
 images:
-  - "${_GCR_PATH}/kaggle_download:$COMMIT_SHA"
-  - "${_GCR_PATH}/kaggle_visualize_table:$COMMIT_SHA"
-  - "${_GCR_PATH}/kaggle_visualize_html:$COMMIT_SHA"
-  - "${_GCR_PATH}/kaggle_train:$COMMIT_SHA"
-  - "${_GCR_PATH}/kaggle_submit:$COMMIT_SHA"
-  
   - "${_GCR_PATH}/kaggle_download:latest"
   - "${_GCR_PATH}/kaggle_visualize_table:latest"
   - "${_GCR_PATH}/kaggle_visualize_html:latest"
