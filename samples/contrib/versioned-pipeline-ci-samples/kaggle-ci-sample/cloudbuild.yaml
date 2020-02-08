@@ -161,8 +161,8 @@ steps:
         --gcr_address ${_GCR_PATH}"
       ]
     env:
-      - "CLOUDSDK_COMPUTE_ZONE=us-central1-a"
-      - "CLOUDSDK_CONTAINER_CLUSTER=sample"
+      - "CLOUDSDK_COMPUTE_ZONE=[Your cluster zone, for example: us-central1-a]"
+      - "CLOUDSDK_CONTAINER_CLUSTER=[Your cluster name, for example: my-cluster]"
     id: "KaggleCreatePipelineVersionAndRun"
 
 images:
@@ -176,6 +176,7 @@ images:
 substitutions:
   _CODE_PATH: /workspace/samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample
   _NAMESPACE: kubeflow
-  _GCR_PATH: gcr.io/alert-ability-264507
-  _GS_BUCKET: gs://dldaisy-test-bucket
-  _PIPELINE_ID: f6f8558a-6eec-4ef4-b343-a650473ee613
+  _GCR_PATH: [Your cloud registry path. For example, gcr.io/my-project-id]
+  _GS_BUCKET: [Name of your cloud storage bucket. For example, gs://my-project-bucket]
+  _PIPELINE_ID: [Your kubeflow pipeline id to create a version on. Get it from Kubeflow Pipeline UI.
+                 For example, f6f8558a-6eec-4ef4-b343-a650473ee613]

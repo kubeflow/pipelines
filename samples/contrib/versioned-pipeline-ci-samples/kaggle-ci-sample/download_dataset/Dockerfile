@@ -1,6 +1,6 @@
 FROM python:3.7
-ENV KAGGLE_USERNAME=ludai0919 \
-    KAGGLE_KEY=a03e318b84bbf3766f4654dfc6e72922
+ENV KAGGLE_USERNAME=[YOUR KAGGLE USERNAME] \
+    KAGGLE_KEY=[YOUR KAGGLE KEY]
 RUN pip install kaggle
 RUN pip install google-cloud-storage
 COPY ./download_data.py .
