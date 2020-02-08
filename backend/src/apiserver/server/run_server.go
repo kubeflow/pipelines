@@ -31,6 +31,12 @@ type RunServer struct {
 	resourceManager *resource.ResourceManager
 }
 
+const (
+	HasDefaultBucketEnvVar  = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar         = "PROJECT_ID"
+	DefaultBucketNameEnvVar = "BUCKET_NAME"
+)
+
 func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest) (*api.RunDetail, error) {
 	// Patch default values
 	for _, param := range request.Run.PipelineSpec.Parameters {
