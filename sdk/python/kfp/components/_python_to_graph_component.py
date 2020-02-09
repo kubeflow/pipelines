@@ -25,9 +25,14 @@ from . import _components
 from ._structures import TaskSpec, ComponentSpec, OutputSpec, GraphInputReference, TaskOutputArgument, GraphImplementation, GraphSpec
 from ._naming import _make_name_unique_by_adding_index
 from ._python_op import _extract_component_interface
+from ._components import _create_task_factory_from_component_spec
 
 
-def create_graph_component_from_pipeline_func(pipeline_func: Callable, output_component_file: str, embed_component_specs: bool = False) -> None:
+def create_graph_component_from_pipeline_func(
+    pipeline_func: Callable,
+    output_component_file: str = None,
+    embed_component_specs: bool = False,
+) -> Callable:
     '''Experimental! Creates graph component definition from a python pipeline function. The component file can be published for sharing.
     Pipeline function is a function that only calls component functions and passes outputs to inputs.
     This feature is experimental and lacks support for some of the DSL features like conditions and loops.
@@ -37,6 +42,12 @@ def create_graph_component_from_pipeline_func(pipeline_func: Callable, output_co
         pipeline_func: Python function to convert
         output_component_file: Path of the file where the component definition will be written. The `component.yaml` file can then be published for sharing.
         embed_component_specs: Whether to embed component definitions or just reference them. Embedding makes the graph component self-contained. Default is False.
+
+    Returns:
+        A function representing the graph component. The component spec can be accessed using the .component_spec attribute.
+        The function will have the same parameters as the original function.
+        When called, the function will return a task object, corresponding to the graph component.
+        To reference the outputs of the task, use task.outputs["Output name"].
 
     Example:
 
@@ -62,6 +73,7 @@ def create_graph_component_from_pipeline_func(pipeline_func: Callable, output_co
         component_yaml = dump_yaml(component_dict)
         Path(output_component_file).write_text(component_yaml)
 
+    return _create_task_factory_from_component_spec(component_spec)
 
 def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable, embed_component_specs: bool = False) -> ComponentSpec:
 
