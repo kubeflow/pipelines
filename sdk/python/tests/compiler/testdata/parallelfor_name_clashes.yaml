@@ -332,32 +332,6 @@ spec:
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-ints-output
-                  value: "{{inputs.parameters.produce-list-of-ints-output}}"
-            name: consume-4
-            template: consume-4
-          - 
-            arguments: 
-              parameters: 
-                - 
-                  name: produce-list-of-ints-output-loop-item
-                  value: "{{inputs.parameters.produce-list-of-ints-output-loop-item}}"
-            name: consume-5
-            template: consume-5
-      inputs: 
-        parameters: 
-          - 
-            name: produce-list-of-ints-output
-          - 
-            name: produce-list-of-ints-output-loop-item
-      name: for-loop-for-loop-1c754d58-2
-    - 
-      dag: 
-        tasks: 
-          - 
-            arguments: 
-              parameters: 
-                - 
                   name: produce-list-of-strings-output
                   value: "{{inputs.parameters.produce-list-of-strings-output}}"
             name: consume
@@ -386,7 +360,33 @@ spec:
             name: produce-list-of-strings-output-loop-item
           - 
             name: produce-str-output
-      name: for-loop-for-loop-82cbc3d1-1
+      name: for-loop-for-loop-00000001-1
+    - 
+      dag: 
+        tasks: 
+          - 
+            arguments: 
+              parameters: 
+                - 
+                  name: produce-list-of-ints-output
+                  value: "{{inputs.parameters.produce-list-of-ints-output}}"
+            name: consume-4
+            template: consume-4
+          - 
+            arguments: 
+              parameters: 
+                - 
+                  name: produce-list-of-ints-output-loop-item
+                  value: "{{inputs.parameters.produce-list-of-ints-output-loop-item}}"
+            name: consume-5
+            template: consume-5
+      inputs: 
+        parameters: 
+          - 
+            name: produce-list-of-ints-output
+          - 
+            name: produce-list-of-ints-output-loop-item
+      name: for-loop-for-loop-00000002-2
     - 
       dag: 
         tasks: 
@@ -412,24 +412,10 @@ spec:
             name: produce-list-of-dicts-output
           - 
             name: produce-list-of-dicts-output-loop-item-subvar-aaa
-      name: for-loop-for-loop-b57fd6b3-3
+      name: for-loop-for-loop-00000003-3
     - 
       dag: 
         tasks: 
-          - 
-            arguments: 
-              parameters: 
-                - 
-                  name: produce-list-of-ints-output
-                  value: "{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-output}}"
-                - 
-                  name: produce-list-of-ints-output-loop-item
-                  value: "{{item}}"
-            dependencies: 
-              - produce-list-of-ints
-            name: for-loop-for-loop-1c754d58-2
-            template: for-loop-for-loop-1c754d58-2
-            withParam: "{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-output}}"
           - 
             arguments: 
               parameters: 
@@ -445,9 +431,23 @@ spec:
             dependencies: 
               - produce-list-of-strings
               - produce-str
-            name: for-loop-for-loop-82cbc3d1-1
-            template: for-loop-for-loop-82cbc3d1-1
+            name: for-loop-for-loop-00000001-1
+            template: for-loop-for-loop-00000001-1
             withParam: "{{tasks.produce-list-of-strings.outputs.parameters.produce-list-of-strings-output}}"
+          - 
+            arguments: 
+              parameters: 
+                - 
+                  name: produce-list-of-ints-output
+                  value: "{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-output}}"
+                - 
+                  name: produce-list-of-ints-output-loop-item
+                  value: "{{item}}"
+            dependencies: 
+              - produce-list-of-ints
+            name: for-loop-for-loop-00000002-2
+            template: for-loop-for-loop-00000002-2
+            withParam: "{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-output}}"
           - 
             arguments: 
               parameters: 
@@ -459,8 +459,8 @@ spec:
                   value: "{{item.aaa}}"
             dependencies: 
               - produce-list-of-dicts
-            name: for-loop-for-loop-b57fd6b3-3
-            template: for-loop-for-loop-b57fd6b3-3
+            name: for-loop-for-loop-00000003-3
+            template: for-loop-for-loop-00000003-3
             withParam: "{{tasks.produce-list-of-dicts.outputs.parameters.produce-list-of-dicts-output}}"
           - 
             name: produce-list-of-dicts
