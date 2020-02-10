@@ -548,6 +548,18 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
               </div>
             </Tooltip>
           )}
+          <Tooltip
+              title="Report an Issue"
+              enterDelay={300}
+              placement={'top-start'}>
+            <div className={css.envMetadata}>
+              <a href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+                 className={classes(css.link, commonCss.unstyled)}
+                 target='_blank'>
+                Report an Issue  
+              </a>
+            </div>            
+          </Tooltip>
         </div>
       </div>
     );
