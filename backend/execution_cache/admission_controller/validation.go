@@ -14,24 +14,27 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
-const (
-	jsonContentType = `application/json`
-)
-
-var (
-	universalDeserializer = serializer.NewCodecFactory(runtime.NewScheme()).UniversalDeserializer()
-)
+type OperationType string
 
 // patchOperation is an operation of a JSON patch, see https://tools.ietf.org/html/rfc6902 .
 type patchOperation struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value,omitempty"`
+	Op    OperationType `json:"op"`
+	Path  string        `json:"path"`
+	Value interface{}   `json:"value,omitempty"`
 }
 
 // admitFunc is a callback for admission controller logic. Given an AdmissionRequest, it returns the sequence of patch
 // operations to be applied in case of success, or the error that will be shown when the operation is rejected.
 type admitFunc func(*v1beta1.AdmissionRequest) ([]patchOperation, error)
+
+const (
+	ContentType     string = "Content-Type"
+	JsonContentType string = "application/json"
+)
+
+var (
+	universalDeserializer = serializer.NewCodecFactory(runtime.NewScheme()).UniversalDeserializer()
+)
 
 // isKubeNamespace checks if the given namespace is a Kubernetes-owned namespace.
 func isKubeNamespace(ns string) bool {
@@ -46,7 +49,7 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, fmt.Errorf("invalid method %s, only POST requests are allowed", r.Method)
+		return nil, fmt.Errorf("invalid method %q, only POST requests are allowed", r.Method)
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
@@ -55,9 +58,9 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 		return nil, fmt.Errorf("could not read request body: %v", err)
 	}
 
-	if contentType := r.Header.Get("Content-Type"); contentType != jsonContentType {
+	if contentType := r.Header.Get(ContentType); contentType != JsonContentType {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, fmt.Errorf("unsupported content type %s, only %s is supported", contentType, jsonContentType)
+		return nil, fmt.Errorf("unsupported content type %q, only %q is supported", contentType, JsonContentType)
 	}
 
 	// Step 2: Parse the AdmissionReview request.

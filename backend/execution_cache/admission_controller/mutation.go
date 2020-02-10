@@ -12,8 +12,13 @@ import (
 )
 
 const (
-	argoWorkflowTemplate = `workflows.argoproj.io/template`
-	executionKey         = `executionKey`
+	ArgoWorkflowTemplate string = "workflows.argoproj.io/template"
+	ExecutionKey         string = "executionKey"
+	AnnotationPath       string = "/metadata/annotations"
+)
+
+const (
+	Add OperationType = "add"
 )
 
 var (
@@ -26,7 +31,7 @@ func applyPodOutput(req *v1beta1.AdmissionRequest) ([]patchOperation, error) {
 	// However, if (for whatever reason) this gets invoked on an object of a different kind, issue a log message but
 	// let the object request pass through otherwise.
 	if req.Resource != podResource {
-		log.Printf("expect resource to be %s", podResource)
+		log.Printf("expect resource to be %q", podResource)
 		return nil, nil
 	}
 
@@ -39,7 +44,7 @@ func applyPodOutput(req *v1beta1.AdmissionRequest) ([]patchOperation, error) {
 
 	var patches []patchOperation
 	annotations := pod.ObjectMeta.Annotations
-	template, exists := annotations[argoWorkflowTemplate]
+	template, exists := annotations[ArgoWorkflowTemplate]
 	var executionHashKey string
 	// Generate the executionHashKey based on pod.metadata.annotations.workflows.argoproj.io/template
 	if exists {
@@ -49,12 +54,12 @@ func applyPodOutput(req *v1beta1.AdmissionRequest) ([]patchOperation, error) {
 		executionHashKey = hex.EncodeToString(md)
 	}
 
-	annotations[executionKey] = executionHashKey
+	annotations[ExecutionKey] = executionHashKey
 	// Add executionKey to pod.metadata.annotations
 	if len(executionHashKey) != 0 {
 		patches = append(patches, patchOperation{
-			Op:    "add",
-			Path:  "/metadata/annotations",
+			Op:    Add,
+			Path:  AnnotationPath,
 			Value: annotations,
 		})
 	}
