@@ -38,20 +38,19 @@ export APP_INSTANCE_NAME=kubeflow-pipelines-test
 
 # Install mpdev
 BIN_FILE="$HOME/bin/mpdev"
+KFP_MANIFEST_DIR=${DIR}/../manifests/gcp_marketplace
+
 if ! which mpdev; then
   echo "Install mpdev"
-  docker pull gcr.io/cloud-marketplace-tools/k8s/dev
+  sudo docker pull gcr.io/cloud-marketplace-tools/k8s/dev
   mkdir -p $HOME/bin/
   touch $BIN_FILE
   export PATH=$HOME/bin:$PATH
-  docker run gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev:remove-ui-ownerrefs cat /scripts/dev > "$BIN_FILE"
+  MKP_TOOLS_IMAGE=`grep -i "FROM" ${KFP_MANIFEST_DIR}/deployer/Dockerfile | sed 's/FROM //'`
+  sudo docker run ${MKP_TOOLS_IMAGE} cat /scripts/dev > "$BIN_FILE"
   chmod +x "$BIN_FILE"
 fi
 
-export MARKETPLACE_TOOLS_TAG=remove-ui-ownerrefs
-export MARKETPLACE_TOOLS_IMAGE=gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev
-
-KFP_MANIFEST_DIR=${DIR}/../manifests/gcp_marketplace
 pushd ${KFP_MANIFEST_DIR}
 # Update the version value on schema.yaml and application.yaml
 sed -ri 's/publishedVersion:.*/publishedVersion: '"$GCR_IMAGE_TAG"'/' schema.yaml
@@ -62,9 +61,9 @@ export REGISTRY=gcr.io/$(gcloud config get-value project | tr ':' '/')
 export APP_NAME=$COMMIT_SHA
 export DEPLOYER_NAME=$REGISTRY/$APP_NAME/deployer
 
-docker build --tag $DEPLOYER_NAME -f deployer/Dockerfile .
+sudo docker build --tag $DEPLOYER_NAME -f deployer/Dockerfile .
 
-docker push $DEPLOYER_NAME:$GCR_IMAGE_TAG
+sudo docker push $DEPLOYER_NAME:$GCR_IMAGE_TAG
 
 # Copy rest images and rename current images
 export MKP_VERSION=$GCR_IMAGE_TAG
@@ -74,7 +73,7 @@ echo MKP_VERSION:$MKP_VERSION, GCR_FOLDER:$GCR_FOLDER
 
 export ARGO_VERSION=v2.3.0-license-compliance
 export CLOUDSQL_PROXY_VERSION=1.14
-export MLMD_SERVER_VERSION=0.14.0
+export MLMD_SERVER_VERSION=v0.21.1
 export MLMD_ENVOY_VERSION=initial
 export MINIO_VERSION=RELEASE.2019-08-14T20-37-41Z-license-compliance
 export MYSQL_VERSION=5.6

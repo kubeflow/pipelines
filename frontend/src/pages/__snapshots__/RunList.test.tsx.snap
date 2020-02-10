@@ -7672,14 +7672,20 @@ exports[`RunList renders raw metric 1`] = `
 `;
 
 exports[`RunList renders run name as link to its details page 1`] = `
-<Link
-  className="link"
-  onClick={[Function]}
-  replace={false}
-  to="/runs/details/run-id"
+<WithStyles(Tooltip)
+  enterDelay={300}
+  placement="top-start"
+  title="test run"
 >
-  test run
-</Link>
+  <Link
+    className="link"
+    onClick={[Function]}
+    replace={false}
+    to="/runs/details/run-id"
+  >
+    test run
+  </Link>
+</WithStyles(Tooltip)>
 `;
 
 exports[`RunList renders status as icon 1`] = `

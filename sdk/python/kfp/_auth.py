@@ -14,6 +14,7 @@
 
 import logging
 import os
+import subprocess
 import google.auth
 import google.auth.app_engine
 import google.auth.compute_engine.credentials
@@ -35,8 +36,9 @@ def get_gcp_access_token():
     Credentials. If not set, returns None. For more information, see
     https://cloud.google.com/sdk/gcloud/reference/auth/application-default/print-access-token
     """
-    with os.popen('gcloud auth print-access-token') as token:
-        return token.read().rstrip()
+    args = ['gcloud', 'auth', 'print-access-token']
+    # Casting to string to accommodate API server request schema.
+    return subprocess.check_output(args).rstrip().decode("utf-8")
 
 def get_auth_token(client_id, other_client_id, other_client_secret):
     """Gets auth token from default service account or user account."""

@@ -47,7 +47,13 @@ import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, color, fonts, fontsize } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { flatten } from 'lodash';
-import { formatDateString, getRunDurationFromWorkflow, logger, errorToMessage } from '../lib/Utils';
+import {
+  formatDateString,
+  getRunDurationFromWorkflow,
+  logger,
+  errorToMessage,
+  serviceErrorToString,
+} from '../lib/Utils';
 import { statusToIcon } from './Status';
 import VisualizationCreator, {
   VisualizationCreatorConfig,
@@ -287,14 +293,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                               <div className={commonCss.page}>
                                 {sidepanelSelectedTab === SidePaneTab.ARTIFACTS && (
                                   <div className={commonCss.page}>
-                                    <div className={padding(20, 'lrt')}>
-                                      <PlotCard
-                                        configs={[visualizationCreatorConfig]}
-                                        title={VisualizationCreator.prototype.getDisplayName()}
-                                        maxDimension={500}
-                                      />
-                                      <Hr />
-                                    </div>
                                     {(selectedNodeDetails.viewerConfigs || []).map((config, i) => {
                                       const title = componentMap[
                                         config.type
@@ -310,6 +308,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                         </div>
                                       );
                                     })}
+                                    <div className={padding(20, 'lrt')}>
+                                      <PlotCard
+                                        configs={[visualizationCreatorConfig]}
+                                        title={VisualizationCreator.prototype.getDisplayName()}
+                                        maxDimension={500}
+                                      />
+                                      <Hr />
+                                    </div>
                                   </div>
                                 )}
 
@@ -770,10 +776,16 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       for (const path of outputPaths) {
         viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
       }
+      const tfxAutomaticVisualizations: ViewerConfig[] = await OutputArtifactLoader.buildTFXArtifactViewerConfig(
+        selectedNodeDetails.id,
+      ).catch(err => {
+        this.showPageError(serviceErrorToString(err), err);
+        return [];
+      });
       const generatedConfigs = generatedVisualizations
         .filter(visualization => visualization.nodeId === selectedNodeDetails.id)
         .map(visualization => visualization.config);
-      viewerConfigs = viewerConfigs.concat(generatedConfigs);
+      viewerConfigs = [...tfxAutomaticVisualizations, ...viewerConfigs, ...generatedConfigs];
 
       selectedNodeDetails.viewerConfigs = viewerConfigs;
       this.setStateSafe({ selectedNodeDetails });
