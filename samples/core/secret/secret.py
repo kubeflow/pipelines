@@ -34,7 +34,7 @@ def use_gcp_api_op():
       name='Using Google Cloud APIs with Auth',
       image='google/cloud-sdk:279.0.0',
       command=[
-          'sh', '-c', 'pip install google-cloud-storage && "$0" "$*"', 'python',
+          'sh', '-c', 'pip3 install google-cloud-storage && "$0" "$*"', 'python3',
           '-c', '''
 from google.cloud import storage
 storage_client = storage.Client()
