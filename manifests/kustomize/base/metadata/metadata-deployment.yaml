@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: container
-        image: gcr.io/tfx-oss-public/ml_metadata_store_server:0.14.0
+        image: gcr.io/tfx-oss-public/ml_metadata_store_server:v0.21.1
         env:
         - name: DBCONFIG_USER
           valueFrom:

@@ -29,6 +29,7 @@ import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { shallow, ShallowWrapper, mount, ReactWrapper } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
+import { Api, GetArtifactTypesResponse } from '@kubeflow/frontend';
 
 describe('RunDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -47,6 +48,7 @@ describe('RunDetails', () => {
   const loaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
   const retryRunSpy = jest.spyOn(Apis.runServiceApi, 'retryRun');
   const terminateRunSpy = jest.spyOn(Apis.runServiceApi, 'terminateRun');
+  const artifactTypesSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test environments
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
@@ -104,6 +106,13 @@ describe('RunDetails', () => {
     pathsWithStepsParser.mockImplementation(() => []);
     loaderSpy.mockImplementation(() => Promise.resolve([]));
     formatDateStringSpy.mockImplementation(() => '1/2/2019, 12:34:56 PM');
+    artifactTypesSpy.mockImplementation(() => {
+      // TODO: This is temporary workaround to let tfx artifact resolving logic fail early.
+      // We should add proper testing for those cases later too.
+      const response = new GetArtifactTypesResponse();
+      response.setArtifactTypesList([]);
+      return response;
+    });
     jest.clearAllMocks();
   });
 
@@ -615,6 +624,8 @@ describe('RunDetails', () => {
     await pathsParser;
     await pathsWithStepsParser;
     await loaderSpy;
+    await artifactTypesSpy;
+    await TestUtils.flushPromises();
     expect(pathsWithStepsParser).toHaveBeenCalledTimes(1); // Loading output list
     expect(pathsParser).toHaveBeenCalledTimes(1);
     expect(pathsParser).toHaveBeenLastCalledWith({ id: 'node1' });

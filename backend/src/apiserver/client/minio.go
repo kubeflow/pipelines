@@ -26,7 +26,7 @@ import (
 
 func CreateMinioClient(minioServiceHost string, minioServicePort string,
 	accessKey string, secretKey string) (*minio.Client, error) {
-	minioClient, err := minio.New(fmt.Sprintf("%s:%s", minioServiceHost, minioServicePort),
+	minioClient, err := minio.New(joinHostPort(minioServiceHost, minioServicePort),
 		accessKey, secretKey, false /* Secure connection */)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error while creating minio client: %+v", err)
@@ -53,4 +53,14 @@ func CreateMinioClientOrFatal(minioServiceHost string, minioServicePort string,
 		glog.Fatalf("Failed to create Minio client. Error: %v", err)
 	}
 	return minioClient
+}
+
+// joinHostPort combines host and port into a network address of the form "host:port".
+//
+// An empty port value results in "host" instead of "host:" (which net.JoinHostPort would return)
+func joinHostPort(host, port string) string {
+	if port == "" {
+		return host
+	}
+	return fmt.Sprintf("%s:%s", host, port)
 }

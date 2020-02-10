@@ -27,14 +27,21 @@ from kfp.dsl.types import InconsistentTypeException
 
 @contextmanager
 def no_task_resolving_context():
-    old_handler = kfp.components._components._created_task_transformation_handler
+    old_handler = kfp.components._components._container_task_constructor
     try:
-        kfp.components._components._created_task_transformation_handler = None
+        kfp.components._components._container_task_constructor = kfp.components._components._create_task_spec_from_component_and_arguments
         yield None
     finally:
-        kfp.components._components._created_task_transformation_handler = old_handler
+        kfp.components._components._container_task_constructor = old_handler
 
 class LoadComponentTestCase(unittest.TestCase):
+    def setUp(self):
+        self.old_container_task_constructor = kfp.components._components._container_task_constructor
+        kfp.components._components._container_task_constructor = kfp.components._dsl_bridge._create_container_op_from_component_and_arguments
+
+    def tearDown(self):
+        kfp.components._components._container_task_constructor = self.old_container_task_constructor
+
     def _test_load_component_from_file(self, component_path: str):
         task_factory1 = comp.load_component_from_file(component_path)
 
@@ -104,7 +111,7 @@ implementation:
         actual_component_spec = task_factory1.component_spec
         actual_component_spec_dict = actual_component_spec.to_dict()
         expected_component_spec_dict = load_yaml(component_text)
-        expected_component_spec = kfp.components._structures.ComponentSpec.from_dict(expected_component_spec_dict)
+        expected_component_spec = kfp.components.structures.ComponentSpec.from_dict(expected_component_spec_dict)
         self.assertEqual(expected_component_spec_dict, actual_component_spec_dict)
         self.assertEqual(expected_component_spec, task_factory1.component_spec)
 
@@ -644,7 +651,7 @@ implementation:
           consumer_op(producer_task.outputs['out1'])
           consumer_op(producer_task.outputs['out2'].without_type())
           consumer_op(producer_task.outputs['out2'].with_type('Integer'))
-          with self.assertRaises(InconsistentTypeException):
+          with self.assertRaises(TypeError):
             consumer_op(producer_task.outputs['out2'])
 
     def test_type_compatibility_check_for_simple_types(self):

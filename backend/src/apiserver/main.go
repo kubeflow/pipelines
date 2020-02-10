@@ -18,26 +18,32 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"github.com/fsnotify/fsnotify"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/spf13/viper"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
-	"fmt"
-	"os"
-
+	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+)
+
+const (
+	HasDefaultBucketEnvVar  = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar         = "PROJECT_ID"
+	DefaultBucketNameEnvVar = "BUCKET_NAME"
 )
 
 var (
@@ -88,7 +94,7 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	if err != nil {
 		glog.Fatalf("Failed to start RPC server: %v", err)
 	}
-	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor))
+	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor), grpc.MaxRecvMsgSize(math.MaxInt32))
 	api.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager))
 	api.RegisterExperimentServiceServer(s, server.NewExperimentServer(resourceManager))
 	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager))
@@ -134,6 +140,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	// https://github.com/grpc-ecosystem/grpc-gateway/issues/410
 	pipelineUploadServer := server.NewPipelineUploadServer(resourceManager)
 	topMux.HandleFunc("/apis/v1beta1/pipelines/upload", pipelineUploadServer.UploadPipeline)
+	topMux.HandleFunc("/apis/v1beta1/pipelines/upload_version", pipelineUploadServer.UploadPipelineVersion)
 	topMux.HandleFunc("/apis/v1beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfig("COMMIT_SHA")+`"}`)
 	})
@@ -188,6 +195,19 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		pipelineFile, configErr := server.ReadPipelineFile(config.File, reader, server.MaxFileLength)
 		if configErr != nil {
 			return fmt.Errorf("Failed to decompress the file %s. Error: %v", config.Name, configErr)
+		}
+		// Patch the default bucket name read from ConfigMap
+		if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
+			defaultBucket := common.GetStringConfig(DefaultBucketNameEnvVar)
+			projectId := common.GetStringConfig(ProjectIDEnvVar)
+			patchMap := map[string]string{
+				"<your-gcs-bucket>": defaultBucket,
+				"<your-project-id>": projectId,
+			}
+			pipelineFile, err = server.PatchPipelineDefaultParameter(pipelineFile, patchMap)
+			if err != nil {
+				return fmt.Errorf("Failed to patch default value to %s. Error: %v", config.Name, err)
+			}
 		}
 		_, configErr = resourceManager.CreatePipeline(config.Name, config.Description, pipelineFile)
 		if configErr != nil {

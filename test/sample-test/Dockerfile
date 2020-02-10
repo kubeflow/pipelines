@@ -19,7 +19,7 @@ RUN pip3 install google-api-python-client==1.7.0
 RUN pip3 install google-cloud-storage==1.17.0
 RUN pip3 install fire==0.2.1
 RUN pip3 install yamale==2.0
-RUN pip3 install pyarrow==0.14.1 tfx==0.15.0
+RUN pip3 install tfx==0.21.0rc0
 
 # Install python client, including DSL compiler.
 COPY ./sdk/python /sdk/python

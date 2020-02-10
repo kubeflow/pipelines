@@ -20,6 +20,7 @@ export const apiVersionPrefix = `apis/${apiVersion}`;
 export enum Deployments {
   NOT_SPECIFIED = 'NOT_SPECIFIED',
   KUBEFLOW = 'KUBEFLOW',
+  MARKETPLACE = 'MARKETPLACE',
 }
 
 /** converts string to bool */
@@ -132,8 +133,10 @@ export function loadConfigs(
       apiVersionPrefix,
       basePath: BASEPATH,
       deployment:
-        DEPLOYMENT_STR.toUpperCase() === 'KUBEFLOW'
+        DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
           ? Deployments.KUBEFLOW
+          : DEPLOYMENT_STR.toUpperCase() === Deployments.MARKETPLACE
+          ? Deployments.MARKETPLACE
           : Deployments.NOT_SPECIFIED,
       port,
       staticDir,

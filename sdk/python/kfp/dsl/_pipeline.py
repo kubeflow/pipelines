@@ -17,6 +17,7 @@ from . import _container_op
 from . import _resource_op
 from . import _ops_group
 from ..components._naming import _make_name_unique_by_adding_index
+from ..components import _dsl_bridge, _components
 import sys
 
 
@@ -189,6 +190,8 @@ class Pipeline():
       raise Exception('Nested pipelines are not allowed.')
 
     Pipeline._default_pipeline = self
+    self._old_container_task_constructor = _components._container_task_constructor
+    _components._container_task_constructor = _dsl_bridge._create_container_op_from_component_and_arguments
 
     def register_op_and_generate_id(op):
       return self.add_op(op, op.is_exit_handler)
@@ -200,6 +203,7 @@ class Pipeline():
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
     _container_op._register_op_handler = self._old__register_op_handler
+    _components._container_task_constructor = self._old_container_task_constructor
 
   def add_op(self, op: _container_op.BaseOp, define_only: bool):
     """Add a new operator.
