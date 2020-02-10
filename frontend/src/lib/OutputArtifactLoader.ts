@@ -261,7 +261,7 @@ export class OutputArtifactLoader {
     }
 
     // TODO: Visualize non-TFDV artifacts, such as ModelEvaluation using TFMA
-    let viewers: Promise<HTMLViewerConfig>[] = [];
+    let viewers: Array<Promise<HTMLViewerConfig>> = [];
     const exampleStatisticsArtifactUris = filterArtifactUrisByType(
       'ExampleStatistics',
       artifactTypes,
@@ -271,10 +271,10 @@ export class OutputArtifactLoader {
       const evalUri = uri + '/eval/stats_tfrecord';
       const trainUri = uri + '/train/stats_tfrecord';
       viewers = viewers.concat(
-        [evalUri, trainUri].map(async specific_uri => {
+        [evalUri, trainUri].map(async specificUri => {
           const script = [
             'import tensorflow_data_validation as tfdv',
-            `stats = tfdv.load_statistics('${specific_uri}')`,
+            `stats = tfdv.load_statistics('${specificUri}')`,
             'tfdv.visualize_statistics(stats)',
           ];
           return buildArtifactViewer(script);
