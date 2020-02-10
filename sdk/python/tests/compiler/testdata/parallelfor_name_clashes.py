@@ -22,22 +22,46 @@ from kfp.components import func_to_container_op
 def produce_str() -> str:
     return "Hello"
 
+
 @func_to_container_op
-def produce_list() -> list:
-    return ["1", "2"]
+def produce_list_of_dicts() -> list:
+    return ([{"aaa": "aaa1", "bbb": "bbb1"}, {"aaa": "aaa2", "bbb": "bbb2"}],)
+
+
+@func_to_container_op
+def produce_list_of_strings() -> list:
+    return (["a", "z"],)
+
+
+@func_to_container_op
+def produce_list_of_ints() -> list:
+    return ([1234567890, 987654321],)
+
 
 @func_to_container_op
 def consume(param1):
     print(param1)
 
+
 @kfp.dsl.pipeline()
 def parallelfor_name_clashes_pipeline():
     produce_str_task = produce_str()
-    produce_list_task = produce_list()
-    with kfp.dsl.ParallelFor(produce_list_task.output) as loop_item:
-        consume(produce_list_task.output)
-        consume(produce_str_task.output)
+    produce_list_of_strings_task = produce_list_of_strings()
+    produce_list_of_ints_task = produce_list_of_ints()
+    produce_list_of_dicts_task = produce_list_of_dicts()
+
+    with kfp.dsl.ParallelFor(produce_list_of_strings_task.output) as loop_item:
+        consume(produce_list_of_strings_task.output)
         consume(loop_item)
+        consume(produce_str_task.output)
+
+    with kfp.dsl.ParallelFor(produce_list_of_ints_task.output) as loop_item:
+        consume(produce_list_of_ints_task.output)
+        consume(loop_item)
+
+    with kfp.dsl.ParallelFor(produce_list_of_dicts_task.output) as loop_item:
+        consume(produce_list_of_dicts_task.output)
+        #consume(loop_item) # Cannot use the full loop item when it's a dict
         consume(loop_item.aaa)
 
 
