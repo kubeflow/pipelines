@@ -764,33 +764,40 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     if (!selectedNodeDetails) {
       return;
     }
-    this.setStateSafe({ sidepanelBusy: true });
+    const loadingId = selectedNodeDetails.id;
     const workflow = this.state.workflow;
     if (workflow && workflow.status && workflow.status.nodes) {
       // Load runtime outputs from the selected Node
       const outputPaths = WorkflowParser.loadNodeOutputPaths(
         workflow.status.nodes[selectedNodeDetails.id],
       );
-      // Load the viewer configurations from the output paths
-      let viewerConfigs: ViewerConfig[] = [];
-      for (const path of outputPaths) {
-        viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
-      }
-      const tfxAutomaticVisualizations: ViewerConfig[] = await OutputArtifactLoader.buildTFXArtifactViewerConfig(
-        selectedNodeDetails.id,
-      ).catch(err => {
+      const handleErrorAndDisplayMessage = (err: Error) => {
         this.showPageError(serviceErrorToString(err), err);
         return [];
-      });
+      };
+      // Load the viewer configurations from the output paths
+      const viewerConfigs = (await Promise.all([
+        OutputArtifactLoader.buildTFXArtifactViewerConfig(selectedNodeDetails.id).catch(
+          handleErrorAndDisplayMessage,
+        ),
+        ...outputPaths.map(path =>
+          OutputArtifactLoader.load(path).catch(handleErrorAndDisplayMessage),
+        ),
+      ])).flatMap(configs => configs);
+      if (!this.state.selectedNodeDetails || this.state.selectedNodeDetails.id !== loadingId) {
+        // Skip state update if sidepanel has been closed or opened with a different node
+        return;
+      }
       const generatedConfigs = generatedVisualizations
         .filter(visualization => visualization.nodeId === selectedNodeDetails.id)
         .map(visualization => visualization.config);
-      viewerConfigs = [...tfxAutomaticVisualizations, ...viewerConfigs, ...generatedConfigs];
-
-      selectedNodeDetails.viewerConfigs = viewerConfigs;
-      this.setStateSafe({ selectedNodeDetails });
+      this.setStateSafe({
+        selectedNodeDetails: {
+          ...this.state.selectedNodeDetails,
+          viewerConfigs: [...viewerConfigs, ...generatedConfigs],
+        },
+      });
     }
-    this.setStateSafe({ sidepanelBusy: false });
   }
 
   private async _loadSelectedNodeLogs(): Promise<void> {
