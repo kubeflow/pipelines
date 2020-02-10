@@ -46,6 +46,8 @@ matrix:
       python: "2.7"
       env: TOXENV=py27
       script:
+        - python -m pip
+        - pip install six==1.12.0
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
         - ./run_test.sh
