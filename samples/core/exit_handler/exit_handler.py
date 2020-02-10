@@ -13,45 +13,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import kfp
 from kfp import dsl
 
 
 def gcs_download_op(url):
-  return dsl.ContainerOp(
-      name='GCS - Download',
-      image='google/cloud-sdk:279.0.0',
-      command=['sh', '-c'],
-      arguments=['gsutil cat $0 | tee $1', url, '/tmp/results.txt'],
-      file_outputs={
-          'data': '/tmp/results.txt',
-      }
-  )
+    return dsl.ContainerOp(
+        name='GCS - Download',
+        image='google/cloud-sdk:272.0.0',
+        command=['sh', '-c'],
+        arguments=['gsutil cat $0 | tee $1', url, '/tmp/results.txt'],
+        file_outputs={
+            'data': '/tmp/results.txt',
+        }
+    )
 
 
 def echo_op(text, is_exit_handler=False):
-  return dsl.ContainerOp(
-      name='echo',
-      image='library/bash:4.4.23',
-      command=['sh', '-c'],
-      arguments=['echo "$0"', text],
-  )
+    return dsl.ContainerOp(
+        name='echo',
+        image='library/bash:4.4.23',
+        command=['sh', '-c'],
+        arguments=['echo "$0"', text],
+    )
 
 
 @dsl.pipeline(
     name='Exit Handler',
-    description=
-    'Downloads a message and prints it. The exit handler will run after the pipeline finishes (successfully or not).'
+    description='Downloads a message and prints it. The exit handler will run after the pipeline finishes (successfully or not).'
 )
 def download_and_print(url='gs://ml-pipeline-playground/shakespeare1.txt'):
-  """A sample pipeline showing exit handler."""
+    """A sample pipeline showing exit handler."""
 
-  exit_task = echo_op('exit!')
+    exit_task = echo_op('exit!')
 
-  with dsl.ExitHandler(exit_task):
-    download_task = gcs_download_op(url)
-    echo_task = echo_op(download_task.output)
+    with dsl.ExitHandler(exit_task):
+        download_task = gcs_download_op(url)
+        echo_task = echo_op(download_task.output)
 
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(download_and_print, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(download_and_print, __file__ + '.yaml')

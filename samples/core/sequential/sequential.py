@@ -13,41 +13,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import kfp
 from kfp import dsl
 
 
 def gcs_download_op(url):
-  return dsl.ContainerOp(
-      name='GCS - Download',
-      image='google/cloud-sdk:279.0.0',
-      command=['sh', '-c'],
-      arguments=['gsutil cat $0 | tee $1', url, '/tmp/results.txt'],
-      file_outputs={
-          'data': '/tmp/results.txt',
-      }
-  )
+    return dsl.ContainerOp(
+        name='GCS - Download',
+        image='google/cloud-sdk:272.0.0',
+        command=['sh', '-c'],
+        arguments=['gsutil cat $0 | tee $1', url, '/tmp/results.txt'],
+        file_outputs={
+            'data': '/tmp/results.txt',
+        }
+    )
 
 
 def echo_op(text):
-  return dsl.ContainerOp(
-      name='echo',
-      image='library/bash:4.4.23',
-      command=['sh', '-c'],
-      arguments=['echo "$0"', text]
-  )
-
+    return dsl.ContainerOp(
+        name='echo',
+        image='library/bash:4.4.23',
+        command=['sh', '-c'],
+        arguments=['echo "$0"', text]
+    )
 
 @dsl.pipeline(
     name='Sequential pipeline',
     description='A pipeline with two sequential steps.'
 )
 def sequential_pipeline(url='gs://ml-pipeline-playground/shakespeare1.txt'):
-  """A pipeline with two sequential steps."""
+    """A pipeline with two sequential steps."""
 
-  download_task = gcs_download_op(url)
-  echo_task = echo_op(download_task.output)
-
+    download_task = gcs_download_op(url)
+    echo_task = echo_op(download_task.output)
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(sequential_pipeline, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(sequential_pipeline, __file__ + '.yaml')
