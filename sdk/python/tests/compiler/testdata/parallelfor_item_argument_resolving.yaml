@@ -2,12 +2,12 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata: 
   annotations: 
-    pipelines.kubeflow.org/pipeline_spec: "{\"name\": \"Parallelfor name clashes pipeline\"}"
-  generateName: parallelfor-name-clashes-pipeline-
+    pipelines.kubeflow.org/pipeline_spec: "{\"name\": \"Parallelfor item argument resolving pipeline\"}"
+  generateName: parallelfor-item-argument-resolving-
 spec: 
   arguments: 
     parameters: []
-  entrypoint: parallelfor-name-clashes-pipeline
+  entrypoint: parallelfor-item-argument-resolving
   serviceAccountName: pipeline-runner
   templates: 
     - 
@@ -474,7 +474,7 @@ spec:
           - 
             name: produce-str
             template: produce-str
-      name: parallelfor-name-clashes-pipeline
+      name: parallelfor-item-argument-resolving
     - 
       container: 
         args: 
