@@ -74,6 +74,7 @@ interface SelectedNodeDetails {
   logs?: string;
   phaseMessage?: string;
   viewerConfigs?: ViewerConfig[];
+  loadingViewer: boolean;
 }
 
 interface RunDetailsProps {
@@ -142,35 +143,26 @@ export const css = stylesheet({
 });
 
 class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
-  private _onBlur: EventListener;
-  private _onFocus: EventListener;
   private readonly AUTO_REFRESH_INTERVAL = 5000;
 
   private _interval?: NodeJS.Timeout;
 
-  constructor(props: any) {
-    super(props);
-
-    this._onBlur = this.onBlurHandler.bind(this);
-    this._onFocus = this.onFocusHandler.bind(this);
-
-    this.state = {
-      allArtifactConfigs: [],
-      allowCustomVisualizations: false,
-      generatedVisualizations: [],
-      isGeneratingVisualization: false,
-      legacyStackdriverUrl: '',
-      logsBannerAdditionalInfo: '',
-      logsBannerMessage: '',
-      logsBannerMode: 'error',
-      runFinished: false,
-      selectedNodeDetails: null,
-      selectedTab: 0,
-      sidepanelBusy: false,
-      sidepanelSelectedTab: SidePaneTab.ARTIFACTS,
-      stackdriverK8sLogsUrl: '',
-    };
-  }
+  public state: RunDetailsState = {
+    allArtifactConfigs: [],
+    allowCustomVisualizations: false,
+    generatedVisualizations: [],
+    isGeneratingVisualization: false,
+    legacyStackdriverUrl: '',
+    logsBannerAdditionalInfo: '',
+    logsBannerMessage: '',
+    logsBannerMode: 'error',
+    runFinished: false,
+    selectedNodeDetails: null,
+    selectedTab: 0,
+    sidepanelBusy: false,
+    sidepanelSelectedTab: SidePaneTab.ARTIFACTS,
+    stackdriverK8sLogsUrl: '',
+  };
 
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
@@ -499,23 +491,23 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public async componentDidMount(): Promise<void> {
-    window.addEventListener('focus', this._onFocus);
-    window.addEventListener('blur', this._onBlur);
+    window.addEventListener('focus', this.onFocusHandler);
+    window.addEventListener('blur', this.onBlurHandler);
     await this._startAutoRefresh();
   }
 
-  public onBlurHandler(): void {
+  public onBlurHandler = (): void => {
     this._stopAutoRefresh();
-  }
+  };
 
-  public async onFocusHandler(): Promise<void> {
+  public onFocusHandler = async (): Promise<void> => {
     await this._startAutoRefresh();
-  }
+  };
 
   public componentWillUnmount(): void {
     this._stopAutoRefresh();
-    window.removeEventListener('focus', this._onFocus);
-    window.removeEventListener('blur', this._onBlur);
+    window.removeEventListener('focus', this.onFocusHandler);
+    window.removeEventListener('blur', this.onBlurHandler);
     this.clearBanner();
   }
 
