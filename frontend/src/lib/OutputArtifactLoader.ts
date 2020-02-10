@@ -507,7 +507,9 @@ function filterArtifactUrisByType(
     artifactTypeIds.includes(artifact.getTypeId()),
   );
 
-  const tfdvArtifactsPaths = matchingArtifacts.map(artifact => artifact.getUri()); // uri not empty
+  const tfdvArtifactsPaths = matchingArtifacts
+    .map(artifact => artifact.getUri())
+    .filter(uri => uri); // uri not empty
   return tfdvArtifactsPaths;
 }
 
@@ -520,7 +522,7 @@ async function buildArtifactViewer(script: string[]): Promise<HTMLViewerConfig> 
   const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
   if (!visualization.htmlContent) {
     // TODO: Improve error message with details.
-    throw new Error('Failed to build TFDV artifact visualization');
+    throw new Error('Failed to build artifact viewer');
   }
   return {
     htmlContent: visualization.htmlContent,
