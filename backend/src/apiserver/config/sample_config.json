@@ -1,12 +1,12 @@
 [
   {
-    "name": "[Demo] ML - XGBoost - Training with Confusion Matrix",
-    "description": "[GCP Permission requirements](https://github.com/kubeflow/pipelines/blob/master/samples/core/xgboost_training_cm#requirements). [source code](https://github.com/kubeflow/pipelines/blob/master/samples/core/xgboost_training_cm). A trainer that does end-to-end distributed training for XGBoost models.",
+    "name": "[Demo] XGBoost - Training with Confusion Matrix",
+    "description": "[source code](https://github.com/kubeflow/pipelines/blob/master/samples/core/xgboost_training_cm). A trainer that does end-to-end distributed training for XGBoost models. More [details](https://github.com/kubeflow/pipelines/blob/master/samples/core/xgboost_training_cm#requirements). ",
     "file": "/samples/core/xgboost_training_cm/xgboost_training_cm.py.yaml"
   },
   {
-    "name": "[Demo] Unified DSL - Taxi Tip Prediction Model Trainer",
-    "description": "[GCP Permission requirements](https://github.com/kubeflow/pipelines/blob/master/samples/core/parameterized_tfx_oss#permission). [source code](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252Fmaster%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb). Example pipeline that does classification with model analysis based on a public tax cab dataset.",
+    "name": "[Demo] TFX - Taxi Tip Prediction Model Trainer",
+    "description": "[source code](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252Fmaster%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb). Example pipeline that does classification with model analysis based on a public tax cab dataset. More [details](https://github.com/kubeflow/pipelines/blob/master/samples/core/parameterized_tfx_oss). ",
     "file": "/samples/core/parameterized_tfx_oss/parameterized_tfx_oss.py.yaml"
   },
   {
