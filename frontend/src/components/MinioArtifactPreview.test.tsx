@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-import MinioArtifactLink from './MinioArtifactLink';
+import MinioArtifactPreview from './MinioArtifactPreview';
 
-describe('MinioArtifactLink', () => {
+describe('MinioArtifactPreview', () => {
   it('handles undefined artifact', () => {
-    expect(MinioArtifactLink(undefined as any)).toMatchSnapshot();
+    expect(MinioArtifactPreview(undefined as any)).toMatchSnapshot();
   });
 
   it('handles null artifact', () => {
-    expect(MinioArtifactLink(null as any)).toMatchSnapshot();
+    expect(MinioArtifactPreview(null as any)).toMatchSnapshot();
   });
 
   it('handles empty artifact', () => {
-    expect(MinioArtifactLink({} as any)).toMatchSnapshot();
+    expect(MinioArtifactPreview({} as any)).toMatchSnapshot();
   });
 
   it('handles invalid artifact: no bucket', () => {
@@ -37,7 +37,7 @@ describe('MinioArtifactLink', () => {
       key: 'bar',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    expect(MinioArtifactLink(s3artifact)).toMatchSnapshot();
+    expect(MinioArtifactPreview(s3artifact)).toMatchSnapshot();
   });
 
   it('handles invalid artifact: no key', () => {
@@ -48,7 +48,7 @@ describe('MinioArtifactLink', () => {
       key: '',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    expect(MinioArtifactLink(s3artifact)).toMatchSnapshot();
+    expect(MinioArtifactPreview(s3artifact)).toMatchSnapshot();
   });
 
   it('handles s3 artifact', () => {
@@ -59,7 +59,7 @@ describe('MinioArtifactLink', () => {
       key: 'bar',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    expect(MinioArtifactLink(s3artifact)).toMatchSnapshot();
+    expect(MinioArtifactPreview(s3artifact)).toMatchSnapshot();
   });
 
   it('handles minio artifact', () => {
@@ -70,6 +70,6 @@ describe('MinioArtifactLink', () => {
       key: 'bar',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    expect(MinioArtifactLink(minioartifact)).toMatchSnapshot();
+    expect(MinioArtifactPreview(minioartifact)).toMatchSnapshot();
   });
 });

@@ -277,13 +277,23 @@ export function generateGcsConsoleUri(gcsUri: string): string | undefined {
 
 const MINIO_URI_PREFIX = 'minio://';
 
+/**
+ * Generates the path component of the url to retrieve an artifact.
+ *
+ * @param source source of the artifact. Can be "minio", "s3", "http", "https", or "gcs".
+ * @param bucket bucket where the artifact is stored.
+ * @param key path to the artifact.
+ * @param peek number of characters or bytes to return. If not provided, the entire content of the artifact will be returned.
+ */
 export function generateArtifactUrl(
   source: string,
   bucket: string,
   key: string,
   peek?: number,
 ): string {
-  return `artifacts/get?source=${source}&bucket=${bucket}&key=${key}${peek ? `&peek=${peek}` : ''}`;
+  return encodeURI(
+    `artifacts/get?source=${source}&bucket=${bucket}&key=${key}${peek ? `&peek=${peek}` : ''}`,
+  );
 }
 
 /**

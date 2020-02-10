@@ -173,12 +173,7 @@ export class Apis {
    * Reads file from storage using server.
    */
   public static readFile(path: StoragePath, peek?: number): Promise<string> {
-    return this._fetch(
-      'artifacts/get' +
-        `?source=${path.source}&bucket=${path.bucket}&key=${encodeURIComponent(path.key)}${
-          peek ? `&peek=${peek}` : ''
-        }`,
-    );
+    return this._fetch(Utils.generateArtifactUrl(path.source, path.bucket, path.key, peek));
   }
 
   /**

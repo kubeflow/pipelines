@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MinioArtifactPreview handles empty artifact 1`] = `null`;
+
+exports[`MinioArtifactPreview handles invalid artifact: no bucket 1`] = `null`;
+
+exports[`MinioArtifactPreview handles invalid artifact: no key 1`] = `null`;
+
+exports[`MinioArtifactPreview handles null artifact 1`] = `null`;
+
+exports[`MinioArtifactPreview handles undefined artifact 1`] = `null`;
