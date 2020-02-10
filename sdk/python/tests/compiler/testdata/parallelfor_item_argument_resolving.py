@@ -57,7 +57,7 @@ def consume(param1):
 
 
 @kfp.dsl.pipeline()
-def parallelfor_name_clashes_pipeline():
+def parallelfor_item_argument_resolving():
     produce_str_task = produce_str()
     produce_list_of_strings_task = produce_list_of_strings()
     produce_list_of_ints_task = produce_list_of_ints()
@@ -80,5 +80,5 @@ def parallelfor_name_clashes_pipeline():
 
 if __name__ == '__main__':
     import kfp.compiler as compiler
-    compiler.Compiler().compile(parallelfor_name_clashes_pipeline, __file__ + '.yaml')
+    compiler.Compiler().compile(parallelfor_item_argument_resolving, __file__ + '.yaml')
 
