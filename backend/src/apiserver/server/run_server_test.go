@@ -62,6 +62,62 @@ func TestCreateRun(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, *runDetail)
 }
 
+func TestCreateRunPatch(t *testing.T) {
+	clients, manager, experiment := initWithExperiment(t)
+	viper.Set(HasDefaultBucketEnvVar, "true")
+	viper.Set(ProjectIDEnvVar, "test-project-id")
+	viper.Set(DefaultBucketNameEnvVar, "test-default-bucket")
+	defer clients.Close()
+	server := NewRunServer(manager)
+	run := &api.Run{
+		Name:               "123",
+		ResourceReferences: validReference,
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflowPatch.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "{{kfp-default-bucket}}"},
+				{Name: "param2", Value: "{{kfp-project-id}}"}},
+		},
+	}
+	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+
+	expectedRuntimeWorkflow := testWorkflowPatch.DeepCopy()
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+		{Name: "param1", Value: util.StringPointer("test-default-bucket")},
+		{Name: "param2", Value: util.StringPointer("test-project-id")},
+	}
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "123"}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
+	expectedRunDetail := api.RunDetail{
+		Run: &api.Run{
+			Id:           "123e4567-e89b-12d3-a456-426655440000",
+			Name:         "123",
+			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
+			ScheduledAt:  &timestamp.Timestamp{},
+			FinishedAt:   &timestamp.Timestamp{},
+			PipelineSpec: &api.PipelineSpec{
+				WorkflowManifest: testWorkflowPatch.ToStringForStore(),
+				Parameters: []*api.Parameter{
+					{Name: "param1", Value: "test-default-bucket"},
+					{Name: "param2", Value: "test-project-id"}},
+			},
+			ResourceReferences: []*api.ResourceReference{
+				{
+					Key:  &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+					Name: "123", Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		PipelineRuntime: &api.PipelineRuntime{
+			WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
+		},
+	}
+	assert.Equal(t, expectedRunDetail, *runDetail)
+}
+
 func TestCreateRun_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()

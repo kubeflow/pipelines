@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -30,7 +31,23 @@ type RunServer struct {
 	resourceManager *resource.ResourceManager
 }
 
+const (
+	HasDefaultBucketEnvVar  = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar         = "PROJECT_ID"
+	DefaultBucketNameEnvVar = "BUCKET_NAME"
+)
+
 func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest) (*api.RunDetail, error) {
+	// Patch default values
+	for _, param := range request.Run.PipelineSpec.Parameters {
+		if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
+			var err error
+			param.Value, err = PatchPipelineDefaultParameter(param.Value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			}
+		}
+	}
 	err := s.validateCreateRunRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
