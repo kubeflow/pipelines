@@ -223,6 +223,7 @@ export class OutputArtifactLoader {
    */
   public static async buildTFXArtifactViewerConfig(
     argoPodName: string,
+    reportProgress?: (progress: number) => void,
   ): Promise<HTMLViewerConfig[]> {
     // Error handling assumptions:
     // * Context/execution/artifact nodes are not expected to be in MLMD. Thus, any
@@ -236,29 +237,34 @@ export class OutputArtifactLoader {
 
     // Since artifact types don't change per run, this can be optimized further so
     // that we don't fetch them on every page load.
+    reportProgress && reportProgress(10);
     const artifactTypes = await getArtifactTypes();
     if (artifactTypes.length === 0) {
       // There are no artifact types data.
       return [];
     }
+    reportProgress && reportProgress(30);
 
     const context = await getMlmdContext(argoPodName);
     if (!context) {
       // Failed finding corresponding MLMD context.
       return [];
     }
+    reportProgress && reportProgress(50);
 
     const execution = await getExecutionInContextWithPodName(argoPodName, context);
     if (!execution) {
       // Failed finding corresponding MLMD execution.
       return [];
     }
+    reportProgress && reportProgress(70);
 
     const artifacts = await getOutputArtifactsInExecution(execution);
     if (artifacts.length === 0) {
       // There are no artifacts in this execution.
       return [];
     }
+    reportProgress && reportProgress(90);
 
     // TODO: Visualize other artifact types, such as Anomalies and Schema, using TFDV
     // as well as ModelEvaluation using TFMA.

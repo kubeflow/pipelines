@@ -60,6 +60,7 @@ import VisualizationCreator, {
 } from '../components/viewers/VisualizationCreator';
 import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+import LinearProgress from '@material-ui/core/LinearProgress';
 
 enum SidePaneTab {
   ARTIFACTS,
@@ -74,7 +75,8 @@ interface SelectedNodeDetails {
   logs?: string;
   phaseMessage?: string;
   viewerConfigs?: ViewerConfig[];
-  loadingViewer: boolean;
+  viewerProgress: number; // 0 ~ 100
+  viewerLoaded?: boolean;
 }
 
 interface RunDetailsProps {
@@ -285,29 +287,40 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                               <div className={commonCss.page}>
                                 {sidepanelSelectedTab === SidePaneTab.ARTIFACTS && (
                                   <div className={commonCss.page}>
-                                    {(selectedNodeDetails.viewerConfigs || []).map((config, i) => {
-                                      const title = componentMap[
-                                        config.type
-                                      ].prototype.getDisplayName();
-                                      return (
-                                        <div key={i} className={padding(20, 'lrt')}>
+                                    {!selectedNodeDetails.viewerLoaded ? (
+                                      <Progress
+                                        value={selectedNodeDetails.viewerProgress}
+                                        onComplete={this.handleViewerLoaded}
+                                      />
+                                    ) : (
+                                      <>
+                                        {(selectedNodeDetails.viewerConfigs || []).map(
+                                          (config, i) => {
+                                            const title = componentMap[
+                                              config.type
+                                            ].prototype.getDisplayName();
+                                            return (
+                                              <div key={i} className={padding(20, 'lrt')}>
+                                                <PlotCard
+                                                  configs={[config]}
+                                                  title={title}
+                                                  maxDimension={500}
+                                                />
+                                                <Hr />
+                                              </div>
+                                            );
+                                          },
+                                        )}
+                                        <div className={padding(20, 'lrt')}>
                                           <PlotCard
-                                            configs={[config]}
-                                            title={title}
+                                            configs={[visualizationCreatorConfig]}
+                                            title={VisualizationCreator.prototype.getDisplayName()}
                                             maxDimension={500}
                                           />
                                           <Hr />
                                         </div>
-                                      );
-                                    })}
-                                    <div className={padding(20, 'lrt')}>
-                                      <PlotCard
-                                        configs={[visualizationCreatorConfig]}
-                                        title={VisualizationCreator.prototype.getDisplayName()}
-                                        maxDimension={500}
-                                      />
-                                      <Hr />
-                                    </div>
+                                      </>
+                                    )}
                                   </div>
                                 )}
 
@@ -718,10 +731,23 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
   private async _selectNode(id: string): Promise<void> {
     this.setStateSafe(
-      { selectedNodeDetails: { id } },
+      { selectedNodeDetails: { id, viewerProgress: 0 } },
       async () => await this._loadSidePaneTab(this.state.sidepanelSelectedTab),
     );
   }
+
+  private handleViewerLoaded = () => {
+    console.log('loaded');
+    const { selectedNodeDetails } = this.state;
+    if (selectedNodeDetails) {
+      this.setStateSafe({
+        selectedNodeDetails: {
+          ...selectedNodeDetails,
+          viewerLoaded: true,
+        },
+      });
+    }
+  };
 
   private async _loadSidePaneTab(tab: SidePaneTab): Promise<void> {
     const workflow = this.state.workflow;
@@ -736,9 +762,17 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       }
       this.setStateSafe({ selectedNodeDetails, sidepanelSelectedTab: tab });
 
+      const loadingId = selectedNodeDetails.id;
       switch (tab) {
         case SidePaneTab.ARTIFACTS:
           await this._loadSelectedNodeOutputs();
+          if (!this.state.selectedNodeDetails || this.state.selectedNodeDetails.id !== loadingId) {
+            // Skip if side panel no longer up-to-date
+            return;
+          }
+          this.setStateSafe({
+            selectedNodeDetails: { ...this.state.selectedNodeDetails, viewerProgress: 100 },
+          });
           break;
         case SidePaneTab.LOGS:
           if (node.phase !== NodePhase.SKIPPED) {
@@ -767,11 +801,24 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         this.showPageError(serviceErrorToString(err), err);
         return [];
       };
+      const reportProgress = (progress: number) => {
+        if (!this.state.selectedNodeDetails || this.state.selectedNodeDetails.id !== loadingId) {
+          // skip not update-to-date reports
+          return;
+        }
+        this.setStateSafe({
+          selectedNodeDetails: {
+            ...this.state.selectedNodeDetails,
+            viewerProgress: progress,
+          },
+        });
+      };
       // Load the viewer configurations from the output paths
       const viewerConfigs = (await Promise.all([
-        OutputArtifactLoader.buildTFXArtifactViewerConfig(selectedNodeDetails.id).catch(
-          handleErrorAndDisplayMessage,
-        ),
+        OutputArtifactLoader.buildTFXArtifactViewerConfig(
+          selectedNodeDetails.id,
+          reportProgress,
+        ).catch(handleErrorAndDisplayMessage),
         ...outputPaths.map(path =>
           OutputArtifactLoader.load(path).catch(handleErrorAndDisplayMessage),
         ),
@@ -886,5 +933,46 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     }
   }
 }
+
+interface ProgressProps {
+  value: number;
+  onComplete: () => void;
+}
+const Progress: React.FC<ProgressProps> = ({ value, onComplete }) => {
+  const [progress, setProgress] = React.useState(0);
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout | undefined;
+
+    function tick() {
+      console.log(progress);
+      if (progress >= 100) {
+        timer && clearInterval(timer);
+        setTimeout(onComplete, 100);
+      } else if (progress < value) {
+        setProgress(oldProgress => {
+          const step = Math.max(Math.min((value - oldProgress) / 3, 10), 0.2);
+          return oldProgress < value ? Math.min(value, oldProgress + step) : oldProgress;
+        });
+      } else if (progress > value) {
+        setProgress(value);
+      }
+    }
+
+    timer = setInterval(tick, 20);
+    return () => {
+      timer && clearInterval(timer);
+    };
+  }, [value, progress, onComplete]);
+
+  // return (
+  //   <CircularProgress
+  //     variant='determinate'
+  //     size={30}
+  //     className={commonCss.absoluteCenter}
+  //     value={progress}
+  //   />
+  // );
+  return <LinearProgress variant='determinate' value={progress} />;
+};
 
 export default RunDetails;
