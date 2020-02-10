@@ -38,7 +38,7 @@ const MinioArtifactPreview: React.FC<S3Artifact> = s3artifact => {
         {linkText}
       </a>
       <div>
-        <small>{content}</small>
+        <small><pre>{content}</pre></small>
       </div>
     </div>
   );
