@@ -262,39 +262,53 @@ export class OutputArtifactLoader {
 
     // TODO: Visualize non-TFDV artifacts, such as ModelEvaluation using TFMA
     let viewers: Promise<HTMLViewerConfig>[] = [];
-    const exampleStatisticsArtifactUris = filterArtifactUrisByType('ExampleStatistics', artifactTypes, artifacts);
+    const exampleStatisticsArtifactUris = filterArtifactUrisByType(
+      'ExampleStatistics',
+      artifactTypes,
+      artifacts,
+    );
     exampleStatisticsArtifactUris.forEach(uri => {
       const evalUri = uri + '/eval/stats_tfrecord';
       const trainUri = uri + '/train/stats_tfrecord';
-      viewers = viewers.concat([evalUri, trainUri].map(async specific_uri => {
-        const script = [
-          'import tensorflow_data_validation as tfdv',
-          `stats = tfdv.load_statistics('${specific_uri}')`,
-          'tfdv.visualize_statistics(stats)',
-        ];
-        return buildArtifactViewer(script);
-      }));
+      viewers = viewers.concat(
+        [evalUri, trainUri].map(async specific_uri => {
+          const script = [
+            'import tensorflow_data_validation as tfdv',
+            `stats = tfdv.load_statistics('${specific_uri}')`,
+            'tfdv.visualize_statistics(stats)',
+          ];
+          return buildArtifactViewer(script);
+        }),
+      );
     });
     const schemaGenArtifactUris = filterArtifactUrisByType('Schema', artifactTypes, artifacts);
-    viewers = viewers.concat(schemaGenArtifactUris.map(uri => {
-      uri = uri + '/schema.pbtxt';
-      const script = [
-        'import tensorflow_data_validation as tfdv',
-        `schema = tfdv.load_schema_text('${uri}')`,
-        'tfdv.display_schema(schema)',
-      ];
-      return buildArtifactViewer(script);
-    }));
-    const anomaliesArtifactUris = filterArtifactUrisByType('ExampleAnomalies', artifactTypes, artifacts);
-    viewers = viewers.concat(anomaliesArtifactUris.map(uri => {
-      uri = uri + '/anomalies.pbtxt';
-      const script = [
-        'import tensorflow_data_validation as tfdv',
-        `anomalies = tfdv.load_anomalies_text('${uri}')`,
-        'tfdv.display_anomalies(anomalies)',
-      ];
-      return buildArtifactViewer(script);
-    }));
+    viewers = viewers.concat(
+      schemaGenArtifactUris.map(uri => {
+        uri = uri + '/schema.pbtxt';
+        const script = [
+          'import tensorflow_data_validation as tfdv',
+          `schema = tfdv.load_schema_text('${uri}')`,
+          'tfdv.display_schema(schema)',
+        ];
+        return buildArtifactViewer(script);
+      }),
+    );
+    const anomaliesArtifactUris = filterArtifactUrisByType(
+      'ExampleAnomalies',
+      artifactTypes,
+      artifacts,
+    );
+    viewers = viewers.concat(
+      anomaliesArtifactUris.map(uri => {
+        uri = uri + '/anomalies.pbtxt';
+        const script = [
+          'import tensorflow_data_validation as tfdv',
+          `anomalies = tfdv.load_anomalies_text('${uri}')`,
+          'tfdv.display_anomalies(anomalies)',
+        ];
+        return buildArtifactViewer(script);
+      }),
+    );
     return Promise.all(viewers);
   }
 
@@ -481,7 +495,11 @@ async function getArtifactTypes(): Promise<ArtifactType[]> {
   return res.getArtifactTypesList();
 }
 
-function filterArtifactUrisByType(artifactTypeName: string, artifactTypes: ArtifactType[], artifacts: Artifact[]): string[] {
+function filterArtifactUrisByType(
+  artifactTypeName: string,
+  artifactTypes: ArtifactType[],
+  artifacts: Artifact[],
+): string[] {
   const artifactTypeIds = artifactTypes
     .filter(artifactType => artifactType.getName() === artifactTypeName)
     .map(artifactType => artifactType.getId());
@@ -489,8 +507,7 @@ function filterArtifactUrisByType(artifactTypeName: string, artifactTypes: Artif
     artifactTypeIds.includes(artifact.getTypeId()),
   );
 
-  const tfdvArtifactsPaths = matchingArtifacts
-    .map(artifact => artifact.getUri()); // uri not empty
+  const tfdvArtifactsPaths = matchingArtifacts.map(artifact => artifact.getUri()); // uri not empty
   return tfdvArtifactsPaths;
 }
 
