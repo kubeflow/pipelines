@@ -182,16 +182,20 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) 
 	return processedFile, nil
 }
 
-// Mutate default values of specified pipeline file.
+// Mutate default values of specified pipeline spec.
 // Args:
-//  file: pipeline file in bytes.
-//  toPatch: mapping from the old value to its new value.
-func PatchPipelineDefaultParameter(file []byte, toPatch map[string]string) ([]byte, error) {
-	pipelineRawString := string(file)
-	for key, value := range toPatch {
-		pipelineRawString = strings.Replace(pipelineRawString, key, value, -1)
+//  text: (part of) pipeline file in string.
+func PatchPipelineDefaultParameter(text string) (string, error) {
+	defaultBucket := common.GetStringConfig(DefaultBucketNameEnvVar)
+	projectId := common.GetStringConfig(ProjectIDEnvVar)
+	toPatch := map[string]string{
+		"{{kfp-default-bucket}}": defaultBucket,
+		"{{kfp-project-id}}":     projectId,
 	}
-	return []byte(pipelineRawString), nil
+	for key, value := range toPatch {
+		text = strings.Replace(text, key, value, -1)
+	}
+	return text, nil
 }
 
 func printParameters(params []*api.Parameter) string {

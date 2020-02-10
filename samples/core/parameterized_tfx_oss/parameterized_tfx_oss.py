@@ -54,7 +54,7 @@ _data_root_param = data_types.RuntimeParameter(
 
 # Path of pipeline root, should be a GCS path.
 pipeline_root = os.path.join(
-    'gs://<your-gcs-bucket>', 'tfx_taxi_simple', kfp.dsl.RUN_ID_PLACEHOLDER
+    'gs://{{kfp-default-bucket}}', 'tfx_taxi_simple', kfp.dsl.RUN_ID_PLACEHOLDER
 )
 
 
