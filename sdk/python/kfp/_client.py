@@ -120,7 +120,7 @@ class Client(object):
     # client_id is only used for IAP, so when the value is provided, we assume it's IAP.
     if client_id:
       token = get_auth_token(client_id, other_client_id, other_client_secret)
-    else:
+    elif self._is_inverse_proxy_host(host):
       token = get_gcp_access_token()
 
     if token:
@@ -153,6 +153,11 @@ class Client(object):
     if config.host:
       config.host = config.host + '/' + Client.KUBE_PROXY_PATH.format(namespace)
     return config
+
+  def _is_inverse_proxy_host(self, host):
+    if host:
+      return re.match(r'\S+.googleusercontent.com/{0,1}$', host)
+    return False
 
   def _is_ipython(self):
     """Returns whether we are running in notebook."""
