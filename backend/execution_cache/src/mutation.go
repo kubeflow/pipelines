@@ -13,7 +13,7 @@ import (
 
 const (
 	ArgoWorkflowTemplate string = "workflows.argoproj.io/template"
-	ExecutionKey         string = "executionKey"
+	ExecutionKey         string = "pipelines.kubeflow.org/execution_cache_key"
 	AnnotationPath       string = "/metadata/annotations"
 )
 
