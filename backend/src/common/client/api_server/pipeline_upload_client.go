@@ -20,6 +20,7 @@ const (
 	pipelineUploadPath           = "pipelines/upload"
 	pipelineUploadServerBasePath = "/api/v1/namespaces/%s/services/ml-pipeline:8888/proxy/apis/v1beta1/%s"
 	pipelineUploadContentTypeKey = "Content-Type"
+	pipelineVersionUploadPath    = "pipelines/upload_version"
 )
 
 type PipelineUploadInterface interface {
@@ -83,3 +84,6 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 
 	return response.Payload, nil
 }
+
+// TODO(jingzhang36): add UploadPipelineVersion after go_http_client and go_client are
+// auto-generated from UploadPipelineVersion in PipelineUploadServer

@@ -41,7 +41,7 @@ from tfx.proto import trainer_pb2
 _taxi_module_file_param = data_types.RuntimeParameter(
     name='module-file',
     default=
-    'gs://ml-pipeline-playground/tfx_taxi_simple/modules/tfx_taxi_utils_1205.py',
+    'gs://ml-pipeline-playground/tfx_taxi_simple/modules/taxi_utils.py',
     ptype=Text,
 )
 
@@ -54,7 +54,7 @@ _data_root_param = data_types.RuntimeParameter(
 
 # Path of pipeline root, should be a GCS path.
 pipeline_root = os.path.join(
-    'gs://<your-gcs-bucket>', 'tfx_taxi_simple', kfp.dsl.RUN_ID_PLACEHOLDER
+    'gs://{{kfp-default-bucket}}', 'tfx_taxi_simple', kfp.dsl.RUN_ID_PLACEHOLDER
 )
 
 
