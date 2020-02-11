@@ -22,7 +22,7 @@ import os
 import subprocess
 
 diagnose_me_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/df450617af6e385da8c436628afafb1c76ca6c79/components/diagnostics/diagnose_me/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/d0ef0c8dc44a97fb35a7915d334432c6303ef26c/components/diagnostics/diagnose_me/component.yaml')
 
 confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/local/confusion_matrix/component.yaml')
 
@@ -207,19 +207,19 @@ def dataproc_predict_op(
 def xgb_train_pipeline(
     output='gs://{{kfp-default-bucket}}',
     project='{{kfp-project-id}}',
-    cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER,
     region='us-central1',
-    train_data='gs://ml-pipeline-playground/sfpd/train.csv',
-    eval_data='gs://ml-pipeline-playground/sfpd/eval.csv',
-    schema='gs://ml-pipeline-playground/sfpd/schema.json',
-    target='resolution',
-    execution_mode='HALT_ON_ERROR',
-    required_apis='stackdriver.googleapis.com, storage-api.googleapis.com, bigquery.googleapis.com, dataflow.googleapis.com, dataproc.googleapis.com',
+    diagnostic_mode='HALT_ON_ERROR',
     rounds=200,
     workers=2,
-    true_label='ACTION',
 ):
     output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
+    train_data='gs://ml-pipeline-playground/sfpd/train.csv'
+    eval_data='gs://ml-pipeline-playground/sfpd/eval.csv'
+    schema='gs://ml-pipeline-playground/sfpd/schema.json'
+    true_label='ACTION'
+    target='resolution'
+    required_apis='storage-api.googleapis.com, dataproc.googleapis.com'
+    cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER
 
     # Current GCP pyspark/spark op do not provide outputs as return values, instead,
     # we need to use strings to pass the uri around.
@@ -231,7 +231,7 @@ def xgb_train_pipeline(
     
     _diagnose_me_op = diagnose_me_op(
         bucket=output,
-        execution_mode=execution_mode,
+        execution_mode=diagnostic_mode,
         project_id=project, 
         target_apis=required_apis)
     
