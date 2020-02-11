@@ -209,8 +209,8 @@ def xgb_train_pipeline(
     project='{{kfp-project-id}}',
     region='us-central1',
     diagnostic_mode='HALT_ON_ERROR',
-    rounds=200,
-    workers=2,
+    rounds=5,
+    workers=1,
 ):
     output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
     train_data='gs://ml-pipeline-playground/sfpd/train.csv'
