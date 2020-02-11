@@ -47,7 +47,7 @@ _command_string = {
     Commands.GET_SERVICE_ACCOUNTS: 'iam service-accounts list',
     Commands.GET_STORAGE_BUCKETS: 'ls',
     Commands.GET_GCLOUD_VERSION: 'version',
-    Commands.GET_AUTH_LIST:'auth list'
+    Commands.GET_AUTH_LIST: 'auth list',
 }
 
 
