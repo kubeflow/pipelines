@@ -26,13 +26,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getEndpoint(host, port string) string {
-	if port == "" {
-		return host
-	}
-	return fmt.Sprintf("%s:%s", host, port)
-}
-
 // createCredentialProvidersChain creates a chained providers credential for a minio client
 func createCredentialProvidersChain(endpoint, accessKey, secretKey string) *credentials.Credentials {
 	// first try with static api key
@@ -55,7 +48,7 @@ func createCredentialProvidersChain(endpoint, accessKey, secretKey string) *cred
 func CreateMinioClient(minioServiceHost string, minioServicePort string,
 	accessKey string, secretKey string, secure bool, region string) (*minio.Client, error) {
 
-	endpoint := getEndpoint(minioServiceHost, minioServicePort)
+	endpoint := joinHostPort(minioServiceHost, minioServicePort)
 	cred := createCredentialProvidersChain(endpoint, accessKey, secretKey)
 	minioClient, err := minio.NewWithCredentials(endpoint, cred, secure, region)
 	if err != nil {

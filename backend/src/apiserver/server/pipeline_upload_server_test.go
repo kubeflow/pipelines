@@ -113,7 +113,8 @@ func TestUploadPipeline_YAML(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `"created_at":"1970-01-01T00:00:02Z"`)
 
 	// Verify stored in object store
-	template, err = clientManager.ObjectStore().GetFile(storage.CreatePipelinePath(fakeVersionUUID))
+	objStore = clientManager.ObjectStore()
+	template, err = objStore.GetFile(objStore.GetPipelineKey(fakeVersionUUID))
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 	opts, err = list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
@@ -218,7 +219,8 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `"created_at":"1970-01-01T00:00:02Z"`)
 
 	// Verify stored in object store
-	template, err = clientManager.ObjectStore().GetFile(storage.CreatePipelinePath(fakeVersionUUID))
+	objStore = clientManager.ObjectStore()
+	template, err = objStore.GetFile(objStore.GetPipelineKey(fakeVersionUUID))
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 	opts, err = list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
