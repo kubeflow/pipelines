@@ -783,6 +783,9 @@ implementation:
   def test_withparam_lightweight_out(self):
     self._test_py_compile_yaml('loop_over_lightweight_output')
 
+  def test_parallelfor_item_argument_resolving(self):
+    self._test_py_compile_yaml('parallelfor_item_argument_resolving')
+
   def test_py_input_artifact_raw_value(self):
     """Test pipeline input_artifact_raw_value."""
     self._test_py_compile_yaml('input_artifact_raw_value')
