@@ -60,7 +60,6 @@ import VisualizationCreator, {
 } from '../components/viewers/VisualizationCreator';
 import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
-import LinearProgress from '@material-ui/core/LinearProgress';
 
 enum SidePaneTab {
   ARTIFACTS,
@@ -737,7 +736,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   private handleViewerLoaded = () => {
-    console.log('loaded');
     const { selectedNodeDetails } = this.state;
     if (selectedNodeDetails) {
       this.setStateSafe({
@@ -944,13 +942,14 @@ const Progress: React.FC<ProgressProps> = ({ value, onComplete }) => {
     let timer: NodeJS.Timeout | undefined;
 
     function tick() {
-      console.log(progress);
       if (progress >= 100) {
         timer && clearInterval(timer);
-        setTimeout(onComplete, 100);
+        setTimeout(onComplete, 400);
+      } else if (value >= 100) {
+        setProgress(oldProgress => Math.min(oldProgress + 6, 100));
       } else if (progress < value) {
         setProgress(oldProgress => {
-          const step = Math.max(Math.min((value - oldProgress) / 3, 10), 0.2);
+          const step = Math.max(Math.min((value - oldProgress) / 6, 0.01), 0.2);
           return oldProgress < value ? Math.min(value, oldProgress + step) : oldProgress;
         });
       } else if (progress > value) {
@@ -964,15 +963,15 @@ const Progress: React.FC<ProgressProps> = ({ value, onComplete }) => {
     };
   }, [value, progress, onComplete]);
 
-  // return (
-  //   <CircularProgress
-  //     variant='determinate'
-  //     size={30}
-  //     className={commonCss.absoluteCenter}
-  //     value={progress}
-  //   />
-  // );
-  return <LinearProgress variant='determinate' value={progress} />;
+  return (
+    <CircularProgress
+      variant='determinate'
+      size={60}
+      thickness={3}
+      className={commonCss.absoluteCenter}
+      value={progress}
+    />
+  );
 };
 
 export default RunDetails;
