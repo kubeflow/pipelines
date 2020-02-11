@@ -73,9 +73,6 @@ interface SelectedNodeDetails {
   id: string;
   logs?: string;
   phaseMessage?: string;
-  viewerConfigs?: ViewerConfig[];
-  viewerProgress: number; // 0 ~ 100
-  viewerLoaded?: boolean;
 }
 
 interface RunDetailsProps {
@@ -144,10 +141,6 @@ export const css = stylesheet({
 });
 
 class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
-  private readonly AUTO_REFRESH_INTERVAL = 5000;
-
-  private _interval?: NodeJS.Timeout;
-
   public state: RunDetailsState = {
     allArtifactConfigs: [],
     allowCustomVisualizations: false,
@@ -164,6 +157,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     sidepanelSelectedTab: SidePaneTab.ARTIFACTS,
     stackdriverK8sLogsUrl: '',
   };
+
+  private readonly AUTO_REFRESH_INTERVAL = 5000;
+
+  private _interval?: NodeJS.Timeout;
 
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
@@ -284,44 +281,20 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                               />
 
                               <div className={commonCss.page}>
-                                {sidepanelSelectedTab === SidePaneTab.ARTIFACTS && (
-                                  <div className={commonCss.page}>
-                                    {!selectedNodeDetails.viewerLoaded ? (
-                                      <Progress
-                                        value={selectedNodeDetails.viewerProgress}
-                                        onComplete={this.handleViewerLoaded}
-                                      />
-                                    ) : (
-                                      <>
-                                        {(selectedNodeDetails.viewerConfigs || []).map(
-                                          (config, i) => {
-                                            const title = componentMap[
-                                              config.type
-                                            ].prototype.getDisplayName();
-                                            return (
-                                              <div key={i} className={padding(20, 'lrt')}>
-                                                <PlotCard
-                                                  configs={[config]}
-                                                  title={title}
-                                                  maxDimension={500}
-                                                />
-                                                <Hr />
-                                              </div>
-                                            );
-                                          },
-                                        )}
-                                        <div className={padding(20, 'lrt')}>
-                                          <PlotCard
-                                            configs={[visualizationCreatorConfig]}
-                                            title={VisualizationCreator.prototype.getDisplayName()}
-                                            maxDimension={500}
-                                          />
-                                          <Hr />
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-                                )}
+                                {sidepanelSelectedTab === SidePaneTab.ARTIFACTS &&
+                                  this.state.selectedNodeDetails &&
+                                  this.state.workflow && (
+                                    <ArtifactsTabContent
+                                      workflow={this.state.workflow}
+                                      selectedNodeDetails={this.state.selectedNodeDetails}
+                                      visualizationCreatorConfig={visualizationCreatorConfig}
+                                      generatedVisualizations={this.state.generatedVisualizations.filter(
+                                        visualization =>
+                                          visualization.nodeId === selectedNodeDetails.id,
+                                      )}
+                                      onError={this.handleError}
+                                    />
+                                  )}
 
                                 {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
                                   <div className={padding(20)}>
@@ -667,6 +640,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     await this._loadAllOutputs();
   }
 
+  private handleError = async (error: Error) => {
+    await this.showPageError(serviceErrorToString(error), error);
+  };
+
   private async _startAutoRefresh(): Promise<void> {
     // If the run was not finished last time we checked, check again in case anything changed
     // before proceeding to set auto-refresh interval
@@ -730,22 +707,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
   private async _selectNode(id: string): Promise<void> {
     this.setStateSafe(
-      { selectedNodeDetails: { id, viewerProgress: 0 } },
+      { selectedNodeDetails: { id } },
       async () => await this._loadSidePaneTab(this.state.sidepanelSelectedTab),
     );
   }
-
-  private handleViewerLoaded = () => {
-    const { selectedNodeDetails } = this.state;
-    if (selectedNodeDetails) {
-      this.setStateSafe({
-        selectedNodeDetails: {
-          ...selectedNodeDetails,
-          viewerLoaded: true,
-        },
-      });
-    }
-  };
 
   private async _loadSidePaneTab(tab: SidePaneTab): Promise<void> {
     const workflow = this.state.workflow;
@@ -760,18 +725,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       }
       this.setStateSafe({ selectedNodeDetails, sidepanelSelectedTab: tab });
 
-      const loadingId = selectedNodeDetails.id;
       switch (tab) {
-        case SidePaneTab.ARTIFACTS:
-          await this._loadSelectedNodeOutputs();
-          if (!this.state.selectedNodeDetails || this.state.selectedNodeDetails.id !== loadingId) {
-            // Skip if side panel no longer up-to-date
-            return;
-          }
-          this.setStateSafe({
-            selectedNodeDetails: { ...this.state.selectedNodeDetails, viewerProgress: 100 },
-          });
-          break;
         case SidePaneTab.LOGS:
           if (node.phase !== NodePhase.SKIPPED) {
             await this._loadSelectedNodeLogs();
@@ -780,60 +734,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
             this.setStateSafe({ logsBannerAdditionalInfo: '', logsBannerMessage: '' });
           }
       }
-    }
-  }
-
-  private async _loadSelectedNodeOutputs(): Promise<void> {
-    const { generatedVisualizations, selectedNodeDetails } = this.state;
-    if (!selectedNodeDetails) {
-      return;
-    }
-    const loadingId = selectedNodeDetails.id;
-    const workflow = this.state.workflow;
-    if (workflow && workflow.status && workflow.status.nodes) {
-      // Load runtime outputs from the selected Node
-      const outputPaths = WorkflowParser.loadNodeOutputPaths(
-        workflow.status.nodes[selectedNodeDetails.id],
-      );
-      const handleErrorAndDisplayMessage = (err: Error) => {
-        this.showPageError(serviceErrorToString(err), err);
-        return [];
-      };
-      const reportProgress = (progress: number) => {
-        if (!this.state.selectedNodeDetails || this.state.selectedNodeDetails.id !== loadingId) {
-          // skip not update-to-date reports
-          return;
-        }
-        this.setStateSafe({
-          selectedNodeDetails: {
-            ...this.state.selectedNodeDetails,
-            viewerProgress: progress,
-          },
-        });
-      };
-      // Load the viewer configurations from the output paths
-      const viewerConfigs = (await Promise.all([
-        OutputArtifactLoader.buildTFXArtifactViewerConfig(
-          selectedNodeDetails.id,
-          reportProgress,
-        ).catch(handleErrorAndDisplayMessage),
-        ...outputPaths.map(path =>
-          OutputArtifactLoader.load(path).catch(handleErrorAndDisplayMessage),
-        ),
-      ])).flatMap(configs => configs);
-      if (!this.state.selectedNodeDetails || this.state.selectedNodeDetails.id !== loadingId) {
-        // Skip state update if sidepanel has been closed or opened with a different node
-        return;
-      }
-      const generatedConfigs = generatedVisualizations
-        .filter(visualization => visualization.nodeId === selectedNodeDetails.id)
-        .map(visualization => visualization.config);
-      this.setStateSafe({
-        selectedNodeDetails: {
-          ...this.state.selectedNodeDetails,
-          viewerConfigs: [...viewerConfigs, ...generatedConfigs],
-        },
-      });
     }
   }
 
@@ -909,18 +809,13 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     };
     try {
       const config = await Apis.buildPythonVisualizationConfig(visualizationData);
-      const { generatedVisualizations, selectedNodeDetails } = this.state;
+      const { generatedVisualizations } = this.state;
       const generatedVisualization: GeneratedVisualization = {
         config,
         nodeId,
       };
       generatedVisualizations.push(generatedVisualization);
-      if (selectedNodeDetails) {
-        const viewerConfigs = selectedNodeDetails.viewerConfigs || [];
-        viewerConfigs.push(generatedVisualization.config);
-        selectedNodeDetails.viewerConfigs = viewerConfigs;
-      }
-      this.setState({ generatedVisualizations, selectedNodeDetails });
+      this.setState({ generatedVisualizations });
     } catch (err) {
       this.showPageError(
         'Unable to generate visualization, an unexpected error was encountered.',
@@ -932,36 +827,49 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 }
 
-interface ProgressProps {
+/**
+ * Circular progress component. The special real progress vs visual progress
+ * logic makes the progress more lively to users.
+ *
+ * NOTE: onComplete handler should remain its identity, otherwise this component
+ * doesn't work well.
+ */
+const Progress: React.FC<{
   value: number;
   onComplete: () => void;
-}
-const Progress: React.FC<ProgressProps> = ({ value, onComplete }) => {
-  const [progress, setProgress] = React.useState(0);
+}> = ({ value: realProgress, onComplete }) => {
+  const [visualProgress, setVisualProgress] = React.useState(0);
   React.useEffect(() => {
-    let timer: NodeJS.Timeout | undefined;
+    let timer: NodeJS.Timeout;
 
     function tick() {
-      if (progress >= 100) {
-        timer && clearInterval(timer);
+      if (visualProgress >= 100) {
+        clearInterval(timer);
+        // After completed, leave some time to show completed progress.
         setTimeout(onComplete, 400);
-      } else if (value >= 100) {
-        setProgress(oldProgress => Math.min(oldProgress + 6, 100));
-      } else if (progress < value) {
-        setProgress(oldProgress => {
-          const step = Math.max(Math.min((value - oldProgress) / 6, 0.01), 0.2);
-          return oldProgress < value ? Math.min(value, oldProgress + step) : oldProgress;
+      } else if (realProgress >= 100) {
+        // When completed, fast forward visual progress to complete.
+        setVisualProgress(oldProgress => Math.min(oldProgress + 6, 100));
+      } else if (visualProgress < realProgress) {
+        // Usually, visual progress gradually grows towards real progress.
+        setVisualProgress(oldProgress => {
+          const step = Math.max(Math.min((realProgress - oldProgress) / 6, 0.01), 0.2);
+          return oldProgress < realProgress
+            ? Math.min(realProgress, oldProgress + step)
+            : oldProgress;
         });
-      } else if (progress > value) {
-        setProgress(value);
+      } else if (visualProgress > realProgress) {
+        // Fix visual progress if real progress changed to smaller value.
+        // Usually, this shouldn't happen.
+        setVisualProgress(realProgress);
       }
     }
 
-    timer = setInterval(tick, 20);
+    timer = setInterval(tick, 16.6 /* 60fps -> 16.6 ms is 1 frame */);
     return () => {
-      timer && clearInterval(timer);
+      clearInterval(timer);
     };
-  }, [value, progress, onComplete]);
+  }, [realProgress, visualProgress, onComplete]);
 
   return (
     <CircularProgress
@@ -969,8 +877,119 @@ const Progress: React.FC<ProgressProps> = ({ value, onComplete }) => {
       size={60}
       thickness={3}
       className={commonCss.absoluteCenter}
-      value={progress}
+      value={visualProgress}
     />
+  );
+};
+
+// TODO: add unit tests for this.
+/**
+ * Artifacts tab content component, it handles loading progress state of
+ * artifacts and visualize progress as a circular progress icon.
+ */
+const ArtifactsTabContent: React.FC<{
+  visualizationCreatorConfig: VisualizationCreatorConfig;
+  selectedNodeDetails: SelectedNodeDetails;
+  generatedVisualizations: GeneratedVisualization[];
+  workflow: Workflow;
+  onError: (error: Error) => void;
+}> = ({
+  visualizationCreatorConfig,
+  generatedVisualizations,
+  selectedNodeDetails,
+  workflow,
+  onError,
+}) => {
+  const [loaded, setLoaded] = React.useState(false);
+  // Progress component expects onLoad function identity to stay the same
+  const onLoad = React.useCallback(() => setLoaded(true), [setLoaded]);
+
+  const [progress, setProgress] = React.useState(0);
+  const [viewerConfigs, setViewerConfigs] = React.useState<ViewerConfig[]>([]);
+
+  React.useEffect(() => {
+    let aborted = false;
+    async function loadArtifacts() {
+      if (aborted) {
+        return;
+      }
+      setLoaded(false);
+      setProgress(0);
+      setViewerConfigs([]);
+
+      if (!workflow.status || !workflow.status.nodes) {
+        setProgress(100); // Loaded will be set by Progress onComplete
+        return;
+      }
+      // Load runtime outputs from the selected Node
+      const outputPaths = WorkflowParser.loadNodeOutputPaths(
+        workflow.status.nodes[selectedNodeDetails.id],
+      );
+      const reportProgress = (reportedProgress: number) => {
+        if (!aborted) {
+          setProgress(reportedProgress);
+        }
+      };
+      const reportErrorAndReturnEmpty = (error: Error): [] => {
+        onError(error);
+        return [];
+      };
+
+      // Load the viewer configurations from the output paths
+      const builtConfigs = (await Promise.all([
+        OutputArtifactLoader.buildTFXArtifactViewerConfig(
+          selectedNodeDetails.id,
+          reportProgress,
+        ).catch(reportErrorAndReturnEmpty),
+        ...outputPaths.map(path =>
+          OutputArtifactLoader.load(path).catch(reportErrorAndReturnEmpty),
+        ),
+      ])).flatMap(configs => configs);
+      if (aborted) {
+        return;
+      }
+      setViewerConfigs(builtConfigs);
+
+      setProgress(100); // Loaded will be set by Progress onComplete
+      return;
+    }
+    loadArtifacts();
+
+    const abort = () => {
+      aborted = true;
+    };
+    return abort;
+  }, [workflow, selectedNodeDetails.id, onError]);
+
+  return (
+    <div className={commonCss.page}>
+      {!loaded ? (
+        <Progress value={progress} onComplete={onLoad} />
+      ) : (
+        <>
+          {[
+            ...viewerConfigs,
+            ...generatedVisualizations.map(visualization => visualization.config),
+          ].map((config, i) => {
+            const title = componentMap[config.type].prototype.getDisplayName();
+            return (
+              <div key={i} className={padding(20, 'lrt')}>
+                <PlotCard configs={[config]} title={title} maxDimension={500} />
+                <Hr />
+              </div>
+            );
+          })}
+          <div className={padding(20, 'lrt')}>
+            <PlotCard
+              configs={[visualizationCreatorConfig]}
+              title={VisualizationCreator.prototype.getDisplayName()}
+              maxDimension={500}
+            />
+            <Hr />
+          </div>
+        </>
+      )}
+    </div>
   );
 };
 
