@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,5 +75,7 @@ func TestApplyPodOutputWithDecodeError(t *testing.T) {
 func TestApplyPodOutput(t *testing.T) {
 	patchOperation, err := applyPodOutput(&fakeAdmissionRequest)
 	assert.Nil(t, err)
-	assert.NotNil(t, patchOperation)
+	require.NotNil(t, patchOperation)
+	require.Equal(t, 1, len(patchOperation))
+	require.Equal(t, patchOperation[0].Op, OperationType("add"))
 }

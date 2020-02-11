@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -53,7 +54,7 @@ func TestDoServeAdmitFunc(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc)
-	assert.NotNil(t, patchOperations)
+	require.NotNil(t, patchOperations)
 	assert.Nil(t, err)
 }
 
