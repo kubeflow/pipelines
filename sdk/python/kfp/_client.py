@@ -116,11 +116,12 @@ class Client(object):
 
     token = None
 
-    # Obtain the tokens if it is inverse proxy or IAP.
-    if self._is_inverse_proxy_host(host):
-      token = get_gcp_access_token()
-    if self._is_iap_host(host,client_id):
+    # Obtain the tokens if it is IAP or inverse proxy.
+    # client_id is only used for IAP, so when the value is provided, we assume it's IAP.
+    if client_id:
       token = get_auth_token(client_id, other_client_id, other_client_secret)
+    elif self._is_inverse_proxy_host(host):
+      token = get_gcp_access_token()
 
     if token:
       config.api_key['authorization'] = token
@@ -152,13 +153,6 @@ class Client(object):
     if config.host:
       config.host = config.host + '/' + Client.KUBE_PROXY_PATH.format(namespace)
     return config
-
-  def _is_iap_host(self, host, client_id):
-    if host and client_id:
-      if re.match(r'\S+.endpoints.\S+.cloud.goog/{0,1}$', host):
-        warnings.warn('Suffix /pipeline is not ignorable for IAP host.')
-      return re.match(r'\S+.endpoints.\S+.cloud.goog/pipeline', host)
-    return False
 
   def _is_inverse_proxy_host(self, host):
     if host:
