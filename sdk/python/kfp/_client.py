@@ -112,7 +112,6 @@ class Client(object):
     _add_generated_apis(self, kfp_server_api, api_client)
     self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
-    self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
@@ -377,51 +376,38 @@ class Client(object):
     """
     return self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by)
 
-  # TODO: provide default namespace, similar to kubectl default namespaces.
-  def _create_job_config(self, experiment_id, params, pipeline_package_path, pipeline_id, version_id):
-    """Create a JobConfig with spec and resource_references.
+  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, version_id=None):
+    """Run a specified pipeline.
+
     Args:
       experiment_id: The string id of an experiment.
-      pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
-      params: A dictionary with key (string) as param name and value (string) as param value.
-      pipeline_id: The string ID of a pipeline.
-      version_id: The string ID of a pipeline version. 
+      job_name: name of the job.
+      pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+      params: a dictionary with key (string) as param name and value (string) as as param value.
+      pipeline_id: the string ID of a pipeline.
+      version_id: the string ID of a pipeline version.
         If both pipeline_id and version_id are specified, pipeline_id will take precendence
-        This will change in a future version, so it is recommended to use version_id by itself.
+        This will change in a future version, so it is recommended to use version_id by itself
     Returns:
-      A JobConfig object with attributes spec and resource_reference.
+      A run object. Most important field is id.
     """
-    class JobConfig:
-      def __init__(self, spec, resource_references):
-        self.spec = spec
-        self.resource_references = resource_references
+    job_config = self._create_job_config(
+      experiment_id=experiment_id,
+      params=params,
+      pipeline_package_path=pipeline_package_path,
+      pipeline_id=pipeline_id,
+      version_id=version_id)
+    run_body = kfp_server_api.models.ApiRun(
+        pipeline_spec=job_config.spec, resource_references=job_config.resource_references, name=job_name)
 
-    pipeline_json_string = None
-    if pipeline_package_path:
-      pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
-      pipeline_json_string = json.dumps(pipeline_obj)
-    api_params = [kfp_server_api.ApiParameter(
-        name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
-        value=str(v)) for k,v in params.items()]
-    resource_references = []
-    key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
-                                        type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
-    reference = kfp_server_api.models.ApiResourceReference(key=key,
-                                                           relationship=kfp_server_api.models.ApiRelationship.OWNER)
-    resource_references.append(reference)
+    response = self._run_api.create_run(body=run_body)
 
-    if version_id:
-      key = kfp_server_api.models.ApiResourceKey(id=version_id,
-                                                 type=kfp_server_api.models.ApiResourceType.PIPELINE_VERSION)
-      reference = kfp_server_api.models.ApiResourceReference(key=key, 
-                                                             relationship=kfp_server_api.models.ApiRelationship.CREATOR)
-      resource_references.append(reference)
-
-    spec = kfp_server_api.models.ApiPipelineSpec(
-        pipeline_id=pipeline_id,
-        workflow_manifest=pipeline_json_string,
-        parameters=api_params)
-    return JobConfig(spec=spec, resource_references=resource_references)      
+    if self._is_ipython():
+      import IPython
+      html = ('Run link <a href="%s/#/runs/details/%s" target="_blank" >here</a>'
+              % (self._get_url_prefix(), response.run.id))
+      IPython.display.display(IPython.display.HTML(html))
+    return response.run
 
   def create_recurring_run(self, experiment_id, job_name, description=None, start_time=None, end_time=None, interval_second=None, cron_expression=None, max_concurrency=1, no_catchup=None, params={}, pipeline_package_path=None, pipeline_id=None, version_id=None, enabled=True):
     """Create a recurring run.
@@ -457,6 +443,7 @@ class Client(object):
       pipeline_package_path=pipeline_package_path,
       pipeline_id=pipeline_id,
       version_id=version_id)
+
     if (interval_second is None) ^ (cron_expression is None):
       raise ValueError('Either interval_second or cron_expression is required')
     if interval_second is not None:
@@ -465,6 +452,7 @@ class Client(object):
     if cron_expression is not None:
       trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(
         start_time=start_time, end_time=end_time, cron=cron_expression)
+
     job_body = kfp_server_api.models.ApiJob(
         enabled=enabled,
         pipeline_spec=job_config.spec,
@@ -476,38 +464,51 @@ class Client(object):
         max_concurrency=max_concurrency)
     return self._job_api.create_job(body=job_body)
 
-  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, version_id=None):
-    """Run a specified pipeline.
-
+  def _create_job_config(self, experiment_id, params, pipeline_package_path, pipeline_id, version_id):
+    """Create a JobConfig with spec and resource_references.
     Args:
       experiment_id: The string id of an experiment.
-      job_name: name of the job.
-      pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
-      params: a dictionary with key (string) as param name and value (string) as as param value.
-      pipeline_id: the string ID of a pipeline.
+      pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+      params: A dictionary with key (string) as param name and value (string) as param value.
+      pipeline_id: The string ID of a pipeline.
       version_id: The string ID of a pipeline version. 
         If both pipeline_id and version_id are specified, pipeline_id will take precendence
         This will change in a future version, so it is recommended to use version_id by itself.
     Returns:
-      A run object. Most important field is id.
+      A JobConfig object with attributes spec and resource_reference.
     """
-    job_config = self._create_job_config(
-      experiment_id=experiment_id,
-      params=params,
-      pipeline_package_path=pipeline_package_path,
-      pipeline_id=pipeline_id,
-      version_id=version_id)
-    run_body = kfp_server_api.models.ApiRun(
-        pipeline_spec=job_config.spec, resource_references=job_config.resource_references, name=job_name)
+    
+    class JobConfig:
+      def __init__(self, spec, resource_references):
+        self.spec = spec
+        self.resource_references = resource_references
 
-    response = self._run_api.create_run(body=run_body)
+    pipeline_json_string = None
+    if pipeline_package_path:
+      pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
+      pipeline_json_string = json.dumps(pipeline_obj)
+    api_params = [kfp_server_api.ApiParameter(
+        name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
+        value=str(v)) for k,v in params.items()]
+    resource_references = []
+    key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
+                                        type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
+    reference = kfp_server_api.models.ApiResourceReference(key=key,
+                                                           relationship=kfp_server_api.models.ApiRelationship.OWNER)
+    resource_references.append(reference)
 
-    if self._is_ipython():
-      import IPython
-      html = ('Run link <a href="%s/#/runs/details/%s" target="_blank" >here</a>'
-              % (self._get_url_prefix(), response.run.id))
-      IPython.display.display(IPython.display.HTML(html))
-    return response.run
+    if version_id:
+      key = kfp_server_api.models.ApiResourceKey(id=version_id,
+                                                 type=kfp_server_api.models.ApiResourceType.PIPELINE_VERSION)
+      reference = kfp_server_api.models.ApiResourceReference(key=key, 
+                                                             relationship=kfp_server_api.models.ApiRelationship.CREATOR)
+      resource_references.append(reference)
+
+    spec = kfp_server_api.models.ApiPipelineSpec(
+        pipeline_id=pipeline_id,
+        workflow_manifest=pipeline_json_string,
+        parameters=api_params)
+    return JobConfig(spec=spec, resource_references=resource_references)
 
   def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None, pipeline_conf: kfp.dsl.PipelineConf = None, namespace=None):
     '''Runs pipeline on KFP-enabled Kubernetes cluster.
