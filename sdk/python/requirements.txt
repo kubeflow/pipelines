@@ -1,5 +1,5 @@
 urllib3>=1.15,<1.25 #Fixing the version conflict with the "requests" package caused by the kubernetes package
-six>=1.10
+six>=1.12
 certifi
 python-dateutil
 PyYAML
