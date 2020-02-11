@@ -57,8 +57,8 @@ This section contains demo and tutorial pipelines.
 
 ### Additional resources and documentation
   * [TFX Landing page](https://www.tensorflow.org/tfx)
-  * [Hosted Pipeline documentation](https://cloud.google.com/ai-platform)
-  * [Troubleshooting guide](https://www.kubeflow.org/docs/pipelines/troubleshooting/)
+  * [AI Platform Pipelines documentation](https://cloud.google.com/ai-platform)
+  * [Troubleshooting guide](https://cloud.google.com/ai-platform/pipelines/docs/troubleshooting/)
   * [Kubeflow Pipeline open source documentation](https://www.kubeflow.org/docs/pipelines/)
 `;
 
