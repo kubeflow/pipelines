@@ -22,7 +22,7 @@ outputs:
   - {name: model_uid,      description: 'UID for the stored model on Watson Machine Learning'}
 implementation:
   container:
-    image: docker.io/aipipeline/wml-store:latest
+    image: docker.io/kevinyu98/wmkl-store:v0.1
     command: ['python3']
     args: [
       /app/wml-store.py,
