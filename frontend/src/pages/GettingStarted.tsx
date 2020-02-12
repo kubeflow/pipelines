@@ -57,7 +57,7 @@ Want to learn more? [Learn from sample and tutorial pipelines.](https://www.kube
 
 ### Additional resources and documentation
   * [TFX documentation](https://www.tensorflow.org/tfx)
-  * [AI Platform Pipelines documentation](https://cloud.google.com/ai-platform)
+  * [AI Platform Pipelines documentation](https://cloud.google.com/ai-platform/pipelines/docs/)
   * [Troubleshooting guide](https://cloud.google.com/ai-platform/pipelines/docs/troubleshooting/)
   * [Kubeflow Pipelines documentation](https://www.kubeflow.org/docs/pipelines/)
 `;
