@@ -223,7 +223,9 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
         commitHash: commitHash ? commitHash.substring(0, 7) : 'unknown',
         commitUrl:
           'https://www.github.com/kubeflow/pipelines' + (commitHash ? `/commit/${commitHash}` : ''),
-        date: buildInfo.buildDate ? new Date(buildInfo.buildDate).toLocaleDateString() : 'unknown',
+        date: buildInfo.buildDate
+          ? new Date(buildInfo.buildDate).toLocaleDateString('en-US')
+          : 'unknown',
       };
     }
     async function fetchGkeMetadata() {
