@@ -56,6 +56,10 @@ interface ArtifactListState {
   columns: Column[];
 }
 
+const ARTIFACT_PROPERTY_REPOS = [ArtifactProperties, ArtifactCustomProperties];
+const PIPELINE_WORKSPACE_FIELDS = ['PIPELINE_NAME', 'WORKSPACE', 'RUN_ID'];
+const NAME_FIELDS = ['NAME'];
+
 class ArtifactList extends Page<{}, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
   private api = Api.getInstance();
@@ -220,15 +224,8 @@ class ArtifactList extends Page<{}, ArtifactListState> {
               id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
               otherFields: [
                 getResourcePropertyViaFallBack(
-                  artifact,
-                  [ArtifactProperties, ArtifactCustomProperties],
-                  ['PIPELINE_NAME', 'WORKSPACE', 'RUN_ID']
-                ),
-                getResourcePropertyViaFallBack(
-                  artifact,
-                  [ArtifactProperties, ArtifactCustomProperties],
-                  ['NAME']
-                ),
+                  artifact, ARTIFACT_PROPERTY_REPOS, PIPELINE_WORKSPACE_FIELDS),
+                getResourcePropertyViaFallBack(artifact, ARTIFACT_PROPERTY_REPOS, NAME_FIELDS),
                 artifact.getId(),
                 type,
                 artifact.getUri(),
