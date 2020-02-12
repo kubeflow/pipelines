@@ -1,5 +1,4 @@
 urllib3>=1.15,<1.25 #Fixing the version conflict with the "requests" package caused by the kubernetes package
-avro==1.9.1 #Temporarily pin because 1.9.2 has dependency issue.
 six>=1.10
 certifi
 python-dateutil
