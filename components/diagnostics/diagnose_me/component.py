@@ -12,20 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, NamedTuple, Optional
+from typing import Any, List, NamedTuple, Optional
 
-# Define quota check entry.
-class QuotaCheck(NamedTuple):
-    region: str
-    metric: str
-    quota_needed: float
 
 def run_diagnose_me(
     bucket: str,
     execution_mode: str,
     project_id: str,
     target_apis: str,
-    quota_check: Optional[List[QuotaCheck]] = None,
+    quota_check: Optional[List[Any]] = None,
 ) -> NamedTuple('Outputs', [('bucket', str), ('project_id', str)]):
   """ Performs environment verification specific to this pipeline.
 
@@ -43,7 +38,9 @@ def run_diagnose_me(
           target_apis:
               String consisting of a comma separated list of apis to be verified.
           quota_check:
-              List of entries describing how much quota is required.
+              List of entries describing how much quota is required. Each entry
+              has three fields: region, metric and quota_needed. All
+              string-typed.
       Raises:
           RuntimeError: If configuration is not setup properly and
           HALT_ON_ERROR flag is set.
@@ -79,21 +76,21 @@ def run_diagnose_me(
 
   quota_check = [] or quota_check
   for single_check in quota_check:
-    if single_check.region not in quota_dict:
+    if single_check['region'] not in quota_dict:
       print(
-          'Regionalized quota for %s does not exist in current project' %
-          (single_check.region)
+          'Regional quota for %s does not exist in current project' %
+          (single_check['region'])
       )
       config_error_observed = True
     else:
-      if quota_dict[single_check.region][single_check.metric
-                                        ] < single_check.quota_needed:
+      if quota_dict[single_check['region']][single_check['metric']
+                                        ] < single_check['quota_needed']:
         print(
             'Insufficient quota observed for %s at %s: %s is needed but only %s is available'
             % (
-                single_check.metric, single_check.region,
-                str(single_check.quota_needed
-                   ), str(quota_dict[single_check.region][single_check.metric])
+                single_check['metric'], single_check['region'],
+                str(single_check['quota_needed']
+                   ), str(quota_dict[single_check['region']][single_check['metric']])
             )
         )
         config_error_observed = True
