@@ -42,5 +42,7 @@ ${CODEGEN_PKG}/generate-groups.sh "client,informer,lister" \
 GENERATED_PATH="${GOPATH}/src/github.com/kubeflow/pipelines/backend/src/crd"
 echo "Generated files at ${GENERATED_PATH}"
 
-cp -r $GENERATED_PATH $SCRIPT_ROOT/../../
+$DEST_PATH="$SCRIPT_ROOT/../../"
+rm -r "$DEST_PATH/crd/pkg/client"
+cp -r $GENERATED_PATH $DEST_PATH
 echo "Copied generated files back."
