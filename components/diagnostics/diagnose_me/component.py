@@ -12,11 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import NamedTuple
+from typing import List, NamedTuple, Optional
 
+# Define quota check entry.
+class QuotaCheck(NamedTuple):
+    region: str
+    metric: str
+    quota_needed: float
 
 def run_diagnose_me(
-    bucket: str, execution_mode: str, project_id:str , target_apis: str
+    bucket: str,
+    execution_mode: str,
+    project_id: str,
+    target_apis: str,
+    quota_check: Optional[List[QuotaCheck]] = None,
 ) -> NamedTuple('Outputs', [('bucket', str), ('project_id', str)]):
     """ Performs environment verification specific to this pipeline.
 
@@ -29,8 +38,12 @@ def run_diagnose_me(
               If set to HALT_ON_ERROR will case any error to raise an exception.
               This is intended to stop the data processing of a pipeline. Can set
               to False to only report Errors/Warnings.
+          project_id:
+              GCP project ID which is assumed to be accessible from the pod.
           target_apis:
               String consisting of a comma separated list of apis to be verified.
+          quota_check:
+              List of entries describing how much quota is required.
       Raises:
           RuntimeError: If configuration is not setup properly and
           HALT_ON_ERROR flag is set.
@@ -49,13 +62,16 @@ def run_diagnose_me(
                    capture_output=True)
 
     import sys
-    from typing import List, Text
-    import os
     from kfp.cli.diagnose_me import gcp
-    from kfp.cli.diagnose_me import utility
-    import json as json_library
 
     config_error_observed = False
+
+    quota_list = gcp.get_gcp_configuration(gcp.Commands.GET_QUOTAS, human_readable=False)
+
+    quota_check = [] or quota_check
+    for single_check in quota_check:
+        pass
+
 
     # Get the project ID
     # from project configuration
