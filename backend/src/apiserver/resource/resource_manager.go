@@ -295,7 +295,6 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
-	// TODO: Change the compiler to stop auto-adding those two atrifacts to all tasks.
 	for templateIdx, template := range workflow.Workflow.Spec.Templates {
 		for artIdx, artifact := range template.Outputs.Artifacts {
 			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
@@ -538,7 +537,6 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
-	// TODO: Change the compiler to stop auto-adding those two atrifacts to all tasks.
 	for templateIdx, template := range scheduledWorkflow.Spec.Workflow.Spec.Templates {
 		for artIdx, artifact := range template.Outputs.Artifacts {
 			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
