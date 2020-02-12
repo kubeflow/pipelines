@@ -72,13 +72,13 @@ def train(args):
 
     # define the model
     metadata = {
-        client.repository.DefinitionMetaNames.NAME              : wml_run_definition,
-        client.repository.DefinitionMetaNames.AUTHOR_NAME       : wml_author_name,
-        client.repository.DefinitionMetaNames.FRAMEWORK_NAME    : wml_framework_name,
-        client.repository.DefinitionMetaNames.FRAMEWORK_VERSION : wml_framework_version,
-        client.repository.DefinitionMetaNames.RUNTIME_NAME      : wml_runtime_name,
-        client.repository.DefinitionMetaNames.RUNTIME_VERSION   : wml_runtime_version,
-        client.repository.DefinitionMetaNames.EXECUTION_COMMAND : wml_execution_command
+        client.repository.ModelMetaNames.NAME                                       : wml_run_definition,
+        # client.repository.DefinitionMetaNames.AUTHOR_NAME       : wml_author_name,
+        client.repository.DefinitionMetaNames.ModelMetaNames.FRAMEWORK_LIBRARIES    : [{'name': wml_framework_name, 'version': wml_framework_version}],
+        # client.repository.DefinitionMetaNames.FRAMEWORK_VERSION : wml_framework_version,
+        client.repository.PipelineMetaNames.RUNTIMES                                : [{'name': wml_runtime_name, 'version': wml_runtime_version}],
+        # client.repository.DefinitionMetaNames.RUNTIME_VERSION   : wml_runtime_version,
+        client.repository.PipelineMetaNames.COMMAND                                 : wml_execution_command
     }
 
     definition_details = client.repository.store_definition( model_code, meta_props=metadata )
