@@ -67,10 +67,22 @@ def run_diagnose_me(
     config_error_observed = False
 
     quota_list = gcp.get_gcp_configuration(gcp.Commands.GET_QUOTAS, human_readable=False)
+    quota_dict = {}  # Mapping from region to dict[metric, available]
+    for region_quota in quota_list:
+        quota_dict[region_quota['name']] = {}
+        for quota in region_quota['quotas']:
+            quota_dict[region_quota['name']][quota['metric']] = quota['limit'] - quota['usage']
+
 
     quota_check = [] or quota_check
     for single_check in quota_check:
-        pass
+        if single_check.region not in quota_dict:
+            print('Regionalized quota for %s does not exist in current project' % (single_check.region))
+            config_error_observed = True
+        else:
+            if quota_dict[single_check.region][single_check.metric] < single_check.quota_needed:
+                print('Insufficient quota observed for %s at %s: %s is needed but only %s is available' % (single_check.metric, single_check.region, str(single_check.quota_needed), str(quota_dict[single_check.region][single_check.metric])))
+                config_error_observed = True
 
 
     # Get the project ID
