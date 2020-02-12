@@ -76,6 +76,24 @@ kubectl kustomize base/crds | kubectl delete -f -
 
 ```
 
+## Upgrade
+Note - Do **NOT** follow these instructions if you are upgrading KFP in a
+proper Kubeflow installation.
+
+If you have already deployed a standalone KFP installation and you want to
+upgrade it, make sure the following resources do not exist:
+`metadata-deployment`, `metadata-service`.
+```
+kubectl -n <KFP_NAMESPACE> get deployments | grep metadata-deployment
+kubectl -n <KFP_NAMESPACE> get service | grep metadata-service
+```
+
+If they exist, you can delete them by running the following commands:
+```
+kubectl -n <KFP_NAMESPACE> delete deployment metadata-deployment
+kubectl -n <KFP_NAMESPACE> delete service metadata-service
+```
+
 ## Troubleshooting
 
 ### Permission error installing Kubeflow Pipelines to a cluster
