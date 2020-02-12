@@ -23,7 +23,7 @@ import {
   ArtifactType,
   getArtifactCreationTime,
   getArtifactTypes,
-  getResourceProperty,
+  getResourcePropertyViaFallBack,
   GetArtifactsRequest,
 } from '@kubeflow/frontend';
 import * as React from 'react';
@@ -219,11 +219,16 @@ class ArtifactList extends Page<{}, ArtifactListState> {
             return {
               id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
               otherFields: [
-                getResourceProperty(artifact, ArtifactProperties.PIPELINE_NAME) ||
-                  getResourceProperty(artifact, ArtifactCustomProperties.WORKSPACE, true) ||
-                  getResourceProperty(artifact, ArtifactCustomProperties.RUN_ID, true),
-                getResourceProperty(artifact, ArtifactProperties.NAME) ||
-                  getResourceProperty(artifact, ArtifactCustomProperties.NAME, true),
+                getResourcePropertyViaFallBack(
+                  artifact,
+                  [ArtifactProperties, ArtifactCustomProperties],
+                  ['PIPELINE_NAME', 'WORKSPACE', 'RUN_ID']
+                ),
+                getResourcePropertyViaFallBack(
+                  artifact,
+                  [ArtifactProperties, ArtifactCustomProperties],
+                  ['NAME']
+                ),
                 artifact.getId(),
                 type,
                 artifact.getUri(),
