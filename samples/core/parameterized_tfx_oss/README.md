@@ -25,6 +25,12 @@ The notebook sample includes the installation of various dependencies as its fir
 it depends on the latest released KFP and a nightly built TFX to leverage `TFX::RuntimeParameter`.
 
 # Permission
+
+<div class="alert alert-danger">
+    <b>Note:</b> If you are using full-scope cluster in hosted pipeline beta version, DO NOT follow this section.
+</div>
+
+
 This pipeline requires Google Cloud Storage permission to run. 
 If KFP was deployed through K8S marketplace, please follow instructions in 
 [the guideline](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials)
