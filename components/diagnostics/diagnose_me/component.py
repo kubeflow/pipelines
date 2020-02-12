@@ -65,7 +65,7 @@ def run_diagnose_me(
         auth_project_id = project_config.parsed_output['core']['project']
         print('GCP credentials are configured with access to project: %s ...\n' % (project_id))
         print('Following account(s) are active under this pipeline:\n')
-        subprocess.run(['gcloud', 'auth', 'list'])
+        subprocess.run(['gcloud', 'auth', 'list','--format','json'])
         print('\n')
     else:
         print(
@@ -133,7 +133,7 @@ def run_diagnose_me(
             api_check_results = False
             print(
                 'API \"%s\" is not accessible or not enabled. To enable this api go to ' % (api) +
-                'https://pantheon.corp.google.com/apis/library/%s?project=%s' %
+                'https://console.cloud.google.com/apis/library/%s?project=%s' %
                 (api, project_id),file=sys.stderr)
             config_error_observed = True
 
