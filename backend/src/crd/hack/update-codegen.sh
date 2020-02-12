@@ -23,7 +23,8 @@ set -o pipefail
 
 SCRIPT_ROOT=$(dirname ${BASH_SOURCE})
 echo "SCRIPT_ROOT is $SCRIPT_ROOT"
-CODEGEN_PKG=${SCRIPT_ROOT}/../../../../vendor/k8s.io/code-generator
+echo "GOPATH is $GOPATH"
+CODEGEN_PKG=${GOPATH}/src/k8s.io/code-generator
 echo "CODEGEN_PKG is $CODEGEN_PKG"
 
 ${CODEGEN_PKG}/generate-groups.sh "deepcopy" \
@@ -37,3 +38,9 @@ ${CODEGEN_PKG}/generate-groups.sh "client,informer,lister" \
   github.com/kubeflow/pipelines/backend/src/crd/pkg/apis \
   scheduledworkflow:v1beta1 \
   --go-header-file ${SCRIPT_ROOT}/custom-boilerplate.go.txt
+
+GENERATED_PATH="${GOPATH}/src/github.com/kubeflow/pipelines/backend/src/crd"
+echo "Generated files at ${GENERATED_PATH}"
+
+cp -r $GENERATED_PATH $SCRIPT_ROOT/../../
+echo "Copied generated files back."
