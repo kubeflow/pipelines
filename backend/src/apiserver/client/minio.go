@@ -16,18 +16,41 @@ package client
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	minio "github.com/minio/minio-go"
+	credentials "github.com/minio/minio-go/pkg/credentials"
 	"github.com/pkg/errors"
 )
 
+// createCredentialProvidersChain creates a chained providers credential for a minio client
+func createCredentialProvidersChain(endpoint, accessKey, secretKey string) *credentials.Credentials {
+	// first try with static api key
+	if accessKey != "" && secretKey != "" {
+		return credentials.NewStaticV4(accessKey, secretKey, "")
+	}
+	// otherwise use a chained provider: minioEnv -> awsEnv -> IAM
+	providers := []credentials.Provider{
+		&credentials.EnvMinio{},
+		&credentials.EnvAWS{},
+		&credentials.IAM{
+			Client: &http.Client{
+				Transport: http.DefaultTransport,
+			},
+		},
+	}
+	return credentials.New(&credentials.Chain{Providers: providers})
+}
+
 func CreateMinioClient(minioServiceHost string, minioServicePort string,
-	accessKey string, secretKey string) (*minio.Client, error) {
-	minioClient, err := minio.New(joinHostPort(minioServiceHost, minioServicePort),
-		accessKey, secretKey, false /* Secure connection */)
+	accessKey string, secretKey string, secure bool, region string) (*minio.Client, error) {
+
+	endpoint := joinHostPort(minioServiceHost, minioServicePort)
+	cred := createCredentialProvidersChain(endpoint, accessKey, secretKey)
+	minioClient, err := minio.NewWithCredentials(endpoint, cred, secure, region)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error while creating minio client: %+v", err)
 	}
@@ -35,12 +58,12 @@ func CreateMinioClient(minioServiceHost string, minioServicePort string,
 }
 
 func CreateMinioClientOrFatal(minioServiceHost string, minioServicePort string,
-	accessKey string, secretKey string, initConnectionTimeout time.Duration) *minio.Client {
+	accessKey string, secretKey string, secure bool, region string, initConnectionTimeout time.Duration) *minio.Client {
 	var minioClient *minio.Client
 	var err error
 	var operation = func() error {
 		minioClient, err = CreateMinioClient(minioServiceHost, minioServicePort,
-			accessKey, secretKey)
+			accessKey, secretKey, secure, region)
 		if err != nil {
 			return err
 		}

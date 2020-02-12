@@ -1365,7 +1365,7 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
             selectedNodeId="node1"
           />
           <SidePanel
-            isBusy={true}
+            isBusy={false}
             isOpen={true}
             onClose={[Function]}
             title="node1"
@@ -1389,29 +1389,35 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
               <div
                 className="page"
               >
-                <div
-                  className="page"
-                >
-                  <div
-                    className=""
-                  >
-                    <PlotCard
-                      configs={
-                        Array [
-                          Object {
-                            "allowCustomVisualizations": false,
-                            "isBusy": false,
-                            "onGenerate": [Function],
-                            "type": "visualization-creator",
+                <ArtifactsTabContent
+                  generatedVisualizations={Array []}
+                  onError={[Function]}
+                  selectedNodeDetails={
+                    Object {
+                      "id": "node1",
+                      "phaseMessage": undefined,
+                    }
+                  }
+                  visualizationCreatorConfig={
+                    Object {
+                      "allowCustomVisualizations": false,
+                      "isBusy": false,
+                      "onGenerate": [Function],
+                      "type": "visualization-creator",
+                    }
+                  }
+                  workflow={
+                    Object {
+                      "status": Object {
+                        "nodes": Object {
+                          "node1": Object {
+                            "id": "node1",
                           },
-                        ]
-                      }
-                      maxDimension={500}
-                      title="Visualization Creator"
-                    />
-                    <Component />
-                  </div>
-                </div>
+                        },
+                      },
+                    }
+                  }
+                />
               </div>
             </div>
           </SidePanel>
@@ -1607,7 +1613,7 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
             selectedNodeId="node1"
           />
           <SidePanel
-            isBusy={true}
+            isBusy={false}
             isOpen={true}
             onClose={[Function]}
             title="node1"
@@ -1635,170 +1641,37 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
               <div
                 className="page"
               >
-                <div
-                  className="page"
-                >
-                  <div
-                    className=""
-                  >
-                    <PlotCard
-                      configs={
-                        Array [
-                          Object {
-                            "allowCustomVisualizations": false,
-                            "isBusy": false,
-                            "onGenerate": [Function],
-                            "type": "visualization-creator",
+                <ArtifactsTabContent
+                  generatedVisualizations={Array []}
+                  onError={[Function]}
+                  selectedNodeDetails={
+                    Object {
+                      "id": "node1",
+                      "phaseMessage": "This step is in Succeeded state with this message: some test message",
+                    }
+                  }
+                  visualizationCreatorConfig={
+                    Object {
+                      "allowCustomVisualizations": false,
+                      "isBusy": false,
+                      "onGenerate": [Function],
+                      "type": "visualization-creator",
+                    }
+                  }
+                  workflow={
+                    Object {
+                      "status": Object {
+                        "nodes": Object {
+                          "node1": Object {
+                            "id": "node1",
+                            "message": "some test message",
+                            "phase": "Succeeded",
                           },
-                        ]
-                      }
-                      maxDimension={500}
-                      title="Visualization Creator"
-                    />
-                    <Component />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </SidePanel>
-          <div
-            className="footer"
-          >
-            <div
-              className="flex"
-            >
-              <pure(InfoOutlinedIcon)
-                className="infoIcon"
-              />
-              <span
-                className="infoSpan"
-              >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-`;
-
-exports[`RunDetails shows clicked node output in side pane 1`] = `
-<div
-  className="page"
->
-  <div
-    className="page"
-  >
-    <MD2Tabs
-      onSwitch={[Function]}
-      selectedTab={0}
-      tabs={
-        Array [
-          "Graph",
-          "Run output",
-          "Config",
-        ]
-      }
-    />
-    <div
-      className="page"
-    >
-      <div
-        className="page graphPane"
-      >
-        <div
-          className="page"
-        >
-          <EnhancedGraph
-            graph={
-              Graph {
-                "_defaultEdgeLabelFn": [Function],
-                "_defaultNodeLabelFn": [Function],
-                "_edgeLabels": Object {},
-                "_edgeObjs": Object {},
-                "_in": Object {},
-                "_isCompound": false,
-                "_isDirected": true,
-                "_isMultigraph": false,
-                "_label": Object {},
-                "_nodes": Object {},
-                "_out": Object {},
-                "_preds": Object {},
-                "_sucs": Object {},
-              }
-            }
-            onClick={[Function]}
-            onError={[Function]}
-            selectedNodeId="node1"
-          />
-          <SidePanel
-            isBusy={false}
-            isOpen={true}
-            onClose={[Function]}
-            title="node1"
-          >
-            <div
-              className="page"
-            >
-              <MD2Tabs
-                onSwitch={[Function]}
-                selectedTab={0}
-                tabs={
-                  Array [
-                    "Artifacts",
-                    "Input/Output",
-                    "Volumes",
-                    "Manifest",
-                    "Logs",
-                  ]
-                }
-              />
-              <div
-                className="page"
-              >
-                <div
-                  className="page"
-                >
-                  <div
-                    className=""
-                    key="0"
-                  >
-                    <PlotCard
-                      configs={
-                        Array [
-                          Object {
-                            "type": "tensorboard",
-                            "url": "some url",
-                          },
-                        ]
-                      }
-                      maxDimension={500}
-                      title="Tensorboard"
-                    />
-                    <Component />
-                  </div>
-                  <div
-                    className=""
-                  >
-                    <PlotCard
-                      configs={
-                        Array [
-                          Object {
-                            "allowCustomVisualizations": false,
-                            "isBusy": false,
-                            "onGenerate": [Function],
-                            "type": "visualization-creator",
-                          },
-                        ]
-                      }
-                      maxDimension={500}
-                      title="Visualization Creator"
-                    />
-                    <Component />
-                  </div>
-                </div>
+                        },
+                      },
+                    }
+                  }
+                />
               </div>
             </div>
           </SidePanel>
@@ -2343,7 +2216,7 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
             selectedNodeId="node1"
           />
           <SidePanel
-            isBusy={true}
+            isBusy={false}
             isOpen={true}
             onClose={[Function]}
             title="node1"
@@ -2491,7 +2364,7 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
             selectedNodeId="node1"
           />
           <SidePanel
-            isBusy={true}
+            isBusy={false}
             isOpen={true}
             onClose={[Function]}
             title="node1"

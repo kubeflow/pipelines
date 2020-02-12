@@ -30,7 +30,7 @@ def volume_snapshotop_sequential(url):
 
     step1 = dsl.ContainerOp(
         name="step1_ingest",
-        image="google/cloud-sdk:272.0.0",
+        image="google/cloud-sdk:279.0.0",
         command=["sh", "-c"],
         arguments=["mkdir /data/step1 && "
                    "gsutil cat %s | gzip -c >/data/step1/file1.gz" % url],

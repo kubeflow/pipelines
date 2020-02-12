@@ -160,7 +160,7 @@ def dataproc_train_op(
       region=region,
       cluster_name=cluster_name,
       main_class=_TRAINER_MAIN_CLS,
-      spark_job=json.dumps({ 'jarFileUris': [_XGBOOST_PKG]}),
+      spark_job=json.dumps({'jarFileUris': [_XGBOOST_PKG]}),
       args=json.dumps([
         str(config),
         str(rounds),
@@ -189,7 +189,7 @@ def dataproc_predict_op(
       region=region,
       cluster_name=cluster_name,
       main_class=_PREDICTOR_MAIN_CLS,
-      spark_job=json.dumps({ 'jarFileUris': [_XGBOOST_PKG]}),
+      spark_job=json.dumps({'jarFileUris': [_XGBOOST_PKG]}),
       args=json.dumps([
         str(model),
         str(data),
@@ -205,8 +205,8 @@ def dataproc_predict_op(
     description='A trainer that does end-to-end distributed training for XGBoost models.'
 )
 def xgb_train_pipeline(
-    output='gs://<your-gcs-bucket>',
-    project='<your-project-id>',
+    output='gs://{{kfp-default-bucket}}',
+    project='{{kfp-project-id}}',
     cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER,
     region='us-central1',
     train_data='gs://ml-pipeline-playground/sfpd/train.csv',
