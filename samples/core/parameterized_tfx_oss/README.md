@@ -26,10 +26,7 @@ it depends on the latest released KFP and a nightly built TFX to leverage `TFX::
 
 # Permission
 
-<div class="alert alert-danger">
-    <b>Note:</b> If you are using full-scope cluster in hosted pipeline beta version, DO NOT follow this section.
-</div>
-
+> :warning: If you are using **full-scope** cluster in hosted pipeline beta version, **DO NOT** follow this section.
 
 This pipeline requires Google Cloud Storage permission to run. 
 If KFP was deployed through K8S marketplace, please follow instructions in 

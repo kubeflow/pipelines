@@ -12,10 +12,7 @@ or not.
 
 ## Requirements
 
-<div class="alert alert-danger">
-    <b>Note:</b> If you are using full-scope cluster in hosted pipeline beta version, DO NOT follow this section.
-</div>
-
+> :warning: If you are using **full-scope** cluster in hosted pipeline beta version, **DO NOT** follow this section.
 
 Preprocessing uses Google Cloud DataProc. Therefore, you must enable the 
 [Cloud Dataproc API](https://pantheon.corp.google.com/apis/library/dataproc.googleapis.com?q=dataproc) for the given GCP project. This is the 
