@@ -586,22 +586,25 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
     };
 
     if (this.state.importMethod === ImportMethod.LOCAL) {
+      if (!this.state.file) {
+        throw new Error('File should be selected');
+      }
       return Apis.uploadPipelineVersion(
         this.state.pipelineVersionName,
         await getPipelineId(),
-        this.state.file!,
+        this.state.file,
       );
+    } else {
+      // this.state.importMethod === ImportMethod.URL
+      return Apis.pipelineServiceApi.createPipelineVersion({
+        code_source_url: this.state.codeSourceUrl,
+        name: this.state.pipelineVersionName,
+        package_url: { pipeline_url: this.state.packageUrl },
+        resource_references: [
+          { key: { id: await getPipelineId(), type: ApiResourceType.PIPELINE }, relationship: 1 },
+        ],
+      });
     }
-
-    const newPipelineVersion: ApiPipelineVersion = {
-      code_source_url: this.state.codeSourceUrl,
-      name: this.state.pipelineVersionName,
-      package_url: { pipeline_url: this.state.packageUrl },
-      resource_references: [
-        { key: { id: await getPipelineId(), type: ApiResourceType.PIPELINE }, relationship: 1 },
-      ],
-    };
-    return Apis.pipelineServiceApi.createPipelineVersion(newPipelineVersion);
   }
 
   private _validate(): void {
