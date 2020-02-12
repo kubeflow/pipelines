@@ -224,7 +224,10 @@ class ArtifactList extends Page<{}, ArtifactListState> {
               id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
               otherFields: [
                 getResourcePropertyViaFallBack(
-                  artifact, ARTIFACT_PROPERTY_REPOS, PIPELINE_WORKSPACE_FIELDS),
+                  artifact,
+                  ARTIFACT_PROPERTY_REPOS,
+                  PIPELINE_WORKSPACE_FIELDS,
+                ),
                 getResourcePropertyViaFallBack(artifact, ARTIFACT_PROPERTY_REPOS, NAME_FIELDS),
                 artifact.getId(),
                 type,
