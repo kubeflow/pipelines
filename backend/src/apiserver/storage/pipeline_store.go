@@ -88,7 +88,7 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 	}
 
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-		return sqlBuilder.
+		return opts.AddFilterToSelect(sqlBuilder).
 			From("pipelines").
 			LeftJoin("pipeline_versions ON pipelines.DefaultVersionId = pipeline_versions.UUID").
 			Where(sq.Eq{"pipelines.Status": model.PipelineReady})

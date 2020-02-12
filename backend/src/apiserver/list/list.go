@@ -155,7 +155,7 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 
 	// Filtering.
 	if filterProto != nil {
-		f, err := filter.NewWithKeyMap(filterProto, listable.APIToModelFieldMap())
+		f, err := filter.NewWithKeyMap(filterProto, listable.APIToModelFieldMap(), listable.GetModelName())
 		if err != nil {
 			return nil, err
 		}
