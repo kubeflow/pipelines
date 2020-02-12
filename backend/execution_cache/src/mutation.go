@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	ArgoWorkflowNodeName string = "workflows.argoproj.io/node-name"
 	ArgoWorkflowTemplate string = "workflows.argoproj.io/template"
 	ExecutionKey         string = "pipelines.kubeflow.org/execution_cache_key"
 	AnnotationPath       string = "/metadata/annotations"
@@ -41,9 +42,15 @@ func applyPodOutput(req *v1beta1.AdmissionRequest) ([]patchOperation, error) {
 	if _, _, err := universalDeserializer.Decode(raw, nil, &pod); err != nil {
 		return nil, fmt.Errorf("could not deserialize pod object: %v", err)
 	}
+	// Check whether the pod is created by Argo. If the pod is not an argo pod, we do nothing on it.
+	annotations := pod.GetAnnotations()
+	_, exists := annotations[ArgoWorkflowNodeName]
+	if !exists {
+		log.Println("expect pod to be argo pod")
+		return nil, nil
+	}
 
 	var patches []patchOperation
-	annotations := pod.ObjectMeta.Annotations
 	template, exists := annotations[ArgoWorkflowTemplate]
 	var executionHashKey string
 	// Generate the executionHashKey based on pod.metadata.annotations.workflows.argoproj.io/template

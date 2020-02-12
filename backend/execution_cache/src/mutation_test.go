@@ -14,14 +14,15 @@ import (
 )
 
 var (
-	fakePod = &corev1.Pod{
+	fakePod = corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				"workflows.argoproj.io/template": "test_template",
+				"workflows.argoproj.io/node-name": "test_name",
+				"workflows.argoproj.io/template":  "test_template",
 			},
 		},
 	}
@@ -41,10 +42,16 @@ var (
 		Namespace:   "default",
 		Operation:   "test",
 		Object: runtime.RawExtension{
-			Raw: EncodePod(fakePod),
+			Raw: EncodePod(&fakePod),
 		},
 	}
 )
+
+func GetFakeAdmissionRequestFromPod(pod *corev1.Pod) *v1beta1.AdmissionRequest {
+	fakeRequest := fakeAdmissionRequest
+	fakeRequest.Object.Raw = EncodePod(pod)
+	return &fakeRequest
+}
 
 func EncodePod(pod *corev1.Pod) []byte {
 	reqBodyBytes := new(bytes.Buffer)
@@ -70,6 +77,14 @@ func TestApplyPodOutputWithDecodeError(t *testing.T) {
 	patchOperation, err := applyPodOutput(&invalidAdmissionRequest)
 	assert.Nil(t, patchOperation)
 	assert.Contains(t, err.Error(), "could not deserialize pod object")
+}
+
+func TestApplyPodOutputWithNoArgoPod(t *testing.T) {
+	notArgoPod := fakePod
+	delete(notArgoPod.GetAnnotations(), ArgoWorkflowNodeName)
+	patchOperation, err := applyPodOutput(GetFakeAdmissionRequestFromPod(&notArgoPod))
+	assert.Nil(t, patchOperation)
+	assert.Nil(t, err)
 }
 
 func TestApplyPodOutput(t *testing.T) {
