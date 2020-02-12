@@ -36,7 +36,7 @@ def run_diagnose_me(
           HALT_ON_ERROR flag is set.
       """
 
-    # Installing pip3 and kfp, since the base image 'google/cloud-sdk:276.0.0'
+    # Installing pip3 and kfp, since the base image 'google/cloud-sdk:279.0.0'
     # does not come with pip3 pre-installed.
     import subprocess
     subprocess.run(
@@ -157,6 +157,6 @@ if __name__ == '__main__':
 
     comp.func_to_container_op(
         run_diagnose_me,
-        base_image='google/cloud-sdk:276.0.0',
+        base_image='google/cloud-sdk:279.0.0',
         output_component_file='component.yaml',
     )
