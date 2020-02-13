@@ -205,7 +205,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
       <div
         className="errorMessage"
       >
-        Must specify either package url  or file
+        Must specify either package url  or file in .yaml, .zip, or .tar.gz
       </div>
     </div>
   </div>
