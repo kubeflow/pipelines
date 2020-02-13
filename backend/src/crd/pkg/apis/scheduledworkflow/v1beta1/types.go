@@ -56,6 +56,12 @@ type ScheduledWorkflowSpec struct {
 	// +optional
 	MaxConcurrency *int64 `json:"maxConcurrency,omitempty"`
 
+	// If CatchUp is false, controller only schedules the last past period when
+	// cannot catch up.
+	// CatchUp defaults to true if not specified.
+	// +optional
+	CatchUp *bool `json:"catchUp,omitempty"`
+
 	// Max number of completed workflows to keep track of.
 	// If MaxHistory is not specified, MaxHistory is 10.
 	// MaxHistory cannot be smaller than 0.
