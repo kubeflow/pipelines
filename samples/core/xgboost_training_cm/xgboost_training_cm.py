@@ -207,12 +207,12 @@ def dataproc_predict_op(
 def xgb_train_pipeline(
     output='gs://{{kfp-default-bucket}}',
     project='{{kfp-project-id}}',
-    region='us-central1',
     diagnostic_mode='HALT_ON_ERROR',
     rounds=5,
     workers=1,
 ):
     output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
+    region='us-central1'
     train_data='gs://ml-pipeline-playground/sfpd/train.csv'
     eval_data='gs://ml-pipeline-playground/sfpd/eval.csv'
     schema='gs://ml-pipeline-playground/sfpd/schema.json'
