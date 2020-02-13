@@ -16,7 +16,7 @@ import * as portableFetch from 'portable-fetch';
 import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
 import { ExperimentServiceApi, FetchAPI } from '../apis/experiment';
 import { JobServiceApi } from '../apis/job';
-import { ApiPipeline, PipelineServiceApi } from '../apis/pipeline';
+import { ApiPipeline, PipelineServiceApi, ApiPipelineVersion } from '../apis/pipeline';
 import { RunServiceApi } from '../apis/run';
 import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization';
 import { PlotType } from '../components/viewers/Viewer';
@@ -233,6 +233,25 @@ export class Apis {
       `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
         pipelineDescription,
       )}`,
+      {
+        body: fd,
+        cache: 'no-cache',
+        method: 'POST',
+      },
+    );
+  }
+
+  public static async uploadPipelineVersion(
+    versionName: string,
+    pipelineId: string,
+    versionData: File,
+  ): Promise<ApiPipelineVersion> {
+    const fd = new FormData();
+    fd.append('uploadfile', versionData, versionData.name);
+    return await this._fetchAndParse<ApiPipelineVersion>(
+      '/pipelines/upload_version',
+      v1beta1Prefix,
+      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}`,
       {
         body: fd,
         cache: 'no-cache',
