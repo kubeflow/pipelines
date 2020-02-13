@@ -60,7 +60,7 @@ type ScheduledWorkflowSpec struct {
 	// cannot catch up.
 	// CatchUp defaults to true if not specified.
 	// +optional
-	CatchUp *bool `json:"catchUp,omitempty"`
+	Catchup *bool `json:"catchup,omitempty"`
 
 	// Max number of completed workflows to keep track of.
 	// If MaxHistory is not specified, MaxHistory is 10.
