@@ -14,29 +14,29 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import Button from '@material-ui/core/Button';
+import IconButton from '@material-ui/core/IconButton';
+import Tooltip from '@material-ui/core/Tooltip';
 import ArchiveIcon from '@material-ui/icons/Archive';
 import ArtifactsIcon from '@material-ui/icons/BubbleChart';
-import Button from '@material-ui/core/Button';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
-import ExecutionsIcon from '@material-ui/icons/PlayArrow';
-import ExperimentsIcon from '../icons/experiments';
-import IconButton from '@material-ui/core/IconButton';
 import JupyterhubIcon from '@material-ui/icons/Code';
-import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import DescriptionIcon from '@material-ui/icons/Description';
+import OpenInNewIcon from '@material-ui/icons/OpenInNew';
+import ExecutionsIcon from '@material-ui/icons/PlayArrow';
+import * as React from 'react';
+import { RouterProps } from 'react-router';
+import { Link } from 'react-router-dom';
+import { classes, stylesheet } from 'typestyle';
+import { ExternalLinks, RoutePage, RoutePrefix } from '../components/Router';
+import { commonCss, fontsize } from '../Css';
+import ExperimentsIcon from '../icons/experiments';
 import GitHubIcon from '../icons/GitHub-Mark-120px-plus.png';
 import PipelinesIcon from '../icons/pipelines';
-import Tooltip from '@material-ui/core/Tooltip';
 import { Apis } from '../lib/Apis';
-import { Link } from 'react-router-dom';
+import { Deployments, KFP_FLAGS } from '../lib/Flags';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
-import { RoutePage, RoutePrefix, ExternalLinks } from '../components/Router';
-import { RouterProps } from 'react-router';
-import { classes, stylesheet } from 'typestyle';
-import { fontsize, commonCss } from '../Css';
 import { logger } from '../lib/Utils';
-import { KFP_FLAGS, Deployments } from '../lib/Flags';
 
 export const sideNavColors = {
   bg: '#f8fafb',
@@ -223,7 +223,9 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
         commitHash: commitHash ? commitHash.substring(0, 7) : 'unknown',
         commitUrl:
           'https://www.github.com/kubeflow/pipelines' + (commitHash ? `/commit/${commitHash}` : ''),
-        date: buildInfo.buildDate ? new Date(buildInfo.buildDate).toLocaleDateString() : 'unknown',
+        date: buildInfo.buildDate
+          ? new Date(buildInfo.buildDate).toLocaleDateString('en-US')
+          : 'unknown',
       };
     }
     async function fetchGkeMetadata() {
@@ -523,6 +525,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
                 <a
                   href={`https://console.cloud.google.com/kubernetes/list?project=${gkeMetadata.projectId}&filter=name:${gkeMetadata.clusterName}`}
                   className={classes(css.link, commonCss.unstyled)}
+                  rel='noopener'
                   target='_blank'
                 >
                   {gkeMetadata.clusterName}
@@ -541,6 +544,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
                 <a
                   href={displayBuildInfo.commitUrl}
                   className={classes(css.link, commonCss.unstyled)}
+                  rel='noopener'
                   target='_blank'
                 >
                   {displayBuildInfo.commitHash}
@@ -548,6 +552,18 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
               </div>
             </Tooltip>
           )}
+          <Tooltip title='Report an Issue' enterDelay={300} placement={'top-start'}>
+            <div className={css.envMetadata}>
+              <a
+                href='https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md'
+                className={classes(css.link, commonCss.unstyled)}
+                rel='noopener'
+                target='_blank'
+              >
+                Report an Issue
+              </a>
+            </div>
+          </Tooltip>
         </div>
       </div>
     );

@@ -16,5 +16,5 @@ package storage
 
 // Return the object store with faked minio client.
 func NewFakeObjectStore() ObjectStoreInterface {
-	return NewMinioObjectStore(NewFakeMinioClient(), "", false)
+	return NewMinioObjectStore(NewFakeMinioClient(), "", "pipelines", false)
 }
