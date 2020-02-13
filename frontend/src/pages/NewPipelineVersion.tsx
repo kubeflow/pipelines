@@ -210,9 +210,9 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
             />
           </div>
 
-          {/* Form for uploading new pipeline */}
+          {/* Pipeline name and help text for uploading new pipeline */}
           {newPipeline === true && (
-            <React.Fragment>
+            <>
               <div className={css.explanation}>Upload pipeline with the specified package.</div>
               <Input
                 id='newPipelineName'
@@ -237,115 +237,12 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
               />
 
               {/* Choose a local file for package or specify a url for package */}
-
-              {/* Different package explanation based on import method*/}
-              {this.state.importMethod === ImportMethod.LOCAL && (
-                <React.Fragment>
-                  <div className={padding(10, 'b')}>
-                    Choose a pipeline package file from your computer, and give the pipeline a
-                    unique name.
-                    <br />
-                    You can also drag and drop the file here.
-                  </div>
-                  <DocumentationCompilePipeline />
-                </React.Fragment>
-              )}
-              {this.state.importMethod === ImportMethod.URL && (
-                <React.Fragment>
-                  <div className={padding(10, 'b')}>URL must be publicly accessible.</div>
-                  <DocumentationCompilePipeline />
-                </React.Fragment>
-              )}
-
-              {/* Different package input field based on import method*/}
-              <div className={classes(commonCss.flex, padding(10, 'b'))}>
-                <FormControlLabel
-                  id='localPackageBtn'
-                  label='Upload a file'
-                  checked={importMethod === ImportMethod.LOCAL}
-                  control={<Radio color='primary' />}
-                  onChange={() => this.setState({ importMethod: ImportMethod.LOCAL })}
-                />
-                <Dropzone
-                  id='dropZone'
-                  disableClick={true}
-                  onDrop={this._onDrop.bind(this)}
-                  onDragEnter={this._onDropzoneDragEnter.bind(this)}
-                  onDragLeave={this._onDropzoneDragLeave.bind(this)}
-                  style={{ position: 'relative' }}
-                  ref={this._dropzoneRef}
-                  inputProps={{ tabIndex: -1 }}
-                  disabled={importMethod === ImportMethod.URL}
-                >
-                  {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
-                  <Input
-                    onChange={this.handleChange('fileName')}
-                    value={fileName}
-                    required={true}
-                    label='File'
-                    variant='outlined'
-                    disabled={importMethod === ImportMethod.URL}
-                    // Find a better to align this input box with others
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position='end'>
-                          <Button
-                            color='secondary'
-                            onClick={() => this._dropzoneRef.current!.open()}
-                            style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}
-                            disabled={importMethod === ImportMethod.URL}
-                          >
-                            Choose file
-                          </Button>
-                        </InputAdornment>
-                      ),
-                      readOnly: true,
-                      style: {
-                        maxWidth: 2000,
-                        width: 455,
-                      },
-                    }}
-                  />
-                </Dropzone>
-              </div>
-              <div className={classes(commonCss.flex, padding(10, 'b'))}>
-                <FormControlLabel
-                  id='remotePackageBtn'
-                  label='Import by url'
-                  checked={importMethod === ImportMethod.URL}
-                  control={<Radio color='primary' />}
-                  onChange={() => this.setState({ importMethod: ImportMethod.URL })}
-                />
-                <Input
-                  id='pipelinePackageUrl'
-                  label='Package Url'
-                  multiline={true}
-                  onChange={this.handleChange('packageUrl')}
-                  value={packageUrl}
-                  variant='outlined'
-                  disabled={importMethod === ImportMethod.LOCAL}
-                  // Find a better to align this input box with others
-                  style={{
-                    maxWidth: 2000,
-                    width: 465,
-                  }}
-                />
-              </div>
-              {/* Fill pipeline version code source url */}
-              <Input
-                id='pipelineVersionCodeSource'
-                label='Code Source (optional)'
-                multiline={true}
-                onChange={this.handleChange('codeSourceUrl')}
-                value={codeSourceUrl}
-                variant='outlined'
-              />
-            </React.Fragment>
+            </>
           )}
 
-          {/* Form for uploading new pipeline version */}
+          {/* Pipeline selector and help text for uploading new pipeline version */}
           {newPipeline === false && (
-            <React.Fragment>
+            <>
               <div className={css.explanation}>
                 Upload pipeline version with the specified package.
               </div>
@@ -435,28 +332,112 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                 autoFocus={true}
                 variant='outlined'
               />
-
-              {/* Fill pipeline package url */}
-              <Input
-                id='pipelineVersionPackageUrl'
-                label='Package Url'
-                multiline={true}
-                onChange={this.handleChange('packageUrl')}
-                value={packageUrl}
-                variant='outlined'
-              />
-
-              {/* Fill pipeline version code source url */}
-              <Input
-                id='pipelineVersionCodeSource'
-                label='Code Source (optional)'
-                multiline={true}
-                onChange={this.handleChange('codeSourceUrl')}
-                value={codeSourceUrl}
-                variant='outlined'
-              />
-            </React.Fragment>
+            </>
           )}
+
+          {/* Different package explanation based on import method*/}
+          {this.state.importMethod === ImportMethod.LOCAL && (
+            <>
+              <div className={padding(10, 'b')}>
+                Choose a pipeline package file from your computer, and give the pipeline a unique
+                name.
+                <br />
+                You can also drag and drop the file here.
+              </div>
+              <DocumentationCompilePipeline />
+            </>
+          )}
+          {this.state.importMethod === ImportMethod.URL && (
+            <>
+              <div className={padding(10, 'b')}>URL must be publicly accessible.</div>
+              <DocumentationCompilePipeline />
+            </>
+          )}
+
+          {/* Different package input field based on import method*/}
+          <div className={classes(commonCss.flex, padding(10, 'b'))}>
+            <FormControlLabel
+              id='localPackageBtn'
+              label='Upload a file'
+              checked={importMethod === ImportMethod.LOCAL}
+              control={<Radio color='primary' />}
+              onChange={() => this.setState({ importMethod: ImportMethod.LOCAL })}
+            />
+            <Dropzone
+              id='dropZone'
+              disableClick={true}
+              onDrop={this._onDrop.bind(this)}
+              onDragEnter={this._onDropzoneDragEnter.bind(this)}
+              onDragLeave={this._onDropzoneDragLeave.bind(this)}
+              style={{ position: 'relative' }}
+              ref={this._dropzoneRef}
+              inputProps={{ tabIndex: -1 }}
+              disabled={importMethod === ImportMethod.URL}
+            >
+              {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
+              <Input
+                onChange={this.handleChange('fileName')}
+                value={fileName}
+                required={true}
+                label='File'
+                variant='outlined'
+                disabled={importMethod === ImportMethod.URL}
+                // Find a better to align this input box with others
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      <Button
+                        color='secondary'
+                        onClick={() => this._dropzoneRef.current!.open()}
+                        style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}
+                        disabled={importMethod === ImportMethod.URL}
+                      >
+                        Choose file
+                      </Button>
+                    </InputAdornment>
+                  ),
+                  readOnly: true,
+                  style: {
+                    maxWidth: 2000,
+                    width: 455,
+                  },
+                }}
+              />
+            </Dropzone>
+          </div>
+          <div className={classes(commonCss.flex, padding(10, 'b'))}>
+            <FormControlLabel
+              id='remotePackageBtn'
+              label='Import by url'
+              checked={importMethod === ImportMethod.URL}
+              control={<Radio color='primary' />}
+              onChange={() => this.setState({ importMethod: ImportMethod.URL })}
+            />
+            <Input
+              id='pipelinePackageUrl'
+              label='Package Url'
+              multiline={true}
+              onChange={this.handleChange('packageUrl')}
+              value={packageUrl}
+              variant='outlined'
+              disabled={importMethod === ImportMethod.LOCAL}
+              // Find a better to align this input box with others
+              style={{
+                maxWidth: 2000,
+                width: 465,
+              }}
+            />
+          </div>
+
+          {/* Fill pipeline version code source url */}
+          <Input
+            id='pipelineVersionCodeSource'
+            label='Code Source (optional)'
+            multiline={true}
+            onChange={this.handleChange('codeSourceUrl')}
+            value={codeSourceUrl}
+            variant='outlined'
+          />
 
           {/* Create pipeline or pipeline version */}
           <div className={commonCss.flex}>
@@ -604,15 +585,26 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
       }
     };
 
-    const newPipelineVersion: ApiPipelineVersion = {
-      code_source_url: this.state.codeSourceUrl,
-      name: this.state.pipelineVersionName,
-      package_url: { pipeline_url: this.state.packageUrl },
-      resource_references: [
-        { key: { id: await getPipelineId(), type: ApiResourceType.PIPELINE }, relationship: 1 },
-      ],
-    };
-    return Apis.pipelineServiceApi.createPipelineVersion(newPipelineVersion);
+    if (this.state.importMethod === ImportMethod.LOCAL) {
+      if (!this.state.file) {
+        throw new Error('File should be selected');
+      }
+      return Apis.uploadPipelineVersion(
+        this.state.pipelineVersionName,
+        await getPipelineId(),
+        this.state.file,
+      );
+    } else {
+      // this.state.importMethod === ImportMethod.URL
+      return Apis.pipelineServiceApi.createPipelineVersion({
+        code_source_url: this.state.codeSourceUrl,
+        name: this.state.pipelineVersionName,
+        package_url: { pipeline_url: this.state.packageUrl },
+        resource_references: [
+          { key: { id: await getPipelineId(), type: ApiResourceType.PIPELINE }, relationship: 1 },
+        ],
+      });
+    }
   }
 
   private _validate(): void {
@@ -625,7 +617,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
     try {
       if (newPipeline) {
         if (!packageUrl && !fileName) {
-          throw new Error('Must specify either package url  or file');
+          throw new Error('Must specify either package url  or file in .yaml, .zip, or .tar.gz');
         }
       } else {
         if (!pipeline) {
@@ -634,8 +626,8 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
         if (!pipelineVersionName) {
           throw new Error('Pipeline version name is required');
         }
-        if (!packageUrl) {
-          throw new Error('Please specify a pipeline package in .yaml, .zip, or .tar.gz');
+        if (!packageUrl && !fileName) {
+          throw new Error('Please specify either package url or file in .yaml, .zip, or .tar.gz');
         }
       }
       this.setState({ validationError: '' });

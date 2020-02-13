@@ -137,7 +137,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           return pipelineVersionIdFromParams ? pipelineVersionIdFromParams : '';
         },
       )
-      .newPipelineVersion('Upload pipeline version', () =>
+      .newPipelineVersion('Upload version', () =>
         pipelineIdFromParams ? pipelineIdFromParams : '',
       );
 

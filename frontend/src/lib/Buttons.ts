@@ -296,7 +296,7 @@ export default class Buttons {
       outlined: true,
       style: { minWidth: 160 },
       title: label,
-      tooltip: 'Upload pipeline or pipeline version',
+      tooltip: 'Upload pipeline version',
     };
     return this;
   }
