@@ -10,5 +10,5 @@ nbformat==4.4.0
 pandas==0.24.2
 scikit_learn==0.21.2
 tensorflow-model-analysis==0.21.1
-tensorflow-data-validation==0.21.0
+tensorflow-data-validation==0.21.1
 tornado==6.0.2
