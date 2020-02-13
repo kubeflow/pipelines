@@ -12,7 +12,7 @@ spec:
     matchLabels:
       application-crd-id: kubeflow-pipelines
   descriptor:
-    version: 0.2.2
+    version: 0.2.3
     type: Kubeflow Pipelines
     description: |-
       Reusable end-to-end ML workflow
