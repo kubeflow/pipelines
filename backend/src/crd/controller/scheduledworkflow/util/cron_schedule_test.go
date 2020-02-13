@@ -124,25 +124,25 @@ func TestCronSchedule_GetNextScheduledEpochNoCatchup(t *testing.T) {
 	assert.Equal(t, int64(10*hour+20*minute+minute),
 		schedule.GetNextScheduledEpochNoCatchup(&lastJobEpoch, defaultStartEpoch, nowEpoch))
 
-	// There was a previous job, exactly now for next job
+	// Exactly now for next job
 	lastJobEpoch = int64(10*hour + 20*minute)
 	nowEpoch = int64(10*hour + 20*minute + minute)
 	assert.Equal(t, int64(10*hour+20*minute+minute),
 		schedule.GetNextScheduledEpochNoCatchup(&lastJobEpoch, defaultStartEpoch, nowEpoch))
 
-	// There was a previous job, shortly after next job's original schedule
+	// Shortly after next job's original schedule
 	lastJobEpoch = int64(10*hour + 20*minute)
 	nowEpoch = int64(10*hour + 21*minute + 30*second)
 	assert.Equal(t, int64(10*hour+21*minute),
 		schedule.GetNextScheduledEpochNoCatchup(&lastJobEpoch, defaultStartEpoch, nowEpoch))
 
-	// There was a previous job, we are behind schedule
+	// We are behind schedule
 	lastJobEpoch = int64(10*hour + 20*minute)
 	nowEpoch = int64(10*hour + 30*minute)
 	assert.Equal(t, int64(10*hour+30*minute),
 		schedule.GetNextScheduledEpochNoCatchup(&lastJobEpoch, defaultStartEpoch, nowEpoch))
 
-	// There was a previous job, we are way behind schedule (later than end time)
+	// We are way behind schedule (later than end time)
 	lastJobEpoch = int64(10*hour + 20*minute)
 	nowEpoch = int64(12 * hour)
 	assert.Equal(t, int64(11*hour),
@@ -159,5 +159,5 @@ func TestCronSchedule_GetNextScheduledEpochNoCatchup(t *testing.T) {
 		Cron:    "0 * * * * * ",
 	})
 	assert.Equal(t, int64(10*hour+15*minute+minute),
-		schedule.GetNextScheduledEpoch(nil, defaultStartEpoch))
+		schedule.GetNextScheduledEpochNoCatchup(nil, defaultStartEpoch, 0))
 }

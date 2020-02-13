@@ -93,3 +93,54 @@ func TestPeriodicSchedule_GetNextScheduledEpoch(t *testing.T) {
 	assert.Equal(t, int64(10*hour+15*minute+minute),
 		schedule.GetNextScheduledEpoch(nil, defaultStartEpoch))
 }
+
+func TestPeriodicSchedule_GetNextScheduledEpochNoCatchup(t *testing.T) {
+	// There was a previous job, hasn't been time for next job
+	schedule := NewPeriodicSchedule(&swfapi.PeriodicSchedule{
+		StartTime:      commonutil.Metav1TimePointer(v1.NewTime(time.Unix(10*hour+10*minute, 0).UTC())),
+		EndTime:        commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
+		IntervalSecond: 60,
+	})
+	lastJobEpoch := int64(10*hour + 20*minute)
+	defaultStartEpoch := int64(10*hour + 15*minute)
+	nowEpoch := int64(10*hour + 20*minute + 30*second)
+	assert.Equal(t, int64(10*hour+20*minute+minute),
+		schedule.GetNextScheduledEpochNoCatchup(&lastJobEpoch, defaultStartEpoch, nowEpoch))
+
+	// Exactly now for next job
+	lastJobEpoch = int64(10*hour + 20*minute)
+	nowEpoch = int64(10*hour + 20*minute + minute)
+	assert.Equal(t, int64(10*hour+20*minute+minute),
+		schedule.GetNextScheduledEpochNoCatchup(&lastJobEpoch, defaultStartEpoch, nowEpoch))
+
+	// Shortly after next job's original schedule
+	lastJobEpoch = int64(10*hour + 20*minute)
+	nowEpoch = int64(10*hour + 21*minute + 30*second)
+	assert.Equal(t, int64(10*hour+21*minute),
+		schedule.GetNextScheduledEpochNoCatchup(&lastJobEpoch, defaultStartEpoch, nowEpoch))
+
+	// We are behind schedule
+	lastJobEpoch = int64(10*hour + 20*minute)
+	nowEpoch = int64(10*hour + 30*minute)
+	assert.Equal(t, nowEpoch,
+		schedule.GetNextScheduledEpochNoCatchup(&lastJobEpoch, defaultStartEpoch, nowEpoch))
+
+	// We are way behind schedule (later than end time)
+	lastJobEpoch = int64(10*hour + 20*minute)
+	nowEpoch = int64(12 * hour)
+	assert.Equal(t, int64(11*hour), // TODO: should this be end time?
+		schedule.GetNextScheduledEpochNoCatchup(&lastJobEpoch, defaultStartEpoch, nowEpoch))
+
+	// There is no previous job, falling back on the start date of the schedule
+	assert.Equal(t, int64(10*hour+10*minute+minute),
+		schedule.GetNextScheduledEpochNoCatchup(nil, defaultStartEpoch, 0))
+
+	// There is no previous job, no schedule start date, falling back on the
+	// creation date of the workflow.
+	schedule = NewPeriodicSchedule(&swfapi.PeriodicSchedule{
+		EndTime:        commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
+		IntervalSecond: 60,
+	})
+	assert.Equal(t, int64(10*hour+15*minute+minute),
+		schedule.GetNextScheduledEpochNoCatchup(nil, defaultStartEpoch, 0))
+}

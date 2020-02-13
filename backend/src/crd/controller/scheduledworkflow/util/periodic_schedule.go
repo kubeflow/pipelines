@@ -74,7 +74,7 @@ func (s *PeriodicSchedule) getInterval() int64 {
 	return interval
 }
 
-func (s *PeriodicSchedule) getNextScheduledEpochNoCatchup(
+func (s *PeriodicSchedule) GetNextScheduledEpochNoCatchup(
 	lastJobEpoch *int64, defaultStartEpoch int64, nowEpoch int64) int64 {
 
 	nextScheduledEpoch := s.GetNextScheduledEpoch(lastJobEpoch, defaultStartEpoch)
@@ -84,8 +84,12 @@ func (s *PeriodicSchedule) getNextScheduledEpochNoCatchup(
 	}
 
 	nextNextScheduledEpoch := nextScheduledEpoch + s.getInterval()
+
 	if nowEpoch >= nextNextScheduledEpoch {
-		// If we cannot catch up with schedule, just reschedule to now.
+		// If we cannot catch up with schedule, just reschedule to min(now, endTime).
+		if s.EndTime != nil && s.EndTime.Unix() < nowEpoch {
+			return s.EndTime.Unix()
+		}
 		return nowEpoch
 	}
 	return nextScheduledEpoch
