@@ -33,7 +33,7 @@ WORKDIR /src
 
 COPY backend/src/apiserver/visualization/requirements.txt /src
 
-RUN pip3 install -r requirements.txt avro==1.9.1
+RUN pip3 install -r requirements.txt
 
 COPY backend/src/apiserver/visualization/license.sh /src
 COPY backend/src/apiserver/visualization/third_party_licenses.csv /src
