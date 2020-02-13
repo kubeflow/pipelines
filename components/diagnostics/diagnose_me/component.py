@@ -34,7 +34,8 @@ def run_diagnose_me(
               This is intended to stop the data processing of a pipeline. Can set
               to False to only report Errors/Warnings.
           project_id:
-              GCP project ID which is assumed to be accessible from the pod.
+              GCP project ID which is assumed to be the project under which
+              current pod is executing.
           target_apis:
               String consisting of a comma separated list of apis to be verified.
           quota_check:
@@ -67,33 +68,39 @@ def run_diagnose_me(
   quota_list = gcp.get_gcp_configuration(
       gcp.Commands.GET_QUOTAS, human_readable=False
   )
-  quota_dict = {}  # Mapping from region to dict[metric, available]
-  for region_quota in quota_list:
-    quota_dict[region_quota['name']] = {}
-    for quota in region_quota['quotas']:
-      quota_dict[region_quota['name']][quota['metric']
-                                      ] = quota['limit'] - quota['usage']
 
-  quota_check = [] or quota_check
-  for single_check in quota_check:
-    if single_check['region'] not in quota_dict:
-      print(
-          'Regional quota for %s does not exist in current project' %
-          (single_check['region'])
-      )
-      config_error_observed = True
-    else:
-      if quota_dict[single_check['region']][single_check['metric']
-                                        ] < single_check['quota_needed']:
+  if quota_list.has_error:
+    print('Failed to retrieve project quota with error %s\n' % (quota_list.stderr))
+    config_error_observed = True
+  else:
+    # Check quota.
+    quota_dict = {}  # Mapping from region to dict[metric, available]
+    for region_quota in quota_list:
+      quota_dict[region_quota['name']] = {}
+      for quota in region_quota['quotas']:
+        quota_dict[region_quota['name']][quota['metric']
+                                        ] = quota['limit'] - quota['usage']
+
+    quota_check = [] or quota_check
+    for single_check in quota_check:
+      if single_check['region'] not in quota_dict:
         print(
-            'Insufficient quota observed for %s at %s: %s is needed but only %s is available'
-            % (
-                single_check['metric'], single_check['region'],
-                str(single_check['quota_needed']
-                   ), str(quota_dict[single_check['region']][single_check['metric']])
-            )
+            'Regional quota for %s does not exist in current project.\n' %
+            (single_check['region'])
         )
         config_error_observed = True
+      else:
+        if quota_dict[single_check['region']][single_check['metric']
+                                          ] < single_check['quota_needed']:
+          print(
+              'Insufficient quota observed for %s at %s: %s is needed but only %s is available.\n'
+              % (
+                  single_check['metric'], single_check['region'],
+                  str(single_check['quota_needed']
+                     ), str(quota_dict[single_check['region']][single_check['metric']])
+              )
+          )
+          config_error_observed = True
 
   # Get the project ID
   # from project configuration
