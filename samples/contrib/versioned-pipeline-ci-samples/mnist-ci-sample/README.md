@@ -4,7 +4,7 @@
 
 This sample uses cloud build to implement the continuous integration process of a basic machine learning pipeline that trains and visualizes model in tensorboard. Once all set up, you can push your code to github repo, then the build process in cloud build will be triggered automatically, then a run will be created in kubeflow pipeline. You can view your pipeline and the run in kubeflow pipelines. 
 
-We use *Kubeflow Pipeline(KFP) SDK** to interact with kubeflow pipeline to create a new version and a run in this sample.
+We use **Kubeflow Pipeline(KFP) SDK** to interact with kubeflow pipeline to create a new version and a run in this sample.
 
 ## What you can learn in this sample
 * CI process of a simple but general ML pipeline.
@@ -13,7 +13,7 @@ We use *Kubeflow Pipeline(KFP) SDK** to interact with kubeflow pipeline to creat
 
 
 ## What needs to be done before run
-* Create a secret following the troubleshooting parts in [https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize]()
+* Create a secret following the troubleshooting parts in [KFP Repo](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize)
 * Set up a trigger in cloud build, and link it to your github repo
 * Enable "Kubernetes Engine Developer" in cloud build setting
 * Replace the CLOUDSDK_COMPUTE_ZONE, CLOUDSDK_CONTAINER_CLUSTER in cloudbuild.yaml with your own zone and cluster
