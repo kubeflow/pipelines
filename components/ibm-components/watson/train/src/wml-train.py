@@ -20,6 +20,7 @@ def getSecret(secret):
 
 def train(args):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
+    from watson_machine_learning_client.libs.repo.mlrepository import MetaNames
     from minio import Minio
     from urllib.parse import urlsplit
     import os,time
@@ -74,7 +75,10 @@ def train(args):
     metadata = {
         client.repository.ModelMetaNames.NAME                                       : wml_run_definition,
         # client.repository.DefinitionMetaNames.AUTHOR_NAME       : wml_author_name,
-        client.repository.DefinitionMetaNames.ModelMetaNames.FRAMEWORK_LIBRARIES    : [{'name': wml_framework_name, 'version': wml_framework_version}],
+        # client.repository.ModelMetaNames.AUTHOR_NAME: wml_author_name,
+        # client.repository.ModelMetaNames.FRAMEWORK_LIBRARIES: [{'name': wml_framework_name, 'version': wml_framework_version}],
+        client.repository.ModelMetaNames.FRAMEWORK_NAME: wml_framework_name,
+        client.repository.ModelMetaNames.FRAMEWORK_VERSION: wml_framework_version,
         # client.repository.DefinitionMetaNames.FRAMEWORK_VERSION : wml_framework_version,
         client.repository.PipelineMetaNames.RUNTIMES                                : [{'name': wml_runtime_name, 'version': wml_runtime_version}],
         # client.repository.DefinitionMetaNames.RUNTIME_VERSION   : wml_runtime_version,
