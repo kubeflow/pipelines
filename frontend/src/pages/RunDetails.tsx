@@ -42,7 +42,7 @@ import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
-import { Workflow } from '../../third_party/argo-ui/argo_template';
+import { Workflow, NodeStatus } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, color, fonts, fontsize } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
@@ -285,8 +285,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                   this.state.selectedNodeDetails &&
                                   this.state.workflow && (
                                     <ArtifactsTabContent
-                                      workflow={this.state.workflow}
-                                      selectedNodeDetails={this.state.selectedNodeDetails}
+                                      nodeId={this.state.selectedNodeDetails.id}
+                                      nodeStatus={
+                                        this.state.workflow && this.state.workflow.status
+                                          ? this.state.workflow.status.nodes[
+                                              this.state.selectedNodeDetails.id
+                                            ]
+                                          : undefined
+                                      }
                                       visualizationCreatorConfig={visualizationCreatorConfig}
                                       generatedVisualizations={this.state.generatedVisualizations.filter(
                                         visualization =>
@@ -889,17 +895,11 @@ const Progress: React.FC<{
  */
 const ArtifactsTabContent: React.FC<{
   visualizationCreatorConfig: VisualizationCreatorConfig;
-  selectedNodeDetails: SelectedNodeDetails;
+  nodeId: string;
+  nodeStatus?: NodeStatus;
   generatedVisualizations: GeneratedVisualization[];
-  workflow: Workflow;
   onError: (error: Error) => void;
-}> = ({
-  visualizationCreatorConfig,
-  generatedVisualizations,
-  selectedNodeDetails,
-  workflow,
-  onError,
-}) => {
+}> = ({ visualizationCreatorConfig, generatedVisualizations, nodeId, nodeStatus, onError }) => {
   const [loaded, setLoaded] = React.useState(false);
   // Progress component expects onLoad function identity to stay the same
   const onLoad = React.useCallback(() => setLoaded(true), [setLoaded]);
@@ -917,14 +917,12 @@ const ArtifactsTabContent: React.FC<{
       setProgress(0);
       setViewerConfigs([]);
 
-      if (!workflow.status || !workflow.status.nodes) {
+      if (!nodeStatus || !nodeId || nodeStatus.phase !== 'Succeeded') {
         setProgress(100); // Loaded will be set by Progress onComplete
-        return;
+        return; // Abort, because there is no data.
       }
       // Load runtime outputs from the selected Node
-      const outputPaths = WorkflowParser.loadNodeOutputPaths(
-        workflow.status.nodes[selectedNodeDetails.id],
-      );
+      const outputPaths = WorkflowParser.loadNodeOutputPaths(nodeStatus);
       const reportProgress = (reportedProgress: number) => {
         if (!aborted) {
           setProgress(reportedProgress);
@@ -937,10 +935,9 @@ const ArtifactsTabContent: React.FC<{
 
       // Load the viewer configurations from the output paths
       const builtConfigs = (await Promise.all([
-        OutputArtifactLoader.buildTFXArtifactViewerConfig(
-          selectedNodeDetails.id,
-          reportProgress,
-        ).catch(reportErrorAndReturnEmpty),
+        OutputArtifactLoader.buildTFXArtifactViewerConfig(nodeId, reportProgress).catch(
+          reportErrorAndReturnEmpty,
+        ),
         ...outputPaths.map(path =>
           OutputArtifactLoader.load(path).catch(reportErrorAndReturnEmpty),
         ),
@@ -959,7 +956,12 @@ const ArtifactsTabContent: React.FC<{
       aborted = true;
     };
     return abort;
-  }, [workflow, selectedNodeDetails.id, onError]);
+    // Workaround:
+    // Watches nodeStatus.phase === 'Succeeded' instead of nodeStatus, because
+    // nodeStatus data won't further change after Succeeded, but nodeStatus
+    // object instance will keep changing after new requests to get workflow
+    // status.
+  }, [nodeId, !!nodeStatus && nodeStatus.phase === 'Succeeded', onError]);
 
   return (
     <div className={commonCss.page}>
