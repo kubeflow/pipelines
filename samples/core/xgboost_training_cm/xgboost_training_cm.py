@@ -22,7 +22,7 @@ import os
 import subprocess
 
 diagnose_me_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/numerology/pipelines/1611ec7ac09f69fc6d382de8702045ee3fad55ef/components/diagnostics/diagnose_me/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/9b0e9efb382c499cef2750d71cb7b97cbd65cd07/components/diagnostics/diagnose_me/component.yaml')
 
 confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/local/confusion_matrix/component.yaml')
 
