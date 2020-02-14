@@ -316,6 +316,20 @@ export class OutputArtifactLoader {
         return buildArtifactViewer(script);
       }),
     );
+    const EvaluatorArtifactUris = filterArtifactUrisByType('ModelEvaluation', artifactTypes, artifacts);
+    viewers = viewers.concat(
+      EvaluatorArtifactUris.map(uri => {
+        const script = [
+          'import tensorflow_model_analysis as tfma',
+          'from ipywidgets.embed import embed_minimal_html',
+          `eval_res = tfma.load_eval_result('${uri}')`,
+          'slicing_metrics_view = tfma.view.render_slicing_metrics(eval_res)',
+          `embed_minimal_html('tfma_export.html', views=[slicing_metrics_view], title='Slicing Metrics')`,
+          `with open('tfma_export.html', 'r') as view: print(view.read())`,
+        ];
+        return buildArtifactViewer(script);
+      }),
+    );
     return Promise.all(viewers);
   }
 
