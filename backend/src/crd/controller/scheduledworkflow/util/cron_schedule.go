@@ -58,10 +58,14 @@ func (s *CronSchedule) GetNextScheduledEpochNoCatchup(lastJobEpoch *int64,
 func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobEpoch *int64,
 	defaultStartEpoch int64) int64 {
 
+	// Fallback to default start epoch, which will be passed the Job creation
+	// time.
 	effectiveLastJobEpoch := defaultStartEpoch
 	if lastJobEpoch != nil {
+		// Last job epoch takes first precedence.
 		effectiveLastJobEpoch = *lastJobEpoch
 	} else if s.StartTime != nil {
+		// Start time takes second precedence.
 		effectiveLastJobEpoch = s.StartTime.Unix()
 	}
 	return effectiveLastJobEpoch
