@@ -22,7 +22,6 @@ FROM tensorflow/tensorflow:2.1.0-py3
 RUN apt-get update \
   && apt-get install -y wget curl tar \
   pkg-config libcairo2-dev libgirepository1.0-dev # For the pygobject and pycairo package setup due to licensing
-RUN python3 -m pip install pyarrow==0.15.1
 
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
 RUN mkdir -p /usr/local/gcloud
