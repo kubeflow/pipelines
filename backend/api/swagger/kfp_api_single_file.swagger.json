@@ -1654,10 +1654,10 @@
           "format": "boolean",
           "description": "Input. Whether the job is enabled or not."
         },
-        "catchup": {
+        "no_catchup": {
           "type": "boolean",
           "format": "boolean",
-          "description": "Optional input field. Whether the job should catch up if behind schedule.\nIf false, the job will only schedule the latest interval if behind schedule.\nIf true, the job will catch up on each past interval."
+          "description": "Optional input field. Whether the job should catch up if behind schedule.\nIf true, the job will only schedule the latest interval if behind schedule.\nIf false, the job will catch up on each past interval."
         }
       }
     },
