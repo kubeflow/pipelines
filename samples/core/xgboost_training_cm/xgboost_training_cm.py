@@ -221,7 +221,6 @@ def xgb_train_pipeline(
     target='resolution'
     required_apis='storage-api.googleapis.com, dataproc.googleapis.com'
     cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER
-    diagnostic_quota = 
 
     # Current GCP pyspark/spark op do not provide outputs as return values, instead,
     # we need to use strings to pass the uri around.
