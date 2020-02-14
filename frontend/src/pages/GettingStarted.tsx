@@ -19,15 +19,28 @@ import Buttons from '../lib/Buttons';
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import Markdown from 'markdown-to-jsx';
-import { ExternalLink } from '../atoms/ExternalLink';
+import { ExternalLink, AutoLink } from '../atoms/ExternalLink';
 import { cssRaw, classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
+import { Apis } from 'src/lib/Apis';
+import { ApiFilter, PredicateOp } from 'src/apis/filter/api';
+import { RoutePageFactory } from 'src/components/Router';
 
 const options = {
-  overrides: { a: { component: ExternalLink } },
+  overrides: { a: { component: AutoLink } },
 };
 
-const PAGE_CONTENT_MD = `
+const PAGE_CONTENT_MD = ({
+  tfx,
+  xgboost,
+  data,
+  control,
+}: {
+  tfx: string;
+  xgboost: string;
+  data: string;
+  control: string;
+}) => `
 <br/>
 
 ## Build your own pipeline
@@ -41,15 +54,23 @@ This section contains demo and tutorial pipelines.
 
 **Demos** - Try an end-to-end demonstration pipeline.
 
-  * [TFX pipeline demo](#/pipelines) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. Learn how to [get started with TFX pipeline!](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb)
-  * [XGBoost Pipeline demo](#/pipelines) - An example of end-to-end distributed training for an XGBoost model. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
+  * [TFX pipeline demo](${getPipelineLink(
+    tfx,
+  )}) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. Learn how to [get started with TFX pipeline!](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb)
+  * [XGBoost Pipeline demo](${getPipelineLink(
+    xgboost,
+  )}) - An example of end-to-end distributed training for an XGBoost model. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
 
 <br/>
 
 **Tutorials** - Learn pipeline concepts by following a tutorial.
 
-  * [Data passing in python components](#/pipelines) - Shows how to pass data between python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
-  * [DSL - Control structures](#/pipelines) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
+  * [Data passing in python components](${getPipelineLink(
+    data,
+  )}) - Shows how to pass data between python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
+  * [DSL - Control structures](${getPipelineLink(
+    control,
+  )}) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
 
 Want to learn more? [Learn from sample and tutorial pipelines.](https://www.kubeflow.org/docs/pipelines/tutorials/)
 
@@ -86,7 +107,18 @@ cssRaw(`
 }
 `);
 
+const demoPipelines = [
+  '[Demo] Unified DSL - Taxi Tip Prediction Model Trainer',
+  '[Demo] ML - XGBoost - Training with Confusion Matrix',
+  '[Tutorial] DSL - Control structures',
+  '[Tutorial] Data passing in python components',
+];
+
 export class GettingStarted extends Page<{}, {}> {
+  public state = {
+    ids: [],
+  };
+
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
@@ -96,15 +128,64 @@ export class GettingStarted extends Page<{}, {}> {
     };
   }
 
+  public async componentDidMount() {
+    const ids = await Promise.all(
+      demoPipelines.map(name =>
+        Apis.pipelineServiceApi
+          .listPipelines(undefined, 10, undefined, createAndEncodeFilter(name))
+          .then(pipelineList => {
+            const pipelines = pipelineList.pipelines;
+            if (!pipelines || pipelines.length !== 1) {
+              return '';
+            }
+            const pipeline = pipelines[0];
+            if (!pipeline.id) {
+              return '';
+            }
+            return pipeline.id;
+          })
+          .catch(() => ''),
+      ),
+    );
+    this.setState({ ids });
+  }
+
   public async refresh() {
-    // do nothing
+    this.componentDidMount();
   }
 
   public render(): JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'), 'kfp-start-page')}>
-        <Markdown options={options}>{PAGE_CONTENT_MD}</Markdown>
+        <Markdown options={options}>
+          {PAGE_CONTENT_MD({
+            tfx: this.state.ids[0] || '',
+            xgboost: this.state.ids[1] || '',
+            control: this.state.ids[2] || '',
+            data: this.state.ids[3] || '',
+          })}
+        </Markdown>
       </div>
     );
   }
+}
+
+function getPipelineLink(id: string) {
+  if (!id) {
+    return '#/pipelines';
+  }
+  return `#${RoutePageFactory.pipelineDetails(id)}`;
+}
+
+function createAndEncodeFilter(filterString: string): string {
+  const filter: ApiFilter = {
+    predicates: [
+      {
+        key: 'name',
+        op: PredicateOp.ISSUBSTRING,
+        string_value: filterString,
+      },
+    ],
+  };
+  return encodeURIComponent(JSON.stringify(filter));
 }
