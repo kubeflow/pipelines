@@ -30,7 +30,7 @@ const options = {
 const PAGE_CONTENT_MD = `
 <br/>
 
-## Build your own pipeline
+## Setup your TFX pipeline
 
 Build an end-to-end ML pipeline with TensorFlow Extended (TFX) [**Start Here!**](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb)
 
@@ -41,12 +41,12 @@ This section contains demo and tutorial pipelines.
 
 **Demos** - Try an end-to-end demonstration pipeline.
 
-  * [TFX pipeline demo](#/pipelines) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. Learn how to [get started with TFX pipeline!](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb)
-  * [XGBoost Pipeline demo](#/pipelines) - An example of end-to-end distributed training for an XGBoost model. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
+  * [Pre-configured classification pipeline](#/pipelines) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. Learn how to [get started with TFX pipeline!](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb)
+  * [XGBoost pipeline demo](#/pipelines) - An example of end-to-end distributed training for an XGBoost model. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
 
 <br/>
 
-**Tutorials** - Learn pipeline concepts by following a tutorial.
+**Tutorials** - Learn how to build your pipeline from scratch by following these tutorials.
 
   * [Data passing in python components](#/pipelines) - Shows how to pass data between python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
   * [DSL - Control structures](#/pipelines) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
