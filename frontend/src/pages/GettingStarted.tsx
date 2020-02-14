@@ -31,15 +31,15 @@ const options = {
 };
 
 const PAGE_CONTENT_MD = ({
+  control,
+  data,
   tfx,
   xgboost,
-  data,
-  control,
 }: {
+  control: string;
+  data: string;
   tfx: string;
   xgboost: string;
-  data: string;
-  control: string;
 }) => `
 <br/>
 
@@ -159,10 +159,10 @@ export class GettingStarted extends Page<{}, {}> {
       <div className={classes(commonCss.page, padding(20, 'lr'), 'kfp-start-page')}>
         <Markdown options={options}>
           {PAGE_CONTENT_MD({
-            tfx: this.state.ids[0] || '',
-            xgboost: this.state.ids[1] || '',
             control: this.state.ids[2] || '',
             data: this.state.ids[3] || '',
+            tfx: this.state.ids[0] || '',
+            xgboost: this.state.ids[1] || '',
           })}
         </Markdown>
       </div>
