@@ -22,7 +22,7 @@ import os
 import subprocess
 
 diagnose_me_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/d0ef0c8dc44a97fb35a7915d334432c6303ef26c/components/diagnostics/diagnose_me/component.yaml')
+    'https://raw.githubusercontent.com/numerology/pipelines/1611ec7ac09f69fc6d382de8702045ee3fad55ef/components/diagnostics/diagnose_me/component.yaml')
 
 confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/local/confusion_matrix/component.yaml')
 
@@ -213,6 +213,7 @@ def xgb_train_pipeline(
 ):
     output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
     region='us-central1'
+    quota_check=[{'region':region,'metric':'CPUS','quota_needed':1.0}]
     train_data='gs://ml-pipeline-playground/sfpd/train.csv'
     eval_data='gs://ml-pipeline-playground/sfpd/eval.csv'
     schema='gs://ml-pipeline-playground/sfpd/schema.json'
@@ -220,6 +221,7 @@ def xgb_train_pipeline(
     target='resolution'
     required_apis='storage-api.googleapis.com, dataproc.googleapis.com'
     cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER
+    diagnostic_quota = 
 
     # Current GCP pyspark/spark op do not provide outputs as return values, instead,
     # we need to use strings to pass the uri around.
@@ -233,7 +235,8 @@ def xgb_train_pipeline(
         bucket=output,
         execution_mode=diagnostic_mode,
         project_id=project, 
-        target_apis=required_apis)
+        target_apis=required_apis,
+        quota_check=quota_check)
     
     with dsl.ExitHandler(exit_op=dataproc_delete_cluster_op(
         project_id=project,
