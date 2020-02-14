@@ -2,7 +2,7 @@
 
 The `xgboost_training_cm.py` pipeline creates XGBoost models on structured data in CSV format. Both classification and regression are supported.
 
-The pipeline starts by creating an Google DataProc cluster, and then running analysis, transformation, distributed training and 
+The pipeline starts by creating a Google DataProc cluster, and then running analysis, transformation, distributed training and 
 prediction in the created cluster. 
 Then a single node confusion-matrix and ROC aggregator is used (for classification case) to	
 provide the confusion matrix data, and ROC data to the front end, respectively.
@@ -30,11 +30,18 @@ Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compi
 
 ## Run
 
-Most arguments come with default values. Only `output` and `project` need to be filled always. 
+All arguments come with default values. This pipeline is preloaded as a Demo pipeline in Pipeline UI. You can run the pipeline without any changes.
 
-* `output` is a Google Storage path which holds
-pipeline run results. Note that each pipeline run will create a unique directory under `output` so it will not override previous results. 
-* `project` is a GCP project.
+## Modifying the pipeline
+To do additional exploration you may change some of the parameters, or pipeline input that is currently specified in the pipeline definition.  
+ 
+* `output` is a Google Storage path which holds pipeline run results.
+Note that each pipeline run will create a unique directory under `output` so it will not override previous results.
+* `workers` is nubmer of worker notes used for this training. 
+* `rounds` is the number of XGBoost training iterations. Set the value to 200 to get a reasonable trained model.
+* `train_data` points to a CSV file that contains the training data. For a sample see 'gs://ml-pipeline-playground/sfpd/train.csv'.
+* `eval_data` points to a CSV file that contains the training data. For a sample see 'gs://ml-pipeline-playground/sfpd/eval.csv'.
+* `schema` points to a schema file for train and eval datasets. For a sample see 'gs://ml-pipeline-playground/sfpd/schema.json'.
 
 ## Components source
 
