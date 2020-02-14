@@ -75,7 +75,7 @@ def run_diagnose_me(
   else:
     # Check quota.
     quota_dict = {}  # Mapping from region to dict[metric, available]
-    for region_quota in quota_list:
+    for region_quota in quota_list.json_output:
       quota_dict[region_quota['name']] = {}
       for quota in region_quota['quotas']:
         quota_dict[region_quota['name']][quota['metric']
