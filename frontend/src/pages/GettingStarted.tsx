@@ -19,12 +19,12 @@ import Buttons from '../lib/Buttons';
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import Markdown from 'markdown-to-jsx';
-import { ExternalLink, AutoLink } from '../atoms/ExternalLink';
+import { AutoLink } from '../atoms/ExternalLink';
 import { cssRaw, classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { Apis } from 'src/lib/Apis';
-import { ApiFilter, PredicateOp } from 'src/apis/filter/api';
-import { RoutePageFactory } from 'src/components/Router';
+import { Apis } from '../lib/Apis';
+import { ApiFilter, PredicateOp } from '../apis/filter/api';
+import { RoutePageFactory } from '../components/Router';
 
 const options = {
   overrides: { a: { component: AutoLink } },

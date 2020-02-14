@@ -3,7 +3,7 @@ export enum Deployments {
   MARKETPLACE = 'MARKETPLACE',
 }
 
-const DEPLOYMENT_DEFAULT = Deployments.MARKETPLACE;
+const DEPLOYMENT_DEFAULT = undefined;
 // Uncomment this to debug marketplace:
 // const DEPLOYMENT_DEFAULT = Deployments.MARKETPLACE;
 
