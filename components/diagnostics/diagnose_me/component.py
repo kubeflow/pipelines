@@ -20,7 +20,7 @@ def run_diagnose_me(
     execution_mode: str,
     project_id: str,
     target_apis: str,
-    quota_check: Optional[List[Any]] = None,
+    quota_check: list = None,
 ) -> NamedTuple('Outputs', [('bucket', str), ('project_id', str)]):
   """ Performs environment verification specific to this pipeline.
 

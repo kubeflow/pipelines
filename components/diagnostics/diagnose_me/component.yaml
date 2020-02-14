@@ -33,7 +33,7 @@ inputs:
 - name: target_apis
   type: String
 - name: quota_check
-  type: typing.Union[typing.List[typing.Any], NoneType]
+  type: JsonArray
   optional: true
 outputs:
 - name: bucket
@@ -55,7 +55,7 @@ implementation:
           execution_mode: str,
           project_id: str,
           target_apis: str,
-          quota_check: Optional[List[Any]] = None,
+          quota_check: list = None,
       ) -> NamedTuple('Outputs', [('bucket', str), ('project_id', str)]):
         """ Performs environment verification specific to this pipeline.
 
@@ -260,13 +260,14 @@ implementation:
               raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
           return str_value
 
+      import json
       import argparse
       _parser = argparse.ArgumentParser(prog='Run diagnose me', description='Performs environment verification specific to this pipeline.\n\n      args:\n          bucket:\n              string name of the bucket to be checked. Must be of the format\n              gs://bucket_root/any/path/here/is/ignored where any path beyond root\n              is ignored.\n          execution_mode:\n              If set to HALT_ON_ERROR will case any error to raise an exception.\n              This is intended to stop the data processing of a pipeline. Can set\n              to False to only report Errors/Warnings.\n          project_id:\n              GCP project ID which is assumed to be the project under which\n              current pod is executing.\n          target_apis:\n              String consisting of a comma separated list of apis to be verified.\n          quota_check:\n              List of entries describing how much quota is required. Each entry\n              has three fields: region, metric and quota_needed. All\n              string-typed.\n      Raises:\n          RuntimeError: If configuration is not setup properly and\n          HALT_ON_ERROR flag is set.')
       _parser.add_argument("--bucket", dest="bucket", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--execution-mode", dest="execution_mode", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--project-id", dest="project_id", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--target-apis", dest="target_apis", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--quota-check", dest="quota_check", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--quota-check", dest="quota_check", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
