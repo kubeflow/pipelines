@@ -25,8 +25,8 @@ var (
 	podResource = metav1.GroupVersionResource{Version: "v1", Resource: "pods"}
 )
 
-// applyPodOutput will check whether the execution has already been run before from MLMD and apply the output into pod.metadata.output
-func applyPodOutput(req *v1beta1.AdmissionRequest) ([]patchOperation, error) {
+// mutatePodIfCached will check whether the execution has already been run before from MLMD and apply the output into pod.metadata.output
+func mutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) {
 	// This handler should only get called on Pod objects as per the MutatingWebhookConfiguration in the YAML file.
 	// However, if (for whatever reason) this gets invoked on an object of a different kind, issue a log message but
 	// let the object request pass through otherwise.
