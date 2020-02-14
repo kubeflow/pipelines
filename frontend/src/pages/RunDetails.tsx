@@ -42,7 +42,11 @@ import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
-import { Workflow, NodeStatus } from '../../third_party/argo-ui/argo_template';
+import {
+  Workflow,
+  NodeStatus,
+  NodePhase as ArgoNodePhase,
+} from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, color, fonts, fontsize } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
@@ -888,6 +892,8 @@ const Progress: React.FC<{
   );
 };
 
+const COMPLETED_NODE_PHASES: ArgoNodePhase[] = ['Succeeded', 'Failed', 'Error'];
+
 // TODO: add unit tests for this.
 /**
  * Artifacts tab content component, it handles loading progress state of
@@ -906,6 +912,7 @@ const ArtifactsTabContent: React.FC<{
 
   const [progress, setProgress] = React.useState(0);
   const [viewerConfigs, setViewerConfigs] = React.useState<ViewerConfig[]>([]);
+  const nodeCompleted: boolean = !!nodeStatus && COMPLETED_NODE_PHASES.includes(nodeStatus.phase);
 
   React.useEffect(() => {
     let aborted = false;
@@ -917,7 +924,7 @@ const ArtifactsTabContent: React.FC<{
       setProgress(0);
       setViewerConfigs([]);
 
-      if (!nodeStatus || !nodeId || nodeStatus.phase !== 'Succeeded') {
+      if (!nodeStatus || !nodeCompleted) {
         setProgress(100); // Loaded will be set by Progress onComplete
         return; // Abort, because there is no data.
       }
@@ -957,11 +964,11 @@ const ArtifactsTabContent: React.FC<{
     };
     return abort;
     // Workaround:
-    // Watches nodeStatus.phase === 'Succeeded' instead of nodeStatus, because
-    // nodeStatus data won't further change after Succeeded, but nodeStatus
-    // object instance will keep changing after new requests to get workflow
-    // status.
-  }, [nodeId, !!nodeStatus && nodeStatus.phase === 'Succeeded', onError]);
+    // Watches nodeStatus.phase in completed status instead of nodeStatus,
+    // because nodeStatus data won't further change after completed, but
+    // nodeStatus object instance will keep changing after new requests to get
+    // workflow status.
+  }, [nodeId, nodeCompleted, onError]);
 
   return (
     <div className={commonCss.page}>
