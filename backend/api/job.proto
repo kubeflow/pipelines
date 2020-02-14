@@ -85,14 +85,14 @@ service JobService {
     };
   }
 
-  //Enable a job.
+  //Restarts a job that was previously stopped. All runs associated with the job will continue.
   rpc EnableJob(EnableJobRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/jobs/{id}/enable"
     };
   }
 
-  //Disable a job.
+  //Stops a job and all its associated runs. The job is not deleted.
   rpc DisableJob(DisableJobRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/jobs/{id}/disable"

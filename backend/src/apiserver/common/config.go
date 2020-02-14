@@ -74,3 +74,11 @@ func IsMultiUserMode() bool {
 func GetPodNamespace() string {
 	return GetStringConfig(PodNamespace)
 }
+
+func GetBoolFromStringWithDefault(value string, defaultValue bool) bool {
+	boolVal, err := strconv.ParseBool(value)
+	if err != nil {
+		return defaultValue
+	}
+	return boolVal
+}

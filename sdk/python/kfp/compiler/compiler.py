@@ -473,7 +473,7 @@ class Compiler(object):
           # i.e., rather than a static list, they are either the output of another task or were input
           # as global pipeline parameters
 
-          pipeline_param = sub_group.loop_args
+          pipeline_param = sub_group.loop_args.items_or_pipeline_param
           if pipeline_param.op_name is None:
             withparam_value = '{{workflow.parameters.%s}}' % pipeline_param.name
           else:
@@ -528,19 +528,25 @@ class Compiler(object):
       else:
         argument_name = param_name
 
-      # default argument_value + special cases
-      argument_value = '{{inputs.parameters.%s}}' % param_name
+      # Preparing argument. It can be pipeline input reference, task output reference or loop item (or loop item attribute
+      sanitized_loop_arg_full_name = '---'
       if isinstance(sub_group, dsl.ParallelFor):
-        if sub_group.loop_args.name in param_name:
-          if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
-            subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(param_name)
-            argument_value = '{{item.%s}}' % subvar_name
-          elif _for_loop.LoopArguments.name_is_loop_arguments(param_name) or sub_group.items_is_pipeline_param:
-            argument_value = '{{item}}'
-          else:
-            raise ValueError("Failed to match loop args with parameter. param_name: {}, ".format(param_name))
-      elif dependent_name:
-        argument_value = '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
+        sanitized_loop_arg_full_name = sanitize_k8s_name(self._pipelineparam_full_name(sub_group.loop_args))
+      arg_ref_full_name = sanitize_k8s_name(param_name)
+      # We only care about the reference to the current loop item, not the outer loops
+      if isinstance(sub_group, dsl.ParallelFor) and arg_ref_full_name.startswith(sanitized_loop_arg_full_name):
+        if arg_ref_full_name == sanitized_loop_arg_full_name:
+          argument_value = '{{item}}'
+        elif _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
+          subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(param_name)
+          argument_value = '{{item.%s}}' % subvar_name
+        else:
+          raise ValueError("Argument seems to reference the loop item, but not the item itself and not some attribute of the item. param_name: {}, ".format(param_name))
+      else:
+        if dependent_name:
+          argument_value = '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
+        else:
+          argument_value = '{{inputs.parameters.%s}}' % param_name
 
       arguments.append({
         'name': argument_name,

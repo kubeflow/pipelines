@@ -6,7 +6,7 @@ This folder contains Kubeflow Pipelines Kustomize manifests for a light weight d
 
 Deploy latest version of Kubeflow Pipelines
 ```
-export PIPELINE_VERSION=0.2.2
+export PIPELINE_VERSION=0.2.3
 kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/crd.yaml
 kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
 kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
@@ -32,7 +32,7 @@ To deploy Kubeflow Pipelines in namespace FOO,
 - Then run
 ```
 kubectl kustomize base/crds | kubectl apply -f -
-# then 
+# then
 kubectl kustomize env/dev | kubectl apply -f -
 # or
 kubectl kustomize env/gcp | kubectl apply -f -

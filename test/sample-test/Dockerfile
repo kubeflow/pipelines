@@ -1,6 +1,6 @@
 # This image has the script to kick off the ML pipeline sample e2e test,
 
-FROM google/cloud-sdk:272.0.0
+FROM google/cloud-sdk:279.0.0
 
 RUN apt-get update -y
 RUN apt-get install --no-install-recommends -y -q libssl-dev libffi-dev wget ssh
@@ -19,7 +19,7 @@ RUN pip3 install google-api-python-client==1.7.0
 RUN pip3 install google-cloud-storage==1.17.0
 RUN pip3 install fire==0.2.1
 RUN pip3 install yamale==2.0
-RUN pip3 install tfx==0.21.0rc0
+RUN pip3 install tfx==0.21.0rc0 avro-python3==1.9.1
 
 # Install python client, including DSL compiler.
 COPY ./sdk/python /sdk/python

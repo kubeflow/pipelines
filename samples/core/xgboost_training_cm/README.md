@@ -12,6 +12,8 @@ or not.
 
 ## Requirements
 
+> :warning: If you are using **full-scope** or **workload identity enabled** cluster in hosted pipeline beta version, **DO NOT** follow this section. However you'll still need to enable corresponding GCP API.
+
 Preprocessing uses Google Cloud DataProc. Therefore, you must enable the 
 [Cloud Dataproc API](https://pantheon.corp.google.com/apis/library/dataproc.googleapis.com?q=dataproc) for the given GCP project. This is the 
 general [guideline](https://cloud.google.com/endpoints/docs/openapi/enable-api) for enabling GCP APIs.

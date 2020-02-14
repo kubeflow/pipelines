@@ -5,26 +5,27 @@ exports[`SideNav populates the cluster information using the response from the s
 - First value
 + Second value
 
-@@ -63,7 +63,18 @@
-      <hr className=\\"separator\\" />
+@@ -64,10 +64,20 @@
       <WithStyles(IconButton) className=\\"chevron\\" onClick={[Function: bound ]}>
         <pure(ChevronLeftIcon) />
       </WithStyles(IconButton)>
     </div>
--   <div className=\\"infoVisible\\" />
-+   <div className=\\"infoVisible\\">
+    <div className=\\"infoVisible\\">
 +     <WithStyles(Tooltip) title=\\"Cluster name: some-cluster-name, Project ID: some-project-id\\" enterDelay={300} placement=\\"top-start\\">
 +       <div className=\\"envMetadata\\">
 +         <span>
 +           Cluster name: 
 +         </span>
-+         <a href=\\"https://console.cloud.google.com/kubernetes/list?project=some-project-id&filter=name:some-cluster-name\\" className=\\"link unstyled\\" target=\\"_blank\\">
++         <a href=\\"https://console.cloud.google.com/kubernetes/list?project=some-project-id&filter=name:some-cluster-name\\" className=\\"link unstyled\\" rel=\\"noopener\\" target=\\"_blank\\">
 +           some-cluster-name
 +         </a>
 +       </div>
 +     </WithStyles(Tooltip)>
-+   </div>
-  </div>"
+      <WithStyles(Tooltip) title=\\"Report an Issue\\" enterDelay={300} placement=\\"top-start\\">
+        <div className=\\"envMetadata\\">
+          <a href=\\"https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md\\" className=\\"link unstyled\\" rel=\\"noopener\\" target=\\"_blank\\">
+            Report an Issue
+          </a>"
 `;
 
 exports[`SideNav populates the display build information using the response from the healthz endpoint 1`] = `
@@ -246,9 +247,28 @@ exports[`SideNav populates the display build information using the response from
         <a
           className="link unstyled"
           href="https://www.github.com/kubeflow/pipelines/commit/0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5"
+          rel="noopener"
           target="_blank"
         >
           0a7b9e3
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -460,7 +480,26 @@ exports[`SideNav renders Pipelines as active page 1`] = `
   </div>
   <div
     className="infoVisible"
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;
 
@@ -668,7 +707,26 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
   </div>
   <div
     className="infoVisible"
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;
 
@@ -876,7 +934,26 @@ exports[`SideNav renders collapsed state 1`] = `
   </div>
   <div
     className="infoHidden"
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;
 
@@ -1084,7 +1161,26 @@ exports[`SideNav renders expanded state 1`] = `
   </div>
   <div
     className="infoVisible"
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;
 
@@ -1292,7 +1388,26 @@ exports[`SideNav renders experiments as active page 1`] = `
   </div>
   <div
     className="infoVisible"
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;
 
@@ -1500,7 +1615,26 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
   </div>
   <div
     className="infoVisible"
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;
 
@@ -1708,7 +1842,26 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
   </div>
   <div
     className="infoVisible"
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;
 
@@ -1916,7 +2069,26 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
   </div>
   <div
     className="infoVisible"
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;
 
@@ -2124,7 +2296,26 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
   </div>
   <div
     className="infoVisible"
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;
 
@@ -2332,7 +2523,26 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
   </div>
   <div
     className="infoVisible"
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;
 
@@ -2540,7 +2750,26 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
   </div>
   <div
     className="infoVisible"
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;
 
@@ -2748,7 +2977,26 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
   </div>
   <div
     className="infoVisible"
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;
 
@@ -2992,6 +3240,25 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
   </div>
   <div
     className="infoVisible"
-  />
+  >
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Report an Issue"
+    >
+      <div
+        className="envMetadata"
+      >
+        <a
+          className="link unstyled"
+          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          rel="noopener"
+          target="_blank"
+        >
+          Report an Issue
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;

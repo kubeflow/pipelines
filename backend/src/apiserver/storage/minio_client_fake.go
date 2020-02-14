@@ -59,3 +59,8 @@ func (c *FakeMinioClient) DeleteObject(bucketName, objectName string) error {
 func (c *FakeMinioClient) GetObjectCount() int {
 	return len(c.minioClient)
 }
+
+func (c *FakeMinioClient) ExistObject(objectName string) bool {
+	_, ok := c.minioClient[objectName]
+	return ok
+}
