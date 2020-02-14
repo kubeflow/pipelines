@@ -233,8 +233,8 @@ func (s *ScheduledWorkflow) GetNextScheduledEpoch(activeWorkflowCount int64, now
 
 func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64) int64 {
 	catchup := true
-	if s.Spec.Catchup != nil {
-		catchup = *s.Spec.Catchup
+	if s.Spec.NoCatchup != nil {
+		catchup = !*s.Spec.NoCatchup
 	}
 	// Periodic schedule
 	if s.Spec.Trigger.PeriodicSchedule != nil {

@@ -532,7 +532,7 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
 				Spec:       workflow.Spec,
 			},
-			Catchup: util.BoolPointer(apiJob.GetCatchup()),
+			NoCatchup: util.BoolPointer(apiJob.NoCatchup),
 		},
 	}
 
