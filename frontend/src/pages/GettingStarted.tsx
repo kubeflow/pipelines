@@ -109,7 +109,7 @@ cssRaw(`
 
 const demoPipelines = [
   '[Demo] TFX - Taxi Tip Prediction Model Trainer',
-  '[Demo] ML - XGBoost - Training with Confusion Matrix',
+  '[Demo] XGBoost - Training with Confusion Matrix',
   '[Tutorial] DSL - Control structures',
   '[Tutorial] Data passing in python components',
 ];
