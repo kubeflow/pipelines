@@ -75,7 +75,7 @@ def train(args):
     metadata = {
         client.repository.ModelMetaNames.NAME                                       : wml_run_definition,
         # client.repository.DefinitionMetaNames.AUTHOR_NAME       : wml_author_name,
-        # client.repository.ModelMetaNames.AUTHOR_NAME: wml_author_name,
+        client.repository.ModelMetaNames.AUTHOR_NAME: wml_author_name,
         # client.repository.ModelMetaNames.FRAMEWORK_LIBRARIES: [{'name': wml_framework_name, 'version': wml_framework_version}],
         client.repository.ModelMetaNames.FRAMEWORK_NAME: wml_framework_name,
         client.repository.ModelMetaNames.FRAMEWORK_VERSION: wml_framework_version,
