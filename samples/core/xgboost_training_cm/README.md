@@ -20,6 +20,15 @@ general [guideline](https://cloud.google.com/endpoints/docs/openapi/enable-api) 
 If KFP was deployed through K8S marketplace, please follow instructions in [the guideline](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials)
 to make sure the service account used has the role `storage.admin` and `dataproc.admin`.
 
+### Quota
+
+By default, Dataproc `create_cluster` creates a master instance of machine type 'n1-standard-4',
+together with two worker instances of machine type 'n1-standard-4'. This sums up
+to a request consuming 12.0 vCPU quota. The user GCP project needs to guarantee
+this quota is available to make this sample work.
+
+> :warning: Free-tier GCP account might not be able to fulfill this quota requirement. For upgrading your account please follow [this link]().
+
 ## Compile
 
 Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK and compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.zip` file. 
