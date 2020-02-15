@@ -28,8 +28,8 @@ import { RoutePageFactory } from '../components/Router';
 
 // NOTE: Backend sample names should be in sync with these names.
 const DEMO_PIPELINES = [
-  '[Demo] Unified DSL - Taxi Tip Prediction Model Trainer',
-  '[Demo] ML - XGBoost - Training with Confusion Matrix',
+  '[Demo] TFX - Taxi Tip Prediction Model Trainer',
+  '[Demo] XGBoost - Training with Confusion Matrix',
   '[Tutorial] DSL - Control structures',
   '[Tutorial] Data passing in python components',
 ];
@@ -39,15 +39,15 @@ const OPTIONS = {
 };
 
 const PAGE_CONTENT_MD = ({
+  control,
+  data,
   tfx,
   xgboost,
-  data,
-  control,
 }: {
+  control: string;
+  data: string;
   tfx: string;
   xgboost: string;
-  data: string;
-  control: string;
 }) => `
 <br/>
 
@@ -152,10 +152,10 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
       <div className={classes(commonCss.page, padding(20, 'lr'), 'kfp-start-page')}>
         <Markdown options={OPTIONS}>
           {PAGE_CONTENT_MD({
-            tfx: this.state.links[0],
-            xgboost: this.state.links[1],
             control: this.state.links[2],
             data: this.state.links[3],
+            tfx: this.state.links[0],
+            xgboost: this.state.links[1],
           })}
         </Markdown>
       </div>
