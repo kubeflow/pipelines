@@ -26,7 +26,15 @@ import { Apis } from '../lib/Apis';
 import { ApiFilter, PredicateOp } from '../apis/filter/api';
 import { RoutePageFactory } from '../components/Router';
 
-const options = {
+// NOTE: Backend sample names should be in sync with these names.
+const DEMO_PIPELINES = [
+  '[Demo] Unified DSL - Taxi Tip Prediction Model Trainer',
+  '[Demo] ML - XGBoost - Training with Confusion Matrix',
+  '[Tutorial] DSL - Control structures',
+  '[Tutorial] Data passing in python components',
+];
+
+const OPTIONS = {
   overrides: { a: { component: AutoLink } },
 };
 
@@ -54,23 +62,15 @@ This section contains demo and tutorial pipelines.
 
 **Demos** - Try an end-to-end demonstration pipeline.
 
-  * [TFX pipeline demo](${getPipelineLink(
-    tfx,
-  )}) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. Learn how to [get started with TFX pipeline!](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb)
-  * [XGBoost Pipeline demo](${getPipelineLink(
-    xgboost,
-  )}) - An example of end-to-end distributed training for an XGBoost model. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
+  * [TFX pipeline demo](${tfx}) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. Learn how to [get started with TFX pipeline!](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb)
+  * [XGBoost Pipeline demo](${xgboost}) - An example of end-to-end distributed training for an XGBoost model. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
 
 <br/>
 
 **Tutorials** - Learn pipeline concepts by following a tutorial.
 
-  * [Data passing in python components](${getPipelineLink(
-    data,
-  )}) - Shows how to pass data between python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
-  * [DSL - Control structures](${getPipelineLink(
-    control,
-  )}) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
+  * [Data passing in python components](${data}) - Shows how to pass data between python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
+  * [DSL - Control structures](${control}) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
 
 Want to learn more? [Learn from sample and tutorial pipelines.](https://www.kubeflow.org/docs/pipelines/tutorials/)
 
@@ -107,16 +107,9 @@ cssRaw(`
 }
 `);
 
-const demoPipelines = [
-  '[Demo] Unified DSL - Taxi Tip Prediction Model Trainer',
-  '[Demo] ML - XGBoost - Training with Confusion Matrix',
-  '[Tutorial] DSL - Control structures',
-  '[Tutorial] Data passing in python components',
-];
-
-export class GettingStarted extends Page<{}, {}> {
+export class GettingStarted extends Page<{}, { links: string[] }> {
   public state = {
-    ids: [],
+    links: ['', '', '', ''].map(getPipelineLink),
   };
 
   public getInitialToolbarState(): ToolbarProps {
@@ -130,7 +123,7 @@ export class GettingStarted extends Page<{}, {}> {
 
   public async componentDidMount() {
     const ids = await Promise.all(
-      demoPipelines.map(name =>
+      DEMO_PIPELINES.map(name =>
         Apis.pipelineServiceApi
           .listPipelines(undefined, 10, undefined, createAndEncodeFilter(name))
           .then(pipelineList => {
@@ -147,7 +140,7 @@ export class GettingStarted extends Page<{}, {}> {
           .catch(() => ''),
       ),
     );
-    this.setState({ ids });
+    this.setState({ links: ids.map(getPipelineLink) });
   }
 
   public async refresh() {
@@ -157,12 +150,12 @@ export class GettingStarted extends Page<{}, {}> {
   public render(): JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'), 'kfp-start-page')}>
-        <Markdown options={options}>
+        <Markdown options={OPTIONS}>
           {PAGE_CONTENT_MD({
-            tfx: this.state.ids[0] || '',
-            xgboost: this.state.ids[1] || '',
-            control: this.state.ids[2] || '',
-            data: this.state.ids[3] || '',
+            tfx: this.state.links[0],
+            xgboost: this.state.links[1],
+            control: this.state.links[2],
+            data: this.state.links[3],
           })}
         </Markdown>
       </div>
