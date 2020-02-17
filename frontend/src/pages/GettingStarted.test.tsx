@@ -52,6 +52,35 @@ describe('GettingStarted page', () => {
     const { container } = render(<GettingStarted {...generateProps()} />);
     const initialHtml = container.innerHTML;
     await TestUtils.flushPromises();
+    expect(pipelineListSpy.mock.calls).toMatchSnapshot();
+    expect(
+      snapshotDiff(formatHTML(initialHtml), formatHTML(container.innerHTML)),
+    ).toMatchSnapshot();
+  });
+
+  it('fallbacks to show pipeline list page if request failed', async () => {
+    let count = 0;
+    pipelineListSpy.mockImplementation(
+      (): Promise<ApiListPipelinesResponse> => {
+        ++count;
+        if (count === 1) {
+          return Promise.reject(new Error('Mocked error'));
+        } else if (count === 2) {
+          // incomplete data
+          return Promise.resolve({});
+        } else if (count === 3) {
+          // empty data
+          return Promise.resolve({ pipelines: [], total_size: 0 });
+        }
+        return Promise.resolve({
+          pipelines: [{ id: `pipeline-id-${count}` }],
+          total_size: 1,
+        });
+      },
+    );
+    const { container } = render(<GettingStarted {...generateProps()} />);
+    const initialHtml = container.innerHTML;
+    await TestUtils.flushPromises();
     expect(
       snapshotDiff(formatHTML(initialHtml), formatHTML(container.innerHTML)),
     ).toMatchSnapshot();
