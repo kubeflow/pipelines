@@ -114,6 +114,9 @@ export const RoutePageFactory = {
       artifactType,
     ).replace(`:${RouteParams.ID}`, '' + artifactId);
   },
+  pipelineDetails: (id: string) => {
+    return RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(`:${RouteParams.pipelineId}`, id);
+  },
 };
 
 export const ExternalLinks = {

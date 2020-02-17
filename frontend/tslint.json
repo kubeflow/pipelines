@@ -5,7 +5,9 @@
     "exclude": [
       "config/**/*.js",
       "node_modules/**/*.ts",
+      "node_modules/**/*.tsx",
       "src/apis/**/*.ts",
+      "src/config/**/*.json",
       "coverage/lcov-report/*.js",
       "backstop_data/**/*.js",
       "generated/**",
