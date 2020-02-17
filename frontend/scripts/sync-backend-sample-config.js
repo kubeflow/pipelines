@@ -21,8 +21,9 @@ if (myArgs.includes('--check')) {
     }
     console.error(err.message);
     console.error(
-      `${PATH_FRONTEND_CONFIG} is not in sync with ${PATH_BACKEND_CONFIG}, please update ${PATH_FRONTEND_CONFIG}`,
+      `ERROR: ${PATH_FRONTEND_CONFIG} is not in sync with ${PATH_BACKEND_CONFIG}, please update ${PATH_FRONTEND_CONFIG} by running the following command:`,
     );
+    console.error('npm run sync-backend-sample-config');
     process.exit(err.status);
   }
 } else {
