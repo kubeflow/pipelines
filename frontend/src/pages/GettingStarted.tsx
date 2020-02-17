@@ -27,9 +27,7 @@ import { ApiFilter, PredicateOp } from '../apis/filter/api';
 import { RoutePageFactory } from '../components/Router';
 import SAMPLE_CONFIG from '../config/sample_config_from_backend.json';
 
-const DEMO_PIPELINES: string[] = SAMPLE_CONFIG.slice(0, 4).map(sample =>
-  sample ? sample.name : '',
-);
+const DEMO_PIPELINES: string[] = SAMPLE_CONFIG.slice(0, 4);
 const DEMO_PIPELINES_ID_MAP = {
   control: 3,
   data: 2,
