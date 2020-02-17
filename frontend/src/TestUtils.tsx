@@ -22,6 +22,7 @@ import { ToolbarActionConfig } from './components/Toolbar';
 import { match } from 'react-router';
 import { mount, ReactWrapper } from 'enzyme';
 import { object } from 'prop-types';
+import { format } from 'prettier';
 
 export default class TestUtils {
   /**
@@ -101,4 +102,8 @@ export default class TestUtils {
     const lastCall = updateToolbarSpy.mock.calls[lastCallIdx][0];
     return lastCall.actions[buttonKey];
   }
+}
+
+export function formatHTML(html: string): string {
+  return format(html, { parser: 'html' });
 }

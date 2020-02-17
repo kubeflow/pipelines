@@ -5,13 +5,10 @@
     "outDir": "build/dist",
     "module": "esnext",
     "target": "es5",
-    "lib": [
-      "es6",
-      "dom",
-      "es2019"
-    ],
+    "lib": ["es6", "dom", "es2019"],
     "sourceMap": true,
     "allowJs": true,
+    "resolveJsonModule": true,
     "jsx": "react",
     "moduleResolution": "node",
     "rootDir": "src",
