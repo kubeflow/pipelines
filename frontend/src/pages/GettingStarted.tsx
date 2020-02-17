@@ -25,17 +25,16 @@ import { commonCss, padding } from '../Css';
 import { Apis } from '../lib/Apis';
 import { ApiFilter, PredicateOp } from '../apis/filter/api';
 import { RoutePageFactory } from '../components/Router';
+import SAMPLE_CONFIG from '../config/sample_config_from_backend.json';
 
-// NOTE: Backend sample names should be in sync with these names.
-const DEMO_PIPELINES = [
-  '[Demo] TFX - Taxi Tip Prediction Model Trainer',
-  '[Demo] XGBoost - Training with Confusion Matrix',
-  '[Tutorial] DSL - Control structures',
-  '[Tutorial] Data passing in python components',
-];
-
-const OPTIONS = {
-  overrides: { a: { component: AutoLink } },
+const DEMO_PIPELINES: string[] = SAMPLE_CONFIG.slice(0, 4).map(sample =>
+  sample ? sample.name : '',
+);
+const DEMO_PIPELINES_ID_MAP = {
+  control: 3,
+  data: 2,
+  tfx: 1,
+  xgboost: 0,
 };
 
 const PAGE_CONTENT_MD = ({
@@ -107,6 +106,10 @@ cssRaw(`
 }
 `);
 
+const OPTIONS = {
+  overrides: { a: { component: AutoLink } },
+};
+
 export class GettingStarted extends Page<{}, { links: string[] }> {
   public state = {
     links: ['', '', '', ''].map(getPipelineLink),
@@ -152,10 +155,10 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
       <div className={classes(commonCss.page, padding(20, 'lr'), 'kfp-start-page')}>
         <Markdown options={OPTIONS}>
           {PAGE_CONTENT_MD({
-            control: this.state.links[2],
-            data: this.state.links[3],
-            tfx: this.state.links[0],
-            xgboost: this.state.links[1],
+            control: this.state.links[DEMO_PIPELINES_ID_MAP.control],
+            data: this.state.links[DEMO_PIPELINES_ID_MAP.data],
+            tfx: this.state.links[DEMO_PIPELINES_ID_MAP.tfx],
+            xgboost: this.state.links[DEMO_PIPELINES_ID_MAP.xgboost],
           })}
         </Markdown>
       </div>
@@ -175,7 +178,7 @@ function createAndEncodeFilter(filterString: string): string {
     predicates: [
       {
         key: 'name',
-        op: PredicateOp.ISSUBSTRING,
+        op: PredicateOp.EQUALS,
         string_value: filterString,
       },
     ],
