@@ -13,7 +13,7 @@ spec:
     - affinity:
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
-            preference:
+          - preference:
               matchExpressions:
                 - key: cloud.google.com/gke-preemptible
                   operator: In
