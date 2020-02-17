@@ -22,7 +22,7 @@ import os
 import subprocess
 
 diagnose_me_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/df450617af6e385da8c436628afafb1c76ca6c79/components/diagnostics/diagnose_me/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/566dddfdfc0a6a725b6e50ea85e73d8d5578bbb9/components/diagnostics/diagnose_me/component.yaml')
 
 confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/local/confusion_matrix/component.yaml')
 
@@ -207,19 +207,20 @@ def dataproc_predict_op(
 def xgb_train_pipeline(
     output='gs://{{kfp-default-bucket}}',
     project='{{kfp-project-id}}',
-    cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER,
-    region='us-central1',
-    train_data='gs://ml-pipeline-playground/sfpd/train.csv',
-    eval_data='gs://ml-pipeline-playground/sfpd/eval.csv',
-    schema='gs://ml-pipeline-playground/sfpd/schema.json',
-    target='resolution',
-    execution_mode='HALT_ON_ERROR',
-    required_apis='stackdriver.googleapis.com, storage-api.googleapis.com, bigquery.googleapis.com, dataflow.googleapis.com, dataproc.googleapis.com',
-    rounds=200,
-    workers=2,
-    true_label='ACTION',
+    diagnostic_mode='HALT_ON_ERROR',
+    rounds=5,
+    workers=1,
 ):
     output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
+    region='us-central1'
+    quota_check=[{'region':region,'metric':'CPUS','quota_needed':1.0}]
+    train_data='gs://ml-pipeline-playground/sfpd/train.csv'
+    eval_data='gs://ml-pipeline-playground/sfpd/eval.csv'
+    schema='gs://ml-pipeline-playground/sfpd/schema.json'
+    true_label='ACTION'
+    target='resolution'
+    required_apis='storage-api.googleapis.com, dataproc.googleapis.com'
+    cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER
 
     # Current GCP pyspark/spark op do not provide outputs as return values, instead,
     # we need to use strings to pass the uri around.
@@ -231,9 +232,10 @@ def xgb_train_pipeline(
     
     _diagnose_me_op = diagnose_me_op(
         bucket=output,
-        execution_mode=execution_mode,
+        execution_mode=diagnostic_mode,
         project_id=project, 
-        target_apis=required_apis)
+        target_apis=required_apis,
+        quota_check=quota_check)
     
     with dsl.ExitHandler(exit_op=dataproc_delete_cluster_op(
         project_id=project,

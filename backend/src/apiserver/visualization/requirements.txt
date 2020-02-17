@@ -8,6 +8,7 @@ jupyter_client==5.2.4
 nbconvert==5.5.0
 nbformat==4.4.0
 pandas==0.24.2
+pyarrow==0.15.1
 scikit_learn==0.21.2
 tensorflow-model-analysis==0.21.1
 tensorflow-data-validation==0.21.1

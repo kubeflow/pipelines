@@ -20,7 +20,7 @@ def run_diagnose_me(
     execution_mode: str,
     project_id: str,
     target_apis: str,
-    quota_check: Optional[List[Any]] = None,
+    quota_check: list = None,
 ) -> NamedTuple('Outputs', [('bucket', str), ('project_id', str)]):
   """ Performs environment verification specific to this pipeline.
 
@@ -75,7 +75,7 @@ def run_diagnose_me(
   else:
     # Check quota.
     quota_dict = {}  # Mapping from region to dict[metric, available]
-    for region_quota in quota_list:
+    for region_quota in quota_list.json_output:
       quota_dict[region_quota['name']] = {}
       for quota in region_quota['quotas']:
         quota_dict[region_quota['name']][quota['metric']
