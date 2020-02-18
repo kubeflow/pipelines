@@ -191,6 +191,42 @@ import pickle
     return function_loading_code
 
 
+
+def strip_type_hints(source_code: str) -> str:
+    """Strips type annotations from the function definitions in the provided source code."""
+
+    # Using the standard lib2to3 library to strip type annotations.
+    # Switch to another library like strip-hints is issues are found
+    from lib2to3 import fixer_base, refactor, fixer_util
+
+    class StripAnnotations(fixer_base.BaseFix):
+        PATTERN = r'''
+            typed_func_parameter=tname
+            |
+            typed_func_return_value=funcdef< any+ '->' any+ >
+        '''
+
+        def transform(self, node, results):
+            if 'typed_func_parameter' in results:
+                # Delete the annotation part of the function parameter declaration
+                del node.children[1:]
+            elif 'typed_func_return_value' in results:
+                # Delete the return annotation part of the function declaration
+                del node.children[-4:-2]
+            return node
+
+    class Refactor(refactor.RefactoringTool):
+        def __init__(self, fixers):
+            self._fixers = [cls(None, None) for cls in fixers]
+            super().__init__(None)
+
+        def get_fixers(self):
+            return self._fixers, []
+
+    stripped_code = Refactor([StripAnnotations]).refactor_string(source_code, '')
+    return stripped_code
+
+
 def _capture_function_code_using_source_copy(func) -> str:	
     import textwrap
 
@@ -208,13 +244,13 @@ def _capture_function_code_using_source_copy(func) -> str:
     if not func_code_lines:
         raise ValueError('Failed to dedent and clean up the source of function "{}". It is probably not properly indented.'.format(func.__name__))
 
-    #TODO: Add support for copying the NamedTuple subclass declaration code
-    #Adding NamedTuple import if needed
-    if hasattr(inspect.signature(func).return_annotation, '_fields'): #NamedTuple
-        func_code_lines.insert(0, '')
-        func_code_lines.insert(0, 'from typing import NamedTuple')
+    func_code = '\n'.join(func_code_lines)
 
-    return '\n'.join(func_code_lines)
+    # Stripping type annotations to prevent import errors.
+    # The most common cases are InputPath/OutputPath and typing.NamedTuple annotations
+    func_code = strip_type_hints(func_code)
+
+    return func_code
 
 
 def _extract_component_interface(func) -> ComponentSpec:
@@ -412,7 +448,6 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
     def get_argparse_type_for_input_file(passing_style):
         if passing_style is None:
             return None
-        pre_func_definitions.add(inspect.getsource(passing_style))
 
         if passing_style is InputPath:
             return 'str'
