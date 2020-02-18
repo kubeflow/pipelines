@@ -16,9 +16,7 @@ test_name: xgboost_training_cm
 arguments:
   output:
   project: ml-pipeline-test
-  train_data: gs://ml-pipeline-dataset/sample-test/sfpd/train_20.csv
-  eval_data: gs://ml-pipeline-dataset/sample-test/sfpd/eval_5.csv
-  schema: gs://ml-pipeline-dataset/sample-test/sfpd/schema.json
   rounds: 5
   workers: 2
+  diagnostic_mode: False
 test_timeout: 3600 # xgboost needs extra time, 60 * 60 secs

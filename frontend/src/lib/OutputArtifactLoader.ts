@@ -14,18 +14,6 @@
  * limitations under the License.
  */
 
-import WorkflowParser, { StoragePath } from './WorkflowParser';
-import { Apis } from '../lib/Apis';
-import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
-import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
-import { MarkdownViewerConfig } from '../components/viewers/MarkdownViewer';
-import { PagedTableConfig } from '../components/viewers/PagedTable';
-import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
-import { ROCCurveConfig } from '../components/viewers/ROCCurve';
-import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
-import { csvParseRows } from 'd3-dsv';
-import { logger, errorToMessage } from './Utils';
-import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 import {
   Api,
   Artifact,
@@ -33,17 +21,29 @@ import {
   Context,
   Event,
   Execution,
-  GetArtifactTypesRequest,
-  GetArtifactTypesResponse,
   GetArtifactsByIDRequest,
   GetArtifactsByIDResponse,
+  GetArtifactTypesRequest,
+  GetArtifactTypesResponse,
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
-  GetExecutionsByContextRequest,
-  GetExecutionsByContextResponse,
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
+  GetExecutionsByContextRequest,
+  GetExecutionsByContextResponse,
 } from '@kubeflow/frontend';
+import { csvParseRows } from 'd3-dsv';
+import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
+import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
+import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+import { MarkdownViewerConfig } from '../components/viewers/MarkdownViewer';
+import { PagedTableConfig } from '../components/viewers/PagedTable';
+import { ROCCurveConfig } from '../components/viewers/ROCCurve';
+import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
+import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
+import { Apis } from '../lib/Apis';
+import { errorToMessage, logger } from './Utils';
+import WorkflowParser, { StoragePath } from './WorkflowParser';
 
 export interface PlotMetadata {
   format?: 'csv';
@@ -279,12 +279,7 @@ export class OutputArtifactLoader {
       const trainUri = uri + '/train/stats_tfrecord';
       viewers = viewers.concat(
         [evalUri, trainUri].map(async specificUri => {
-          const script = [
-            'import tensorflow_data_validation as tfdv',
-            `stats = tfdv.load_statistics('${specificUri}')`,
-            'tfdv.visualize_statistics(stats)',
-          ];
-          return buildArtifactViewer(script);
+          return buildArtifactViewerTfdvStatistics(specificUri);
         }),
       );
     });
@@ -530,6 +525,21 @@ async function buildArtifactViewer(script: string[]): Promise<HTMLViewerConfig> 
   if (!visualization.htmlContent) {
     // TODO: Improve error message with details.
     throw new Error('Failed to build artifact viewer');
+  }
+  return {
+    htmlContent: visualization.htmlContent,
+    type: PlotType.WEB_APP,
+  };
+}
+
+async function buildArtifactViewerTfdvStatistics(url: string): Promise<HTMLViewerConfig> {
+  const visualizationData: ApiVisualization = {
+    source: url,
+    type: ApiVisualizationType.TFDV,
+  };
+  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
+  if (!visualization.htmlContent) {
+    throw new Error('Failed to build artifact viewer, no value in visualization.htmlContent');
   }
   return {
     htmlContent: visualization.htmlContent,
