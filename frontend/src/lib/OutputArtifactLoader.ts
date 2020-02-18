@@ -319,17 +319,29 @@ export class OutputArtifactLoader {
     const EvaluatorArtifactUris = filterArtifactUrisByType('ModelEvaluation', artifactTypes, artifacts);
     viewers = viewers.concat(
       EvaluatorArtifactUris.map(uri => {
+        const config_file_path = uri + '/eval_config.json';
         const script = [
-          'import tensorflow_model_analysis as tfma',
-          'from ipywidgets.embed import embed_minimal_html',
-          `eval_res = tfma.load_eval_result('${uri}')`,
-          'slicing_metrics_view = tfma.view.render_slicing_metrics(eval_res)',
-          `embed_minimal_html('tfma_export.html', views=[slicing_metrics_view], title='Slicing Metrics')`,
-          `with open('tfma_export.html', 'r') as view: print(view.read())`,
+          `
+          import json
+          import tensorflow as tf
+          import tensorflow_model_analysis as tfma
+          from ipywidgets.embed import embed_minimal_html
+          from IPython.core.display import display, HTML
+          config_file=tf.io.gfile.GFile('${config_file_path}', 'r')
+          config=json.loads(config_file.read())
+          featureKeys=list(filter(lambda x: 'featureKeys' in x, config['evalConfig']['slicingSpecs']))
+          columns=[] if len(featureKeys) == 0 else featureKeys[0]['featureKeys']
+          slicing_spec = tfma.slicer.SingleSliceSpec(columns=columns)
+          eval_result = tfma.load_eval_result('${uri}')
+          slicing_metrics_view = tfma.view.render_slicing_metrics(eval_result, slicing_spec=slicing_spec)
+          embed_minimal_html('tfma_export.html', views=[slicing_metrics_view], title='Slicing Metrics')
+          with open('tfma_export.html', 'r') as view: display(HTML(view.read()))
+          `
         ];
         return buildArtifactViewer(script);
       }),
     );
+
     return Promise.all(viewers);
   }
 
