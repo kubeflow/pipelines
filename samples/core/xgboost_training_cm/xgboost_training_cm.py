@@ -209,17 +209,17 @@ def xgb_train_pipeline(
     project='{{kfp-project-id}}',
     diagnostic_mode='HALT_ON_ERROR',
     rounds=5,
-    workers=1,
 ):
     output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
     region='us-central1'
-    quota_check=[{'region':region,'metric':'CPUS','quota_needed':1.0}]
+    workers=2
+    quota_check=[{'region':region,'metric':'CPUS','quota_needed':12.0}]
     train_data='gs://ml-pipeline-playground/sfpd/train.csv'
     eval_data='gs://ml-pipeline-playground/sfpd/eval.csv'
     schema='gs://ml-pipeline-playground/sfpd/schema.json'
     true_label='ACTION'
     target='resolution'
-    required_apis='storage-api.googleapis.com, dataproc.googleapis.com'
+    required_apis='dataproc.googleapis.com'
     cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER
 
     # Current GCP pyspark/spark op do not provide outputs as return values, instead,

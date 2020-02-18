@@ -17,6 +17,5 @@ arguments:
   output:
   project: ml-pipeline-test
   rounds: 5
-  workers: 2
   diagnostic_mode: False
 test_timeout: 3600 # xgboost needs extra time, 60 * 60 secs
