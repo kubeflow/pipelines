@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	TlsDir      string = "/run/secrets/tls"
-	TlsCertFile string = "tls.crt"
-	TlsKeyFile  string = "tls.key"
+	TlsDir      string = "/etc/webhook/certs"
+	TlsCertFile string = "cert.pem"
+	TlsKeyFile  string = "key.pem"
 )
 
 const (
