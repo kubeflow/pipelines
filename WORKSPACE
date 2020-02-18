@@ -37,15 +37,6 @@ load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 gazelle_dependencies()
 
 http_archive(
-    name = "org_tensorflow",
-    sha256 = "24570d860d87dcfb936f53fb8dd30302452d0aa6b8b8537e4555c1bf839121a6",
-    strip_prefix = "tensorflow-1.13.0-rc0",
-    urls = [
-        "https://github.com/tensorflow/tensorflow/archive/v1.13.0-rc0.tar.gz",
-    ],
-)
-
-http_archive(
     name = "io_bazel_rules_closure",
     sha256 = "43c9b882fa921923bcba764453f4058d102bece35a37c9f6383c713004aacff1",
     strip_prefix = "rules_closure-9889e2348259a5aad7e805547c1a0cf311cfcd91",
@@ -54,10 +45,6 @@ http_archive(
         "https://github.com/bazelbuild/rules_closure/archive/9889e2348259a5aad7e805547c1a0cf311cfcd91.tar.gz",  # 2018-12-21
     ],
 )
-
-load("@org_tensorflow//tensorflow:workspace.bzl", "tf_workspace")
-
-tf_workspace()
 
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 
