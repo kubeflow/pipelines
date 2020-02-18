@@ -212,7 +212,7 @@ def xgb_train_pipeline(
 ):
     output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
     region='us-central1'
-    workers=2,
+    workers=2
     quota_check=[{'region':region,'metric':'CPUS','quota_needed':12.0}]
     train_data='gs://ml-pipeline-playground/sfpd/train.csv'
     eval_data='gs://ml-pipeline-playground/sfpd/eval.csv'
