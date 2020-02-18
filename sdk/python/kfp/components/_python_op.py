@@ -29,7 +29,7 @@ __all__ = [
 
 from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
-from ._data_passing import serialize_value, type_name_to_deserializer, type_name_to_serializer, type_to_type_name
+from ._data_passing import serialize_value, get_deserializer_code_for_type_struct, get_serializer_func_for_type_struct, get_canonical_type_struct_for_type
 from ._naming import _make_name_unique_by_adding_index
 from .structures import *
 
@@ -233,16 +233,19 @@ def _extract_component_interface(func) -> ComponentSpec:
         if isinstance(annotation, dict):
             return annotation
         if isinstance(annotation, type):
-            if annotation in type_to_type_name:
-                return type_to_type_name[annotation]
+            type_struct = get_canonical_type_struct_for_type(annotation)
+            if type_struct:
+                return type_struct
             type_name = str(annotation.__name__)
         elif hasattr(annotation, '__forward_arg__'): # Handling typing.ForwardRef('Type_name') (the name was _ForwardRef in python 3.5-3.6)
             type_name = str(annotation.__forward_arg__)
         else:
             type_name = str(annotation)
 
-        if type_name in type_to_type_name: # type_to_type_name can also have type name keys
-            type_name = type_to_type_name[type_name]
+        # It's also possible to get the converter by type name
+        type_struct = get_canonical_type_struct_for_type(type_name)
+        if type_struct:
+            return type_struct
         return type_name
 
     input_names = set()
@@ -401,8 +404,9 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     definitions = set()
     def get_deserializer_and_register_definitions(type_name):
-        if type_name in type_name_to_deserializer:
-            (deserializer_code_str, definition_str) = type_name_to_deserializer[type_name]
+        deserializer_code = get_deserializer_code_for_type_struct(type_name)
+        if deserializer_code:
+            (deserializer_code_str, definition_str) = deserializer_code
             if definition_str:
                 definitions.add(definition_str)
             return deserializer_code_str
@@ -436,8 +440,8 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
         raise NotImplementedError('Unexpected data passing style: "{}".'.format(str(passing_style)))
 
     def get_serializer_and_register_definitions(type_name) -> str:
-        if type_name in type_name_to_serializer:
-            serializer_func = type_name_to_serializer[type_name]
+        serializer_func = get_serializer_func_for_type_struct(type_name)
+        if serializer_func:
             # If serializer is not part of the standard python library, then include its code in the generated program
             if hasattr(serializer_func, '__module__') and not _module_is_builtin_or_standard(serializer_func.__module__):
                 import inspect
