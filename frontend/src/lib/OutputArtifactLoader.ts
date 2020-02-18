@@ -319,24 +319,24 @@ export class OutputArtifactLoader {
     const EvaluatorArtifactUris = filterArtifactUrisByType('ModelEvaluation', artifactTypes, artifacts);
     viewers = viewers.concat(
       EvaluatorArtifactUris.map(uri => {
-        const config_file_path = uri + '/eval_config.json';
+        const configFilePath = uri + '/eval_config.json';
         const script = [
-          `
-          import json
-          import tensorflow as tf
-          import tensorflow_model_analysis as tfma
-          from ipywidgets.embed import embed_minimal_html
-          from IPython.core.display import display, HTML
-          config_file=tf.io.gfile.GFile('${config_file_path}', 'r')
-          config=json.loads(config_file.read())
-          featureKeys=list(filter(lambda x: 'featureKeys' in x, config['evalConfig']['slicingSpecs']))
-          columns=[] if len(featureKeys) == 0 else featureKeys[0]['featureKeys']
-          slicing_spec = tfma.slicer.SingleSliceSpec(columns=columns)
-          eval_result = tfma.load_eval_result('${uri}')
-          slicing_metrics_view = tfma.view.render_slicing_metrics(eval_result, slicing_spec=slicing_spec)
-          embed_minimal_html('tfma_export.html', views=[slicing_metrics_view], title='Slicing Metrics')
-          with open('tfma_export.html', 'r') as view: display(HTML(view.read()))
-          `
+          `import json`,
+          `import tensorflow as tf`,
+          `import tensorflow_model_analysis as tfma`,
+          `from ipywidgets.embed import embed_minimal_html`,
+          `from IPython.core.display import display, HTML`,
+          `config_file=tf.io.gfile.GFile('${configFilePath}', 'r')`,
+          `config=json.loads(config_file.read())`,
+          `featureKeys=list(filter(lambda x: 'featureKeys' in x, config['evalConfig']['slicingSpecs']))`,
+          `columns=[] if len(featureKeys) == 0 else featureKeys[0]['featureKeys']`,
+          `slicing_spec = tfma.slicer.SingleSliceSpec(columns=columns)`,
+          `eval_result = tfma.load_eval_result('${uri}')`,
+          `slicing_metrics_view = tfma.view.render_slicing_metrics(eval_result, slicing_spec=slicing_spec)`,
+          `embed_minimal_html('tfma_export.html', views=[slicing_metrics_view], title='Slicing Metrics')`,
+          `with open('tfma_export.html', 'r') as view: view_html = view.read()`,
+          `res_html = view_html.replace('dist/embed-amd.js" crossorigin="anonymous"></script>', 'dist/embed-amd.js" crossorigin="anonymous" data-jupyter-widgets-cdn="https://cdn.jsdelivr.net/gh/Bobgy/model-analysis@kfp/tensorflow_model_analysis/notebook/jupyter/js/dist/" crossorigin="anonymous"></script>')`,
+          `display(HTML(res_html))`
         ];
         return buildArtifactViewer(script);
       }),
