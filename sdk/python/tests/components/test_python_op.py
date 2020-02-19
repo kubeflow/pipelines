@@ -286,7 +286,8 @@ class PythonOpTestCase(unittest.TestCase):
             bool_param : bool = True,
             none_param = None,
             custom_type_param: 'Custom type' = None,
-            ) -> NamedTuple('DummyName', [
+            custom_struct_type_param: {'CustomType': {'param1': 'value1', 'param2': 'value2'}} = None,
+        ) -> NamedTuple('DummyName', [
                 #('required_param',), # All typing.NamedTuple fields must have types
                 ('int_param', int),
                 ('float_param', float),
@@ -294,6 +295,7 @@ class PythonOpTestCase(unittest.TestCase):
                 ('bool_param', bool),
                 #('custom_type_param', 'Custom type'), #SyntaxError: Forward reference must be an expression -- got 'Custom type'
                 ('custom_type_param', 'CustomType'),
+                #('custom_struct_type_param', {'CustomType': {'param1': 'value1', 'param2': 'value2'}}), # TypeError: NamedTuple('Name', [(f0, t0), (f1, t1), ...]); each t must be a type Got {'CustomType': {'param1': 'value1', 'param2': 'value2'}}
             ]
         ):
             '''Function docstring'''
@@ -312,6 +314,7 @@ class PythonOpTestCase(unittest.TestCase):
                 InputSpec(name='bool_param', type='Boolean', default='True', optional=True),
                 InputSpec(name='none_param', optional=True), # No default='None'
                 InputSpec(name='custom_type_param', type='Custom type', optional=True),
+                InputSpec(name='custom_struct_type_param', type={'CustomType': {'param1': 'value1', 'param2': 'value2'}}, optional=True),
             ]
         )
         self.assertEqual(
@@ -323,6 +326,7 @@ class PythonOpTestCase(unittest.TestCase):
                 OutputSpec(name='bool_param', type='Boolean'),
                 #OutputSpec(name='custom_type_param', type='Custom type', default='None'),
                 OutputSpec(name='custom_type_param', type='CustomType'),
+                #OutputSpec(name='custom_struct_type_param', type={'CustomType': {'param1': 'value1', 'param2': 'value2'}}, optional=True),
             ]
         )
 
@@ -340,6 +344,7 @@ class PythonOpTestCase(unittest.TestCase):
                     {'name': 'bool_param', 'type': 'Boolean', 'default': 'True', 'optional': True},
                     {'name': 'none_param', 'optional': True}, # No default='None'
                     {'name': 'custom_type_param', 'type': 'Custom type', 'optional': True},
+                    {'name': 'custom_struct_type_param', 'type': {'CustomType': {'param1': 'value1', 'param2': 'value2'}}, 'optional': True},
                 ],
                 'outputs': [
                     {'name': 'int_param', 'type': 'Integer'},
@@ -347,6 +352,7 @@ class PythonOpTestCase(unittest.TestCase):
                     {'name': 'str_param', 'type': 'String'},
                     {'name': 'bool_param', 'type': 'Boolean'},
                     {'name': 'custom_type_param', 'type': 'CustomType'},
+                    #{'name': 'custom_struct_type_param', 'type': {'CustomType': {'param1': 'value1', 'param2': 'value2'}}, 'optional': True},
                 ]
             }
         )
