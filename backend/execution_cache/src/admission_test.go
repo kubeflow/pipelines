@@ -63,7 +63,7 @@ func TestDoServeAdmitFuncWithInvalidHttpMethod(t *testing.T) {
 	rr := httptest.NewRecorder()
 	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc)
 	assert.Nil(t, patchOperations)
-	assert.Contains(t, err.Error(), "invalid method")
+	assert.Contains(t, err.Error(), "Invalid method")
 }
 
 func TestDoServeAdmitFuncWithInvalidContentType(t *testing.T) {
@@ -71,7 +71,7 @@ func TestDoServeAdmitFuncWithInvalidContentType(t *testing.T) {
 	rr := httptest.NewRecorder()
 	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc)
 	assert.Nil(t, patchOperations)
-	assert.Contains(t, err.Error(), "unsupported content type")
+	assert.Contains(t, err.Error(), "Unsupported content type")
 }
 
 func TestDoServeAdmitFuncWithInvalidRequestBody(t *testing.T) {
@@ -80,7 +80,7 @@ func TestDoServeAdmitFuncWithInvalidRequestBody(t *testing.T) {
 	rr := httptest.NewRecorder()
 	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc)
 	assert.Nil(t, patchOperations)
-	assert.Contains(t, err.Error(), "could not deserialize request")
+	assert.Contains(t, err.Error(), "Could not deserialize request")
 }
 
 func TestDoServeAdmitFuncWithEmptyAdmissionRequest(t *testing.T) {
@@ -93,5 +93,5 @@ func TestDoServeAdmitFuncWithEmptyAdmissionRequest(t *testing.T) {
 	rr := httptest.NewRecorder()
 	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc)
 	assert.Nil(t, patchOperations)
-	assert.Contains(t, err.Error(), "malformed admission review: request is nil")
+	assert.Contains(t, err.Error(), "Malformed admission review request: request body is nil")
 }

@@ -31,7 +31,7 @@ func mutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) 
 	// However, if (for whatever reason) this gets invoked on an object of a different kind, issue a log message but
 	// let the object request pass through otherwise.
 	if req.Resource != podResource {
-		log.Printf("expect resource to be %q", podResource)
+		log.Printf("Expect resource to be %q, but found %q", podResource, req.Resource)
 		return nil, nil
 	}
 
@@ -46,13 +46,15 @@ func mutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) 
 	annotations := pod.ObjectMeta.Annotations
 	template, exists := annotations[ArgoWorkflowTemplate]
 	var executionHashKey string
-	// Generate the executionHashKey based on pod.metadata.annotations.workflows.argoproj.io/template
-	if exists {
-		hash := sha256.New()
-		hash.Write([]byte(template))
-		md := hash.Sum(nil)
-		executionHashKey = hex.EncodeToString(md)
+	if !exists {
+		return patches, nil
 	}
+
+	// Generate the executionHashKey based on pod.metadata.annotations.workflows.argoproj.io/template
+	hash := sha256.New()
+	hash.Write([]byte(template))
+	md := hash.Sum(nil)
+	executionHashKey = hex.EncodeToString(md)
 
 	annotations[ExecutionKey] = executionHashKey
 	// Add executionKey to pod.metadata.annotations

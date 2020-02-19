@@ -59,7 +59,7 @@ func TestApplyPodOutputWithErrorPodResource(t *testing.T) {
 			Version: "wrong", Resource: "wrong",
 		},
 	}
-	patchOperations, err := applyPodOutput(mockAdmissionRequest)
+	patchOperations, err := mutatePodIfCached(mockAdmissionRequest)
 	assert.Nil(t, patchOperations)
 	assert.Nil(t, err)
 }
@@ -67,13 +67,13 @@ func TestApplyPodOutputWithErrorPodResource(t *testing.T) {
 func TestApplyPodOutputWithDecodeError(t *testing.T) {
 	invalidAdmissionRequest := fakeAdmissionRequest
 	invalidAdmissionRequest.Object.Raw = []byte{5, 5}
-	patchOperation, err := applyPodOutput(&invalidAdmissionRequest)
+	patchOperation, err := mutatePodIfCached(&invalidAdmissionRequest)
 	assert.Nil(t, patchOperation)
 	assert.Contains(t, err.Error(), "could not deserialize pod object")
 }
 
 func TestApplyPodOutput(t *testing.T) {
-	patchOperation, err := applyPodOutput(&fakeAdmissionRequest)
+	patchOperation, err := mutatePodIfCached(&fakeAdmissionRequest)
 	assert.Nil(t, err)
 	require.NotNil(t, patchOperation)
 	require.Equal(t, 1, len(patchOperation))

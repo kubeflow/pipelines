@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type OperationType string
@@ -49,18 +50,18 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, fmt.Errorf("invalid method %q, only POST requests are allowed", r.Method)
+		return nil, fmt.Errorf("Invalid method %q, only POST requests are allowed", r.Method)
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, fmt.Errorf("could not read request body: %v", err)
+		return nil, fmt.Errorf("Could not read request body: %v", err)
 	}
 
 	if contentType := r.Header.Get(ContentType); contentType != JsonContentType {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, fmt.Errorf("unsupported content type %q, only %q is supported", contentType, JsonContentType)
+		return nil, fmt.Errorf("Unsupported content type %q, only %q is supported", contentType, JsonContentType)
 	}
 
 	// Step 2: Parse the AdmissionReview request.
@@ -69,51 +70,34 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 
 	if _, _, err := universalDeserializer.Decode(body, nil, &admissionReviewReq); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, fmt.Errorf("could not deserialize request: %v", err)
+		return nil, fmt.Errorf("Could not deserialize request: %v", err)
 	} else if admissionReviewReq.Request == nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, errors.New("malformed admission review: request is nil")
+		return nil, errors.New("Malformed admission review request: request body is nil")
 	}
 
 	// Step 3: Construct the AdmissionReview response.
 
-	admissionReviewResponse := v1beta1.AdmissionReview{
-		Response: &v1beta1.AdmissionResponse{
-			UID: admissionReviewReq.Request.UID,
-		},
+	// Apply the admit() function only for non-Kubernetes namespaces. For objects in Kubernetes namespaces, return
+	// an empty set of patch operations.
+	if isKubeNamespace(admissionReviewReq.Request.Namespace) {
+		return allowedResponse(admissionReviewReq.Request.UID, nil), nil
 	}
 
 	var patchOps []patchOperation
-	// Apply the admit() function only for non-Kubernetes namespaces. For objects in Kubernetes namespaces, return
-	// an empty set of patch operations.
-	if !isKubeNamespace(admissionReviewReq.Request.Namespace) {
-		patchOps, err = admit(admissionReviewReq.Request)
+
+	patchOps, err = admit(admissionReviewReq.Request)
+	if err != nil {
+		return errorResponse(admissionReviewReq.Request.UID, err), nil
 	}
 
+	patchBytes, err := json.Marshal(patchOps)
 	if err != nil {
-		// If the handler returned an error, incorporate the error message into the response and deny the object
-		// creation.
-		admissionReviewResponse.Response.Allowed = false
-		admissionReviewResponse.Response.Result = &metav1.Status{
-			Message: err.Error(),
-		}
-	} else {
-		// Otherwise, encode the patch operations to JSON and return a positive response.
-		patchBytes, err := json.Marshal(patchOps)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return nil, fmt.Errorf("could not marshal JSON patch: %v", err)
-		}
-		admissionReviewResponse.Response.Allowed = true
-		admissionReviewResponse.Response.Patch = patchBytes
+		w.WriteHeader(http.StatusInternalServerError)
+		return nil, fmt.Errorf("Could not marshal JSON patch: %v", err)
 	}
 
-	// Return the AdmissionReview with a response as JSON.
-	bytes, err := json.Marshal(&admissionReviewResponse)
-	if err != nil {
-		return nil, fmt.Errorf("marshaling response: %v", err)
-	}
-	return bytes, nil
+	return allowedResponse(admissionReviewReq.Request.UID, patchBytes), nil
 }
 
 // serveAdmitFunc is a wrapper around doServeAdmitFunc that adds error handling and logging.
@@ -140,4 +124,34 @@ func admitFuncHandler(admit admitFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		serveAdmitFunc(w, r, admit)
 	})
+}
+
+func allowedResponse(uid types.UID, patchBytes []byte) []byte {
+	admissionReviewResponse := v1beta1.AdmissionReview{
+		Response: &v1beta1.AdmissionResponse{
+			UID: uid,
+		},
+	}
+	admissionReviewResponse.Response.Allowed = true
+	admissionReviewResponse.Response.Patch = patchBytes
+
+	bytes, err := json.Marshal(&admissionReviewResponse)
+	if err != nil {
+		return errorResponse(uid, err)
+	}
+	return bytes
+}
+
+func errorResponse(uid types.UID, err error) []byte {
+	admissionReviewResponse := v1beta1.AdmissionReview{
+		Response: &v1beta1.AdmissionResponse{
+			UID: uid,
+		},
+	}
+	admissionReviewResponse.Response.Allowed = false
+	admissionReviewResponse.Response.Result = &metav1.Status{
+		Message: err.Error(),
+	}
+	bytes, _ := json.Marshal(&admissionReviewResponse)
+	return bytes
 }
