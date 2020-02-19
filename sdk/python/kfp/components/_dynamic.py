@@ -46,13 +46,13 @@ def create_function_from_parameters(func: Callable[[Mapping[str, Any]], Any], pa
         mod_co_firstlineno = code.co_firstlineno
 
     if sys.version_info >= (3, 8):
-        modified_code = (code
-            .replace(co_argcount=mod_co_argcount)
-            .replace(co_nlocals=mod_co_nlocals)
-            .replace(co_varnames=mod_co_varnames)
-            .replace(co_filename=mod_co_filename)
-            .replace(co_name=mod_co_name)
-            .replace(co_firstlineno=mod_co_firstlineno)
+        modified_code = code.replace(
+            co_argcount=mod_co_argcount,
+            co_nlocals=mod_co_nlocals,
+            co_varnames=mod_co_varnames,
+            co_filename=mod_co_filename,
+            co_name=mod_co_name,
+            co_firstlineno=mod_co_firstlineno,
         )
     else:
         modified_code = types.CodeType(
