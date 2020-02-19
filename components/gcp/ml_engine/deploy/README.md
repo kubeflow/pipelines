@@ -59,10 +59,11 @@ The accepted file formats are:
 `model_uri` can also be an [Estimator export base directory, ](https://www.tensorflow.org/guide/saved_model#perform_the_export)which contains a list of subdirectories named by timestamp. The directory with the latest timestamp is used to load the trained model file.
 
 ## Output
-| Name    | Description                 | Type      |
-|:------- |:----                        | :---      |
-| job_id  | The ID of the created job.  |  String   |
-| job_dir | The Cloud Storage path that contains the trained model output files. |  GCSPath  |
+Name | Description | Type
+:--- | :---------- | :---
+| model_uri | The Cloud Storage URI of the trained model.  |  GCSPath |
+| model_name | The name of the deployed model. |  String  |
+| version_name | The name of the deployed version. |  String  |
 
 
 ## Cautions & requirements
