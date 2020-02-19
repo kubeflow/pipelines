@@ -5,7 +5,7 @@ exports[`GettingStarted page fallbacks to show pipeline list page if request fai
 - First value
 + Second value
 
-@@ -70,11 +70,13 @@
+@@ -69,11 +69,13 @@
               >
             </li>
           </ul>
@@ -46,7 +46,6 @@ exports[`GettingStarted page initially renders documentation 1`] = `
             Start Here!
           </strong>
         </a>
-         (Alpha)
       </p>
       <br />
       <h2
@@ -260,7 +259,7 @@ exports[`GettingStarted page renders documentation with pipeline deep link after
 - First value
 + Second value
 
-@@ -17,11 +17,13 @@
+@@ -16,11 +16,13 @@
       <h2 id=\\"demonstrations-and-tutorials\\">Demonstrations and Tutorials</h2>
       <p>This section contains demo and tutorial pipelines.</p>
       <p><strong>Demos</strong> - Try an end-to-end demonstration pipeline.</p>
@@ -275,7 +274,7 @@ exports[`GettingStarted page renders documentation with pipeline deep link after
               Classification pipeline with model analysis, based on a public
               BigQuery dataset of taxicab trips. Learn how to
               <a
-@@ -33,11 +35,13 @@
+@@ -32,11 +34,13 @@
               >
             </li>
           </ul>
@@ -290,7 +289,7 @@ exports[`GettingStarted page renders documentation with pipeline deep link after
               An example of end-to-end distributed training for an XGBoost model.
               <a
                 href=\\"https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm\\"
-@@ -55,11 +59,13 @@
+@@ -54,11 +58,13 @@
         <strong>Tutorials</strong> - Learn pipeline concepts by following a
         tutorial.
       </p>
@@ -305,7 +304,7 @@ exports[`GettingStarted page renders documentation with pipeline deep link after
               Shows how to pass data between python components.
               <a
                 href=\\"https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components\\"
-@@ -70,11 +76,13 @@
+@@ -69,11 +75,13 @@
               >
             </li>
           </ul>

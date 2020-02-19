@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import Buttons from '../lib/Buttons';
-import { Page } from './Page';
-import { ToolbarProps } from '../components/Toolbar';
 import Markdown from 'markdown-to-jsx';
+import * as React from 'react';
+import { classes, cssRaw } from 'typestyle';
+import { ApiFilter, PredicateOp } from '../apis/filter/api';
 import { AutoLink } from '../atoms/ExternalLink';
-import { cssRaw, classes } from 'typestyle';
+import { RoutePageFactory } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
+import SAMPLE_CONFIG from '../config/sample_config_from_backend.json';
 import { commonCss, padding } from '../Css';
 import { Apis } from '../lib/Apis';
-import { ApiFilter, PredicateOp } from '../apis/filter/api';
-import { RoutePageFactory } from '../components/Router';
-import SAMPLE_CONFIG from '../config/sample_config_from_backend.json';
+import Buttons from '../lib/Buttons';
+import { Page } from './Page';
 
 const DEMO_PIPELINES: string[] = SAMPLE_CONFIG.slice(0, 4);
 const DEMO_PIPELINES_ID_MAP = {
@@ -50,7 +50,7 @@ const PAGE_CONTENT_MD = ({
 
 ## Build your own pipeline
 
-Build an end-to-end ML pipeline with TensorFlow Extended (TFX) [**Start Here!**](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb) (Alpha)
+Build an end-to-end ML pipeline with TensorFlow Extended (TFX) [**Start Here!**](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb)
 
 <br/>
 
