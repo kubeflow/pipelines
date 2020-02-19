@@ -14,8 +14,20 @@
 import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper';
 import fetch from 'node-fetch';
+import { GkeMetadataConfigs } from '../configs';
 
-export const clusterNameHandler: Handler = async (_, res) => {
+const disabledHandler: Handler = async (_, res) => {
+  res.status(500).send('GKE metadata endpoints are disabled.');
+};
+
+export const getClusterNameHandler = (options: GkeMetadataConfigs) => {
+  if (options.disabled) {
+    return disabledHandler;
+  }
+  return clusterNameHandler;
+};
+
+const clusterNameHandler: Handler = async (_, res) => {
   if (!k8sHelper.isInCluster) {
     res.status(500).send('Not running in Kubernetes cluster.');
     return;
@@ -28,7 +40,14 @@ export const clusterNameHandler: Handler = async (_, res) => {
   res.send(await response.text());
 };
 
-export const projectIdHandler: Handler = async (_, res) => {
+export const getProjectIdHandler = (options: GkeMetadataConfigs) => {
+  if (options.disabled) {
+    return disabledHandler;
+  }
+  return projectIdHandler;
+};
+
+const projectIdHandler: Handler = async (_, res) => {
   if (!k8sHelper.isInCluster) {
     res.status(500).send('Not running in Kubernetes cluster.');
     return;

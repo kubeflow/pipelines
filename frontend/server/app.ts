@@ -26,7 +26,7 @@ import {
   deleteTensorboardHandler,
 } from './handlers/tensorboard';
 import { getPodLogsHandler } from './handlers/pod-logs';
-import { clusterNameHandler, projectIdHandler } from './handlers/gke-metadata';
+import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata';
 import { getAllowCustomVisualizationsHandler } from './handlers/vis';
 import { getIndexHTMLHandler } from './handlers/index-html';
 
@@ -128,8 +128,8 @@ function createUIServer(options: UIConfigs) {
   registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));
 
   /** Cluster metadata (GKE only) */
-  registerHandler(app.get, '/system/cluster-name', clusterNameHandler);
-  registerHandler(app.get, '/system/project-id', projectIdHandler);
+  registerHandler(app.get, '/system/cluster-name', getClusterNameHandler(options.gkeMetadata));
+  registerHandler(app.get, '/system/project-id', getProjectIdHandler(options.gkeMetadata));
 
   /** Visualization */
   registerHandler(

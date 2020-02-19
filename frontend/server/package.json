@@ -45,7 +45,11 @@
         "diagnostics": false,
         "tsConfig": "../tsconfig.json"
       }
-    }
+    },
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "dist/"
+    ]
   },
   "repository": {
     "type": "git",
