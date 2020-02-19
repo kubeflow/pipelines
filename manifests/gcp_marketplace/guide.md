@@ -14,7 +14,16 @@ Once you have deployed Kubeflow Pipelines instances, you can view and manage the
 
 ## Cluster
 
-You can deploy Kubeflow Pipelines to a new cluster or an existing cluster. New clusters aren't customizable, so if you need that, you should use the [Google Kubernetes Engine](https://console.cloud.google.com/kubernetes/list) to create a cluster that meets your requirements and then deploy to that.
+You can deploy Kubeflow Pipelines to a new cluster or an existing cluster. New clusters aren't customizable, so if you need that, you should use the [Google Kubernetes Engine](https://console.cloud.google.com/kubernetes/list) to create a cluster that meets your requirements and then deploy to that. The required cluster profile is 3 nodes with 2 CPUs. You also can create the cluster via gcloud.
+
+Here is a sample which will create a cluster with 3x2 CPUs and can access all GCP APIs without setting up secrets.
+
+```
+gcloud container clusters create $CLUSTER_NAME \
+    --zone $ZONE \
+    --machine-type n1-standard-2 \
+    --scopes cloud-platform
+```
 
 You can only deploy one Kubeflow Pipelines into a given cluster.
 
