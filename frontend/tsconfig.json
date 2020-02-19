@@ -24,8 +24,6 @@
     "__mocks__",
     "acceptance-tests",
     "analyze_bundle.js",
-    "backstop.ts",
-    "backstop_data",
     "build",
     "coverage",
     "gen_licenses.js",
