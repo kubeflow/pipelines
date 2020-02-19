@@ -311,6 +311,41 @@ export class OutputArtifactLoader {
         return buildArtifactViewer(script);
       }),
     );
+    const EvaluatorArtifactUris = filterArtifactUrisByType(
+      'ModelEvaluation',
+      artifactTypes,
+      artifacts,
+    );
+    viewers = viewers.concat(
+      EvaluatorArtifactUris.map(uri => {
+        const configFilePath = uri + '/eval_config.json';
+        // The visualization of TFMA inside KFP UI depends a hack of TFMA widget js
+        // For context and future improvement, please refer to
+        // https://github.com/tensorflow/model-analysis/issues/10#issuecomment-587422929
+        const script = [
+          `import io`,
+          `import json`,
+          `import tensorflow as tf`,
+          `import tensorflow_model_analysis as tfma`,
+          `from ipywidgets.embed import embed_minimal_html`,
+          `from IPython.core.display import display, HTML`,
+          `config_file=tf.io.gfile.GFile('${configFilePath}', 'r')`,
+          `config=json.loads(config_file.read())`,
+          `featureKeys=list(filter(lambda x: 'featureKeys' in x, config['evalConfig']['slicingSpecs']))`,
+          `columns=[] if len(featureKeys) == 0 else featureKeys[0]['featureKeys']`,
+          `slicing_spec = tfma.slicer.SingleSliceSpec(columns=columns)`,
+          `eval_result = tfma.load_eval_result('${uri}')`,
+          `slicing_metrics_view = tfma.view.render_slicing_metrics(eval_result, slicing_spec=slicing_spec)`,
+          `view = io.StringIO()`,
+          `embed_minimal_html(view, views=[slicing_metrics_view], title='Slicing Metrics')`,
+          `html = view.getvalue().replace('dist/embed-amd.js" crossorigin="anonymous"></script>', 'dist/embed-amd.js" crossorigin="anonymous" data-jupyter-widgets-cdn="https://cdn.jsdelivr.net/gh/Bobgy/model-analysis@kfp/tensorflow_model_analysis/notebook/jupyter/js/dist/" crossorigin="anonymous"></script>')`,
+          `display(HTML(html))`,
+        ];
+        return buildArtifactViewer(script);
+      }),
+    );
+    // TODO(jingzhang36): maybe move the above built-in scripts to visualization server.
+
     return Promise.all(viewers);
   }
 
@@ -546,45 +581,3 @@ async function buildArtifactViewerTfdvStatistics(url: string): Promise<HTMLViewe
     type: PlotType.WEB_APP,
   };
 }
-
-// TODO: add tfma back
-// function filterTfmaArtifactsPaths(
-//   artifactTypes: ArtifactType[],
-//   artifacts: Artifact[],
-// ): string[] {
-//   const tfmaArtifactTypeIds = artifactTypes
-//     .filter(artifactType => artifactType.getName() === 'ModelEvaluation')
-//     .map(artifactType => artifactType.getId());
-//   const tfmaArtifacts = artifacts.filter(artifact =>
-//     tfmaArtifactTypeIds.includes(artifact.getTypeId()),
-//   );
-
-//   const tfmaArtifactPaths = tfmaArtifacts.map(artifact => artifact.getUri()).filter(uri => uri); // uri not empty
-//   return tfmaArtifactPaths;
-// }
-
-// async function getTfmaArtifactViewers(
-//   tfmaArtifactPaths: string[],
-// ): Array<Promise<HTMLViewerConfig>> {
-//   return tfmaArtifactPaths.map(async artifactPath => {
-//     const script = [
-//       'import tensorflow_model_analysis as tfma',
-//       `tfma_result = tfma.load_eval_result('${artifactPath}')`,
-//       'tfma.view.render_slicing_metrics(tfma_result)',
-//     ];
-//     const visualizationData: ApiVisualization = {
-//       arguments: JSON.stringify({ code: script }),
-//       source: '',
-//       type: ApiVisualizationType.CUSTOM,
-//     };
-//     const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
-//     if (!visualization.htmlContent) {
-//       // TODO: Improve error message with details.
-//       throw new Error('Failed to build TFMA artifact visualization');
-//     }
-//     return {
-//       htmlContent: visualization.htmlContent,
-//       type: PlotType.WEB_APP,
-//     };
-//   });
-// }
