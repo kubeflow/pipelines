@@ -54,7 +54,7 @@ _data_root_param = data_types.RuntimeParameter(
 # Transform and Trainer both require user-defined functions to run successfully.
 _module_file_param = data_types.RuntimeParameter(
     name='module-file',
-    default='gs://ml-pipeline-playground/iris/modules/iris_utils.py',
+    default='gs://ml-pipeline-playground/iris/modules/iris_utils_native_keras.py',
     ptype=Text,
 )
 
