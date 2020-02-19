@@ -311,7 +311,11 @@ export class OutputArtifactLoader {
         return buildArtifactViewer(script);
       }),
     );
-    const EvaluatorArtifactUris = filterArtifactUrisByType('ModelEvaluation', artifactTypes, artifacts);
+    const EvaluatorArtifactUris = filterArtifactUrisByType(
+      'ModelEvaluation',
+      artifactTypes,
+      artifacts,
+    );
     viewers = viewers.concat(
       EvaluatorArtifactUris.map(uri => {
         const configFilePath = uri + '/eval_config.json';
@@ -332,7 +336,7 @@ export class OutputArtifactLoader {
           `view_html=None`,
           `with open('tfma_export.html', 'r') as view: view_html = view.read()`,
           `res_html = view_html.replace('dist/embed-amd.js" crossorigin="anonymous"></script>', 'dist/embed-amd.js" crossorigin="anonymous" data-jupyter-widgets-cdn="https://cdn.jsdelivr.net/gh/Bobgy/model-analysis@kfp/tensorflow_model_analysis/notebook/jupyter/js/dist/" crossorigin="anonymous"></script>')`,
-          `display(HTML(res_html))`
+          `display(HTML(res_html))`,
         ];
         return buildArtifactViewer(script);
       }),
