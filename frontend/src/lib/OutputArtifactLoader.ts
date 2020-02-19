@@ -334,6 +334,7 @@ export class OutputArtifactLoader {
           `eval_result = tfma.load_eval_result('${uri}')`,
           `slicing_metrics_view = tfma.view.render_slicing_metrics(eval_result, slicing_spec=slicing_spec)`,
           `embed_minimal_html('tfma_export.html', views=[slicing_metrics_view], title='Slicing Metrics')`,
+          `view_html=None`,
           `with open('tfma_export.html', 'r') as view: view_html = view.read()`,
           `res_html = view_html.replace('dist/embed-amd.js" crossorigin="anonymous"></script>', 'dist/embed-amd.js" crossorigin="anonymous" data-jupyter-widgets-cdn="https://cdn.jsdelivr.net/gh/Bobgy/model-analysis@kfp/tensorflow_model_analysis/notebook/jupyter/js/dist/" crossorigin="anonymous"></script>')`,
           `display(HTML(res_html))`
@@ -562,45 +563,3 @@ async function buildArtifactViewer(script: string[]): Promise<HTMLViewerConfig> 
     type: PlotType.WEB_APP,
   };
 }
-
-// TODO: add tfma back
-// function filterTfmaArtifactsPaths(
-//   artifactTypes: ArtifactType[],
-//   artifacts: Artifact[],
-// ): string[] {
-//   const tfmaArtifactTypeIds = artifactTypes
-//     .filter(artifactType => artifactType.getName() === 'ModelEvaluation')
-//     .map(artifactType => artifactType.getId());
-//   const tfmaArtifacts = artifacts.filter(artifact =>
-//     tfmaArtifactTypeIds.includes(artifact.getTypeId()),
-//   );
-
-//   const tfmaArtifactPaths = tfmaArtifacts.map(artifact => artifact.getUri()).filter(uri => uri); // uri not empty
-//   return tfmaArtifactPaths;
-// }
-
-// async function getTfmaArtifactViewers(
-//   tfmaArtifactPaths: string[],
-// ): Array<Promise<HTMLViewerConfig>> {
-//   return tfmaArtifactPaths.map(async artifactPath => {
-//     const script = [
-//       'import tensorflow_model_analysis as tfma',
-//       `tfma_result = tfma.load_eval_result('${artifactPath}')`,
-//       'tfma.view.render_slicing_metrics(tfma_result)',
-//     ];
-//     const visualizationData: ApiVisualization = {
-//       arguments: JSON.stringify({ code: script }),
-//       source: '',
-//       type: ApiVisualizationType.CUSTOM,
-//     };
-//     const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
-//     if (!visualization.htmlContent) {
-//       // TODO: Improve error message with details.
-//       throw new Error('Failed to build TFMA artifact visualization');
-//     }
-//     return {
-//       htmlContent: visualization.htmlContent,
-//       type: PlotType.WEB_APP,
-//     };
-//   });
-// }
