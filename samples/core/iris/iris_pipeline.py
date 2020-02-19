@@ -135,16 +135,10 @@ def _create_pipeline(
 if __name__ == '__main__':
   absl.logging.set_verbosity(absl.logging.INFO)
   # Make sure the version of TFX image used is consistent with the version of
-  # TFX SDK. Here we use tfx:0.15.0 image.
+  # TFX SDK. Here we use tfx:0.21.0 image.
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
-      pipeline_operator_funcs=list(
-          filter(
-              lambda operator: operator.__name__.find('gcp_secret') == -1,
-              kubeflow_dag_runner.get_default_pipeline_operator_funcs()
-          )
-      ),
       tfx_image='tensorflow/tfx:0.21.0',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
