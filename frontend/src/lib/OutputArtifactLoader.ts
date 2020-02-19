@@ -344,6 +344,7 @@ export class OutputArtifactLoader {
         return buildArtifactViewer(script);
       }),
     );
+    // TODO(jingzhang36): maybe move the above built-in scripts to visualization server.
 
     return Promise.all(viewers);
   }
