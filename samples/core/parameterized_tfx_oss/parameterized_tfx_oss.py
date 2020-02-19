@@ -18,7 +18,6 @@ import os
 from typing import Text
 
 import kfp
-from kfp import dsl
 from tfx.components.evaluator.component import Evaluator
 from tfx.components.example_gen.csv_example_gen.component import CsvExampleGen
 from tfx.components.example_validator.component import ExampleValidator
@@ -58,7 +57,7 @@ pipeline_root = os.path.join(
 )
 
 
-def _create_test_pipeline(
+def _create_pipeline(
     pipeline_root: Text, csv_input_location: data_types.RuntimeParameter,
     taxi_module_file: data_types.RuntimeParameter, enable_cache: bool
 ):
@@ -113,18 +112,13 @@ def _create_test_pipeline(
       examples=example_gen.outputs['examples'], model=trainer.outputs['model']
   )
 
-  # Hack: ensuring push_destination can be correctly parameterized and interpreted.
-  # pipeline root will be specified as a dsl.PipelineParam with the name
-  # pipeline-root, see:
-  # https://github.com/tensorflow/tfx/blob/1c670e92143c7856f67a866f721b8a9368ede385/tfx/orchestration/kubeflow/kubeflow_dag_runner.py#L226
-  _pipeline_root_param = dsl.PipelineParam(name='pipeline-root')
   pusher = Pusher(
       model=trainer.outputs['model'],
       model_blessing=model_validator.outputs['blessing'],
       push_destination=pusher_pb2.PushDestination(
           filesystem=pusher_pb2.PushDestination.Filesystem(
               base_directory=os.path.
-              join(str(_pipeline_root_param), 'model_serving')
+              join(str(pipeline.ROOT_PARAMETER), 'model_serving')
           )
       ),
   )
@@ -141,9 +135,8 @@ def _create_test_pipeline(
 
 
 if __name__ == '__main__':
-
   enable_cache = True
-  pipeline = _create_test_pipeline(
+  pipeline = _create_pipeline(
       pipeline_root,
       _data_root_param,
       _taxi_module_file_param,
@@ -154,14 +147,7 @@ if __name__ == '__main__':
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
-      # TODO: remove this override when KubeflowDagRunnerConfig doesn't default to use_gcp_secret op.
-      pipeline_operator_funcs=list(
-          filter(
-              lambda operator: operator.__name__.find('gcp_secret') == -1,
-              kubeflow_dag_runner.get_default_pipeline_operator_funcs()
-          )
-      ),
-      tfx_image='tensorflow/tfx:0.21.0rc0',
+      tfx_image='tensorflow/tfx:0.21.0',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
       output_filename=__file__ + '.yaml', config=config
