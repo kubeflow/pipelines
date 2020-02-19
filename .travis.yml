@@ -131,6 +131,13 @@ matrix:
         - export PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python3.7/site-packages/
       install: *0
       script: *1
+    - language: python
+      python: "3.8"
+      env: TOXENV=py38
+      before_install:
+        - export PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python3.8/site-packages/
+      install: *0
+      script: *1
     - name: "Lint Python code with flake8"
       language: python
       python: "3.7"
