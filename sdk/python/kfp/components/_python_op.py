@@ -218,7 +218,7 @@ def strip_type_hints(source_code: str) -> str:
     class Refactor(refactor.RefactoringTool):
         def __init__(self, fixers):
             self._fixers = [cls(None, None) for cls in fixers]
-            super().__init__(None)
+            super().__init__(None, {'print_function': True})
 
         def get_fixers(self):
             return self._fixers, []
