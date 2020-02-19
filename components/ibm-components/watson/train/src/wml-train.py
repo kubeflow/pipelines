@@ -20,7 +20,6 @@ def getSecret(secret):
 
 def train(args):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
-    from watson_machine_learning_client.libs.repo.mlrepository import MetaNames
     from minio import Minio
     from urllib.parse import urlsplit
     import os,time
@@ -72,21 +71,37 @@ def train(args):
     client = WatsonMachineLearningAPIClient( wml_credentials )
 
     # define the model
-    metadata = {
-        client.repository.ModelMetaNames.NAME                                       : wml_run_definition,
-        # client.repository.DefinitionMetaNames.AUTHOR_NAME       : wml_author_name,
-        client.repository.ModelMetaNames.AUTHOR_NAME: wml_author_name,
-        # client.repository.ModelMetaNames.FRAMEWORK_LIBRARIES: [{'name': wml_framework_name, 'version': wml_framework_version}],
-        client.repository.ModelMetaNames.FRAMEWORK_NAME: wml_framework_name,
-        client.repository.ModelMetaNames.FRAMEWORK_VERSION: wml_framework_version,
-        # client.repository.DefinitionMetaNames.FRAMEWORK_VERSION : wml_framework_version,
-        client.repository.PipelineMetaNames.RUNTIMES                                : [{'name': wml_runtime_name, 'version': wml_runtime_version}],
-        # client.repository.DefinitionMetaNames.RUNTIME_VERSION   : wml_runtime_version,
-        client.repository.PipelineMetaNames.COMMAND                                 : wml_execution_command
+
+    lib_meta = {
+        client.runtime.LibraryMetaNames.Name: wml_run_definition,
+        client.runtime.LibraryMetaNames.AUTHOR_NAME: wml_author_name,
+        client.runtime.LibraryMetaNames.FRAMEWORK_NAME: wml_framework_name,
+        client.runtime.LibraryMetaNames.FRAMEWORK_VERSION: wml_framework_version
     }
 
-    definition_details = client.repository.store_definition( model_code, meta_props=metadata )
+    custom_library_details = client.runtimes.store_library(lib_meta)
+    custom_library_uid = client.runtimes.get_library_uid(custom_library_details)
+    print("custom_library_uid", custom_library_uid)
+
+    definition_details = client.repository.store_definition( model_code, meta_props=lib_meta )
     definition_uid     = client.repository.get_definition_uid( definition_details )
+
+
+    # metadata = {
+    #    client.repository.ModelMetaNames.NAME                                       : wml_run_definition,
+        # client.repository.DefinitionMetaNames.AUTHOR_NAME       : wml_author_name,
+    #    client.repository.ModelMetaNames.AUTHOR_NAME: wml_author_name,
+        # client.repository.ModelMetaNames.FRAMEWORK_LIBRARIES: [{'name': wml_framework_name, 'version': wml_framework_version}],
+    #    client.repository.ModelMetaNames.FRAMEWORK_NAME: wml_framework_name,
+    #    client.repository.ModelMetaNames.FRAMEWORK_VERSION: wml_framework_version,
+        # client.repository.DefinitionMetaNames.FRAMEWORK_VERSION : wml_framework_version,
+    #    client.repository.PipelineMetaNames.RUNTIMES                                : [{'name': wml_runtime_name, 'version': wml_runtime_version}],
+        # client.repository.DefinitionMetaNames.RUNTIME_VERSION   : wml_runtime_version,
+    #    client.repository.PipelineMetaNames.COMMAND                                 : wml_execution_command
+    #}
+
+    #definition_details = client.repository.store_definition( model_code, meta_props=metadata )
+    #definition_uid     = client.repository.get_definition_uid( definition_details )
     # print( "definition_uid: ", definition_uid )
 
     # define the run
