@@ -1391,30 +1391,19 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
               >
                 <ArtifactsTabContent
                   generatedVisualizations={Array []}
-                  onError={[Function]}
-                  selectedNodeDetails={
+                  nodeId="node1"
+                  nodeStatus={
                     Object {
                       "id": "node1",
-                      "phaseMessage": undefined,
                     }
                   }
+                  onError={[Function]}
                   visualizationCreatorConfig={
                     Object {
                       "allowCustomVisualizations": false,
                       "isBusy": false,
                       "onGenerate": [Function],
                       "type": "visualization-creator",
-                    }
-                  }
-                  workflow={
-                    Object {
-                      "status": Object {
-                        "nodes": Object {
-                          "node1": Object {
-                            "id": "node1",
-                          },
-                        },
-                      },
                     }
                   }
                 />
@@ -1643,32 +1632,21 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
               >
                 <ArtifactsTabContent
                   generatedVisualizations={Array []}
-                  onError={[Function]}
-                  selectedNodeDetails={
+                  nodeId="node1"
+                  nodeStatus={
                     Object {
                       "id": "node1",
-                      "phaseMessage": "This step is in Succeeded state with this message: some test message",
+                      "message": "some test message",
+                      "phase": "Succeeded",
                     }
                   }
+                  onError={[Function]}
                   visualizationCreatorConfig={
                     Object {
                       "allowCustomVisualizations": false,
                       "isBusy": false,
                       "onGenerate": [Function],
                       "type": "visualization-creator",
-                    }
-                  }
-                  workflow={
-                    Object {
-                      "status": Object {
-                        "nodes": Object {
-                          "node1": Object {
-                            "id": "node1",
-                            "message": "some test message",
-                            "phase": "Succeeded",
-                          },
-                        },
-                      },
                     }
                   }
                 />

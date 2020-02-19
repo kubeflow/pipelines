@@ -12,7 +12,8 @@ description: |-
                 This is intended to stop the data processing of a pipeline. Can set
                 to False to only report Errors/Warnings.
             project_id:
-                GCP project ID which is assumed to be accessible from the pod.
+                GCP project ID which is assumed to be the project under which
+                current pod is executing.
             target_apis:
                 String consisting of a comma separated list of apis to be verified.
             quota_check:
@@ -23,14 +24,22 @@ description: |-
             RuntimeError: If configuration is not setup properly and
             HALT_ON_ERROR flag is set.
 inputs:
-- {name: bucket, type: String}
-- {name: execution_mode, type: String}
-- {name: project_id, type: String}
-- {name: target_apis, type: String}
-- {name: quota_check, type: 'typing.Union[typing.List[typing.Any], NoneType]', optional: true}
+- name: bucket
+  type: String
+- name: execution_mode
+  type: String
+- name: project_id
+  type: String
+- name: target_apis
+  type: String
+- name: quota_check
+  type: JsonArray
+  optional: true
 outputs:
-- {name: bucket, type: String}
-- {name: project_id, type: String}
+- name: bucket
+  type: String
+- name: project_id
+  type: String
 implementation:
   container:
     image: google/cloud-sdk:279.0.0
@@ -46,7 +55,7 @@ implementation:
           execution_mode: str,
           project_id: str,
           target_apis: str,
-          quota_check: Optional[List[Any]] = None,
+          quota_check: list = None,
       ) -> NamedTuple('Outputs', [('bucket', str), ('project_id', str)]):
         """ Performs environment verification specific to this pipeline.
 
@@ -60,7 +69,8 @@ implementation:
                     This is intended to stop the data processing of a pipeline. Can set
                     to False to only report Errors/Warnings.
                 project_id:
-                    GCP project ID which is assumed to be accessible from the pod.
+                    GCP project ID which is assumed to be the project under which
+                    current pod is executing.
                 target_apis:
                     String consisting of a comma separated list of apis to be verified.
                 quota_check:
@@ -93,33 +103,39 @@ implementation:
         quota_list = gcp.get_gcp_configuration(
             gcp.Commands.GET_QUOTAS, human_readable=False
         )
-        quota_dict = {}  # Mapping from region to dict[metric, available]
-        for region_quota in quota_list:
-          quota_dict[region_quota['name']] = {}
-          for quota in region_quota['quotas']:
-            quota_dict[region_quota['name']][quota['metric']
-                                            ] = quota['limit'] - quota['usage']
 
-        quota_check = [] or quota_check
-        for single_check in quota_check:
-          if single_check['region'] not in quota_dict:
-            print(
-                'Regional quota for %s does not exist in current project' %
-                (single_check['region'])
-            )
-            config_error_observed = True
-          else:
-            if quota_dict[single_check['region']][single_check['metric']
-                                              ] < single_check['quota_needed']:
+        if quota_list.has_error:
+          print('Failed to retrieve project quota with error %s\n' % (quota_list.stderr))
+          config_error_observed = True
+        else:
+          # Check quota.
+          quota_dict = {}  # Mapping from region to dict[metric, available]
+          for region_quota in quota_list.json_output:
+            quota_dict[region_quota['name']] = {}
+            for quota in region_quota['quotas']:
+              quota_dict[region_quota['name']][quota['metric']
+                                              ] = quota['limit'] - quota['usage']
+
+          quota_check = [] or quota_check
+          for single_check in quota_check:
+            if single_check['region'] not in quota_dict:
               print(
-                  'Insufficient quota observed for %s at %s: %s is needed but only %s is available'
-                  % (
-                      single_check['metric'], single_check['region'],
-                      str(single_check['quota_needed']
-                         ), str(quota_dict[single_check['region']][single_check['metric']])
-                  )
+                  'Regional quota for %s does not exist in current project.\n' %
+                  (single_check['region'])
               )
               config_error_observed = True
+            else:
+              if quota_dict[single_check['region']][single_check['metric']
+                                                ] < single_check['quota_needed']:
+                print(
+                    'Insufficient quota observed for %s at %s: %s is needed but only %s is available.\n'
+                    % (
+                        single_check['metric'], single_check['region'],
+                        str(single_check['quota_needed']
+                           ), str(quota_dict[single_check['region']][single_check['metric']])
+                    )
+                )
+                config_error_observed = True
 
         # Get the project ID
         # from project configuration
@@ -244,13 +260,14 @@ implementation:
               raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
           return str_value
 
+      import json
       import argparse
-      _parser = argparse.ArgumentParser(prog='Run diagnose me', description='Performs environment verification specific to this pipeline.\n\n      args:\n          bucket:\n              string name of the bucket to be checked. Must be of the format\n              gs://bucket_root/any/path/here/is/ignored where any path beyond root\n              is ignored.\n          execution_mode:\n              If set to HALT_ON_ERROR will case any error to raise an exception.\n              This is intended to stop the data processing of a pipeline. Can set\n              to False to only report Errors/Warnings.\n          project_id:\n              GCP project ID which is assumed to be accessible from the pod.\n          target_apis:\n              String consisting of a comma separated list of apis to be verified.\n          quota_check:\n              List of entries describing how much quota is required. Each entry\n              has three fields: region, metric and quota_needed. All\n              string-typed.\n      Raises:\n          RuntimeError: If configuration is not setup properly and\n          HALT_ON_ERROR flag is set.')
+      _parser = argparse.ArgumentParser(prog='Run diagnose me', description='Performs environment verification specific to this pipeline.\n\n      args:\n          bucket:\n              string name of the bucket to be checked. Must be of the format\n              gs://bucket_root/any/path/here/is/ignored where any path beyond root\n              is ignored.\n          execution_mode:\n              If set to HALT_ON_ERROR will case any error to raise an exception.\n              This is intended to stop the data processing of a pipeline. Can set\n              to False to only report Errors/Warnings.\n          project_id:\n              GCP project ID which is assumed to be the project under which\n              current pod is executing.\n          target_apis:\n              String consisting of a comma separated list of apis to be verified.\n          quota_check:\n              List of entries describing how much quota is required. Each entry\n              has three fields: region, metric and quota_needed. All\n              string-typed.\n      Raises:\n          RuntimeError: If configuration is not setup properly and\n          HALT_ON_ERROR flag is set.')
       _parser.add_argument("--bucket", dest="bucket", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--execution-mode", dest="execution_mode", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--project-id", dest="project_id", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--target-apis", dest="target_apis", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--quota-check", dest="quota_check", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--quota-check", dest="quota_check", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
@@ -276,18 +293,19 @@ implementation:
               f.write(_output_serializers[idx](_outputs[idx]))
     args:
     - --bucket
-    - {inputValue: bucket}
+    - inputValue: bucket
     - --execution-mode
-    - {inputValue: execution_mode}
+    - inputValue: execution_mode
     - --project-id
-    - {inputValue: project_id}
+    - inputValue: project_id
     - --target-apis
-    - {inputValue: target_apis}
+    - inputValue: target_apis
     - if:
-        cond: {isPresent: quota_check}
+        cond:
+          isPresent: quota_check
         then:
         - --quota-check
-        - {inputValue: quota_check}
+        - inputValue: quota_check
     - '----output-paths'
-    - {outputPath: bucket}
-    - {outputPath: project_id}
+    - outputPath: bucket
+    - outputPath: project_id
