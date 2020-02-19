@@ -898,12 +898,6 @@ class Compiler(object):
     yaml.Dumper.ignore_aliases = lambda *args : True
     yaml_text = yaml.dump(workflow, default_flow_style=False, default_style='|')
 
-    if '{{pipelineparam' in yaml_text:
-      raise RuntimeError(
-          'Internal compiler error: Found unresolved PipelineParam. '
-          'Please create a new issue at https://github.com/kubeflow/pipelines/issues '
-          'attaching the pipeline code and the pipeline package.' )
-
     if package_path is None:
       return yaml_text
 
@@ -946,4 +940,32 @@ class Compiler(object):
         params_list,
         pipeline_conf)
     self._write_workflow(workflow, package_path)
+    _validate_workflow(workflow)
 
+
+def _validate_workflow(workflow: dict):
+  workflow = workflow.copy()
+  # Working around Argo lint issue
+  for argument in workflow['spec'].get('arguments', {}).get('parameters', []):
+    if 'value' not in argument:
+      argument['value'] = ''
+
+  yaml_text = yaml.dump(workflow)
+  if '{{pipelineparam' in yaml_text:
+    raise RuntimeError(
+        '''Internal compiler error: Found unresolved PipelineParam.
+Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.'''
+    )
+
+  # Running Argo lint if available
+  import shutil
+  import subprocess
+  argo_path = shutil.which('argo')
+  if argo_path:
+    result = subprocess.run([argo_path, 'lint', '/dev/stdin'], input=yaml_text, encoding='utf-8', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode:
+      raise RuntimeError(
+        '''Internal compiler error: Compiler has produced Argo-incompatible workflow.
+Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
+Error: {}'''.format(result.stderr)
+      )
