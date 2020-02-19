@@ -1,0 +1,8 @@
+steps:
+  - id: "visualization-server"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      ["build", "-t", "$_GCR_BASE/visualization-server", "-f", "backend/Dockerfile.visualization", "."]
+images:
+  - "$_GCR_BASE/visualization-server"
+timeout: 1800s # 30min
