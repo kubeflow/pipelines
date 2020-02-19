@@ -319,6 +319,9 @@ export class OutputArtifactLoader {
     viewers = viewers.concat(
       EvaluatorArtifactUris.map(uri => {
         const configFilePath = uri + '/eval_config.json';
+        // The visualization of TFMA inside KFP UI depends a hack of TFMA widget js
+        // For context and future improvement, please refer to
+        // https://github.com/tensorflow/model-analysis/issues/10#issuecomment-587422929
         const script = [
           `import io`,
           `import json`,
