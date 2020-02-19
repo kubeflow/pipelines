@@ -73,7 +73,7 @@ def train(args):
     # define the model
 
     lib_meta = {
-        client.runtimes.LibraryMetaNames.Name: wml_run_definition,
+        client.runtimes.LibraryMetaNames.NAME: wml_run_definition,
         client.runtimes.LibraryMetaNames.AUTHOR_NAME: wml_author_name,
         client.RUNTIMES.LibraryMetaNames.FRAMEWORK_NAME: wml_framework_name,
         client.RUNTIMES.LibraryMetaNames.FRAMEWORK_VERSION: wml_framework_version
