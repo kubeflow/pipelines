@@ -176,36 +176,39 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
   ];
 
   return (
-    <Switch>
-      <Route
-        exact={true}
-        path={'/'}
-        render={({ ...props }) => <Redirect to={DEFAULT_ROUTE} {...props} />}
-      />
+    // There will be only one instance of SideNav, throughout UI usage.
+    <SideNavLayout>
+      <Switch>
+        <Route
+          exact={true}
+          path={'/'}
+          render={({ ...props }) => <Redirect to={DEFAULT_ROUTE} {...props} />}
+        />
 
-      {/* Normal routes */}
-      {routes.map((route, i) => {
-        const { path } = { ...route };
-        return (
-          // Setting a key here, so that two different routes are considered two instances from
-          // react. Therefore, they don't share toolbar state. This avoids many bugs like dangling
-          // network response handlers.
-          <Route
-            key={i}
-            exact={true}
-            path={path}
-            render={props => <RoutedPage key={props.location.key} route={route} />}
-          />
-        );
-      })}
+        {/* Normal routes */}
+        {routes.map((route, i) => {
+          const { path } = { ...route };
+          return (
+            // Setting a key here, so that two different routes are considered two instances from
+            // react. Therefore, they don't share toolbar state. This avoids many bugs like dangling
+            // network response handlers.
+            <Route
+              key={i}
+              exact={true}
+              path={path}
+              render={props => <RoutedPage key={props.location.key} route={route} />}
+            />
+          );
+        })}
 
-      {/* 404 */}
-      {
-        <Route>
-          <RoutedPage />
-        </Route>
-      }
-    </Switch>
+        {/* 404 */}
+        {
+          <Route>
+            <RoutedPage />
+          </Route>
+        }
+      </Switch>
+    </SideNavLayout>
   );
 };
 
@@ -232,48 +235,41 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
     const route = this.props.route;
 
     return (
-      <div className={commonCss.page}>
-        <div className={commonCss.flexGrow}>
-          <Route render={({ ...props }) => <SideNav page={props.location.pathname} {...props} />} />
-          <div className={classes(commonCss.page)}>
-            <Route render={({ ...props }) => <Toolbar {...this.state.toolbarProps} {...props} />} />
-            {this.state.bannerProps.message && (
-              <Banner
-                message={this.state.bannerProps.message}
-                mode={this.state.bannerProps.mode}
-                additionalInfo={this.state.bannerProps.additionalInfo}
-                refresh={this.state.bannerProps.refresh}
-              />
-            )}
-            <Switch>
-              {route &&
-                (() => {
-                  const { path, Component, ...otherProps } = { ...route };
-                  return (
-                    <Route
-                      exact={true}
-                      path={path}
-                      render={({ ...props }) => (
-                        <Component {...props} {...childProps} {...otherProps} />
-                      )}
-                    />
-                  );
-                })()}
+      <div className={classes(commonCss.page)}>
+        <Route render={({ ...props }) => <Toolbar {...this.state.toolbarProps} {...props} />} />
+        {this.state.bannerProps.message && (
+          <Banner
+            message={this.state.bannerProps.message}
+            mode={this.state.bannerProps.mode}
+            additionalInfo={this.state.bannerProps.additionalInfo}
+            refresh={this.state.bannerProps.refresh}
+          />
+        )}
+        <Switch>
+          {route &&
+            (() => {
+              const { path, Component, ...otherProps } = { ...route };
+              return (
+                <Route
+                  exact={true}
+                  path={path}
+                  render={({ ...props }) => (
+                    <Component {...props} {...childProps} {...otherProps} />
+                  )}
+                />
+              );
+            })()}
 
-              {/* 404 */}
-              {!!route && (
-                <Route render={({ ...props }) => <Page404 {...props} {...childProps} />} />
-              )}
-            </Switch>
+          {/* 404 */}
+          {!!route && <Route render={({ ...props }) => <Page404 {...props} {...childProps} />} />}
+        </Switch>
 
-            <Snackbar
-              autoHideDuration={this.state.snackbarProps.autoHideDuration}
-              message={this.state.snackbarProps.message}
-              open={this.state.snackbarProps.open}
-              onClose={this._handleSnackbarClose.bind(this)}
-            />
-          </div>
-        </div>
+        <Snackbar
+          autoHideDuration={this.state.snackbarProps.autoHideDuration}
+          message={this.state.snackbarProps.message}
+          open={this.state.snackbarProps.open}
+          onClose={this._handleSnackbarClose.bind(this)}
+        />
 
         <Dialog
           open={this.state.dialogProps.open !== false}
@@ -349,3 +345,12 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
 // TODO: loading/error experience until backend is reachable
 
 export default Router;
+
+const SideNavLayout: React.FC<{}> = ({ children }) => (
+  <div className={commonCss.page}>
+    <div className={commonCss.flexGrow}>
+      <Route render={({ ...props }) => <SideNav page={props.location.pathname} {...props} />} />
+      {children}
+    </div>
+  </div>
+);
