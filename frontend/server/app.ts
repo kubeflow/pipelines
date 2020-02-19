@@ -192,8 +192,5 @@ function createUIServer(options: UIConfigs) {
   app.use(basePath, StaticHandler(options.server.staticDir));
   app.use(StaticHandler(options.server.staticDir));
 
-  /** Fallback to index.html */
-  app.get('*', indexHtmlHandler);
-
   return app;
 }
