@@ -31,6 +31,10 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 # pin avro==1.9.1 because installing just tfx brings avro 1.9.2, which breaks the build
 RUN python3 -m pip install avro-python3==1.9.1 tfx==0.21.0rc0
 
+# Downloading Argo CLI so that the samples are validated
+ADD  https://github.com/argoproj/argo/releases/download/v2.3.0/argo-linux-amd64 /usr/local/bin/argo
+RUN chmod +x /usr/local/bin/argo
+
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY sdk sdk
 WORKDIR /go/src/github.com/kubeflow/pipelines/sdk/python
