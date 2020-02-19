@@ -42,8 +42,8 @@ from tfx.utils.dsl_utils import external_input
 
 _pipeline_name = 'iris_native_keras'
 
-# This example assumes that Iris flowers data is stored in ~/iris/data and the
-# utility function is in ~/iris. Feel free to customize as needed.
+# This example assumes that Iris flowers data is stored in GCS and the
+# utility function is in iris_utils.py. Feel free to customize as needed.
 _data_root_param = data_types.RuntimeParameter(
     name='data-root',
     default='gs://ml-pipeline-playground/iris/data',
@@ -58,9 +58,8 @@ _module_file_param = data_types.RuntimeParameter(
     ptype=Text,
 )
 
-# Directory and data locations.  This example assumes all of the flowers
-# example code and metadata library is relative to $HOME, but you can store
-# these files anywhere on your local filesystem.
+# Directory and data locations. This example assumes all of the flowers
+# example code and metadata library is relative to a GCS path.
 _pipeline_root = os.path.join(
     'gs://jxzheng-helloworld', 'tfx_iris', kfp.dsl.RUN_ID_PLACEHOLDER
 )
@@ -133,8 +132,6 @@ def _create_pipeline(
   )
 
 
-# To run this pipeline from the python CLI:
-#   $python iris_pipeline_native_keras.py
 if __name__ == '__main__':
   absl.logging.set_verbosity(absl.logging.INFO)
   # Make sure the version of TFX image used is consistent with the version of
