@@ -9,7 +9,6 @@
       "src/apis/**/*.ts",
       "src/config/**/*.json",
       "coverage/lcov-report/*.js",
-      "backstop_data/**/*.js",
       "generated/**",
       "src/api/*.ts",
       "scripts/**",
