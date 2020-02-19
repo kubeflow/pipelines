@@ -49,7 +49,6 @@ The component accepts the following as input:
 Name | Description | Type
 :--- | :---------- | :---
 job_id | The ID of the created batch job. | String
-output_path | The output path of the batch prediction job | GCSPath
 
 
 ## Cautions & requirements
