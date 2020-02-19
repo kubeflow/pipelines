@@ -320,6 +320,7 @@ export class OutputArtifactLoader {
       EvaluatorArtifactUris.map(uri => {
         const configFilePath = uri + '/eval_config.json';
         const script = [
+          `import io`,
           `import json`,
           `import tensorflow as tf`,
           `import tensorflow_model_analysis as tfma`,
@@ -332,11 +333,10 @@ export class OutputArtifactLoader {
           `slicing_spec = tfma.slicer.SingleSliceSpec(columns=columns)`,
           `eval_result = tfma.load_eval_result('${uri}')`,
           `slicing_metrics_view = tfma.view.render_slicing_metrics(eval_result, slicing_spec=slicing_spec)`,
-          `embed_minimal_html('tfma_export.html', views=[slicing_metrics_view], title='Slicing Metrics')`,
-          `view_html=None`,
-          `with open('tfma_export.html', 'r') as view: view_html = view.read()`,
-          `res_html = view_html.replace('dist/embed-amd.js" crossorigin="anonymous"></script>', 'dist/embed-amd.js" crossorigin="anonymous" data-jupyter-widgets-cdn="https://cdn.jsdelivr.net/gh/Bobgy/model-analysis@kfp/tensorflow_model_analysis/notebook/jupyter/js/dist/" crossorigin="anonymous"></script>')`,
-          `display(HTML(res_html))`,
+          `view = io.StringIO()`,
+          `embed_minimal_html(view, views=[slicing_metrics_view], title='Slicing Metrics')`,
+          `html = view.getvalue().replace('dist/embed-amd.js" crossorigin="anonymous"></script>', 'dist/embed-amd.js" crossorigin="anonymous" data-jupyter-widgets-cdn="https://cdn.jsdelivr.net/gh/Bobgy/model-analysis@kfp/tensorflow_model_analysis/notebook/jupyter/js/dist/" crossorigin="anonymous"></script>')`,
+          `display(HTML(html))`,
         ];
         return buildArtifactViewer(script);
       }),
