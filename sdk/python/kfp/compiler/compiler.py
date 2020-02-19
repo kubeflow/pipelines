@@ -962,10 +962,11 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
   import subprocess
   argo_path = shutil.which('argo')
   if argo_path:
-    result = subprocess.run([argo_path, 'lint', '/dev/stdin'], input=yaml_text, encoding='utf-8', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run([argo_path, 'lint', '/dev/stdin'], input=yaml_text.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode:
       raise RuntimeError(
         '''Internal compiler error: Compiler has produced Argo-incompatible workflow.
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
-Error: {}'''.format(result.stderr)
+Error: {}'''.format(result.stderr.decode('utf-8'))
       )
+  
