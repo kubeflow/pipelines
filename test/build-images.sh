@@ -31,6 +31,7 @@ if
   echo "$BUILT_IMAGES" | grep viewer-crd-controller && \
   echo "$BUILT_IMAGES" | grep inverse-proxy-agent && \
   echo "$BUILT_IMAGES" | grep metadata-writer && \
+  echo "$BUILT_IMAGES" | grep execution-cache && \
   echo "$BUILT_IMAGES" | grep visualization-server;
 then
   echo "docker images for api-server, frontend, scheduledworkflow, \
