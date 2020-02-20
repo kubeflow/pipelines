@@ -68,15 +68,14 @@ def train(args):
                        "instance_id": wml_instance_id,
                        "apikey": wml_apikey
                       }
-    client = WatsonMachineLearningAPIClient( wml_credentials )
-
+    client = WatsonMachineLearningAPIClient ( wml_credentials )
     # define the model
 
     lib_meta = {
         client.runtimes.LibraryMetaNames.NAME: wml_run_definition,
         # client.runtimes.LibraryMetaNames.AUTHOR_NAME: wml_author_name,
         client.runtimes.LibraryMetaNames.VERSION: wml_runtime_version,
-        client.runtimes.LibraryMetaNames.FILEPATH: "/app/my_lib.zip",
+        client.runtimes.LibraryMetaNames.FILEPATH: wml_train_code,
         client.runtimes.LibraryMetaNames.PLATFORM: {"name": wml_framework_name, "versions": wml_framework_version}
         # client.runtimes.LibraryMetaNames.FRAMEWORK_VERSION: wml_framework_version
     }
