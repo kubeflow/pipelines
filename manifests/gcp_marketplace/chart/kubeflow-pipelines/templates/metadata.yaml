@@ -129,7 +129,7 @@ kind: ConfigMap
 metadata:
   name: metadata-configmap
   labels:
-    component: metadata-grpc-server
+    component: metadata-server
 data:
   {{ if .Values.managedstorage.databaseNamePrefix }}
   mysql_database: '{{ .Values.managedstorage.databaseNamePrefix }}_metadata'
@@ -146,7 +146,7 @@ kind: ConfigMap
 metadata:
   name: metadata-mysql-configmap
   labels:
-    component: metadata-grpc-server
+    component: metadata-server
 data:
   {{ if .Values.managedstorage.databaseNamePrefix }}
   MYSQL_DATABASE: '{{ .Values.managedstorage.databaseNamePrefix }}_metadata'

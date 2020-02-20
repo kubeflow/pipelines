@@ -4,7 +4,7 @@ kind: ConfigMap
 metadata:
   name: metadata-configmap
   labels:
-    component: metadata-grpc-server
+    component: metadata-server
 data:
   mysql_database: "metadb"
   mysql_host: "mysql"
@@ -15,7 +15,7 @@ kind: ConfigMap
 metadata:
   name: metadata-mysql-configmap
   labels:
-    component: metadata-grpc-server
+    component: metadata-server
 data:
   MYSQL_DATABASE: "metadb"
   MYSQL_HOST: "mysql"
