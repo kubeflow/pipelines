@@ -30,7 +30,7 @@ var (
 
 func fakeAdmitFunc(req *v1beta1.AdmissionRequest) ([]patchOperation, error) {
 	operation := patchOperation{
-		Op:    "add",
+		Op:    OperationTypeAdd,
 		Path:  "test",
 		Value: "test",
 	}

@@ -17,10 +17,6 @@ const (
 	AnnotationPath       string = "/metadata/annotations"
 )
 
-const (
-	Add OperationType = "add"
-)
-
 var (
 	podResource = metav1.GroupVersionResource{Version: "v1", Resource: "pods"}
 )
@@ -58,13 +54,11 @@ func mutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) 
 
 	annotations[ExecutionKey] = executionHashKey
 	// Add executionKey to pod.metadata.annotations
-	if len(executionHashKey) != 0 {
-		patches = append(patches, patchOperation{
-			Op:    Add,
-			Path:  AnnotationPath,
-			Value: annotations,
-		})
-	}
+	patches = append(patches, patchOperation{
+		Op:    OperationTypeAdd,
+		Path:  AnnotationPath,
+		Value: annotations,
+	})
 
 	return patches, nil
 }

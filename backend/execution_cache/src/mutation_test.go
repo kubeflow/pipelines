@@ -21,7 +21,7 @@ var (
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				"workflows.argoproj.io/template": "test_template",
+				ArgoWorkflowTemplate: "test_template",
 			},
 		},
 	}
@@ -53,7 +53,7 @@ func EncodePod(pod *corev1.Pod) []byte {
 	return reqBodyBytes.Bytes()
 }
 
-func TestApplyPodOutputWithErrorPodResource(t *testing.T) {
+func TestMutatePodIfCachedWithErrorPodResource(t *testing.T) {
 	mockAdmissionRequest := &v1beta1.AdmissionRequest{
 		Resource: metav1.GroupVersionResource{
 			Version: "wrong", Resource: "wrong",
@@ -64,7 +64,7 @@ func TestApplyPodOutputWithErrorPodResource(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestApplyPodOutputWithDecodeError(t *testing.T) {
+func TestMutatePodIfCachedWithDecodeError(t *testing.T) {
 	invalidAdmissionRequest := fakeAdmissionRequest
 	invalidAdmissionRequest.Object.Raw = []byte{5, 5}
 	patchOperation, err := mutatePodIfCached(&invalidAdmissionRequest)
@@ -72,10 +72,10 @@ func TestApplyPodOutputWithDecodeError(t *testing.T) {
 	assert.Contains(t, err.Error(), "could not deserialize pod object")
 }
 
-func TestApplyPodOutput(t *testing.T) {
+func TestMutatePodIfCached(t *testing.T) {
 	patchOperation, err := mutatePodIfCached(&fakeAdmissionRequest)
 	assert.Nil(t, err)
 	require.NotNil(t, patchOperation)
 	require.Equal(t, 1, len(patchOperation))
-	require.Equal(t, patchOperation[0].Op, OperationType("add"))
+	require.Equal(t, patchOperation[0].Op, OperationTypeAdd)
 }

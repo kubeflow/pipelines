@@ -17,6 +17,10 @@ import (
 
 type OperationType string
 
+const (
+	OperationTypeAdd OperationType = "add"
+)
+
 // patchOperation is an operation of a JSON patch, see https://tools.ietf.org/html/rfc6902 .
 type patchOperation struct {
 	Op    OperationType `json:"op"`
