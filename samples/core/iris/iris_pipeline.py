@@ -23,7 +23,6 @@ import kfp
 from typing import Text
 
 import absl
-import tensorflow_model_analysis as tfma
 
 from tfx.components import CsvExampleGen
 from tfx.components import Evaluator
@@ -31,16 +30,13 @@ from tfx.components import ExampleValidator
 from tfx.components import SchemaGen
 from tfx.components import StatisticsGen
 from tfx.components import Trainer
-from tfx.components import Transform
-from tfx.components.base import executor_spec
-from tfx.components.trainer.executor import GenericExecutor
 from tfx.orchestration import data_types
 from tfx.orchestration import pipeline
 from tfx.orchestration.kubeflow import kubeflow_dag_runner
 from tfx.proto import trainer_pb2
 from tfx.utils.dsl_utils import external_input
 
-_pipeline_name = 'iris_native_keras'
+_pipeline_name = 'iris_native_beam'
 
 # This example assumes that Iris flowers data is stored in GCS and the
 # utility function is in iris_utils.py. Feel free to customize as needed.
@@ -54,7 +50,7 @@ _data_root_param = data_types.RuntimeParameter(
 # Transform and Trainer both require user-defined functions to run successfully.
 _module_file_param = data_types.RuntimeParameter(
     name='module-file',
-    default='gs://ml-pipeline-playground/iris/modules/iris_utils_native_keras.py',
+    default='gs://ml-pipeline-playground/iris/modules/iris_utils.py',
     ptype=Text,
 )
 
@@ -88,44 +84,25 @@ def _create_pipeline(
       schema=infer_schema.outputs['schema']
   )
 
-  # Performs transformations and feature engineering in training and serving.
-  transform = Transform(
-      examples=example_gen.outputs['examples'],
-      schema=infer_schema.outputs['schema'],
-      module_file=_module_file_param
-  )
-
-  # Uses user-provided Python function that trains a model using TF-Learn.
+  # Uses user-provided Python function that implements a model using TF-Learn.
   trainer = Trainer(
       module_file=_module_file_param,
-      custom_executor_spec=executor_spec.ExecutorClassSpec(GenericExecutor),
-      examples=transform.outputs['transformed_examples'],
-      transform_graph=transform.outputs['transform_graph'],
+      examples=example_gen.outputs['examples'],
       schema=infer_schema.outputs['schema'],
       train_args=trainer_pb2.TrainArgs(num_steps=100),
-      eval_args=trainer_pb2.EvalArgs(num_steps=50)
-  )
+      eval_args=trainer_pb2.EvalArgs(num_steps=50))
 
   # Uses TFMA to compute a evaluation statistics over features of a model.
   model_analyzer = Evaluator(
-      examples=example_gen.outputs['examples'],
-      model=trainer.outputs['model'],
-      eval_config=tfma.EvalConfig(
-          model_specs=[tfma.ModelSpec(label_key='variety')],
-          slicing_specs=[tfma.SlicingSpec(feature_keys=['sepal_length'])]
-      )
-  )
+      examples=example_gen.outputs['examples'], model=trainer.outputs['model'])
+
+  # TODO(numerology): Add pusher and model validator.
 
   return pipeline.Pipeline(
       pipeline_name=pipeline_name,
       pipeline_root=pipeline_root,
       components=[
-          example_gen,
-          statistics_gen,
-          infer_schema,
-          validate_stats,
-          transform,
-          trainer,
+          example_gen, statistics_gen, infer_schema, validate_stats, trainer,
           model_analyzer,
       ],
       enable_cache=True,
