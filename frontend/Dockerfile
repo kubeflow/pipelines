@@ -9,7 +9,7 @@ COPY . .
 
 WORKDIR ./frontend
 
-RUN npm install && npm run postinstall
+RUN npm ci && npm run postinstall
 RUN npm run build
 
 RUN mkdir -p ./server/dist && \
