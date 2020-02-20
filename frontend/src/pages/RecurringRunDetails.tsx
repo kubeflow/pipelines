@@ -85,6 +85,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
         if (run.max_concurrency) {
           triggerDetails.push(['Max. concurrent runs', run.max_concurrency]);
         }
+        triggerDetails.push(['Catchup', `${run.no_catchup || false}`]);
         if (run.trigger.cron_schedule && run.trigger.cron_schedule.start_time) {
           triggerDetails.push([
             'Start time',
@@ -103,9 +104,6 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
             'End time',
             formatDateString(run.trigger.periodic_schedule.end_time),
           ]);
-        }
-        if (run.no_catchup != null) {
-          triggerDetails.push(['Catchup', `${run.no_catchup}`]);
         }
       }
     }
