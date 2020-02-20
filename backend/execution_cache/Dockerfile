@@ -4,11 +4,11 @@ FROM golang:1.11-alpine3.7 as builder
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc musl-dev
 
-COPY backend/execution_cache/* /kfp/execution_cache/
+ADD backend/execution_cache/* /kfp/execution_cache/
 
 WORKDIR /kfp/execution_cache/
 
-RUN GO111MODULE=on go build -o /bin/execution_cache /kfp/execution_cache/src/*.go
+RUN GO111MODULE=on go build -o /bin/execution_cache /kfp/execution_cache/*.go
 
 FROM alpine:3.8
 WORKDIR /bin

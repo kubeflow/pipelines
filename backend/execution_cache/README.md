@@ -1,8 +1,8 @@
 ## Build src image
-To build the Docker image of cache server, run the following Docker command from the execution_cache directory:
+To build the Docker image of cache server, run the following Docker command from the pipelines directory:
 
 ```
-docker build -t gcr.io/ml-pipeline-test/execution_cache:latest .
+docker build -t gcr.io/ml-pipeline-test/execution_cache:latest -f backend/execution_cache/Dockerfile .
 ```
 
 ## Deploy cache service to an existing cluster
