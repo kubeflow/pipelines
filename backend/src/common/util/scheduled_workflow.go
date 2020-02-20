@@ -80,6 +80,13 @@ func (s *ScheduledWorkflow) MaxConcurrencyOr0() int64 {
 	return 0
 }
 
+func (s *ScheduledWorkflow) NoCatchupOrFalse() bool {
+	if s.Spec.NoCatchup != nil {
+		return *s.Spec.NoCatchup
+	}
+	return false
+}
+
 func (s *ScheduledWorkflow) IntervalSecondOr0() int64 {
 	if s.Spec.PeriodicSchedule != nil {
 		return s.Spec.PeriodicSchedule.IntervalSecond
