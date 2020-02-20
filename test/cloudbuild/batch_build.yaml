@@ -37,6 +37,10 @@ steps:
     name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', '$_GCR_BASE/execution-cache', '-f', 'backend/execution_cache/Dockerfile', '.']
     waitFor: ["-"]
+  - id: 'buildExecutionCacheDeployer'
+    name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '$_GCR_BASE/execution-cache-deployer', '-f', 'backend/execution_cache/deployer/Dockerfile', '.']
+    waitFor: ["-"]
 options:
   machineType: N1_HIGHCPU_8 # use a fast machine to build because there a lot of work
 images:
@@ -48,4 +52,5 @@ images:
   - "$_GCR_BASE/inverse-proxy-agent"
   - "$_GCR_BASE/metadata-writer"
   - "$_GCR_BASE/execution-cache"
+  - "$_GCR_BASE/execution-cache-deployer"
 timeout: 1800s # 30min

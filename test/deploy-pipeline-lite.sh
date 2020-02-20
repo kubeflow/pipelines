@@ -57,6 +57,7 @@ kustomize edit set image gcr.io/ml-pipeline/visualization-server=${GCR_IMAGE_BAS
 kustomize edit set image gcr.io/ml-pipeline/inverse-proxy-agent=${GCR_IMAGE_BASE_DIR}/inverse-proxy-agent:${GCR_IMAGE_TAG}
 kustomize edit set image gcr.io/ml-pipeline/metadata-writer=${GCR_IMAGE_BASE_DIR}/metadata-writer:${GCR_IMAGE_TAG}
 kustomize edit set image gcr.io/ml-pipeline-test/execution-cache=${GCR_IMAGE_BASE_DIR}/execution-cache:${GCR_IMAGE_TAG}
+kustomize edit set image gcr.io/ml-pipeline-test/execution-cache-deployer=${GCR_IMAGE_BASE_DIR}/execution-cache-deployer:${GCR_IMAGE_TAG}
 cat kustomization.yaml
 
 kustomize build . | kubectl apply -f -
