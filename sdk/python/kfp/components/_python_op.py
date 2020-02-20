@@ -191,8 +191,35 @@ import pickle
     return function_loading_code
 
 
-
 def strip_type_hints(source_code: str) -> str:
+    try:
+        return _strip_type_hints_using_strip_hints(source_code)
+    except Exception as ex:
+        print('Error when stripping type annotations: ' + str(ex))
+
+    try:        
+        return _strip_type_hints_using_lib2to3(source_code)
+    except Exception as ex:
+        print('Error when stripping type annotations: ' + str(ex))
+
+    return source_code    
+
+
+def _strip_type_hints_using_strip_hints(source_code: str) -> str:
+    from strip_hints import strip_file_to_string
+    import os
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode='w', delete=False) as file:
+        file.write(source_code)
+
+    try:
+        return strip_file_to_string(file.name, to_empty=True)
+    finally:
+        os.remove(file.name)
+
+
+def _strip_type_hints_using_lib2to3(source_code: str) -> str:
     """Strips type annotations from the function definitions in the provided source code."""
 
     # Using the standard lib2to3 library to strip type annotations.
