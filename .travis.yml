@@ -96,6 +96,7 @@ matrix:
         - set +e
         - set +x
         # Two KFP-related unittests
+        # TODO(numerology) fix this after TFX dependency is fixed.
 #        - cd $TRAVIS_BUILD_DIR/tfx/tfx/orchestration/kubeflow
 #        - python3 kubeflow_dag_runner_test.py
 #        - cd $TRAVIS_BUILD_DIR/tfx/tfx/examples/chicago_taxi_pipeline
