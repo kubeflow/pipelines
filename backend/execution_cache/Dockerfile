@@ -4,7 +4,7 @@ FROM golang:1.11-alpine3.7 as builder
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc musl-dev
 
-COPY . /kfp/execution_cache/
+COPY backend/execution_cache/* /kfp/execution_cache/
 
 WORKDIR /kfp/execution_cache/
 
