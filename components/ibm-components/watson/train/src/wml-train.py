@@ -76,7 +76,7 @@ def train(args):
         client.runtimes.LibraryMetaNames.NAME: wml_run_definition,
         # client.runtimes.LibraryMetaNames.AUTHOR_NAME: wml_author_name,
         client.runtimes.LibraryMetaNames.VERSION: wml_runtime_version,
-        client.runtimes.LibraryMetaNames.FILEPATH: cos_output_bucket,
+        client.runtimes.LibraryMetaNames.FILEPATH: "/app/my_lib.zip",
         client.runtimes.LibraryMetaNames.PLATFORM: {"name": wml_framework_name, "versions": wml_framework_version}
         # client.runtimes.LibraryMetaNames.FRAMEWORK_VERSION: wml_framework_version
     }
