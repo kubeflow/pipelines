@@ -68,6 +68,7 @@ interface NewRunState {
   isFirstRunInExperiment: boolean;
   isRecurringRun: boolean;
   maxConcurrentRuns?: string;
+  catchup: boolean;
   parameters: ApiParameter[];
   pipeline?: ApiPipeline;
   pipelineVersion?: ApiPipelineVersion;
@@ -142,29 +143,26 @@ class NewRun extends Page<{}, NewRunState> {
     { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
   ];
 
-  constructor(props: any) {
-    super(props);
-
-    this.state = {
-      description: '',
-      errorMessage: '',
-      experimentName: '',
-      experimentSelectorOpen: false,
-      isBeingStarted: false,
-      isClone: false,
-      isFirstRunInExperiment: false,
-      isRecurringRun: false,
-      parameters: [],
-      pipelineName: '',
-      pipelineSelectorOpen: false,
-      pipelineVersionName: '',
-      pipelineVersionSelectorOpen: false,
-      runName: '',
-      uploadDialogOpen: false,
-      usePipelineFromRunLabel: 'Using pipeline from cloned run',
-      useWorkflowFromRun: false,
-    };
-  }
+  public state: NewRunState = {
+    description: '',
+    errorMessage: '',
+    experimentName: '',
+    experimentSelectorOpen: false,
+    isBeingStarted: false,
+    isClone: false,
+    isFirstRunInExperiment: false,
+    isRecurringRun: false,
+    parameters: [],
+    pipelineName: '',
+    pipelineSelectorOpen: false,
+    pipelineVersionName: '',
+    pipelineVersionSelectorOpen: false,
+    runName: '',
+    uploadDialogOpen: false,
+    usePipelineFromRunLabel: 'Using pipeline from cloned run',
+    useWorkflowFromRun: false,
+    catchup: true, // defaults to true
+  };
 
   public getInitialToolbarState(): ToolbarProps {
     return {
@@ -507,11 +505,12 @@ class NewRun extends Page<{}, NewRunState> {
               <div>Choose a method by which new runs will be triggered</div>
 
               <Trigger
-                onChange={(trigger, maxConcurrentRuns) =>
+                onChange={({ trigger, maxConcurrentRuns, catchup }) =>
                   this.setStateSafe(
                     {
                       maxConcurrentRuns,
                       trigger,
+                      catchup,
                     },
                     this._validate.bind(this),
                   )
@@ -1037,6 +1036,7 @@ class NewRun extends Page<{}, NewRunState> {
         enabled: true,
         max_concurrency: this.state.maxConcurrentRuns || '1',
         trigger: this.state.trigger,
+        no_catchup: !this.state.catchup,
       });
     }
 

@@ -104,6 +104,9 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
             formatDateString(run.trigger.periodic_schedule.end_time),
           ]);
         }
+        if (run.no_catchup != null) {
+          triggerDetails.push(['Catchup', `${run.no_catchup}`]);
+        }
       }
     }
 

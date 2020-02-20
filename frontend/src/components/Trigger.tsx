@@ -35,7 +35,11 @@ import { ApiTrigger } from '../apis/job';
 import { stylesheet } from 'typestyle';
 
 interface TriggerProps {
-  onChange?: (trigger?: ApiTrigger, maxConcurrentRuns?: string) => void;
+  onChange?: (config: {
+    trigger?: ApiTrigger;
+    maxConcurrentRuns?: string;
+    catchup: boolean;
+  }) => void;
 }
 
 interface TriggerState {
@@ -52,6 +56,7 @@ interface TriggerState {
   startDate: string;
   startTime: string;
   type: TriggerType;
+  catchup: boolean;
 }
 
 const css = stylesheet({
@@ -61,9 +66,7 @@ const css = stylesheet({
 });
 
 export default class Trigger extends React.Component<TriggerProps, TriggerState> {
-  constructor(props: any) {
-    super(props);
-
+  public state = (() => {
     const now = new Date();
     const inAWeek = new Date(
       now.getFullYear(),
@@ -75,7 +78,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     const [startDate, startTime] = dateToPickerFormat(now);
     const [endDate, endTime] = dateToPickerFormat(inAWeek);
 
-    this.state = {
+    return {
       cron: '',
       editCron: false,
       endDate,
@@ -89,8 +92,9 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       startDate,
       startTime,
       type: TriggerType.INTERVALED,
+      catchup: true,
     };
-  }
+  })();
 
   public componentDidMount(): void {
     // TODO: This is called here because NewRun only updates its Trigger in state when onChange is
@@ -114,6 +118,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       startDate,
       startTime,
       type,
+      catchup,
     } = this.state;
 
     return (
@@ -209,6 +214,18 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               variant='outlined'
             />
           </div>
+          <span className={commonCss.flex}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={catchup}
+                  color='primary'
+                  onClick={this.handleChange('catchup')}
+                />
+              }
+              label='Catchup'
+            />
+          </span>
 
           <span className={commonCss.flex}>
             Run every
@@ -322,11 +339,11 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       {
         [name]: value,
       } as any,
-      this._updateTrigger.bind(this),
+      this._updateTrigger,
     );
   };
 
-  private _updateTrigger(): void {
+  private _updateTrigger = () => {
     const {
       hasStartDate,
       hasEndDate,
@@ -340,6 +357,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       type,
       cron,
       selectedDays,
+      catchup,
     } = this.state;
 
     const startDateTime = pickersToDate(hasStartDate, startDate, startTime);
@@ -363,11 +381,15 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
         );
 
         if (this.props.onChange) {
-          this.props.onChange(trigger, trigger ? this.state.maxConcurrentRuns : undefined);
+          this.props.onChange({
+            trigger,
+            maxConcurrentRuns: trigger ? this.state.maxConcurrentRuns : undefined,
+            catchup,
+          });
         }
       },
     );
-  }
+  };
 
   private _isAllDaysChecked(): boolean {
     return this.state.selectedDays.every(d => !!d);
@@ -397,7 +419,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
         cron,
         selectedDays: newDays,
       },
-      this._updateTrigger.bind(this),
+      this._updateTrigger,
     );
   }
 }
