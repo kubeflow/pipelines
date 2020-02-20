@@ -65,7 +65,6 @@ go_test(
         "//backend/src/apiserver/list:go_default_library",
         "//backend/src/apiserver/model:go_default_library",
         "//backend/src/apiserver/resource:go_default_library",
-        "//backend/src/apiserver/storage:go_default_library",
         "//backend/src/common/util:go_default_library",
         "//backend/src/crd/pkg/apis/scheduledworkflow/v1beta1:go_default_library",
         "@com_github_argoproj_argo//pkg/apis/workflow/v1alpha1:go_default_library",

@@ -242,7 +242,7 @@ func (a *Client) GetPipelineVersionTemplate(params *GetPipelineVersionTemplatePa
 }
 
 /*
-GetTemplate gets a y a m l template for the selected pipeline
+GetTemplate returns a single y a m l template that contains the description parameters and metadata associated with the pipeline provided
 */
 func (a *Client) GetTemplate(params *GetTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*GetTemplateOK, error) {
 	// TODO: Validate the params before sending

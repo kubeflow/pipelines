@@ -243,4 +243,9 @@ message Job {
 
   // Input. Whether the job is enabled or not.
   bool enabled = 16;
+
+  // Optional input field. Whether the job should catch up if behind schedule.
+  // If true, the job will only schedule the latest interval if behind schedule.
+  // If false, the job will catch up on each past interval.
+  bool no_catchup = 17;
 }
