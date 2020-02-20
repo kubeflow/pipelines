@@ -47,7 +47,7 @@
     "lint": "tslint -c ./tslint.prod.json -p .",
     "mock:api": "ts-node-dev -O '{\"module\": \"commonjs\"}' mock-backend/mock-api-server.ts 3001",
     "mock:server": "node server/dist/server.js build",
-    "postinstall": "cd ./server && npm i && cd ../mock-backend && npm i",
+    "postinstall": "cd ./server && npm ci && cd ../mock-backend && npm ci",
     "start:proxy-standalone": "./start-proxy-standalone.sh",
     "start:proxy-standalone-and-server": "./start-proxy-standalone-and-server.sh",
     "start": "react-scripts-ts start",

@@ -84,6 +84,8 @@ export function loadConfigs(
     ARGO_ARCHIVE_BUCKETNAME = 'mlpipeline',
     /** Prefix to logs. */
     ARGO_ARCHIVE_PREFIX = 'logs',
+    /** Disables GKE metadata endpoint. */
+    DISABLE_GKE_METADATA = 'false',
     /** Deployment type. */
     DEPLOYMENT: DEPLOYMENT_STR = '',
   } = env;
@@ -149,6 +151,9 @@ export function loadConfigs(
     visualizations: {
       allowCustomVisualizations: asBool(ALLOW_CUSTOM_VISUALIZATIONS),
     },
+    gkeMetadata: {
+      disabled: asBool(DISABLE_GKE_METADATA),
+    },
   };
 }
 
@@ -202,6 +207,9 @@ export interface ServerConfigs {
   apiVersionPrefix: string;
   deployment: Deployments;
 }
+export interface GkeMetadataConfigs {
+  disabled: boolean;
+}
 export interface UIConfigs {
   server: ServerConfigs;
   artifacts: {
@@ -214,4 +222,5 @@ export interface UIConfigs {
   visualizations: VisualizationsConfigs;
   viewer: ViewerConfigs;
   pipeline: PipelineConfigs;
+  gkeMetadata: GkeMetadataConfigs;
 }
