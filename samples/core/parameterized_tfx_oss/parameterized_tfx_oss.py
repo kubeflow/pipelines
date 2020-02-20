@@ -143,7 +143,7 @@ if __name__ == '__main__':
       enable_cache=enable_cache,
   )
   # Make sure the version of TFX image used is consistent with the version of
-  # TFX SDK. Here we use tfx:0.15.0 image.
+  # TFX SDK.
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
