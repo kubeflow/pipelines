@@ -76,7 +76,7 @@ exports[`GettingStarted page initially renders documentation 1`] = `
               Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. Learn how to 
               <a
                 class="link"
-                href="https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb"
+                href="https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252Fmaster%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb"
                 rel="noopener"
                 target="_blank"
               >
