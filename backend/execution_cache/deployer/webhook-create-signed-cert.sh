@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 usage() {
     cat <<EOF
@@ -34,6 +34,10 @@ while [[ $# -gt 0 ]]; do
             namespace="$2"
             shift
             ;;
+        --cert-pem-output-path)
+            cert-pem-output-path="$2"
+            shift
+            ;;
         *)
             usage
             ;;
@@ -44,13 +48,14 @@ done
 [ -z ${service} ] && service=execution-cache-server
 [ -z ${secret} ] && secret=webhook-server-tls
 [ -z ${namespace} ] && namespace=kubeflow
+[ -z ${cert-pem-output-path} ] && cert-pem-output-path="ca.cert"
 
 if [ ! -x "$(command -v openssl)" ]; then
     echo "openssl not found"
     exit 1
 fi
 
-csrName=${service}
+csrName=${service}.${namespace}
 tmpdir=$(mktemp -d)
 echo "creating certs in tmpdir ${tmpdir} "
 
@@ -71,7 +76,7 @@ DNS.3 = ${service}.${namespace}.svc
 EOF
 
 openssl genrsa -out ${tmpdir}/server-key.pem 2048
-openssl req -new -key ${tmpdir}/server-key.pem -subj "/CN=${service}.svc" -out ${tmpdir}/server.csr -config ${tmpdir}/csr.conf
+openssl req -new -key ${tmpdir}/server-key.pem -subj "/CN=${service}.${namespace}.svc" -out ${tmpdir}/server.csr -config ${tmpdir}/csr.conf
 
 echo "start running kubectl..."
 
@@ -118,6 +123,7 @@ if [[ ${serverCert} == '' ]]; then
 fi
 echo ${serverCert} | openssl base64 -d -A -out ${tmpdir}/server-cert.pem
 
+echo ${serverCert} > ${CA_FILE}
 
 # create the secret with CA cert and server cert/key
 kubectl create secret generic ${secret} \

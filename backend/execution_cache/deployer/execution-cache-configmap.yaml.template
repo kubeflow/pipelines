@@ -1,12 +1,13 @@
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: cache-webhook
+  name: execution-cache-webhook
 webhooks:
-  - name: execution-cache-server.svc
+  - name: execution-cache-server.${NAMESPACE}.svc
     clientConfig:
       service:
         name: execution-cache-server
+        namespace: ${NAMESPACE}
         path: "/mutate"
       caBundle: ${CA_BUNDLE}
     rules:

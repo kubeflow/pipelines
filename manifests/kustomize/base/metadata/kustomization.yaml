@@ -12,3 +12,9 @@ resources:
   - metadata-writer-role.yaml
   - metadata-writer-rolebinding.yaml
   - metadata-writer-sa.yaml
+  - execution-cache-deployer-clusterrole.yaml
+  - execution-cache-deployer-clusterrolebinding.yaml
+  - execution-cache-deployer-sa.yaml
+  - execution-cache-deployer-job.yaml
+  - execution-cache-deployment.yaml
+  - execution-cache-service.yaml
