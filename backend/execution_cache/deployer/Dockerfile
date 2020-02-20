@@ -13,7 +13,7 @@ RUN curl -sSL https://sdk.cloud.google.com | bash
 ENV PATH $PATH:/root/google-cloud-sdk/bin
 RUN gcloud components install kubectl
 
-ADD backend/execution_cache/deployer/* /kfp/execution_cache/deployer
+ADD backend/execution_cache/deployer/* /kfp/execution_cache/deployer/
 
 WORKDIR /kfp/execution_cache/deployer
 
