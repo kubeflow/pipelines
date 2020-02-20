@@ -155,7 +155,7 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 
 	// Filtering.
 	if filterProto != nil {
-		f, err := filter.NewWithKeyMap(filterProto, listable.APIToModelFieldMap())
+		f, err := filter.NewWithKeyMap(filterProto, listable.APIToModelFieldMap(), listable.GetModelName())
 		if err != nil {
 			return nil, err
 		}
@@ -245,6 +245,24 @@ func FilterOnResourceReference(tableName string, columns []string, resourceType 
 		}
 		return selectBuilder.Where(fmt.Sprintf("UUID in (%s)", resourceReferenceFilter), args...), nil
 	}
+	return selectBuilder, nil
+}
+
+// FilterOnExperiment filters the given table by rows based on provided experiment ID,
+// and returns the rebuilt SelectBuilder
+func FilterRunOnExperiment(
+	tableName string,
+	columns []string,
+	selectCount bool,
+	experimentID string,
+) (sq.SelectBuilder, error) {
+	selectBuilder := sq.Select(columns...)
+	if selectCount {
+		selectBuilder = sq.Select("count(*)")
+	}
+	selectBuilder = selectBuilder.From(tableName).Where(
+		sq.Eq{"ExperimentUUID": experimentID},
+	)
 	return selectBuilder, nil
 }
 

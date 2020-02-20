@@ -13,8 +13,6 @@ ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 RUN mv /bin/deploy.sh /bin/core_deploy.sh
 RUN mv /bin/deploy_with_tests.sh /bin/core_deploy_with_tests.sh
 
-# RUN awk '{sub(/clean_iam_resources.sh/,"clean_action.sh\n\nclean_iam_resources.sh")}1' /bin/core_deploy_with_tests.sh > /bin/new_deploy_with_tests.sh
-
 ADD deployer/init_action.sh /bin/init_action.sh
 RUN chmod 755 /bin/init_action.sh
 

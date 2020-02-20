@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -97,7 +97,7 @@ func (a *Client) DeleteJob(params *DeleteJobParams, authInfo runtime.ClientAuthI
 }
 
 /*
-DisableJob disables a job
+DisableJob stops a job and all its associated runs the job is not deleted
 */
 func (a *Client) DisableJob(params *DisableJobParams, authInfo runtime.ClientAuthInfoWriter) (*DisableJobOK, error) {
 	// TODO: Validate the params before sending
@@ -126,7 +126,7 @@ func (a *Client) DisableJob(params *DisableJobParams, authInfo runtime.ClientAut
 }
 
 /*
-EnableJob enables a job
+EnableJob restarts a job that was previously stopped all runs associated with the job will continue
 */
 func (a *Client) EnableJob(params *EnableJobParams, authInfo runtime.ClientAuthInfoWriter) (*EnableJobOK, error) {
 	// TODO: Validate the params before sending

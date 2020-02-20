@@ -30,13 +30,23 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
+func initEnvVars() {
+	viper.Set(common.PodNamespace, "test-ns")
+}
+
 type FakeBadObjectStore struct{}
+
+
+func (m *FakeBadObjectStore) GetPipelineKey(pipelineID string) string {
+	return pipelineID
+}
 
 func (m *FakeBadObjectStore) AddFile(template []byte, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
@@ -60,13 +70,14 @@ func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, filePath string) err
 
 var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1"},
+	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "test-ns"},
 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
 	Status:     v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 })
 
 // Util function to create an initial state with pipeline uploaded
 func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
 	p, err := manager.CreatePipeline("p1", "", []byte(testWorkflow.ToStringForStore()))
@@ -75,6 +86,7 @@ func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *mode
 }
 
 func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
 	experiment := &model.Experiment{Name: "e1"}
@@ -84,6 +96,7 @@ func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 }
 
 func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment, *model.Pipeline) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
 	experiment := &model.Experiment{Name: "e1"}
@@ -159,7 +172,8 @@ func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManage
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.NodeFailed
 	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
-	manager.ReportWorkflowResource(updatedWorkflow)
+	err = manager.ReportWorkflowResource(updatedWorkflow)
+	assert.Nil(t, err)
 	return store, manager, runDetail
 }
 
@@ -252,7 +266,7 @@ func TestGetPipelineTemplate_PipelineMetadataNotFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	template := []byte("workflow: foo")
-	store.ObjectStore().AddFile(template, storage.CreatePipelinePath(fmt.Sprint(1)))
+	store.objectStore.AddFile(template, store.objectStore.GetPipelineKey(fmt.Sprint(1)))
 	manager := NewResourceManager(store)
 	_, err := manager.GetPipelineTemplate("1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
@@ -303,8 +317,10 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID: experiment.UUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
+			Namespace:      "test-ns",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 3,
 			Conditions:     "Running",
@@ -338,6 +354,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 
 func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
+	expectedExperimentUUID := runDetail.ExperimentUUID
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
@@ -347,8 +364,10 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID: expectedExperimentUUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
+			Namespace:      "test-ns",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 2,
 			Conditions:     "Running",
@@ -430,8 +449,10 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID: experiment.UUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
+			Namespace:      "test-ns",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 4,
 			Conditions:     "Running",
@@ -1104,12 +1125,14 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 
 func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
+	expectedExperimentUUID := run.ExperimentUUID
 	defer store.Close()
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			UID:    types.UID(run.UUID),
-			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Namespace: "test-ns",
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 	})
@@ -1119,8 +1142,10 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	assert.Nil(t, err)
 	expectedRun := model.Run{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
+		ExperimentUUID: expectedExperimentUUID,
 		DisplayName:    "run1",
 		Name:           "workflow-name",
+		Namespace:      "test-ns",
 		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 		CreatedAtInSec: 2,
 		Conditions:     "Running",
@@ -1281,20 +1306,22 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 
 func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
+	namespace := "kubeflow"
 	defer store.Close()
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:   run.Name,
-			UID:    types.UID(run.UUID),
-			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Name:      run.Name,
+			Namespace: namespace,
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
 	})
 	err := manager.ReportWorkflowResource(workflow)
 	assert.Nil(t, err)
 
-	wf, err := store.ArgoClientFake.Workflow("").Get(run.Run.Name, v1.GetOptions{})
+	wf, err := store.ArgoClientFake.Workflow(namespace).Get(run.Run.Name, v1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, wf.Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }
@@ -1305,9 +1332,10 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:   run.Name,
-			UID:    types.UID(run.UUID),
-			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
+			Name:      run.Name,
+			Namespace: "test-ns",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
 	})
@@ -1322,9 +1350,10 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFail
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:   run.Name,
-			UID:    types.UID(run.UUID),
-			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
+			Name:      run.Name,
+			Namespace: "test-ns",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
 	})

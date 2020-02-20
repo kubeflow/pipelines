@@ -23,7 +23,8 @@ import (
 )
 
 const (
-	MultiUserMode     string = "MULTIUSER"
+	MultiUserMode string = "MULTIUSER"
+	PodNamespace  string = "POD_NAMESPACE"
 )
 
 func GetStringConfig(configName string) string {
@@ -68,4 +69,16 @@ func GetDurationConfig(configName string) time.Duration {
 
 func IsMultiUserMode() bool {
 	return GetBoolConfigWithDefault(MultiUserMode, false)
+}
+
+func GetPodNamespace() string {
+	return GetStringConfig(PodNamespace)
+}
+
+func GetBoolFromStringWithDefault(value string, defaultValue bool) bool {
+	boolVal, err := strconv.ParseBool(value)
+	if err != nil {
+		return defaultValue
+	}
+	return boolVal
 }

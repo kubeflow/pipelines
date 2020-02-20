@@ -85,9 +85,10 @@ def flipcoin_pipeline():
 
 # %%
 @func_to_container_op
-def fail_op():
+def fail_op(message):
     """Fails."""
     import sys
+    print(message)    
     sys.exit(1)
 
 
@@ -114,7 +115,7 @@ def flipcoin_exit_pipeline():
                 print_op('tails and %s <= 15!' % random_num_tail.output)
 
         with dsl.Condition(flip.output == 'tails'):
-            fail_op()
+            fail_op(message="Failing the run to demonstrate that exit handler still gets executed.")
 
 
 if __name__ == '__main__':

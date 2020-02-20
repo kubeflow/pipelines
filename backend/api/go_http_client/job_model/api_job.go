@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -60,6 +60,11 @@ type APIJob struct {
 
 	// Required input field. Job name provided by user. Not unique.
 	Name string `json:"name,omitempty"`
+
+	// Optional input field. Whether the job should catch up if behind schedule.
+	// If true, the job will only schedule the latest interval if behind schedule.
+	// If false, the job will catch up on each past interval.
+	NoCatchup bool `json:"no_catchup,omitempty"`
 
 	// Required input field.
 	// Describing what the pipeline manifest and parameters to use

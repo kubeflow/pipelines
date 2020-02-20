@@ -128,18 +128,24 @@ func New(filterProto *api.Filter) (*Filter, error) {
 	return f, nil
 }
 
-// NewWithKeyMap is like New, but takes an additional map for mapping key names
+// NewWithKeyMap is like New, but takes an additional map and model name for mapping key names
 // in the protocol buffer to an appropriate name for use when querying the
-// model. For example, if the API name of a field is "foo" and the equivalent
-// model name is "ModelFoo", then filterProto with predicates against key "foo"
-// will be parsed as if the key value was "ModelFoo".
-func NewWithKeyMap(filterProto *api.Filter, keyMap map[string]string) (*Filter, error) {
+// model. For example, if the API name of a field is "name", the model name is "pipelines", and
+// the equivalent column name is "Name", then filterProto with predicates against key "name"
+// will be parsed as if the key value was "pipelines.Name".
+func NewWithKeyMap(filterProto *api.Filter, keyMap map[string]string, modelName string) (*Filter, error) {
+	// Fully qualify column name to avoid "ambiguous column name" error.
+	var modelNamePrefix string
+	if modelName != "" {
+		modelNamePrefix = modelName + "."
+	}
+
 	for _, pred := range filterProto.Predicates {
 		k, ok := keyMap[pred.Key]
 		if !ok {
 			return nil, util.NewInvalidInputError("no support for filtering on unrecognized field %q", pred.Key)
 		}
-		pred.Key = k
+		pred.Key = modelNamePrefix + k
 	}
 	return New(filterProto)
 }
