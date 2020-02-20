@@ -14,25 +14,26 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import Button from '@material-ui/core/Button';
 import Checkbox from '@material-ui/core/Checkbox';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Input from '../atoms/Input';
 import MenuItem from '@material-ui/core/MenuItem';
+import * as React from 'react';
+import { stylesheet } from 'typestyle';
+import { ApiTrigger } from '../apis/job';
+import { HelpButton } from '../atoms/HelpButton';
+import Input from '../atoms/Input';
 import Separator from '../atoms/Separator';
 import { commonCss } from '../Css';
-import { dateToPickerFormat } from '../lib/TriggerUtils';
 import {
-  PeriodicInterval,
-  TriggerType,
-  triggers,
   buildCron,
-  pickersToDate,
   buildTrigger,
+  dateToPickerFormat,
+  PeriodicInterval,
+  pickersToDate,
+  triggers,
+  TriggerType,
 } from '../lib/TriggerUtils';
-import { ApiTrigger } from '../apis/job';
-import { stylesheet } from 'typestyle';
 
 interface TriggerProps {
   onChange?: (config: {
@@ -224,6 +225,24 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                 />
               }
               label='Catchup'
+            />
+            <HelpButton
+              helpText={
+                <div>
+                  <p>
+                    Whether the recurring run should catch up if behind schedule. Defaults to true.
+                  </p>
+                  <p>
+                    For example, if the recurring run is paused for a while and re-enabled
+                    afterwards. If catchup=true, the scheduler will catch up on (backfill) each
+                    missed interval. Otherwise, it only schedules the latest interval.
+                  </p>
+                  <p>
+                    Usually, if your pipeline handles backfill internally, you should turn catchup
+                    off to avoid duplicate work.
+                  </p>
+                </div>
+              }
             />
           </span>
 

@@ -161,7 +161,7 @@ class NewRun extends Page<{}, NewRunState> {
     uploadDialogOpen: false,
     usePipelineFromRunLabel: 'Using pipeline from cloned run',
     useWorkflowFromRun: false,
-    catchup: true, // defaults to true
+    catchup: true,
   };
 
   public getInitialToolbarState(): ToolbarProps {
