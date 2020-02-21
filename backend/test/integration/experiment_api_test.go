@@ -28,7 +28,7 @@ func (s *ExperimentApiTest) SetupTest() {
 		return
 	}
 
-	if !*skipWaitForCluster {
+	if !*isDevMode {
 		err := test.WaitForReady(*namespace, *initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %v", err)
@@ -42,8 +42,7 @@ func (s *ExperimentApiTest) SetupTest() {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}
 
-	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, s.T())
+	s.cleanUp()
 }
 
 func (s *ExperimentApiTest) TestExperimentAPI() {
@@ -164,4 +163,14 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 func TestExperimentAPI(t *testing.T) {
 	suite.Run(t, new(ExperimentApiTest))
+}
+
+func (s *ExperimentApiTest) TearDownSuite() {
+	if !*isDevMode {
+		s.cleanUp()
+	}
+}
+
+func (s *ExperimentApiTest) cleanUp() {
+	test.DeleteAllExperiments(s.experimentClient, s.T())
 }

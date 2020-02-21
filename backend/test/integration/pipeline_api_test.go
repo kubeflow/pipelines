@@ -39,7 +39,7 @@ func (s *PipelineApiTest) SetupTest() {
 		return
 	}
 
-	if !*skipWaitForCluster {
+	if !*isDevMode {
 		err := test.WaitForReady(*namespace, *initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
@@ -56,8 +56,7 @@ func (s *PipelineApiTest) SetupTest() {
 		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
 	}
 
-	/* ---------- Clean up ---------- */
-	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	s.cleanUp()
 }
 
 func (s *PipelineApiTest) TestPipelineAPI() {
@@ -220,3 +219,13 @@ func TestPipelineAPI(t *testing.T) {
 }
 
 // TODO(jingzhang36): include UploadPipelineVersion in integration test
+
+func (s *PipelineApiTest) TearDownSuite() {
+	if !*isDevMode {
+		s.cleanUp()
+	}
+}
+
+func (s *PipelineApiTest) cleanUp() {
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+}

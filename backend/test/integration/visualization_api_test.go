@@ -25,7 +25,7 @@ func (s *VisualizationApiTest) SetupTest() {
 		return
 	}
 
-	if !*skipWaitForCluster {
+	if !*isDevMode {
 		err := test.WaitForReady(*namespace, *initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %v", err)

@@ -41,7 +41,7 @@ func (s *JobApiTestSuite) SetupTest() {
 		return
 	}
 
-	if !*skipWaitForCluster {
+	if !*isDevMode {
 		err := test.WaitForReady(*namespace, *initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
@@ -71,11 +71,7 @@ func (s *JobApiTestSuite) SetupTest() {
 		glog.Exitf("Failed to get job client. Error: %s", err.Error())
 	}
 
-	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, s.T())
-	test.DeleteAllPipelines(s.pipelineClient, s.T())
-	test.DeleteAllJobs(s.jobClient, s.T())
-	test.DeleteAllRuns(s.runClient, s.T())
+	s.cleanUp()
 }
 
 func (s *JobApiTestSuite) TestJobApis() {
@@ -315,3 +311,16 @@ func TestJobApi(t *testing.T) {
 }
 
 // TODO(jingzhang36): include UploadPipelineVersion in integration test
+
+func (s *JobApiTestSuite) TearDownSuite() {
+	if !*isDevMode {
+		s.cleanUp()
+	}
+}
+
+func (s *JobApiTestSuite) cleanUp() {
+	test.DeleteAllExperiments(s.experimentClient, s.T())
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	test.DeleteAllJobs(s.jobClient, s.T())
+	test.DeleteAllRuns(s.runClient, s.T())
+}

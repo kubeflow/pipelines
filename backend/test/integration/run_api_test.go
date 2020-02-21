@@ -36,7 +36,7 @@ func (s *RunApiTestSuite) SetupTest() {
 		return
 	}
 
-	if !*skipWaitForCluster {
+	if !*isDevMode {
 		err := test.WaitForReady(*namespace, *initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
@@ -62,10 +62,7 @@ func (s *RunApiTestSuite) SetupTest() {
 		glog.Exitf("Failed to get run client. Error: %s", err.Error())
 	}
 
-	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, s.T())
-	test.DeleteAllPipelines(s.pipelineClient, s.T())
-	test.DeleteAllRuns(s.runClient, s.T())
+	s.cleanUp()
 }
 
 func (s *RunApiTestSuite) TestRunApis() {
@@ -317,3 +314,16 @@ func TestRunApi(t *testing.T) {
 }
 
 // TODO(jingzhang36): include UploadPipelineVersion in integration test
+
+func (s *RunApiTestSuite) TearDownSuite() {
+	if !*isDevMode {
+		s.cleanUp()
+	}
+}
+
+func (s *RunApiTestSuite) cleanUp() {
+	/* ---------- Clean up ---------- */
+	test.DeleteAllExperiments(s.experimentClient, s.T())
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	test.DeleteAllRuns(s.runClient, s.T())
+}

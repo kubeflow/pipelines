@@ -20,4 +20,4 @@ case "$response" in
 esac
 
 echo "Starting integration tests..."
-go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -skipWaitForCluster=true
+go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -isDevMode=true
