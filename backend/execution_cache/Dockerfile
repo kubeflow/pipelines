@@ -14,5 +14,7 @@ FROM alpine:3.8
 WORKDIR /bin
 
 COPY --from=builder /bin/execution_cache /bin/execution_cache
+RUN mkdir /usr/license
+COPY --from=builder /kfp/execution_cache/license.txt /usr/license
 
 ENTRYPOINT [ "/bin/execution_cache" ]
