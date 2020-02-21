@@ -20,27 +20,29 @@ import {
   ArtifactCustomProperties,
   ArtifactProperties,
   GetArtifactsByIDRequest,
-  LineageView,
   getResourceProperty,
-  titleCase,
   LineageResource,
+  LineageView,
+  titleCase,
 } from '@kubeflow/frontend';
-import * as React from 'react';
-import { Page, PageProps } from './Page';
-import { ToolbarProps } from '../components/Toolbar';
-import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
-import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
-import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
-import MD2Tabs from '../atoms/MD2Tabs';
-import { serviceErrorToString, logger } from '../lib/Utils';
+import * as React from 'react';
 import { Route, Switch } from 'react-router-dom';
+import { classes } from 'typestyle';
+import MD2Tabs from '../atoms/MD2Tabs';
+import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
+import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
+import { commonCss, padding } from '../Css';
+import { logger, serviceErrorToString } from '../lib/Utils';
+import { Page, PageProps } from './Page';
 
 export enum ArtifactDetailsTab {
   OVERVIEW = 0,
   LINEAGE_EXPLORER = 1,
 }
+
+const LINEAGE_PATH = 'lineage';
 
 const TABS = {
   [ArtifactDetailsTab.OVERVIEW]: { name: 'Overview' },
@@ -104,7 +106,11 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     return (
       <div className={classes(commonCss.page)}>
         <Switch>
-          <Route path={`${this.props.match.path}/`} exact>
+          {/*
+           ** This is react-router's nested route feature.
+           ** reference: https://reacttraining.com/react-router/web/example/nesting
+           */}
+          <Route path={this.props.match.path} exact={true}>
             <>
               <div className={classes(padding(20, 't'))}>
                 <MD2Tabs
@@ -122,7 +128,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
               </div>
             </>
           </Route>
-          <Route path={`${this.props.match.path}/lineage`}>
+          <Route path={`${this.props.match.path}/${LINEAGE_PATH}`} exact={true}>
             <>
               <div className={classes(padding(20, 't'))}>
                 <MD2Tabs
@@ -193,13 +199,9 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   private switchTab = (selectedTab: number) => {
     switch (selectedTab) {
       case ArtifactDetailsTab.LINEAGE_EXPLORER:
-        return this.props.history.push(
-          `${RoutePageFactory.artifactDetails(this.fullTypeName, this.id)}/lineage`,
-        );
+        return this.props.history.push(`${this.props.match.url}/${LINEAGE_PATH}`);
       case ArtifactDetailsTab.OVERVIEW:
-        return this.props.history.push(
-          `${RoutePageFactory.artifactDetails(this.fullTypeName, this.id)}`,
-        );
+        return this.props.history.push(this.props.match.url);
       default:
         logger.error(`Unknown selected tab ${selectedTab}.`);
     }
