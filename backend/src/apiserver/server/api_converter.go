@@ -214,6 +214,7 @@ func ToApiJob(job *model.Job) *api.Job {
 		UpdatedAt:      &timestamp.Timestamp{Seconds: job.UpdatedAtInSec},
 		Status:         job.Conditions,
 		MaxConcurrency: job.MaxConcurrency,
+		NoCatchup:      job.NoCatchup,
 		Trigger:        toApiTrigger(job.Trigger),
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId:       job.PipelineId,

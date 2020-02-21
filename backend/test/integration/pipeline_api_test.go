@@ -39,11 +39,14 @@ func (s *PipelineApiTest) SetupTest() {
 		return
 	}
 
-	err := test.WaitForReady(*namespace, *initializeTimeout)
-	if err != nil {
-		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+	if !*isDevMode {
+		err := test.WaitForReady(*namespace, *initializeTimeout)
+		if err != nil {
+			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+		}
 	}
 	clientConfig := test.GetClientConfig(*namespace)
+	var err error
 	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
@@ -52,6 +55,8 @@ func (s *PipelineApiTest) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
 	}
+
+	s.cleanUp()
 }
 
 func (s *PipelineApiTest) TestPipelineAPI() {
@@ -179,9 +184,6 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	var expectedWorkflow v1alpha1.Workflow
 	err = yaml.Unmarshal(expected, &expectedWorkflow)
 	assert.Equal(t, expectedWorkflow, *template)
-
-	/* ---------- Clean up ---------- */
-	test.DeleteAllPipelines(s.pipelineClient, t)
 }
 
 func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
@@ -217,3 +219,15 @@ func TestPipelineAPI(t *testing.T) {
 }
 
 // TODO(jingzhang36): include UploadPipelineVersion in integration test
+
+func (s *PipelineApiTest) TearDownSuite() {
+	if *runIntegrationTests {
+		if !*isDevMode {
+			s.cleanUp()
+		}
+	}
+}
+
+func (s *PipelineApiTest) cleanUp() {
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+}
