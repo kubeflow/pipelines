@@ -41,12 +41,15 @@ func (s *JobApiTestSuite) SetupTest() {
 		return
 	}
 
-	err := test.WaitForReady(*namespace, *initializeTimeout)
-	if err != nil {
-		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+	if !*isDevMode {
+		err := test.WaitForReady(*namespace, *initializeTimeout)
+		if err != nil {
+			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+		}
 	}
 	s.namespace = *namespace
 	clientConfig := test.GetClientConfig(*namespace)
+	var err error
 	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
@@ -67,6 +70,8 @@ func (s *JobApiTestSuite) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get job client. Error: %s", err.Error())
 	}
+
+	s.cleanUp()
 }
 
 func (s *JobApiTestSuite) TestJobApis() {
@@ -207,12 +212,6 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, 1, totalSize)
 	argParamsRun := runs[0]
 	s.checkArgParamsRun(t, argParamsRun, argParamsExperiment.ID, argParamsExperiment.Name, argParamsJob.ID, argParamsJob.Name)
-
-	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, t)
-	test.DeleteAllPipelines(s.pipelineClient, t)
-	test.DeleteAllJobs(s.jobClient, t)
-	test.DeleteAllRuns(s.runClient, t)
 }
 
 func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineID string) {
@@ -312,3 +311,18 @@ func TestJobApi(t *testing.T) {
 }
 
 // TODO(jingzhang36): include UploadPipelineVersion in integration test
+
+func (s *JobApiTestSuite) TearDownSuite() {
+	if *runIntegrationTests {
+		if !*isDevMode {
+			s.cleanUp()
+		}
+	}
+}
+
+func (s *JobApiTestSuite) cleanUp() {
+	test.DeleteAllExperiments(s.experimentClient, s.T())
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	test.DeleteAllJobs(s.jobClient, s.T())
+	test.DeleteAllRuns(s.runClient, s.T())
+}
