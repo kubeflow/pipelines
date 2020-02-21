@@ -6,7 +6,7 @@
   },
   {
     "name": "[Demo] TFX - Taxi Tip Prediction Model Trainer",
-    "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss) [GCP Permission requirements](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/parameterized_tfx_oss#permission). Example pipeline that does classification with model analysis based on a public tax cab dataset.",
+    "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss) [GCP Permission requirements](https://github.com/kubeflow/pipelines/blob/master/samples/core/parameterized_tfx_oss#permission). Example pipeline that does classification with model analysis based on a public tax cab dataset.",
     "file": "/samples/core/parameterized_tfx_oss/parameterized_tfx_oss.py.yaml"
   },
   {
