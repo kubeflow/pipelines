@@ -221,55 +221,6 @@ func (s *JobApiTestSuite) TestJobApis() {
 	s.checkArgParamsRun(t, argParamsRun, argParamsExperiment.ID, argParamsExperiment.Name, argParamsJob.ID, argParamsJob.Name)
 }
 
-func defaultApiJob(pipelineId, experimentId string) *job_model.APIJob {
-	return &job_model.APIJob{
-		Name:        "default-pipeline-name",
-		Description: "This is a default pipeline",
-		PipelineSpec: &job_model.APIPipelineSpec{
-			PipelineID: pipelineId,
-		},
-		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentId},
-				Relationship: job_model.APIRelationshipOWNER},
-		},
-		MaxConcurrency: 10,
-		NoCatchup:      false,
-		Trigger: &job_model.APITrigger{
-			PeriodicSchedule: &job_model.APIPeriodicSchedule{
-				StartTime:      strfmt.NewDateTime(),
-				EndTime:        strfmt.NewDateTime(),
-				IntervalSecond: 60,
-			},
-		},
-		Enabled: true,
-	}
-}
-
-func jobInThePastForTwoMinutes(pipelineId, experimentId string, periodic bool) *job_model.APIJob {
-	startTime := strfmt.DateTime(time.Unix(10*hour, 0))
-	endTime := strfmt.DateTime(time.Unix(10*hour+2*minute, 0))
-
-	job := defaultApiJob(pipelineId, experimentId)
-	if periodic {
-		job.Trigger = &job_model.APITrigger{
-			PeriodicSchedule: &job_model.APIPeriodicSchedule{
-				StartTime:      startTime,
-				EndTime:        endTime,
-				IntervalSecond: 60, // Runs every 1 minute.
-			},
-		}
-	} else {
-		job.Trigger = &job_model.APITrigger{
-			CronSchedule: &job_model.APICronSchedule{
-				StartTime: startTime,
-				EndTime:   endTime,
-				Cron:      "0 * * * * ?", // Runs every 1 minute.
-			},
-		}
-	}
-	return job
-}
-
 func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	t := s.T()
 
@@ -463,9 +414,60 @@ func (s *JobApiTestSuite) TearDownSuite() {
 	}
 }
 
+/** ======== the following are util functions ========= **/
+
 func (s *JobApiTestSuite) cleanUp() {
 	test.DeleteAllExperiments(s.experimentClient, s.T())
 	test.DeleteAllPipelines(s.pipelineClient, s.T())
 	test.DeleteAllJobs(s.jobClient, s.T())
 	test.DeleteAllRuns(s.runClient, s.T())
+}
+
+func defaultApiJob(pipelineId, experimentId string) *job_model.APIJob {
+	return &job_model.APIJob{
+		Name:        "default-pipeline-name",
+		Description: "This is a default pipeline",
+		PipelineSpec: &job_model.APIPipelineSpec{
+			PipelineID: pipelineId,
+		},
+		ResourceReferences: []*job_model.APIResourceReference{
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentId},
+				Relationship: job_model.APIRelationshipOWNER},
+		},
+		MaxConcurrency: 10,
+		NoCatchup:      false,
+		Trigger: &job_model.APITrigger{
+			PeriodicSchedule: &job_model.APIPeriodicSchedule{
+				StartTime:      strfmt.NewDateTime(),
+				EndTime:        strfmt.NewDateTime(),
+				IntervalSecond: 60,
+			},
+		},
+		Enabled: true,
+	}
+}
+
+func jobInThePastForTwoMinutes(pipelineId, experimentId string, periodic bool) *job_model.APIJob {
+	startTime := strfmt.DateTime(time.Unix(10*hour, 0))
+	endTime := strfmt.DateTime(time.Unix(10*hour+2*minute, 0))
+
+	job := defaultApiJob(pipelineId, experimentId)
+	if periodic {
+		job.Trigger = &job_model.APITrigger{
+			PeriodicSchedule: &job_model.APIPeriodicSchedule{
+				StartTime:      startTime,
+				EndTime:        endTime,
+				IntervalSecond: 60, // Runs every 1 minute.
+			},
+		}
+	} else {
+		job.Trigger = &job_model.APITrigger{
+			CronSchedule: &job_model.APICronSchedule{
+				StartTime: startTime,
+				EndTime:   endTime,
+				Cron:      "0 * * * * ?", // Runs every 1 minute.
+			},
+		}
+	}
+	return job
 }
