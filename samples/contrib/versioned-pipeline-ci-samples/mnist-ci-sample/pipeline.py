@@ -8,13 +8,17 @@ from kfp.gcp import use_gcp_secret
 )
 def mnist_pipeline(
    storage_bucket: str,
+   output_path: str,
    ):
    import os
    train_op = components.load_component_from_file('./train/component.yaml')
    train_step = train_op(storage_bucket=storage_bucket).apply(use_gcp_secret('user-gcp-sa'))
 
    visualize_op = components.load_component_from_file('./tensorboard/component.yaml')
-   visualize_step = visualize_op(logdir='%s' % train_step.outputs['logdir']).apply(use_gcp_secret('user-gcp-sa'))
+   visualize_step = visualize_op(
+     logdir='%s' % train_step.outputs['logdir'],
+     output_path=output_path
+   ).apply(use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
    import argparse

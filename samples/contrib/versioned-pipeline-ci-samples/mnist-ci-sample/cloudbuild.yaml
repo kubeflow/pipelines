@@ -54,6 +54,7 @@ steps:
         pip3 install kfp==0.1.37;
         sed -i 's|image: train_image_location|image: ${_GCR_PATH}/mnist_train:$COMMIT_SHA|g' ./train/component.yaml;
         sed -i 's|image: tensorboard_image_location|image: ${_GCR_PATH}/mnist_tensorboard:$COMMIT_SHA|g' ./tensorboard/component.yaml;
+        sed -i 's|ui_metadata_path|${_UI_METADATA_PATH}|g' ./tensorboard/component.yaml;
         python pipeline.py --gcr_address ${_GCR_PATH};
         cp pipeline.py.zip /workspace/pipeline.zip",
       ]
@@ -84,7 +85,8 @@ steps:
         python3 create_pipeline_version_and_run.py 
         --bucket_name ${_GS_BUCKET}
         --commit_sha $COMMIT_SHA
-        --pipeline_id ${_PIPELINE_ID}"
+        --pipeline_id ${_PIPELINE_ID}
+        --output_path ${_UI_METADATA_PATH}"
       ]
     env:
       - "CLOUDSDK_COMPUTE_ZONE=[Your cluster zone, for example: us-central1-a]"
@@ -102,4 +104,4 @@ substitutions:
   _GS_BUCKET: [Name of your cloud storage bucket. For example, gs://my-project-bucket]
   _PIPELINE_ID: [Your kubeflow pipeline id to create a version on. Get it from Kubeflow Pipeline UI.
                  For example, f6f8558a-6eec-4ef4-b343-a650473ee613]
-
+  _UI_METADATA_PATH: [Path to the file which specifies where your metadata is located. For example, /mlpipeline-ui-metadata.json ]
