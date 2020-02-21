@@ -221,8 +221,8 @@ func (s *JobApiTestSuite) TestJobApis() {
 	s.checkArgParamsRun(t, argParamsRun, argParamsExperiment.ID, argParamsExperiment.Name, argParamsJob.ID, argParamsJob.Name)
 }
 
-func defaultApiJob(pipelineId, experimentId string) job_model.APIJob {
-	return job_model.APIJob{
+func defaultApiJob(pipelineId, experimentId string) *job_model.APIJob {
+	return &job_model.APIJob{
 		Name:        "default-pipeline-name",
 		Description: "This is a default pipeline",
 		PipelineSpec: &job_model.APIPipelineSpec{
@@ -245,70 +245,114 @@ func defaultApiJob(pipelineId, experimentId string) job_model.APIJob {
 	}
 }
 
-func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
-	t := s.T()
-
+func jobInThePastForTwoMinutes(pipelineId, experimentId string, periodic bool) *job_model.APIJob {
 	startTime := strfmt.DateTime(time.Unix(10*hour, 0))
 	endTime := strfmt.DateTime(time.Unix(10*hour+2*minute, 0))
+
+	job := defaultApiJob(pipelineId, experimentId)
+	if periodic {
+		job.Trigger = &job_model.APITrigger{
+			PeriodicSchedule: &job_model.APIPeriodicSchedule{
+				StartTime:      startTime,
+				EndTime:        endTime,
+				IntervalSecond: 60, // Runs every 1 minute.
+			},
+		}
+	} else {
+		job.Trigger = &job_model.APITrigger{
+			CronSchedule: &job_model.APICronSchedule{
+				StartTime: startTime,
+				EndTime:   endTime,
+				Cron:      "0 * * * * ?", // Runs every 1 minute.
+			},
+		}
+	}
+	return job
+}
+
+func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
+	t := s.T()
 
 	/* ---------- Upload pipelines YAML ---------- */
 	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
 	assert.Nil(t, err)
 
-	/* ---------- Create a job with start and end date in the past and catchup = true ---------- */
-	apiExperiment := &experiment_model.APIExperiment{Name: "catchup true"}
-	catchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: apiExperiment})
+	/* ---------- Create a periodic job with start and end date in the past and catchup = true ---------- */
+	experiment := &experiment_model.APIExperiment{Name: "periodic catchup true"}
+	periodicCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
-	catchupTrueJob := defaultApiJob(pipeline.ID, catchupTrueExperiment.ID)
-	catchupTrueJob.Name = "periodic-catchup-true-"
-	catchupTrueJob.Description = "A job with NoCatchup=false will backfill each past interval when behind schedule."
-	catchupTrueJob.Trigger = &job_model.APITrigger{
-		PeriodicSchedule: &job_model.APIPeriodicSchedule{
-			StartTime:      startTime,
-			EndTime:        endTime,
-			IntervalSecond: 60,
-		},
-	}
-	catchupTrueJob.NoCatchup = false
-	createJobRequest := &jobparams.CreateJobParams{Body: &catchupTrueJob}
+	job := jobInThePastForTwoMinutes(pipeline.ID, periodicCatchupTrueExperiment.ID, true)
+	job.Name = "periodic-catchup-true-"
+	job.Description = "A job with NoCatchup=false will backfill each past interval when behind schedule."
+	job.NoCatchup = false // This is the key difference.
+	createJobRequest := &jobparams.CreateJobParams{Body: job}
 	_, err = s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)
 
-	/* -------- Create another job with start and end date in the past but catchup = false ------ */
-	apiExperiment = &experiment_model.APIExperiment{Name: "catchup false"}
-	catchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: apiExperiment})
+	/* -------- Create another periodic job with start and end date in the past but catchup = false ------ */
+	experiment = &experiment_model.APIExperiment{Name: "periodic catchup false"}
+	periodicCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
-	catchupFalseJob := defaultApiJob(pipeline.ID, catchupFalseExperiment.ID)
-	catchupFalseJob.Name = "periodic-catchup-false-"
-	catchupFalseJob.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
-	catchupFalseJob.Trigger = &job_model.APITrigger{
-		PeriodicSchedule: &job_model.APIPeriodicSchedule{
-			StartTime:      startTime,
-			EndTime:        endTime,
-			IntervalSecond: 60,
-		},
-	}
-	catchupFalseJob.NoCatchup = true
-	createJobRequest = &jobparams.CreateJobParams{Body: &catchupFalseJob}
+	job = jobInThePastForTwoMinutes(pipeline.ID, periodicCatchupFalseExperiment.ID, true)
+	job.Name = "periodic-catchup-false-"
+	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
+	job.NoCatchup = true // This is the key difference.
+	createJobRequest = &jobparams.CreateJobParams{Body: job}
+	_, err = s.jobClient.Create(createJobRequest)
+	assert.Nil(t, err)
+
+	/* ---------- Create a cron job with start and end date in the past and catchup = true ---------- */
+	experiment = &experiment_model.APIExperiment{Name: "cron catchup true"}
+	cronCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
+	assert.Nil(t, err)
+
+	job = jobInThePastForTwoMinutes(pipeline.ID, cronCatchupTrueExperiment.ID, false)
+	job.Name = "periodic-catchup-true-"
+	job.Description = "A job with NoCatchup=false will backfill each past interval when behind schedule."
+	job.NoCatchup = false // This is the key difference.
+	createJobRequest = &jobparams.CreateJobParams{Body: job}
+	_, err = s.jobClient.Create(createJobRequest)
+	assert.Nil(t, err)
+
+	/* -------- Create another cron job with start and end date in the past but catchup = false ------ */
+	experiment = &experiment_model.APIExperiment{Name: "cron catchup false"}
+	cronCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
+	assert.Nil(t, err)
+
+	job = jobInThePastForTwoMinutes(pipeline.ID, cronCatchupFalseExperiment.ID, false)
+	job.Name = "periodic-catchup-false-"
+	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
+	job.NoCatchup = true // This is the key difference.
+	createJobRequest = &jobparams.CreateJobParams{Body: job}
 	_, err = s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)
 
 	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
 	// TODO: Retry list run every 5 seconds instead of sleeping for 40 seconds.
-	time.Sleep(60 * time.Second)
+	time.Sleep(40 * time.Second)
 
-	/* ---------- Check how many runs when catchup = true ---------- */
+	/* ---------- Assert number of runs when catchup = true ---------- */
 	_, runsWhenCatchupTrue, _, err := s.runClient.List(&runParams.ListRunsParams{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-		ResourceReferenceKeyID:   util.StringPointer(catchupTrueExperiment.ID)})
+		ResourceReferenceKeyID:   util.StringPointer(periodicCatchupTrueExperiment.ID)})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, runsWhenCatchupTrue)
+	_, runsWhenCatchupTrue, _, err = s.runClient.List(&runParams.ListRunsParams{
+		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+		ResourceReferenceKeyID:   util.StringPointer(cronCatchupTrueExperiment.ID)})
+
+	/* ---------- Assert number of runs when catchup = false ---------- */
 	_, runsWhenCatchupFalse, _, err := s.runClient.List(&runParams.ListRunsParams{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-		ResourceReferenceKeyID:   util.StringPointer(catchupFalseExperiment.ID)})
+		ResourceReferenceKeyID:   util.StringPointer(periodicCatchupFalseExperiment.ID)})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, runsWhenCatchupFalse)
+	_, runsWhenCatchupFalse, _, err = s.runClient.List(&runParams.ListRunsParams{
+		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+		ResourceReferenceKeyID:   util.StringPointer(cronCatchupFalseExperiment.ID)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, runsWhenCatchupFalse)
 }
