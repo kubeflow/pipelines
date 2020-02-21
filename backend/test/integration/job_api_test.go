@@ -272,7 +272,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 		experimentId: cronCatchupTrueExperiment.ID,
 		periodic:     false,
 	})
-	job.Name = "periodic-catchup-true-"
+	job.Name = "cron-catchup-true-"
 	job.Description = "A job with NoCatchup=false will backfill each past interval when behind schedule."
 	job.NoCatchup = false // This is the key difference.
 	createJobRequest = &jobparams.CreateJobParams{Body: job}
@@ -289,7 +289,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 		experimentId: cronCatchupFalseExperiment.ID,
 		periodic:     false,
 	})
-	job.Name = "periodic-catchup-false-"
+	job.Name = "cron-catchup-false-"
 	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
 	job.NoCatchup = true // This is the key difference.
 	createJobRequest = &jobparams.CreateJobParams{Body: job}
