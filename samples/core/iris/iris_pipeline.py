@@ -56,8 +56,12 @@ _module_file_param = data_types.RuntimeParameter(
 
 # Directory and data locations. This example assumes all of the flowers
 # example code and metadata library is relative to a GCS path.
+# Note: if one deployed KFP from GKE marketplace, it's possible to leverage
+# the following magic placeholder to auto-populate the default GCS bucket
+# associated with KFP deployment. Otherwise you'll need to replace it with your
+# actual bucket name here or when creating a run.
 _pipeline_root = os.path.join(
-    'gs://jxzheng-helloworld', 'tfx_iris', kfp.dsl.RUN_ID_PLACEHOLDER
+    'gs://{{kfp-default-bucket}}', 'tfx_iris', kfp.dsl.RUN_ID_PLACEHOLDER
 )
 
 
