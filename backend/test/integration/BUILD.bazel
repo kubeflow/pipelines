@@ -28,6 +28,7 @@ go_test(
         "//backend/test:go_default_library",
         "@com_github_argoproj_argo//pkg/apis/workflow/v1alpha1:go_default_library",
         "@com_github_ghodss_yaml//:go_default_library",
+        "@com_github_go_openapi_strfmt//:go_default_library",
         "@com_github_golang_glog//:go_default_library",
         "@com_github_stretchr_testify//assert:go_default_library",
         "@com_github_stretchr_testify//suite:go_default_library",
