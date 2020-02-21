@@ -7,6 +7,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/test"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/golang/glog"
 	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
@@ -21,6 +22,12 @@ import (
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/util/yaml"
+)
+
+const (
+	second = 1
+	minute = 60 * second
+	hour   = 60 * minute
 )
 
 type JobApiTestSuite struct {
@@ -212,6 +219,98 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, 1, totalSize)
 	argParamsRun := runs[0]
 	s.checkArgParamsRun(t, argParamsRun, argParamsExperiment.ID, argParamsExperiment.Name, argParamsJob.ID, argParamsJob.Name)
+}
+
+func defaultApiJob(pipelineId, experimentId string) job_model.APIJob {
+	return job_model.APIJob{
+		Name:        "default-pipeline-name",
+		Description: "This is a default pipeline",
+		PipelineSpec: &job_model.APIPipelineSpec{
+			PipelineID: pipelineId,
+		},
+		ResourceReferences: []*job_model.APIResourceReference{
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentId},
+				Relationship: job_model.APIRelationshipOWNER},
+		},
+		MaxConcurrency: 10,
+		NoCatchup:      false,
+		Trigger: &job_model.APITrigger{
+			PeriodicSchedule: &job_model.APIPeriodicSchedule{
+				StartTime:      strfmt.NewDateTime(),
+				EndTime:        strfmt.NewDateTime(),
+				IntervalSecond: 60,
+			},
+		},
+		Enabled: true,
+	}
+}
+
+func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
+	t := s.T()
+
+	startTime := strfmt.DateTime(time.Unix(10*hour, 0))
+	endTime := strfmt.DateTime(time.Unix(10*hour+2*minute, 0))
+
+	/* ---------- Upload pipelines YAML ---------- */
+	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
+	assert.Nil(t, err)
+
+	/* ---------- Create a job with start and end date in the past and catchup = true ---------- */
+	apiExperiment := &experiment_model.APIExperiment{Name: "catchup true"}
+	catchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: apiExperiment})
+	assert.Nil(t, err)
+
+	catchupTrueJob := defaultApiJob(pipeline.ID, catchupTrueExperiment.ID)
+	catchupTrueJob.Name = "periodic-catchup-true-"
+	catchupTrueJob.Description = "A job with NoCatchup=false will backfill each past interval when behind schedule."
+	catchupTrueJob.Trigger = &job_model.APITrigger{
+		PeriodicSchedule: &job_model.APIPeriodicSchedule{
+			StartTime:      startTime,
+			EndTime:        endTime,
+			IntervalSecond: 60,
+		},
+	}
+	catchupTrueJob.NoCatchup = false
+	createJobRequest := &jobparams.CreateJobParams{Body: &catchupTrueJob}
+	_, err = s.jobClient.Create(createJobRequest)
+	assert.Nil(t, err)
+
+	/* -------- Create another job with start and end date in the past but catchup = false ------ */
+	apiExperiment = &experiment_model.APIExperiment{Name: "catchup false"}
+	catchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: apiExperiment})
+	assert.Nil(t, err)
+
+	catchupFalseJob := defaultApiJob(pipeline.ID, catchupFalseExperiment.ID)
+	catchupFalseJob.Name = "periodic-catchup-false-"
+	catchupFalseJob.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
+	catchupFalseJob.Trigger = &job_model.APITrigger{
+		PeriodicSchedule: &job_model.APIPeriodicSchedule{
+			StartTime:      startTime,
+			EndTime:        endTime,
+			IntervalSecond: 60,
+		},
+	}
+	catchupFalseJob.NoCatchup = true
+	createJobRequest = &jobparams.CreateJobParams{Body: &catchupFalseJob}
+	_, err = s.jobClient.Create(createJobRequest)
+	assert.Nil(t, err)
+
+	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
+	// This could take a few seconds to finish.
+	// TODO: Retry list run every 5 seconds instead of sleeping for 40 seconds.
+	time.Sleep(60 * time.Second)
+
+	/* ---------- Check how many runs when catchup = true ---------- */
+	_, runsWhenCatchupTrue, _, err := s.runClient.List(&runParams.ListRunsParams{
+		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+		ResourceReferenceKeyID:   util.StringPointer(catchupTrueExperiment.ID)})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, runsWhenCatchupTrue)
+	_, runsWhenCatchupFalse, _, err := s.runClient.List(&runParams.ListRunsParams{
+		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+		ResourceReferenceKeyID:   util.StringPointer(catchupFalseExperiment.ID)})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, runsWhenCatchupFalse)
 }
 
 func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineID string) {
