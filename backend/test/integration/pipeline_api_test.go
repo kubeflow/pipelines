@@ -221,8 +221,10 @@ func TestPipelineAPI(t *testing.T) {
 // TODO(jingzhang36): include UploadPipelineVersion in integration test
 
 func (s *PipelineApiTest) TearDownSuite() {
-	if !*isDevMode {
-		s.cleanUp()
+	if *runIntegrationTests {
+		if !*isDevMode {
+			s.cleanUp()
+		}
 	}
 }
 

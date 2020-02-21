@@ -166,8 +166,10 @@ func TestExperimentAPI(t *testing.T) {
 }
 
 func (s *ExperimentApiTest) TearDownSuite() {
-	if !*isDevMode {
-		s.cleanUp()
+	if *runIntegrationTests {
+		if !*isDevMode {
+			s.cleanUp()
+		}
 	}
 }
 

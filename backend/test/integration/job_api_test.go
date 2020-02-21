@@ -313,8 +313,10 @@ func TestJobApi(t *testing.T) {
 // TODO(jingzhang36): include UploadPipelineVersion in integration test
 
 func (s *JobApiTestSuite) TearDownSuite() {
-	if !*isDevMode {
-		s.cleanUp()
+	if *runIntegrationTests {
+		if !*isDevMode {
+			s.cleanUp()
+		}
 	}
 }
 
