@@ -210,6 +210,10 @@ def _strip_type_hints_using_strip_hints(source_code: str) -> str:
     import os
     import tempfile
 
+    # Workaround for https://bugs.python.org/issue35107
+    if source_code[-1] != '\n':
+        source_code += '\n'
+
     with tempfile.NamedTemporaryFile(mode='w', delete=False) as file:
         file.write(source_code)
 
