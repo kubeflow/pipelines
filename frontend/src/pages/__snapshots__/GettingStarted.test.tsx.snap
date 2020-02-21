@@ -272,7 +272,7 @@ exports[`GettingStarted page renders documentation with pipeline deep link after
           <ul>
             <li>
               Classification pipeline with model analysis, based on a public
-              BigQuery dataset of taxicab trips. Learn how to
+              BigQuery dataset of taxicab trips.
               <a
 @@ -32,11 +34,13 @@
               >
