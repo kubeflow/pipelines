@@ -24,12 +24,16 @@ import { Storage as GCSStorage } from '@google-cloud/storage';
 import { UIServer } from './app';
 import { loadConfigs } from './configs';
 import * as minioHelper from './minio-helper';
+import * as k8sHelper from './k8s-helper';
 
 jest.mock('minio');
 jest.mock('node-fetch');
 jest.mock('@google-cloud/storage');
 jest.mock('./minio-helper');
 jest.mock('./k8s-helper');
+
+const mockedFetch: jest.Mock = fetch as any;
+const mockedK8sHelper: jest.Mock = k8sHelper as any;
 
 describe('UIServer apis', () => {
   let app: UIServer;
@@ -269,7 +273,6 @@ describe('UIServer apis', () => {
 
     it('responds with a http artifact if source=http', done => {
       const artifactContent = 'hello world';
-      const mockedFetch: jest.Mock = fetch as any;
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'http://foo.bar/ml-pipeline/hello/world.txt'
           ? Promise.resolve({ buffer: () => Promise.resolve(artifactContent) })
@@ -293,7 +296,6 @@ describe('UIServer apis', () => {
 
     it('responds with a https artifact if source=https', done => {
       const artifactContent = 'hello world';
-      const mockedFetch: jest.Mock = fetch as any;
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt' &&
         opts.headers.Authorization === 'someToken'
@@ -322,7 +324,6 @@ describe('UIServer apis', () => {
 
     it('responds with a https artifact using the inherited header if source=https and http authorization key is provided.', done => {
       const artifactContent = 'hello world';
-      const mockedFetch: jest.Mock = fetch as any;
       mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt'
           ? Promise.resolve({ buffer: () => Promise.resolve(artifactContent) })
@@ -367,6 +368,65 @@ describe('UIServer apis', () => {
       request
         .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(200, artifactContent + '\n', done);
+    });
+  });
+
+  describe('/system', () => {
+    describe('/cluster-name', () => {
+      it('responds with cluster name data from gke metadata', done => {
+        mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
+          url === 'http://metadata/computeMetadata/v1/instance/attributes/cluster-name'
+            ? Promise.resolve({ text: () => Promise.resolve('test-cluster') })
+            : Promise.reject('Unexpected request'),
+        );
+        mockedK8sHelper.isInCluster = true;
+        const configs = loadConfigs(argv, {});
+        app = new UIServer(configs);
+
+        const request = requests(app.start());
+        request
+          .get('/system/cluster-name')
+          .expect('Content-Type', 'text/html; charset=utf-8')
+          .expect(200, 'test-cluster', done);
+      });
+      it('responds with endpoint disabled if DISABLE_GKE_METADATA env is true', done => {
+        const configs = loadConfigs(argv, { DISABLE_GKE_METADATA: 'true' });
+        app = new UIServer(configs);
+
+        const request = requests(app.start());
+        request
+          .get('/system/cluster-name')
+          .expect('Content-Type', 'text/html; charset=utf-8')
+          .expect(500, 'GKE metadata endpoints are disabled.', done);
+      });
+    });
+    describe('/project-id', () => {
+      it('responds with project id data from gke metadata', done => {
+        mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
+          url === 'http://metadata/computeMetadata/v1/project/project-id'
+            ? Promise.resolve({ text: () => Promise.resolve('test-project') })
+            : Promise.reject('Unexpected request'),
+        );
+        mockedK8sHelper.isInCluster = true;
+        const configs = loadConfigs(argv, {});
+        app = new UIServer(configs);
+
+        const request = requests(app.start());
+        request
+          .get('/system/project-id')
+          .expect('Content-Type', 'text/html; charset=utf-8')
+          .expect(200, 'test-project', done);
+      });
+      it('responds with endpoint disabled if DISABLE_GKE_METADATA env is true', done => {
+        const configs = loadConfigs(argv, { DISABLE_GKE_METADATA: 'true' });
+        app = new UIServer(configs);
+
+        const request = requests(app.start());
+        request
+          .get('/system/project-id')
+          .expect('Content-Type', 'text/html; charset=utf-8')
+          .expect(500, 'GKE metadata endpoints are disabled.', done);
+      });
     });
   });
 

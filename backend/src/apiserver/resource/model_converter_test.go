@@ -115,6 +115,7 @@ func TestToModelJob(t *testing.T) {
 		Name:           "name1",
 		Enabled:        true,
 		MaxConcurrency: 1,
+		NoCatchup:      true,
 		Trigger: &api.Trigger{
 			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
@@ -151,6 +152,7 @@ func TestToModelJob(t *testing.T) {
 			},
 		},
 		MaxConcurrency: 1,
+		NoCatchup:      true,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipeline.UUID,
 			PipelineName:         pipeline.Name,
