@@ -41,12 +41,15 @@ func (s *JobApiTestSuite) SetupTest() {
 		return
 	}
 
-	err := test.WaitForReady(*namespace, *initializeTimeout)
-	if err != nil {
-		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+	if !*skipWaitForCluster {
+		err := test.WaitForReady(*namespace, *initializeTimeout)
+		if err != nil {
+			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+		}
 	}
 	s.namespace = *namespace
 	clientConfig := test.GetClientConfig(*namespace)
+	var err error
 	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())

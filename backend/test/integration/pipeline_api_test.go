@@ -39,11 +39,14 @@ func (s *PipelineApiTest) SetupTest() {
 		return
 	}
 
-	err := test.WaitForReady(*namespace, *initializeTimeout)
-	if err != nil {
-		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+	if !*skipWaitForCluster {
+		err := test.WaitForReady(*namespace, *initializeTimeout)
+		if err != nil {
+			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+		}
 	}
 	clientConfig := test.GetClientConfig(*namespace)
+	var err error
 	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
