@@ -12,7 +12,7 @@ spec:
     spec:
       containers:
       - name: main
-        image: gcr.io/ml-pipeline/execution_cache_deployer:latest
+        image: gcr.io/ml-pipeline/execution-cache-deployer:latest
         imagePullPolicy: Always
         env:
           - name: NAMESPACE_TO_WATCH

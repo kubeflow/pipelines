@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: server
-        image: gcr.io/ml-pipeline/execution_cache:test
+        image: gcr.io/ml-pipeline/execution-cache:test
         imagePullPolicy: Always
         ports:
         - containerPort: 8443
