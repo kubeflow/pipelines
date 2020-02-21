@@ -766,8 +766,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       });
     } catch (err) {
       try {
-        const projectId = await Apis.getProjectId();
-        const clusterName = await Apis.getClusterName();
+        const [clusterName, projectId] = await Promise.all([
+          Apis.getClusterName(),
+          Apis.getProjectId(),
+        ]);
         this.setStateSafe({
           legacyStackdriverUrl: `https://console.cloud.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_id:"${selectedNodeDetails.id}"`,
           logsBannerMessage:
