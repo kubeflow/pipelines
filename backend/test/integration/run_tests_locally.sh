@@ -20,4 +20,6 @@ case "$response" in
 esac
 
 echo "Starting integration tests..."
-go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -isDevMode=true
+command="go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -isDevMode=true"
+echo $command "$@"
+$command "$@"
