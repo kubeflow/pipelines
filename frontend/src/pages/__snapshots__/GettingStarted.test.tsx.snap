@@ -73,7 +73,7 @@ exports[`GettingStarted page initially renders documentation 1`] = `
            
           <ul>
             <li>
-              Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. Learn how to 
+              Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. 
               <a
                 class="link"
                 href="https://github.com/kubeflow/pipelines/tree/master/samples/core/tfx-oss"
