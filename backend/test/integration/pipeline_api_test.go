@@ -55,6 +55,9 @@ func (s *PipelineApiTest) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
 	}
+
+	/* ---------- Clean up ---------- */
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
 }
 
 func (s *PipelineApiTest) TestPipelineAPI() {
@@ -182,9 +185,6 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	var expectedWorkflow v1alpha1.Workflow
 	err = yaml.Unmarshal(expected, &expectedWorkflow)
 	assert.Equal(t, expectedWorkflow, *template)
-
-	/* ---------- Clean up ---------- */
-	test.DeleteAllPipelines(s.pipelineClient, t)
 }
 
 func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {

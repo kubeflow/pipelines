@@ -61,6 +61,11 @@ func (s *RunApiTestSuite) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get run client. Error: %s", err.Error())
 	}
+
+	/* ---------- Clean up ---------- */
+	test.DeleteAllExperiments(s.experimentClient, s.T())
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	test.DeleteAllRuns(s.runClient, s.T())
 }
 
 func (s *RunApiTestSuite) TestRunApis() {
@@ -218,11 +223,6 @@ func (s *RunApiTestSuite) TestRunApis() {
 	longRunningRunDetail, _, err = s.runClient.Get(&runparams.GetRunParams{RunID: longRunningRunDetail.Run.ID})
 	assert.Nil(t, err)
 	s.checkTerminatedRunDetail(t, longRunningRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, longRunningPipeline.ID)
-
-	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, t)
-	test.DeleteAllPipelines(s.pipelineClient, t)
-	test.DeleteAllRuns(s.runClient, t)
 }
 
 func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineId string) {

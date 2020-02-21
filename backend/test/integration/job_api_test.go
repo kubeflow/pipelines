@@ -70,6 +70,12 @@ func (s *JobApiTestSuite) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get job client. Error: %s", err.Error())
 	}
+
+	/* ---------- Clean up ---------- */
+	test.DeleteAllExperiments(s.experimentClient, s.T())
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	test.DeleteAllJobs(s.jobClient, s.T())
+	test.DeleteAllRuns(s.runClient, s.T())
 }
 
 func (s *JobApiTestSuite) TestJobApis() {
@@ -210,12 +216,6 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, 1, totalSize)
 	argParamsRun := runs[0]
 	s.checkArgParamsRun(t, argParamsRun, argParamsExperiment.ID, argParamsExperiment.Name, argParamsJob.ID, argParamsJob.Name)
-
-	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, t)
-	test.DeleteAllPipelines(s.pipelineClient, t)
-	test.DeleteAllJobs(s.jobClient, t)
-	test.DeleteAllRuns(s.runClient, t)
 }
 
 func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineID string) {
