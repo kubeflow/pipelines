@@ -74,11 +74,18 @@ def train(args):
     lib_meta = {
         client.runtimes.LibraryMetaNames.NAME: wml_run_definition,
         # client.runtimes.LibraryMetaNames.AUTHOR_NAME: wml_author_name,
-        client.runtimes.LibraryMetaNames.VERSION: "1.0",
+        client.runtimes.LibraryMetaNames.VERSION: wml_framework_version,
         client.runtimes.LibraryMetaNames.FILEPATH: wml_train_code,
         client.runtimes.LibraryMetaNames.PLATFORM: {"name": wml_framework_name, "versions": wml_framework_version}
         # client.runtimes.LibraryMetaNames.FRAMEWORK_VERSION: wml_framework_version
     }
+
+    custom_library_details = client.runtimes.store_library({
+        client.runtimes.LibraryMetaNames.NAME: wml_run_definition,
+        client.runtimes.LibraryMetaNames.VERSION: wml_framework_version,
+        client.runtimes.LibraryMetaNames.FILEPATH: wml_train_code,
+        client.runtimes.LibraryMetaNames.PLATFORM: {"name": wml_framework_name, "versions": wml_framework_version}
+    })
 
     custom_library_details = client.runtimes.store_library(lib_meta)
     custom_library_uid = client.runtimes.get_library_uid(custom_library_details)
