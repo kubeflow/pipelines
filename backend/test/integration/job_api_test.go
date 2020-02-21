@@ -233,7 +233,11 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	periodicCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
-	job := jobInThePastForTwoMinutes(pipeline.ID, periodicCatchupTrueExperiment.ID, true)
+	job := jobInThePastForTwoMinutes(jobOptions{
+		pipelineId:   pipeline.ID,
+		experimentId: periodicCatchupTrueExperiment.ID,
+		periodic:     true,
+	})
 	job.Name = "periodic-catchup-true-"
 	job.Description = "A job with NoCatchup=false will backfill each past interval when behind schedule."
 	job.NoCatchup = false // This is the key difference.
@@ -246,7 +250,11 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	periodicCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
-	job = jobInThePastForTwoMinutes(pipeline.ID, periodicCatchupFalseExperiment.ID, true)
+	job = jobInThePastForTwoMinutes(jobOptions{
+		pipelineId:   pipeline.ID,
+		experimentId: periodicCatchupFalseExperiment.ID,
+		periodic:     true,
+	})
 	job.Name = "periodic-catchup-false-"
 	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
 	job.NoCatchup = true // This is the key difference.
@@ -259,7 +267,11 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	cronCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
-	job = jobInThePastForTwoMinutes(pipeline.ID, cronCatchupTrueExperiment.ID, false)
+	job = jobInThePastForTwoMinutes(jobOptions{
+		pipelineId:   pipeline.ID,
+		experimentId: cronCatchupTrueExperiment.ID,
+		periodic:     false,
+	})
 	job.Name = "periodic-catchup-true-"
 	job.Description = "A job with NoCatchup=false will backfill each past interval when behind schedule."
 	job.NoCatchup = false // This is the key difference.
@@ -272,7 +284,11 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	cronCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
-	job = jobInThePastForTwoMinutes(pipeline.ID, cronCatchupFalseExperiment.ID, false)
+	job = jobInThePastForTwoMinutes(jobOptions{
+		pipelineId:   pipeline.ID,
+		experimentId: cronCatchupFalseExperiment.ID,
+		periodic:     false,
+	})
 	job.Name = "periodic-catchup-false-"
 	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
 	job.NoCatchup = true // This is the key difference.
@@ -447,12 +463,17 @@ func defaultApiJob(pipelineId, experimentId string) *job_model.APIJob {
 	}
 }
 
-func jobInThePastForTwoMinutes(pipelineId, experimentId string, periodic bool) *job_model.APIJob {
+type jobOptions struct {
+	pipelineId, experimentId string
+	periodic                 bool
+}
+
+func jobInThePastForTwoMinutes(options jobOptions) *job_model.APIJob {
 	startTime := strfmt.DateTime(time.Unix(10*hour, 0))
 	endTime := strfmt.DateTime(time.Unix(10*hour+2*minute, 0))
 
-	job := defaultApiJob(pipelineId, experimentId)
-	if periodic {
+	job := defaultApiJob(options.pipelineId, options.experimentId)
+	if options.periodic {
 		job.Trigger = &job_model.APITrigger{
 			PeriodicSchedule: &job_model.APIPeriodicSchedule{
 				StartTime:      startTime,
