@@ -297,6 +297,70 @@ steps:
     docker push gcr.io/ml-pipeline/google/pipelines/metadatawriter:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines-test/metadatawriter:$(cat /workspace/mm.ver)
 
+- id:   'pullExecutionCache'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/execution-cache:$COMMIT_SHA']
+  waitFor: ['-']
+- id:   'tagExecutionCacheVersionNumber'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/execution-cache:$COMMIT_SHA', 'gcr.io/ml-pipeline/execution-cache:$TAG_NAME']
+  waitFor: ['pullExecutionCache']
+- id:   'tagExecutionCacheCommitSHA'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/execution-cache:$COMMIT_SHA', 'gcr.io/ml-pipeline/execution-cache:$COMMIT_SHA']
+  waitFor: ['pullExecutionCache']
+- id:   'tagExecutionCacheForMarketplace'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/execution-cache:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/executioncache:$TAG_NAME']
+  waitFor: ['pullExecutionCache']
+- id:   'tagExecutionCacheForMarketplaceTest'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/execution-cache:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines-test/executioncache:$TAG_NAME']
+  waitFor: ['pullExecutionCache']
+- id:   'tagExecutionCacheForMarketplaceMajorMinor'
+  waitFor: ['pullExecutionCache', 'parseMajorMinorVersion']
+  name: 'gcr.io/cloud-builders/docker'
+  entrypoint: bash
+  args:
+  - -ceux
+  - |
+    docker tag gcr.io/$PROJECT_ID/execution-cache:$COMMIT_SHA gcr.io/ml-pipeline/google/pipelines/executioncache:$(cat /workspace/mm.ver)
+    docker tag gcr.io/$PROJECT_ID/execution-cache:$COMMIT_SHA gcr.io/ml-pipeline/google/pipelines-test/executioncache:$(cat /workspace/mm.ver)
+    docker push gcr.io/ml-pipeline/google/pipelines/executioncache:$(cat /workspace/mm.ver)
+    docker push gcr.io/ml-pipeline/google/pipelines-test/executioncache:$(cat /workspace/mm.ver)
+
+- id:   'pullExecutionCacheDeployer'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/execution-cache-deployer:$COMMIT_SHA']
+  waitFor: ['-']
+- id:   'tagExecutionCacheDeployerVersionNumber'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/execution-cache-deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/execution-cache-deployer:$TAG_NAME']
+  waitFor: ['pullExecutionCacheDeployer']
+- id:   'tagExecutionCacheDeployerCommitSHA'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/execution-cache-deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/execution-cache-deployer:$COMMIT_SHA']
+  waitFor: ['pullExecutionCacheDeployer']
+- id:   'tagExecutionCacheDeployerForMarketplace'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/execution-cache-deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/executioncachedeployer:$TAG_NAME']
+  waitFor: ['pullExecutionCacheDeployer']
+- id:   'tagExecutionCacheDeployerForMarketplaceTest'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/execution-cache-deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines-test/executioncachedeployer:$TAG_NAME']
+  waitFor: ['pullExecutionCacheDeployer']
+- id:   'tagExecutionCacheDeployerForMarketplaceMajorMinor'
+  waitFor: ['pullExecutionCacheDeployer', 'parseMajorMinorVersion']
+  name: 'gcr.io/cloud-builders/docker'
+  entrypoint: bash
+  args:
+  - -ceux
+  - |
+    docker tag gcr.io/$PROJECT_ID/execution-cache-deployer:$COMMIT_SHA gcr.io/ml-pipeline/google/pipelines/executioncachedeployer:$(cat /workspace/mm.ver)
+    docker tag gcr.io/$PROJECT_ID/execution-cache-deployer:$COMMIT_SHA gcr.io/ml-pipeline/google/pipelines-test/executioncachedeployer:$(cat /workspace/mm.ver)
+    docker push gcr.io/ml-pipeline/google/pipelines/executioncachedeployer:$(cat /workspace/mm.ver)
+    docker push gcr.io/ml-pipeline/google/pipelines-test/executioncachedeployer:$(cat /workspace/mm.ver)
+
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA']
   id:   'pullMetadataEnvoy'
