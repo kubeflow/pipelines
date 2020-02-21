@@ -24,6 +24,7 @@ import (
 	"github.com/argoproj/argo/workflow/common"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	servercommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
@@ -180,4 +181,20 @@ func deletePods(k8sCoreClient client.KubernetesCoreInterface, podsToDelete []str
 		}
 	}
 	return nil
+}
+
+// Mutate default values of specified pipeline spec.
+// Args:
+//  text: (part of) pipeline file in string.
+func PatchPipelineDefaultParameter(text string) (string, error) {
+	defaultBucket := servercommon.GetStringConfig(DefaultBucketNameEnvVar)
+	projectId := servercommon.GetStringConfig(ProjectIDEnvVar)
+	toPatch := map[string]string{
+		"{{kfp-default-bucket}}": defaultBucket,
+		"{{kfp-project-id}}":     projectId,
+	}
+	for key, value := range toPatch {
+		text = strings.Replace(text, key, value, -1)
+	}
+	return text, nil
 }

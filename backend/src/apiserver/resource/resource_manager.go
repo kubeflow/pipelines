@@ -32,6 +32,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
+	"github.com/kubeflow/pipelines/bazel-pipelines/external/io_k8s_kubernetes/pkg/kubelet/kubeletconfig/util/log"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -42,6 +43,9 @@ const (
 	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
 	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
 	defaultServiceAccount                     = "default-editor"
+	HasDefaultBucketEnvVar                    = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar                           = "PROJECT_ID"
+	DefaultBucketNameEnvVar                   = "BUCKET_NAME"
 )
 
 type ClientManagerInterface interface {
@@ -283,6 +287,23 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
+	// Patch the default value
+	log.Errorf("Trying to patch")
+	for _, param := range workflow.Spec.Arguments.Parameters {
+		if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
+			log.Errorf("Trying to patch because found default config.")
+			patchedValue, err := PatchPipelineDefaultParameter(*param.Value)
+			log.Errorf("Patched value: %s", patchedValue)
+			if err != nil {
+				return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			}
+			param.Value = util.StringPointer(patchedValue)
+
+		}
+	}
+	for _, param := range workflow.Spec.Arguments.Parameters {
+		log.Errorf("Patched parameter: %s", *param.Value)
+	}
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, runId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
