@@ -76,7 +76,7 @@ exports[`GettingStarted page initially renders documentation 1`] = `
               Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. 
               <a
                 class="link"
-                href="https://github.com/kubeflow/pipelines/tree/master/samples/core/tfx-oss"
+                href="https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss"
                 rel="noopener"
                 target="_blank"
               >
