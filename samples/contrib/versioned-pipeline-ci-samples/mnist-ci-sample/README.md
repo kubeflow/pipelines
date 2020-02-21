@@ -1,6 +1,6 @@
 # Mnist Continuous Integration(CI) Pipeline
 
-## ## Overview
+## Overview
 
 This sample uses cloud build to implement the continuous integration process of a basic machine learning pipeline that trains and visualizes model in tensorboard. Once all set up, you can push your code to github repo, then the build process in cloud build will be triggered automatically, then a run will be created in kubeflow pipeline. You can view your pipeline and the run in kubeflow pipelines. 
 
@@ -13,7 +13,7 @@ We use **Kubeflow Pipeline(KFP) SDK** to interact with kubeflow pipeline to crea
 
 
 ## What needs to be done before run
-* Create a secret following the troubleshooting parts in [KFP Repo](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize)
+* Authenticate to gcp services by either: Create a "user-gcp-sa" secret following the troubleshooting parts in [KFP Repo](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize), or configure workload identity as instructed in [this guide](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity). This sample uses the first method, but this will soon be deprecated. Please refer to the second method to replace the use of "user-gcp-sa" service account.
 * Set up a trigger in cloud build, and link it to your github repo
 * Enable "Kubernetes Engine Developer" in cloud build setting
 * Replace the CLOUDSDK_COMPUTE_ZONE, CLOUDSDK_CONTAINER_CLUSTER in cloudbuild.yaml with your own zone and cluster
