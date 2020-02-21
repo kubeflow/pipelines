@@ -26,7 +26,7 @@ import {
   LineageResource,
 } from '@kubeflow/frontend';
 import * as React from 'react';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import { classes } from 'typestyle';
@@ -93,6 +93,23 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
 
   public async componentDidMount(): Promise<void> {
     return this.load();
+  }
+
+  public componentDidUpdate(
+    prevProps: Readonly<{} & PageProps>,
+    prevState: Readonly<ArtifactDetailsState>,
+    snapshot?: any): void {
+    if (this.props.match.params[RouteParams.ID] === prevProps.match.params[RouteParams.ID]
+      && prevState.selectedTab !== ArtifactDetailsTab.LINEAGE_EXPLORER) {
+      return;
+    }
+
+    // Switch the tab to Overview when the route changes due to LineageView link click.
+    this.setState({
+      artifact: undefined,
+      selectedTab: ArtifactDetailsTab.OVERVIEW,
+    });
+    this.load();
   }
 
   public render(): JSX.Element {
