@@ -32,7 +32,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
-	"github.com/kubeflow/pipelines/bazel-pipelines/external/io_k8s_kubernetes/pkg/kubelet/kubeletconfig/util/log"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -288,31 +287,30 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
 	// Patch the default value to workflow spec.
-	patchedSlice := make([]workflowapi.Parameter, 0)
-	for _, currentParam := range workflow.Spec.Arguments.Parameters {
-		desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
-		if err != nil {
-			return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+	if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
+		patchedSlice := make([]workflowapi.Parameter, 0)
+		for _, currentParam := range workflow.Spec.Arguments.Parameters {
+			desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			}
+			patchedSlice = append(patchedSlice, workflowapi.Parameter{
+				Name:  currentParam.Name,
+				Value: util.StringPointer(desiredValue),
+			})
 		}
-		patchedSlice = append(patchedSlice, workflowapi.Parameter{
-			Name:  currentParam.Name,
-			Value: util.StringPointer(desiredValue),
-		})
+		workflow.Spec.Arguments.Parameters = patchedSlice
 	}
-	workflow.Spec.Arguments.Parameters = patchedSlice
 
 	// Patched the default value to apiRun
-	for _, param := range apiRun.PipelineSpec.Parameters {
-		if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
+	if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
+		for _, param := range apiRun.PipelineSpec.Parameters {
 			var err error
 			param.Value, err = PatchPipelineDefaultParameter(param.Value)
 			if err != nil {
 				return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 			}
 		}
-	}
-	for _, param := range workflow.Spec.Arguments.Parameters {
-		log.Errorf("Patched parameter: %s", *param.Value)
 	}
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, runId)
