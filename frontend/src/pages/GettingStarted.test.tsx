@@ -4,7 +4,7 @@ import TestUtils, { formatHTML } from '../TestUtils';
 import { render } from '@testing-library/react';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
-import { ApiListPipelinesResponse } from 'src/apis/pipeline/api';
+import { ApiListPipelinesResponse } from '../apis/pipeline/api';
 import snapshotDiff from 'snapshot-diff';
 
 const PATH_BACKEND_CONFIG = '../../../backend/src/apiserver/config/sample_config.json';

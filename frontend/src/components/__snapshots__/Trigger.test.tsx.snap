@@ -148,6 +148,35 @@ exports[`Trigger enables a single day on click 1`] = `
     <span
       className="flex"
     >
+      <WithStyles(WithFormControlContext(FormControlLabel))
+        control={
+          <WithStyles(Checkbox)
+            checked={true}
+            color="primary"
+            onClick={[Function]}
+          />
+        }
+        label="Catchup"
+      />
+      <Component
+        helpText={
+          <div>
+            <p>
+              Whether the recurring run should catch up if behind schedule. Defaults to true.
+            </p>
+            <p>
+              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval.
+            </p>
+            <p>
+              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate work.
+            </p>
+          </div>
+        }
+      />
+    </span>
+    <span
+      className="flex"
+    >
       Run every
       <Component />
       <Component
@@ -457,6 +486,35 @@ exports[`Trigger renders all week days enabled 1`] = `
         width={120}
       />
     </div>
+    <span
+      className="flex"
+    >
+      <WithStyles(WithFormControlContext(FormControlLabel))
+        control={
+          <WithStyles(Checkbox)
+            checked={true}
+            color="primary"
+            onClick={[Function]}
+          />
+        }
+        label="Catchup"
+      />
+      <Component
+        helpText={
+          <div>
+            <p>
+              Whether the recurring run should catch up if behind schedule. Defaults to true.
+            </p>
+            <p>
+              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval.
+            </p>
+            <p>
+              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate work.
+            </p>
+          </div>
+        }
+      />
+    </span>
     <span
       className="flex"
     >
@@ -772,6 +830,35 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
     <span
       className="flex"
     >
+      <WithStyles(WithFormControlContext(FormControlLabel))
+        control={
+          <WithStyles(Checkbox)
+            checked={true}
+            color="primary"
+            onClick={[Function]}
+          />
+        }
+        label="Catchup"
+      />
+      <Component
+        helpText={
+          <div>
+            <p>
+              Whether the recurring run should catch up if behind schedule. Defaults to true.
+            </p>
+            <p>
+              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval.
+            </p>
+            <p>
+              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate work.
+            </p>
+          </div>
+        }
+      />
+    </span>
+    <span
+      className="flex"
+    >
       Run every
       <div
         className="flex"
@@ -979,6 +1066,35 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         width={120}
       />
     </div>
+    <span
+      className="flex"
+    >
+      <WithStyles(WithFormControlContext(FormControlLabel))
+        control={
+          <WithStyles(Checkbox)
+            checked={true}
+            color="primary"
+            onClick={[Function]}
+          />
+        }
+        label="Catchup"
+      />
+      <Component
+        helpText={
+          <div>
+            <p>
+              Whether the recurring run should catch up if behind schedule. Defaults to true.
+            </p>
+            <p>
+              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval.
+            </p>
+            <p>
+              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate work.
+            </p>
+          </div>
+        }
+      />
+    </span>
     <span
       className="flex"
     >
@@ -1212,6 +1328,35 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         width={120}
       />
     </div>
+    <span
+      className="flex"
+    >
+      <WithStyles(WithFormControlContext(FormControlLabel))
+        control={
+          <WithStyles(Checkbox)
+            checked={true}
+            color="primary"
+            onClick={[Function]}
+          />
+        }
+        label="Catchup"
+      />
+      <Component
+        helpText={
+          <div>
+            <p>
+              Whether the recurring run should catch up if behind schedule. Defaults to true.
+            </p>
+            <p>
+              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval.
+            </p>
+            <p>
+              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate work.
+            </p>
+          </div>
+        }
+      />
+    </span>
     <span
       className="flex"
     >
