@@ -38,6 +38,10 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
             "50",
           ],
           Array [
+            "Catchup",
+            "true",
+          ],
+          Array [
             "Start time",
             "10/8/2018, 7:06:00 AM",
           ],
@@ -100,6 +104,10 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
           Array [
             "Max. concurrent runs",
             "50",
+          ],
+          Array [
+            "Catchup",
+            "false",
           ],
           Array [
             "Start time",

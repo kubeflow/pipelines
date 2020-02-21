@@ -5,15 +5,15 @@ import { withStyles } from '@material-ui/core/styles';
 import Tooltip from '@material-ui/core/Tooltip';
 import HelpIcon from '@material-ui/icons/Help';
 import React, { ReactNode } from 'react';
-import { color, fontsize } from 'src/Css';
+import { color, fontsize } from '../Css';
 
 const NostyleTooltip = withStyles({
   tooltip: {
     backgroundColor: 'transparent',
-    maxWidth: 220,
-    fontSize: fontsize.base,
-    color: color.secondaryText,
     border: '0 none',
+    color: color.secondaryText,
+    fontSize: fontsize.base,
+    maxWidth: 220,
   },
 })(Tooltip);
 
@@ -28,7 +28,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ helpText }) => {
           <CardContent>{helpText}</CardContent>
         </Card>
       }
-      interactive
+      interactive={true}
       leaveDelay={400}
       placement='top'
     >

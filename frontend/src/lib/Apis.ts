@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import * as portableFetch from 'portable-fetch';
-import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
+import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { ExperimentServiceApi, FetchAPI } from '../apis/experiment';
 import { JobServiceApi } from '../apis/job';
 import { ApiPipeline, PipelineServiceApi, ApiPipelineVersion } from '../apis/pipeline';

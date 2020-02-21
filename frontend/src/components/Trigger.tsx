@@ -80,6 +80,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     const [endDate, endTime] = dateToPickerFormat(inAWeek);
 
     return {
+      catchup: true,
       cron: '',
       editCron: false,
       endDate,
@@ -93,7 +94,6 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       startDate,
       startTime,
       type: TriggerType.INTERVALED,
-      catchup: true,
     };
   })();
 
@@ -401,9 +401,9 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
 
         if (this.props.onChange) {
           this.props.onChange({
-            trigger,
-            maxConcurrentRuns: trigger ? this.state.maxConcurrentRuns : undefined,
             catchup,
+            maxConcurrentRuns: trigger ? this.state.maxConcurrentRuns : undefined,
+            trigger,
           });
         }
       },

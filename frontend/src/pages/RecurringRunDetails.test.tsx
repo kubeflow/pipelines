@@ -66,6 +66,7 @@ describe('RecurringRunDetails', () => {
       enabled: true,
       id: 'test-job-id',
       max_concurrency: '50',
+      no_catchup: true,
       name: 'test job',
       pipeline_spec: {
         parameters: [{ name: 'param1', value: 'value1' }],
@@ -80,21 +81,12 @@ describe('RecurringRunDetails', () => {
       },
     } as ApiJob;
 
-    historyPushSpy.mockClear();
-    updateBannerSpy.mockClear();
-    updateDialogSpy.mockClear();
-    updateSnackbarSpy.mockClear();
-    updateToolbarSpy.mockClear();
+    jest.clearAllMocks();
     getJobSpy.mockImplementation(() => fullTestJob);
-    getJobSpy.mockClear();
-    deleteJobSpy.mockClear();
     deleteJobSpy.mockImplementation();
-    enableJobSpy.mockClear();
     enableJobSpy.mockImplementation();
-    disableJobSpy.mockClear();
     disableJobSpy.mockImplementation();
     getExperimentSpy.mockImplementation();
-    getExperimentSpy.mockClear();
   });
 
   afterEach(() => tree.unmount());
@@ -106,13 +98,18 @@ describe('RecurringRunDetails', () => {
   });
 
   it('renders a recurring run with cron schedule', async () => {
-    fullTestJob.trigger = {
-      cron_schedule: {
-        cron: '* * * 0 0 !',
-        end_time: new Date(2018, 10, 9, 8, 7, 6),
-        start_time: new Date(2018, 9, 8, 7, 6),
+    const cronTestJob = {
+      ...fullTestJob,
+      no_catchup: undefined, // in api requests, it's undefined when false
+      trigger: {
+        cron_schedule: {
+          cron: '* * * 0 0 !',
+          end_time: new Date(2018, 10, 9, 8, 7, 6),
+          start_time: new Date(2018, 9, 8, 7, 6),
+        },
       },
     };
+    getJobSpy.mockImplementation(() => cronTestJob);
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();

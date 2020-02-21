@@ -113,6 +113,27 @@ class NewRun extends Page<{}, NewRunState> {
   static contextType = NamespaceContext;
   context!: React.ContextType<typeof NamespaceContext>;
 
+  public state: NewRunState = {
+    catchup: true,
+    description: '',
+    errorMessage: '',
+    experimentName: '',
+    experimentSelectorOpen: false,
+    isBeingStarted: false,
+    isClone: false,
+    isFirstRunInExperiment: false,
+    isRecurringRun: false,
+    parameters: [],
+    pipelineName: '',
+    pipelineSelectorOpen: false,
+    pipelineVersionName: '',
+    pipelineVersionSelectorOpen: false,
+    runName: '',
+    uploadDialogOpen: false,
+    usePipelineFromRunLabel: 'Using pipeline from cloned run',
+    useWorkflowFromRun: false,
+  };
+
   private pipelineSelectorColumns = [
     {
       customRenderer: NameWithTooltip,
@@ -142,27 +163,6 @@ class NewRun extends Page<{}, NewRunState> {
     { label: 'Description', flex: 2 },
     { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
   ];
-
-  public state: NewRunState = {
-    description: '',
-    errorMessage: '',
-    experimentName: '',
-    experimentSelectorOpen: false,
-    isBeingStarted: false,
-    isClone: false,
-    isFirstRunInExperiment: false,
-    isRecurringRun: false,
-    parameters: [],
-    pipelineName: '',
-    pipelineSelectorOpen: false,
-    pipelineVersionName: '',
-    pipelineVersionSelectorOpen: false,
-    runName: '',
-    uploadDialogOpen: false,
-    usePipelineFromRunLabel: 'Using pipeline from cloned run',
-    useWorkflowFromRun: false,
-    catchup: true,
-  };
 
   public getInitialToolbarState(): ToolbarProps {
     return {
@@ -508,9 +508,9 @@ class NewRun extends Page<{}, NewRunState> {
                 onChange={({ trigger, maxConcurrentRuns, catchup }) =>
                   this.setStateSafe(
                     {
+                      catchup,
                       maxConcurrentRuns,
                       trigger,
-                      catchup,
                     },
                     this._validate.bind(this),
                   )
@@ -1035,8 +1035,8 @@ class NewRun extends Page<{}, NewRunState> {
       newRun = Object.assign(newRun, {
         enabled: true,
         max_concurrency: this.state.maxConcurrentRuns || '1',
-        trigger: this.state.trigger,
         no_catchup: !this.state.catchup,
+        trigger: this.state.trigger,
       });
     }
 
