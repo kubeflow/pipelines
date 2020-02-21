@@ -1649,6 +1649,7 @@ describe('NewRun', () => {
         enabled: true,
         max_concurrency: '10',
         name: 'test run name',
+        no_catchup: false,
         pipeline_spec: {
           parameters: MOCK_PIPELINE.parameters,
         },
