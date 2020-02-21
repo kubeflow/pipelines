@@ -287,18 +287,28 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
-	// Patch the default value
-	log.Errorf("Trying to patch")
-	for _, param := range workflow.Spec.Arguments.Parameters {
+	// Patch the default value to workflow spec.
+	patchedSlice := make([]workflowapi.Parameter, 0)
+	for _, currentParam := range workflow.Spec.Arguments.Parameters {
+		desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+		}
+		patchedSlice = append(patchedSlice, workflowapi.Parameter{
+			Name:  currentParam.Name,
+			Value: util.StringPointer(desiredValue),
+		})
+	}
+	workflow.Spec.Arguments.Parameters = patchedSlice
+
+	// Patched the default value to apiRun
+	for _, param := range apiRun.PipelineSpec.Parameters {
 		if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
-			log.Errorf("Trying to patch because found default config.")
-			patchedValue, err := PatchPipelineDefaultParameter(*param.Value)
-			log.Errorf("Patched value: %s", patchedValue)
+			var err error
+			param.Value, err = PatchPipelineDefaultParameter(param.Value)
 			if err != nil {
 				return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 			}
-			param.Value = util.StringPointer(patchedValue)
-
 		}
 	}
 	for _, param := range workflow.Spec.Arguments.Parameters {
