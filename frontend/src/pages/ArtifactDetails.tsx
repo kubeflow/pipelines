@@ -98,9 +98,12 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   public componentDidUpdate(
     prevProps: Readonly<{} & PageProps>,
     prevState: Readonly<ArtifactDetailsState>,
-    snapshot?: any): void {
-    if (this.props.match.params[RouteParams.ID] === prevProps.match.params[RouteParams.ID]
-      && prevState.selectedTab !== ArtifactDetailsTab.LINEAGE_EXPLORER) {
+    snapshot?: any,
+  ): void {
+    if (
+      this.props.match.params[RouteParams.ID] === prevProps.match.params[RouteParams.ID] &&
+      prevState.selectedTab !== ArtifactDetailsTab.LINEAGE_EXPLORER
+    ) {
       return;
     }
 
