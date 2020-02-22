@@ -61,6 +61,16 @@ Then it depends on what you want to develop:
 | Client UI               | `NAMESPACE=kubeflow npm run start:proxy`            |                                                                    |
 | Client UI + Node server | `NAMESPACE=kubeflow npm run start:proxy-and-server` | You need to rerun the script every time you edit node server code. |
 
+## Unit testing FAQ
+There are a few typees of tests during presubmit:
+* formatting, refer to [Code Style Section](#code-style)
+* linting, you can also run locally with `npm run lint`
+* unit tests, you can run locally with `npm test`
+
+There is a special type of unit test called [snapshot tests](https://jestjs.io/docs/en/snapshot-testing). When
+snapshot tests are failing, you can update them automatically with `npm test -u` and run all tests. Then commit
+the snapshot changes.
+
 ## Production Build
 You can do `npm run build` to build the frontend code for production, which
 creates a ./build directory with the minified bundle. You can test this bundle
