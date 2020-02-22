@@ -206,21 +206,14 @@ def strip_type_hints(source_code: str) -> str:
 
 
 def _strip_type_hints_using_strip_hints(source_code: str) -> str:
-    from strip_hints import strip_file_to_string
-    import os
-    import tempfile
+    from strip_hints import strip_string_to_string
 
-    # Workaround for https://bugs.python.org/issue35107
+    # Workaround for https://github.com/abarker/strip-hints/issues/4 , https://bugs.python.org/issue35107
+    # I could not repro it though
     if source_code[-1] != '\n':
         source_code += '\n'
 
-    with tempfile.NamedTemporaryFile(mode='w', delete=False) as file:
-        file.write(source_code)
-
-    try:
-        return strip_file_to_string(file.name, to_empty=True)
-    finally:
-        os.remove(file.name)
+    return strip_string_to_string(source_code, to_empty=True)
 
 
 def _strip_type_hints_using_lib2to3(source_code: str) -> str:
