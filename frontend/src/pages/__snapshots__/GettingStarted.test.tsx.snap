@@ -45,7 +45,6 @@ exports[`GettingStarted page initially renders documentation 1`] = `
           <strong>
             Start Here!
           </strong>
-
         </a>
 	 (Please make sure you pick a Tensorflow 2.1 notebook instance.)
       </p>
