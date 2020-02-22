@@ -123,17 +123,18 @@ func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) 
 func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) {
 	var experiments []*model.Experiment
 	for rows.Next() {
-		var uuid, name, description string
+		var uuid, name, description, namespace string
 		var createdAtInSec int64
-		err := rows.Scan(&uuid, &name, &description, &createdAtInSec)
+		err := rows.Scan(&uuid, &name, &description, &createdAtInSec, &namespace)
 		if err != nil {
-			return experiments, nil
+			return experiments, err
 		}
 		experiments = append(experiments, &model.Experiment{
 			UUID:           uuid,
 			Name:           name,
 			Description:    description,
 			CreatedAtInSec: createdAtInSec,
+			Namespace:      namespace,
 		})
 	}
 	return experiments, nil
@@ -150,12 +151,13 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	newExperiment.UUID = id.String()
 	sql, args, err := sq.
 		Insert("experiments").
-		SetMap(
-			sq.Eq{
-				"UUID":           newExperiment.UUID,
-				"CreatedAtInSec": newExperiment.CreatedAtInSec,
-				"Name":           newExperiment.Name,
-				"Description":    newExperiment.Description}).
+		SetMap(sq.Eq{
+			"UUID":           newExperiment.UUID,
+			"CreatedAtInSec": newExperiment.CreatedAtInSec,
+			"Name":           newExperiment.Name,
+			"Description":    newExperiment.Description,
+			"Namespace":      newExperiment.Namespace,
+		}).
 		ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to insert experiment to experiment table: %v",
@@ -165,7 +167,7 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	if err != nil {
 		if s.db.IsDuplicateError(err) {
 			return nil, util.NewInvalidInputError(
-				"Failed to create a new experiment. The name %v already exist. Please specify a new name.", experiment.Name)
+				"Failed to create a new experiment. The name %v already exists. Please specify a new name.", experiment.Name)
 		}
 		return nil, util.NewInternalServerError(err, "Failed to add experiment to experiment table: %v",
 			err.Error())
@@ -209,9 +211,9 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 // factory function for experiment store
 func NewExperimentStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *ExperimentStore {
 	return &ExperimentStore{
-		db:   db,
-		time: time,
-		uuid: uuid,
+		db:                     db,
+		time:                   time,
+		uuid:                   uuid,
 		resourceReferenceStore: NewResourceReferenceStore(db),
 		defaultExperimentStore: NewDefaultExperimentStore(db),
 	}
