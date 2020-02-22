@@ -65,7 +65,8 @@ Then it depends on what you want to develop:
 There are a few typees of tests during presubmit:
 * formatting, refer to [Code Style Section](#code-style)
 * linting, you can also run locally with `npm run lint`
-* unit tests, you can run locally with `npm test`
+* client UI unit tests, you can run locally with `npm test`
+* UI node server unit tests, you can run locally with `cd server && npm test`
 
 There is a special type of unit test called [snapshot tests](https://jestjs.io/docs/en/snapshot-testing). When
 snapshot tests are failing, you can update them automatically with `npm test -u` and run all tests. Then commit
