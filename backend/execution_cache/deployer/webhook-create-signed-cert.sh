@@ -48,8 +48,8 @@ while [[ $# -gt 0 ]]; do
             namespace="$2"
             shift
             ;;
-        --cert-pem-output-path)
-            cert-pem-output-path="$2"
+        --cert-output-path)
+            cert-output-path="$2"
             shift
             ;;
         *)
@@ -62,7 +62,7 @@ done
 [ -z ${service} ] && service=execution-cache-server
 [ -z ${secret} ] && secret=webhook-server-tls
 [ -z ${namespace} ] && namespace=kubeflow
-[ -z ${cert-pem-output-path} ] && cert-pem-output-path="ca.cert"
+[ -z ${cert-output-path} ] && cert-output-path=${CA_FILE}
 
 if [ ! -x "$(command -v openssl)" ]; then
     echo "openssl not found"
@@ -137,7 +137,7 @@ if [[ ${serverCert} == '' ]]; then
 fi
 echo ${serverCert} | openssl base64 -d -A -out ${tmpdir}/server-cert.pem
 
-echo ${serverCert} > ${CA_FILE}
+echo ${serverCert} > ${cert-output-path}
 
 # create the secret with CA cert and server cert/key
 kubectl create secret generic ${secret} \

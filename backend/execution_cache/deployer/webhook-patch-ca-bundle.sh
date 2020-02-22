@@ -21,7 +21,19 @@ set -o nounset
 set -o pipefail
 set -ex
 
-export CA_BUNDLE=$(cat ${CA_FILE})
+while [[ $# -gt 0 ]]; do
+    case ${1} in
+        --cert-input-path)
+            cert-input-path="$2"
+            shift
+            ;;
+    esac
+    shift
+done
+
+[ -z ${cert-input-path} ] && cert-input-path=${CA_FILE}
+
+export CA_BUNDLE=$(cat ${cert-input-path})
 
 if command -v envsubst >/dev/null 2>&1; then
     envsubst

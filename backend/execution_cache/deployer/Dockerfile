@@ -1,4 +1,4 @@
-FROM alpine:3.8
+FROM google/cloud-sdk:alpine
 
 RUN apk add --update \
  python \
@@ -8,9 +8,6 @@ RUN apk add --update \
  bash \
  openssl
 
-RUN curl -sSL https://sdk.cloud.google.com | bash
-
-ENV PATH $PATH:/root/google-cloud-sdk/bin
 RUN gcloud components install kubectl
 
 ADD backend/execution_cache/deployer/* /kfp/execution_cache/deployer/
