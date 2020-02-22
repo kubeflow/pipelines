@@ -33,7 +33,7 @@ chmod +x ./webhook-create-signed-cert.sh
 echo "Signed certificate generated for cache server"
 
 # Patch CA_BUNDLE for MutatingWebhookConfiguration
-chmod +x ./webhook-patch-ca-bundle.sh
+chmod +x ./webhook-patch-ca-bundle.sh --cert-input-path "${CA_FILE}"
 NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh <./execution-cache-configmap.yaml.template >./execution-cache-configmap-ca-bundle.yaml
 echo "CA_BUNDLE patched successfully"
 
