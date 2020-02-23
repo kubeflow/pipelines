@@ -5,7 +5,11 @@
     "outDir": "build/dist",
     "module": "esnext",
     "target": "es5",
-    "lib": ["es6", "dom", "es2019"],
+    "lib": [
+      "es6",
+      "dom",
+      "es2019"
+    ],
     "sourceMap": true,
     "allowJs": true,
     "resolveJsonModule": true,
@@ -18,7 +22,12 @@
     "strictBindCallApply": true,
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "noEmit": true
   },
   "exclude": [
     "__mocks__",
@@ -37,5 +46,8 @@
     "src/setupTests.ts",
     "third_party",
     "webpack"
+  ],
+  "include": [
+    "src"
   ]
 }

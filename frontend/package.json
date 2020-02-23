@@ -24,7 +24,6 @@
     "react-dom": "^16.12.0",
     "react-dropzone": "^5.1.0",
     "react-router-dom": "^4.3.1",
-    "react-scripts-ts": "2.17.0",
     "react-virtualized": "^9.20.1",
     "react-vis": "^1.11.2",
     "typestyle": "^2.0.4"
@@ -38,9 +37,9 @@
     "apis:run": "java -jar swagger-codegen-cli.jar generate -i ../backend/api/swagger/run.swagger.json -l typescript-fetch -o ./src/apis/run -c ./swagger-config.json",
     "apis:filter": "java -jar swagger-codegen-cli.jar generate -i ../backend/api/swagger/filter.swagger.json -l typescript-fetch -o ./src/apis/filter -c ./swagger-config.json",
     "apis:visualization": "java -jar swagger-codegen-cli.jar generate -i ../backend/api/swagger/visualization.swagger.json -l typescript-fetch -o ./src/apis/visualization -c ./swagger-config.json",
-    "build": "npm run lint && react-scripts-ts build",
+    "build": "npm run lint && react-scripts build",
     "docker": "COMMIT_HASH=`git rev-parse HEAD`; docker build -q -t ml-pipelines-frontend:${COMMIT_HASH} --build-arg COMMIT_HASH=${COMMIT_HASH} --build-arg DATE=\"`date -u`\" -f Dockerfile ..",
-    "eject": "react-scripts-ts eject",
+    "eject": "react-scripts eject",
     "format": "prettier --write './**/*.{ts,tsx}'",
     "format:check": "prettier --check './**/*.{ts,tsx}' || node ./scripts/check-format-error-info.js",
     "java": "java -version",
@@ -50,9 +49,9 @@
     "postinstall": "cd ./server && npm ci && cd ../mock-backend && npm ci",
     "start:proxy": "./scripts/start-proxy.sh",
     "start:proxy-and-server": "./scripts/start-proxy-and-server.sh",
-    "start": "react-scripts-ts start",
+    "start": "react-scripts start",
     "sync-backend-sample-config": "node scripts/sync-backend-sample-config.js",
-    "test": "react-scripts-ts test --env=jsdom",
+    "test": "react-scripts test --env=jsdom",
     "test:server:coverage": "cd ./server && npm test -- --coverage && cd ..",
     "test:coverage": "npm test -- --coverage && npm run test:server:coverage",
     "test:ci": "npm run format:check && npm run lint && npm run test:coverage",
@@ -80,12 +79,14 @@
     "@types/react-router-dom": "^4.3.1",
     "@types/react-test-renderer": "^16.0.2",
     "@types/react-virtualized": "^9.18.7",
+    "browserslist": "4.8.7",
     "coveralls": "^3.0.2",
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.15.1",
     "enzyme-to-json": "^3.3.4",
     "prettier": "1.18.2",
     "react-router-test-context": "^0.1.0",
+    "react-scripts": "^3.4.0",
     "react-test-renderer": "^16.5.2",
     "snapshot-diff": "^0.6.1",
     "swagger-ts-client": "^0.9.6",
@@ -93,6 +94,7 @@
     "ts-node-dev": "^1.0.0-pre.30",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.6.4",
+    "webpack": "4.41.5",
     "webpack-bundle-analyzer": "^3.6.0"
   },
   "homepage": "./",
@@ -111,5 +113,17 @@
       "enzyme-to-json/serializer"
     ]
   },
-  "proxy": "http://localhost:3001"
+  "proxy": "http://localhost:3001",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
 }
