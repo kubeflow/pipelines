@@ -5,17 +5,12 @@
     "outDir": "build/dist",
     "module": "esnext",
     "target": "es5",
-    "lib": [
-      "es6",
-      "dom",
-      "es2019"
-    ],
+    "lib": ["es6", "dom", "es2019"],
     "sourceMap": true,
     "allowJs": true,
     "resolveJsonModule": true,
     "jsx": "react",
     "moduleResolution": "node",
-    "rootDir": "src",
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noImplicitAny": true,
@@ -44,10 +39,7 @@
     "src/apis",
     "src/generated",
     "src/setupTests.ts",
-    "third_party",
     "webpack"
   ],
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }
