@@ -51,10 +51,10 @@
     "start:proxy-and-server": "./scripts/start-proxy-and-server.sh",
     "start": "EXTEND_ESLINT=true react-scripts start",
     "sync-backend-sample-config": "node scripts/sync-backend-sample-config.js",
-    "test": "react-scripts test --env=jsdom",
+    "test": "react-scripts test",
     "test:server:coverage": "cd ./server && npm test -- --coverage && cd ..",
     "test:coverage": "npm test -- --coverage && npm run test:server:coverage",
-    "test:ci": "npm run format:check && npm run lint && npm run test:coverage",
+    "test:ci": "export CI=true && npm run format:check && npm run lint && npm run test:coverage",
     "test:ci:prow": "npm set unsafe-perm true && npm ci && npm run test:ci && ./scripts/report-coveralls.sh"
   },
   "devDependencies": {
