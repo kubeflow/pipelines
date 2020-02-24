@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import React, { ComponentType } from 'react';
 import ConfusionMatrix from './ConfusionMatrix';
 import HTMLViewer from './HTMLViewer';
 import MarkdownViewer from './MarkdownViewer';
@@ -24,7 +24,7 @@ import TensorboardViewer from './Tensorboard';
 import { PlotType, ViewerConfig } from './Viewer';
 import VisualizationCreator from './VisualizationCreator';
 
-export const componentMap = {
+export const componentMap: Record<PlotType, ComponentType<any>> = {
   [PlotType.CONFUSION_MATRIX]: ConfusionMatrix,
   [PlotType.MARKDOWN]: MarkdownViewer,
   [PlotType.ROC]: ROCCurve,
@@ -46,7 +46,6 @@ class ViewerContainer extends React.Component<ViewerContainerProps> {
       return null;
     }
 
-    // tslint:disable-next-line:variable-name
     const Component = componentMap[configs[0].type];
     return <Component configs={configs as any} maxDimension={maxDimension} />;
   }

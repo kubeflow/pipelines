@@ -253,7 +253,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                               </FormControl>
                             </form>
                             <div className={css.summaryKey}>
-                              <a href={this._createVersionUrl()} target='_blank'>
+                              <a
+                                href={this._createVersionUrl()}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                              >
                                 Version source
                               </a>
                             </div>

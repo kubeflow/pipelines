@@ -366,6 +366,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                             <a
                                               href={legacyStackdriverUrl}
                                               target='_blank'
+                                              rel='noopener noreferrer'
                                               className={classes(css.link, commonCss.unstyled)}
                                             >
                                               Legacy Stackdriver
@@ -374,6 +375,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                             <a
                                               href={stackdriverK8sLogsUrl}
                                               target='_blank'
+                                              rel='noopener noreferrer'
                                               className={classes(css.link, commonCss.unstyled)}
                                             >
                                               Stackdriver Kubernetes Monitoring
@@ -970,6 +972,7 @@ const ArtifactsTabContent: React.FC<{
     // because nodeStatus data won't further change after completed, but
     // nodeStatus object instance will keep changing after new requests to get
     // workflow status.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodeId, nodeCompleted, onError]);
 
   return (

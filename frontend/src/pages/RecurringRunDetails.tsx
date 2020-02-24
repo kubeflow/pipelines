@@ -159,7 +159,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
       } catch (err) {
         const errorMessage = await errorToMessage(err);
         await this.showPageError(
-          `Error: failed to retrieve this recurring run\'s experiment.`,
+          `Error: failed to retrieve this recurring run's experiment.`,
           new Error(errorMessage),
           'warning',
         );
