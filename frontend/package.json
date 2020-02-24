@@ -107,6 +107,7 @@
       "!src/CSSReset.tsx"
     ],
     "snapshotSerializers": [
+      "./src/__serializers__/mock-function",
       "enzyme-to-json/serializer"
     ]
   },
