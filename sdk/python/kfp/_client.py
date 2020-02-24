@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import string
+import random
 import time
 import logging
 import json
@@ -104,6 +105,7 @@ class Client(object):
     config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret)
     api_client = kfp_server_api.api_client.ApiClient(config)
     _add_generated_apis(self, kfp_server_api, api_client)
+    self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
@@ -406,6 +408,62 @@ class Client(object):
     experiment = self.create_experiment(name=experiment_name)
     run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments, namespace=namespace)
     return RunPipelineResult(self, run_info)
+
+  def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, namespace=None):
+    """Schedule pipeline on kubeflow to run based upon a cron job
+    
+    Arguments:
+        experiment_id {[type]} -- The expriment within which we would like kubeflow 
+        job_name {[type]} -- The name of the scheduled job
+    
+    Keyword Arguments:
+        pipeline_package_path {[type]} -- The path to the pipeline package (default: {None})
+        params {dict} -- The pipeline parameters (default: {{}})
+        pipeline_id {[type]} -- The id of the pipeline which should run on schedule (default: {None})
+        namespace {[type]} -- The name space with which the pipeline should run (default: {None})
+    """
+
+    pipeline_json_string = None
+    if pipeline_package_path:
+      pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
+      pipeline_json_string = json.dumps(pipeline_obj)
+    api_params = [kfp_server_api.ApiParameter(
+        name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
+        value=str(v)) for k,v in params.items()]
+    resource_references = []
+
+    key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
+                                        type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
+    reference = kfp_server_api.models.ApiResourceReference(key=key,
+                                                           relationship=kfp_server_api.models.ApiRelationship.OWNER)
+    resource_references.append(reference)
+    if namespace is not None:
+      key = kfp_server_api.models.ApiResourceKey(id=namespace,
+                                                 type=kfp_server_api.models.ApiResourceType.NAMESPACE)
+      reference = kfp_server_api.models.ApiResourceReference(key=key,
+                                                             name=namespace,
+                                                             relationship=kfp_server_api.models.ApiRelationship.OWNER)
+      resource_references.append(reference)
+    spec = kfp_server_api.models.ApiPipelineSpec(
+        pipeline_id=pipeline_id,
+        workflow_manifest=pipeline_json_string,
+        parameters=api_params)
+    
+    trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(cron="0 0 9 ? * 2-6")
+    job_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+    schedule_body = kfp_server_api.models.ApiJob(
+        id=job_id,
+        name="TestScheduling",
+        description="Schedule the pipeline using the API",
+        pipeline_spec=spec,
+        resource_references=resource_references,
+        max_concurrency=10,
+        trigger=trigger,
+        enabled=True,
+        )
+    #[TODO] Add link to the scheduled job. 
+    response = self._job_api.create_job(body=schedule_body)
+
 
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
     """List runs.
