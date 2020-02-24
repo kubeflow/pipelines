@@ -2,7 +2,7 @@
 
 exports[`Trigger enables a single day on click 1`] = `
 <div>
-  <Component
+  <Input
     label="Trigger type"
     onChange={[Function]}
     required={true}
@@ -22,9 +22,9 @@ exports[`Trigger enables a single day on click 1`] = `
     >
       Cron
     </WithStyles(MenuItem)>
-  </Component>
+  </Input>
   <div>
-    <Component
+    <Input
       label="Maximum concurrent runs"
       onChange={[Function]}
       required={true}
@@ -44,7 +44,7 @@ exports[`Trigger enables a single day on click 1`] = `
         }
         label="Has start date"
       />
-      <Component
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -65,8 +65,8 @@ exports[`Trigger enables a single day on click 1`] = `
         variant="outlined"
         width={160}
       />
-      <Component />
-      <Component
+      <Separator />
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -101,7 +101,7 @@ exports[`Trigger enables a single day on click 1`] = `
         }
         label="Has end date"
       />
-      <Component
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -122,8 +122,8 @@ exports[`Trigger enables a single day on click 1`] = `
         variant="outlined"
         width={160}
       />
-      <Component />
-      <Component
+      <Separator />
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -178,8 +178,8 @@ exports[`Trigger enables a single day on click 1`] = `
       className="flex"
     >
       Run every
-      <Component />
-      <Component
+      <Separator />
+      <Input
         height={30}
         onChange={[Function]}
         required={true}
@@ -218,7 +218,7 @@ exports[`Trigger enables a single day on click 1`] = `
         >
           Month
         </WithStyles(MenuItem)>
-      </Component>
+      </Input>
     </span>
   </div>
   <div>
@@ -236,7 +236,7 @@ exports[`Trigger enables a single day on click 1`] = `
         }
         label="All"
       />
-      <Component />
+      <Separator />
       <WithStyles(Button)
         color="primary"
         key="0"
@@ -326,7 +326,7 @@ exports[`Trigger enables a single day on click 1`] = `
         }
       />
     </div>
-    <Component
+    <Input
       disabled={true}
       label="cron expression"
       onChange={[Function]}
@@ -343,7 +343,7 @@ exports[`Trigger enables a single day on click 1`] = `
 
 exports[`Trigger renders all week days enabled 1`] = `
 <div>
-  <Component
+  <Input
     label="Trigger type"
     onChange={[Function]}
     required={true}
@@ -363,9 +363,9 @@ exports[`Trigger renders all week days enabled 1`] = `
     >
       Cron
     </WithStyles(MenuItem)>
-  </Component>
+  </Input>
   <div>
-    <Component
+    <Input
       label="Maximum concurrent runs"
       onChange={[Function]}
       required={true}
@@ -385,7 +385,7 @@ exports[`Trigger renders all week days enabled 1`] = `
         }
         label="Has start date"
       />
-      <Component
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -406,8 +406,8 @@ exports[`Trigger renders all week days enabled 1`] = `
         variant="outlined"
         width={160}
       />
-      <Component />
-      <Component
+      <Separator />
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -442,7 +442,7 @@ exports[`Trigger renders all week days enabled 1`] = `
         }
         label="Has end date"
       />
-      <Component
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -463,8 +463,8 @@ exports[`Trigger renders all week days enabled 1`] = `
         variant="outlined"
         width={160}
       />
-      <Component />
-      <Component
+      <Separator />
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -519,8 +519,8 @@ exports[`Trigger renders all week days enabled 1`] = `
       className="flex"
     >
       Run every
-      <Component />
-      <Component
+      <Separator />
+      <Input
         height={30}
         onChange={[Function]}
         required={true}
@@ -559,7 +559,7 @@ exports[`Trigger renders all week days enabled 1`] = `
         >
           Month
         </WithStyles(MenuItem)>
-      </Component>
+      </Input>
     </span>
   </div>
   <div>
@@ -577,7 +577,7 @@ exports[`Trigger renders all week days enabled 1`] = `
         }
         label="All"
       />
-      <Component />
+      <Separator />
       <WithStyles(Button)
         color="secondary"
         key="0"
@@ -667,7 +667,7 @@ exports[`Trigger renders all week days enabled 1`] = `
         }
       />
     </div>
-    <Component
+    <Input
       disabled={true}
       label="cron expression"
       onChange={[Function]}
@@ -684,7 +684,7 @@ exports[`Trigger renders all week days enabled 1`] = `
 
 exports[`Trigger renders periodic schedule controls for initial render 1`] = `
 <div>
-  <Component
+  <Input
     label="Trigger type"
     onChange={[Function]}
     required={true}
@@ -704,9 +704,9 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
     >
       Cron
     </WithStyles(MenuItem)>
-  </Component>
+  </Input>
   <div>
-    <Component
+    <Input
       label="Maximum concurrent runs"
       onChange={[Function]}
       required={true}
@@ -726,7 +726,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         }
         label="Has start date"
       />
-      <Component
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -747,8 +747,8 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         variant="outlined"
         width={160}
       />
-      <Component />
-      <Component
+      <Separator />
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -783,7 +783,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         }
         label="Has end date"
       />
-      <Component
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -804,8 +804,8 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         variant="outlined"
         width={160}
       />
-      <Component />
-      <Component
+      <Separator />
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -863,8 +863,8 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
       <div
         className="flex"
       >
-        <Component />
-        <Component
+        <Separator />
+        <Input
           error={false}
           height={30}
           onChange={[Function]}
@@ -875,8 +875,8 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
           width={65}
         />
       </div>
-      <Component />
-      <Component
+      <Separator />
+      <Input
         height={30}
         onChange={[Function]}
         required={true}
@@ -915,7 +915,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         >
           Months
         </WithStyles(MenuItem)>
-      </Component>
+      </Input>
     </span>
   </div>
 </div>
@@ -923,7 +923,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
 
 exports[`Trigger renders periodic schedule controls if the trigger type is CRON 1`] = `
 <div>
-  <Component
+  <Input
     label="Trigger type"
     onChange={[Function]}
     required={true}
@@ -943,9 +943,9 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
     >
       Cron
     </WithStyles(MenuItem)>
-  </Component>
+  </Input>
   <div>
-    <Component
+    <Input
       label="Maximum concurrent runs"
       onChange={[Function]}
       required={true}
@@ -965,7 +965,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         }
         label="Has start date"
       />
-      <Component
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -986,8 +986,8 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         variant="outlined"
         width={160}
       />
-      <Component />
-      <Component
+      <Separator />
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -1022,7 +1022,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         }
         label="Has end date"
       />
-      <Component
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -1043,8 +1043,8 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         variant="outlined"
         width={160}
       />
-      <Component />
-      <Component
+      <Separator />
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -1099,8 +1099,8 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
       className="flex"
     >
       Run every
-      <Component />
-      <Component
+      <Separator />
+      <Input
         height={30}
         onChange={[Function]}
         required={true}
@@ -1139,7 +1139,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         >
           Month
         </WithStyles(MenuItem)>
-      </Component>
+      </Input>
     </span>
   </div>
   <div>
@@ -1168,7 +1168,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         }
       />
     </div>
-    <Component
+    <Input
       disabled={true}
       label="cron expression"
       onChange={[Function]}
@@ -1185,7 +1185,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
 
 exports[`Trigger renders week days if the trigger type is CRON and interval is weekly 1`] = `
 <div>
-  <Component
+  <Input
     label="Trigger type"
     onChange={[Function]}
     required={true}
@@ -1205,9 +1205,9 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
     >
       Cron
     </WithStyles(MenuItem)>
-  </Component>
+  </Input>
   <div>
-    <Component
+    <Input
       label="Maximum concurrent runs"
       onChange={[Function]}
       required={true}
@@ -1227,7 +1227,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         }
         label="Has start date"
       />
-      <Component
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -1248,8 +1248,8 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         variant="outlined"
         width={160}
       />
-      <Component />
-      <Component
+      <Separator />
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -1284,7 +1284,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         }
         label="Has end date"
       />
-      <Component
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -1305,8 +1305,8 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         variant="outlined"
         width={160}
       />
-      <Component />
-      <Component
+      <Separator />
+      <Input
         InputLabelProps={
           Object {
             "classes": Object {
@@ -1361,8 +1361,8 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
       className="flex"
     >
       Run every
-      <Component />
-      <Component
+      <Separator />
+      <Input
         height={30}
         onChange={[Function]}
         required={true}
@@ -1401,7 +1401,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         >
           Month
         </WithStyles(MenuItem)>
-      </Component>
+      </Input>
     </span>
   </div>
   <div>
@@ -1419,7 +1419,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         }
         label="All"
       />
-      <Component />
+      <Separator />
       <WithStyles(Button)
         color="primary"
         key="0"
@@ -1509,7 +1509,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         }
       />
     </div>
-    <Component
+    <Input
       disabled={true}
       label="cron expression"
       onChange={[Function]}
