@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import * as express from 'express';
-import * as proxy from 'http-proxy-middleware';
+import proxy from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
 
 export function _extractUrlFromReferer(proxyPrefix: string, referer = ''): string {
@@ -77,7 +77,7 @@ export default (app: express.Application, apisPrefix: string) => {
         return _routePathWithReferer(proxyPrefix, req.path, req.headers.referer as string);
       },
 
-      pathRewrite: (_, req: any) => {
+      pathRewrite: (_: any, req: any) => {
         return _rewritePath(proxyPrefix, req.path, req.query);
       },
     }),

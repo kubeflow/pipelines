@@ -22,7 +22,7 @@
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "noEmit": true,
-    "strictPropertyInitialization": false,
+    "strictPropertyInitialization": false, // temporary workaround blocked by @kubeflow/frontend
     "strict": true
   },
   "exclude": [
