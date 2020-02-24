@@ -48,7 +48,7 @@ export interface Column {
   flex?: number;
   label: string;
   sortKey?: string;
-  customRenderer?: React.FC<CustomRendererProps<{} | undefined>>;
+  customRenderer?: React.FC<CustomRendererProps<any | undefined>>;
 }
 
 export interface CustomRendererProps<T> {
