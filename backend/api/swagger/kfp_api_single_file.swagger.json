@@ -1219,6 +1219,12 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "pipelineid",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
