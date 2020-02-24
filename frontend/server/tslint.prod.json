@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json"
+  // TODO(jingzhang36): auto-generated filter/api.ts has imported url but never
+  // uses it; and typescript check enabled here will throw errors because of
+  // that. So temporarily disable typescript check here until we have a way to
+  // fix the auto-gen code. Moreover, TSLint is checking the same thing and thus
+  // it is safe to temporarily disable this check.
+  // "compilerOptions": {
+  //   "noUnusedLocals": true
+  // }
+}
