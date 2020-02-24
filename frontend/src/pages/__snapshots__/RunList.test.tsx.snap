@@ -736,7 +736,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
         className="pageOverflowHidden"
       >
         <div>
-          <Component
+          <Input
             InputLabelProps={
               Object {
                 "classes": Object {
@@ -1742,7 +1742,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 </FormControl>
               </WithStyles(FormControl)>
             </TextField>
-          </Component>
+          </Input>
         </div>
         <div
           className="header"
