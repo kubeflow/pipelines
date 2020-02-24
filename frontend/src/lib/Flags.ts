@@ -3,9 +3,9 @@ export enum Deployments {
   MARKETPLACE = 'MARKETPLACE',
 }
 
-// const DEPLOYMENT_DEFAULT = undefined;
+const DEPLOYMENT_DEFAULT = undefined;
 // Uncomment this to debug marketplace:
-const DEPLOYMENT_DEFAULT = Deployments.MARKETPLACE;
+// const DEPLOYMENT_DEFAULT = Deployments.MARKETPLACE;
 
 export const KFP_FLAGS = {
   DEPLOYMENT:
