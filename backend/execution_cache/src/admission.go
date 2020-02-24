@@ -86,10 +86,13 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 
 	var admissionReviewReq v1beta1.AdmissionReview
 
-	if _, _, err := universalDeserializer.Decode(body, nil, &admissionReviewReq); err != nil {
+	_, _, err = universalDeserializer.Decode(body, nil, &admissionReviewReq)
+
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return nil, fmt.Errorf("Could not deserialize request: %v", err)
-	} else if admissionReviewReq.Request == nil {
+	}
+	if admissionReviewReq.Request == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return nil, errors.New("Malformed admission review request: request body is nil")
 	}

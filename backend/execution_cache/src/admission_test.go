@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ func TestDoServeAdmitFunc(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("failed to send fake request, err: %v", err)
 	}
 
 	rr := httptest.NewRecorder()
