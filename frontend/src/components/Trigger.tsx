@@ -273,7 +273,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               width={95}
               variant='outlined'
             >
-              {Object.keys(PeriodicInterval).map((interval: PeriodicInterval, i) => (
+              {Object.keys(PeriodicInterval).map((interval, i) => (
                 <MenuItem key={i} value={PeriodicInterval[interval]}>
                   {PeriodicInterval[interval] + (type === TriggerType.INTERVALED ? 's' : '')}
                 </MenuItem>
