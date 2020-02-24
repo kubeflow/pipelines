@@ -44,7 +44,7 @@ describe('HTMLViewer', () => {
   it('uses srcdoc to insert HTML into the iframe', () => {
     const tree = mount(<HTMLViewer configs={[config]} />);
     expect((tree.instance() as any)._iframeRef.current.srcdoc).toEqual(html);
-    expect((tree.instance() as any)._iframeRef.current.src).toEqual('javascript:void(0);');
+    expect((tree.instance() as any)._iframeRef.current.src).toEqual('about:blank');
   });
 
   it('cannot be accessed from main frame of the other way around (no allow-same-origin)', () => {
