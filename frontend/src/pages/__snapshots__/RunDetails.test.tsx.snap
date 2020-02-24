@@ -471,10 +471,10 @@ exports[`RunDetails loads the run's outputs in the output tab 1`] = `
         <span>
           No metrics found for this run.
         </span>
-        <Component
+        <Separator
           orientation="vertical"
         />
-        <Component />
+        <Hr />
         <div
           key="0"
         >
@@ -491,10 +491,10 @@ exports[`RunDetails loads the run's outputs in the output tab 1`] = `
             maxDimension={400}
             title="step1"
           />
-          <Component
+          <Separator
             orientation="vertical"
           />
-          <Component />
+          <Hr />
         </div>
       </div>
     </div>
@@ -1747,7 +1747,7 @@ exports[`RunDetails shows run config fields - handles no description 1`] = `
       <div
         className=""
       >
-        <Component
+        <DetailsTable
           fields={
             Array [
               Array [
@@ -1808,7 +1808,7 @@ exports[`RunDetails shows run config fields - handles no metadata 1`] = `
       <div
         className=""
       >
-        <Component
+        <DetailsTable
           fields={
             Array [
               Array [
@@ -1869,7 +1869,7 @@ exports[`RunDetails shows run config fields 1`] = `
       <div
         className=""
       >
-        <Component
+        <DetailsTable
           fields={
             Array [
               Array [
@@ -1901,7 +1901,7 @@ exports[`RunDetails shows run config fields 1`] = `
           title="Run details"
         />
         <div>
-          <Component
+          <DetailsTable
             fields={
               Array [
                 Array [
@@ -1994,7 +1994,7 @@ exports[`RunDetails switches to config tab 1`] = `
       <div
         className=""
       >
-        <Component
+        <DetailsTable
           fields={Array []}
           title="Run details"
         />
@@ -2081,7 +2081,7 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                 <div
                   className=""
                 >
-                  <Component
+                  <DetailsTable
                     fields={
                       Array [
                         Array [
@@ -2092,12 +2092,12 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                     }
                     title="Input parameters"
                   />
-                  <Component
+                  <DetailsTable
                     fields={Array []}
                     title="Input artifacts"
                     valueComponent={[Function]}
                   />
-                  <Component
+                  <DetailsTable
                     fields={
                       Array [
                         Array [
@@ -2112,7 +2112,7 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                     }
                     title="Output parameters"
                   />
-                  <Component
+                  <DetailsTable
                     fields={Array []}
                     title="Output artifacts"
                     valueComponent={[Function]}
@@ -2221,7 +2221,7 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
                 <div
                   className=""
                 >
-                  <Component
+                  <DetailsTable
                     fields={Array []}
                     title="Resource Manifest"
                   />
@@ -2279,10 +2279,10 @@ exports[`RunDetails switches to run output tab, shows empty message 1`] = `
         <span>
           No metrics found for this run.
         </span>
-        <Component
+        <Separator
           orientation="vertical"
         />
-        <Component />
+        <Hr />
         <span>
           No output artifacts found for this run.
         </span>
@@ -2369,7 +2369,7 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
                 <div
                   className=""
                 >
-                  <Component
+                  <DetailsTable
                     fields={Array []}
                     title="Volume Mounts"
                   />

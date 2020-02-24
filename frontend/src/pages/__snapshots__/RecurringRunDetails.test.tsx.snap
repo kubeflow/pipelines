@@ -7,7 +7,7 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
   <div
     className="page"
   >
-    <Component
+    <DetailsTable
       fields={
         Array [
           Array [
@@ -22,7 +22,7 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
       }
       title="Recurring run details"
     />
-    <Component
+    <DetailsTable
       fields={
         Array [
           Array [
@@ -53,7 +53,7 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
       }
       title="Run trigger"
     />
-    <Component
+    <DetailsTable
       fields={
         Array [
           Array [
@@ -75,7 +75,7 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
   <div
     className="page"
   >
-    <Component
+    <DetailsTable
       fields={
         Array [
           Array [
@@ -90,7 +90,7 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
       }
       title="Recurring run details"
     />
-    <Component
+    <DetailsTable
       fields={
         Array [
           Array [
@@ -121,7 +121,7 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
       }
       title="Run trigger"
     />
-    <Component
+    <DetailsTable
       fields={
         Array [
           Array [
