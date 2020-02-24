@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+/* eslint-disable */
+// Because this is test utils.
+
 import * as React from 'react';
 // @ts-ignore
 import createRouterContext from 'react-router-test-context';

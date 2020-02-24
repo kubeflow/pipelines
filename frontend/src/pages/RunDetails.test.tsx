@@ -1156,7 +1156,7 @@ describe('RunDetails', () => {
     }, 10000);
 
     [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(status => {
-      it(`sets \'runFinished\' to true if run has status: ${status}`, async () => {
+      it(`sets 'runFinished' to true if run has status: ${status}`, async () => {
         testRun.run!.status = status;
         tree = shallow(<RunDetails {...generateProps()} />);
         await TestUtils.flushPromises();
@@ -1166,7 +1166,7 @@ describe('RunDetails', () => {
     });
 
     [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach(status => {
-      it(`leaves \'runFinished\' false if run has status: ${status}`, async () => {
+      it(`leaves 'runFinished' false if run has status: ${status}`, async () => {
         testRun.run!.status = status;
         tree = shallow(<RunDetails {...generateProps()} />);
         await TestUtils.flushPromises();

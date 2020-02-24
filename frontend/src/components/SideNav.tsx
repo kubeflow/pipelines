@@ -443,6 +443,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
                 href={this._HUB_ADDRESS}
                 className={commonCss.unstyled}
                 target='_blank'
+                rel='noopener'
               >
                 <Button className={classes(css.button, collapsed && css.collapsedButton)}>
                   <JupyterhubIcon style={{ height: 20, width: 20 }} />
@@ -491,7 +492,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
             to={ExternalLinks.GITHUB}
             collapsed={collapsed}
             icon={className => (
-              <img src={GitHubIcon} className={classes(className, css.iconImage)} />
+              <img src={GitHubIcon} className={classes(className, css.iconImage)} alt='Github' />
             )}
           />
           <ExternalUri
@@ -502,6 +503,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
               <img
                 src='https://www.gstatic.com/aihub/aihub_favicon.png'
                 className={classes(className, css.iconImage)}
+                alt='AI Hub'
               />
             )}
           />
