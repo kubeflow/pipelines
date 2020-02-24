@@ -44,7 +44,7 @@
     "format:check": "prettier --check './**/*.{ts,tsx}' || node ./scripts/check-format-error-info.js",
     "java": "java -version",
     "lint": "eslint --ext js,ts,tsx src",
-    "mock:api": "ts-node-dev -O '{\"module\": \"commonjs\"}' mock-backend/mock-api-server.ts 3001",
+    "mock:api": "ts-node-dev -O '{\"module\": \"commonjs\"}' --project mock-backend/tsconfig.json mock-backend/mock-api-server.ts 3001",
     "mock:server": "node server/dist/server.js build",
     "postinstall": "cd ./server && npm ci && cd ../mock-backend && npm ci",
     "start:proxy": "./scripts/start-proxy.sh",
