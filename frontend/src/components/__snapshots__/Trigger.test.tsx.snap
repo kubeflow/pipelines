@@ -158,7 +158,7 @@ exports[`Trigger enables a single day on click 1`] = `
         }
         label="Catchup"
       />
-      <Component
+      <HelpButton
         helpText={
           <div>
             <p>
@@ -499,7 +499,7 @@ exports[`Trigger renders all week days enabled 1`] = `
         }
         label="Catchup"
       />
-      <Component
+      <HelpButton
         helpText={
           <div>
             <p>
@@ -840,7 +840,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         }
         label="Catchup"
       />
-      <Component
+      <HelpButton
         helpText={
           <div>
             <p>
@@ -1079,7 +1079,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         }
         label="Catchup"
       />
-      <Component
+      <HelpButton
         helpText={
           <div>
             <p>
@@ -1341,7 +1341,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         }
         label="Catchup"
       />
-      <Component
+      <HelpButton
         helpText={
           <div>
             <p>
