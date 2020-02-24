@@ -22,7 +22,7 @@ set -ex
 
 echo "Start deploying execution cache to existing cluster:"
 
-NAMESPACE=${NAMESPACE_TO_WATCH:default}
+NAMESPACE=${NAMESPACE_TO_WATCH:-default}
 export CA_FILE="ca.cert"
 rm -f ${CA_FILE}
 touch ${CA_FILE}
