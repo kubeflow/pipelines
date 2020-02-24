@@ -158,6 +158,7 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
     <a
       className="unstyled"
       href="apis/v1beta1/_proxy/test/address"
+      rel="noopener noreferrer"
       target="_blank"
     >
       <WithStyles(Button)
