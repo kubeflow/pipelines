@@ -225,6 +225,17 @@ def _op_to_template(op: BaseOp):
                 processed_op.resource
             )
         }
+    elif isinstance(op, dsl.SuspendOp):
+        # no output artifacts
+        output_artifacts = []
+
+        # workflow template
+        template = {
+            'name': processed_op.name,
+            'suspend': convert_k8s_obj_to_json(
+                op.suspend
+            )
+        }
 
     # inputs
     input_artifact_paths = processed_op.input_artifact_paths if isinstance(processed_op, dsl.ContainerOp) else None
