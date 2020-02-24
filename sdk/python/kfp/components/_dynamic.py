@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, Mapping, Sequence
+import sys
 import types
+from typing import Any, Callable, Mapping, Sequence
 from inspect import Parameter, Signature
 
 
@@ -44,21 +45,31 @@ def create_function_from_parameters(func: Callable[[Mapping[str, Any]], Any], pa
         mod_co_filename = code.co_filename
         mod_co_firstlineno = code.co_firstlineno
 
-    modified_code = types.CodeType(
-        mod_co_argcount,
-        code.co_kwonlyargcount,
-        mod_co_nlocals,
-        code.co_stacksize,
-        code.co_flags,
-        code.co_code,
-        code.co_consts,
-        code.co_names,
-        mod_co_varnames,
-        mod_co_filename,
-        mod_co_name,
-        mod_co_firstlineno,
-        code.co_lnotab
-    )
+    if sys.version_info >= (3, 8):
+        modified_code = code.replace(
+            co_argcount=mod_co_argcount,
+            co_nlocals=mod_co_nlocals,
+            co_varnames=mod_co_varnames,
+            co_filename=mod_co_filename,
+            co_name=mod_co_name,
+            co_firstlineno=mod_co_firstlineno,
+        )
+    else:
+        modified_code = types.CodeType(
+            mod_co_argcount,
+            code.co_kwonlyargcount,
+            mod_co_nlocals,
+            code.co_stacksize,
+            code.co_flags,
+            code.co_code,
+            code.co_consts,
+            code.co_names,
+            mod_co_varnames,
+            mod_co_filename,
+            mod_co_name,
+            mod_co_firstlineno,
+            code.co_lnotab
+        )
 
     default_arg_values = tuple( p.default for p in parameters if p.default != Parameter.empty ) #!argdefs "starts from the right"/"is right-aligned"
     modified_func = types.FunctionType(modified_code, {'dict_func': func, 'locals': locals}, name=func_name, argdefs=default_arg_values)
