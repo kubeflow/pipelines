@@ -6,16 +6,25 @@ You need `node v12` and `npm`.
 Recommend installing `node` and `npm` using https://github.com/nvm-sh/nvm. After installing nvm,
 you can install `node v12` by `nvm install 12`.
 
-## Node and npm daily usages
+## Manage dev environment with npm
 
-Install dependencies by `npm ci`. It makes sure your installed dependencies have
-the exact same version as others, comparing to `npm install`. (Usually, you just
-need to run this once, but after others updated package-lock.json, you need to
-run `npm ci` again to get package updates.)
+### First time
+1. Clone this repo
+2. Navigate to frontend folder: `cd $KFP_SRC/frontend`.
+3. Install dependencies: `npm ci`.
 
-Run `npm install --save <package>` (or `npm i -S <package>` for short) to install runtime dependencies.
-Run `npm install --save-dev <package>` (or `npm i -D <package>` for short) to install dev dependencies.
+`npm ci` makes sure your installed dependencies have the exact same version as others. (Usually, you just
+need to run this once, but after others installed extra dependencies, you need to run `npm ci` again to
+get package updates.)
 
+### Package management
+Run `npm install --save <package>` (or `npm i -S <package>` for short) to install runtime dependencies and save them to package.json.
+Run `npm install --save-dev <package>` (or `npm i -D <package>` for short) to install dev dependencies and save them to package.json.
+
+### Daily workflow
+You will see a lot of `npm run xxx` commands in instructions below, the actual script being run is defined in the "scripts" field of [package.json](https://github.com/kubeflow/pipelines/blob/91db95a601fa7fffcb670cb744a5dcaeb08290ae/frontend/package.json#L32). Development common scripts are maintained in package.json, and we use npm to call them conveniently.
+
+### npm next step
 You can learn more about npm in https://docs.npmjs.com/about-npm/.
 
 ## Start frontend development server
@@ -34,11 +43,11 @@ respond to api requests.
 
 ### Api mock server
 
-This is the easiest one to start, but it does not support all apis during
+This is the easiest way to start developing, but it does not support all apis during
 development.
 
 Run `npm run mock:api` to start a mock backend api server handler so it can
-serve basic api calls. 
+serve basic api calls with mock data. 
 
 ### Proxy to a real cluster
 
@@ -52,6 +61,17 @@ Then it depends on what you want to develop:
 | Client UI               | `NAMESPACE=kubeflow npm run start:proxy`            |                                                                    |
 | Client UI + Node server | `NAMESPACE=kubeflow npm run start:proxy-and-server` | You need to rerun the script every time you edit node server code. |
 
+## Unit testing FAQ
+There are a few typees of tests during presubmit:
+* formatting, refer to [Code Style Section](#code-style)
+* linting, you can also run locally with `npm run lint`
+* client UI unit tests, you can run locally with `npm test`
+* UI node server unit tests, you can run locally with `cd server && npm test`
+
+There is a special type of unit test called [snapshot tests](https://jestjs.io/docs/en/snapshot-testing). When
+snapshot tests are failing, you can update them automatically with `npm test -u` and run all tests. Then commit
+the snapshot changes.
+
 ## Production Build
 You can do `npm run build` to build the frontend code for production, which
 creates a ./build directory with the minified bundle. You can test this bundle
@@ -59,17 +79,13 @@ using `server/server.js`. Note you need to have an API server running, which
 you can then feed its address (host + port) as environment variables into
 `server.js`. See the usage instructions in that file for more.
 
-The mock API server and the mock webserver can still be used with the
-production UI code by running `npm run mock:api` and `npm run mock:server`.
-
 ## Container Build
 
 You can also do `npm run docker` if you have docker installed to build an
 image containing the production bundle and the server pieces. In order to run
 this image, you'll need to port forward 3000, and pass the environment
 variables `ML_PIPELINE_SERVICE_HOST` and
-`ML_PIPELINE_SERVICE_PORT` with the details of the API server, which
-you can run using `npm run api` separately.
+`ML_PIPELINE_SERVICE_PORT` with the details of the API server.
 
 ## Code Style
 

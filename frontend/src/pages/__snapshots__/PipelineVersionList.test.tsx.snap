@@ -55,7 +55,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
         className="pageOverflowHidden"
       >
         <div>
-          <Component
+          <Input
             InputLabelProps={
               Object {
                 "classes": Object {
@@ -1061,7 +1061,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                 </FormControl>
               </WithStyles(FormControl)>
             </TextField>
-          </Component>
+          </Input>
         </div>
         <div
           className="header"
@@ -4661,7 +4661,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
         className="pageOverflowHidden"
       >
         <div>
-          <Component
+          <Input
             InputLabelProps={
               Object {
                 "classes": Object {
@@ -5667,7 +5667,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                 </FormControl>
               </WithStyles(FormControl)>
             </TextField>
-          </Component>
+          </Input>
         </div>
         <div
           className="header"

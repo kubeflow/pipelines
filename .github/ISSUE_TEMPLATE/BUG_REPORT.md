@@ -26,11 +26,11 @@ KFP SDK version: <!-- Please attach the output of this shell command: $pip list 
 [Miscellaneous information that will assist in solving the issue.]
 
 /kind bug
+<!-- Please include labels by uncommenting them to help us better triage issues, choose from the following -->
 <!--
-Please include labels to help us better triage issues, choose from the following
-/area frontend
-/area backend
-/area sdk
-/area testing
-/area engprod
+// /area frontend
+// /area backend
+// /area sdk
+// /area testing
+// /area engprod
 -->

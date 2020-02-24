@@ -26,7 +26,7 @@ interface IconWithTooltipProps {
   width?: number;
 }
 
-export default (props: IconWithTooltipProps) => {
+const IconWithTooltip = (props: IconWithTooltipProps) => {
   const { height, Icon, iconColor, tooltip, width } = props;
 
   return (
@@ -41,3 +41,5 @@ export default (props: IconWithTooltipProps) => {
     </Tooltip>
   );
 };
+
+export default IconWithTooltip;
