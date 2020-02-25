@@ -47,7 +47,7 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 		return util.NewInternalServerError(err, "Failed to load database status.")
 	}
 	next := rows.Next()
-	rows.Close()
+	rows.Close() // "rows" shouldn't be used after this point.
 
 	// The table is not initialized
 	if !next {
