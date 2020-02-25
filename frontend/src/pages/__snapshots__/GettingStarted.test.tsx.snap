@@ -1,27 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`GettingStarted page fallbacks to show pipeline list page if request failed 1`] = `
-"Snapshot Diff:
-- First value
-+ Second value
-
-@@ -70,11 +70,13 @@
-              >
-            </li>
-          </ul>
-        </li>
-        <li>
--         <a href=\\"#/pipelines\\" class=\\"link\\">DSL - Control structures</a>
-+         <a href=\\"#/pipelines/details/pipeline-id-4?\\" class=\\"link\\"
-+           >DSL - Control structures</a
-+         >
-          <ul>
-            <li>
-              Shows how to use conditional execution and exit handlers.
-              <a
-                href=\\"https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures\\""
-`;
-
 exports[`GettingStarted page initially renders documentation 1`] = `
 <div>
   <div
@@ -253,71 +231,4 @@ Array [
     "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BTutorial%5D%20DSL%20-%20Control%20structures%22%7D%5D%7D",
   ],
 ]
-`;
-
-exports[`GettingStarted page renders documentation with pipeline deep link after querying demo pipelines 2`] = `
-"Snapshot Diff:
-- First value
-+ Second value
-
-@@ -17,11 +17,13 @@
-      <h2 id=\\"demonstrations-and-tutorials\\">Demonstrations and Tutorials</h2>
-      <p>This section contains demo and tutorial pipelines.</p>
-      <p><strong>Demos</strong> - Try an end-to-end demonstration pipeline.</p>
-      <ul>
-        <li>
--         <a href=\\"#/pipelines\\" class=\\"link\\">TFX pipeline demo</a>
-+         <a href=\\"#/pipelines/details/pipeline-id-2?\\" class=\\"link\\"
-+           >TFX pipeline demo</a
-+         >
-          <ul>
-            <li>
-              Classification pipeline with model analysis, based on a public
-              BigQuery dataset of taxicab trips.
-              <a
-@@ -33,11 +35,13 @@
-              >
-            </li>
-          </ul>
-        </li>
-        <li>
--         <a href=\\"#/pipelines\\" class=\\"link\\">XGBoost Pipeline demo</a>
-+         <a href=\\"#/pipelines/details/pipeline-id-1?\\" class=\\"link\\"
-+           >XGBoost Pipeline demo</a
-+         >
-          <ul>
-            <li>
-              An example of end-to-end distributed training for an XGBoost model.
-              <a
-                href=\\"https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm\\"
-@@ -55,11 +59,13 @@
-        <strong>Tutorials</strong> - Learn pipeline concepts by following a
-        tutorial.
-      </p>
-      <ul>
-        <li>
--         <a href=\\"#/pipelines\\" class=\\"link\\">Data passing in python components</a>
-+         <a href=\\"#/pipelines/details/pipeline-id-3?\\" class=\\"link\\"
-+           >Data passing in python components</a
-+         >
-          <ul>
-            <li>
-              Shows how to pass data between python components.
-              <a
-                href=\\"https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components\\"
-@@ -70,11 +76,13 @@
-              >
-            </li>
-          </ul>
-        </li>
-        <li>
--         <a href=\\"#/pipelines\\" class=\\"link\\">DSL - Control structures</a>
-+         <a href=\\"#/pipelines/details/pipeline-id-4?\\" class=\\"link\\"
-+           >DSL - Control structures</a
-+         >
-          <ul>
-            <li>
-              Shows how to use conditional execution and exit handlers.
-              <a
-                href=\\"https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures\\""
 `;

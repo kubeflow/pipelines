@@ -110,6 +110,7 @@
     ],
     "snapshotSerializers": [
       "./src/__serializers__/mock-function",
+      "snapshot-diff/serializer.js",
       "enzyme-to-json/serializer"
     ]
   },
