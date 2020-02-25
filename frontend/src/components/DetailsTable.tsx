@@ -103,7 +103,11 @@ const DetailsTable = (props: DetailsTableProps) => {
             <div key={i} className={css.row}>
               <span className={css.key}>{key}</span>
               <span className={css.valueText}>
-                {isS3Artifact(value) ? <MinioArtifactPreview artifact={value} /> : value}
+                {isS3Artifact(value) ? (
+                  <MinioArtifactPreview artifact={value} />
+                ) : (
+                  JSON.stringify(value)
+                )}
               </span>
             </div>
           );

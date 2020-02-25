@@ -163,7 +163,7 @@ function getMinioArtifactHandler(
             res.send(content.slice(0, peek));
             stream.off('data', onData);
           }
-        }
+        };
         stream.on('data', onData);
         return;
       }
