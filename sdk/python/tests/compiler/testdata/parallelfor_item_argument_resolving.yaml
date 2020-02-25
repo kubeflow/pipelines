@@ -485,7 +485,7 @@ spec:
           - "-u"
           - "-c"
           - |
-              def produce_list_of_dicts() -> list:
+              def produce_list_of_dicts()  :
                   return ([{"aaa": "aaa1", "bbb": "bbb1"}, {"aaa": "aaa2", "bbb": "bbb2"}],)
               
               def _serialize_json(obj) -> str:
@@ -548,7 +548,7 @@ spec:
           - "-u"
           - "-c"
           - |
-              def produce_list_of_ints() -> list:
+              def produce_list_of_ints()  :
                   return ([1234567890, 987654321],)
               
               def _serialize_json(obj) -> str:
@@ -611,7 +611,7 @@ spec:
           - "-u"
           - "-c"
           - |
-              def produce_list_of_strings() -> list:
+              def produce_list_of_strings()  :
                   return (["a", "z"],)
               
               def _serialize_json(obj) -> str:
@@ -674,7 +674,7 @@ spec:
           - "-u"
           - "-c"
           - |
-              def produce_str() -> str:
+              def produce_str()  :
                   return "Hello"
               
               def _serialize_str(str_value: str) -> str:
