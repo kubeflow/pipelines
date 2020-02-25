@@ -16,6 +16,7 @@ package resource
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -197,4 +198,33 @@ func PatchPipelineDefaultParameter(text string) (string, error) {
 		text = strings.Replace(text, key, value, -1)
 	}
 	return text, nil
+}
+
+// Patch the system-specified default parameters if available.
+func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run) error {
+	// Patch the default value to workflow spec.
+	if servercommon.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
+		patchedSlice := make([]wfv1.Parameter, 0)
+		for _, currentParam := range workflow.Spec.Arguments.Parameters {
+			desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
+			if err != nil {
+				return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			}
+			patchedSlice = append(patchedSlice, wfv1.Parameter{
+				Name:  currentParam.Name,
+				Value: util.StringPointer(desiredValue),
+			})
+		}
+		workflow.Spec.Arguments.Parameters = patchedSlice
+
+		// Patched the default value to apiRun
+		for _, param := range apiRun.PipelineSpec.Parameters {
+			var err error
+			param.Value, err = PatchPipelineDefaultParameter(param.Value)
+			if err != nil {
+				return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			}
+		}
+	}
+	return nil
 }

@@ -286,32 +286,12 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
-	// Patch the default value to workflow spec.
-	if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
-		patchedSlice := make([]workflowapi.Parameter, 0)
-		for _, currentParam := range workflow.Spec.Arguments.Parameters {
-			desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
-			}
-			patchedSlice = append(patchedSlice, workflowapi.Parameter{
-				Name:  currentParam.Name,
-				Value: util.StringPointer(desiredValue),
-			})
-		}
-		workflow.Spec.Arguments.Parameters = patchedSlice
+
+	err = OverrideParameterWithSystemDefault(workflow, apiRun)
+	if err != nil {
+		return nil, err
 	}
 
-	// Patched the default value to apiRun
-	if common.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
-		for _, param := range apiRun.PipelineSpec.Parameters {
-			var err error
-			param.Value, err = PatchPipelineDefaultParameter(param.Value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
-			}
-		}
-	}
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, runId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
