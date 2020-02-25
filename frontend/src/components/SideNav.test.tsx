@@ -275,7 +275,7 @@ describe('SideNav', () => {
       +     <WithStyles(Tooltip) title="Cluster name: some-cluster-name, Project ID: some-project-id" enterDelay={300} placement="top-start">
       +       <div className="envMetadata">
       +         <span>
-      +           Cluster name:
+      +           Cluster name: 
       +         </span>
       +         <a href="https://console.cloud.google.com/kubernetes/list?project=some-project-id&filter=name:some-cluster-name" className="link unstyled" rel="noopener" target="_blank">
       +           some-cluster-name
