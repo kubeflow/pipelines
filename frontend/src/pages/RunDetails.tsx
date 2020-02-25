@@ -288,7 +288,10 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                 onSwitch={this._loadSidePaneTab.bind(this)}
                               />
 
-                              <div className={commonCss.page}>
+                              <div
+                                data-testid='run-details-node-details'
+                                className={commonCss.page}
+                              >
                                 {sidepanelSelectedTab === SidePaneTab.ARTIFACTS &&
                                   this.state.selectedNodeDetails &&
                                   this.state.workflow && (

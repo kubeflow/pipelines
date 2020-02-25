@@ -575,6 +575,7 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
               />
               <div
                 className="page"
+                data-testid="run-details-node-details"
               >
                 <div
                   className="page"
@@ -690,6 +691,7 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
               />
               <div
                 className="page"
+                data-testid="run-details-node-details"
               >
                 <div
                   className="page"
@@ -805,6 +807,7 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
               />
               <div
                 className="page"
+                data-testid="run-details-node-details"
               >
                 <div
                   className="page"
@@ -819,361 +822,6 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
                         ]
                       }
                     />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </SidePanel>
-          <div
-            className="footer"
-          >
-            <div
-              className="flex"
-            >
-              <pure(InfoOutlinedIcon)
-                className="infoIcon"
-              />
-              <span
-                className="infoSpan"
-              >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-`;
-
-exports[`RunDetails logs tab shows error banner atop logs area if fetching logs failed and getClusterName fails 1`] = `
-<div
-  className="page"
->
-  <div
-    className="page"
-  >
-    <MD2Tabs
-      onSwitch={[Function]}
-      selectedTab={0}
-      tabs={
-        Array [
-          "Graph",
-          "Run output",
-          "Config",
-        ]
-      }
-    />
-    <div
-      className="page"
-    >
-      <div
-        className="page graphPane"
-      >
-        <div
-          className="page"
-        >
-          <EnhancedGraph
-            graph={
-              Graph {
-                "_defaultEdgeLabelFn": [Function],
-                "_defaultNodeLabelFn": [Function],
-                "_edgeLabels": Object {},
-                "_edgeObjs": Object {},
-                "_in": Object {},
-                "_isCompound": false,
-                "_isDirected": true,
-                "_isMultigraph": false,
-                "_label": Object {},
-                "_nodes": Object {},
-                "_out": Object {},
-                "_preds": Object {},
-                "_sucs": Object {},
-              }
-            }
-            onClick={[Function]}
-            onError={[Function]}
-            selectedNodeId="node1"
-          />
-          <SidePanel
-            isBusy={false}
-            isOpen={true}
-            onClose={[Function]}
-            title="node1"
-          >
-            <div
-              className="page"
-            >
-              <MD2Tabs
-                onSwitch={[Function]}
-                selectedTab={4}
-                tabs={
-                  Array [
-                    "Artifacts",
-                    "Input/Output",
-                    "Volumes",
-                    "Manifest",
-                    "Logs",
-                  ]
-                }
-              />
-              <div
-                className="page"
-              >
-                <div
-                  className="page"
-                >
-                  <Banner
-                    additionalInfo="getting logs failed"
-                    message="Error: failed to retrieve pod logs. Click Details for more information."
-                    mode="error"
-                    refresh={[Function]}
-                  />
-                </div>
-              </div>
-            </div>
-          </SidePanel>
-          <div
-            className="footer"
-          >
-            <div
-              className="flex"
-            >
-              <pure(InfoOutlinedIcon)
-                className="infoIcon"
-              />
-              <span
-                className="infoSpan"
-              >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-`;
-
-exports[`RunDetails logs tab shows error banner atop logs area if fetching logs failed and getProjectId fails 1`] = `
-<div
-  className="page"
->
-  <div
-    className="page"
-  >
-    <MD2Tabs
-      onSwitch={[Function]}
-      selectedTab={0}
-      tabs={
-        Array [
-          "Graph",
-          "Run output",
-          "Config",
-        ]
-      }
-    />
-    <div
-      className="page"
-    >
-      <div
-        className="page graphPane"
-      >
-        <div
-          className="page"
-        >
-          <EnhancedGraph
-            graph={
-              Graph {
-                "_defaultEdgeLabelFn": [Function],
-                "_defaultNodeLabelFn": [Function],
-                "_edgeLabels": Object {},
-                "_edgeObjs": Object {},
-                "_in": Object {},
-                "_isCompound": false,
-                "_isDirected": true,
-                "_isMultigraph": false,
-                "_label": Object {},
-                "_nodes": Object {},
-                "_out": Object {},
-                "_preds": Object {},
-                "_sucs": Object {},
-              }
-            }
-            onClick={[Function]}
-            onError={[Function]}
-            selectedNodeId="node1"
-          />
-          <SidePanel
-            isBusy={false}
-            isOpen={true}
-            onClose={[Function]}
-            title="node1"
-          >
-            <div
-              className="page"
-            >
-              <MD2Tabs
-                onSwitch={[Function]}
-                selectedTab={4}
-                tabs={
-                  Array [
-                    "Artifacts",
-                    "Input/Output",
-                    "Volumes",
-                    "Manifest",
-                    "Logs",
-                  ]
-                }
-              />
-              <div
-                className="page"
-              >
-                <div
-                  className="page"
-                >
-                  <Banner
-                    additionalInfo="getting logs failed"
-                    message="Error: failed to retrieve pod logs. Click Details for more information."
-                    mode="error"
-                    refresh={[Function]}
-                  />
-                </div>
-              </div>
-            </div>
-          </SidePanel>
-          <div
-            className="footer"
-          >
-            <div
-              className="flex"
-            >
-              <pure(InfoOutlinedIcon)
-                className="infoIcon"
-              />
-              <span
-                className="infoSpan"
-              >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-`;
-
-exports[`RunDetails logs tab shows warning banner and link to Stackdriver in logs area if fetching logs failed and cluster is in GKE 1`] = `
-<div
-  className="page"
->
-  <div
-    className="page"
-  >
-    <MD2Tabs
-      onSwitch={[Function]}
-      selectedTab={0}
-      tabs={
-        Array [
-          "Graph",
-          "Run output",
-          "Config",
-        ]
-      }
-    />
-    <div
-      className="page"
-    >
-      <div
-        className="page graphPane"
-      >
-        <div
-          className="page"
-        >
-          <EnhancedGraph
-            graph={
-              Graph {
-                "_defaultEdgeLabelFn": [Function],
-                "_defaultNodeLabelFn": [Function],
-                "_edgeLabels": Object {},
-                "_edgeObjs": Object {},
-                "_in": Object {},
-                "_isCompound": false,
-                "_isDirected": true,
-                "_isMultigraph": false,
-                "_label": Object {},
-                "_nodes": Object {},
-                "_out": Object {},
-                "_preds": Object {},
-                "_sucs": Object {},
-              }
-            }
-            onClick={[Function]}
-            onError={[Function]}
-            selectedNodeId="node1"
-          />
-          <SidePanel
-            isBusy={false}
-            isOpen={true}
-            onClose={[Function]}
-            title="node1"
-          >
-            <div
-              className="page"
-            >
-              <MD2Tabs
-                onSwitch={[Function]}
-                selectedTab={4}
-                tabs={
-                  Array [
-                    "Artifacts",
-                    "Input/Output",
-                    "Volumes",
-                    "Manifest",
-                    "Logs",
-                  ]
-                }
-              />
-              <div
-                className="page"
-              >
-                <div
-                  className="page"
-                >
-                  <Banner
-                    additionalInfo=""
-                    message="Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption"
-                    mode="warning"
-                    refresh={[Function]}
-                  />
-                  <div
-                    className=""
-                  >
-                    Logs can still be viewed in either
-                     
-                    <a
-                      className="link unstyled"
-                      href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_id:\\"node1\\""
-                      rel="noopener noreferrer"
-                      target="_blank"
-                    >
-                      Legacy Stackdriver
-                    </a>
-                     
-                    or in
-                     
-                    <a
-                      className="link unstyled"
-                      href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"k8s_container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_name:\\"node1\\""
-                      rel="noopener noreferrer"
-                      target="_blank"
-                    >
-                      Stackdriver Kubernetes Monitoring
-                    </a>
                   </div>
                 </div>
               </div>
@@ -1275,6 +923,7 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
               />
               <div
                 className="page"
+                data-testid="run-details-node-details"
               >
                 <div
                   className="page"
@@ -1390,6 +1039,7 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
               />
               <div
                 className="page"
+                data-testid="run-details-node-details"
               >
                 <ArtifactsTabContent
                   generatedVisualizations={Array []}
@@ -1631,6 +1281,7 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
               />
               <div
                 className="page"
+                data-testid="run-details-node-details"
               >
                 <ArtifactsTabContent
                   generatedVisualizations={Array []}
@@ -2079,6 +1730,7 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
               />
               <div
                 className="page"
+                data-testid="run-details-node-details"
               >
                 <div
                   className=""
@@ -2219,6 +1871,7 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
               />
               <div
                 className="page"
+                data-testid="run-details-node-details"
               >
                 <div
                   className=""
@@ -2367,6 +2020,7 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
               />
               <div
                 className="page"
+                data-testid="run-details-node-details"
               >
                 <div
                   className=""
