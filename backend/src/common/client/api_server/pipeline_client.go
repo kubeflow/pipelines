@@ -202,3 +202,26 @@ func listAllForPipeline(client PipelineInterface, parameters *params.ListPipelin
 
 	return allResults, nil
 }
+
+func (c *PipelineClient) CreatePipelineVersion(parameters *params.CreatePipelineVersionParams) (*model.APIPipelineVersion,
+	error) {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	parameters.Context = ctx
+	response, err := c.apiClient.PipelineService.CreatePipelineVersion(parameters, PassThroughAuth)
+	if err != nil {
+		if defaultError, ok := err.(*params.CreatePipelineDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to create pipeline. Params: '%v'", parameters),
+			fmt.Sprintf("Failed to create pipeline from URL '%v'", parameters.Body.PackageURL.PipelineURL))
+	}
+
+	return response.Payload, nil
+}

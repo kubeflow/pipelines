@@ -2,12 +2,14 @@ package integration
 
 import (
 	"testing"
+	"time"
 
 	"github.com/kubeflow/pipelines/backend/test"
 
 	"github.com/golang/glog"
-	model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 
+	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/stretchr/testify/assert"
@@ -65,23 +67,43 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	assert.Nil(t, err)
 	assert.Equal(t, "test_pipeline", pipeline.Name)
 
+	/* ---------- Get pipeline id ---------- */
+	pipelines, totalSize, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(pipelines))
+	assert.Equal(t, 1, totalSize)
+	pipelineId := pipelines[0].ID
+
 	/* ---------- Upload a pipeline version YAML under test_pipeline ---------- */
-//	argumentYAMLPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineVersionParams())
-//	assert.Nil(t, err)
-//	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipelineVersion.Name)
+	// pipelineVersionParams := uploadParams.NewUploadPipelineVersionParams()
+	// pipelineVersionParams.SetPipelineid(&pipelineId)
+	// argumentYAMLPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", pipelineVersionParams)
+	// assert.Nil(t, err)
+	// assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipelineVersion.Name)
+	// fmt.Printf("JING version %+v\n", argumentYAMLPipelineVersion)
 
 	// /* ---------- Upload the same pipeline again. Should fail due to name uniqueness ---------- */
 	// _, err = s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
 	// assert.NotNil(t, err)
 	// assert.Contains(t, err.Error(), "Failed to upload pipeline.")
 
-	// /* ---------- Import pipeline YAML by URL ---------- */
-	// time.Sleep(1 * time.Second)
-	// sequentialPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
-	// 	Body: &pipeline_model.APIPipeline{Name: "sequential", URL: &pipeline_model.APIURL{
-	// 		PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
-	// assert.Nil(t, err)
-	// assert.Equal(t, "sequential", sequentialPipeline.Name)
+	/* ---------- Import pipeline YAML by URL ---------- */
+	time.Sleep(1 * time.Second)
+	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.CreatePipelineVersionParams{
+		Body: &pipeline_model.APIPipelineVersion{
+			Name: "sequential",
+			PackageURL: &pipeline_model.APIURL{
+				PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml",
+			},
+			ResourceReferences: []*pipeline_model.APIResourceReference{
+				{
+					Key:          &pipeline_model.APIResourceKey{Type: pipeline_model.APIResourceTypePIPELINE, ID: pipelineId},
+					Relationship: pipeline_model.APIRelationshipOWNER,
+				},
+			},
+		}})
+	assert.Nil(t, err)
+	assert.Equal(t, "sequential", sequentialPipelineVersion.Name)
 
 	// /* ---------- Upload pipelines zip ---------- */
 	// time.Sleep(1 * time.Second)
@@ -90,13 +112,22 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	// assert.Nil(t, err)
 	// assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
-	// /* ---------- Import pipeline tarball by URL ---------- */
-	// time.Sleep(1 * time.Second)
-	// argumentUrlPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
-	// 	Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
-	// 		PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip"}}})
-	// assert.Nil(t, err)
-	// assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
+	/* ---------- Import pipeline tarball by URL ---------- */
+	time.Sleep(1 * time.Second)
+	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.CreatePipelineVersionParams{
+		Body: &pipeline_model.APIPipelineVersion{
+			PackageURL: &pipeline_model.APIURL{
+				PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip",
+			},
+			ResourceReferences: []*pipeline_model.APIResourceReference{
+				{
+					Key:          &pipeline_model.APIResourceKey{Type: pipeline_model.APIResourceTypePIPELINE, ID: pipelineId},
+					Relationship: pipeline_model.APIRelationshipOWNER,
+				},
+			},
+		}})
+	assert.Nil(t, err)
+	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipelineVersion.Name)
 
 	// /* ---------- Verify list pipeline works ---------- */
 	// pipelines, totalSize, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
@@ -187,30 +218,30 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	// assert.Equal(t, expectedWorkflow, *template)
 }
 
-func verifyPipelineVersion(t *testing.T, pipeline *model.APIPipelineVersion) {
+func verifyPipelineVersion(t *testing.T, pipeline *pipeline_model.APIPipelineVersion) {
 	assert.NotNil(t, *pipeline)
 	assert.NotNil(t, pipeline.CreatedAt)
-	expected := model.APIPipeline{
+	expected := pipeline_model.APIPipeline{
 		ID:        pipeline.ID,
 		CreatedAt: pipeline.CreatedAt,
 		Name:      "arguments-parameters.yaml",
-		Parameters: []*model.APIParameter{
+		Parameters: []*pipeline_model.APIParameter{
 			{Name: "param1", Value: "hello"}, // Default value in the pipeline template
 			{Name: "param2"},                 // No default value in the pipeline
 		},
 		// TODO(jingzhang36): after version API launch, remove the following field.
 		// This is because after the version API launch, we won't have defautl
 		// version produced automatically when creating pipeline.
-		DefaultVersion: &model.APIPipelineVersion{
+		DefaultVersion: &pipeline_model.APIPipelineVersion{
 			CreatedAt: pipeline.CreatedAt,
 			ID:        pipeline.ID,
 			Name:      "arguments-parameters.yaml",
-			Parameters: []*model.APIParameter{
+			Parameters: []*pipeline_model.APIParameter{
 				{Name: "param1", Value: "hello"},
 				{Name: "param2"}},
-			ResourceReferences: []*model.APIResourceReference{{
-				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: model.APIResourceTypePIPELINE},
-				Relationship: model.APIRelationshipOWNER}}},
+			ResourceReferences: []*pipeline_model.APIResourceReference{{
+				Key:          &pipeline_model.APIResourceKey{ID: pipeline.ID, Type: pipeline_model.APIResourceTypePIPELINE},
+				Relationship: pipeline_model.APIRelationshipOWNER}}},
 	}
 	assert.Equal(t, expected, *pipeline)
 }
