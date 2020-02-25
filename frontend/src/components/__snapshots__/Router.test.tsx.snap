@@ -27,7 +27,7 @@ exports[`Router initial render 1`] = `
       render={[Function]}
     />
     <Route
-      exact={true}
+      exact={false}
       key="3"
       path="/artifact_types/:artifactType+/artifacts/:id"
       render={[Function]}
