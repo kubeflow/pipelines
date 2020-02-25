@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019-2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ import fetch from 'node-fetch';
 import { Client as MinioClient } from 'minio';
 import { Storage } from '@google-cloud/storage';
 
-import { getTarObjectAsString, getObjectStream, createMinioClient } from '../minio-helper';
+import { getObjectStream, createMinioClient } from '../minio-helper';
 import { HttpConfigs, AWSConfigs, MinioConfigs } from '../configs';
 
 /**
@@ -80,7 +80,7 @@ export function getArtifactsHandler(artifactsConfigs: {
         break;
 
       case 's3':
-        getS3ArtifactHandler(
+        getMinioArtifactHandler(
           {
             bucket,
             client: await createMinioClient(aws),
@@ -125,7 +125,7 @@ function getHttpArtifactsHandler(
     key: string;
     defaultValue: string;
   } = { key: '', defaultValue: '' },
-  peek: number = -1,
+  peek: number = 0,
 ) {
   return async (req: Request, res: Response) => {
     const headers = {};
@@ -142,51 +142,32 @@ function getHttpArtifactsHandler(
   };
 }
 
-function getS3ArtifactHandler(
+function getMinioArtifactHandler(
   options: { bucket: string; key: string; client: MinioClient },
-  peek: number = -1,
+  peek: number = 0,
 ) {
   return async (_: Request, res: Response) => {
     try {
       const stream = await getObjectStream(options);
-      stream.on('end', () => res.end());
       stream.on('error', err =>
         res
           .status(500)
           .send(`Failed to get object in bucket ${options.bucket} at path ${options.key}: ${err}`),
       );
-      if (peek > 0) {
-        let preview = '';
-        let sent = false;
-        stream.on('data', buffer => {
-          preview += buffer.toString();
-          if (preview.length >= peek) {
-            sent = true;
-            res.send(preview.slice(0, peek));
-          }
-        });
-        stream.on('end', () => {
-          if (!sent) {
-            res.send(preview);
-          }
-        });
-      } else {
-        stream.pipe(res);
-      }
-    } catch (err) {
-      res.send(`Failed to get object in bucket ${options.bucket} at path ${options.key}: ${err}`);
-    }
-  };
-}
 
-function getMinioArtifactHandler(
-  options: { bucket: string; key: string; client: MinioClient },
-  peek: number = -1,
-) {
-  return async (_: Request, res: Response) => {
-    try {
-      const content = await getTarObjectAsString(options);
-      res.send(peek > 0 ? content.slice(0, peek) : content);
+      if (peek) {
+        let content = '';
+        function onData(data: any) {
+          content += Buffer.isBuffer(data) ? data.toString() : data;
+          if (content.length >= peek) {
+            res.send(content.slice(0, peek));
+            stream.off('data', onData);
+          }
+        }
+        stream.on('data', onData);
+        return;
+      }
+      stream.pipe(res);
     } catch (err) {
       res
         .status(500)
@@ -195,7 +176,7 @@ function getMinioArtifactHandler(
   };
 }
 
-function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: number = -1) {
+function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: number = 0) {
   const { key, bucket } = options;
   return async (_: Request, res: Response) => {
     try {

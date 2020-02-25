@@ -4,7 +4,6 @@ import { S3Artifact } from '../../third_party/argo-ui/argo_template';
 import { generateArtifactUrl, isS3Endpoint } from '../lib/Utils';
 import { Apis } from '../lib/Apis';
 
-
 /**
  * Check if a javascript object is an argo S3Artifact object.
  * @param value Any javascript object.
@@ -16,7 +15,7 @@ export function isS3Artifact(value: any): value is S3Artifact {
 /**
  * A component that renders a preview to an artifact with a link to the full content.
  */
-const MinioArtifactPreview: React.FC<{artifact: S3Artifact}> = ({artifact = {}}) => {
+const MinioArtifactPreview: React.FC<{ artifact: S3Artifact }> = ({ artifact = {} }) => {
   const { key, bucket, endpoint } = artifact;
   if (!key || !bucket) {
     return null;
@@ -47,7 +46,9 @@ const MinioArtifactPreview: React.FC<{artifact: S3Artifact}> = ({artifact = {}})
         {linkText}
       </a>
       <div>
-        <small><pre>{content}</pre></small>
+        <small>
+          <pre>{content}</pre>
+        </small>
       </div>
     </div>
   );

@@ -132,8 +132,4 @@ exports[`MinioArtifactPreview handles s3 artifact 1`] = `
 </MinioArtifactPreview>
 `;
 
-exports[`MinioArtifactPreview handles undefined artifact 1`] = `
-<MinioArtifactPreview
-  artifact={undefined}
-/>
-`;
+exports[`MinioArtifactPreview handles undefined artifact 1`] = `<MinioArtifactPreview />`;

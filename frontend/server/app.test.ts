@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019-2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -176,10 +176,13 @@ describe('UIServer apis', () => {
     it('responds with a minio artifact if source=minio', done => {
       const artifactContent = 'hello world';
       const mockedMinioClient: jest.Mock = MinioClient as any;
-      const mockedGetTarObjectAsString: jest.Mock = minioHelper.getTarObjectAsString as any;
-      mockedGetTarObjectAsString.mockImplementationOnce(opt =>
+      const mockedGetObjectStream: jest.Mock = minioHelper.getObjectStream as any;
+      const objStream = new PassThrough();
+      objStream.end(artifactContent);
+
+      mockedGetObjectStream.mockImplementationOnce(opt =>
         opt.bucket === 'ml-pipeline' && opt.key === 'hello/world.txt'
-          ? Promise.resolve(artifactContent)
+          ? Promise.resolve(objStream)
           : Promise.reject('Unable to retrieve minio artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -413,7 +416,6 @@ describe('UIServer apis', () => {
         .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
         .expect(200, artifactContent.slice(0, 5), done);
     });
-
   });
 
   describe('/system', () => {
@@ -445,6 +447,7 @@ describe('UIServer apis', () => {
           .expect(500, 'GKE metadata endpoints are disabled.', done);
       });
     });
+
     describe('/project-id', () => {
       it('responds with project id data from gke metadata', done => {
         mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
@@ -473,6 +476,7 @@ describe('UIServer apis', () => {
           .expect(500, 'GKE metadata endpoints are disabled.', done);
       });
     });
+  });
 
   // TODO: refractor k8s helper module so that api that interact with k8s can be
   // mocked and tested. There is currently no way to mock k8s APIs as
