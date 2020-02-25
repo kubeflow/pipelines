@@ -38,7 +38,7 @@ import { Apis } from '../lib/Apis';
 import { NodePhase, hasFinished } from '../lib/StatusUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { KeyValue } from '../lib/StaticGraphParser';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
@@ -64,6 +64,7 @@ import VisualizationCreator, {
 } from '../components/viewers/VisualizationCreator';
 import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
 
 enum SidePaneTab {
   ARTIFACTS,
@@ -79,9 +80,13 @@ interface SelectedNodeDetails {
   phaseMessage?: string;
 }
 
-interface RunDetailsProps {
+// exported only for testing
+export interface RunDetailsInternalProps {
   runId?: string;
+  gkeMetadata: GkeMetadata;
 }
+
+export type RunDetailsProps = PageProps & Exclude<RunDetailsInternalProps, 'gkeMetadata'>;
 
 interface AnnotatedConfig {
   config: ViewerConfig;
@@ -99,7 +104,6 @@ interface RunDetailsState {
   experiment?: ApiExperiment;
   generatedVisualizations: GeneratedVisualization[];
   isGeneratingVisualization: boolean;
-  legacyStackdriverUrl: string;
   logsBannerAdditionalInfo: string;
   logsBannerMessage: string;
   logsBannerMode: Mode;
@@ -110,7 +114,6 @@ interface RunDetailsState {
   selectedNodeDetails: SelectedNodeDetails | null;
   sidepanelBusy: boolean;
   sidepanelSelectedTab: SidePaneTab;
-  stackdriverK8sLogsUrl: string;
   workflow?: Workflow;
 }
 
@@ -144,13 +147,12 @@ export const css = stylesheet({
   },
 });
 
-class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
+export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   public state: RunDetailsState = {
     allArtifactConfigs: [],
     allowCustomVisualizations: false,
     generatedVisualizations: [],
     isGeneratingVisualization: false,
-    legacyStackdriverUrl: '',
     logsBannerAdditionalInfo: '',
     logsBannerMessage: '',
     logsBannerMode: 'error',
@@ -159,7 +161,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     selectedTab: 0,
     sidepanelBusy: false,
     sidepanelSelectedTab: SidePaneTab.ARTIFACTS,
-    stackdriverK8sLogsUrl: '',
   };
 
   private readonly AUTO_REFRESH_INTERVAL = 5000;
@@ -212,16 +213,19 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       allowCustomVisualizations,
       graph,
       isGeneratingVisualization,
-      legacyStackdriverUrl,
       runFinished,
       runMetadata,
       selectedTab,
       selectedNodeDetails,
       sidepanelSelectedTab,
-      stackdriverK8sLogsUrl,
       workflow,
     } = this.state;
+    const { projectId, clusterName } = this.props.gkeMetadata;
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
+    let stackdriverK8sLogsUrl = '';
+    if (projectId && clusterName && selectedNodeDetails && selectedNodeDetails.id) {
+      stackdriverK8sLogsUrl = `https://console.cloud.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_name:"${selectedNodeDetails.id}"`;
+    }
 
     const workflowParameters = WorkflowParser.getParameters(workflow);
     const { inputParams, outputParams } = WorkflowParser.getNodeInputOutputParams(
@@ -284,7 +288,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                 onSwitch={this._loadSidePaneTab.bind(this)}
                               />
 
-                              <div className={commonCss.page}>
+                              <div
+                                data-testid='run-details-node-details'
+                                className={commonCss.page}
+                              >
                                 {sidepanelSelectedTab === SidePaneTab.ARTIFACTS &&
                                   this.state.selectedNodeDetails &&
                                   this.state.workflow && (
@@ -360,29 +367,21 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                           additionalInfo={this.state.logsBannerAdditionalInfo}
                                           refresh={this._loadSelectedNodeLogs.bind(this)}
                                         />
-                                        {legacyStackdriverUrl && stackdriverK8sLogsUrl && (
-                                          <div className={padding(20, 'blr')}>
-                                            Logs can still be viewed in either{' '}
-                                            <a
-                                              href={legacyStackdriverUrl}
-                                              target='_blank'
-                                              rel='noopener noreferrer'
-                                              className={classes(css.link, commonCss.unstyled)}
-                                            >
-                                              Legacy Stackdriver
-                                            </a>{' '}
-                                            or in{' '}
-                                            <a
-                                              href={stackdriverK8sLogsUrl}
-                                              target='_blank'
-                                              rel='noopener noreferrer'
-                                              className={classes(css.link, commonCss.unstyled)}
-                                            >
-                                              Stackdriver Kubernetes Monitoring
-                                            </a>
-                                          </div>
-                                        )}
                                       </React.Fragment>
+                                    )}
+                                    {stackdriverK8sLogsUrl && (
+                                      <div className={padding(12)}>
+                                        Logs can also be viewed in{' '}
+                                        <a
+                                          href={stackdriverK8sLogsUrl}
+                                          target='_blank'
+                                          rel='noopener noreferrer'
+                                          className={classes(css.link, commonCss.unstyled)}
+                                        >
+                                          Stackdriver Kubernetes Monitoring
+                                        </a>
+                                        .
+                                      </div>
                                     )}
                                     {!this.state.logsBannerMessage &&
                                       this.state.selectedNodeDetails && (
@@ -633,10 +632,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       this.setStateSafe({
         experiment,
         graph,
-        legacyStackdriverUrl: '', // Reset legacy Stackdriver logs URL
         runFinished,
         runMetadata,
-        stackdriverK8sLogsUrl: '', // Reset Kubernetes Stackdriver logs URL
         workflow,
       });
     } catch (err) {
@@ -767,29 +764,12 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         selectedNodeDetails,
       });
     } catch (err) {
-      try {
-        const [clusterName, projectId] = await Promise.all([
-          Apis.getClusterName(),
-          Apis.getProjectId(),
-        ]);
-        this.setStateSafe({
-          legacyStackdriverUrl: `https://console.cloud.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_id:"${selectedNodeDetails.id}"`,
-          logsBannerMessage:
-            'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
-          logsBannerMode: 'warning',
-          stackdriverK8sLogsUrl: `https://console.cloud.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_name:"${selectedNodeDetails.id}"`,
-        });
-      } catch (fetchSystemInfoErr) {
-        const errorMessage = await errorToMessage(err);
-        this.setStateSafe({
-          logsBannerAdditionalInfo: errorMessage,
-          logsBannerMessage:
-            'Error: failed to retrieve pod logs.' +
-            (errorMessage ? ' Click Details for more information.' : ''),
-          logsBannerMode: 'error',
-        });
-      }
-      logger.error('Error loading logs for node:', selectedNodeDetails.id);
+      this.setStateSafe({
+        logsBannerMessage:
+          'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
+        logsBannerAdditionalInfo: await errorToMessage(err),
+        logsBannerMode: 'warning',
+      });
     } finally {
       this.setStateSafe({ sidepanelBusy: false });
     }
@@ -1007,4 +987,9 @@ const ArtifactsTabContent: React.FC<{
   );
 };
 
-export default RunDetails;
+const EnhancedRunDetails: React.FC<RunDetailsProps> = props => {
+  const gkeMetadata = React.useContext(GkeMetadataContext);
+  return <RunDetails {...props} gkeMetadata={gkeMetadata} />;
+};
+
+export default EnhancedRunDetails;

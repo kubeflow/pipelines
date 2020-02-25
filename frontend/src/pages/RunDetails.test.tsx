@@ -14,31 +14,30 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import * as Utils from '../lib/Utils';
-import RunDetails from './RunDetails';
-import TestUtils from '../TestUtils';
-import WorkflowParser from '../lib/WorkflowParser';
-import { ApiRunDetail, ApiResourceType, RunStorageState, ApiRelationship } from '../apis/run';
-import { Apis } from '../lib/Apis';
-import { NodePhase } from '../lib/StatusUtils';
-import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
-import { PageProps } from './Page';
-import { PlotType } from '../components/viewers/Viewer';
-import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
-import { Workflow } from 'third_party/argo-ui/argo_template';
-import { shallow, ShallowWrapper, mount, ReactWrapper } from 'enzyme';
-import { ButtonKeys } from '../lib/Buttons';
 import { Api, GetArtifactTypesResponse } from '@kubeflow/frontend';
+import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
+import * as React from 'react';
+import { Workflow } from 'third_party/argo-ui/argo_template';
+import { ApiRelationship, ApiResourceType, ApiRunDetail, RunStorageState } from '../apis/run';
+import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
+import { PlotType } from '../components/viewers/Viewer';
+import { Apis } from '../lib/Apis';
+import { ButtonKeys } from '../lib/Buttons';
+import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
+import { NodePhase } from '../lib/StatusUtils';
+import * as Utils from '../lib/Utils';
+import WorkflowParser from '../lib/WorkflowParser';
+import TestUtils, { diff } from '../TestUtils';
+import { PageProps } from './Page';
+import { RunDetails, RunDetailsInternalProps } from './RunDetails';
 
+const NODE_DETAILS_SELECTOR = '[data-testid="run-details-node-details"]';
 describe('RunDetails', () => {
   const updateBannerSpy = jest.fn();
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
   const historyPushSpy = jest.fn();
-  const getProjectIdSpy = jest.spyOn(Apis, 'getProjectId');
-  const getClusterNameSpy = jest.spyOn(Apis, 'getClusterName');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
   const isCustomVisualizationsAllowedSpy = jest.spyOn(Apis, 'areCustomVisualizationsAllowed');
@@ -56,7 +55,7 @@ describe('RunDetails', () => {
   let testRun: ApiRunDetail = {};
   let tree: ShallowWrapper | ReactWrapper;
 
-  function generateProps(): PageProps {
+  function generateProps(): RunDetailsInternalProps & PageProps {
     const pageProps: PageProps = {
       history: { push: historyPushSpy } as any,
       location: '' as any,
@@ -69,6 +68,7 @@ describe('RunDetails', () => {
     };
     return Object.assign(pageProps, {
       toolbarProps: new RunDetails(pageProps).getInitialToolbarState(),
+      gkeMetadata: {},
     });
   }
 
@@ -94,8 +94,6 @@ describe('RunDetails', () => {
         status: 'Succeeded',
       },
     };
-    getProjectIdSpy.mockImplementation(() => Promise.resolve('some-project'));
-    getClusterNameSpy.mockImplementation(() => Promise.resolve('some-cluster'));
     getRunSpy.mockImplementation(() => Promise.resolve(testRun));
     getExperimentSpy.mockImplementation(() =>
       Promise.resolve({ id: 'some-experiment-id', name: 'some experiment' }),
@@ -946,6 +944,64 @@ describe('RunDetails', () => {
       expect(tree).toMatchSnapshot();
     });
 
+    it('shows stackdriver link next to logs in GKE', async () => {
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: { nodes: { node1: { id: 'node1' } } },
+      });
+      tree = shallow(
+        <RunDetails
+          {...generateProps()}
+          gkeMetadata={{ projectId: 'test-project-id', clusterName: 'test-cluster-name' }}
+        />,
+      );
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      clickGraphNode(tree, 'node1');
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', 4);
+      await getPodLogsSpy;
+      await TestUtils.flushPromises();
+      expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
+        <div
+          className="page"
+          data-testid="run-details-node-details"
+        >
+          <div
+            className="page"
+          >
+            <div
+              className=""
+            >
+              Logs can also be viewed in
+               
+              <a
+                className="link unstyled"
+                href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"k8s_container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_name:\\"node1\\""
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Stackdriver Kubernetes Monitoring
+              </a>
+              .
+            </div>
+            <div
+              className="pageOverflowHidden"
+            >
+              <LogViewer
+                logLines={
+                  Array [
+                    "test logs",
+                  ]
+                }
+              />
+            </div>
+          </div>
+        </div>
+      `);
+    });
+
     it("loads logs in run's namespace", async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
         status: { nodes: { node1: { id: 'node1' } } },
@@ -970,14 +1026,16 @@ describe('RunDetails', () => {
     });
 
     it('shows warning banner and link to Stackdriver in logs area if fetching logs failed and cluster is in GKE', async () => {
-      // mocking out getProjectId and getClusterName simulates a cluster running in GKE
-      getProjectIdSpy.mockImplementationOnce(() => Promise.resolve('test-project-id'));
-      getClusterNameSpy.mockImplementationOnce(() => Promise.resolve('test-cluster-name'));
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
         status: { nodes: { node1: { id: 'node1' } } },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
-      tree = shallow(<RunDetails {...generateProps()} />);
+      tree = shallow(
+        <RunDetails
+          {...generateProps()}
+          gkeMetadata={{ projectId: 'test-project-id', clusterName: 'test-cluster-name' }}
+        />,
+      );
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
@@ -987,22 +1045,46 @@ describe('RunDetails', () => {
         .simulate('switch', 4);
       await getPodLogsSpy;
       await TestUtils.flushPromises();
-      expect(tree.state()).toMatchObject({
-        logsBannerMessage:
-          'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
-        logsBannerMode: 'warning',
-      });
-      expect(tree).toMatchSnapshot();
+      expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
+        <div
+          className="page"
+          data-testid="run-details-node-details"
+        >
+          <div
+            className="page"
+          >
+            <Banner
+              additionalInfo="getting logs failed"
+              message="Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption"
+              mode="warning"
+              refresh={[Function]}
+            />
+            <div
+              className=""
+            >
+              Logs can also be viewed in
+               
+              <a
+                className="link unstyled"
+                href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"k8s_container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_name:\\"node1\\""
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Stackdriver Kubernetes Monitoring
+              </a>
+              .
+            </div>
+          </div>
+        </div>
+      `);
     });
 
-    it('shows error banner atop logs area if fetching logs failed and getProjectId fails', async () => {
-      // returning an error for getProjectId simulates a cluster running outside of GKE
-      TestUtils.makeErrorResponseOnce(getProjectIdSpy, 'getting project ID failed');
+    it('shows warning banner without stackdriver link in logs area if fetching logs failed and cluster is not in GKE', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
         status: { nodes: { node1: { id: 'node1' } } },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
-      tree = shallow(<RunDetails {...generateProps()} />);
+      tree = shallow(<RunDetails {...generateProps()} gkeMetadata={{}} />);
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
@@ -1012,39 +1094,23 @@ describe('RunDetails', () => {
         .simulate('switch', 4);
       await getPodLogsSpy;
       await TestUtils.flushPromises();
-      expect(tree.state()).toMatchObject({
-        logsBannerAdditionalInfo: 'getting logs failed',
-        logsBannerMessage:
-          'Error: failed to retrieve pod logs. Click Details for more information.',
-        logsBannerMode: 'error',
-      });
-      expect(tree).toMatchSnapshot();
-    });
-
-    it('shows error banner atop logs area if fetching logs failed and getClusterName fails', async () => {
-      // returning an error for getClusterName simulates a cluster running outside of GKE
-      TestUtils.makeErrorResponseOnce(getClusterNameSpy, 'getting cluster name failed');
-      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1' } } },
-      });
-      TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await getRunSpy;
-      await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', 4);
-      await getPodLogsSpy;
-      await TestUtils.flushPromises();
-      expect(tree.state()).toMatchObject({
-        logsBannerAdditionalInfo: 'getting logs failed',
-        logsBannerMessage:
-          'Error: failed to retrieve pod logs. Click Details for more information.',
-        logsBannerMode: 'error',
-      });
-      expect(tree).toMatchSnapshot();
+      expect(tree.find('[data-testid="run-details-node-details"]')).toMatchInlineSnapshot(`
+        <div
+          className="page"
+          data-testid="run-details-node-details"
+        >
+          <div
+            className="page"
+          >
+            <Banner
+              additionalInfo="getting logs failed"
+              message="Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption"
+              mode="warning"
+              refresh={[Function]}
+            />
+          </div>
+        </div>
+      `);
     });
 
     it('does not load logs if clicked node status is skipped', async () => {
@@ -1096,9 +1162,7 @@ describe('RunDetails', () => {
       expect(tree).toMatchSnapshot();
     });
 
-    it('dismisses log failure error banner when logs can be fetched after refresh', async () => {
-      // returning an error for getProjectId simulates a cluster running outside of GKE
-      TestUtils.makeErrorResponseOnce(getProjectIdSpy, 'getting project ID failed');
+    it('dismisses log failure warning banner when logs can be fetched after refresh', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
         status: { nodes: { node1: { id: 'node1' } } },
       });
@@ -1116,8 +1180,8 @@ describe('RunDetails', () => {
       expect(tree.state()).toMatchObject({
         logsBannerAdditionalInfo: 'getting logs failed',
         logsBannerMessage:
-          'Error: failed to retrieve pod logs. Click Details for more information.',
-        logsBannerMode: 'error',
+          'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
+        logsBannerMode: 'warning',
       });
 
       testRun.run!.status = 'Failed';
