@@ -21,7 +21,6 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import CompareTable from '../components/CompareTable';
 import CompareUtils from '../lib/CompareUtils';
 import DetailsTable from '../components/DetailsTable';
-import MinioArtifactPreview from '../components/MinioArtifactPreview';
 import Graph from '../components/Graph';
 import Hr from '../atoms/Hr';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
