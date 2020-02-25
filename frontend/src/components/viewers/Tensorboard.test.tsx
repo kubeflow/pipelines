@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import TensorboardViewer from './Tensorboard';
-import TestUtils, { diffShallow } from '../../TestUtils';
+import TestUtils, { diff } from '../../TestUtils';
 import { Apis } from '../../lib/Apis';
 import { PlotType } from './Viewer';
 import { ReactWrapper, ShallowWrapper, shallow, mount } from 'enzyme';
@@ -52,7 +52,7 @@ describe('Tensorboard', () => {
     const base = tree.debug();
 
     await TestUtils.flushPromises();
-    expect(diffShallow({ base, update: tree.debug() })).toMatchInlineSnapshot(`
+    expect(diff({ base, update: tree.debug() })).toMatchInlineSnapshot(`
       Snapshot Diff:
       - Expected
       + Received
@@ -79,7 +79,7 @@ describe('Tensorboard', () => {
     const base = tree.debug();
 
     await TestUtils.flushPromises();
-    expect(diffShallow({ base, update: tree.debug() })).toMatchInlineSnapshot(`
+    expect(diff({ base, update: tree.debug() })).toMatchInlineSnapshot(`
       Snapshot Diff:
       - Expected
       + Received
@@ -116,7 +116,7 @@ describe('Tensorboard', () => {
     const base = tree.debug();
 
     await TestUtils.flushPromises();
-    expect(diffShallow({ base, update: tree.debug() })).toMatchInlineSnapshot(`
+    expect(diff({ base, update: tree.debug() })).toMatchInlineSnapshot(`
       Snapshot Diff:
       - Expected
       + Received

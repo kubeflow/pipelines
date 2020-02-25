@@ -127,14 +127,15 @@ export function diffHTML({
   update: string;
   updateAnnotation?: string;
 }) {
-  return snapshotDiff(formatHTML(base), formatHTML(update), {
-    stablePatchmarks: true, // Avoid line numbers in diff, so that diffs are stable against irrelevant changes
-    aAnnotation: baseAnnotation,
-    bAnnotation: updateAnnotation,
+  return diff({
+    base: formatHTML(base),
+    update: formatHTML(update),
+    baseAnnotation,
+    updateAnnotation,
   });
 }
 
-export function diffShallow({
+export function diff({
   base,
   update,
   baseAnnotation,

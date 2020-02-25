@@ -17,7 +17,7 @@
 import * as React from 'react';
 
 import SideNav, { css } from './SideNav';
-import TestUtils, { diffShallow } from '../TestUtils';
+import TestUtils, { diff } from '../TestUtils';
 import { Apis } from '../lib/Apis';
 import { LocalStorage } from '../lib/LocalStorage';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
@@ -261,7 +261,7 @@ describe('SideNav', () => {
     const base = tree.debug();
     await TestUtils.flushPromises();
     tree.update();
-    expect(diffShallow({ base, update: tree.debug() })).toMatchInlineSnapshot(`
+    expect(diff({ base, update: tree.debug() })).toMatchInlineSnapshot(`
       Snapshot Diff:
       - Expected
       + Received
@@ -275,7 +275,7 @@ describe('SideNav', () => {
       +     <WithStyles(Tooltip) title="Cluster name: some-cluster-name, Project ID: some-project-id" enterDelay={300} placement="top-start">
       +       <div className="envMetadata">
       +         <span>
-      +           Cluster name: 
+      +           Cluster name:
       +         </span>
       +         <a href="https://console.cloud.google.com/kubernetes/list?project=some-project-id&filter=name:some-cluster-name" className="link unstyled" rel="noopener" target="_blank">
       +           some-cluster-name
