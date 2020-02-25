@@ -168,7 +168,10 @@ describe('OutputArtifactLoader', () => {
       const result = await OutputArtifactLoader.buildConfusionMatrixConfig(metadata as any);
       expect(result).toEqual({
         axes: ['field1', 'field2'],
-        data: [[0, 0], [0, 0]],
+        data: [
+          [0, 0],
+          [0, 0],
+        ],
         labels: ['field1', 'field2'],
         type: PlotType.CONFUSION_MATRIX,
       } as ConfusionMatrixConfig);
@@ -372,7 +375,11 @@ describe('OutputArtifactLoader', () => {
         6,7,8
       `;
       expect(await OutputArtifactLoader.buildRocCurveConfig(metadata as any)).toEqual({
-        data: [{ label: '2', x: 0, y: 1 }, { label: '5', x: 3, y: 4 }, { label: '8', x: 6, y: 7 }],
+        data: [
+          { label: '2', x: 0, y: 1 },
+          { label: '5', x: 3, y: 4 },
+          { label: '8', x: 6, y: 7 },
+        ],
         type: PlotType.ROC,
       } as ROCCurveConfig);
     });
@@ -388,7 +395,11 @@ describe('OutputArtifactLoader', () => {
         6,7,8
       `;
       expect(await OutputArtifactLoader.buildRocCurveConfig(metadata as any)).toEqual({
-        data: [{ label: '0', x: 2, y: 1 }, { label: '3', x: 5, y: 4 }, { label: '6', x: 8, y: 7 }],
+        data: [
+          { label: '0', x: 2, y: 1 },
+          { label: '3', x: 5, y: 4 },
+          { label: '6', x: 8, y: 7 },
+        ],
         type: PlotType.ROC,
       } as ROCCurveConfig);
     });
@@ -404,7 +415,11 @@ describe('OutputArtifactLoader', () => {
         6,7,8
       `;
       expect(await OutputArtifactLoader.buildRocCurveConfig(metadata as any)).toEqual({
-        data: [{ label: '2', x: 0, y: 1 }, { label: '5', x: 3, y: 4 }, { label: '8', x: 6, y: 7 }],
+        data: [
+          { label: '2', x: 0, y: 1 },
+          { label: '5', x: 3, y: 4 },
+          { label: '8', x: 6, y: 7 },
+        ],
         type: PlotType.ROC,
       } as ROCCurveConfig);
     });

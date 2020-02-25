@@ -593,13 +593,19 @@ describe('StaticGraphParser', () => {
         container: {},
         dag: [],
         inputs: {
-          parameters: [{ name: 'param1', value: 'val1' }, { name: 'param2', value: 'val2' }],
+          parameters: [
+            { name: 'param1', value: 'val1' },
+            { name: 'param2', value: 'val2' },
+          ],
         },
         name: 'template-1',
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('container');
-      expect(nodeInfo.inputs).toEqual([['param1', 'val1'], ['param2', 'val2']]);
+      expect(nodeInfo.inputs).toEqual([
+        ['param1', 'val1'],
+        ['param2', 'val2'],
+      ]);
     });
 
     it('returns nodeInfo of a container with empty strings for inputs with no specified value', () => {
@@ -613,7 +619,10 @@ describe('StaticGraphParser', () => {
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('container');
-      expect(nodeInfo.inputs).toEqual([['param1', ''], ['param2', '']]);
+      expect(nodeInfo.inputs).toEqual([
+        ['param1', ''],
+        ['param2', ''],
+      ]);
     });
 
     it('returns nodeInfo containing container outputs as list of name/value tuples, pulling from valueFrom if necessary', () => {
@@ -651,7 +660,10 @@ describe('StaticGraphParser', () => {
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('container');
-      expect(nodeInfo.outputs).toEqual([['param1', ''], ['param2', '']]);
+      expect(nodeInfo.outputs).toEqual([
+        ['param1', ''],
+        ['param2', ''],
+      ]);
     });
 
     it('returns nodeInfo of a resource with empty values if template does not have inputs and/or outputs', () => {
@@ -672,14 +684,20 @@ describe('StaticGraphParser', () => {
       const template = {
         dag: [],
         inputs: {
-          parameters: [{ name: 'param1', value: 'val1' }, { name: 'param2', value: 'val2' }],
+          parameters: [
+            { name: 'param1', value: 'val1' },
+            { name: 'param2', value: 'val2' },
+          ],
         },
         name: 'template-1',
         resource: {},
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('resource');
-      expect(nodeInfo.inputs).toEqual([['param1', 'val1'], ['param2', 'val2']]);
+      expect(nodeInfo.inputs).toEqual([
+        ['param1', 'val1'],
+        ['param2', 'val2'],
+      ]);
     });
 
     it('returns nodeInfo of a resource with empty strings for inputs with no specified value', () => {
@@ -693,7 +711,10 @@ describe('StaticGraphParser', () => {
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('resource');
-      expect(nodeInfo.inputs).toEqual([['param1', ''], ['param2', '']]);
+      expect(nodeInfo.inputs).toEqual([
+        ['param1', ''],
+        ['param2', ''],
+      ]);
     });
 
     it('returns nodeInfo containing resource outputs as list of name/value tuples, pulling from valueFrom if necessary', () => {
@@ -731,7 +752,10 @@ describe('StaticGraphParser', () => {
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('resource');
-      expect(nodeInfo.outputs).toEqual([['param1', ''], ['param2', '']]);
+      expect(nodeInfo.outputs).toEqual([
+        ['param1', ''],
+        ['param2', ''],
+      ]);
     });
   });
 });

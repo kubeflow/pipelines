@@ -482,13 +482,15 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           // TODO(jingzhang36): pagination not proper here. so if many versions,
           // the page size value should be?
           versions =
-            (await Apis.pipelineServiceApi.listPipelineVersions(
-              'PIPELINE',
-              pipelineId,
-              50,
-              undefined,
-              'created_at desc',
-            )).versions || [];
+            (
+              await Apis.pipelineServiceApi.listPipelineVersions(
+                'PIPELINE',
+                pipelineId,
+                50,
+                undefined,
+                'created_at desc',
+              )
+            ).versions || [];
         } catch (err) {
           await this.showPageError('Cannot retrieve pipeline versions.', err);
           logger.error('Cannot retrieve pipeline versions.', err);

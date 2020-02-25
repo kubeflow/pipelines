@@ -925,14 +925,16 @@ const ArtifactsTabContent: React.FC<{
       };
 
       // Load the viewer configurations from the output paths
-      const builtConfigs = (await Promise.all([
-        OutputArtifactLoader.buildTFXArtifactViewerConfig(nodeId, reportProgress).catch(
-          reportErrorAndReturnEmpty,
-        ),
-        ...outputPaths.map(path =>
-          OutputArtifactLoader.load(path).catch(reportErrorAndReturnEmpty),
-        ),
-      ])).flatMap(configs => configs);
+      const builtConfigs = (
+        await Promise.all([
+          OutputArtifactLoader.buildTFXArtifactViewerConfig(nodeId, reportProgress).catch(
+            reportErrorAndReturnEmpty,
+          ),
+          ...outputPaths.map(path =>
+            OutputArtifactLoader.load(path).catch(reportErrorAndReturnEmpty),
+          ),
+        ])
+      ).flatMap(configs => configs);
       if (aborted) {
         return;
       }

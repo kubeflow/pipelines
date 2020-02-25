@@ -30,7 +30,10 @@ describe('PagedTable', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  const data = [['col1', 'col2', 'col3'], ['col4', 'col5', 'col6']];
+  const data = [
+    ['col1', 'col2', 'col3'],
+    ['col4', 'col5', 'col6'],
+  ];
   const labels = ['field1', 'field2', 'field3'];
 
   it('renders simple data', () => {
