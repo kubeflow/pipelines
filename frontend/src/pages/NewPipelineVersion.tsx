@@ -532,17 +532,21 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
         // (3) new pipeline version (under an existing pipeline) from url
         const response =
           this.state.newPipeline && this.state.importMethod === ImportMethod.LOCAL
-            ? (await Apis.uploadPipeline(
-                this.state.pipelineName!,
-                this.state.pipelineDescription,
-                this.state.file!,
-              )).default_version!
+            ? (
+                await Apis.uploadPipeline(
+                  this.state.pipelineName!,
+                  this.state.pipelineDescription,
+                  this.state.file!,
+                )
+              ).default_version!
             : this.state.newPipeline && this.state.importMethod === ImportMethod.URL
-            ? (await Apis.pipelineServiceApi.createPipeline({
-                description: this.state.pipelineDescription,
-                name: this.state.pipelineName!,
-                url: { pipeline_url: this.state.packageUrl },
-              })).default_version!
+            ? (
+                await Apis.pipelineServiceApi.createPipeline({
+                  description: this.state.pipelineDescription,
+                  name: this.state.pipelineName!,
+                  url: { pipeline_url: this.state.packageUrl },
+                })
+              ).default_version!
             : await this._createPipelineVersion();
 
         // If success, go to pipeline details page of the new version

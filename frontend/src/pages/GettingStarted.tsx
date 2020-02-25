@@ -129,14 +129,11 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
           .listPipelines(undefined, 10, undefined, createAndEncodeFilter(name))
           .then(pipelineList => {
             const pipelines = pipelineList.pipelines;
-            if (!pipelines || pipelines.length !== 1) {
+            if (pipelines?.length !== 1) {
+              // This should be accurate, do not accept ambiguous results.
               return '';
             }
-            const pipeline = pipelines[0];
-            if (!pipeline.id) {
-              return '';
-            }
-            return pipeline.id;
+            return pipelines[0].id || '';
           })
           .catch(() => ''),
       ),

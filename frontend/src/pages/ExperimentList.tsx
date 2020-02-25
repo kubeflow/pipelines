@@ -72,7 +72,11 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         .newExperiment()
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)
-        .archive(() => this.state.selectedIds, false, ids => this._selectionChanged(ids))
+        .archive(
+          () => this.state.selectedIds,
+          false,
+          ids => this._selectionChanged(ids),
+        )
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
