@@ -26,6 +26,7 @@ import { match } from 'react-router';
 import { mount, ReactWrapper } from 'enzyme';
 import { object } from 'prop-types';
 import { format } from 'prettier';
+import snapshotDiff from 'snapshot-diff';
 
 export default class TestUtils {
   /**
@@ -109,4 +110,45 @@ export default class TestUtils {
 
 export function formatHTML(html: string): string {
   return format(html, { parser: 'html' });
+}
+
+/**
+ * Generate diff text for two HTML strings.
+ * Recommend providing base and update annotations to clarify context in the diff directly.
+ */
+export function diffHTML({
+  base,
+  update,
+  baseAnnotation,
+  updateAnnotation,
+}: {
+  base: string;
+  baseAnnotation?: string;
+  update: string;
+  updateAnnotation?: string;
+}) {
+  return diff({
+    base: formatHTML(base),
+    update: formatHTML(update),
+    baseAnnotation,
+    updateAnnotation,
+  });
+}
+
+export function diff({
+  base,
+  update,
+  baseAnnotation,
+  updateAnnotation,
+}: {
+  base: string;
+  baseAnnotation?: string;
+  update: string;
+  updateAnnotation?: string;
+}) {
+  return snapshotDiff(base, update, {
+    stablePatchmarks: true, // Avoid line numbers in diff, so that diffs are stable against irrelevant changes
+    aAnnotation: baseAnnotation,
+    bAnnotation: updateAnnotation,
+  });
 }

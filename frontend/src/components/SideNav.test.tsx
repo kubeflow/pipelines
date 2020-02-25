@@ -17,13 +17,12 @@
 import * as React from 'react';
 
 import SideNav, { css } from './SideNav';
-import TestUtils from '../TestUtils';
+import TestUtils, { diff } from '../TestUtils';
 import { Apis } from '../lib/Apis';
 import { LocalStorage } from '../lib/LocalStorage';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { RoutePage } from './Router';
 import { RouterProps } from 'react-router';
-import snapshotDiff from 'snapshot-diff';
 
 const wideWidth = 1000;
 const narrowWidth = 200;
@@ -259,10 +258,36 @@ describe('SideNav', () => {
     buildInfoSpy.mockImplementationOnce(() => Promise.reject('Error when fetching build info'));
 
     tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
-    const baseTree = tree.debug();
+    const base = tree.debug();
     await TestUtils.flushPromises();
     tree.update();
-    expect(snapshotDiff(baseTree, tree.debug())).toMatchSnapshot();
+    expect(diff({ base, update: tree.debug() })).toMatchInlineSnapshot(`
+      Snapshot Diff:
+      - Expected
+      + Received
+
+      @@ --- --- @@
+            <WithStyles(IconButton) className="chevron" onClick={[Function: bound _toggleNavClicked]}>
+              <pure(ChevronLeftIcon) />
+            </WithStyles(IconButton)>
+          </div>
+          <div className="infoVisible">
+      +     <WithStyles(Tooltip) title="Cluster name: some-cluster-name, Project ID: some-project-id" enterDelay={300} placement="top-start">
+      +       <div className="envMetadata">
+      +         <span>
+      +           Cluster name: 
+      +         </span>
+      +         <a href="https://console.cloud.google.com/kubernetes/list?project=some-project-id&filter=name:some-cluster-name" className="link unstyled" rel="noopener" target="_blank">
+      +           some-cluster-name
+      +         </a>
+      +       </div>
+      +     </WithStyles(Tooltip)>
+            <WithStyles(Tooltip) title="Report an Issue" enterDelay={300} placement="top-start">
+              <div className="envMetadata">
+                <a href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md" className="link unstyled" rel="noopener" target="_blank">
+                  Report an Issue
+                </a>
+    `);
   });
 
   it('displays the frontend commit hash if the api server hash is not returned', async () => {

@@ -111,42 +111,6 @@ exports[`Tensorboard base component snapshot 1`] = `
 </div>
 `;
 
-exports[`Tensorboard does not break on empty data 1`] = `
-"Snapshot Diff:
-- First value
-+ Second value
-
-@@ -53,9 +53,9 @@
-            </WithStyles(MenuItem)>
-          </WithStyles(WithFormControlContext(Select))>
-        </WithStyles(FormControl)>
-      </div>
-      <div>
--       <BusyButton className=\\"buttonAction\\" disabled={false} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
-+       <BusyButton className=\\"buttonAction\\" disabled={false} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
-      </div>
-    </div>
-  </div>"
-`;
-
-exports[`Tensorboard does not break on no config 1`] = `
-"Snapshot Diff:
-- First value
-+ Second value
-
-@@ -53,9 +53,9 @@
-            </WithStyles(MenuItem)>
-          </WithStyles(WithFormControlContext(Select))>
-        </WithStyles(FormControl)>
-      </div>
-      <div>
--       <BusyButton className=\\"buttonAction\\" disabled={false} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
-+       <BusyButton className=\\"buttonAction\\" disabled={false} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
-      </div>
-    </div>
-  </div>"
-`;
-
 exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
 <div>
   <div>
@@ -217,22 +181,4 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
     </div>
   </div>
 </div>
-`;
-
-exports[`Tensorboard shows start button if no instance exists 1`] = `
-"Snapshot Diff:
-- First value
-+ Second value
-
-@@ -53,9 +53,9 @@
-            </WithStyles(MenuItem)>
-          </WithStyles(WithFormControlContext(Select))>
-        </WithStyles(FormControl)>
-      </div>
-      <div>
--       <BusyButton className=\\"buttonAction\\" disabled={false} onClick={[Function]} busy={false} title=\\"Start Tensorboard\\" />
-+       <BusyButton className=\\"buttonAction\\" disabled={false} onClick={[Function]} busy={true} title=\\"Start Tensorboard\\" />
-      </div>
-    </div>
-  </div>"
 `;
