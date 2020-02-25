@@ -100,13 +100,16 @@ To understand more what prettier is: [What is Prettier](https://prettier.io/docs
   this project's config automatically.
   Recommend setting the following in [settings.json](https://code.visualstudio.com/docs/getstarted/settings#_settings-file-locations) for vscode to autoformat on save.
   ```
-  "[typescript]": {
-      "editor.formatOnSave": true,
+    "[typescript]": {
+    "editor.formatOnSave": true,
+    "files.trimTrailingWhitespace": false,
   },
   "[typescriptreact]": {
-      "editor.formatOnSave": true,
+    "editor.formatOnSave": true,
+    "files.trimTrailingWhitespace": false,
   },
   ```
+  Also, vscode builtin trailing whitespace [conflicts with jest inline snapshot](https://github.com/Microsoft/vscode/issues/52711), so recommend disabling it.
 - For others, refer to https://prettier.io/docs/en/editors.html
 
 ### Format Code Manually
