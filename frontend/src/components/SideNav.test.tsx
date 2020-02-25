@@ -14,21 +14,22 @@
  * limitations under the License.
  */
 
+import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
-
-import SideNav, { css } from './SideNav';
-import TestUtils, { diff } from '../TestUtils';
+import { MemoryRouter, RouterProps } from 'react-router';
+import { GkeMetadataProvider } from 'src/lib/GkeMetadata';
 import { Apis } from '../lib/Apis';
 import { LocalStorage } from '../lib/LocalStorage';
-import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
+import TestUtils, { diffHTML } from '../TestUtils';
 import { RoutePage } from './Router';
-import { RouterProps } from 'react-router';
+import EnhancedSideNav, { css, SideNav } from './SideNav';
 
 const wideWidth = 1000;
 const narrowWidth = 200;
 const isCollapsed = (tree: ShallowWrapper<any>) =>
   tree.find('WithStyles(IconButton)').hasClass(css.collapsedChevron);
 const routerProps: RouterProps = { history: {} as any };
+const defaultProps = { ...routerProps, gkeMetadata: {} };
 
 describe('SideNav', () => {
   let tree: ReactWrapper | ShallowWrapper;
@@ -71,69 +72,69 @@ describe('SideNav', () => {
   it('renders expanded state', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders collapsed state', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
     (window as any).innerWidth = narrowWidth;
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders Pipelines as active page', () => {
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders Pipelines as active when on PipelineDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.PIPELINE_DETAILS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINE_DETAILS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page', () => {
-    tree = shallow(<SideNav page={RoutePage.EXPERIMENTS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.EXPERIMENTS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active when on ExperimentDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.EXPERIMENT_DETAILS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.EXPERIMENT_DETAILS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on NewExperiment page', () => {
-    tree = shallow(<SideNav page={RoutePage.NEW_EXPERIMENT} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.NEW_EXPERIMENT} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on Compare page', () => {
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on AllRuns page', () => {
-    tree = shallow(<SideNav page={RoutePage.RUNS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.RUNS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on RunDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.RUN_DETAILS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.RUN_DETAILS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on RecurringRunDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on NewRun page', () => {
-    tree = shallow(<SideNav page={RoutePage.NEW_RUN} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.NEW_RUN} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('show jupyterhub link if accessible', () => {
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     tree.setState({ jupyterHubAvailable: true });
     expect(tree).toMatchSnapshot();
   });
@@ -143,7 +144,7 @@ describe('SideNav', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => true);
 
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(true);
   });
 
@@ -151,7 +152,7 @@ describe('SideNav', () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
     localStorageHasKeySpy.mockImplementationOnce(() => true);
 
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(false);
   });
 
@@ -160,7 +161,7 @@ describe('SideNav', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = narrowWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(true);
   });
 
@@ -169,7 +170,7 @@ describe('SideNav', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(false);
   });
 
@@ -178,7 +179,7 @@ describe('SideNav', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(false);
 
     (window as any).innerWidth = narrowWidth;
@@ -192,7 +193,7 @@ describe('SideNav', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = narrowWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(true);
 
     (window as any).innerWidth = wideWidth;
@@ -207,7 +208,7 @@ describe('SideNav', () => {
     const spy = jest.spyOn(LocalStorage, 'saveNavbarCollapsed');
 
     (window as any).innerWidth = narrowWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(true);
 
     tree.find('WithStyles(IconButton)').simulate('click');
@@ -219,7 +220,7 @@ describe('SideNav', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => true);
 
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(false);
 
     (window as any).innerWidth = narrowWidth;
@@ -237,7 +238,7 @@ describe('SideNav', () => {
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
 
@@ -249,7 +250,7 @@ describe('SideNav', () => {
     });
   });
 
-  it('populates the cluster information using the response from the system endpoints', async () => {
+  it('populates the cluster information from context', async () => {
     const clusterName = 'some-cluster-name';
     const projectId = 'some-project-id';
 
@@ -257,36 +258,51 @@ describe('SideNav', () => {
     projectIdSpy.mockImplementationOnce(() => Promise.resolve(projectId));
     buildInfoSpy.mockImplementationOnce(() => Promise.reject('Error when fetching build info'));
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
-    const base = tree.debug();
+    tree = mount(
+      <GkeMetadataProvider>
+        <MemoryRouter>
+          <EnhancedSideNav page={RoutePage.PIPELINES} {...routerProps} />
+        </MemoryRouter>
+      </GkeMetadataProvider>,
+    );
+    const base = tree.html();
     await TestUtils.flushPromises();
-    tree.update();
-    expect(diff({ base, update: tree.debug() })).toMatchInlineSnapshot(`
+    expect(
+      diffHTML({
+        base,
+        baseAnnotation: 'base',
+        update: tree.html(),
+        updateAnnotation: 'after GKE metadata loaded',
+      }),
+    ).toMatchInlineSnapshot(`
       Snapshot Diff:
-      - Expected
-      + Received
+      - base
+      + after GKE metadata loaded
 
       @@ --- --- @@
-            <WithStyles(IconButton) className="chevron" onClick={[Function: bound _toggleNavClicked]}>
-              <pure(ChevronLeftIcon) />
-            </WithStyles(IconButton)>
+                  <path fill="none" d="M0 0h24v24H0z"></path></svg></span
+              ><span class="MuiTouchRipple-root-53"></span>
+            </button>
           </div>
-          <div className="infoVisible">
-      +     <WithStyles(Tooltip) title="Cluster name: some-cluster-name, Project ID: some-project-id" enterDelay={300} placement="top-start">
-      +       <div className="envMetadata">
-      +         <span>
-      +           Cluster name: 
-      +         </span>
-      +         <a href="https://console.cloud.google.com/kubernetes/list?project=some-project-id&filter=name:some-cluster-name" className="link unstyled" rel="noopener" target="_blank">
-      +           some-cluster-name
-      +         </a>
-      +       </div>
-      +     </WithStyles(Tooltip)>
-            <WithStyles(Tooltip) title="Report an Issue" enterDelay={300} placement="top-start">
-              <div className="envMetadata">
-                <a href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md" className="link unstyled" rel="noopener" target="_blank">
-                  Report an Issue
-                </a>
+          <div class="infoVisible">
+      +     <div
+      +       class="envMetadata"
+      +       title="Cluster name: some-cluster-name, Project ID: some-project-id"
+      +     >
+      +       <span>Cluster name: </span
+      +       ><a
+      +         href="https://console.cloud.google.com/kubernetes/list?project=some-project-id&amp;filter=name:some-cluster-name"
+      +         class="link unstyled"
+      +         rel="noopener"
+      +         target="_blank"
+      +         >some-cluster-name</a
+      +       >
+      +     </div>
+            <div class="envMetadata" title="Report an Issue">
+              <a
+                href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+                class="link unstyled"
+                rel="noopener"
     `);
   });
 
@@ -299,7 +315,7 @@ describe('SideNav', () => {
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('displayBuildInfo')).toEqual(
@@ -318,7 +334,7 @@ describe('SideNav', () => {
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('displayBuildInfo')).toEqual(
@@ -338,7 +354,7 @@ describe('SideNav', () => {
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('displayBuildInfo')).toEqual(
@@ -357,7 +373,7 @@ describe('SideNav', () => {
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('displayBuildInfo')).toEqual(
@@ -376,7 +392,7 @@ describe('SideNav', () => {
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('displayBuildInfo')).toEqual(
@@ -389,7 +405,7 @@ describe('SideNav', () => {
   it('logs an error if the call getBuildInfo fails', async () => {
     TestUtils.makeErrorResponseOnce(buildInfoSpy, 'Uh oh!');
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('displayBuildInfo')).toBeUndefined();

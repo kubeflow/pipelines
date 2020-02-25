@@ -108,10 +108,6 @@ export default class TestUtils {
   }
 }
 
-export function formatHTML(html: string): string {
-  return format(html, { parser: 'html' });
-}
-
 /**
  * Generate diff text for two HTML strings.
  * Recommend providing base and update annotations to clarify context in the diff directly.
@@ -151,4 +147,8 @@ export function diff({
     aAnnotation: baseAnnotation,
     bAnnotation: updateAnnotation,
   });
+}
+
+function formatHTML(html: string): string {
+  return format(html, { parser: 'html' });
 }
