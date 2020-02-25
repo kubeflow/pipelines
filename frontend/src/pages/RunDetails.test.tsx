@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import * as Utils from '../lib/Utils';
-import RunDetails from './RunDetails';
-import TestUtils from '../TestUtils';
-import WorkflowParser from '../lib/WorkflowParser';
-import { ApiRunDetail, ApiResourceType, RunStorageState, ApiRelationship } from '../apis/run';
-import { Apis } from '../lib/Apis';
-import { NodePhase } from '../lib/StatusUtils';
-import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
-import { PageProps } from './Page';
-import { PlotType } from '../components/viewers/Viewer';
-import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
-import { Workflow } from 'third_party/argo-ui/argo_template';
-import { shallow, ShallowWrapper, mount, ReactWrapper } from 'enzyme';
-import { ButtonKeys } from '../lib/Buttons';
 import { Api, GetArtifactTypesResponse } from '@kubeflow/frontend';
+import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
+import * as React from 'react';
+import { Workflow } from 'third_party/argo-ui/argo_template';
+import { ApiRelationship, ApiResourceType, ApiRunDetail, RunStorageState } from '../apis/run';
+import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
+import { PlotType } from '../components/viewers/Viewer';
+import { Apis } from '../lib/Apis';
+import { ButtonKeys } from '../lib/Buttons';
+import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
+import { NodePhase } from '../lib/StatusUtils';
+import * as Utils from '../lib/Utils';
+import WorkflowParser from '../lib/WorkflowParser';
+import TestUtils from '../TestUtils';
+import { PageProps } from './Page';
+import { RunDetails, RunDetailsInternalProps } from './RunDetails';
 
 describe('RunDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -56,7 +56,7 @@ describe('RunDetails', () => {
   let testRun: ApiRunDetail = {};
   let tree: ShallowWrapper | ReactWrapper;
 
-  function generateProps(): PageProps {
+  function generateProps(): RunDetailsInternalProps {
     const pageProps: PageProps = {
       history: { push: historyPushSpy } as any,
       location: '' as any,
@@ -69,6 +69,7 @@ describe('RunDetails', () => {
     };
     return Object.assign(pageProps, {
       toolbarProps: new RunDetails(pageProps).getInitialToolbarState(),
+      gkeMetadata: {},
     });
   }
 
