@@ -249,6 +249,9 @@ def _op_to_template(op: BaseOp):
         param_outputs = processed_op.file_outputs
     elif isinstance(op, dsl.ResourceOp):
         param_outputs = processed_op.attribute_outputs
+    elif isinstance(op, dsl.SuspendOp):
+        param_outputs = processed_op.outputs
+
     outputs_dict = _outputs_to_json(op, processed_op.outputs, param_outputs, output_artifacts)
     if outputs_dict:
         template['outputs'] = outputs_dict

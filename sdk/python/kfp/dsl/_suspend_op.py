@@ -74,10 +74,14 @@ class SuspendOp(BaseOp):
             raise ValueError("Duration must be an integer or None.")
 
         init_suspend = {
-            "duration": str(duration)
+            "duration": str(duration) if duration else ''
         }
         # `suspend` prop in `io.argoproj.workflow.v1alpha1.Template`
         self._suspend = Suspend(**init_suspend)
+
+        self.attribute_outputs = {}
+        self.outputs = {}
+        self.output = None
 
     @property
     def suspend(self):

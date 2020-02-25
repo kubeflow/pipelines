@@ -28,7 +28,7 @@ class TestSuspendOp(unittest.TestCase):
             self.assertEqual(res.name, "suspend")
             self.assertEqual(
                 res.suspend.duration,
-                None
+                ''
             )
             self.assertEqual(res.dependent_names, [])
 
