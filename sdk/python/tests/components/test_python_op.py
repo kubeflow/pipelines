@@ -711,6 +711,26 @@ class PythonOpTestCase(unittest.TestCase):
             },
         )
 
+    def test_annotations_stripping(self):
+        import typing
+        import collections
+
+        MyFuncOutputs = typing.NamedTuple('Outputs', [('sum', int), ('product', int)])
+
+        class CustomType1:
+            pass
+
+        def my_func(
+            param1: CustomType1 = None,  # This caused failure previously
+            param2: collections.OrderedDict = None,  # This caused failure previously
+        ) -> MyFuncOutputs: # This caused failure previously
+            assert param1 == None
+            assert param2 == None
+            return (8, 15)
+
+        task_factory = comp.create_component_from_func(my_func)
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'sum': '8', 'product': '15'})
 
     def test_file_input_name_conversion(self):
         # Checking the input name conversion rules for file inputs:
