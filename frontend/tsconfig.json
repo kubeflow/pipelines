@@ -11,14 +11,19 @@
     "resolveJsonModule": true,
     "jsx": "react",
     "moduleResolution": "node",
-    "rootDir": "src",
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noImplicitAny": true,
     "strictBindCallApply": true,
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "strictPropertyInitialization": false, // temporary workaround blocked by @kubeflow/frontend
+    "strict": true
   },
   "exclude": [
     "__mocks__",
@@ -35,7 +40,7 @@
     "src/apis",
     "src/generated",
     "src/setupTests.ts",
-    "third_party",
     "webpack"
-  ]
+  ],
+  "include": ["src"]
 }

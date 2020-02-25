@@ -292,6 +292,7 @@ export function generateMinioArtifactUrl(minioUri: string): string | undefined {
     return undefined;
   }
 
+  // eslint-disable-next-line no-useless-escape
   const matches = minioUri.match(/^minio:\/\/([^\/]+)\/(.+)$/);
   if (matches == null) {
     return undefined;

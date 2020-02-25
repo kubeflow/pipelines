@@ -194,7 +194,7 @@ describe('RecurringRunDetails', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops!',
-        message: `Error: failed to retrieve this recurring run\'s experiment. Click Details for more information.`,
+        message: `Error: failed to retrieve this recurring run's experiment. Click Details for more information.`,
         mode: 'warning',
       }),
     );
