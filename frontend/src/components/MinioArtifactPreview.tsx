@@ -9,7 +9,7 @@ import { Apis } from '../lib/Apis';
  * @param value Any javascript object.
  */
 export function isS3Artifact(value: any): value is S3Artifact {
-  return value && value.key && value.bucket && value.endpoint;
+  return value && value.key && value.bucket;
 }
 
 /**
