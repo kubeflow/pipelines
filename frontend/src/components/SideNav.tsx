@@ -37,6 +37,7 @@ import { Apis } from '../lib/Apis';
 import { Deployments, KFP_FLAGS } from '../lib/Flags';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { logger } from '../lib/Utils';
+import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
 
 export const sideNavColors = {
   bg: '#f8fafb',
@@ -181,20 +182,18 @@ interface SideNavProps extends RouterProps {
   page: string;
 }
 
-interface GkeMetadata {
-  clusterName: string;
-  projectId: string;
+interface SideNavInternalProps extends SideNavProps {
+  gkeMetadata: GkeMetadata;
 }
 
 interface SideNavState {
   displayBuildInfo?: DisplayBuildInfo;
-  gkeMetadata?: GkeMetadata;
   collapsed: boolean;
   jupyterHubAvailable: boolean;
   manualCollapseState: boolean;
 }
 
-export default class SideNav extends React.Component<SideNavProps, SideNavState> {
+export class SideNav extends React.Component<SideNavInternalProps, SideNavState> {
   private _isMounted = true;
   private readonly _AUTO_COLLAPSE_WIDTH = 800;
   private readonly _HUB_ADDRESS = '/hub/';
@@ -228,25 +227,12 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
           : 'unknown',
       };
     }
-    async function fetchGkeMetadata() {
-      const [clusterName, projectId] = await Promise.all([
-        Apis.getClusterName(),
-        Apis.getProjectId(),
-      ]);
-      return { clusterName, projectId };
-    }
-    const [displayBuildInfo, gkeMetadata] = await Promise.all([
-      fetchBuildInfo().catch(err => {
-        logger.error('Failed to retrieve build info', err);
-        return undefined;
-      }),
-      fetchGkeMetadata().catch(err => {
-        logger.error('Failed to retrieve GKE metadata', err);
-        return undefined;
-      }),
-    ]);
+    const displayBuildInfo = await fetchBuildInfo().catch(err => {
+      logger.error('Failed to retrieve build info', err);
+      return undefined;
+    });
 
-    this.setStateSafe({ displayBuildInfo, gkeMetadata });
+    this.setStateSafe({ displayBuildInfo });
   }
 
   public componentWillUnmount(): void {
@@ -255,7 +241,8 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
 
   public render(): JSX.Element {
     const page = this.props.page;
-    const { collapsed, displayBuildInfo, gkeMetadata } = this.state;
+    const { collapsed, displayBuildInfo } = this.state;
+    const { gkeMetadata } = this.props;
     const iconColor = {
       active: sideNavColors.fgActive,
       inactive: sideNavColors.fgDefault,
@@ -516,7 +503,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
           </IconButton>
         </div>
         <div className={collapsed ? css.infoHidden : css.infoVisible}>
-          {gkeMetadata && (
+          {gkeMetadata.clusterName && gkeMetadata.projectId && (
             <Tooltip
               title={`Cluster name: ${gkeMetadata.clusterName}, Project ID: ${gkeMetadata.projectId}`}
               enterDelay={300}
@@ -644,3 +631,9 @@ const ExternalUri: React.FC<ExternalUriProps> = ({ title, to, collapsed, icon })
     </a>
   </Tooltip>
 );
+
+const EnhancedSideNav: React.FC<SideNavProps> = props => {
+  const gkeMetadata = React.useContext(GkeMetadataContext);
+  return <SideNav {...props} gkeMetadata={gkeMetadata} />;
+};
+export default EnhancedSideNav;

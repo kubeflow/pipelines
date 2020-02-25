@@ -31,11 +31,26 @@ export const logger = {
     // tslint:disable-next-line:no-console
     console.error(...args);
   },
+  warn: (...args: any[]) => {
+    // tslint:disable-next-line:no-console
+    console.warn(...args);
+  },
   verbose: (...args: any[]) => {
     // tslint:disable-next-line:no-console
     console.log(...args);
   },
 };
+
+export function extendError(err: any, extraMessage?: string): any {
+  if (err.message && typeof err.message === 'string') {
+    err.message = extraMessage + ': ' + err.message;
+  }
+  return err;
+}
+
+export function rethrow(err: any, extraMessage?: string): never {
+  throw extendError(err, extraMessage);
+}
 
 export function formatDateString(date: Date | string | undefined): string {
   if (typeof date === 'string') {
