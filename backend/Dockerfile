@@ -26,8 +26,8 @@ RUN if [ "$use_remote_build" = "true" ]; then \
 # Compile
 FROM python:3.5 as compiler
 RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev
-RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+    apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev && \
+    pip install pip-tools==4.5.0
 COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt
 
