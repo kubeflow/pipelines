@@ -317,10 +317,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   <div className={padding(20)}>
                                     <DetailsTable title='Input parameters' fields={inputParams} />
 
-                                    <DetailsTable
-                                      title='Input artifacts'
-                                      fields={inputArtifacts}
-                                    />
+                                    <DetailsTable title='Input artifacts' fields={inputArtifacts} />
 
                                     <DetailsTable title='Output parameters' fields={outputParams} />
 

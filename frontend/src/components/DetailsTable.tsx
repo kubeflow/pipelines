@@ -19,7 +19,7 @@ import { stylesheet } from 'typestyle';
 import { color, spacing, commonCss } from '../Css';
 import { KeyValue } from '../lib/StaticGraphParser';
 import Editor from './Editor';
-import MinioArtifactPreview, {isS3Artifact} from './MinioArtifactPreview';
+import MinioArtifactPreview, { isS3Artifact } from './MinioArtifactPreview';
 import 'brace';
 import 'brace/ext/language_tools';
 import 'brace/mode/json';

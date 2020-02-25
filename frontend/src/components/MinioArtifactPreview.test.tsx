@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme'
+import { mount } from 'enzyme';
 import MinioArtifactPreview from './MinioArtifactPreview';
 
 describe('MinioArtifactPreview', () => {
@@ -60,8 +60,8 @@ describe('MinioArtifactPreview', () => {
       key: 'bar',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    const wrapper = mount(<MinioArtifactPreview artifact={s3artifact} />)
-    expect(wrapper).toMatchSnapshot()
+    const wrapper = mount(<MinioArtifactPreview artifact={s3artifact} />);
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('handles minio artifact', () => {
@@ -72,7 +72,7 @@ describe('MinioArtifactPreview', () => {
       key: 'bar',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    const wrapper = mount(<MinioArtifactPreview artifact={minioartifact} />)
-    expect(wrapper).toMatchSnapshot()
+    const wrapper = mount(<MinioArtifactPreview artifact={minioartifact} />);
+    expect(wrapper).toMatchSnapshot();
   });
 });

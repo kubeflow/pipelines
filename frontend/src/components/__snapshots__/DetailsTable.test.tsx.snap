@@ -216,7 +216,7 @@ exports[`DetailsTable does render arrays as JSON 2`] = `
 `;
 
 exports[`DetailsTable does render previews if the values of the fields are S3Artifacts obj 1`] = `
-<Component
+<DetailsTable
   fields={
     Array [
       Array [
@@ -271,7 +271,7 @@ exports[`DetailsTable does render previews if the values of the fields are S3Art
       </span>
     </div>
   </div>
-</Component>
+</DetailsTable>
 `;
 
 exports[`DetailsTable shows a row with a title 1`] = `
