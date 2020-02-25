@@ -10,7 +10,7 @@ RUN apk add --update \
 
 RUN gcloud components install kubectl
 
-ADD backend/execution_cache/deployer/* /kfp/execution_cache/deployer/
+ADD backend/src/execution_cache/deployer/* /kfp/execution_cache/deployer/
 
 WORKDIR /kfp/execution_cache/deployer
 

@@ -28,12 +28,10 @@ rm -f ${CA_FILE}
 touch ${CA_FILE}
 
 # Generate signed certificate for cache server.
-chmod +x ./webhook-create-signed-cert.sh
 ./webhook-create-signed-cert.sh --namespace "${NAMESPACE}" --cert-output-path "${CA_FILE}"
 echo "Signed certificate generated for cache server"
 
 # Patch CA_BUNDLE for MutatingWebhookConfiguration
-chmod +x ./webhook-patch-ca-bundle.sh
 NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh --cert-input-path "${CA_FILE}" <./execution-cache-configmap.yaml.template >./execution-cache-configmap-ca-bundle.yaml
 echo "CA_BUNDLE patched successfully"
 

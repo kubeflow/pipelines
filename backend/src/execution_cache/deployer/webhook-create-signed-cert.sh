@@ -73,6 +73,10 @@ csrName=${service}.${namespace}
 tmpdir=$(mktemp -d)
 echo "creating certs in tmpdir ${tmpdir} "
 
+# create csr config file for csr generation. 
+# [req] is for csr with distinguished_name setting.
+# [v3_req] is extensions to add to a certificate request in this case is for setting key constraints and usages.
+# [alt_names] specifies additional subject identities. So the keys can be matched by different DNS names. 
 cat <<EOF >> ${tmpdir}/csr.conf
 [req]
 req_extensions = v3_req

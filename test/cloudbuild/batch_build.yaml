@@ -35,11 +35,11 @@ steps:
     waitFor: ["-"]
   - id: 'buildExecutionCache'
     name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '$_GCR_BASE/execution-cache', '-f', 'backend/execution_cache/Dockerfile', '.']
+    args: ['build', '-t', '$_GCR_BASE/execution-cache', '-f', 'backend/Dockerfile.executioncache', '.']
     waitFor: ["-"]
   - id: 'buildExecutionCacheDeployer'
     name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '$_GCR_BASE/execution-cache-deployer', '-f', 'backend/execution_cache/deployer/Dockerfile', '.']
+    args: ['build', '-t', '$_GCR_BASE/execution-cache-deployer', '-f', 'backend/src/execution_cache/deployer/Dockerfile', '.']
     waitFor: ["-"]
 options:
   machineType: N1_HIGHCPU_8 # use a fast machine to build because there a lot of work
