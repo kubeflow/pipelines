@@ -307,7 +307,9 @@ export function generateArtifactUrl(
   peek?: number,
 ): string {
   return encodeURI(
-    `artifacts/get?source=${source}&bucket=${bucket}&key=${key}${peek ? `&peek=${peek}` : ''}`,
+    `artifacts/get?source=${source}&bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(
+      key,
+    )}${peek ? `&peek=${peek}` : ''}`,
   );
 }
 
