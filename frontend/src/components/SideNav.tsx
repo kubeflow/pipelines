@@ -227,12 +227,10 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           : 'unknown',
       };
     }
-    const [displayBuildInfo, gkeMetadata] = await Promise.all([
-      fetchBuildInfo().catch(err => {
-        logger.error('Failed to retrieve build info', err);
-        return undefined;
-      }),
-    ]);
+    const displayBuildInfo = await fetchBuildInfo().catch(err => {
+      logger.error('Failed to retrieve build info', err);
+      return undefined;
+    });
 
     this.setStateSafe({ displayBuildInfo });
   }
@@ -635,10 +633,7 @@ const ExternalUri: React.FC<ExternalUriProps> = ({ title, to, collapsed, icon })
 );
 
 const EnhancedSideNav: React.FC<SideNavProps> = props => {
-  return (
-    <GkeMetadataContext.Consumer>
-      {value => <SideNav {...props} gkeMetadata={value} />}
-    </GkeMetadataContext.Consumer>
-  );
+  const gkeMetadata = React.useContext(GkeMetadataContext);
+  return <SideNav {...props} gkeMetadata={gkeMetadata} />;
 };
 export default EnhancedSideNav;
