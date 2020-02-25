@@ -2508,6 +2508,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
             key="0"
           >
             <div
+              aria-checked={false}
               className="tableRow row"
               onClick={[Function]}
               role="checkbox"
@@ -2763,7 +2764,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   </Checkbox>
                 </WithStyles(Checkbox)>
               </div>
-              <Component
+              <CustomTableRow
                 columns={
                   Array [
                     Object {
@@ -2824,7 +2825,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                 >
                   -
                 </div>
-              </Component>
+              </CustomTableRow>
             </div>
           </div>
           <div
@@ -2832,6 +2833,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
             key="1"
           >
             <div
+              aria-checked={false}
               className="tableRow row"
               onClick={[Function]}
               role="checkbox"
@@ -3087,7 +3089,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   </Checkbox>
                 </WithStyles(Checkbox)>
               </div>
-              <Component
+              <CustomTableRow
                 columns={
                   Array [
                     Object {
@@ -3148,7 +3150,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                 >
                   -
                 </div>
-              </Component>
+              </CustomTableRow>
             </div>
           </div>
         </div>
@@ -3212,23 +3214,8 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   <WithStyles(WithFormControlContext(Select))
                     input={
                       <WithStyles(Input)
-                        autoComplete={undefined}
-                        autoFocus={undefined}
-                        defaultValue={undefined}
                         disableUnderline={true}
-                        fullWidth={undefined}
-                        id={undefined}
-                        inputProps={undefined}
-                        inputRef={undefined}
-                        multiline={undefined}
-                        name={undefined}
-                        onBlur={undefined}
                         onChange={[Function]}
-                        onFocus={undefined}
-                        placeholder={undefined}
-                        rows={undefined}
-                        rowsMax={undefined}
-                        type={undefined}
                         value={10}
                       />
                     }
@@ -3248,23 +3235,8 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                       }
                       input={
                         <WithStyles(Input)
-                          autoComplete={undefined}
-                          autoFocus={undefined}
-                          defaultValue={undefined}
                           disableUnderline={true}
-                          fullWidth={undefined}
-                          id={undefined}
-                          inputProps={undefined}
-                          inputRef={undefined}
-                          multiline={undefined}
-                          name={undefined}
-                          onBlur={undefined}
                           onChange={[Function]}
-                          onFocus={undefined}
-                          placeholder={undefined}
-                          rows={undefined}
-                          rowsMax={undefined}
-                          type={undefined}
                           value={10}
                         />
                       }
@@ -3287,23 +3259,8 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                         displayEmpty={false}
                         input={
                           <WithStyles(Input)
-                            autoComplete={undefined}
-                            autoFocus={undefined}
-                            defaultValue={undefined}
                             disableUnderline={true}
-                            fullWidth={undefined}
-                            id={undefined}
-                            inputProps={undefined}
-                            inputRef={undefined}
-                            multiline={undefined}
-                            name={undefined}
-                            onBlur={undefined}
                             onChange={[Function]}
-                            onFocus={undefined}
-                            placeholder={undefined}
-                            rows={undefined}
-                            rowsMax={undefined}
-                            type={undefined}
                             value={10}
                           />
                         }
@@ -7114,6 +7071,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             key="0"
           >
             <div
+              aria-checked={false}
               className="tableRow row"
               onClick={[Function]}
               role="checkbox"
@@ -7369,7 +7327,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   </Checkbox>
                 </WithStyles(Checkbox)>
               </div>
-              <Component
+              <CustomTableRow
                 columns={
                   Array [
                     Object {
@@ -7430,7 +7388,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                 >
                   -
                 </div>
-              </Component>
+              </CustomTableRow>
             </div>
           </div>
           <div
@@ -7438,6 +7396,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             key="1"
           >
             <div
+              aria-checked={false}
               className="tableRow row"
               onClick={[Function]}
               role="checkbox"
@@ -7693,7 +7652,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   </Checkbox>
                 </WithStyles(Checkbox)>
               </div>
-              <Component
+              <CustomTableRow
                 columns={
                   Array [
                     Object {
@@ -7754,7 +7713,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                 >
                   -
                 </div>
-              </Component>
+              </CustomTableRow>
             </div>
           </div>
           <div
@@ -7762,6 +7721,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             key="2"
           >
             <div
+              aria-checked={false}
               className="tableRow row"
               onClick={[Function]}
               role="checkbox"
@@ -8017,7 +7977,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   </Checkbox>
                 </WithStyles(Checkbox)>
               </div>
-              <Component
+              <CustomTableRow
                 columns={
                   Array [
                     Object {
@@ -8078,7 +8038,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                 >
                   -
                 </div>
-              </Component>
+              </CustomTableRow>
             </div>
           </div>
         </div>
@@ -8142,23 +8102,8 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   <WithStyles(WithFormControlContext(Select))
                     input={
                       <WithStyles(Input)
-                        autoComplete={undefined}
-                        autoFocus={undefined}
-                        defaultValue={undefined}
                         disableUnderline={true}
-                        fullWidth={undefined}
-                        id={undefined}
-                        inputProps={undefined}
-                        inputRef={undefined}
-                        multiline={undefined}
-                        name={undefined}
-                        onBlur={undefined}
                         onChange={[Function]}
-                        onFocus={undefined}
-                        placeholder={undefined}
-                        rows={undefined}
-                        rowsMax={undefined}
-                        type={undefined}
                         value={10}
                       />
                     }
@@ -8178,23 +8123,8 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                       }
                       input={
                         <WithStyles(Input)
-                          autoComplete={undefined}
-                          autoFocus={undefined}
-                          defaultValue={undefined}
                           disableUnderline={true}
-                          fullWidth={undefined}
-                          id={undefined}
-                          inputProps={undefined}
-                          inputRef={undefined}
-                          multiline={undefined}
-                          name={undefined}
-                          onBlur={undefined}
                           onChange={[Function]}
-                          onFocus={undefined}
-                          placeholder={undefined}
-                          rows={undefined}
-                          rowsMax={undefined}
-                          type={undefined}
                           value={10}
                         />
                       }
@@ -8217,23 +8147,8 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                         displayEmpty={false}
                         input={
                           <WithStyles(Input)
-                            autoComplete={undefined}
-                            autoFocus={undefined}
-                            defaultValue={undefined}
                             disableUnderline={true}
-                            fullWidth={undefined}
-                            id={undefined}
-                            inputProps={undefined}
-                            inputRef={undefined}
-                            multiline={undefined}
-                            name={undefined}
-                            onBlur={undefined}
                             onChange={[Function]}
-                            onFocus={undefined}
-                            placeholder={undefined}
-                            rows={undefined}
-                            rowsMax={undefined}
-                            type={undefined}
                             value={10}
                           />
                         }

@@ -6,7 +6,7 @@ exports[`SideNav populates the cluster information using the response from the s
 + Second value
 
 @@ -64,10 +64,20 @@
-      <WithStyles(IconButton) className=\\"chevron\\" onClick={[Function: bound ]}>
+      <WithStyles(IconButton) className=\\"chevron\\" onClick={[Function: bound _toggleNavClicked]}>
         <pure(ChevronLeftIcon) />
       </WithStyles(IconButton)>
     </div>
@@ -3144,6 +3144,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
         className="unstyled"
         href="/hub/"
         id="jupyterhubBtn"
+        rel="noopener"
         target="_blank"
       >
         <WithStyles(Button)

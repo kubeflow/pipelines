@@ -16,7 +16,7 @@
 
 import { orderBy } from 'lodash';
 import { ApiParameter, ApiPipelineVersion } from '../apis/pipeline';
-import { Workflow } from 'third_party/argo-ui/argo_template';
+import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { ApiJob } from '../apis/job';
 import {
   ApiPipelineRuntime,

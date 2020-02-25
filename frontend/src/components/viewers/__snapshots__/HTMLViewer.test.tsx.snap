@@ -21,7 +21,7 @@ exports[`HTMLViewer renders a smaller snapshot version 1`] = `
   <iframe
     className="iframe"
     sandbox="allow-scripts"
-    src="javascript:void(0);"
+    src="about:blank"
   />
 </HTMLViewer>
 `;
@@ -40,7 +40,7 @@ exports[`HTMLViewer renders some basic HTML 1`] = `
   <iframe
     className="iframe"
     sandbox="allow-scripts"
-    src="javascript:void(0);"
+    src="about:blank"
   />
 </HTMLViewer>
 `;

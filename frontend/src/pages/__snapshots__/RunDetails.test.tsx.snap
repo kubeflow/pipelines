@@ -1158,6 +1158,7 @@ exports[`RunDetails logs tab shows warning banner and link to Stackdriver in log
                     <a
                       className="link unstyled"
                       href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_id:\\"node1\\""
+                      rel="noopener noreferrer"
                       target="_blank"
                     >
                       Legacy Stackdriver
@@ -1168,6 +1169,7 @@ exports[`RunDetails logs tab shows warning banner and link to Stackdriver in log
                     <a
                       className="link unstyled"
                       href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"k8s_container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_name:\\"node1\\""
+                      rel="noopener noreferrer"
                       target="_blank"
                     >
                       Stackdriver Kubernetes Monitoring

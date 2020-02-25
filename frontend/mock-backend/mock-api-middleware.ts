@@ -17,7 +17,7 @@ import * as express from 'express';
 import * as fs from 'fs';
 import RunUtils from '../src/lib/RunUtils';
 import helloWorldRuntime from './integration-test-runtime';
-import proxyMiddleware from '../server/proxy-middleware';
+import proxyMiddleware from './proxy-middleware';
 import { ApiFilter, PredicateOp } from '../src/apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
 import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
