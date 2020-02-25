@@ -17,32 +17,35 @@ export function isS3Artifact(value: any): value is S3Artifact {
  */
 const MinioArtifactPreview: React.FC<{ artifact: S3Artifact }> = ({ artifact = {} }) => {
   const { key, bucket, endpoint } = artifact;
+  const [content, setContent] = React.useState('');
+  const source = isS3Endpoint(endpoint) ? StorageService.S3 : StorageService.MINIO;
+
+  React.useEffect(() => {
+    let cancelled = false;
+    if (bucket && key) {
+      Apis.readFile({ source, bucket, key }, peek + 1).then(
+        data => !cancelled && setContent(data.length > peek ? `${data.slice(0, peek)} ...` : data),
+        error => console.error(error),
+      );
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [source, bucket, key]);
+
   if (!key || !bucket) {
     return null;
   }
 
   const peek = 100;
   const encodedKey = encodeURIComponent(key);
-  const source = isS3Endpoint(endpoint) ? StorageService.S3 : StorageService.MINIO;
   const linkText = `${source.toString()}://${bucket}/${encodedKey}`;
   const url = generateArtifactUrl(source, bucket, encodedKey);
-  const [content, setContent] = React.useState('');
-
-  React.useEffect(() => {
-    let cancelled = false;
-    Apis.readFile({ source, bucket, key }, peek + 1).then(
-      data => !cancelled && setContent(data.length > peek ? `${data.slice(0, peek)} ...` : data),
-      error => console.error(error),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [source, bucket, key]);
 
   // Opens in new window safely
   return (
     <div>
-      <a href={url} target={'_blank'} rel={'noreferrer noopener'} title={linkText}>
+      <a href={url} target='_blank' rel='noreferrer noopener' title={linkText}>
         {linkText}
       </a>
       <div>

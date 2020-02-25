@@ -157,7 +157,7 @@ function getMinioArtifactHandler(
 
       if (peek) {
         let content = '';
-        function onData(data: any) {
+        const onData = (data: any) => {
           content += Buffer.isBuffer(data) ? data.toString() : data;
           if (content.length >= peek) {
             res.send(content.slice(0, peek));
