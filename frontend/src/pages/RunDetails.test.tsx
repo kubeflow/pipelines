@@ -962,8 +962,7 @@ describe('RunDetails', () => {
         .at(1)
         .simulate('switch', 4);
       await getPodLogsSpy;
-      expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
-      expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1', undefined);
+      await TestUtils.flushPromises();
       expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
         <div
           className="page"
