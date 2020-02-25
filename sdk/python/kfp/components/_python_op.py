@@ -220,7 +220,7 @@ def _strip_type_hints_using_lib2to3(source_code: str) -> str:
     """Strips type annotations from the function definitions in the provided source code."""
 
     # Using the standard lib2to3 library to strip type annotations.
-    # Switch to another library like strip-hints is issues are found
+    # Switch to another library like strip-hints if issues are found.
     from lib2to3 import fixer_base, refactor, fixer_util
 
     class StripAnnotations(fixer_base.BaseFix):
