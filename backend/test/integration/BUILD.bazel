@@ -6,6 +6,7 @@ go_test(
         "experiment_api_test.go",
         "job_api_test.go",
         "pipeline_api_test.go",
+        "pipeline_version_api_test.go",
         "run_api_test.go",
         "visualization_api_test.go",
     ],
