@@ -8,24 +8,35 @@ exports[`GettingStarted page initially renders documentation 1`] = `
     <div>
       <br />
       <h2
-        id="build-your-own-pipeline"
+        id="build-your-own-pipeline-with"
       >
-        Build your own pipeline
+        Build your own pipeline with
       </h2>
-      <p>
-        Build an end-to-end ML pipeline with TensorFlow Extended (TFX) 
-        <a
-          class="link"
-          href="https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb"
-          rel="noopener"
-          target="_blank"
-        >
-          <strong>
-            Start Here!
-          </strong>
-        </a>
-         (Please make sure you pick a Tensorflow 2.1 notebook instance.)
-      </p>
+      <ul>
+        <li>
+          TensorFlow Extended (TFX) end-to-end ML Pipeline Template (
+          <a
+            class="link"
+            href="https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb"
+            rel="noopener"
+            target="_blank"
+          >
+            Open Notebook
+          </a>
+          )
+        </li>
+        <li>
+          Kubeflow Pipelines 
+          <a
+            class="link"
+            href="https://www.kubeflow.org/docs/pipelines/sdk/"
+            rel="noopener"
+            target="_blank"
+          >
+            SDK
+          </a>
+        </li>
+      </ul>
       <br />
       <h2
         id="demonstrations-and-tutorials"
@@ -151,54 +162,6 @@ exports[`GettingStarted page initially renders documentation 1`] = `
           Learn from sample and tutorial pipelines.
         </a>
       </p>
-      <br />
-      <h3
-        id="additional-resources-and-documentation"
-      >
-        Additional resources and documentation
-      </h3>
-      <ul>
-        <li>
-          <a
-            class="link"
-            href="https://www.tensorflow.org/tfx"
-            rel="noopener"
-            target="_blank"
-          >
-            TFX documentation
-          </a>
-        </li>
-        <li>
-          <a
-            class="link"
-            href="https://cloud.google.com/ai-platform/pipelines/docs/"
-            rel="noopener"
-            target="_blank"
-          >
-            AI Platform Pipelines documentation
-          </a>
-        </li>
-        <li>
-          <a
-            class="link"
-            href="https://cloud.google.com/ai-platform/pipelines/docs/troubleshooting/"
-            rel="noopener"
-            target="_blank"
-          >
-            Troubleshooting guide
-          </a>
-        </li>
-        <li>
-          <a
-            class="link"
-            href="https://www.kubeflow.org/docs/pipelines/"
-            rel="noopener"
-            target="_blank"
-          >
-            Kubeflow Pipelines documentation
-          </a>
-        </li>
-      </ul>
     </div>
   </div>
 </div>
