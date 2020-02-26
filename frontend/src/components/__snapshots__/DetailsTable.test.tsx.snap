@@ -348,32 +348,6 @@ exports[`DetailsTable does render arrays as JSON 1`] = `
 </Fragment>
 `;
 
-exports[`DetailsTable does render arrays as JSON 2`] = `
-<Fragment>
-  <div>
-    <div
-      className="row"
-      key="0"
-    >
-      <span
-        className="key"
-      >
-        key
-      </span>
-      <span
-        className="valueText"
-      >
-        <DetailsFieldValue
-          fieldname="key"
-          fieldvalue="{}"
-          index={0}
-        />
-      </span>
-    </div>
-  </div>
-</Fragment>
-`;
-
 exports[`DetailsTable does render empty object as JSON 1`] = `
 <Fragment>
   <div>
