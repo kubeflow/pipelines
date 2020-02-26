@@ -267,8 +267,8 @@ func (c *PipelineClient) GetPipelineVersion(parameters *params.GetPipelineVersio
 		}
 
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to get pipeline. Params: '%v'", parameters),
-			fmt.Sprintf("Failed to get pipeline '%v'", parameters.VersionID))
+			fmt.Sprintf("Failed to get pipeline version. Params: '%v'", parameters),
+			fmt.Sprintf("Failed to get pipeline version '%v'", parameters.VersionID))
 	}
 
 	return response.Payload, nil
