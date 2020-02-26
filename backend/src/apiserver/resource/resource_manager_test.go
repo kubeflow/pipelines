@@ -43,7 +43,6 @@ func initEnvVars() {
 
 type FakeBadObjectStore struct{}
 
-
 func (m *FakeBadObjectStore) GetPipelineKey(pipelineID string) string {
 	return pipelineID
 }
@@ -281,6 +280,20 @@ func TestGetPipelineTemplate_PipelineFileNotFound(t *testing.T) {
 	_, err := manager.GetPipelineTemplate(pipeline.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "object not found")
+}
+
+func TestResumeRun(t *testing.T) {
+
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+
+	err := manager.ResumePipeline(runDetail.UUID)
+	namespace := "kubeflow"
+	assert.Nil(t, err)
+	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	fakeWorkflowClient := store.ArgoClientFake.Workflow(namespace)
+	workflow, err := fakeWorkflowClient.Get(runDetail.Run.Name, v1.GetOptions{})
+	assert.Equal(t, true, *workflow.Spec.Suspend)
 }
 
 func TestCreateRun_ThroughPipelineID(t *testing.T) {

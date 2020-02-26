@@ -357,9 +357,11 @@ func (r *ResourceManager) ResumePipeline(runID string) error {
 	// Here we try to get the actuall workflow from argo
 	latestWorkflow, err := r.getWorkflowClient(namespace).Get(originalWorkflow.Name, v1.GetOptions{})
 	// Update the suspend to true
-	*latestWorkflow.Spec.Suspend = true
+	suspend := true
+	latestWorkflow.Spec.Suspend = &suspend
 	// Send the upded workflow to argo
 	_, err = r.getWorkflowClient(namespace).Update(latestWorkflow)
+	return err
 }
 
 func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
