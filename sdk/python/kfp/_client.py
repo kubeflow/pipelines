@@ -455,7 +455,7 @@ class Client(object):
     schedule_body = kfp_server_api.models.ApiJob(
         id=job_id,
         name=job_name,
-        description="Schedule the pipeline using the API",
+        description=description,
         pipeline_spec=spec,
         resource_references=resource_references,
         max_concurrency=10,
