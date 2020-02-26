@@ -226,7 +226,7 @@ func (c *PipelineClient) CreatePipelineVersion(parameters *params.CreatePipeline
 	return response.Payload, nil
 }
 
-func (c *PipelineClient) ListVersions(parameters *params.ListPipelineVersionsParams) (
+func (c *PipelineClient) ListPipelineVersions(parameters *params.ListPipelineVersionsParams) (
 	[]*model.APIPipelineVersion, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -250,7 +250,7 @@ func (c *PipelineClient) ListVersions(parameters *params.ListPipelineVersionsPar
 	return response.Payload.Versions, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
 }
 
-func (c *PipelineClient) GetVersion(parameters *params.GetPipelineVersionParams) (*model.APIPipelineVersion,
+func (c *PipelineClient) GetPipelineVersion(parameters *params.GetPipelineVersionParams) (*model.APIPipelineVersion,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)

@@ -312,8 +312,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		}
 	}
 	// Create argo workflow CRD resource
-	fmt.Println("JING namespace: " + namespace)
-	newWorkflow, err := r.getWorkflowClient("kubeflow").Create(workflow.Get())
+	newWorkflow, err := r.getWorkflowClient(namespace).Create(workflow.Get())
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
 	}
