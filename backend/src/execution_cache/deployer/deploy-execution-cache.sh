@@ -23,16 +23,16 @@ set -ex
 echo "Start deploying execution cache to existing cluster:"
 
 NAMESPACE=${NAMESPACE_TO_WATCH:-default}
-export CA_FILE="ca.cert"
+export CA_FILE="ca_cert"
 rm -f ${CA_FILE}
 touch ${CA_FILE}
 
 # Generate signed certificate for cache server.
-./webhook-create-signed-cert.sh --namespace "${NAMESPACE}" --cert-output-path "${CA_FILE}"
+./webhook-create-signed-cert.sh --namespace "${NAMESPACE}" --cert_output_path "${CA_FILE}"
 echo "Signed certificate generated for cache server"
 
 # Patch CA_BUNDLE for MutatingWebhookConfiguration
-NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh --cert-input-path "${CA_FILE}" <./execution-cache-configmap.yaml.template >./execution-cache-configmap-ca-bundle.yaml
+NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh --cert_input_path "${CA_FILE}" <./execution-cache-configmap.yaml.template >./execution-cache-configmap-ca-bundle.yaml
 echo "CA_BUNDLE patched successfully"
 
 # Create MutatingWebhookConfiguration

@@ -25,17 +25,17 @@ set -ex
 
 while [[ $# -gt 0 ]]; do
     case ${1} in
-        --cert-input-path)
-            cert-input-path="$2"
+        --cert_input_path)
+            cert_input_path="$2"
             shift
             ;;
     esac
     shift
 done
 
-[ -z ${cert-input-path} ] && cert-input-path=${CA_FILE}
+[ -z ${cert_input_path} ] && cert_input_path=${CA_FILE}
 
-export CA_BUNDLE=$(cat ${cert-input-path})
+export CA_BUNDLE=$(cat ${cert_input_path})
 
 if command -v envsubst >/dev/null 2>&1; then
     envsubst
