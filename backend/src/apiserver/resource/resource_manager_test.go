@@ -148,6 +148,30 @@ func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 	return store, manager, runDetail
 }
 
+func initSuspended(t *testing.T) (*FakeClientManager, *ResourceManager, *model.RunDetail) {
+	suspend := false
+	testWorkflow.Spec.Suspend = &suspend
+	store, manager, exp := initWithExperiment(t)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	runDetail, err := manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+	return store, manager, runDetail
+}
+
 func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.RunDetail) {
 	store, manager, exp := initWithExperiment(t)
 	apiRun := &api.Run{
@@ -296,6 +320,19 @@ func TestResumeRun(t *testing.T) {
 	assert.Equal(t, true, *workflow.Spec.Suspend)
 }
 
+func TestResumeRunChange(t *testing.T) {
+
+	store, manager, runDetail := initSuspended(t)
+	defer store.Close()
+
+	err := manager.ResumePipeline(runDetail.UUID)
+	namespace := "kubeflow"
+	assert.Nil(t, err)
+	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	fakeWorkflowClient := store.ArgoClientFake.Workflow(namespace)
+	workflow, err := fakeWorkflowClient.Get(runDetail.Run.Name, v1.GetOptions{})
+	assert.Equal(t, true, *workflow.Spec.Suspend)
+}
 func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	store, manager, p := initWithPipeline(t)
 	defer store.Close()
