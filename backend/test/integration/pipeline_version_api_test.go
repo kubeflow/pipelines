@@ -228,7 +228,7 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	})
 	assert.NotNil(t, err)
 
-	/* ---------- List pipeline version s sorted by names descend order ---------- */
+	/* ---------- List pipeline versions sorted by names descend order ---------- */
 	listFirstPagePipelineVersions, totalSize, nextPageToken, err = s.pipelineClient.ListPipelineVersions(
 		&params.ListPipelineVersionsParams{
 			PageSize:        util.Int32Pointer(3),
