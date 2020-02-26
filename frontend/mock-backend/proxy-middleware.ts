@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import * as express from 'express';
-import * as proxy from 'http-proxy-middleware';
+import proxy from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
 
 export function _extractUrlFromReferer(proxyPrefix: string, referer = ''): string {

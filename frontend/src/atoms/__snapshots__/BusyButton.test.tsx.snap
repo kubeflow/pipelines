@@ -55,7 +55,6 @@ exports[`BusyButton renders disabled 1`] = `
     <svg
       aria-hidden="true"
       className="MuiSvgIcon-root-37 icon"
-      color={undefined}
       focusable="false"
       role="presentation"
       viewBox="0 0 24 24"
@@ -99,7 +98,6 @@ exports[`BusyButton renders with a title and icon 1`] = `
     <svg
       aria-hidden="true"
       className="MuiSvgIcon-root-37 icon"
-      color={undefined}
       focusable="false"
       role="presentation"
       viewBox="0 0 24 24"
@@ -146,7 +144,6 @@ exports[`BusyButton renders with a title and icon, and busy 1`] = `
     <svg
       aria-hidden="true"
       className="MuiSvgIcon-root-37 icon"
-      color={undefined}
       focusable="false"
       role="presentation"
       viewBox="0 0 24 24"

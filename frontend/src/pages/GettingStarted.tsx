@@ -50,7 +50,7 @@ const PAGE_CONTENT_MD = ({
 
 ## Build your own pipeline
 
-Build an end-to-end ML pipeline with TensorFlow Extended (TFX) [**Start Here!**](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb)
+Build an end-to-end ML pipeline with TensorFlow Extended (TFX) [**Start Here!**](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb) (Please make sure you pick a Tensorflow 2.1 notebook instance.)
 
 <br/>
 
@@ -129,14 +129,11 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
           .listPipelines(undefined, 10, undefined, createAndEncodeFilter(name))
           .then(pipelineList => {
             const pipelines = pipelineList.pipelines;
-            if (!pipelines || pipelines.length !== 1) {
+            if (pipelines?.length !== 1) {
+              // This should be accurate, do not accept ambiguous results.
               return '';
             }
-            const pipeline = pipelines[0];
-            if (!pipeline.id) {
-              return '';
-            }
-            return pipeline.id;
+            return pipelines[0].id || '';
           })
           .catch(() => ''),
       ),

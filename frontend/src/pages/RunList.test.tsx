@@ -366,7 +366,10 @@ describe('RunList', () => {
   it('adds metrics columns', async () => {
     mockNRuns(2, {
       run: {
-        metrics: [{ name: 'metric1', number_value: 5 }, { name: 'metric2', number_value: 10 }],
+        metrics: [
+          { name: 'metric1', number_value: 5 },
+          { name: 'metric2', number_value: 10 },
+        ],
         status: 'Succeeded',
       },
     });

@@ -120,6 +120,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -140,7 +141,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
             <pure(ArrowRightIcon) />
           </WithStyles(IconButton)>
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -348,6 +349,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -364,7 +366,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
             <pure(ArrowRightIcon) />
           </WithStyles(IconButton)>
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -552,6 +554,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -565,7 +568,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -595,6 +598,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
       key="1"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -608,7 +612,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -817,6 +821,7 @@ exports[`CustomTable renders an expanded row 1`] = `
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row expandedRow"
         onClick={[Function]}
         role="checkbox"
@@ -830,7 +835,7 @@ exports[`CustomTable renders an expanded row 1`] = `
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -1044,6 +1049,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row expandedRow"
         onClick={[Function]}
         role="checkbox"
@@ -1064,7 +1070,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
             <pure(ArrowRightIcon) />
           </WithStyles(IconButton)>
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -1595,6 +1601,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -1608,7 +1615,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -1817,6 +1824,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -1830,7 +1838,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -1860,6 +1868,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
       key="1"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -1873,7 +1882,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -2439,6 +2448,7 @@ exports[`CustomTable renders some rows 1`] = `
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -2452,7 +2462,7 @@ exports[`CustomTable renders some rows 1`] = `
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -2482,6 +2492,7 @@ exports[`CustomTable renders some rows 1`] = `
       key="1"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -2495,7 +2506,7 @@ exports[`CustomTable renders some rows 1`] = `
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -3183,12 +3194,13 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
       >
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -3218,12 +3230,13 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
       key="1"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
       >
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -3432,6 +3445,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -3445,7 +3459,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -3475,6 +3489,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
       key="1"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -3488,7 +3503,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
