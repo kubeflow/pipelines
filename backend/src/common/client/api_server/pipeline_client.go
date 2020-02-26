@@ -212,7 +212,7 @@ func (c *PipelineClient) CreatePipelineVersion(parameters *params.CreatePipeline
 	parameters.Context = ctx
 	response, err := c.apiClient.PipelineService.CreatePipelineVersion(parameters, PassThroughAuth)
 	if err != nil {
-		if defaultError, ok := err.(*params.CreatePipelineDefault); ok {
+		if defaultError, ok := err.(*params.CreatePipelineVersionDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
