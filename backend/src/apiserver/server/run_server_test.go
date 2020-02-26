@@ -64,9 +64,6 @@ func TestCreateRun(t *testing.T) {
 
 func TestCreateRunPatch(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
-	viper.Set(HasDefaultBucketEnvVar, "true")
-	viper.Set(ProjectIDEnvVar, "test-project-id")
-	viper.Set(DefaultBucketNameEnvVar, "test-default-bucket")
 	defer clients.Close()
 	server := NewRunServer(manager)
 	run := &api.Run{
@@ -75,8 +72,8 @@ func TestCreateRunPatch(t *testing.T) {
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflowPatch.ToStringForStore(),
 			Parameters: []*api.Parameter{
-				{Name: "param1", Value: "{{kfp-default-bucket}}"},
-				{Name: "param2", Value: "{{kfp-project-id}}"}},
+				{Name: "param1", Value: "test-default-bucket"},
+				{Name: "param2", Value: "test-project-id"}},
 		},
 	}
 	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})

@@ -43,7 +43,6 @@ func initEnvVars() {
 
 type FakeBadObjectStore struct{}
 
-
 func (m *FakeBadObjectStore) GetPipelineKey(pipelineID string) string {
 	return pipelineID
 }
@@ -135,6 +134,28 @@ func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	runDetail, err := manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+	return store, manager, runDetail
+}
+
+func initWithPatchedRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.RunDetail) {
+	store, manager, exp := initWithExperiment(t)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "{{kfp-default-bucket}}"},
 			},
 		},
 		ResourceReferences: []*api.ResourceReference{
@@ -374,6 +395,54 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+					ResourceType:  common.Run,
+					ReferenceUUID: DefaultFakeUUID,
+					ReferenceName: "e1",
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
+		},
+	}
+	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
+	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	runDetail, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
+}
+
+func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
+	viper.Set(HasDefaultBucketEnvVar, "true")
+	viper.Set(ProjectIDEnvVar, "test-project-id")
+	viper.Set(DefaultBucketNameEnvVar, "test-default-bucket")
+	store, manager, runDetail := initWithPatchedRun(t)
+	expectedExperimentUUID := runDetail.ExperimentUUID
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+		{Name: "param1", Value: util.StringPointer("test-default-bucket")}}
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
+	expectedRunDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID: expectedExperimentUUID,
+			DisplayName:    "run1",
+			Name:           "workflow-name",
+			Namespace:      "test-ns",
+			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec: 2,
+			Conditions:     "Running",
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+				Parameters:           "[{\"name\":\"param1\",\"value\":\"test-default-bucket\"}]",
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
