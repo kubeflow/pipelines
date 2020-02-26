@@ -1,17 +1,19 @@
 package integration
 
 import (
+	// "io/ioutil"
 	"testing"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/test"
-
+	// "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	// "github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
-
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -80,7 +82,6 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	// argumentYAMLPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", pipelineVersionParams)
 	// assert.Nil(t, err)
 	// assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipelineVersion.Name)
-	// fmt.Printf("JING version %+v\n", argumentYAMLPipelineVersion)
 
 	// /* ---------- Upload the same pipeline again. Should fail due to name uniqueness ---------- */
 	// _, err = s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
@@ -116,6 +117,7 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	time.Sleep(1 * time.Second)
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.CreatePipelineVersionParams{
 		Body: &pipeline_model.APIPipelineVersion{
+			Name: "arguments",
 			PackageURL: &pipeline_model.APIURL{
 				PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip",
 			},
@@ -127,123 +129,145 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 			},
 		}})
 	assert.Nil(t, err)
-	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipelineVersion.Name)
+	assert.Equal(t, "arguments", argumentUrlPipelineVersion.Name)
 
-	// /* ---------- Verify list pipeline works ---------- */
-	// pipelines, totalSize, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
-	// assert.Nil(t, err)
-	// assert.Equal(t, 4, len(pipelines))
-	// assert.Equal(t, 4, totalSize)
-	// for _, p := range pipelines {
-	// 	// Sampling one of the pipelines and verify the result is expected.
-	// 	if p.Name == "arguments-parameters.yaml" {
-	// 		verifyPipeline(t, p)
-	// 	}
-	// }
+	/* ---------- Verify list pipeline works ---------- */
+	pipelineVersions, totalSize, _, err := s.pipelineClient.ListVersions(&params.ListPipelineVersionsParams{
+		ResourceKeyID:   util.StringPointer(pipelineId),
+		ResourceKeyType: util.StringPointer("PIPELINE"),
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(pipelineVersions))
+	assert.Equal(t, 3, totalSize)
+	for _, p := range pipelineVersions {
+		assert.NotNil(t, *p)
+		assert.NotNil(t, p.CreatedAt)
+		assert.Contains(t, []string{"test_pipeline" /*default version created with pipeline*/, "sequential", "arguments"}, p.Name)
 
-	// /* ---------- Verify list pipeline sorted by names ---------- */
-	// listFirstPagePipelines, totalSize, nextPageToken, err := s.pipelineClient.List(
-	// 	&params.ListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
-	// assert.Nil(t, err)
-	// assert.Equal(t, 2, len(listFirstPagePipelines))
-	// assert.Equal(t, 4, totalSize)
-	// assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[0].Name)
-	// assert.Equal(t, "arguments.pipeline.zip", listFirstPagePipelines[1].Name)
-	// assert.NotEmpty(t, nextPageToken)
+		if p.Name == "arguments" {
+			assert.Equal(t, p.Parameters,
+				[]*pipeline_model.APIParameter{
+					{Name: "param1", Value: "hello"}, // Default value in the pipeline template
+					{Name: "param2"},                 // No default value in the pipeline
+				})
+		}
+	}
 
-	// listSecondPagePipelines, totalSize, nextPageToken, err := s.pipelineClient.List(
-	// 	&params.ListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
-	// assert.Nil(t, err)
-	// assert.Equal(t, 2, len(listSecondPagePipelines))
-	// assert.Equal(t, 4, totalSize)
-	// assert.Equal(t, "sequential", listSecondPagePipelines[0].Name)
-	// assert.Equal(t, "zip-arguments-parameters", listSecondPagePipelines[1].Name)
-	// assert.Empty(t, nextPageToken)
+	/* ---------- Verify list pipeline sorted by names ---------- */
+	listFirstPagePipelineVersions, totalSize, nextPageToken, err := s.pipelineClient.ListVersions(
+		&params.ListPipelineVersionsParams{
+			PageSize:        util.Int32Pointer(2),
+			SortBy:          util.StringPointer("name"),
+			ResourceKeyID:   util.StringPointer(pipelineId),
+			ResourceKeyType: util.StringPointer("PIPELINE"),
+		})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(listFirstPagePipelineVersions))
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, "arguments", listFirstPagePipelineVersions[0].Name)
+	assert.Equal(t, "sequential", listFirstPagePipelineVersions[1].Name)
+	assert.NotEmpty(t, nextPageToken)
 
-	// /* ---------- Verify list pipeline sorted by creation time ---------- */
-	// listFirstPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(
-	// 	&params.ListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("created_at")})
-	// assert.Nil(t, err)
-	// assert.Equal(t, 2, len(listFirstPagePipelines))
-	// assert.Equal(t, 4, totalSize)
-	// assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[0].Name)
-	// assert.Equal(t, "sequential", listFirstPagePipelines[1].Name)
-	// assert.NotEmpty(t, nextPageToken)
+	listSecondPagePipelineVersions, totalSize, nextPageToken, err := s.pipelineClient.ListVersions(
+		&params.ListPipelineVersionsParams{
+			PageToken:       util.StringPointer(nextPageToken),
+			PageSize:        util.Int32Pointer(2),
+			SortBy:          util.StringPointer("name"),
+			ResourceKeyID:   util.StringPointer(pipelineId),
+			ResourceKeyType: util.StringPointer("PIPELINE"),
+		})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(listSecondPagePipelineVersions))
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, "test_pipeline", listSecondPagePipelineVersions[0].Name)
+	assert.Empty(t, nextPageToken)
 
-	// listSecondPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(
-	// 	&params.ListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("created_at")})
-	// assert.Nil(t, err)
-	// assert.Equal(t, 2, len(listSecondPagePipelines))
-	// assert.Equal(t, 4, totalSize)
-	// assert.Equal(t, "zip-arguments-parameters", listSecondPagePipelines[0].Name)
-	// assert.Equal(t, "arguments.pipeline.zip", listSecondPagePipelines[1].Name)
-	// assert.Empty(t, nextPageToken)
+	/* ---------- Verify list pipeline sorted by creation time ---------- */
+	listFirstPagePipelineVersions, totalSize, nextPageToken, err = s.pipelineClient.ListVersions(
+		&params.ListPipelineVersionsParams{
+			PageSize:        util.Int32Pointer(2),
+			SortBy:          util.StringPointer("created_at"),
+			ResourceKeyID:   util.StringPointer(pipelineId),
+			ResourceKeyType: util.StringPointer("PIPELINE"),
+		})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(listFirstPagePipelineVersions))
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, "test_pipeline", listFirstPagePipelineVersions[0].Name)
+	assert.Equal(t, "sequential", listFirstPagePipelineVersions[1].Name)
+	assert.NotEmpty(t, nextPageToken)
 
-	// /* ---------- List pipelines sort by unsupported description field. Should fail. ---------- */
-	// _, _, _, err = s.pipelineClient.List(&params.ListPipelinesParams{
-	// 	PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield")})
-	// assert.NotNil(t, err)
+	listSecondPagePipelineVersions, totalSize, nextPageToken, err = s.pipelineClient.ListVersions(
+		&params.ListPipelineVersionsParams{
+			PageToken:       util.StringPointer(nextPageToken),
+			PageSize:        util.Int32Pointer(2),
+			SortBy:          util.StringPointer("created_at"),
+			ResourceKeyID:   util.StringPointer(pipelineId),
+			ResourceKeyType: util.StringPointer("PIPELINE"),
+		})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(listSecondPagePipelineVersions))
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, "arguments", listSecondPagePipelineVersions[0].Name)
+	assert.Empty(t, nextPageToken)
 
-	// /* ---------- List pipelines sorted by names descend order ---------- */
-	// listFirstPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(
-	// 	&params.ListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name desc")})
-	// assert.Nil(t, err)
-	// assert.Equal(t, 2, len(listFirstPagePipelines))
-	// assert.Equal(t, 4, totalSize)
-	// assert.Equal(t, "zip-arguments-parameters", listFirstPagePipelines[0].Name)
-	// assert.Equal(t, "sequential", listFirstPagePipelines[1].Name)
-	// assert.NotEmpty(t, nextPageToken)
+	/* ---------- List pipelines sort by unsupported description field. Should fail. ---------- */
+	_, _, _, err = s.pipelineClient.ListVersions(&params.ListPipelineVersionsParams{
+		PageSize:        util.Int32Pointer(2),
+		SortBy:          util.StringPointer("unknownfield"),
+		ResourceKeyID:   util.StringPointer(pipelineId),
+		ResourceKeyType: util.StringPointer("PIPELINE"),
+	})
+	assert.NotNil(t, err)
 
-	// listSecondPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(&params.ListPipelinesParams{
-	// 	PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name desc")})
-	// assert.Nil(t, err)
-	// assert.Equal(t, 2, len(listSecondPagePipelines))
-	// assert.Equal(t, 4, totalSize)
-	// assert.Equal(t, "arguments.pipeline.zip", listSecondPagePipelines[0].Name)
-	// assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelines[1].Name)
-	// assert.Empty(t, nextPageToken)
+	/* ---------- List pipelines sorted by names descend order ---------- */
+	listFirstPagePipelineVersions, totalSize, nextPageToken, err = s.pipelineClient.ListVersions(
+		&params.ListPipelineVersionsParams{
+			PageSize:        util.Int32Pointer(2),
+			SortBy:          util.StringPointer("name desc"),
+			ResourceKeyID:   util.StringPointer(pipelineId),
+			ResourceKeyType: util.StringPointer("PIPELINE"),
+		})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(listFirstPagePipelineVersions))
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, "test_pipeline", listFirstPagePipelineVersions[0].Name)
+	assert.Equal(t, "sequential", listFirstPagePipelineVersions[1].Name)
+	assert.NotEmpty(t, nextPageToken)
 
-	// /* ---------- Verify get pipeline works ---------- */
-	// pipeline, err := s.pipelineClient.Get(&params.GetPipelineParams{ID: argumentYAMLPipeline.ID})
-	// assert.Nil(t, err)
-	// verifyPipeline(t, pipeline)
+	listSecondPagePipelineVersions, totalSize, nextPageToken, err = s.pipelineClient.ListVersions(
+		&params.ListPipelineVersionsParams{
+			PageToken:       util.StringPointer(nextPageToken),
+			PageSize:        util.Int32Pointer(2),
+			SortBy:          util.StringPointer("name desc"),
+			ResourceKeyID:   util.StringPointer(pipelineId),
+			ResourceKeyType: util.StringPointer("PIPELINE"),
+		})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(listSecondPagePipelineVersions))
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, "arguments", listSecondPagePipelineVersions[0].Name)
+	assert.Empty(t, nextPageToken)
 
-	// /* ---------- Verify get template works ---------- */
-	// template, err := s.pipelineClient.GetTemplate(&params.GetTemplateParams{ID: argumentYAMLPipeline.ID})
+	/* ---------- Verify get pipeline works ---------- */
+	pipelineVersion, err := s.pipelineClient.GetVersion(&params.GetPipelineVersionParams{VersionID: argumentUrlPipelineVersion.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineVersion.Name, "arguments")
+	assert.NotNil(t, pipelineVersion.CreatedAt)
+	assert.Equal(t, pipelineVersion.Parameters,
+		[]*pipeline_model.APIParameter{
+			{Name: "param1", Value: "hello"},
+			{Name: "param2"},
+		})
+
+	/* ---------- Verify get template works ---------- */
+	// template, err := s.pipelineClient.GetPipelineVersionTemplate(&params.GetPipelineVersionTemplateParams{VersionID: argumentYAMLPipelineVersion.ID})
 	// assert.Nil(t, err)
 	// expected, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	// assert.Nil(t, err)
 	// var expectedWorkflow v1alpha1.Workflow
 	// err = yaml.Unmarshal(expected, &expectedWorkflow)
 	// assert.Equal(t, expectedWorkflow, *template)
-}
-
-func verifyPipelineVersion(t *testing.T, pipeline *pipeline_model.APIPipelineVersion) {
-	assert.NotNil(t, *pipeline)
-	assert.NotNil(t, pipeline.CreatedAt)
-	expected := pipeline_model.APIPipeline{
-		ID:        pipeline.ID,
-		CreatedAt: pipeline.CreatedAt,
-		Name:      "arguments-parameters.yaml",
-		Parameters: []*pipeline_model.APIParameter{
-			{Name: "param1", Value: "hello"}, // Default value in the pipeline template
-			{Name: "param2"},                 // No default value in the pipeline
-		},
-		// TODO(jingzhang36): after version API launch, remove the following field.
-		// This is because after the version API launch, we won't have defautl
-		// version produced automatically when creating pipeline.
-		DefaultVersion: &pipeline_model.APIPipelineVersion{
-			CreatedAt: pipeline.CreatedAt,
-			ID:        pipeline.ID,
-			Name:      "arguments-parameters.yaml",
-			Parameters: []*pipeline_model.APIParameter{
-				{Name: "param1", Value: "hello"},
-				{Name: "param2"}},
-			ResourceReferences: []*pipeline_model.APIResourceReference{{
-				Key:          &pipeline_model.APIResourceKey{ID: pipeline.ID, Type: pipeline_model.APIResourceTypePIPELINE},
-				Relationship: pipeline_model.APIRelationshipOWNER}}},
-	}
-	assert.Equal(t, expected, *pipeline)
 }
 
 func TestPipelineVersionAPI(t *testing.T) {
@@ -259,5 +283,6 @@ func (s *PipelineVersionApiTest) TearDownSuite() {
 }
 
 func (s *PipelineVersionApiTest) cleanUp() {
+	// Delete pipelines will delete pipelines and their versions.
 	test.DeleteAllPipelines(s.pipelineClient, s.T())
 }

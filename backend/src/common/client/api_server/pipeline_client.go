@@ -219,9 +219,91 @@ func (c *PipelineClient) CreatePipelineVersion(parameters *params.CreatePipeline
 		}
 
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to create pipeline. Params: '%v'", parameters),
-			fmt.Sprintf("Failed to create pipeline from URL '%v'", parameters.Body.PackageURL.PipelineURL))
+			fmt.Sprintf("Failed to create pipeline version. Params: '%v'", parameters),
+			fmt.Sprintf("Failed to create pipeline version from URL '%v'", parameters.Body.PackageURL.PipelineURL))
 	}
 
 	return response.Payload, nil
+}
+
+func (c *PipelineClient) ListVersions(parameters *params.ListPipelineVersionsParams) (
+	[]*model.APIPipelineVersion, int, string, error) {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	response, err := c.apiClient.PipelineService.ListPipelineVersions(parameters, PassThroughAuth)
+	if err != nil {
+		if defaultError, ok := err.(*params.ListPipelineVersionsDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return nil, 0, "", util.NewUserError(err,
+			fmt.Sprintf("Failed to list pipeline versions. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to list pipeline versions"))
+	}
+
+	return response.Payload.Versions, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
+}
+
+func (c *PipelineClient) GetVersion(parameters *params.GetPipelineVersionParams) (*model.APIPipelineVersion,
+	error) {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	response, err := c.apiClient.PipelineService.GetPipelineVersion(parameters, PassThroughAuth)
+	if err != nil {
+		if defaultError, ok := err.(*params.GetPipelineVersionDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to get pipeline. Params: '%v'", parameters),
+			fmt.Sprintf("Failed to get pipeline '%v'", parameters.VersionID))
+	}
+
+	return response.Payload, nil
+}
+
+func (c *PipelineClient) GetPipelineVersionTemplate(parameters *params.GetPipelineVersionTemplateParams) (
+	*workflowapi.Workflow, error) {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	response, err := c.apiClient.PipelineService.GetPipelineVersionTemplate(parameters, PassThroughAuth)
+	if err != nil {
+		if defaultError, ok := err.(*params.GetPipelineVersionTemplateDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to get template. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to get template for pipeline version '%v'", parameters.VersionID))
+	}
+
+	// Unmarshal response
+	var workflow workflowapi.Workflow
+	err = yaml.Unmarshal([]byte(response.Payload.Template), &workflow)
+	if err != nil {
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to unmarshal reponse. Params: '%+v'. Response: '%s'", parameters,
+				response.Payload.Template),
+			fmt.Sprintf("Failed to unmarshal reponse"))
+	}
+
+	return &workflow, nil
 }

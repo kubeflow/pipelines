@@ -26,6 +26,8 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/validate"
+
+	"fmt"
 )
 
 // APIResourceType api resource type
@@ -57,16 +59,19 @@ const (
 var apiResourceTypeEnum []interface{}
 
 func init() {
+	fmt.Println("JING resource type init")
 	var res []APIResourceType
 	if err := json.Unmarshal([]byte(`["UNKNOWN_RESOURCE_TYPE","EXPERIMENT","JOB","PIPELINE","PIPELINE_VERSION","NAMESPACE"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
+		fmt.Printf("JING enum value %+v\n", v)
 		apiResourceTypeEnum = append(apiResourceTypeEnum, v)
 	}
 }
 
 func (m APIResourceType) validateAPIResourceTypeEnum(path, location string, value APIResourceType) error {
+	fmt.Println("JING resource type validate resource type")
 	if err := validate.Enum(path, location, value, apiResourceTypeEnum); err != nil {
 		return err
 	}
@@ -75,6 +80,7 @@ func (m APIResourceType) validateAPIResourceTypeEnum(path, location string, valu
 
 // Validate validates this api resource type
 func (m APIResourceType) Validate(formats strfmt.Registry) error {
+	fmt.Println("JING resource type validate")
 	var res []error
 
 	// value enum

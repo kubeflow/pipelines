@@ -117,5 +117,6 @@ func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters
 			fmt.Sprintf("Failed to upload pipeline version"))
 	}
 
+	fmt.Printf("JING response %+v\n", response.Payload)
 	return response.Payload, nil
 }
