@@ -54,9 +54,7 @@ describe('DetailsFieldValue', () => {
   });
 
   it('does not render nulls as JSON', () => {
-    const tree = shallow(
-      <DetailsFieldValue index={1} fieldname={'key'} fieldvalue={'null'} />,
-    );
+    const tree = shallow(<DetailsFieldValue index={1} fieldname={'key'} fieldvalue={'null'} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -66,16 +64,12 @@ describe('DetailsFieldValue', () => {
   });
 
   it('does not render boolean:true as JSON', () => {
-    const tree = shallow(
-      <DetailsFieldValue index={1} fieldname={'key'} fieldvalue={'true'} />,
-    );
+    const tree = shallow(<DetailsFieldValue index={1} fieldname={'key'} fieldvalue={'true'} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('does not render boolean:false as JSON', () => {
-    const tree = shallow(
-      <DetailsFieldValue index={1} fieldname={'key'} fieldvalue={'false'} />,
-    );
+    const tree = shallow(<DetailsFieldValue index={1} fieldname={'key'} fieldvalue={'false'} />);
     expect(tree).toMatchSnapshot();
   });
 });
