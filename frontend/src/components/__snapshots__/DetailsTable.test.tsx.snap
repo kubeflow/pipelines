@@ -1,5 +1,204 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`DetailsFieldValue does not render boolean:false as JSON 1`] = `
+<span>
+  false
+</span>
+`;
+
+exports[`DetailsFieldValue does not render boolean:true as JSON 1`] = `
+<span>
+  true
+</span>
+`;
+
+exports[`DetailsFieldValue does not render nulls as JSON 1`] = `
+<span>
+  null
+</span>
+`;
+
+exports[`DetailsFieldValue does not render numbers as JSON 1`] = `
+<span>
+  10
+</span>
+`;
+
+exports[`DetailsFieldValue does render JSON string as JSON 1`] = `
+<div
+  className="row"
+  key="1"
+>
+  <span
+    className="key"
+  >
+    key
+  </span>
+  <Editor
+    cursorStart={1}
+    editorProps={Object {}}
+    enableBasicAutocompletion={false}
+    enableLiveAutocompletion={false}
+    enableSnippets={false}
+    focus={false}
+    fontSize={12}
+    height="500px"
+    highlightActiveLine={true}
+    maxLines={20}
+    minLines={3}
+    mode="json"
+    name="brace-editor"
+    navigateToFileEnd={true}
+    onChange={null}
+    onLoad={null}
+    onPaste={null}
+    onScroll={null}
+    placeholder={null}
+    readOnly={true}
+    scrollMargin={
+      Array [
+        0,
+        0,
+        0,
+        0,
+      ]
+    }
+    setOptions={Object {}}
+    showGutter={true}
+    showPrintMargin={true}
+    style={Object {}}
+    tabSize={4}
+    theme="github"
+    value="{
+  \\"foo\\": \\"bar\\"
+}"
+    width="100%"
+    wrapEnabled={false}
+  />
+</div>
+`;
+
+exports[`DetailsFieldValue does render argo s3artifacts as MinioArtifactPreview 1`] = `
+<MinioArtifactPreview
+  artifact={
+    Object {
+      "bucket": "bucket",
+      "key": "key",
+    }
+  }
+/>
+`;
+
+exports[`DetailsFieldValue does render arrays as JSON 1`] = `
+<div
+  className="row"
+  key="1"
+>
+  <span
+    className="key"
+  >
+    key
+  </span>
+  <Editor
+    cursorStart={1}
+    editorProps={Object {}}
+    enableBasicAutocompletion={false}
+    enableLiveAutocompletion={false}
+    enableSnippets={false}
+    focus={false}
+    fontSize={12}
+    height="500px"
+    highlightActiveLine={true}
+    maxLines={20}
+    minLines={3}
+    mode="json"
+    name="brace-editor"
+    navigateToFileEnd={true}
+    onChange={null}
+    onLoad={null}
+    onPaste={null}
+    onScroll={null}
+    placeholder={null}
+    readOnly={true}
+    scrollMargin={
+      Array [
+        0,
+        0,
+        0,
+        0,
+      ]
+    }
+    setOptions={Object {}}
+    showGutter={true}
+    showPrintMargin={true}
+    style={Object {}}
+    tabSize={4}
+    theme="github"
+    value="[]"
+    width="100%"
+    wrapEnabled={false}
+  />
+</div>
+`;
+
+exports[`DetailsFieldValue does render empty object as JSON 1`] = `
+<div
+  className="row"
+  key="1"
+>
+  <span
+    className="key"
+  >
+    key
+  </span>
+  <Editor
+    cursorStart={1}
+    editorProps={Object {}}
+    enableBasicAutocompletion={false}
+    enableLiveAutocompletion={false}
+    enableSnippets={false}
+    focus={false}
+    fontSize={12}
+    height="500px"
+    highlightActiveLine={true}
+    maxLines={20}
+    minLines={3}
+    mode="json"
+    name="brace-editor"
+    navigateToFileEnd={true}
+    onChange={null}
+    onLoad={null}
+    onPaste={null}
+    onScroll={null}
+    placeholder={null}
+    readOnly={true}
+    scrollMargin={
+      Array [
+        0,
+        0,
+        0,
+        0,
+      ]
+    }
+    setOptions={Object {}}
+    showGutter={true}
+    showPrintMargin={true}
+    style={Object {}}
+    tabSize={4}
+    theme="github"
+    value="{}"
+    width="100%"
+    wrapEnabled={false}
+  />
+</div>
+`;
+
+exports[`DetailsFieldValue does render string as SPAN 1`] = `
+<span>
+  text
+</span>
+`;
+
 exports[`DetailsTable does not render booleans as JSON 1`] = `
 <Fragment>
   <div>
@@ -15,7 +214,11 @@ exports[`DetailsTable does not render booleans as JSON 1`] = `
       <span
         className="valueText"
       >
-        true
+        <DetailsFieldValue
+          fieldname="key1"
+          fieldvalue="true"
+          index={0}
+        />
       </span>
     </div>
     <div
@@ -30,7 +233,11 @@ exports[`DetailsTable does not render booleans as JSON 1`] = `
       <span
         className="valueText"
       >
-        false
+        <DetailsFieldValue
+          fieldname="key2"
+          fieldvalue="false"
+          index={1}
+        />
       </span>
     </div>
   </div>
@@ -52,7 +259,11 @@ exports[`DetailsTable does not render nulls as JSON 1`] = `
       <span
         className="valueText"
       >
-        null
+        <DetailsFieldValue
+          fieldname="key"
+          fieldvalue="null"
+          index={0}
+        />
       </span>
     </div>
   </div>
@@ -74,7 +285,11 @@ exports[`DetailsTable does not render numbers as JSON 1`] = `
       <span
         className="valueText"
       >
-        10
+        <DetailsFieldValue
+          fieldname="key"
+          fieldvalue="10"
+          index={0}
+        />
       </span>
     </div>
   </div>
@@ -96,7 +311,11 @@ exports[`DetailsTable does not render strings as JSON 1`] = `
       <span
         className="valueText"
       >
-        "some string"
+        <DetailsFieldValue
+          fieldname="key"
+          fieldvalue="\\"some string\\""
+          index={0}
+        />
       </span>
     </div>
   </div>
@@ -115,45 +334,15 @@ exports[`DetailsTable does render arrays as JSON 1`] = `
       >
         key
       </span>
-      <Editor
-        cursorStart={1}
-        editorProps={Object {}}
-        enableBasicAutocompletion={false}
-        enableLiveAutocompletion={false}
-        enableSnippets={false}
-        focus={false}
-        fontSize={12}
-        height="500px"
-        highlightActiveLine={true}
-        maxLines={20}
-        minLines={3}
-        mode="json"
-        name="brace-editor"
-        navigateToFileEnd={true}
-        onChange={null}
-        onLoad={null}
-        onPaste={null}
-        onScroll={null}
-        placeholder={null}
-        readOnly={true}
-        scrollMargin={
-          Array [
-            0,
-            0,
-            0,
-            0,
-          ]
-        }
-        setOptions={Object {}}
-        showGutter={true}
-        showPrintMargin={true}
-        style={Object {}}
-        tabSize={4}
-        theme="github"
-        value="[]"
-        width="100%"
-        wrapEnabled={false}
-      />
+      <span
+        className="valueText"
+      >
+        <DetailsFieldValue
+          fieldname="key"
+          fieldvalue="[]"
+          index={0}
+        />
+      </span>
     </div>
   </div>
 </Fragment>
@@ -171,45 +360,41 @@ exports[`DetailsTable does render arrays as JSON 2`] = `
       >
         key
       </span>
-      <Editor
-        cursorStart={1}
-        editorProps={Object {}}
-        enableBasicAutocompletion={false}
-        enableLiveAutocompletion={false}
-        enableSnippets={false}
-        focus={false}
-        fontSize={12}
-        height="500px"
-        highlightActiveLine={true}
-        maxLines={20}
-        minLines={3}
-        mode="json"
-        name="brace-editor"
-        navigateToFileEnd={true}
-        onChange={null}
-        onLoad={null}
-        onPaste={null}
-        onScroll={null}
-        placeholder={null}
-        readOnly={true}
-        scrollMargin={
-          Array [
-            0,
-            0,
-            0,
-            0,
-          ]
-        }
-        setOptions={Object {}}
-        showGutter={true}
-        showPrintMargin={true}
-        style={Object {}}
-        tabSize={4}
-        theme="github"
-        value="{}"
-        width="100%"
-        wrapEnabled={false}
-      />
+      <span
+        className="valueText"
+      >
+        <DetailsFieldValue
+          fieldname="key"
+          fieldvalue="{}"
+          index={0}
+        />
+      </span>
+    </div>
+  </div>
+</Fragment>
+`;
+
+exports[`DetailsTable does render empty object as JSON 1`] = `
+<Fragment>
+  <div>
+    <div
+      className="row"
+      key="0"
+    >
+      <span
+        className="key"
+      >
+        key
+      </span>
+      <span
+        className="valueText"
+      >
+        <DetailsFieldValue
+          fieldname="key"
+          fieldvalue="{}"
+          index={0}
+        />
+      </span>
     </div>
   </div>
 </Fragment>
@@ -243,31 +428,43 @@ exports[`DetailsTable does render previews if the values of the fields are S3Art
       <span
         className="valueText"
       >
-        <MinioArtifactPreview
-          artifact={
+        <DetailsFieldValue
+          fieldname="key"
+          fieldvalue={
             Object {
               "bucket": "someBucket",
               "endpoint": "s3.amazonaws.com",
               "key": "foobar",
             }
           }
+          index={0}
         >
-          <div>
-            <a
-              href="artifacts/get?source=s3&bucket=someBucket&key=foobar"
-              rel="noreferrer noopener"
-              target="_blank"
-              title="s3://someBucket/foobar"
-            >
-              s3://someBucket/foobar
-            </a>
+          <MinioArtifactPreview
+            artifact={
+              Object {
+                "bucket": "someBucket",
+                "endpoint": "s3.amazonaws.com",
+                "key": "foobar",
+              }
+            }
+          >
             <div>
-              <small>
-                <pre />
-              </small>
+              <a
+                href="artifacts/get?source=s3&bucket=someBucket&key=foobar"
+                rel="noreferrer noopener"
+                target="_blank"
+                title="s3://someBucket/foobar"
+              >
+                s3://someBucket/foobar
+              </a>
+              <div>
+                <small>
+                  <pre />
+                </small>
+              </div>
             </div>
-          </div>
-        </MinioArtifactPreview>
+          </MinioArtifactPreview>
+        </DetailsFieldValue>
       </span>
     </div>
   </div>
@@ -294,7 +491,11 @@ exports[`DetailsTable shows a row with a title 1`] = `
       <span
         className="valueText"
       >
-        value
+        <DetailsFieldValue
+          fieldname="key"
+          fieldvalue="value"
+          index={0}
+        />
       </span>
     </div>
   </div>
@@ -313,49 +514,15 @@ exports[`DetailsTable shows key and JSON value in row 1`] = `
       >
         key
       </span>
-      <Editor
-        cursorStart={1}
-        editorProps={Object {}}
-        enableBasicAutocompletion={false}
-        enableLiveAutocompletion={false}
-        enableSnippets={false}
-        focus={false}
-        fontSize={12}
-        height="500px"
-        highlightActiveLine={true}
-        maxLines={20}
-        minLines={3}
-        mode="json"
-        name="brace-editor"
-        navigateToFileEnd={true}
-        onChange={null}
-        onLoad={null}
-        onPaste={null}
-        onScroll={null}
-        placeholder={null}
-        readOnly={true}
-        scrollMargin={
-          Array [
-            0,
-            0,
-            0,
-            0,
-          ]
-        }
-        setOptions={Object {}}
-        showGutter={true}
-        showPrintMargin={true}
-        style={Object {}}
-        tabSize={4}
-        theme="github"
-        value="[
-  {
-    \\"jsonKey\\": \\"jsonValue\\"
-  }
-]"
-        width="100%"
-        wrapEnabled={false}
-      />
+      <span
+        className="valueText"
+      >
+        <DetailsFieldValue
+          fieldname="key"
+          fieldvalue="[{\\"jsonKey\\":\\"jsonValue\\"}]"
+          index={0}
+        />
+      </span>
     </div>
   </div>
 </Fragment>
@@ -376,7 +543,9 @@ exports[`DetailsTable shows key and value for large values 1`] = `
       <span
         className="valueText"
       >
-        Lorem Ipsum is simply dummy text of the printing and typesetting
+        <DetailsFieldValue
+          fieldname="key"
+          fieldvalue="Lorem Ipsum is simply dummy text of the printing and typesetting
       industry. Lorem Ipsum has been the industry's standard dummy text ever
       since the 1500s, when an unknown printer took a galley of type and
       scrambled it to make a type specimen book. It has survived not only five
@@ -384,7 +553,9 @@ exports[`DetailsTable shows key and value for large values 1`] = `
       essentially unchanged. It was popularised in the 1960s with the release
       of Letraset sheets containing Lorem Ipsum passages, and more recently
       with desktop publishing software like Aldus PageMaker including versions
-      of Lorem Ipsum.
+      of Lorem Ipsum."
+          index={0}
+        />
       </span>
     </div>
   </div>
@@ -406,7 +577,11 @@ exports[`DetailsTable shows key and value in row 1`] = `
       <span
         className="valueText"
       >
-        value
+        <DetailsFieldValue
+          fieldname="key"
+          fieldvalue="value"
+          index={0}
+        />
       </span>
     </div>
   </div>
@@ -428,7 +603,11 @@ exports[`DetailsTable shows keys and values for multiple rows 1`] = `
       <span
         className="valueText"
       >
-        value1
+        <DetailsFieldValue
+          fieldname="key1"
+          fieldvalue="value1"
+          index={0}
+        />
       </span>
     </div>
     <div
@@ -440,49 +619,15 @@ exports[`DetailsTable shows keys and values for multiple rows 1`] = `
       >
         key2
       </span>
-      <Editor
-        cursorStart={1}
-        editorProps={Object {}}
-        enableBasicAutocompletion={false}
-        enableLiveAutocompletion={false}
-        enableSnippets={false}
-        focus={false}
-        fontSize={12}
-        height="500px"
-        highlightActiveLine={true}
-        maxLines={20}
-        minLines={3}
-        mode="json"
-        name="brace-editor"
-        navigateToFileEnd={true}
-        onChange={null}
-        onLoad={null}
-        onPaste={null}
-        onScroll={null}
-        placeholder={null}
-        readOnly={true}
-        scrollMargin={
-          Array [
-            0,
-            0,
-            0,
-            0,
-          ]
-        }
-        setOptions={Object {}}
-        showGutter={true}
-        showPrintMargin={true}
-        style={Object {}}
-        tabSize={4}
-        theme="github"
-        value="[
-  {
-    \\"jsonKey\\": \\"jsonValue2\\"
-  }
-]"
-        width="100%"
-        wrapEnabled={false}
-      />
+      <span
+        className="valueText"
+      >
+        <DetailsFieldValue
+          fieldname="key2"
+          fieldvalue="[{\\"jsonKey\\":\\"jsonValue2\\"}]"
+          index={1}
+        />
+      </span>
     </div>
     <div
       className="row"
@@ -496,7 +641,11 @@ exports[`DetailsTable shows keys and values for multiple rows 1`] = `
       <span
         className="valueText"
       >
-        value3
+        <DetailsFieldValue
+          fieldname="key3"
+          fieldvalue="value3"
+          index={2}
+        />
       </span>
     </div>
     <div
@@ -511,7 +660,11 @@ exports[`DetailsTable shows keys and values for multiple rows 1`] = `
       <span
         className="valueText"
       >
-        value4
+        <DetailsFieldValue
+          fieldname="key4"
+          fieldvalue="value4"
+          index={3}
+        />
       </span>
     </div>
     <div
@@ -523,49 +676,15 @@ exports[`DetailsTable shows keys and values for multiple rows 1`] = `
       >
         key5
       </span>
-      <Editor
-        cursorStart={1}
-        editorProps={Object {}}
-        enableBasicAutocompletion={false}
-        enableLiveAutocompletion={false}
-        enableSnippets={false}
-        focus={false}
-        fontSize={12}
-        height="500px"
-        highlightActiveLine={true}
-        maxLines={20}
-        minLines={3}
-        mode="json"
-        name="brace-editor"
-        navigateToFileEnd={true}
-        onChange={null}
-        onLoad={null}
-        onPaste={null}
-        onScroll={null}
-        placeholder={null}
-        readOnly={true}
-        scrollMargin={
-          Array [
-            0,
-            0,
-            0,
-            0,
-          ]
-        }
-        setOptions={Object {}}
-        showGutter={true}
-        showPrintMargin={true}
-        style={Object {}}
-        tabSize={4}
-        theme="github"
-        value="{
-  \\"jsonKey\\": {
-    \\"nestedJsonKey\\": \\"jsonValue\\"
-  }
-}"
-        width="100%"
-        wrapEnabled={false}
-      />
+      <span
+        className="valueText"
+      >
+        <DetailsFieldValue
+          fieldname="key5"
+          fieldvalue="{\\"jsonKey\\":{\\"nestedJsonKey\\":\\"jsonValue\\"}}"
+          index={4}
+        />
+      </span>
     </div>
     <div
       className="row"
@@ -579,7 +698,11 @@ exports[`DetailsTable shows keys and values for multiple rows 1`] = `
       <span
         className="valueText"
       >
-        value6
+        <DetailsFieldValue
+          fieldname="key6"
+          fieldvalue="value6"
+          index={5}
+        />
       </span>
     </div>
     <div
@@ -594,7 +717,11 @@ exports[`DetailsTable shows keys and values for multiple rows 1`] = `
       <span
         className="valueText"
       >
-        value7
+        <DetailsFieldValue
+          fieldname="key6"
+          fieldvalue="value7"
+          index={6}
+        />
       </span>
     </div>
   </div>
@@ -622,7 +749,11 @@ exports[`DetailsTable shows one row 1`] = `
       <span
         className="valueText"
       >
-        value
+        <DetailsFieldValue
+          fieldname="key"
+          fieldvalue="value"
+          index={0}
+        />
       </span>
     </div>
   </div>

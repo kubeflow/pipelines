@@ -16,8 +16,69 @@
 
 import * as React from 'react';
 
-import DetailsTable from './DetailsTable';
+import DetailsTable, { DetailsFieldValue } from './DetailsTable';
 import { shallow, mount } from 'enzyme';
+
+describe('DetailsFieldValue', () => {
+  it('does render string as SPAN', () => {
+    const tree = shallow(<DetailsFieldValue index={1} fieldname={'key'} fieldvalue={'text'} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does render argo s3artifacts as MinioArtifactPreview', () => {
+    const tree = shallow(
+      <DetailsFieldValue
+        index={1}
+        fieldname={'key'}
+        fieldvalue={{ key: 'key', bucket: 'bucket' }}
+      />,
+    );
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does render JSON string as JSON', () => {
+    const tree = shallow(
+      <DetailsFieldValue index={1} fieldname={'key'} fieldvalue={JSON.stringify({ foo: 'bar' })} />,
+    );
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does render arrays as JSON', () => {
+    const tree = shallow(<DetailsFieldValue index={1} fieldname={'key'} fieldvalue={'[]'} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does render empty object as JSON', () => {
+    const tree = shallow(<DetailsFieldValue index={1} fieldname={'key'} fieldvalue={'{}'} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does not render nulls as JSON', () => {
+    const tree = shallow(
+      <DetailsFieldValue index={1} fieldname={'key'} fieldvalue={'null'} />,
+    );
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does not render numbers as JSON', () => {
+    const tree = shallow(<DetailsFieldValue index={1} fieldname={'key'} fieldvalue={'10'} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does not render boolean:true as JSON', () => {
+    const tree = shallow(
+      <DetailsFieldValue index={1} fieldname={'key'} fieldvalue={'true'} />,
+    );
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does not render boolean:false as JSON', () => {
+    const tree = shallow(
+      <DetailsFieldValue index={1} fieldname={'key'} fieldvalue={'false'} />,
+    );
+    expect(tree).toMatchSnapshot();
+  });
+});
 
 describe('DetailsTable', () => {
   it('shows no rows', () => {
@@ -74,7 +135,7 @@ describe('DetailsTable', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('does render arrays as JSON', () => {
+  it('does render empty object as JSON', () => {
     const tree = shallow(<DetailsTable fields={[['key', '{}']]} />);
     expect(tree).toMatchSnapshot();
   });

@@ -50,13 +50,69 @@ export const css = stylesheet({
 });
 
 interface DetailsTableProps {
-  fields: Array<KeyValue<string | S3Artifact>>;
+  fields: Array<KeyValue<string | Partial<S3Artifact>>>;
   title?: string;
+}
+
+interface DetailsFieldValueProps {
+  index?: number;
+  fieldname?: string;
+  fieldvalue?: string | Partial<S3Artifact>;
 }
 
 function isString(x: any): x is string {
   return typeof x === 'string';
 }
+
+export const DetailsFieldValue: React.FC<DetailsFieldValueProps> = ({
+  index,
+  fieldname,
+  fieldvalue,
+}) => {
+  // either return the plain text, or convert fieldvalue to a js obj
+  if (isString(fieldvalue)) {
+    try {
+      const parsedJson = JSON.parse(fieldvalue);
+      // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
+      // about rendering. Note that `typeOf null` returns 'object'
+      if (parsedJson === null || typeof parsedJson !== 'object') {
+        throw new Error('Parsed JSON was neither an array nor an object. Using default renderer');
+      }
+      // set the fieldvalue to be a js object.
+      fieldvalue = parsedJson;
+    } catch (error) {
+      // returns a simple text if the string is not a js object
+      return <span>{fieldvalue}</span>;
+    }
+  }
+
+  // if fieldvalue is an argo s3 artifact, renders a preview.
+  if (isS3Artifact(fieldvalue)) {
+    return <MinioArtifactPreview artifact={fieldvalue} />;
+  }
+
+  // if js object, renders a editor
+  if (fieldvalue && typeof fieldvalue === 'object') {
+    return (
+      <div key={index} className={css.row}>
+        <span className={css.key}>{fieldname}</span>
+        <Editor
+          width='100%'
+          minLines={3}
+          maxLines={20}
+          mode='json'
+          theme='github'
+          highlightActiveLine={true}
+          showGutter={true}
+          readOnly={true}
+          value={JSON.stringify(fieldvalue, null, 2) || ''}
+        />
+      </div>
+    );
+  }
+  // otherwise use default rendering
+  return <span>{`${fieldvalue}`}</span>;
+};
 
 const DetailsTable = (props: DetailsTableProps) => {
   return (
@@ -65,49 +121,11 @@ const DetailsTable = (props: DetailsTableProps) => {
       <div>
         {props.fields.map((f, i) => {
           const [key, value] = f;
-
-          // only try to parse json if value is a string
-          if (isString(value)) {
-            try {
-              const parsedJson = JSON.parse(value);
-              // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
-              // about rendering. Note that `typeOf null` returns 'object'
-              if (parsedJson === null || typeof parsedJson !== 'object') {
-                throw new Error(
-                  'Parsed JSON was neither an array nor an object. Using default renderer',
-                );
-              }
-              return (
-                <div key={i} className={css.row}>
-                  <span className={css.key}>{key}</span>
-                  <Editor
-                    width='100%'
-                    minLines={3}
-                    maxLines={20}
-                    mode='json'
-                    theme='github'
-                    highlightActiveLine={true}
-                    showGutter={true}
-                    readOnly={true}
-                    value={JSON.stringify(parsedJson, null, 2) || ''}
-                  />
-                </div>
-              );
-            } catch (err) {
-              // do nothing
-            }
-          }
-          // If value is an Argo S3Artifact obj, show the preview
-          // Otherwise just display it as is
           return (
             <div key={i} className={css.row}>
               <span className={css.key}>{key}</span>
               <span className={css.valueText}>
-                {isS3Artifact(value) ? (
-                  <MinioArtifactPreview artifact={value} />
-                ) : (
-                  JSON.stringify(value)
-                )}
+                <DetailsFieldValue index={i} fieldname={key} fieldvalue={value} />
               </span>
             </div>
           );
