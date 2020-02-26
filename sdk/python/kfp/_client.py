@@ -415,7 +415,7 @@ class Client(object):
     run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments, namespace=namespace)
     return RunPipelineResult(self, run_info)
 
-  def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, namespace=None):
+  def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, namespace=None, cron_schedule=None):
     """Schedule pipeline on kubeflow to run based upon a cron job
     
     Arguments:
@@ -455,7 +455,7 @@ class Client(object):
         workflow_manifest=pipeline_json_string,
         parameters=api_params)
     
-    trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(cron="0 0 9 ? * 2-6")
+    trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(cron=cron_schedule) #Example cron_schedule: "0 0 9 ? * 2-6"
     job_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
     schedule_body = kfp_server_api.models.ApiJob(
         id=job_id,
