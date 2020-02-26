@@ -337,6 +337,31 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	return r.runStore.CreateRun(runDetail)
 }
 
+// [TODO]
+func (r *ResourceManager) ResumePipeline(runID string) error {
+	// First we need to check if the run exsist or not
+	runDetail, err := r.checkRunExist(runID)
+	if err != nil {
+		return util.Wrap(err, "Run dont exsist")
+	}
+	// Then we need to get the namespace for it, since we need it to grab the current workflow I belive
+	namespace, err := r.GetNamespaceFromRunID(runID)
+	if err != nil {
+		return util.Wrap(err, "Cant find namespace for runId")
+	}
+	// Then we need to get the workflow from the runStore
+	var originalWorkflow util.Workflow
+	if err := json.Unmarshal([]byte(runDetail.WorkflowRuntimeManifest), &originalWorkflow); err != nil {
+		return util.NewInternalServerError(err, "Failed to find old workflow")
+	}
+	// Here we try to get the actuall workflow from argo
+	latestWorkflow, err := r.getWorkflowClient(namespace).Get(originalWorkflow.Name, v1.GetOptions{})
+	// Update the suspend to true
+	*latestWorkflow.Spec.Suspend = true
+	// Send the upded workflow to argo
+	_, err = r.getWorkflowClient(namespace).Update(latestWorkflow)
+}
+
 func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 	return r.runStore.GetRun(runId)
 }
