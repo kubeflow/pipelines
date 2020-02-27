@@ -67,6 +67,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
   --role=roles/ml.admin
 
 # More roles can be binded if your pipeline requires it.
+# --role=roles/bigquery.admin
 # --role=roles/dataproc.admin
 # --role=roles/dataflow.admin
 ```
