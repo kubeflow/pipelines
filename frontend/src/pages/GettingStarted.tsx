@@ -14,46 +14,63 @@
  * limitations under the License.
  */
 
+import Markdown from 'markdown-to-jsx';
 import * as React from 'react';
+import { classes, cssRaw } from 'typestyle';
+import { ApiFilter, PredicateOp } from '../apis/filter/api';
+import { AutoLink } from '../atoms/ExternalLink';
+import { RoutePageFactory } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
+import SAMPLE_CONFIG from '../config/sample_config_from_backend.json';
+import { commonCss, padding } from '../Css';
+import { Apis } from '../lib/Apis';
 import Buttons from '../lib/Buttons';
 import { Page } from './Page';
-import { ToolbarProps } from '../components/Toolbar';
-import Markdown from 'markdown-to-jsx';
-import { ExternalLink } from '../atoms/ExternalLink';
-import { cssRaw, classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
 
-const options = {
-  overrides: { a: { component: ExternalLink } },
+const DEMO_PIPELINES: string[] = SAMPLE_CONFIG.slice(0, 4);
+const DEMO_PIPELINES_ID_MAP = {
+  control: 3,
+  data: 2,
+  tfx: 1,
+  xgboost: 0,
 };
 
-const PAGE_CONTENT_MD = `
-## Build your own pipeline
+const PAGE_CONTENT_MD = ({
+  control,
+  data,
+  tfx,
+  xgboost,
+}: {
+  control: string;
+  data: string;
+  tfx: string;
+  xgboost: string;
+}) => `
+<br/>
 
-Build an end-to-end ML pipeline with TFX  [Start Here](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Fkubeflow%252Fpipelines%252F0.1.40%252Fsamples%252Fcore%252Fparameterized_tfx_oss%252Ftaxi_pipeline_notebook.ipynb) (Alpha)
+## Build your own pipeline with
 
-## Demos and Tutorials
+  * TensorFlow Extended (TFX) [SDK](https://www.tensorflow.org/tfx/guide) with end-to-end ML Pipeline Template ([Open TF 2.1 Notebook](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb))
+  * Kubeflow Pipelines [SDK](https://www.kubeflow.org/docs/pipelines/sdk/)
 
+<br/>
+
+## Demonstrations and Tutorials
 This section contains demo and tutorial pipelines.
 
 **Demos** - Try an end-to-end demonstration pipeline.
 
-  * [TFX pipeline demo](#/pipelines) - A trainer that does end-to-end distributed training for XGBoost models. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss)
-  * [XGBoost Pipeline](#/pipelines) - Example pipeline that does classification with model analysis based on a public taxi cab BigQuery dataset. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
+  * [TFX pipeline demo](${tfx}) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss)
+  * [XGBoost Pipeline demo](${xgboost}) - An example of end-to-end distributed training for an XGBoost model. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
 
+<br/>
 
 **Tutorials** - Learn pipeline concepts by following a tutorial.
 
-  * [Data passing in python components](#/pipelines) - Shows how to pass data between python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
-  * [DSL - Control structures](#/pipelines) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
+  * [Data passing in python components](${data}) - Shows how to pass data between python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
+  * [DSL - Control structures](${control}) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
 
-  You can find additional tutorials and samples [here]()
-
-### Additional resources and documentation
-  * [TFX Landing page](https://www.tensorflow.org/tfx)
-  * [Hosted Pipeline documentation](https://cloud.google.com/ai-platform)
-  * [Troubleshooting guide](https://www.kubeflow.org/docs/pipelines/troubleshooting/)
-  * [Kubeflow Pipeline Open source documentation](https://www.kubeflow.org/docs/pipelines/)
+Want to learn more? [Learn from sample and tutorial pipelines.](https://www.kubeflow.org/docs/pipelines/tutorials/)
 `;
 
 cssRaw(`
@@ -80,7 +97,15 @@ cssRaw(`
 }
 `);
 
-export class GettingStarted extends Page<{}, {}> {
+const OPTIONS = {
+  overrides: { a: { component: AutoLink } },
+};
+
+export class GettingStarted extends Page<{}, { links: string[] }> {
+  public state = {
+    links: ['', '', '', ''].map(getPipelineLink),
+  };
+
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
@@ -90,15 +115,61 @@ export class GettingStarted extends Page<{}, {}> {
     };
   }
 
+  public async componentDidMount() {
+    const ids = await Promise.all(
+      DEMO_PIPELINES.map(name =>
+        Apis.pipelineServiceApi
+          .listPipelines(undefined, 10, undefined, createAndEncodeFilter(name))
+          .then(pipelineList => {
+            const pipelines = pipelineList.pipelines;
+            if (pipelines?.length !== 1) {
+              // This should be accurate, do not accept ambiguous results.
+              return '';
+            }
+            return pipelines[0].id || '';
+          })
+          .catch(() => ''),
+      ),
+    );
+    this.setState({ links: ids.map(getPipelineLink) });
+  }
+
   public async refresh() {
-    // do nothing
+    this.componentDidMount();
   }
 
   public render(): JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'), 'kfp-start-page')}>
-        <Markdown options={options}>{PAGE_CONTENT_MD}</Markdown>
+        <Markdown options={OPTIONS}>
+          {PAGE_CONTENT_MD({
+            control: this.state.links[DEMO_PIPELINES_ID_MAP.control],
+            data: this.state.links[DEMO_PIPELINES_ID_MAP.data],
+            tfx: this.state.links[DEMO_PIPELINES_ID_MAP.tfx],
+            xgboost: this.state.links[DEMO_PIPELINES_ID_MAP.xgboost],
+          })}
+        </Markdown>
       </div>
     );
   }
+}
+
+function getPipelineLink(id: string) {
+  if (!id) {
+    return '#/pipelines';
+  }
+  return `#${RoutePageFactory.pipelineDetails(id)}`;
+}
+
+function createAndEncodeFilter(filterString: string): string {
+  const filter: ApiFilter = {
+    predicates: [
+      {
+        key: 'name',
+        op: PredicateOp.EQUALS,
+        string_value: filterString,
+      },
+    ],
+  };
+  return encodeURIComponent(JSON.stringify(filter));
 }

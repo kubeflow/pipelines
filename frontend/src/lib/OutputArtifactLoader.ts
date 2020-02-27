@@ -14,18 +14,6 @@
  * limitations under the License.
  */
 
-import WorkflowParser, { StoragePath } from './WorkflowParser';
-import { Apis } from '../lib/Apis';
-import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
-import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
-import { MarkdownViewerConfig } from '../components/viewers/MarkdownViewer';
-import { PagedTableConfig } from '../components/viewers/PagedTable';
-import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
-import { ROCCurveConfig } from '../components/viewers/ROCCurve';
-import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
-import { csvParseRows } from 'd3-dsv';
-import { logger, errorToMessage } from './Utils';
-import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 import {
   Api,
   Artifact,
@@ -33,17 +21,29 @@ import {
   Context,
   Event,
   Execution,
-  GetArtifactTypesRequest,
-  GetArtifactTypesResponse,
   GetArtifactsByIDRequest,
   GetArtifactsByIDResponse,
+  GetArtifactTypesRequest,
+  GetArtifactTypesResponse,
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
-  GetExecutionsByContextRequest,
-  GetExecutionsByContextResponse,
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
+  GetExecutionsByContextRequest,
+  GetExecutionsByContextResponse,
 } from '@kubeflow/frontend';
+import { csvParseRows } from 'd3-dsv';
+import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
+import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
+import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+import { MarkdownViewerConfig } from '../components/viewers/MarkdownViewer';
+import { PagedTableConfig } from '../components/viewers/PagedTable';
+import { ROCCurveConfig } from '../components/viewers/ROCCurve';
+import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
+import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
+import { Apis } from '../lib/Apis';
+import { errorToMessage, logger } from './Utils';
+import WorkflowParser, { StoragePath } from './WorkflowParser';
 
 export interface PlotMetadata {
   format?: 'csv';
@@ -56,6 +56,8 @@ export interface PlotMetadata {
   target_col?: string;
   type: PlotType;
 }
+
+type PlotMetadataContent = Omit<PlotMetadata, 'type'>;
 
 export interface OutputMetadata {
   outputs: PlotMetadata[];
@@ -109,7 +111,7 @@ export class OutputArtifactLoader {
   }
 
   public static async buildConfusionMatrixConfig(
-    metadata: PlotMetadata,
+    metadata: PlotMetadataContent,
   ): Promise<ConfusionMatrixConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -124,8 +126,8 @@ export class OutputArtifactLoader {
       throw new Error('"schema" must be an array of {"name": string, "type": string} objects');
     }
 
-    const path = WorkflowParser.parseStoragePath(metadata.source);
-    const csvRows = csvParseRows((await Apis.readFile(path)).trim());
+    const content = await getSourceContent(metadata.source, metadata.storage);
+    const csvRows = csvParseRows(content.trim());
     const labels = metadata.labels;
     const labelIndex: { [label: string]: number } = {};
     let index = 0;
@@ -162,7 +164,9 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildPagedTableConfig(metadata: PlotMetadata): Promise<PagedTableConfig> {
+  public static async buildPagedTableConfig(
+    metadata: PlotMetadataContent,
+  ): Promise<PagedTableConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -174,11 +178,11 @@ export class OutputArtifactLoader {
     }
     let data: string[][] = [];
     const labels = metadata.header || [];
+    const content = await getSourceContent(metadata.source, metadata.storage);
 
     switch (metadata.format) {
       case 'csv':
-        const path = WorkflowParser.parseStoragePath(metadata.source);
-        data = csvParseRows((await Apis.readFile(path)).trim()).map(r => r.map(c => c.trim()));
+        data = csvParseRows(content.trim()).map(r => r.map(c => c.trim()));
         break;
       default:
         throw new Error('Unsupported table format: ' + metadata.format);
@@ -192,7 +196,7 @@ export class OutputArtifactLoader {
   }
 
   public static async buildTensorboardConfig(
-    metadata: PlotMetadata,
+    metadata: PlotMetadataContent,
   ): Promise<TensorboardViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -204,25 +208,26 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildHtmlViewerConfig(metadata: PlotMetadata): Promise<HTMLViewerConfig> {
+  public static async buildHtmlViewerConfig(
+    metadata: PlotMetadataContent,
+  ): Promise<HTMLViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
-    const path = WorkflowParser.parseStoragePath(metadata.source);
-    const htmlContent = await Apis.readFile(path);
-
     return {
-      htmlContent,
+      htmlContent: await getSourceContent(metadata.source, metadata.storage),
       type: PlotType.WEB_APP,
     };
   }
 
   /**
+   * @param reportProgress callback to report load progress, accepts [0, 100]
    * @throws error on exceptions
    * @returns config array, also returns empty array when expected erros happen
    */
   public static async buildTFXArtifactViewerConfig(
     argoPodName: string,
+    reportProgress: (progress: number) => void = () => null,
   ): Promise<HTMLViewerConfig[]> {
     // Error handling assumptions:
     // * Context/execution/artifact nodes are not expected to be in MLMD. Thus, any
@@ -236,58 +241,130 @@ export class OutputArtifactLoader {
 
     // Since artifact types don't change per run, this can be optimized further so
     // that we don't fetch them on every page load.
+    reportProgress(10);
     const artifactTypes = await getArtifactTypes();
     if (artifactTypes.length === 0) {
       // There are no artifact types data.
       return [];
     }
+    reportProgress(20);
 
     const context = await getMlmdContext(argoPodName);
     if (!context) {
       // Failed finding corresponding MLMD context.
       return [];
     }
+    reportProgress(40);
 
     const execution = await getExecutionInContextWithPodName(argoPodName, context);
     if (!execution) {
       // Failed finding corresponding MLMD execution.
       return [];
     }
+    reportProgress(60);
 
     const artifacts = await getOutputArtifactsInExecution(execution);
     if (artifacts.length === 0) {
       // There are no artifacts in this execution.
       return [];
     }
+    reportProgress(80);
 
-    // TODO: Visualize other artifact types, such as Anomalies and Schema, using TFDV
-    // as well as ModelEvaluation using TFMA.
-    const tfdvArtifactPaths = filterTfdvArtifactsPaths(artifactTypes, artifacts);
-    const tfdvArtifactViewerConfigs = getTfdvArtifactViewers(tfdvArtifactPaths);
-    return Promise.all(tfdvArtifactViewerConfigs);
+    // TODO: Visualize non-TFDV artifacts, such as ModelEvaluation using TFMA
+    let viewers: Array<Promise<HTMLViewerConfig>> = [];
+    const exampleStatisticsArtifactUris = filterArtifactUrisByType(
+      'ExampleStatistics',
+      artifactTypes,
+      artifacts,
+    );
+    exampleStatisticsArtifactUris.forEach(uri => {
+      const evalUri = uri + '/eval/stats_tfrecord';
+      const trainUri = uri + '/train/stats_tfrecord';
+      viewers = viewers.concat(
+        [evalUri, trainUri].map(async specificUri => {
+          return buildArtifactViewerTfdvStatistics(specificUri);
+        }),
+      );
+    });
+    const schemaGenArtifactUris = filterArtifactUrisByType('Schema', artifactTypes, artifacts);
+    viewers = viewers.concat(
+      schemaGenArtifactUris.map(uri => {
+        uri = uri + '/schema.pbtxt';
+        const script = [
+          'import tensorflow_data_validation as tfdv',
+          `schema = tfdv.load_schema_text('${uri}')`,
+          'tfdv.display_schema(schema)',
+        ];
+        return buildArtifactViewer(script);
+      }),
+    );
+    const anomaliesArtifactUris = filterArtifactUrisByType(
+      'ExampleAnomalies',
+      artifactTypes,
+      artifacts,
+    );
+    viewers = viewers.concat(
+      anomaliesArtifactUris.map(uri => {
+        uri = uri + '/anomalies.pbtxt';
+        const script = [
+          'import tensorflow_data_validation as tfdv',
+          `anomalies = tfdv.load_anomalies_text('${uri}')`,
+          'tfdv.display_anomalies(anomalies)',
+        ];
+        return buildArtifactViewer(script);
+      }),
+    );
+    const EvaluatorArtifactUris = filterArtifactUrisByType(
+      'ModelEvaluation',
+      artifactTypes,
+      artifacts,
+    );
+    viewers = viewers.concat(
+      EvaluatorArtifactUris.map(uri => {
+        const configFilePath = uri + '/eval_config.json';
+        // The visualization of TFMA inside KFP UI depends a hack of TFMA widget js
+        // For context and future improvement, please refer to
+        // https://github.com/tensorflow/model-analysis/issues/10#issuecomment-587422929
+        const script = [
+          `import io`,
+          `import json`,
+          `import tensorflow as tf`,
+          `import tensorflow_model_analysis as tfma`,
+          `from ipywidgets.embed import embed_minimal_html`,
+          `from IPython.core.display import display, HTML`,
+          `config_file=tf.io.gfile.GFile('${configFilePath}', 'r')`,
+          `config=json.loads(config_file.read())`,
+          `featureKeys=list(filter(lambda x: 'featureKeys' in x, config['evalConfig']['slicingSpecs']))`,
+          `columns=[] if len(featureKeys) == 0 else featureKeys[0]['featureKeys']`,
+          `slicing_spec = tfma.slicer.SingleSliceSpec(columns=columns)`,
+          `eval_result = tfma.load_eval_result('${uri}')`,
+          `slicing_metrics_view = tfma.view.render_slicing_metrics(eval_result, slicing_spec=slicing_spec)`,
+          `view = io.StringIO()`,
+          `embed_minimal_html(view, views=[slicing_metrics_view], title='Slicing Metrics')`,
+          `html = view.getvalue().replace('dist/embed-amd.js" crossorigin="anonymous"></script>', 'dist/embed-amd.js" crossorigin="anonymous" data-jupyter-widgets-cdn="https://cdn.jsdelivr.net/gh/Bobgy/model-analysis@kfp/tensorflow_model_analysis/notebook/jupyter/js/dist/" crossorigin="anonymous"></script>')`,
+          `display(HTML(html))`,
+        ];
+        return buildArtifactViewer(script);
+      }),
+    );
+    // TODO(jingzhang36): maybe move the above built-in scripts to visualization server.
+
+    return Promise.all(viewers);
   }
 
   public static async buildMarkdownViewerConfig(
-    metadata: PlotMetadata,
+    metadata: PlotMetadataContent,
   ): Promise<MarkdownViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
-    let markdownContent = '';
-    if (metadata.storage === 'inline') {
-      markdownContent = metadata.source;
-    } else {
-      const path = WorkflowParser.parseStoragePath(metadata.source);
-      markdownContent = await Apis.readFile(path);
-    }
-
     return {
-      markdownContent,
+      markdownContent: await getSourceContent(metadata.source, metadata.storage),
       type: PlotType.MARKDOWN,
     };
   }
 
-  public static async buildRocCurveConfig(metadata: PlotMetadata): Promise<ROCCurveConfig> {
+  public static async buildRocCurveConfig(metadata: PlotMetadataContent): Promise<ROCCurveConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -298,8 +375,8 @@ export class OutputArtifactLoader {
       throw new Error('Malformed schema, must be an array of {"name": string, "type": string}');
     }
 
-    const path = WorkflowParser.parseStoragePath(metadata.source);
-    const stringData = csvParseRows((await Apis.readFile(path)).trim());
+    const content = await getSourceContent(metadata.source, metadata.storage);
+    const stringData = csvParseRows(content.trim());
 
     const fprIndex = metadata.schema.findIndex(field => field.name === 'fpr');
     if (fprIndex === -1) {
@@ -450,85 +527,62 @@ async function getArtifactTypes(): Promise<ArtifactType[]> {
   return res.getArtifactTypesList();
 }
 
-function filterTfdvArtifactsPaths(artifactTypes: ArtifactType[], artifacts: Artifact[]): string[] {
-  const tfdvArtifactTypeIds = artifactTypes
-    .filter(artifactType => artifactType.getName() === 'ExampleStatistics')
+function filterArtifactUrisByType(
+  artifactTypeName: string,
+  artifactTypes: ArtifactType[],
+  artifacts: Artifact[],
+): string[] {
+  const artifactTypeIds = artifactTypes
+    .filter(artifactType => artifactType.getName() === artifactTypeName)
     .map(artifactType => artifactType.getId());
-  const tfdvArtifacts = artifacts.filter(artifact =>
-    tfdvArtifactTypeIds.includes(artifact.getTypeId()),
+  const matchingArtifacts = artifacts.filter(artifact =>
+    artifactTypeIds.includes(artifact.getTypeId()),
   );
 
-  const tfdvArtifactsPaths = tfdvArtifacts
-    .filter(artifact => artifact.getUri()) // uri not empty
-    .flatMap(artifact => [
-      artifact.getUri() + '/eval/stats_tfrecord', // eval uri
-      artifact.getUri() + '/train/stats_tfrecord', // train uri
-    ]);
+  const tfdvArtifactsPaths = matchingArtifacts
+    .map(artifact => artifact.getUri())
+    .filter(uri => uri); // uri not empty
   return tfdvArtifactsPaths;
 }
 
-function getTfdvArtifactViewers(tfdvArtifactPaths: string[]): Array<Promise<HTMLViewerConfig>> {
-  return tfdvArtifactPaths.map(async artifactPath => {
-    const script = [
-      'import tensorflow_data_validation as tfdv',
-      `stats = tfdv.load_statistics('${artifactPath}')`,
-      'tfdv.visualize_statistics(stats)',
-    ];
-    const visualizationData: ApiVisualization = {
-      arguments: JSON.stringify({ code: script }),
-      source: '',
-      type: ApiVisualizationType.CUSTOM,
-    };
-    const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
-    if (!visualization.htmlContent) {
-      // TODO: Improve error message with details.
-      throw new Error('Failed to build TFDV artifact visualization');
-    }
-    return {
-      htmlContent: visualization.htmlContent,
-      type: PlotType.WEB_APP,
-    };
-  });
+async function buildArtifactViewer(script: string[]): Promise<HTMLViewerConfig> {
+  const visualizationData: ApiVisualization = {
+    arguments: JSON.stringify({ code: script }),
+    source: '',
+    type: ApiVisualizationType.CUSTOM,
+  };
+  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
+  if (!visualization.htmlContent) {
+    // TODO: Improve error message with details.
+    throw new Error('Failed to build artifact viewer');
+  }
+  return {
+    htmlContent: visualization.htmlContent,
+    type: PlotType.WEB_APP,
+  };
 }
 
-// TODO: add tfma back
-// function filterTfmaArtifactsPaths(
-//   artifactTypes: ArtifactType[],
-//   artifacts: Artifact[],
-// ): string[] {
-//   const tfmaArtifactTypeIds = artifactTypes
-//     .filter(artifactType => artifactType.getName() === 'ModelEvaluation')
-//     .map(artifactType => artifactType.getId());
-//   const tfmaArtifacts = artifacts.filter(artifact =>
-//     tfmaArtifactTypeIds.includes(artifact.getTypeId()),
-//   );
+async function buildArtifactViewerTfdvStatistics(url: string): Promise<HTMLViewerConfig> {
+  const visualizationData: ApiVisualization = {
+    source: url,
+    type: ApiVisualizationType.TFDV,
+  };
+  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
+  if (!visualization.htmlContent) {
+    throw new Error('Failed to build artifact viewer, no value in visualization.htmlContent');
+  }
+  return {
+    htmlContent: visualization.htmlContent,
+    type: PlotType.WEB_APP,
+  };
+}
 
-//   const tfmaArtifactPaths = tfmaArtifacts.map(artifact => artifact.getUri()).filter(uri => uri); // uri not empty
-//   return tfmaArtifactPaths;
-// }
-
-// async function getTfmaArtifactViewers(
-//   tfmaArtifactPaths: string[],
-// ): Array<Promise<HTMLViewerConfig>> {
-//   return tfmaArtifactPaths.map(async artifactPath => {
-//     const script = [
-//       'import tensorflow_model_analysis as tfma',
-//       `tfma_result = tfma.load_eval_result('${artifactPath}')`,
-//       'tfma.view.render_slicing_metrics(tfma_result)',
-//     ];
-//     const visualizationData: ApiVisualization = {
-//       arguments: JSON.stringify({ code: script }),
-//       source: '',
-//       type: ApiVisualizationType.CUSTOM,
-//     };
-//     const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
-//     if (!visualization.htmlContent) {
-//       // TODO: Improve error message with details.
-//       throw new Error('Failed to build TFMA artifact visualization');
-//     }
-//     return {
-//       htmlContent: visualization.htmlContent,
-//       type: PlotType.WEB_APP,
-//     };
-//   });
-// }
+async function getSourceContent(
+  source: PlotMetadata['source'],
+  storage?: PlotMetadata['storage'],
+): Promise<string> {
+  if (storage === 'inline') {
+    return source;
+  }
+  return await Apis.readFile(WorkflowParser.parseStoragePath(source));
+}

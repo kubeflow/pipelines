@@ -29,7 +29,7 @@ __all__ = [
 
 from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
-from ._data_passing import serialize_value, type_name_to_deserializer, type_name_to_serializer, type_to_type_name
+from ._data_passing import serialize_value, get_deserializer_code_for_type_struct, get_serializer_func_for_type_struct, get_canonical_type_struct_for_type
 from ._naming import _make_name_unique_by_adding_index
 from .structures import *
 
@@ -191,6 +191,66 @@ import pickle
     return function_loading_code
 
 
+def strip_type_hints(source_code: str) -> str:
+    try:
+        return _strip_type_hints_using_strip_hints(source_code)
+    except Exception as ex:
+        print('Error when stripping type annotations: ' + str(ex))
+
+    try:        
+        return _strip_type_hints_using_lib2to3(source_code)
+    except Exception as ex:
+        print('Error when stripping type annotations: ' + str(ex))
+
+    return source_code    
+
+
+def _strip_type_hints_using_strip_hints(source_code: str) -> str:
+    from strip_hints import strip_string_to_string
+
+    # Workaround for https://github.com/abarker/strip-hints/issues/4 , https://bugs.python.org/issue35107
+    # I could not repro it though
+    if source_code[-1] != '\n':
+        source_code += '\n'
+
+    return strip_string_to_string(source_code, to_empty=True)
+
+
+def _strip_type_hints_using_lib2to3(source_code: str) -> str:
+    """Strips type annotations from the function definitions in the provided source code."""
+
+    # Using the standard lib2to3 library to strip type annotations.
+    # Switch to another library like strip-hints if issues are found.
+    from lib2to3 import fixer_base, refactor, fixer_util
+
+    class StripAnnotations(fixer_base.BaseFix):
+        PATTERN = r'''
+            typed_func_parameter=tname
+            |
+            typed_func_return_value=funcdef< any+ '->' any+ >
+        '''
+
+        def transform(self, node, results):
+            if 'typed_func_parameter' in results:
+                # Delete the annotation part of the function parameter declaration
+                del node.children[1:]
+            elif 'typed_func_return_value' in results:
+                # Delete the return annotation part of the function declaration
+                del node.children[-4:-2]
+            return node
+
+    class Refactor(refactor.RefactoringTool):
+        def __init__(self, fixers):
+            self._fixers = [cls(None, None) for cls in fixers]
+            super().__init__(None, {'print_function': True})
+
+        def get_fixers(self):
+            return self._fixers, []
+
+    stripped_code = Refactor([StripAnnotations]).refactor_string(source_code, '')
+    return stripped_code
+
+
 def _capture_function_code_using_source_copy(func) -> str:	
     import textwrap
 
@@ -208,13 +268,13 @@ def _capture_function_code_using_source_copy(func) -> str:
     if not func_code_lines:
         raise ValueError('Failed to dedent and clean up the source of function "{}". It is probably not properly indented.'.format(func.__name__))
 
-    #TODO: Add support for copying the NamedTuple subclass declaration code
-    #Adding NamedTuple import if needed
-    if hasattr(inspect.signature(func).return_annotation, '_fields'): #NamedTuple
-        func_code_lines.insert(0, '')
-        func_code_lines.insert(0, 'from typing import NamedTuple')
+    func_code = '\n'.join(func_code_lines)
 
-    return '\n'.join(func_code_lines)
+    # Stripping type annotations to prevent import errors.
+    # The most common cases are InputPath/OutputPath and typing.NamedTuple annotations
+    func_code = strip_type_hints(func_code)
+
+    return func_code
 
 
 def _extract_component_interface(func) -> ComponentSpec:
@@ -233,16 +293,19 @@ def _extract_component_interface(func) -> ComponentSpec:
         if isinstance(annotation, dict):
             return annotation
         if isinstance(annotation, type):
-            if annotation in type_to_type_name:
-                return type_to_type_name[annotation]
+            type_struct = get_canonical_type_struct_for_type(annotation)
+            if type_struct:
+                return type_struct
             type_name = str(annotation.__name__)
         elif hasattr(annotation, '__forward_arg__'): # Handling typing.ForwardRef('Type_name') (the name was _ForwardRef in python 3.5-3.6)
             type_name = str(annotation.__forward_arg__)
         else:
             type_name = str(annotation)
 
-        if type_name in type_to_type_name: # type_to_type_name can also have type name keys
-            type_name = type_to_type_name[type_name]
+        # It's also possible to get the converter by type name
+        type_struct = get_canonical_type_struct_for_type(type_name)
+        if type_struct:
+            return type_struct
         return type_name
 
     input_names = set()
@@ -401,8 +464,9 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     definitions = set()
     def get_deserializer_and_register_definitions(type_name):
-        if type_name in type_name_to_deserializer:
-            (deserializer_code_str, definition_str) = type_name_to_deserializer[type_name]
+        deserializer_code = get_deserializer_code_for_type_struct(type_name)
+        if deserializer_code:
+            (deserializer_code_str, definition_str) = deserializer_code
             if definition_str:
                 definitions.add(definition_str)
             return deserializer_code_str
@@ -412,7 +476,6 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
     def get_argparse_type_for_input_file(passing_style):
         if passing_style is None:
             return None
-        pre_func_definitions.add(inspect.getsource(passing_style))
 
         if passing_style is InputPath:
             return 'str'
@@ -436,8 +499,8 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
         raise NotImplementedError('Unexpected data passing style: "{}".'.format(str(passing_style)))
 
     def get_serializer_and_register_definitions(type_name) -> str:
-        if type_name in type_name_to_serializer:
-            serializer_func = type_name_to_serializer[type_name]
+        serializer_func = get_serializer_func_for_type_struct(type_name)
+        if serializer_func:
             # If serializer is not part of the standard python library, then include its code in the generated program
             if hasattr(serializer_func, '__module__') and not _module_is_builtin_or_standard(serializer_func.__module__):
                 import inspect

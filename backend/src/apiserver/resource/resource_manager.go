@@ -42,6 +42,9 @@ const (
 	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
 	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
 	defaultServiceAccount                     = "default-editor"
+	HasDefaultBucketEnvVar                    = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar                           = "PROJECT_ID"
+	DefaultBucketNameEnvVar                   = "BUCKET_NAME"
 )
 
 type ClientManagerInterface interface {
@@ -156,7 +159,7 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	// versions and hence multiple files, and we shall improve performance by
 	// either using async deletion in order for this method to be non-blocking
 	// or or exploring other performance optimization tools provided by gcs.
-	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
+	err = r.objectStore.DeleteFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineId)))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline %v", pipelineId))
 		return nil
@@ -192,7 +195,7 @@ func (r *ResourceManager) CreatePipeline(name string, description string, pipeli
 
 	// Store the pipeline file to a path dependent on pipeline version
 	err = r.objectStore.AddFile(pipelineFile,
-		storage.CreatePipelinePath(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
+		r.objectStore.GetPipelineKey(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
@@ -229,7 +232,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 		return nil, util.Wrap(err,
 			"Get pipeline template failed since no default version is defined")
 	}
-	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(pipeline.DefaultVersion.UUID)))
+	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipeline.DefaultVersion.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
@@ -283,6 +286,12 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
+
+	err = OverrideParameterWithSystemDefault(workflow, apiRun)
+	if err != nil {
+		return nil, err
+	}
+
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, runId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
@@ -295,7 +304,6 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
-	// TODO: Change the compiler to stop auto-adding those two atrifacts to all tasks.
 	for templateIdx, template := range workflow.Workflow.Spec.Templates {
 		for artIdx, artifact := range template.Outputs.Artifacts {
 			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
@@ -304,8 +312,16 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		}
 	}
 
+	namespace := common.GetNamespaceFromAPIResourceReferences(apiRun.ResourceReferences)
+	if len(namespace) == 0 {
+		if multiuserMode {
+			return nil, util.NewInvalidInputError("Run should specify namespace")
+		} else {
+			namespace = common.GetPodNamespace()
+		}
+	}
 	// Create argo workflow CRD resource
-	newWorkflow, err := r.getWorkflowClient(common.GetNamespaceFromAPIResourceReferences(apiRun.ResourceReferences)).Create(workflow.Get())
+	newWorkflow, err := r.getWorkflowClient(namespace).Create(workflow.Get())
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
 	}
@@ -525,8 +541,20 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
 				Spec:       workflow.Spec,
 			},
+			NoCatchup: util.BoolPointer(apiJob.NoCatchup),
 		},
 	}
+
+	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
+	// TODO: Fix the components to explicitly declare the artifacts they really output.
+	for templateIdx, template := range scheduledWorkflow.Spec.Workflow.Spec.Templates {
+		for artIdx, artifact := range template.Outputs.Artifacts {
+			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
+				scheduledWorkflow.Spec.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
+			}
+		}
+	}
+
 	newScheduledWorkflow, err := r.scheduledWorkflowClient.Create(scheduledWorkflow)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
@@ -599,6 +627,9 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	}
 	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
+	if len(workflow.Namespace) == 0 {
+		return util.NewInvalidInputError("Workflow missing namespace")
+	}
 
 	if workflow.PersistedFinalState() {
 		// If workflow's final state has being persisted, the workflow should be garbage collected.
@@ -741,7 +772,7 @@ func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, 
 	// run, we'll only check for the raw manifest in pipeline_spec.
 	if spec.GetPipelineId() != "" {
 		var workflow util.Workflow
-		err := r.objectStore.GetFromYamlFile(&workflow, storage.CreatePipelinePath(spec.GetPipelineId()))
+		err := r.objectStore.GetFromYamlFile(&workflow, r.objectStore.GetPipelineKey(spec.GetPipelineId()))
 		if err != nil {
 			return nil, util.Wrap(err, "Get pipeline YAML failed.")
 		}
@@ -764,7 +795,7 @@ func (r *ResourceManager) getWorkflowSpecBytesFromPipelineVersion(references []*
 		return nil, util.NewInvalidInputError("No pipeline version.")
 	}
 	var workflow util.Workflow
-	err := r.objectStore.GetFromYamlFile(&workflow, storage.CreatePipelinePath(pipelineVersionId))
+	err := r.objectStore.GetFromYamlFile(&workflow, r.objectStore.GetPipelineKey(pipelineVersionId))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline YAML failed.")
 	}
@@ -917,7 +948,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 	}
 
 	// Store the pipeline file
-	err = r.objectStore.AddFile(pipelineFile, storage.CreatePipelinePath(fmt.Sprint(version.UUID)))
+	err = r.objectStore.AddFile(pipelineFile, r.objectStore.GetPipelineKey(fmt.Sprint(version.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
@@ -953,7 +984,7 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 		return util.Wrap(err, "Delete pipeline version failed")
 	}
 
-	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineVersionId)))
+	err = r.objectStore.DeleteFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersionId)))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline version %v", pipelineVersionId))
 		return util.Wrap(err, "Delete pipeline version failed")
@@ -974,7 +1005,7 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 		return nil, util.Wrap(err, "Get pipeline version template failed")
 	}
 
-	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(versionId)))
+	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(versionId)))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline version template failed")
 	}
@@ -992,5 +1023,15 @@ func (r *ResourceManager) GetNamespaceFromRunID(runId string) (string, error) {
 		return "", util.Wrap(err, "Failed to get namespace from run id.")
 	}
 	namespace := model.GetNamespaceFromModelResourceReferences(runDetail.ResourceReferences)
+	if len(namespace) == 0 {
+		if common.IsMultiUserMode() {
+			// All runs should have namespace in multi user mode.
+			return "", errors.New("Invalid db data: run doesn't have a namespace resource reference")
+		} else {
+			// When db model doesn't have namespace stored (e.g. legacy runs), use
+			// pod namespace as default.
+			return common.GetPodNamespace(), nil
+		}
+	}
 	return namespace, nil
 }

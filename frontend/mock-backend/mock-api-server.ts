@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as express from 'express';
+import express from 'express';
 import mockApiMiddleware from './mock-api-middleware';
 
 const app = express();
@@ -21,7 +21,7 @@ const port = process.argv[2] || 3001;
 // Uncomment the following line to get 1000ms delay to all requests
 // app.use((req, res, next) => { setTimeout(next, 1000); });
 
-app.use((_, res, next) => {
+app.use((_: any, res: any, next: any) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'X-Requested-With, content-type');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');

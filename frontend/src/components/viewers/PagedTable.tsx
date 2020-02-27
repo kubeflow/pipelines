@@ -184,7 +184,10 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
   }
 
   private _stableSort(array: string[][]): string[][] {
-    const stabilizedThis = array.map((row: string[], index: number) => [row, index]);
+    const stabilizedThis = array.map((row: string[], index: number): [string[], number] => [
+      row,
+      index,
+    ]);
 
     const compareFn = this._getSorting(this.state.order, this.state.orderBy);
 

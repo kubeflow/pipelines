@@ -212,6 +212,7 @@ function getLineStyle(line: string): React.CSSProperties {
 
 function parseLine(line: string): React.ReactNode[] {
   // Linkify URLs starting with http:// or https://
+  // eslint-disable-next-line no-useless-escape
   const urlPattern = /(\b(https?):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
   let lastMatch = 0;
   let match = urlPattern.exec(line);
@@ -221,7 +222,7 @@ function parseLine(line: string): React.ReactNode[] {
     nodes.push(<span>{line.substr(lastMatch, match.index)}</span>);
     // Append URL via an anchor element
     nodes.push(
-      <a href={match[0]} target='_blank' className={css.a}>
+      <a href={match[0]} target='_blank' rel='noopener noreferrer' className={css.a}>
         {match[0]}
       </a>,
     );

@@ -44,3 +44,6 @@ func (c *PipelineUploadClientFake) UploadFile(filePath string,
 		return getDefaultUploadedPipeline(), nil
 	}
 }
+
+// TODO(jingzhang36): add UploadPipelineVersion fake to be used in integration test
+// after go_http_client and go_client are auto-generated from UploadPipelineVersion in PipelineUploadServer

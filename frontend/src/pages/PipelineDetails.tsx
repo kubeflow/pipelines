@@ -137,7 +137,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           return pipelineVersionIdFromParams ? pipelineVersionIdFromParams : '';
         },
       )
-      .newPipelineVersion('Upload pipeline version', () =>
+      .newPipelineVersion('Upload version', () =>
         pipelineIdFromParams ? pipelineIdFromParams : '',
       );
 
@@ -253,7 +253,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                               </FormControl>
                             </form>
                             <div className={css.summaryKey}>
-                              <a href={this._createVersionUrl()} target='_blank'>
+                              <a
+                                href={this._createVersionUrl()}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                              >
                                 Version source
                               </a>
                             </div>
@@ -478,13 +482,15 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           // TODO(jingzhang36): pagination not proper here. so if many versions,
           // the page size value should be?
           versions =
-            (await Apis.pipelineServiceApi.listPipelineVersions(
-              'PIPELINE',
-              pipelineId,
-              50,
-              undefined,
-              'created_at desc',
-            )).versions || [];
+            (
+              await Apis.pipelineServiceApi.listPipelineVersions(
+                'PIPELINE',
+                pipelineId,
+                50,
+                undefined,
+                'created_at desc',
+              )
+            ).versions || [];
         } catch (err) {
           await this.showPageError('Cannot retrieve pipeline versions.', err);
           logger.error('Cannot retrieve pipeline versions.', err);

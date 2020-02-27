@@ -68,6 +68,7 @@ interface NewRunState {
   isFirstRunInExperiment: boolean;
   isRecurringRun: boolean;
   maxConcurrentRuns?: string;
+  catchup: boolean;
   parameters: ApiParameter[];
   pipeline?: ApiPipeline;
   pipelineVersion?: ApiPipelineVersion;
@@ -112,6 +113,27 @@ class NewRun extends Page<{}, NewRunState> {
   static contextType = NamespaceContext;
   context!: React.ContextType<typeof NamespaceContext>;
 
+  public state: NewRunState = {
+    catchup: true,
+    description: '',
+    errorMessage: '',
+    experimentName: '',
+    experimentSelectorOpen: false,
+    isBeingStarted: false,
+    isClone: false,
+    isFirstRunInExperiment: false,
+    isRecurringRun: false,
+    parameters: [],
+    pipelineName: '',
+    pipelineSelectorOpen: false,
+    pipelineVersionName: '',
+    pipelineVersionSelectorOpen: false,
+    runName: '',
+    uploadDialogOpen: false,
+    usePipelineFromRunLabel: 'Using pipeline from cloned run',
+    useWorkflowFromRun: false,
+  };
+
   private pipelineSelectorColumns = [
     {
       customRenderer: NameWithTooltip,
@@ -141,30 +163,6 @@ class NewRun extends Page<{}, NewRunState> {
     { label: 'Description', flex: 2 },
     { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
   ];
-
-  constructor(props: any) {
-    super(props);
-
-    this.state = {
-      description: '',
-      errorMessage: '',
-      experimentName: '',
-      experimentSelectorOpen: false,
-      isBeingStarted: false,
-      isClone: false,
-      isFirstRunInExperiment: false,
-      isRecurringRun: false,
-      parameters: [],
-      pipelineName: '',
-      pipelineSelectorOpen: false,
-      pipelineVersionName: '',
-      pipelineVersionSelectorOpen: false,
-      runName: '',
-      uploadDialogOpen: false,
-      usePipelineFromRunLabel: 'Using pipeline from cloned run',
-      useWorkflowFromRun: false,
-    };
-  }
 
   public getInitialToolbarState(): ToolbarProps {
     return {
@@ -507,9 +505,10 @@ class NewRun extends Page<{}, NewRunState> {
               <div>Choose a method by which new runs will be triggered</div>
 
               <Trigger
-                onChange={(trigger, maxConcurrentRuns) =>
+                onChange={({ trigger, maxConcurrentRuns, catchup }) =>
                   this.setStateSafe(
                     {
+                      catchup,
                       maxConcurrentRuns,
                       trigger,
                     },
@@ -1036,6 +1035,7 @@ class NewRun extends Page<{}, NewRunState> {
       newRun = Object.assign(newRun, {
         enabled: true,
         max_concurrency: this.state.maxConcurrentRuns || '1',
+        no_catchup: !this.state.catchup,
         trigger: this.state.trigger,
       });
     }

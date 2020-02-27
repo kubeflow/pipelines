@@ -118,6 +118,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
             <a
               href={'apis/v1beta1/_proxy/' + podAddress}
               target='_blank'
+              rel='noopener noreferrer'
               className={commonCss.unstyled}
             >
               <Button

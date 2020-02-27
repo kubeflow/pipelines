@@ -286,7 +286,8 @@ class PythonOpTestCase(unittest.TestCase):
             bool_param : bool = True,
             none_param = None,
             custom_type_param: 'Custom type' = None,
-            ) -> NamedTuple('DummyName', [
+            custom_struct_type_param: {'CustomType': {'param1': 'value1', 'param2': 'value2'}} = None,
+        ) -> NamedTuple('DummyName', [
                 #('required_param',), # All typing.NamedTuple fields must have types
                 ('int_param', int),
                 ('float_param', float),
@@ -294,6 +295,7 @@ class PythonOpTestCase(unittest.TestCase):
                 ('bool_param', bool),
                 #('custom_type_param', 'Custom type'), #SyntaxError: Forward reference must be an expression -- got 'Custom type'
                 ('custom_type_param', 'CustomType'),
+                #('custom_struct_type_param', {'CustomType': {'param1': 'value1', 'param2': 'value2'}}), # TypeError: NamedTuple('Name', [(f0, t0), (f1, t1), ...]); each t must be a type Got {'CustomType': {'param1': 'value1', 'param2': 'value2'}}
             ]
         ):
             '''Function docstring'''
@@ -312,6 +314,7 @@ class PythonOpTestCase(unittest.TestCase):
                 InputSpec(name='bool_param', type='Boolean', default='True', optional=True),
                 InputSpec(name='none_param', optional=True), # No default='None'
                 InputSpec(name='custom_type_param', type='Custom type', optional=True),
+                InputSpec(name='custom_struct_type_param', type={'CustomType': {'param1': 'value1', 'param2': 'value2'}}, optional=True),
             ]
         )
         self.assertEqual(
@@ -323,6 +326,7 @@ class PythonOpTestCase(unittest.TestCase):
                 OutputSpec(name='bool_param', type='Boolean'),
                 #OutputSpec(name='custom_type_param', type='Custom type', default='None'),
                 OutputSpec(name='custom_type_param', type='CustomType'),
+                #OutputSpec(name='custom_struct_type_param', type={'CustomType': {'param1': 'value1', 'param2': 'value2'}}, optional=True),
             ]
         )
 
@@ -340,6 +344,7 @@ class PythonOpTestCase(unittest.TestCase):
                     {'name': 'bool_param', 'type': 'Boolean', 'default': 'True', 'optional': True},
                     {'name': 'none_param', 'optional': True}, # No default='None'
                     {'name': 'custom_type_param', 'type': 'Custom type', 'optional': True},
+                    {'name': 'custom_struct_type_param', 'type': {'CustomType': {'param1': 'value1', 'param2': 'value2'}}, 'optional': True},
                 ],
                 'outputs': [
                     {'name': 'int_param', 'type': 'Integer'},
@@ -347,6 +352,7 @@ class PythonOpTestCase(unittest.TestCase):
                     {'name': 'str_param', 'type': 'String'},
                     {'name': 'bool_param', 'type': 'Boolean'},
                     {'name': 'custom_type_param', 'type': 'CustomType'},
+                    #{'name': 'custom_struct_type_param', 'type': {'CustomType': {'param1': 'value1', 'param2': 'value2'}}, 'optional': True},
                 ]
             }
         )
@@ -705,6 +711,26 @@ class PythonOpTestCase(unittest.TestCase):
             },
         )
 
+    def test_annotations_stripping(self):
+        import typing
+        import collections
+
+        MyFuncOutputs = typing.NamedTuple('Outputs', [('sum', int), ('product', int)])
+
+        class CustomType1:
+            pass
+
+        def my_func(
+            param1: CustomType1 = None,  # This caused failure previously
+            param2: collections.OrderedDict = None,  # This caused failure previously
+        ) -> MyFuncOutputs: # This caused failure previously
+            assert param1 == None
+            assert param2 == None
+            return (8, 15)
+
+        task_factory = comp.create_component_from_func(my_func)
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'sum': '8', 'product': '15'})
 
     def test_file_input_name_conversion(self):
         # Checking the input name conversion rules for file inputs:

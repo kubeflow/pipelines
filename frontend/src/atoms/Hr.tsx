@@ -23,4 +23,5 @@ const style = {
   margin: `${spacing.base}px 0`,
 };
 
-export default (props: any) => <hr style={style} {...props} />;
+const Hr = (props: any) => <hr style={style} {...props} />;
+export default Hr;

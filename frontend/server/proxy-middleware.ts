@@ -77,7 +77,7 @@ export default (app: express.Application, apisPrefix: string) => {
         return _routePathWithReferer(proxyPrefix, req.path, req.headers.referer as string);
       },
 
-      pathRewrite: (_, req: any) => {
+      pathRewrite: (_: any, req: any) => {
         return _rewritePath(proxyPrefix, req.path, req.query);
       },
     }),

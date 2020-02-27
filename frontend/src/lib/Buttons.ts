@@ -296,7 +296,7 @@ export default class Buttons {
       outlined: true,
       style: { minWidth: 160 },
       title: label,
-      tooltip: 'Upload pipeline or pipeline version',
+      tooltip: 'Upload pipeline version',
     };
     return this;
   }
@@ -756,6 +756,8 @@ export default class Buttons {
     // Delete pipeline versions.
     const unsuccessfulVersionIds: { [pipelineId: string]: string[] } = {};
     await Promise.all(
+      // TODO: fix the no no return value bug
+      // eslint-disable-next-line array-callback-return
       Object.keys(toBeDeletedVersionIds).map(pipelineId => {
         toBeDeletedVersionIds[pipelineId].map(async versionId => {
           try {

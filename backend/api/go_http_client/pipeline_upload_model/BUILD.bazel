@@ -5,6 +5,11 @@ go_library(
     srcs = [
         "api_parameter.go",
         "api_pipeline.go",
+        "api_pipeline_version.go",
+        "api_relationship.go",
+        "api_resource_key.go",
+        "api_resource_reference.go",
+        "api_resource_type.go",
         "api_status.go",
         "api_url.go",
         "protobuf_any.go",

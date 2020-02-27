@@ -265,7 +265,7 @@ class Compare extends Page<{}, CompareState> {
       outputPathsList.map(async (pathList, i) => {
         for (const path of pathList) {
           const configs = await OutputArtifactLoader.load(path);
-          configs.map(config => {
+          configs.forEach(config => {
             const currentList: TaggedViewerConfig[] = viewersMap.get(config.type) || [];
             currentList.push({
               config,
@@ -294,7 +294,7 @@ class Compare extends Page<{}, CompareState> {
       [paramsSectionName]: true,
       [metricsSectionName]: true,
     };
-    Array.from(this.state.viewersMap.keys()).map(t => {
+    Array.from(this.state.viewersMap.keys()).forEach(t => {
       const sectionName = componentMap[t].prototype.getDisplayName();
       collapseSections[sectionName] = true;
     });
