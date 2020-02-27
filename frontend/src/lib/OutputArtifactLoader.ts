@@ -57,6 +57,8 @@ export interface PlotMetadata {
   type: PlotType;
 }
 
+type PlotMetadataContent = Omit<PlotMetadata, 'type'>;
+
 export interface OutputMetadata {
   outputs: PlotMetadata[];
 }
@@ -109,7 +111,7 @@ export class OutputArtifactLoader {
   }
 
   public static async buildConfusionMatrixConfig(
-    metadata: PlotMetadata,
+    metadata: PlotMetadataContent,
   ): Promise<ConfusionMatrixConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -124,8 +126,8 @@ export class OutputArtifactLoader {
       throw new Error('"schema" must be an array of {"name": string, "type": string} objects');
     }
 
-    const path = WorkflowParser.parseStoragePath(metadata.source);
-    const csvRows = csvParseRows((await Apis.readFile(path)).trim());
+    const content = await getSourceContent(metadata.source, metadata.storage);
+    const csvRows = csvParseRows(content.trim());
     const labels = metadata.labels;
     const labelIndex: { [label: string]: number } = {};
     let index = 0;
@@ -162,7 +164,9 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildPagedTableConfig(metadata: PlotMetadata): Promise<PagedTableConfig> {
+  public static async buildPagedTableConfig(
+    metadata: PlotMetadataContent,
+  ): Promise<PagedTableConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -174,11 +178,11 @@ export class OutputArtifactLoader {
     }
     let data: string[][] = [];
     const labels = metadata.header || [];
+    const content = await getSourceContent(metadata.source, metadata.storage);
 
     switch (metadata.format) {
       case 'csv':
-        const path = WorkflowParser.parseStoragePath(metadata.source);
-        data = csvParseRows((await Apis.readFile(path)).trim()).map(r => r.map(c => c.trim()));
+        data = csvParseRows(content.trim()).map(r => r.map(c => c.trim()));
         break;
       default:
         throw new Error('Unsupported table format: ' + metadata.format);
@@ -192,7 +196,7 @@ export class OutputArtifactLoader {
   }
 
   public static async buildTensorboardConfig(
-    metadata: PlotMetadata,
+    metadata: PlotMetadataContent,
   ): Promise<TensorboardViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -204,15 +208,14 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildHtmlViewerConfig(metadata: PlotMetadata): Promise<HTMLViewerConfig> {
+  public static async buildHtmlViewerConfig(
+    metadata: PlotMetadataContent,
+  ): Promise<HTMLViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
-    const path = WorkflowParser.parseStoragePath(metadata.source);
-    const htmlContent = await Apis.readFile(path);
-
     return {
-      htmlContent,
+      htmlContent: await getSourceContent(metadata.source, metadata.storage),
       type: PlotType.WEB_APP,
     };
   }
@@ -350,26 +353,18 @@ export class OutputArtifactLoader {
   }
 
   public static async buildMarkdownViewerConfig(
-    metadata: PlotMetadata,
+    metadata: PlotMetadataContent,
   ): Promise<MarkdownViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
-    let markdownContent = '';
-    if (metadata.storage === 'inline') {
-      markdownContent = metadata.source;
-    } else {
-      const path = WorkflowParser.parseStoragePath(metadata.source);
-      markdownContent = await Apis.readFile(path);
-    }
-
     return {
-      markdownContent,
+      markdownContent: await getSourceContent(metadata.source, metadata.storage),
       type: PlotType.MARKDOWN,
     };
   }
 
-  public static async buildRocCurveConfig(metadata: PlotMetadata): Promise<ROCCurveConfig> {
+  public static async buildRocCurveConfig(metadata: PlotMetadataContent): Promise<ROCCurveConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -380,8 +375,8 @@ export class OutputArtifactLoader {
       throw new Error('Malformed schema, must be an array of {"name": string, "type": string}');
     }
 
-    const path = WorkflowParser.parseStoragePath(metadata.source);
-    const stringData = csvParseRows((await Apis.readFile(path)).trim());
+    const content = await getSourceContent(metadata.source, metadata.storage);
+    const stringData = csvParseRows(content.trim());
 
     const fprIndex = metadata.schema.findIndex(field => field.name === 'fpr');
     if (fprIndex === -1) {
@@ -580,4 +575,14 @@ async function buildArtifactViewerTfdvStatistics(url: string): Promise<HTMLViewe
     htmlContent: visualization.htmlContent,
     type: PlotType.WEB_APP,
   };
+}
+
+async function getSourceContent(
+  source: PlotMetadata['source'],
+  storage?: PlotMetadata['storage'],
+): Promise<string> {
+  if (storage === 'inline') {
+    return source;
+  }
+  return await Apis.readFile(WorkflowParser.parseStoragePath(source));
 }
