@@ -109,7 +109,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // We use this pod address without encoding since encoded pod address failed to open the
     // tensorboard instance on this pod.
     // TODO: figure out why the encoded pod address failed to open the tensorboard.
-    const podAddress = this.state.podAddress.replace(/(^\w+:|^)\/\//, '');
+    const podAddress = this.state.podAddress.replace(/(^\w+:|^)\/\//, '').replace(/^https?:\/\//,'');
+    if (podAddress && !this.state.tensorboardReady) {
+      this._getTensorboardAppStatus(podAddress);
+    }
 
     return (
       <div>
@@ -238,29 +241,32 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
   }
 
+  private async _getTensorboardAppStatus(podAddress: string): Promise<void> {
+    console.log('check pod status');
+    var client = new XMLHttpRequest();
+    const setTensorboardReadiness = async(val: boolean) => {
+      this.setState({ tensorboardReady: val });
+    }
+    client.onload = function() {
+      if (this.status === 200) {
+        console.log('true')
+        setTensorboardReadiness(true);
+      } else {
+        console.log('false')
+        setTensorboardReadiness(false);
+      }
+    }
+    client.open("GET", 'apis/v1beta1/_proxy/' + podAddress, /*async*/true);
+    client.send();
+  }
+
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
       const { podAddress, tfVersion } = await Apis.getTensorboardApp(this._buildUrl());
       if (podAddress) {
         this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
         // When having pod address, we need to check whether the TB instance on that Pod is fully up and responsive given that TB instance usually takes some time to be actually accessible.
-        console.log('check pod status');
-        var client = new XMLHttpRequest();
-        const setTensorboardReadiness = async(val: boolean) => {
-          this.setState({ tensorboardReady: val });
-        }
-        client.onload = function() {
-          if (this.status === 200) {
-            console.log('true')
-            setTensorboardReadiness(true);
-          } else {
-            console.log('false')
-            setTensorboardReadiness(false);
-          }
-        }
-        console.log('pod address ' + podAddress)
-        client.open("GET", 'apis/v1beta1/_proxy/' + podAddress, /*async*/true);
-        client.send();
+        this._getTensorboardAppStatus(podAddress);
       } else {
         // No existing pod
         this.setState({ busy: false });
