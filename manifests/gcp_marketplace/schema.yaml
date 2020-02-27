@@ -4,7 +4,7 @@ x-google-marketplace:
   publishedVersion: '0.2.5'
   publishedVersionMetadata:
     releaseNote: >-
-      Based on 0.2.4 version.
+      Based on 0.2.5 version.
     releaseTypes:
       - Feature
     recommended: false
