@@ -258,6 +258,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
             setTensorboardReadiness(false);
           }
         }
+        console.log('pod address ' + podAddress)
         client.open("GET", 'apis/v1beta1/_proxy/' + podAddress, /*async*/true);
         client.send();
       } else {
