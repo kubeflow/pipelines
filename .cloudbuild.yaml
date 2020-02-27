@@ -182,6 +182,29 @@ steps:
          '/workspace/third_party/metadata_envoy/Dockerfile', '/workspace']
   id:   'buildMetadataEnvoy'
 
+# Tag for Hosted - SemVersion to Major.Minor parsing
+- id: "parseMajorMinorVersion"
+  waitFor: ["-"]
+  name: gcr.io/cloud-builders/docker
+  entrypoint: /bin/bash
+  args:
+    - -ceux
+    - |
+      # Parse major minor version and save to a file for reusing in other steps.
+      cat /workspace/VERSION | sed -e "s#[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)#\1.\2#" > /workspace/mm.ver
+
+# Tag for Hosted - Tag to hosted folder with MKP friendly name
+- id:   'tagForHosted'
+  waitFor: ['parseMajorMinorVersion', 'buildFrontend', 'buildApiServer', 'buildViewerCrdController',
+            'buildPersistenceAgent', 'buildInverseProxyAgent', 'buildVisualizationServer',
+            'buildMarketplaceDeployer']
+  name: 'gcr.io/cloud-builders/docker'
+  entrypoint: bash
+  args:
+  - -ceux
+  - |
+    /workspace/release/tag_for_hosted.sh $PROJECT_ID $COMMIT_SHA $(cat /workspace/VERSION) $(cat /workspace/mm.ver)
+
 images:
 # Images for the pipeline system itself
 - 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA'
