@@ -19,6 +19,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"strings"
 
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -26,9 +27,12 @@ import (
 )
 
 const (
+	KFPAnnotation        string = "pipelines.kubeflow.org"
+	ArgoWorkflowNodeName string = "workflows.argoproj.io/node-name"
 	ArgoWorkflowTemplate string = "workflows.argoproj.io/template"
 	ExecutionKey         string = "pipelines.kubeflow.org/execution_cache_key"
 	AnnotationPath       string = "/metadata/annotations"
+	TFXPodSuffix         string = "tfx/orchestration/kubeflow/container_entrypoint.py"
 )
 
 var (
@@ -50,6 +54,12 @@ func mutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) 
 	pod := corev1.Pod{}
 	if _, _, err := universalDeserializer.Decode(raw, nil, &pod); err != nil {
 		return nil, fmt.Errorf("could not deserialize pod object: %v", err)
+	}
+
+	// Pod filtering to only cache KFP argo pods except TFX pods
+	if !isValidPod(&pod) {
+		log.Printf("Not a valid pod")
+		return nil, nil
 	}
 
 	var patches []patchOperation
@@ -75,4 +85,44 @@ func mutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) 
 	})
 
 	return patches, nil
+}
+
+func isValidPod(pod *corev1.Pod) bool {
+	annotations := pod.ObjectMeta.Annotations
+	if !isKFPArgoPod(&annotations) {
+		return false
+	}
+	containers := pod.Spec.Containers
+	if isTFXPod(&containers) {
+		return false
+	}
+	return true
+}
+
+func isKFPArgoPod(annotations *map[string]string) bool {
+	// is argo pod or not
+	if _, exists := *annotations[ArgoWorkflowNodeName]; !exists {
+		return false
+	}
+	// is KFP pod or not
+	for k := range *annotations {
+		if strings.Contains(k, KFPAnnotation) {
+			return true
+		}
+	}
+	return false
+}
+
+func isTFXPod(containers *[]corev1.Container) bool {
+	var mainContainers []corev1.Container
+	for _, c := range *containers {
+		if c.Name == "main" {
+			mainContainers = append(mainContainers, c)
+		}
+	}
+	if len(mainContainers) > 1 {
+		return false
+	}
+	mainContainer := mainContainers[0]
+	return len(mainContainer.Command) != 0 && strings.HasSuffix(mainContainer.Command[len(mainContainer.Command)-1], TFXPodSuffix)
 }
