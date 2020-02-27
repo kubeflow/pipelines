@@ -33,3 +33,4 @@ docker tag gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA gcr.io/$PROJECT_
 docker tag gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA gcr.io/$PROJECT_ID/hosted/viewercrd:$MM_VER
 docker push gcr.io/$PROJECT_ID/hosted/viewercrd:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/viewercrd:$MM_VER
+
