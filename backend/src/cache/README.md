@@ -2,7 +2,7 @@
 To build the Docker image of cache server, run the following Docker command from the pipelines directory:
 
 ```
-docker build -t gcr.io/ml-pipeline-test/execution_cache:latest -f backend/execution_cache/Dockerfile .
+docker build -t gcr.io/ml-pipeline/cache-server:latest -f backend/Dockerfile.cacheserver .
 ```
 
 ## Deploy cache service to an existing KFP deployment
@@ -12,12 +12,12 @@ docker build -t gcr.io/ml-pipeline-test/execution_cache:latest -f backend/execut
 ```
 # Assume KFP is deployed in the namespace kubeflow
 export NAMESPACE=kubeflow
-./deployer/deploy-execution-cache.sh
+./deployer/deploy-cache-service.sh
 ```
 
-3. Go to pipelines/manifests/kustomize/metadata folder and run following scripts:
+3. Go to pipelines/manifests/kustomize/base/cache folder and run following scripts:
 
 ```
-kubectl apply -f execution-cache-deployment.yaml --namespace $NAMESPACE
-kubectl apply -f execution-cache-service.yaml --namespace $NAMESPACE
+kubectl apply -f cache-deployment.yaml --namespace $NAMESPACE
+kubectl apply -f cache-service.yaml --namespace $NAMESPACE
 ```
