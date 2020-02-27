@@ -94,17 +94,17 @@ steps:
          '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
          '/workspace/backend/metadata_writer/Dockerfile', '/workspace']
   waitFor: ["-"]
-- id: 'buildExecutionCache'
+- id: 'buildCacheServer'
 name: 'gcr.io/cloud-builders/docker'
-args: ['build', '-t', 'gcr.io/$PROJECT_ID/execution-cache:$COMMIT_SHA',
+args: ['build', '-t', 'gcr.io/$PROJECT_ID/cache-server:$COMMIT_SHA',
         '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
-        '/workspace/backend/Dockerfile.executioncache', '/workspace']
+        '/workspace/backend/Dockerfile.cacheserver', '/workspace']
 waitFor: ["-"]
-- id: 'buildExecutionCacheDeployer'
+- id: 'buildCacheDeployer'
 name: 'gcr.io/cloud-builders/docker'
-args: ['build', '-t', 'gcr.io/$PROJECT_ID/execution-cache-deployer:$COMMIT_SHA',
+args: ['build', '-t', 'gcr.io/$PROJECT_ID/cache-deployer:$COMMIT_SHA',
         '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
-        '/workspace/backend/src/execution_cache/deployer/Dockerfile', '/workspace']
+        '/workspace/backend/src/cache/deployer/Dockerfile', '/workspace']
 waitFor: ["-"]
 
 # Build marketplace deployer
@@ -227,8 +227,8 @@ images:
 - 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/execution-cache:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/execution-cache-deployer:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/cache-server:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/cache-deployer:$COMMIT_SHA'
 
 # Images for Marketplace
 - 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA'

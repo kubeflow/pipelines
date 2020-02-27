@@ -1,24 +1,24 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: execution-cache-deployer-job
+  name: cache-deployer-job
   labels:
-    app: execution-cache-deployer
+    app: cache-deployer
 spec:
   template:
     metadata:
       labels:
-        app: execution-cache-deployer
+        app: cache-deployer
     spec:
       containers:
       - name: main
-        image: gcr.io/ml-pipeline/execution-cache-deployer:latest
+        image: gcr.io/ml-pipeline/cache-deployer:latest
         imagePullPolicy: Always
         env:
           - name: NAMESPACE_TO_WATCH
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-      serviceAccountName: kubeflow-pipelines-execution-cache-deployer-sa
+      serviceAccountName: kubeflow-pipelines-cache-deployer-sa
       restartPolicy: OnFailure
       

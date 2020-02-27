@@ -59,7 +59,7 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-[ -z ${service} ] && service=execution-cache-server
+[ -z ${service} ] && service=cache-server
 [ -z ${secret} ] && secret=webhook-server-tls
 [ -z ${namespace} ] && namespace=kubeflow
 [ -z ${cert_output_path} ] && cert_output_path=${CA_FILE}

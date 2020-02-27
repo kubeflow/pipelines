@@ -2,8 +2,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    app: kubeflow-pipelines-execution-cache-deployer-clusterrole
-  name: kubeflow-pipelines-execution-cache-deployer-clusterrole
+    app: kubeflow-pipelines-cache-deployer-clusterrole
+  name: kubeflow-pipelines-cache-deployer-clusterrole
 rules:
 - apiGroups:
   - ""

@@ -29,7 +29,7 @@ images:
   newTag: 0.2.5
 - name: gcr.io/ml-pipeline/metadata-writer
   newTag: 0.2.5
-- name: gcr.io/ml-pipeline/execution-cache
+- name: gcr.io/ml-pipeline/cache-server
   newTag: 0.2.5
-- name: gcr.io/ml-pipeline/execution-cache-deployer
+- name: gcr.io/ml-pipeline/cache-deployer
   newTag: 0.2.5

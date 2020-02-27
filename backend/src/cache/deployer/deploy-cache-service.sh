@@ -14,13 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script is for deploying execution cache service to an existing cluster.
+# This script is for deploying cache service to an existing cluster.
 # Prerequisite: config kubectl to talk to your cluster. See ref below: 
 # https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl
 
 set -ex
 
-echo "Start deploying execution cache to existing cluster:"
+echo "Start deploying cache service to existing cluster:"
 
 NAMESPACE=${NAMESPACE_TO_WATCH:-default}
 export CA_FILE="ca_cert"
@@ -32,9 +32,9 @@ touch ${CA_FILE}
 echo "Signed certificate generated for cache server"
 
 # Patch CA_BUNDLE for MutatingWebhookConfiguration
-NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh --cert_input_path "${CA_FILE}" <./execution-cache-configmap.yaml.template >./execution-cache-configmap-ca-bundle.yaml
+NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh --cert_input_path "${CA_FILE}" <./cache-configmap.yaml.template >./cache-configmap-ca-bundle.yaml
 echo "CA_BUNDLE patched successfully"
 
 # Create MutatingWebhookConfiguration
-cat ./execution-cache-configmap-ca-bundle.yaml
-kubectl apply -f ./execution-cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
+cat ./cache-configmap-ca-bundle.yaml
+kubectl apply -f ./cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
