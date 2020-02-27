@@ -208,9 +208,13 @@ export class OutputArtifactLoader {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
-    const path = WorkflowParser.parseStoragePath(metadata.source);
-    const htmlContent = await Apis.readFile(path);
-
+    let htmlContent: string;
+    if (metadata.storage === 'inline') {
+      htmlContent = metadata.source;
+    } else {
+      const path = WorkflowParser.parseStoragePath(metadata.source);
+      htmlContent = await Apis.readFile(path);
+    }
     return {
       htmlContent,
       type: PlotType.WEB_APP,

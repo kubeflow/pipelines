@@ -268,6 +268,19 @@ describe('OutputArtifactLoader', () => {
         type: PlotType.WEB_APP,
       } as HTMLViewerConfig);
     });
+
+    it('returns source as html content when storage type is inline', async () => {
+      const metadata = {
+        source: `<html><body>
+        Hello World!
+      </body></html>`,
+        storage: 'inline',
+      };
+      expect(await OutputArtifactLoader.buildHtmlViewerConfig(metadata as any)).toEqual({
+        htmlContent: metadata.source,
+        type: PlotType.WEB_APP,
+      } as HTMLViewerConfig);
+    });
   });
 
   describe('buildMarkdownViewerConfig', () => {
