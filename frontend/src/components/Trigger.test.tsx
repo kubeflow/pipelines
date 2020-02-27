@@ -19,6 +19,17 @@ import Trigger from './Trigger';
 import { shallow } from 'enzyme';
 import { TriggerType, PeriodicInterval } from '../lib/TriggerUtils';
 
+const PARAMS_DEFAULT = {
+  catchup: true,
+  maxConcurrentRuns: '10',
+};
+const PERIODIC_DEFAULT = {
+  end_time: undefined,
+  interval_second: '60',
+  start_time: undefined,
+};
+const CRON_DEFAULT = { cron: '0 * * * * ?', end_time: undefined, start_time: undefined };
+
 describe('Trigger', () => {
   // tslint:disable-next-line:variable-name
   const RealDate = Date;
@@ -82,12 +93,12 @@ describe('Trigger', () => {
       (tree.instance() as Trigger).handleChange('type')({
         target: { value: TriggerType.INTERVALED },
       });
-      expect(spy).toHaveBeenLastCalledWith(
-        {
-          periodic_schedule: { end_time: undefined, interval_second: '60', start_time: undefined },
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
+          periodic_schedule: PERIODIC_DEFAULT,
         },
-        '10',
-      );
+      });
     });
 
     it('builds trigger with a start time if the checkbox is checked', () => {
@@ -99,10 +110,12 @@ describe('Trigger', () => {
       (tree.instance() as Trigger).handleChange('hasStartDate')({
         target: { type: 'checkbox', checked: true },
       });
-      expect(spy).toHaveBeenLastCalledWith(
-        { periodic_schedule: { end_time: undefined, interval_second: '60', start_time: testDate } },
-        '10',
-      );
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
+          periodic_schedule: { ...PERIODIC_DEFAULT, start_time: testDate },
+        },
+      });
     });
 
     it('builds trigger with the entered start date/time', () => {
@@ -116,16 +129,15 @@ describe('Trigger', () => {
       });
       (tree.instance() as Trigger).handleChange('startDate')({ target: { value: '2018-11-23' } });
       (tree.instance() as Trigger).handleChange('endTime')({ target: { value: '08:35' } });
-      expect(spy).toHaveBeenLastCalledWith(
-        {
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
           periodic_schedule: {
-            end_time: undefined,
-            interval_second: '60',
+            ...PERIODIC_DEFAULT,
             start_time: new Date(2018, 10, 23, 8, 35),
           },
         },
-        '10',
-      );
+      });
     });
 
     it('builds trigger without the entered start date if no time is entered', () => {
@@ -139,16 +151,12 @@ describe('Trigger', () => {
       });
       (tree.instance() as Trigger).handleChange('startDate')({ target: { value: '2018-11-23' } });
       (tree.instance() as Trigger).handleChange('startTime')({ target: { value: '' } });
-      expect(spy).toHaveBeenLastCalledWith(
-        {
-          periodic_schedule: {
-            end_time: undefined,
-            interval_second: '60',
-            start_time: undefined,
-          },
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
+          periodic_schedule: PERIODIC_DEFAULT,
         },
-        '10',
-      );
+      });
     });
 
     it('builds trigger without the entered start time if no date is entered', () => {
@@ -162,16 +170,12 @@ describe('Trigger', () => {
       });
       (tree.instance() as Trigger).handleChange('startDate')({ target: { value: '' } });
       (tree.instance() as Trigger).handleChange('startTime')({ target: { value: '11:33' } });
-      expect(spy).toHaveBeenLastCalledWith(
-        {
-          periodic_schedule: {
-            end_time: undefined,
-            interval_second: '60',
-            start_time: undefined,
-          },
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
+          periodic_schedule: PERIODIC_DEFAULT,
         },
-        '10',
-      );
+      });
     });
 
     it('builds trigger with a date if both start and end checkboxes are checked', () => {
@@ -186,10 +190,12 @@ describe('Trigger', () => {
       (tree.instance() as Trigger).handleChange('hasEndDate')({
         target: { type: 'checkbox', checked: true },
       });
-      expect(spy).toHaveBeenLastCalledWith(
-        { periodic_schedule: { end_time: testDate, interval_second: '60', start_time: testDate } },
-        '10',
-      );
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
+          periodic_schedule: { ...PERIODIC_DEFAULT, end_time: testDate, start_time: testDate },
+        },
+      });
     });
 
     it('resets trigger to no start date if it is added then removed', () => {
@@ -204,12 +210,12 @@ describe('Trigger', () => {
       (tree.instance() as Trigger).handleChange('hasStartDate')({
         target: { type: 'checkbox', checked: false },
       });
-      expect(spy).toHaveBeenLastCalledWith(
-        {
-          periodic_schedule: { end_time: undefined, interval_second: '60', start_time: undefined },
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
+          periodic_schedule: PERIODIC_DEFAULT,
         },
-        '10',
-      );
+      });
     });
 
     it('builds trigger with a weekly interval', () => {
@@ -221,16 +227,15 @@ describe('Trigger', () => {
       (tree.instance() as Trigger).handleChange('intervalCategory')({
         target: { value: PeriodicInterval.WEEK },
       });
-      expect(spy).toHaveBeenLastCalledWith(
-        {
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
           periodic_schedule: {
-            end_time: undefined,
+            ...PERIODIC_DEFAULT,
             interval_second: (7 * 24 * 60 * 60).toString(),
-            start_time: undefined,
           },
         },
-        '10',
-      );
+      });
     });
 
     it('builds trigger with an every-three-months interval', () => {
@@ -243,16 +248,15 @@ describe('Trigger', () => {
         target: { value: PeriodicInterval.MONTH },
       });
       (tree.instance() as Trigger).handleChange('intervalValue')({ target: { value: 3 } });
-      expect(spy).toHaveBeenLastCalledWith(
-        {
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
           periodic_schedule: {
-            end_time: undefined,
+            ...PERIODIC_DEFAULT,
             interval_second: (3 * 30 * 24 * 60 * 60).toString(),
-            start_time: undefined,
           },
         },
-        '10',
-      );
+      });
     });
 
     it('builds trigger with the specified max concurrency setting', () => {
@@ -262,16 +266,31 @@ describe('Trigger', () => {
         target: { value: TriggerType.INTERVALED },
       });
       (tree.instance() as Trigger).handleChange('maxConcurrentRuns')({ target: { value: '3' } });
-      expect(spy).toHaveBeenLastCalledWith(
-        {
-          periodic_schedule: {
-            end_time: undefined,
-            interval_second: '60',
-            start_time: undefined,
-          },
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        maxConcurrentRuns: '3',
+        trigger: {
+          periodic_schedule: PERIODIC_DEFAULT,
         },
-        '3',
-      );
+      });
+    });
+
+    it('builds trigger with the specified catchup setting', () => {
+      const spy = jest.fn();
+      const tree = shallow(<Trigger onChange={spy} />);
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
+      (tree.instance() as Trigger).handleChange('catchup')({
+        target: { type: 'checkbox', checked: false },
+      });
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        catchup: false,
+        trigger: {
+          periodic_schedule: PERIODIC_DEFAULT,
+        },
+      });
     });
   });
 
@@ -280,10 +299,12 @@ describe('Trigger', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-      expect(spy).toHaveBeenLastCalledWith(
-        { cron_schedule: { cron: '0 * * * * ?', end_time: undefined, start_time: undefined } },
-        '10',
-      );
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
+          cron_schedule: CRON_DEFAULT,
+        },
+      });
     });
 
     it('builds a 1-minute cron trigger with specified start date', () => {
@@ -294,10 +315,12 @@ describe('Trigger', () => {
         target: { type: 'checkbox', checked: true },
       });
       (tree.instance() as Trigger).handleChange('startDate')({ target: { value: '2018-03-23' } });
-      expect(spy).toHaveBeenLastCalledWith(
-        { cron_schedule: { cron: '0 * * * * ?', end_time: undefined, start_time: testDate } },
-        '10',
-      );
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
+          cron_schedule: { ...CRON_DEFAULT, start_time: testDate },
+        },
+      });
     });
 
     it('builds a daily cron trigger with specified end date/time', () => {
@@ -310,10 +333,12 @@ describe('Trigger', () => {
       (tree.instance() as Trigger).handleChange('intervalCategory')({
         target: { value: PeriodicInterval.DAY },
       });
-      expect(spy).toHaveBeenLastCalledWith(
-        { cron_schedule: { cron: '0 0 0 * * ?', end_time: testDate, start_time: undefined } },
-        '10',
-      );
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
+          cron_schedule: { ...CRON_DEFAULT, end_time: testDate, cron: '0 0 0 * * ?' },
+        },
+      });
     });
 
     it('builds a weekly cron trigger that runs every Monday, Friday, and Saturday', () => {
@@ -327,10 +352,12 @@ describe('Trigger', () => {
       (tree.instance() as any)._toggleDay(1);
       (tree.instance() as any)._toggleDay(5);
       (tree.instance() as any)._toggleDay(6);
-      expect(spy).toHaveBeenLastCalledWith(
-        { cron_schedule: { cron: '0 0 0 ? * 1,5,6', end_time: undefined, start_time: undefined } },
-        '10',
-      );
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
+          cron_schedule: { ...CRON_DEFAULT, cron: '0 0 0 ? * 1,5,6' },
+        },
+      });
     });
 
     it('builds a cron with the manually specified cron string, even if days are toggled', () => {
@@ -350,16 +377,12 @@ describe('Trigger', () => {
       (tree.instance() as Trigger).handleChange('cron')({
         target: { value: 'oops this will break!' },
       });
-      expect(spy).toHaveBeenLastCalledWith(
-        {
-          cron_schedule: {
-            cron: 'oops this will break!',
-            end_time: undefined,
-            start_time: undefined,
-          },
+      expect(spy).toHaveBeenLastCalledWith({
+        ...PARAMS_DEFAULT,
+        trigger: {
+          cron_schedule: { ...CRON_DEFAULT, cron: 'oops this will break!' },
         },
-        '10',
-      );
+      });
     });
   });
 });

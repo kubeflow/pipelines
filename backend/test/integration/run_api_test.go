@@ -36,12 +36,15 @@ func (s *RunApiTestSuite) SetupTest() {
 		return
 	}
 
-	err := test.WaitForReady(*namespace, *initializeTimeout)
-	if err != nil {
-		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+	if !*isDevMode {
+		err := test.WaitForReady(*namespace, *initializeTimeout)
+		if err != nil {
+			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+		}
 	}
 	s.namespace = *namespace
 	clientConfig := test.GetClientConfig(*namespace)
+	var err error
 	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
@@ -58,6 +61,8 @@ func (s *RunApiTestSuite) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get run client. Error: %s", err.Error())
 	}
+
+	s.cleanUp()
 }
 
 func (s *RunApiTestSuite) TestRunApis() {
@@ -215,11 +220,6 @@ func (s *RunApiTestSuite) TestRunApis() {
 	longRunningRunDetail, _, err = s.runClient.Get(&runparams.GetRunParams{RunID: longRunningRunDetail.Run.ID})
 	assert.Nil(t, err)
 	s.checkTerminatedRunDetail(t, longRunningRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, longRunningPipeline.ID)
-
-	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, t)
-	test.DeleteAllPipelines(s.pipelineClient, t)
-	test.DeleteAllRuns(s.runClient, t)
 }
 
 func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineId string) {
@@ -314,3 +314,18 @@ func TestRunApi(t *testing.T) {
 }
 
 // TODO(jingzhang36): include UploadPipelineVersion in integration test
+
+func (s *RunApiTestSuite) TearDownSuite() {
+	if *runIntegrationTests {
+		if !*isDevMode {
+			s.cleanUp()
+		}
+	}
+}
+
+func (s *RunApiTestSuite) cleanUp() {
+	/* ---------- Clean up ---------- */
+	test.DeleteAllExperiments(s.experimentClient, s.T())
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	test.DeleteAllRuns(s.runClient, s.T())
+}

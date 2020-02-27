@@ -16,11 +16,10 @@
 
 import * as React from 'react';
 import TensorboardViewer from './Tensorboard';
-import TestUtils from '../../TestUtils';
+import TestUtils, { diff } from '../../TestUtils';
 import { Apis } from '../../lib/Apis';
 import { PlotType } from './Viewer';
 import { ReactWrapper, ShallowWrapper, shallow, mount } from 'enzyme';
-import snapshotDiff from 'snapshot-diff';
 
 describe('Tensorboard', () => {
   let tree: ReactWrapper | ShallowWrapper;
@@ -50,10 +49,26 @@ describe('Tensorboard', () => {
     const getAppMock = () => Promise.resolve({ podAddress: '', tfVersion: '' });
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     tree = shallow(<TensorboardViewer configs={[]} />);
-    const baseTree = tree.debug();
+    const base = tree.debug();
 
     await TestUtils.flushPromises();
-    expect(snapshotDiff(tree.debug(), baseTree)).toMatchSnapshot();
+    expect(diff({ base, update: tree.debug() })).toMatchInlineSnapshot(`
+      Snapshot Diff:
+      - Expected
+      + Received
+
+      @@ --- --- @@
+                  </WithStyles(MenuItem)>
+                </WithStyles(WithFormControlContext(Select))>
+              </WithStyles(FormControl)>
+            </div>
+            <div>
+      -       <BusyButton className="buttonAction" disabled={false} onClick={[Function]} busy={true} title="Start Tensorboard" />
+      +       <BusyButton className="buttonAction" disabled={false} onClick={[Function]} busy={false} title="Start Tensorboard" />
+            </div>
+          </div>
+        </div>
+    `);
   });
 
   it('does not break on empty data', async () => {
@@ -61,10 +76,26 @@ describe('Tensorboard', () => {
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     const config = { type: PlotType.TENSORBOARD, url: '' };
     tree = shallow(<TensorboardViewer configs={[config]} />);
-    const baseTree = tree.debug();
+    const base = tree.debug();
 
     await TestUtils.flushPromises();
-    expect(snapshotDiff(tree.debug(), baseTree)).toMatchSnapshot();
+    expect(diff({ base, update: tree.debug() })).toMatchInlineSnapshot(`
+      Snapshot Diff:
+      - Expected
+      + Received
+
+      @@ --- --- @@
+                  </WithStyles(MenuItem)>
+                </WithStyles(WithFormControlContext(Select))>
+              </WithStyles(FormControl)>
+            </div>
+            <div>
+      -       <BusyButton className="buttonAction" disabled={false} onClick={[Function]} busy={true} title="Start Tensorboard" />
+      +       <BusyButton className="buttonAction" disabled={false} onClick={[Function]} busy={false} title="Start Tensorboard" />
+            </div>
+          </div>
+        </div>
+    `);
   });
 
   it('shows a link to the tensorboard instance if exists', async () => {
@@ -82,10 +113,26 @@ describe('Tensorboard', () => {
     const getAppMock = () => Promise.resolve({ podAddress: '', tfVersion: '' });
     const spy = jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     tree = shallow(<TensorboardViewer configs={[config]} />);
-    const baseTree = tree.debug();
+    const base = tree.debug();
 
     await TestUtils.flushPromises();
-    expect(snapshotDiff(tree.debug(), baseTree)).toMatchSnapshot();
+    expect(diff({ base, update: tree.debug() })).toMatchInlineSnapshot(`
+      Snapshot Diff:
+      - Expected
+      + Received
+
+      @@ --- --- @@
+                  </WithStyles(MenuItem)>
+                </WithStyles(WithFormControlContext(Select))>
+              </WithStyles(FormControl)>
+            </div>
+            <div>
+      -       <BusyButton className="buttonAction" disabled={false} onClick={[Function]} busy={true} title="Start Tensorboard" />
+      +       <BusyButton className="buttonAction" disabled={false} onClick={[Function]} busy={false} title="Start Tensorboard" />
+            </div>
+          </div>
+        </div>
+    `);
     expect(spy).toHaveBeenCalledWith(config.url);
   });
 

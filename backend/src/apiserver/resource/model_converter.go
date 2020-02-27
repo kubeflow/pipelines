@@ -107,6 +107,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 		Enabled:            job.Enabled,
 		Trigger:            toModelTrigger(job.Trigger),
 		MaxConcurrency:     job.MaxConcurrency,
+		NoCatchup:          job.NoCatchup,
 		ResourceReferences: resourceReferences,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           job.GetPipelineSpec().GetPipelineId(),
