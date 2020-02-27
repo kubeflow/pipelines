@@ -60,7 +60,7 @@ This section contains demo and tutorial pipelines.
 
 **Demos** - Try an end-to-end demonstration pipeline.
 
-  * [TFX pipeline demo](${tfx}) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. Learn how to [get started with TFX pipeline!](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss)
+  * [TFX pipeline demo](${tfx}) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss)
   * [XGBoost Pipeline demo](${xgboost}) - An example of end-to-end distributed training for an XGBoost model. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
 
 <br/>
