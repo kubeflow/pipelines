@@ -14,14 +14,23 @@ exports[`GettingStarted page initially renders documentation 1`] = `
       </h2>
       <ul>
         <li>
-          TensorFlow Extended (TFX) end-to-end ML Pipeline Template (
+          TensorFlow Extended (TFX) 
+          <a
+            class="link"
+            href="https://www.tensorflow.org/tfx/guide"
+            rel="noopener"
+            target="_blank"
+          >
+            SDK
+          </a>
+           with end-to-end ML Pipeline Template (
           <a
             class="link"
             href="https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb"
             rel="noopener"
             target="_blank"
           >
-            Open Notebook
+            Open TF 2.1 Notebook
           </a>
           )
         </li>
