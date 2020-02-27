@@ -62,6 +62,8 @@ interface TensorboardViewerState {
   deleteDialogOpen: boolean;
   podAddress: string;
   tensorflowVersion: string;
+  // When podAddress is not null, we need to further tell whether the TensorBoard pod is accessible or not
+  tensorboardReady: boolean;
 }
 
 // TODO(jingzhang36): we'll later parse Tensorboard version from mlpipeline-ui-metadata.json file.
@@ -76,6 +78,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       deleteDialogOpen: false,
       podAddress: '',
       tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
+      tensorboardReady: false,
     };
   }
 
@@ -123,10 +126,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
             >
               <Button
                 className={classes(commonCss.buttonAction, css.button)}
-                disabled={this.state.busy}
+                disabled={this.state.busy || !this.state.tensorboardReady}
                 color={'primary'}
               >
-                Open Tensorboard
+              {this.state.tensorboardReady ? 'Open Tensorboard ' : 'Please Wait While Tensorboard Is Turning Up'}
               </Button>
             </a>
 
@@ -240,6 +243,23 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       const { podAddress, tfVersion } = await Apis.getTensorboardApp(this._buildUrl());
       if (podAddress) {
         this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
+        // When having pod address, we need to check whether the TB instance on that Pod is fully up and responsive given that TB instance usually takes some time to be actually accessible.
+        console.log('check pod status');
+        var client = new XMLHttpRequest();
+        const setTensorboardReadiness = async(val: boolean) => {
+          this.setState({ tensorboardReady: val });
+        }
+        client.onload = function() {
+          if (this.status === 200) {
+            console.log('true')
+            setTensorboardReadiness(true);
+          } else {
+            console.log('false')
+            setTensorboardReadiness(false);
+          }
+        }
+        client.open("GET", 'apis/v1beta1/_proxy/' + podAddress, /*async*/true);
+        client.send();
       } else {
         // No existing pod
         this.setState({ busy: false });
@@ -269,6 +289,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
         deleteDialogOpen: false,
         podAddress: '',
         tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
+        tensorboardReady: false,
       });
     });
   };
