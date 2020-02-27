@@ -184,6 +184,7 @@ steps:
 
 # Tag for Hosted - SemVersion to Major.Minor parsing
 - id: "parseMajorMinorVersion"
+  waitFor: ["-"]
   name: gcr.io/cloud-builders/docker
   entrypoint: /bin/bash
   args:
