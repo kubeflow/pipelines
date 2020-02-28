@@ -16,9 +16,6 @@
 
 set -ex
 
-# This file is forked from presubmit-test-with-pipoeline-deployment.sh
-# as the test can't be run inside Argo.
-
 # This is merged commit's SHA.
 COMMIT_SHA="$(git rev-parse HEAD)"
 GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/presubmit/${COMMIT_SHA}
@@ -34,14 +31,60 @@ fi
 time source "${DIR}/test-prep.sh"
 echo "test env prepared"
 
-# We don't wait for image building here, because cluster can be deployed in
-# parallel so that we save a few minutes of test time.
-time source "${DIR}/build-images.sh"
-echo "KFP images cloudbuild jobs submitted"
+# TODO: extract this part to be a dedicated file for reusage.
+# =========================================================================
+## Wait for the cloudbuild job to be started (triggerd by PR commit)
+CLOUDBUILD_TIMEOUT_SECONDS=3600
+PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT=$(expr ${CLOUDBUILD_TIMEOUT_SECONDS} / 20 )
+CLOUDBUILD_STARTED=False
 
-time source "${DIR}/deploy-cluster.sh"
-echo "cluster deployed"
+for i in $(seq 1 ${PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT})
+do
+  output=`gcloud builds list --project="$CLOUDBUILD_PROJECT" --filter="sourceProvenance.resolvedRepoSource.commitSha:${COMMIT_SHA}"`
+  if [[ ${output} != "" ]]; then
+    CLOUDBUILD_STARTED=True
+    break
+  fi
+  sleep 20
+done
 
-time source "${DIR}/check-build-image-status.sh"
-echo "KFP images built"
+if [[ ${CLOUDBUILD_STARTED} == False ]];then
+  echo "CloudBuild job for the commit not be triggered before timeout, exiting..."
+  exit 1
+fi
 
+## Wait for the cloudbuild job to complete, if success, all images ready
+CLOUDBUILD_FINISHED=TIMEOUT
+for i in $(seq 1 ${PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT})
+do
+  output=`gcloud builds list --project="$CLOUDBUILD_PROJECT" --filter="sourceProvenance.resolvedRepoSource.commitSha:${COMMIT_SHA}"`
+  if [[ ${output} == *"SUCCESS"* ]]; then
+    CLOUDBUILD_FINISHED=SUCCESS
+    break
+  elif [[ ${output} == *"FAILURE"* ]]; then
+    CLOUDBUILD_FINISHED=FAILURE
+    break
+  fi
+  sleep 20
+done
+
+if [[ ${CLOUDBUILD_FINISHED} == FAILURE ]];then
+  echo "Cloud build failure, cannot proceed. exiting..."
+  exit 1
+elif [[ ${CLOUDBUILD_FINISHED} == TIMEOUT ]];then
+  echo "Cloud build timeout, cannot proceed. exiting..."
+  exit 1
+fi
+
+# =========================================================================
+## Create Cluster (delete in clean up)
+
+# =========================================================================
+## All images ready, trigger the MKP verification. Here we can't use Argo and have to use CloudBuild again
+## Run CB job in sync mode to easily get test result.
+
+## TODO
+## 
+# gcloud builds submit --config=test/cloudbuild/mkp_verify.yaml --substitutions=_MM_VERSION="0.2" --project=ml-pipeline-test
+
+## ??? how test cluster get deleted?

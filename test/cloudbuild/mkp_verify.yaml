@@ -20,5 +20,6 @@ options:
 substitutions:
   _MM_VERSION: ''
 
+# TODO: create new cluster and handover name here. use existing cluster will hit image cache
 # kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user <GSA>
 # 
