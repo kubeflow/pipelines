@@ -44,7 +44,7 @@ popd
 
 kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
 
-pushed ${KFP_MANIFEST_DIR}/cache-deployer
+pushd ${KFP_MANIFEST_DIR}/cache-deployer
 kustomize edit set image gcr.io/ml-pipeline/cache-deployer=${GCR_IMAGE_BASE_DIR}/cache-deployer:${GCR_IMAGE_TAG}
 cat kustomization.yaml
 
