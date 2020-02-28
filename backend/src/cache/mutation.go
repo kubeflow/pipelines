@@ -120,7 +120,7 @@ func isTFXPod(containers *[]corev1.Container) bool {
 			mainContainers = append(mainContainers, c)
 		}
 	}
-	if len(mainContainers) > 1 {
+	if len(mainContainers) != 1 {
 		return false
 	}
 	mainContainer := mainContainers[0]
