@@ -15,28 +15,50 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
+	"time"
+
+	"github.com/cenkalti/backoff"
+	"github.com/golang/glog"
+	"github.com/jinzhu/gorm"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 const (
-	TlsDir      string = "/etc/webhook/certs"
-	TlsCertFile string = "cert.pem"
-	TlsKeyFile  string = "key.pem"
+	TLSDir      string = "/etc/webhook/certs"
+	TLSCertFile string = "cert.pem"
+	TLSKeyFile  string = "key.pem"
 )
 
 const (
-	MutateApi   string = "/mutate"
+	MutateAPI   string = "/mutate"
 	WebhookPort string = ":8443"
 )
 
+const (
+	mysqlServiceHost       = "DBConfig.Host"
+	mysqlServicePort       = "DBConfig.Port"
+	mysqlUser              = "DBConfig.User"
+	mysqlPassword          = "DBConfig.Password"
+	mysqlDBName            = "DBConfig.DBName"
+	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
+	mysqlExtraParams       = "DBConfig.ExtraParams"
+
+	initConnectionTimeout = "InitConnectionTimeout"
+)
+
 func main() {
-	certPath := filepath.Join(TlsDir, TlsCertFile)
-	keyPath := filepath.Join(TlsDir, TlsKeyFile)
+	certPath := filepath.Join(TLSDir, TLSCertFile)
+	keyPath := filepath.Join(TLSDir, TLSKeyFile)
 
 	mux := http.NewServeMux()
-	mux.Handle(MutateApi, admitFuncHandler(mutatePodIfCached))
+	mux.Handle(MutateAPI, admitFuncHandler(mutatePodIfCached))
 	server := &http.Server{
 		// We listen on port 8443 such that we do not need root privileges or extra capabilities for this server.
 		// The Service object will take care of mapping this port to the HTTPS port 443.
@@ -44,4 +66,77 @@ func main() {
 		Handler: mux,
 	}
 	log.Fatal(server.ListenAndServeTLS(certPath, keyPath))
+}
+
+func initDBClient(initConnectionTimeout time.Duration) {
+	driverName := common.GetStringConfig("DBConfig.DriverName")
+	var arg string
+
+	switch driverName {
+	case "mysql":
+		arg = initMysql(driverName, initConnectionTimeout)
+	default:
+		glog.Fatalf("Driver %v is not supported", driverName)
+	}
+
+	// db is safe for concurrent use by multiple goroutines
+	// and maintains its own pool of idle connections.
+	db, err := gorm.Open(driverName, arg)
+	util.TerminateIfError(err)
+
+	// Create table
+	response := db.AutoMigrate(&ExecutionCache{})
+	if response.Error != nil {
+		glog.Fatalf("Failed to initialize the databases.")
+	}
+}
+
+func initMysql(driverName string, initConnectionTimeout time.Duration) string {
+	mysqlConfig := client.CreateMySQLConfig(
+		common.GetStringConfigWithDefault(mysqlUser, "root"),
+		common.GetStringConfigWithDefault(mysqlPassword, ""),
+		common.GetStringConfigWithDefault(mysqlServiceHost, "mysql"),
+		common.GetStringConfigWithDefault(mysqlServicePort, "3306"),
+		"",
+		common.GetStringConfigWithDefault(mysqlGroupConcatMaxLen, "1024"),
+		common.GetMapConfig(mysqlExtraParams),
+	)
+
+	var db *sql.DB
+	var err error
+	var operation = func() error {
+		db, err = sql.Open(driverName, mysqlConfig.FormatDSN())
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	b := backoff.NewExponentialBackOff()
+	b.MaxElapsedTime = initConnectionTimeout
+	err = backoff.Retry(operation, b)
+
+	defer db.Close()
+	util.TerminateIfError(err)
+
+	// Use database
+	dbName := common.GetStringConfig(mysqlDBName)
+	operation = func() error {
+		_, err = db.Exec(fmt.Sprintf("USE %s", dbName))
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	b = backoff.NewExponentialBackOff()
+	b.MaxElapsedTime = initConnectionTimeout
+	err = backoff.Retry(operation, b)
+
+	util.TerminateIfError(err)
+	mysqlConfig.DBName = dbName
+	// When updating, return rows matched instead of rows affected. This counts rows that are being
+	// set as the same values as before. If updating using a primary key and rows matched is 0, then
+	// it means this row is not found.
+	// Config reference: https://github.com/go-sql-driver/mysql#clientfoundrows
+	mysqlConfig.ClientFoundRows = true
+	return mysqlConfig.FormatDSN()
 }
