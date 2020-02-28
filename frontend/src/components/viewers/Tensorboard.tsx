@@ -254,7 +254,8 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     axios.head('apis/v1beta1/_proxy/' + podAddress).then(
       res => {
         if (res.status === 200) {
-          // TODO(jingzhang36): if the component is unmounted, don't call setState
+          // TODO(jingzhang36): this is in an async method. So, if the component is
+          // already unmounted at this point, don't call setState
           this.setState({ tensorboardReady: true });
         } else {
           this.setState({ tensorboardReady: false });
