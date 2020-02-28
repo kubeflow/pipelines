@@ -101,7 +101,7 @@ func isValidPod(pod *corev1.Pod) bool {
 
 func isKFPArgoPod(annotations *map[string]string) bool {
 	// is argo pod or not
-	if _, exists := *annotations[ArgoWorkflowNodeName]; !exists {
+	if _, exists := (*annotations)[ArgoWorkflowNodeName]; !exists {
 		return false
 	}
 	// is KFP pod or not

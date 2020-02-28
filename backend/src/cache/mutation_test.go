@@ -35,7 +35,9 @@ var (
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
+				ArgoWorkflowNodeName: "test_node",
 				ArgoWorkflowTemplate: "test_template",
+				KFPAnnotation:        "test_kfp",
 			},
 		},
 	}
