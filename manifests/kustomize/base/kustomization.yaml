@@ -8,6 +8,7 @@ bases:
 - proxy
 - metadata
 - cache
+- cache-deployer
 
 resources:
   - pipeline-application.yaml
@@ -30,4 +31,6 @@ images:
 - name: gcr.io/ml-pipeline/metadata-writer
   newTag: 0.2.5
 - name: gcr.io/ml-pipeline/cache-server
+  newTag: 0.2.5
+- name: gcr.io/ml-pipeline/cache-deployer
   newTag: 0.2.5
