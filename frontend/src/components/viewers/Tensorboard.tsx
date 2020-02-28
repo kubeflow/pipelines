@@ -32,6 +32,7 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import { classes, stylesheet } from 'typestyle';
+import axios from 'axios';
 
 export const css = stylesheet({
   button: {
@@ -64,6 +65,7 @@ interface TensorboardViewerState {
   tensorflowVersion: string;
   // When podAddress is not null, we need to further tell whether the TensorBoard pod is accessible or not
   tensorboardReady: boolean;
+  tensorboardStatusCheckInternalInMS: number;
 }
 
 // TODO(jingzhang36): we'll later parse Tensorboard version from mlpipeline-ui-metadata.json file.
@@ -79,6 +81,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       podAddress: '',
       tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
       tensorboardReady: false,
+      tensorboardStatusCheckInternalInMS: 5000,
     };
   }
 
@@ -109,9 +112,9 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // We use this pod address without encoding since encoded pod address failed to open the
     // tensorboard instance on this pod.
     // TODO: figure out why the encoded pod address failed to open the tensorboard.
-    const podAddress = this.state.podAddress.replace(/(^\w+:|^)\/\//, '').replace(/^https?:\/\//,'');
+    const podAddress = this.state.podAddress.replace(/(^\w+:|^)\/\//, '');
     if (podAddress && !this.state.tensorboardReady) {
-      this._getTensorboardAppStatus(podAddress);
+      this._checkTensorboardPodStatus(podAddress);
     }
 
     return (
@@ -132,7 +135,9 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 disabled={this.state.busy || !this.state.tensorboardReady}
                 color={'primary'}
               >
-              {this.state.tensorboardReady ? 'Open Tensorboard ' : 'Please Wait While Tensorboard Is Turning Up'}
+                {this.state.tensorboardReady
+                  ? 'Open Tensorboard'
+                  : 'Please Wait While Tensorboard Is Turning Up'}
               </Button>
             </a>
 
@@ -241,23 +246,24 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
   }
 
-  private async _getTensorboardAppStatus(podAddress: string): Promise<void> {
-    console.log('check pod status');
-    var client = new XMLHttpRequest();
-    const setTensorboardReadiness = async(val: boolean) => {
-      this.setState({ tensorboardReady: val });
-    }
-    client.onload = function() {
-      if (this.status === 200) {
-        console.log('true')
-        setTensorboardReadiness(true);
-      } else {
-        console.log('false')
-        setTensorboardReadiness(false);
-      }
-    }
-    client.open("GET", 'apis/v1beta1/_proxy/' + podAddress, /*async*/true);
-    client.send();
+  private async _checkTensorboardPodStatus(podAddress: string): Promise<void> {
+    // The following timeout leads to checking pod status every
+    // tensorboardStatusCheckInternalInMS/1000 seconds in case of connection timeout
+    // until pod returns status 200.
+    axios.defaults.timeout = this.state.tensorboardStatusCheckInternalInMS;
+    axios.head('apis/v1beta1/_proxy/' + podAddress).then(
+      res => {
+        if (res.status === 200) {
+          // TODO(jingzhang36): if the component is unmounted, don't call setState
+          this.setState({ tensorboardReady: true });
+        } else {
+          this.setState({ tensorboardReady: false });
+        }
+      },
+      error => {
+        this.setState({ tensorboardReady: false });
+      },
+    );
   }
 
   private async _checkTensorboardApp(): Promise<void> {
@@ -265,8 +271,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       const { podAddress, tfVersion } = await Apis.getTensorboardApp(this._buildUrl());
       if (podAddress) {
         this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
-        // When having pod address, we need to check whether the TB instance on that Pod is fully up and responsive given that TB instance usually takes some time to be actually accessible.
-        this._getTensorboardAppStatus(podAddress);
       } else {
         // No existing pod
         this.setState({ busy: false });

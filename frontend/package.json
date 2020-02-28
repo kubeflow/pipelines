@@ -79,6 +79,8 @@
     "@types/react-router-dom": "^4.3.1",
     "@types/react-test-renderer": "^16.0.2",
     "@types/react-virtualized": "^9.18.7",
+    "axios": "^0.19.2",
+    "axios-mock-adapter": "^1.17.0",
     "browserslist": "4.8.7",
     "coveralls": "^3.0.2",
     "enzyme": "^3.10.0",
