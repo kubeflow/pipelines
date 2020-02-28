@@ -13,9 +13,7 @@ WORKDIR ./frontend
 
 # Pin getting started page links to the commit that built the frontend image
 RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_HASH}/#g" -i src/pages/GettingStarted.tsx && \
-    sed -E "s/%252Fmaster/%252F${COMMIT_HASH}/#g" -i src/pages/GettingStarted.tsx && \
-    sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_HASH}/#g" -i src/pages/GettingStarted.test.tsx && \
-    sed -E "s/%252Fmaster/%252F${COMMIT_HASH}/#g" -i src/pages/GettingStarted.test.tsx
+    sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_HASH}/#g" -i src/pages/GettingStarted.test.tsx
 
 RUN npm ci && npm run postinstall
 RUN npm run build
