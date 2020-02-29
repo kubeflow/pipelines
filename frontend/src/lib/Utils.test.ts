@@ -283,15 +283,15 @@ describe('Utils', () => {
 
   describe('consistentEncodeURIComponent', () => {
     it('will always encode to same value', () => {
-      const uri = "a/b"
-      const encoded = encodeURIComponent(uri)
-      expect(consistentEncodeURIComponent(encoded)).toBe(consistentEncodeURIComponent(uri))
+      const uri = 'a/b';
+      const encoded = encodeURIComponent(uri);
+      expect(consistentEncodeURIComponent(encoded)).toBe(consistentEncodeURIComponent(uri));
     });
   });
 
   describe('consistentDecodeURIComponent', () => {
     it('will always decode to the same uri', () => {
-      const uri = 'a/b'
+      const uri = 'a/b';
       const encoded = encodeURIComponent(uri);
       const encoded_2x = encodeURIComponent(encoded);
 
