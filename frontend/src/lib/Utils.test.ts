@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import { encode } from 'punycode';
+
 import { NodePhase } from './StatusUtils';
 import {
   enabledDisplayString,
@@ -23,6 +25,8 @@ import {
   getRunDurationFromWorkflow,
   logger,
   isS3Endpoint,
+  consistentDecodeURIComponent,
+  consistentEncodeURIComponent,
 } from './Utils';
 
 describe('Utils', () => {
@@ -274,6 +278,25 @@ describe('Utils', () => {
 
     it('checks non-s3 endpoint', () => {
       expect(isS3Endpoint('minio.kubeflow')).toBe(false);
+    });
+  });
+
+  describe('consistentEncodeURIComponent', () => {
+    it('will always encode to same value', () => {
+      const uri = "a/b"
+      const encoded = encodeURIComponent(uri)
+      expect(consistentEncodeURIComponent(encoded)).toBe(consistentEncodeURIComponent(uri))
+    });
+  });
+
+  describe('consistentDecodeURIComponent', () => {
+    it('will always decode to the same uri', () => {
+      const uri = 'a/b'
+      const encoded = encodeURIComponent(uri);
+      const encoded_2x = encodeURIComponent(encoded);
+
+      expect(consistentDecodeURIComponent(encoded)).toBe(uri);
+      expect(consistentDecodeURIComponent(encoded_2x)).toBe(uri);
     });
   });
 });

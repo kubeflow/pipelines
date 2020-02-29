@@ -293,6 +293,35 @@ export function generateGcsConsoleUri(gcsUri: string): string | undefined {
 const MINIO_URI_PREFIX = 'minio://';
 
 /**
+ * Decode the uri component until the uri cannot be decoded any further.
+ *
+ * @param uri uri string to decode
+ */
+export function consistentDecodeURIComponent(uri: string) {
+  let old = uri;
+  while (true) {
+    uri = decodeURIComponent(uri);
+    // break if uri cannot be decoded any longer
+    if (uri === old) {
+      return uri;
+    }
+    old = uri;
+  }
+}
+
+/**
+ * Encode the uri component, such that encoded result is always consistent, regardless
+ * of how many times you call encodeURIComponent.
+ *
+ * i.e. encodeURIComponent(encodeURIComponent("a/a")) !== encodeURIComponent("a/a")
+ *
+ * @param uri uri string to encode
+ */
+export function consistentEncodeURIComponent(uri: string) {
+  return encodeURIComponent(consistentDecodeURIComponent(uri));
+}
+
+/**
  * Generates the path component of the url to retrieve an artifact.
  *
  * @param source source of the artifact. Can be "minio", "s3", "http", "https", or "gcs".
@@ -307,9 +336,9 @@ export function generateArtifactUrl(
   peek?: number,
 ): string {
   return encodeURI(
-    `artifacts/get?source=${source}&bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(
-      key,
-    )}${peek ? `&peek=${peek}` : ''}`,
+    `artifacts/get?source=${source}&bucket=${consistentEncodeURIComponent(
+      bucket,
+    )}&key=${consistentEncodeURIComponent(key)}${peek ? `&peek=${peek}` : ''}`,
   );
 }
 
