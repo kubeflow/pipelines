@@ -68,6 +68,37 @@ class VolumeOp(ResourceOp):
                         if data_source is not one of (str, PipelineParam,
                             V1TypedLocalObjectReference)
         """
+        # condition when action == "delete"
+        if "action" in kwargs and kwargs["action"] == "delete":
+            if "k8s_resource" in kwargs:
+                if resource_name or size or storage_class or modes or annotations:
+                    raise ValueError("You cannot provide k8s_resource along with "
+                                     "other arguments.")
+                if not isinstance(kwargs["k8s_resource"], V1PersistentVolumeClaim):
+                    raise ValueError("k8s_resource in VolumeOp must be an instance"
+                                     " of V1PersistentVolumeClaim")
+                super().__init__(**kwargs)
+                return
+
+            # Set the k8s_resource
+            if not match_serialized_pipelineparam(str(resource_name)):
+                resource_name = sanitize_k8s_name(resource_name)
+
+            pvc_metadata = V1ObjectMeta(
+                name="{{workflow.name}}-%s" % resource_name,
+            )
+
+            k8s_resource = V1PersistentVolumeClaim(
+                api_version="v1",
+                kind="PersistentVolumeClaim",
+                metadata=pvc_metadata,
+            )
+            super().__init__(
+                k8s_resource=k8s_resource,
+                **kwargs,
+            )
+            return
+
         # Add size to attribute outputs
         self.attribute_outputs = {"size": "{.status.capacity.storage}"}
 
