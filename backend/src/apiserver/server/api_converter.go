@@ -26,6 +26,23 @@ import (
 )
 
 func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
+	if common.IsMultiUserMode() {
+		return &api.Experiment{
+			Id:          experiment.UUID,
+			Name:        experiment.Name,
+			Description: experiment.Description,
+			CreatedAt:   &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Type: api.ResourceType_NAMESPACE,
+						Id:   experiment.Namespace,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		}
+	}
 	return &api.Experiment{
 		Id:          experiment.UUID,
 		Name:        experiment.Name,
@@ -40,13 +57,6 @@ func ToApiExperiments(experiments []*model.Experiment) []*api.Experiment {
 		apiExperiments = append(apiExperiments, ToApiExperiment(experiment))
 	}
 	return apiExperiments
-}
-
-func ToModelExperiment(experiment *api.Experiment) *model.Experiment {
-	return &model.Experiment{
-		Name:        experiment.Name,
-		Description: experiment.Description,
-	}
 }
 
 func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {

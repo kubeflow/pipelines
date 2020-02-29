@@ -24,6 +24,24 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
+func (r *ResourceManager) ToModelExperiment(apiExperiment *api.Experiment) (*model.Experiment, error) {
+	namespace := ""
+	if common.IsMultiUserMode() {
+		resourceReferences := apiExperiment.GetResourceReferences()
+		if len(resourceReferences) != 1 ||
+			resourceReferences[0].Key.Type != api.ResourceType_NAMESPACE ||
+			resourceReferences[0].Relationship != api.Relationship_OWNER {
+			return nil, util.NewInvalidInputError("Invalid resource references for experiment: %v", resourceReferences)
+		}
+		namespace = resourceReferences[0].Key.Id
+	}
+	return &model.Experiment{
+		Name:        apiExperiment.Name,
+		Description: apiExperiment.Description,
+		Namespace:   namespace,
+	}, nil
+}
+
 func (r *ResourceManager) ToModelRunMetric(metric *api.RunMetric, runUUID string) *model.RunMetric {
 	return &model.RunMetric{
 		RunUUID:     runUUID,

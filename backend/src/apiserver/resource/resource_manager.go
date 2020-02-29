@@ -108,7 +108,11 @@ func (r *ResourceManager) GetTime() util.TimeInterface {
 	return r.time
 }
 
-func (r *ResourceManager) CreateExperiment(experiment *model.Experiment) (*model.Experiment, error) {
+func (r *ResourceManager) CreateExperiment(apiExperiment *api.Experiment) (*model.Experiment, error) {
+	experiment, err := r.ToModelExperiment(apiExperiment)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert experiment model")
+	}
 	return r.experimentStore.CreateExperiment(experiment)
 }
 
@@ -116,9 +120,9 @@ func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment,
 	return r.experimentStore.GetExperiment(experimentId)
 }
 
-func (r *ResourceManager) ListExperiments(opts *list.Options) (
+func (r *ResourceManager) ListExperiments(filterContext *common.FilterContext, opts *list.Options) (
 	experiments []*model.Experiment, total_size int, nextPageToken string, err error) {
-	return r.experimentStore.ListExperiments(opts)
+	return r.experimentStore.ListExperiments(filterContext, opts)
 }
 
 func (r *ResourceManager) DeleteExperiment(experimentID string) error {
@@ -817,7 +821,7 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	}
 
 	// Create default experiment
-	defaultExperiment := &model.Experiment{
+	defaultExperiment := &api.Experiment{
 		Name:        "Default",
 		Description: "All runs created without specifying an experiment will be grouped here.",
 	}
@@ -1015,6 +1019,14 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 
 func (r *ResourceManager) IsRequestAuthorized(userIdentity string, namespace string) (bool, error) {
 	return r.kfamClient.IsAuthorized(userIdentity, namespace)
+}
+
+func (r *ResourceManager) GetNamespaceFromExperimentID(experimentID string) (string, error) {
+	experiment, err := r.GetExperiment(experimentID)
+	if err != nil {
+		return "", util.Wrap(err, "Failed to get namespace from experiment ID.")
+	}
+	return experiment.Namespace, nil
 }
 
 func (r *ResourceManager) GetNamespaceFromRunID(runId string) (string, error) {
