@@ -35,7 +35,7 @@ import GitHubIcon from '../icons/GitHub-Mark-120px-plus.png';
 import PipelinesIcon from '../icons/pipelines';
 import { Apis } from '../lib/Apis';
 import { Deployments, KFP_FLAGS } from '../lib/Flags';
-import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
+import { LocalStorage } from '../lib/LocalStorage';
 import { logger } from '../lib/Utils';
 import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
 
@@ -207,7 +207,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
       collapsed,
       // Set jupyterHubAvailable to false so UI don't show Jupyter Hub link
       jupyterHubAvailable: false,
-      manualCollapseState: LocalStorage.hasKey(LocalStorageKey.navbarCollapsed),
+      manualCollapseState: collapsed,
     };
   }
 
@@ -579,7 +579,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
     this.setStateSafe(
       {
         collapsed: !this.state.collapsed,
-        manualCollapseState: true,
+        manualCollapseState: !this.state.collapsed,
       },
       () => LocalStorage.saveNavbarCollapsed(this.state.collapsed),
     );
