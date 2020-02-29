@@ -11,13 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { Handler, Request, Response } from 'express';
 import fetch from 'node-fetch';
+import { AWSConfigs, HttpConfigs, MinioConfigs } from '../configs';
 import { Client as MinioClient } from 'minio';
+import { consistentDecodeURIComponent } from '../utils';
+import { createMinioClient, getObjectStream } from '../minio-helper';
+import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
-
-import { getObjectStream, createMinioClient } from '../minio-helper';
-import { HttpConfigs, AWSConfigs, MinioConfigs } from '../configs';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -61,7 +61,7 @@ export function getArtifactsHandler(artifactsConfigs: {
       res.status(500).send('Storage key is missing from artifact request');
       return;
     }
-    const key = decodeURIComponent(encodedKey);
+    const key = consistentDecodeURIComponent(encodedKey);
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
     switch (source) {
       case 'gcs':
