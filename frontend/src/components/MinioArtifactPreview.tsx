@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { StorageService } from '../lib/WorkflowParser';
 import { S3Artifact } from '../../third_party/argo-ui/argo_template';
-import { generateArtifactUrl, isS3Endpoint } from '../lib/Utils';
+import { generateArtifactUrl, isS3Endpoint, consistentDecodeURIComponent } from '../lib/Utils';
 import { Apis } from '../lib/Apis';
 
 /**
@@ -38,9 +38,8 @@ const MinioArtifactPreview: React.FC<{ artifact: S3Artifact }> = ({ artifact = {
   }
 
   const peek = 100;
-  const encodedKey = encodeURIComponent(key);
-  const linkText = `${source.toString()}://${bucket}/${encodedKey}`;
-  const url = generateArtifactUrl(source, bucket, encodedKey);
+  const linkText = `${source.toString()}://${bucket}/${consistentDecodeURIComponent(key)}`;
+  const url = generateArtifactUrl(source, bucket, key);
 
   // Opens in new window safely
   return (
