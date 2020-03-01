@@ -44,6 +44,7 @@ export enum ButtonKeys {
   RESTORE = 'restore',
   TERMINATE_RUN = 'terminateRun',
   UPLOAD_PIPELINE = 'uploadPipeline',
+  RESUME = 'resume'
 }
 
 export default class Buttons {
@@ -343,6 +344,22 @@ export default class Buttons {
     return this;
   }
 
+  public resumeRun(
+    getSelectedIds: () => string[],
+    useCurrentResource: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): Buttons {
+    this._map[ButtonKeys.RESUME] = {
+      action: () => this._resumeRun(getSelectedIds(), useCurrentResource, callback),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : 'Run is not suspended',
+      id: 'resumeBtn',
+      title: 'Resume',
+      tooltip: 'Resume',
+    };
+    return this;
+  }
+
   public upload(action: () => void): Buttons {
     this._map[ButtonKeys.UPLOAD_PIPELINE] = {
       action,
@@ -385,6 +402,23 @@ export default class Buttons {
       id => Apis.runServiceApi.retryRun(id),
       callback,
       'Retry',
+      'run',
+    );
+  }
+
+  private _resumeRun(
+    selectedIds: string[],
+    useCurrent: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): void {
+    this._dialogActionHandler(
+      selectedIds,
+      'Resume this run?',
+      useCurrent,
+      // Todo: After ResumeRun api exists, Apis.runServiceApi.resumeRun(id)
+      id => new Promise(() => {}),
+      callback,
+      'Resume',
       'run',
     );
   }

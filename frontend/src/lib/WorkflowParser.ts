@@ -106,9 +106,9 @@ export default class WorkflowParser {
 
       g.setNode(node.id, {
         height: Constants.NODE_HEIGHT,
-        icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt, node.message),
+        icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt, node.message, node.type),
         label: nodeLabel,
-        statusColoring: statusToBgColor(node.phase as NodePhase, node.message),
+        statusColoring: statusToBgColor(node.phase as NodePhase, node.message, node.type),
         width: Constants.NODE_WIDTH,
         ...node,
       });

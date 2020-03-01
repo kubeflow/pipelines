@@ -21,18 +21,21 @@ import RunningIcon from '../icons/statusRunning';
 import SkippedIcon from '@material-ui/icons/SkipNext';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
 import TerminatedIcon from '../icons/statusTerminated';
+import SuspendedIcon from '@material-ui/icons/Pause';
 import Tooltip from '@material-ui/core/Tooltip';
 import UnknownIcon from '@material-ui/icons/Help';
 import { color } from '../Css';
 import { logger, formatDateString } from '../lib/Utils';
-import { NodePhase, checkIfTerminated } from '../lib/StatusUtils';
+import { NodePhase, checkIfTerminated, checkIfSuspended } from '../lib/StatusUtils';
 
 export function statusToIcon(
   status?: NodePhase,
   startDate?: Date | string,
   endDate?: Date | string,
   nodeMessage?: string,
+  nodeType?: string
 ): JSX.Element {
+  status = checkIfSuspended(status, nodeType);
   status = checkIfTerminated(status, nodeMessage);
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
@@ -77,6 +80,11 @@ export function statusToIcon(
       IconComponent = TerminatedIcon;
       iconColor = color.terminated;
       title = 'Run was manually terminated';
+      break;
+    case NodePhase.SUSPENDED:
+      IconComponent = SuspendedIcon;
+      iconColor = color.suspended;
+      title = 'Suspended';
       break;
     case NodePhase.UNKNOWN:
       break;

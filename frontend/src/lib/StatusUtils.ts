@@ -21,8 +21,9 @@ export const statusBgColors = {
   notStarted: '#f7f7f7',
   running: '#e8f0fe',
   succeeded: '#e6f4ea',
+  suspended: '#fff3e0',
   terminatedOrSkipped: '#f1f3f4',
-  warning: '#fef7f0',
+  warning: '#fef7f0'
 };
 
 export enum NodePhase {
@@ -34,6 +35,7 @@ export enum NodePhase {
   SUCCEEDED = 'Succeeded',
   TERMINATING = 'Terminating',
   TERMINATED = 'Terminated',
+  SUSPENDED = 'Suspended',
   UNKNOWN = 'Unknown',
 }
 
@@ -55,7 +57,8 @@ export function hasFinished(status?: NodePhase): boolean {
   }
 }
 
-export function statusToBgColor(status?: NodePhase, nodeMessage?: string): string {
+export function statusToBgColor(status?: NodePhase, nodeMessage?: string, nodeType?: string): string {
+  status = checkIfSuspended(status, nodeType);
   status = checkIfTerminated(status, nodeMessage);
   switch (status) {
     case NodePhase.ERROR:
@@ -74,6 +77,8 @@ export function statusToBgColor(status?: NodePhase, nodeMessage?: string): strin
     // fall through
     case NodePhase.TERMINATED:
       return statusBgColors.terminatedOrSkipped;
+    case NodePhase.SUSPENDED:
+      return statusBgColors.suspended;
     case NodePhase.UNKNOWN:
     // fall through
     default:
@@ -87,6 +92,15 @@ export function checkIfTerminated(status?: NodePhase, nodeMessage?: string): Nod
   // determine why the run failed.
   if (status === NodePhase.FAILED && nodeMessage === 'terminated') {
     status = NodePhase.TERMINATED;
+  }
+  return status;
+}
+
+export function checkIfSuspended(status?: NodePhase, nodeType?: string): NodePhase | undefined {
+  // Argo considers suspended runs as having "Running" in the status, and "Suspend" in type field.
+  // determine if the run is suspended.
+  if (status === NodePhase.RUNNING && nodeType === 'Suspend') {
+    status = NodePhase.SUSPENDED;
   }
   return status;
 }

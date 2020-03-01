@@ -22,6 +22,7 @@ import jsonRun from './json-runtime';
 import coinflipRun from './mock-coinflip-runtime';
 import errorRun from './mock-error-runtime';
 import xgboostRun from './mock-xgboost-runtime';
+import suspenseRun from './suspense-runtime';
 
 function padStartTwoZeroes(str: string): string {
   let padded = str || '';
@@ -638,6 +639,36 @@ const runs: ApiRunDetail[] = [
       ],
       scheduled_at: new Date('2018-08-18T20:58:23.000Z'),
       status: 'Succeeded',
+    },
+  },
+  {
+    pipeline_runtime: {
+      workflow_manifest: JSON.stringify(suspenseRun),
+    },
+    run: {
+      created_at: new Date('2018-05-17T21:58:23.000Z'),
+      description: 'A simple run with suspended step',
+      id: 'da122af5-c5cb-43b1-822b-52487cb845f4',
+      metrics: [],
+      name: 'suspense-7sm95',
+      pipeline_spec: {
+        parameters: [
+          { name: 'message', value: 'hello world' },
+        ],
+        pipeline_id: pipelines[2].id,
+        pipeline_name: pipelines[2].name,
+      },
+      resource_references: [
+        {
+          key: {
+            id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
+        },
+      ],
+      scheduled_at: new Date('2018-05-17T21:58:23.000Z'),
+      status: 'Running',
     },
   },
 ];

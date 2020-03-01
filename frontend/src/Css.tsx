@@ -39,6 +39,7 @@ export const color = {
   success: '#34a853',
   successWeak: '#e6f4ea', // Google green 50
   terminated: '#80868b',
+  suspended: '#ff9800',
   theme: '#1a73e8',
   themeDarker: '#0b59dc',
   warningBg: '#f9f9e1',
