@@ -338,7 +338,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 }
 
 // [TODO]
-func (r *ResourceManager) ResumePipeline(runID string) error {
+func (r *ResourceManager) ResumeRun(runID string) error {
 	// First we need to check if the run exsist or not
 	runDetail, err := r.checkRunExist(runID)
 	if err != nil {

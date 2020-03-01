@@ -311,7 +311,7 @@ func TestResumeRun(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()
 
-	err := manager.ResumePipeline(runDetail.UUID)
+	err := manager.ResumeRun(runDetail.UUID)
 	namespace := "kubeflow"
 	assert.Nil(t, err)
 	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
@@ -325,7 +325,7 @@ func TestResumeRunChange(t *testing.T) {
 	store, manager, runDetail := initSuspended(t)
 	defer store.Close()
 
-	err := manager.ResumePipeline(runDetail.UUID)
+	err := manager.ResumeRun(runDetail.UUID)
 	namespace := "kubeflow"
 	assert.Nil(t, err)
 	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
