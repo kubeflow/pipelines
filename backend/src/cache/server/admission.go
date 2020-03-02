@@ -140,8 +140,8 @@ func serveAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 	}
 }
 
-// admitFuncHandler takes an admitFunc and wraps it into a http.Handler by means of calling serveAdmitFunc.
-func admitFuncHandler(admit admitFunc) http.Handler {
+// AdmitFuncHandler takes an admitFunc and wraps it into a http.Handler by means of calling serveAdmitFunc.
+func AdmitFuncHandler(admit admitFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		serveAdmitFunc(w, r, admit)
 	})

@@ -6,22 +6,22 @@ import (
 	"database/sql"
 
 	sq "github.com/Masterminds/squirrel"
+	model "github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 type ExecutionCacheStoreInterface interface {
-	GetExecutionCache(executionCacheKey string) (*ExecutionCache, error)
-	CreateExecutionCache(*ExecutionCache) (*ExecutionCache, error)
-	DeleteExecutionCache(executionCacheKey string) error
+	GetExecutionCache(executionCacheKey string) (*model.ExecutionCache, error)
+	CreateExecutionCache(*model.ExecutionCache) (*model.ExecutionCache, error)
 }
 
 type ExecutionCacheStore struct {
-	db   *sql.DB
+	db   *DB
 	time util.TimeInterface
 }
 
-func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string) (*ExecutionCache, error) {
-	sql, args, err := sq.Select("*").From("executionCache").Where(sq.Eq{"executionCacheKey": executionCacheKey}).Limit(1).Tosql
+func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string) (*model.ExecutionCache, error) {
+	sql, args, err := sq.Select("*").From("executionCache").Where(sq.Eq{"executionCacheKey": executionCacheKey}).Limit(1).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
 	}
@@ -41,8 +41,8 @@ func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string) (*Exec
 	return executionCaches[0], nil
 }
 
-func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*ExecutionCache, error) {
-	var executionCaches []*ExecutionCache
+func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache, error) {
+	var executionCaches []*model.ExecutionCache
 	for rows.Next() {
 		var executionCacheKey, executionOutput string
 		var createdAtInSec int64
@@ -50,7 +50,7 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*ExecutionCache, error
 		if err != nil {
 			return executionCaches, nil
 		}
-		executionCaches = append(executionCaches, &ExecutionCache{
+		executionCaches = append(executionCaches, &model.ExecutionCache{
 			ExecutionCacheKey: executionCacheKey,
 			ExecutionOutput:   executionOutput,
 			CreatedAtInSec:    createdAtInSec,
@@ -59,7 +59,7 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*ExecutionCache, error
 	return executionCaches, nil
 }
 
-func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *ExecutionCache) (*ExecutionCache, error) {
+func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.ExecutionCache) (*model.ExecutionCache, error) {
 	newExecutionCache := *executionCache
 	now := s.time.Now().Unix()
 
@@ -83,7 +83,7 @@ func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *ExecutionCach
 }
 
 // factory function for execution cache store
-func NewExecutionCacheStore(db *sql.DB, time util.TimeInterface) *ExecutionCacheStore {
+func NewExecutionCacheStore(db *DB, time util.TimeInterface) *ExecutionCacheStore {
 	return &ExecutionCacheStore{
 		db:   db,
 		time: time,

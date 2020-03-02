@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,8 +36,12 @@ var (
 	podResource = metav1.GroupVersionResource{Version: "v1", Resource: "pods"}
 )
 
-// mutatePodIfCached will check whether the execution has already been run before from MLMD and apply the output into pod.metadata.output
-func mutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) {
+type ClientManagerInterface interface {
+	CacheStore() storage.ExecutionCacheStoreInterface
+}
+
+// MutatePodIfCached will check whether the execution has already been run before from MLMD and apply the output into pod.metadata.output
+func MutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) {
 	// This handler should only get called on Pod objects as per the MutatingWebhookConfiguration in the YAML file.
 	// However, if (for whatever reason) this gets invoked on an object of a different kind, issue a log message but
 	// let the object request pass through otherwise.
