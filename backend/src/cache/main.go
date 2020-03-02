@@ -16,16 +16,18 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
 	"time"
 
+	"pipelines/backend/src/cache/client"
+
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
@@ -51,9 +53,28 @@ const (
 	mysqlExtraParams       = "DBConfig.ExtraParams"
 
 	initConnectionTimeout = "InitConnectionTimeout"
+
+	mysqlDBDriverDefault = "mysql"
+	mysqlDBHostDefault   = "mysql"
+	mysqlDBPortDefault   = 3306
 )
 
+type WhSvrDBParameters struct {
+	dbDriver string
+	dbHost   string
+	dbPort   int
+	dbUser   string
+	dbPwd    string
+}
+
 func main() {
+	var params WhSvrDBParameters
+	flag.StringVar(&params.dbDriver, "db_driver", mysqlDBDriverDefault, "Database driver name, mysql is the default value")
+	flag.StringVar(&params.dbHost, "db_host", mysqlDBHostDefault, "Database host name.")
+	flag.IntVar(&params.dbPort, "db_port", mysqlDBPortDefault, "Database port number.")
+	flag.StringVar(&params.dbUser, "db_user", "root", "Database user name.")
+	flag.StringVar(&params.dbPwd, "db_password", "", "Database password.")
+
 	certPath := filepath.Join(TLSDir, TLSCertFile)
 	keyPath := filepath.Join(TLSDir, TLSKeyFile)
 

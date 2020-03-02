@@ -1,4 +1,4 @@
-package main
+package model
 
 type ExecutionCache struct {
 	ExecutionCacheKey string `gorm:"column:ExecutionCacheKey; not null; primary_key"`
