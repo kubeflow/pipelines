@@ -33,7 +33,7 @@ export function statusToIcon(
   startDate?: Date | string,
   endDate?: Date | string,
   nodeMessage?: string,
-  nodeType?: string
+  nodeType?: string,
 ): JSX.Element {
   status = checkIfSuspended(status, nodeType);
   status = checkIfTerminated(status, nodeMessage);

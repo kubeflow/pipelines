@@ -136,6 +136,13 @@ service RunService {
       post: "/apis/v1beta1/runs/{run_id}/retry"
     };
   }
+
+  //Resume a suspended run.
+  rpc ResumeRun(ResumeRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{run_id}/resume"
+    };
+  }
 }
 
 message CreateRunRequest {
@@ -165,6 +172,10 @@ message ListRunsRequest {
 }
 
 message TerminateRunRequest {
+  string run_id = 1;
+}
+
+message ResumeRunRequest {
   string run_id = 1;
 }
 

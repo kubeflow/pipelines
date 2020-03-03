@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
@@ -337,31 +338,49 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	return r.runStore.CreateRun(runDetail)
 }
 
-// [TODO]
 func (r *ResourceManager) ResumeRun(runID string) error {
-	// First we need to check if the run exsist or not
 	runDetail, err := r.checkRunExist(runID)
 	if err != nil {
-		return util.Wrap(err, "Run dont exsist")
+		return util.Wrap(err, "Run does not exist")
 	}
-	// Then we need to get the namespace for it, since we need it to grab the current workflow I belive
+
 	namespace, err := r.GetNamespaceFromRunID(runID)
 	if err != nil {
 		return util.Wrap(err, "Cant find namespace for runId")
 	}
+
 	// Then we need to get the workflow from the runStore
 	var originalWorkflow util.Workflow
 	if err := json.Unmarshal([]byte(runDetail.WorkflowRuntimeManifest), &originalWorkflow); err != nil {
 		return util.NewInternalServerError(err, "Failed to find old workflow")
 	}
-	// Here we try to get the actuall workflow from argo
+	// Here we try to get the actual workflow from argo
 	latestWorkflow, err := r.getWorkflowClient(namespace).Get(originalWorkflow.Name, v1.GetOptions{})
-	// Update the suspend to true
-	suspend := true
-	latestWorkflow.Spec.Suspend = &suspend
-	// Send the upded workflow to argo
-	_, err = r.getWorkflowClient(namespace).Update(latestWorkflow)
-	return err
+
+	updated := false
+
+	// Update spec Suspend field
+    if latestWorkflow.Spec.Suspend != nil && *latestWorkflow.Spec.Suspend {
+        latestWorkflow.Spec.Suspend = nil
+        updated = true
+    }
+
+    // To resume a workflow with a suspended node we simply mark the node as Successful
+    for nodeID, node := range latestWorkflow.Status.Nodes {
+        if node.Type == workflowapi.NodeTypeSuspend && node.Phase == workflowapi.NodeRunning {
+            node.Phase = workflowapi.NodeSucceeded
+            node.FinishedAt = v1.Time{Time: time.Now().UTC()}
+			latestWorkflow.Status.Nodes[nodeID] = node
+            updated = true
+        }
+    }
+
+    // Send the updated workflow to argo if there are changes
+    if updated {
+        _, err = r.getWorkflowClient(namespace).Update(latestWorkflow)
+        return err
+    }
+ 	return nil
 }
 
 func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {

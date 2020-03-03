@@ -44,7 +44,7 @@ export enum ButtonKeys {
   RESTORE = 'restore',
   TERMINATE_RUN = 'terminateRun',
   UPLOAD_PIPELINE = 'uploadPipeline',
-  RESUME = 'resume'
+  RESUME = 'resume',
 }
 
 export default class Buttons {
@@ -415,8 +415,7 @@ export default class Buttons {
       selectedIds,
       'Resume this run?',
       useCurrent,
-      // Todo: After ResumeRun api exists, Apis.runServiceApi.resumeRun(id)
-      id => new Promise(() => {}),
+      id => Apis.runServiceApi.resumeRun(id),
       callback,
       'Resume',
       'run',

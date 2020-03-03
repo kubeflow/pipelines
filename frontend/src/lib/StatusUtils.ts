@@ -23,7 +23,7 @@ export const statusBgColors = {
   succeeded: '#e6f4ea',
   suspended: '#fff3e0',
   terminatedOrSkipped: '#f1f3f4',
-  warning: '#fef7f0'
+  warning: '#fef7f0',
 };
 
 export enum NodePhase {
@@ -57,7 +57,11 @@ export function hasFinished(status?: NodePhase): boolean {
   }
 }
 
-export function statusToBgColor(status?: NodePhase, nodeMessage?: string, nodeType?: string): string {
+export function statusToBgColor(
+  status?: NodePhase,
+  nodeMessage?: string,
+  nodeType?: string,
+): string {
   status = checkIfSuspended(status, nodeType);
   status = checkIfTerminated(status, nodeMessage);
   switch (status) {

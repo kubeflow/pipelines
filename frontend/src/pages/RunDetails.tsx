@@ -633,7 +633,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         (runMetadata.status as NodePhase) !== NodePhase.ERROR;
       actions[ButtonKeys.RESUME].disabled =
         (runMetadata.status as NodePhase) !== NodePhase.RUNNING ||
-        Object.values(workflow.status.nodes).filter((node) => node.type as string === 'Suspend' && node.phase === NodePhase.RUNNING).length === 0;
+        Object.values(workflow.status.nodes).filter(
+          node => (node.type as string) === 'Suspend' && node.phase === NodePhase.RUNNING,
+        ).length === 0;
       this.props.updateToolbar({
         actions,
         breadcrumbs,

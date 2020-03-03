@@ -652,9 +652,7 @@ const runs: ApiRunDetail[] = [
       metrics: [],
       name: 'suspense-7sm95',
       pipeline_spec: {
-        parameters: [
-          { name: 'message', value: 'hello world' },
-        ],
+        parameters: [{ name: 'message', value: 'hello world' }],
         pipeline_id: pipelines[2].id,
         pipeline_name: pipelines[2].name,
       },

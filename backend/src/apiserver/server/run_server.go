@@ -198,6 +198,18 @@ func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) 
 
 }
 
+func (s *RunServer) ResumeRun(ctx context.Context, request *api.ResumeRunRequest) (*empty.Empty, error) {
+   err := s.canAccessRun(ctx, request.RunId)
+   if err != nil {
+      return nil, util.Wrap(err, "Failed to authorize the requests.")
+   }
+   err = s.resourceManager.ResumeRun(request.RunId)
+   if err != nil {
+      return nil, err
+   }
+   return &empty.Empty{}, nil
+}
+
 func (s *RunServer) canAccessRun(ctx context.Context, runId string) error {
 	if common.IsMultiUserMode() == false {
 		// Skip authz if not multi-user mode.

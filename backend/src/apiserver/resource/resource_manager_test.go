@@ -308,20 +308,6 @@ func TestGetPipelineTemplate_PipelineFileNotFound(t *testing.T) {
 
 func TestResumeRun(t *testing.T) {
 
-	store, manager, runDetail := initWithOneTimeRun(t)
-	defer store.Close()
-
-	err := manager.ResumeRun(runDetail.UUID)
-	namespace := "kubeflow"
-	assert.Nil(t, err)
-	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
-	fakeWorkflowClient := store.ArgoClientFake.Workflow(namespace)
-	workflow, err := fakeWorkflowClient.Get(runDetail.Run.Name, v1.GetOptions{})
-	assert.Equal(t, true, *workflow.Spec.Suspend)
-}
-
-func TestResumeRunChange(t *testing.T) {
-
 	store, manager, runDetail := initSuspended(t)
 	defer store.Close()
 
@@ -331,8 +317,9 @@ func TestResumeRunChange(t *testing.T) {
 	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
 	fakeWorkflowClient := store.ArgoClientFake.Workflow(namespace)
 	workflow, err := fakeWorkflowClient.Get(runDetail.Run.Name, v1.GetOptions{})
-	assert.Equal(t, true, *workflow.Spec.Suspend)
+	assert.Equal(t, false, *workflow.Spec.Suspend)
 }
+
 func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	store, manager, p := initWithPipeline(t)
 	defer store.Close()
