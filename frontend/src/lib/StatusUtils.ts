@@ -50,6 +50,7 @@ export function hasFinished(status?: NodePhase): boolean {
     case NodePhase.PENDING: // Fall through
     case NodePhase.RUNNING: // Fall through
     case NodePhase.TERMINATING: // Fall through
+    case NodePhase.SUSPENDED:
     case NodePhase.UNKNOWN:
       return false;
     default:
