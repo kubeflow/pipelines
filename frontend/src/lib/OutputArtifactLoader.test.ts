@@ -145,27 +145,27 @@ describe('OutputArtifactLoader', () => {
       );
     });
 
+    const basicMetadata = {
+      labels: ['field1', 'field2'],
+      schema: [
+        {
+          name: 'field1',
+        },
+        {
+          name: 'field2',
+          type: 'field2 type',
+        },
+      ],
+      source: 'gs://path',
+    };
     it('returns a confusion matrix config with basic metadata', async () => {
-      const metadata = {
-        labels: ['field1', 'field2'],
-        schema: [
-          {
-            name: 'field1',
-          },
-          {
-            name: 'field2',
-            type: 'field2 type',
-          },
-        ],
-        source: 'gs://path',
-      };
       fileToRead = `
       field1,field1,0
       field1,field2,0
       field2,field1,0
       field2,field2,0
       `;
-      const result = await OutputArtifactLoader.buildConfusionMatrixConfig(metadata as any);
+      const result = await OutputArtifactLoader.buildConfusionMatrixConfig(basicMetadata as any);
       expect(result).toEqual({
         axes: ['field1', 'field2'],
         data: [
@@ -175,6 +175,32 @@ describe('OutputArtifactLoader', () => {
         labels: ['field1', 'field2'],
         type: PlotType.CONFUSION_MATRIX,
       } as ConfusionMatrixConfig);
+    });
+    it('supports inline confusion matrix data', async () => {
+      fileToRead = '';
+
+      const source = `
+      field1,field1,1
+      field1,field2,2
+      field2,field1,3
+      field2,field2,4
+      `;
+      const expectedResult: ConfusionMatrixConfig = {
+        axes: ['field1', 'field2'],
+        data: [
+          [1, 2],
+          [3, 4],
+        ],
+        labels: ['field1', 'field2'],
+        type: PlotType.CONFUSION_MATRIX,
+      };
+
+      const result = await OutputArtifactLoader.buildConfusionMatrixConfig({
+        ...basicMetadata,
+        storage: 'inline',
+        source,
+      } as any);
+      expect(result).toEqual(expectedResult);
     });
   });
 
@@ -207,19 +233,20 @@ describe('OutputArtifactLoader', () => {
       );
     });
 
+    const basicMetadata = {
+      format: 'csv',
+      header: ['field1', 'field2'],
+      source: 'gs://path',
+    };
+
     it('returns a paged table config with basic metadata', async () => {
-      const metadata = {
-        format: 'csv',
-        header: ['field1', 'field2'],
-        source: 'gs://path',
-      };
       fileToRead = `
       field1,field1,0
       field1,field2,0
       field2,field1,0
       field2,field2,0
       `;
-      const result = await OutputArtifactLoader.buildPagedTableConfig(metadata as any);
+      const result = await OutputArtifactLoader.buildPagedTableConfig(basicMetadata as any);
       expect(result).toEqual({
         data: [
           ['field1', 'field1', '0'],
@@ -230,6 +257,29 @@ describe('OutputArtifactLoader', () => {
         labels: ['field1', 'field2'],
         type: PlotType.TABLE,
       } as PagedTableConfig);
+    });
+
+    it('returns a paged table config with inline metadata', async () => {
+      fileToRead = '';
+      const source = `
+      field1,field1,1
+      field1,field2,2
+      field2,field1,3
+      field2,field2,4
+      `;
+      const metadata = { ...basicMetadata, storage: 'inline', source };
+      const result = await OutputArtifactLoader.buildPagedTableConfig(metadata as any);
+      const expectedResult: PagedTableConfig = {
+        data: [
+          ['field1', 'field1', '1'],
+          ['field1', 'field2', '2'],
+          ['field2', 'field1', '3'],
+          ['field2', 'field2', '4'],
+        ],
+        labels: ['field1', 'field2'],
+        type: PlotType.TABLE,
+      };
+      expect(result).toEqual(expectedResult);
     });
   });
 
@@ -265,6 +315,19 @@ describe('OutputArtifactLoader', () => {
       </body></html>`;
       expect(await OutputArtifactLoader.buildHtmlViewerConfig(metadata as any)).toEqual({
         htmlContent: fileToRead,
+        type: PlotType.WEB_APP,
+      } as HTMLViewerConfig);
+    });
+
+    it('returns source as html content when storage type is inline', async () => {
+      const metadata = {
+        source: `<html><body>
+        Hello World!
+      </body></html>`,
+        storage: 'inline',
+      };
+      expect(await OutputArtifactLoader.buildHtmlViewerConfig(metadata as any)).toEqual({
+        htmlContent: metadata.source,
         type: PlotType.WEB_APP,
       } as HTMLViewerConfig);
     });
@@ -364,11 +427,13 @@ describe('OutputArtifactLoader', () => {
       );
     });
 
+    const basicMetadata = {
+      schema: [{ name: 'fpr' }, { name: 'tpr' }, { name: 'threshold' }],
+      source: 'gs://path',
+    };
+
     it('returns an ROC viewer config with basic metadata', async () => {
-      const metadata = {
-        schema: [{ name: 'fpr' }, { name: 'tpr' }, { name: 'threshold' }],
-        source: 'gs://path',
-      };
+      const metadata = basicMetadata;
       fileToRead = `
         0,1,2
         3,4,5
@@ -382,6 +447,27 @@ describe('OutputArtifactLoader', () => {
         ],
         type: PlotType.ROC,
       } as ROCCurveConfig);
+    });
+
+    it('returns an ROC viewer config with basic metadata', async () => {
+      const source = `
+        9,1,2
+        3,4,5
+        6,7,8
+      `;
+      const metadata = { ...basicMetadata, source, storage: 'inline' };
+      fileToRead = '';
+      const expectedResult: ROCCurveConfig = {
+        data: [
+          { label: '2', x: 9, y: 1 },
+          { label: '5', x: 3, y: 4 },
+          { label: '8', x: 6, y: 7 },
+        ],
+        type: PlotType.ROC,
+      };
+      expect(await OutputArtifactLoader.buildRocCurveConfig(metadata as any)).toEqual(
+        expectedResult,
+      );
     });
 
     it('returns an ROC viewer config with fields out of order', async () => {
