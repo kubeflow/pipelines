@@ -32,7 +32,6 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import { classes, stylesheet } from 'typestyle';
-import axios from 'axios';
 
 export const css = stylesheet({
   button: {
@@ -65,13 +64,14 @@ interface TensorboardViewerState {
   tensorflowVersion: string;
   // When podAddress is not null, we need to further tell whether the TensorBoard pod is accessible or not
   tensorboardReady: boolean;
-  tensorboardStatusCheckInternalInMS: number;
 }
 
 // TODO(jingzhang36): we'll later parse Tensorboard version from mlpipeline-ui-metadata.json file.
 const DEFAULT_TENSORBOARD_VERSION = '2.0.0';
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
+  timerID: number;
+
   constructor(props: any) {
     super(props);
 
@@ -81,7 +81,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       podAddress: '',
       tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
       tensorboardReady: false,
-      tensorboardStatusCheckInternalInMS: 5000,
     };
   }
 
@@ -94,7 +93,16 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   public componentDidMount(): void {
+    console.log('mount');
     this._checkTensorboardApp();
+    this.timerID = window.setInterval(
+      () => this._checkTensorboardPodStatus(),
+      5000 /* try pull status every 5 seconds */
+    );
+  }
+
+  public componentWillUnmount(): void {
+    clearInterval(this.timerID);
   }
 
   public handleVersionSelect = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
@@ -113,9 +121,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // tensorboard instance on this pod.
     // TODO: figure out why the encoded pod address failed to open the tensorboard.
     const podAddress = this.state.podAddress.replace(/(^\w+:|^)\/\//, '');
-    if (podAddress && !this.state.tensorboardReady) {
-      this._checkTensorboardPodStatus(podAddress);
-    }
 
     return (
       <div>
@@ -132,12 +137,13 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
             >
               <Button
                 className={classes(commonCss.buttonAction, css.button)}
-                disabled={this.state.busy || !this.state.tensorboardReady}
+                disabled={this.state.busy}
                 color={'primary'}
+                title={this.state.tensorboardReady
+                  ? ''
+                  : 'Tensorboard is starting, and you may need to wait for a few minutes.'}
               >
-                {this.state.tensorboardReady
-                  ? 'Open Tensorboard'
-                  : 'Please Wait While Tensorboard Is Turning Up'}
+              Open Tensorboard
               </Button>
             </a>
 
@@ -246,25 +252,21 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
   }
 
-  private async _checkTensorboardPodStatus(podAddress: string): Promise<void> {
-    // The following timeout leads to checking pod status every
-    // tensorboardStatusCheckInternalInMS/1000 seconds in case of connection timeout
-    // until pod returns status 200.
-    axios.defaults.timeout = this.state.tensorboardStatusCheckInternalInMS;
-    axios.head('apis/v1beta1/_proxy/' + podAddress).then(
-      res => {
+  private async _checkTensorboardPodStatus(): Promise<void> {
+    // If pod address is not null and tensorboard pod doesn't seem to be read, pull status again
+    if (this.state.podAddress && !this.state.tensorboardReady) {
+      fetch('apis/v1beta1/_proxy/' + this.state.podAddress.replace(/(^\w+:|^)\/\//, ''), {
+        method: 'HEAD'
+      })
+      .then(res => {
         if (res.status === 200) {
-          // TODO(jingzhang36): this is in an async method. So, if the component is
-          // already unmounted at this point, don't call setState
           this.setState({ tensorboardReady: true });
         } else {
           this.setState({ tensorboardReady: false });
         }
-      },
-      error => {
-        this.setState({ tensorboardReady: false });
-      },
-    );
+      })
+      .catch(error => { console.log('false'); this.setState({ tensorboardReady: false }); });
+    }
   }
 
   private async _checkTensorboardApp(): Promise<void> {

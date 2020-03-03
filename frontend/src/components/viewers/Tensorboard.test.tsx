@@ -20,18 +20,12 @@ import TestUtils, { diff } from '../../TestUtils';
 import { Apis } from '../../lib/Apis';
 import { PlotType } from './Viewer';
 import { ReactWrapper, ShallowWrapper, shallow, mount } from 'enzyme';
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
 
 describe('Tensorboard', () => {
   let tree: ReactWrapper | ShallowWrapper;
-  let axiosMock = new MockAdapter(axios);
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Tensorboard pod is by default up in each test. Hence, 200.
-    axiosMock.reset();
-    axiosMock.onAny().reply(200, {});
   });
 
   afterEach(async () => {
@@ -269,48 +263,6 @@ describe('Tensorboard', () => {
       .find('#cancel')
       .find('Button')
       .simulate('click');
-
-    expect(tree.findWhere(el => el.text() === 'Open Tensorboard').exists()).toBeTruthy();
-    expect(tree.findWhere(el => el.text() === 'Delete Tensorboard').exists()).toBeTruthy();
-  });
-
-  it('shows wait message when tensorboard instance is trying to turn up', async () => {
-    const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
-    const getAppMock = jest.fn(() =>
-      Promise.resolve({ podAddress: 'podaddress', tfVersion: '1.14.0' }),
-    );
-    jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
-
-    // Set ping delay to an enormous number to simulate no response from Tensorboard pod.
-    axiosMock.restore();
-    axiosMock = new MockAdapter(axios, { delayResponse: Number.MAX_SAFE_INTEGER });
-
-    tree = mount(<TensorboardViewer configs={[config]} />);
-    await TestUtils.flushPromises();
-    tree.update();
-    expect(
-      tree.findWhere(el => el.text() === 'Please Wait While Tensorboard Is Turning Up').exists(),
-    ).toBeTruthy();
-
-    axiosMock.restore();
-    axiosMock = new MockAdapter(axios);
-  });
-
-  it('shows open tensorboard when pod is finally up', async () => {
-    const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
-    const getAppMock = jest.fn(() =>
-      Promise.resolve({ podAddress: 'podaddress', tfVersion: '1.14.0' }),
-    );
-    jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
-
-    // The pod is not ready (504) at first ping and then becomes ready (200).
-    axiosMock.reset();
-    axiosMock.onAny().replyOnce(504, {});
-    axiosMock.onAny().replyOnce(200, {});
-
-    tree = mount(<TensorboardViewer configs={[config]} />);
-    await TestUtils.flushPromises();
-    tree.update();
 
     expect(tree.findWhere(el => el.text() === 'Open Tensorboard').exists()).toBeTruthy();
     expect(tree.findWhere(el => el.text() === 'Delete Tensorboard').exists()).toBeTruthy();
