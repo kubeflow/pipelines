@@ -172,6 +172,16 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     const runIdFromParams = this.props.match.params[RouteParams.runId];
     return {
       actions: buttons
+        .resumeRun(
+          () =>
+            this.state.runMetadata
+              ? [this.state.runMetadata!.id!]
+              : runIdFromParams
+              ? [runIdFromParams]
+              : [],
+          true,
+          () => this.refresh(),
+        )
         .retryRun(
           () =>
             this.state.runMetadata
@@ -622,6 +632,11 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       actions[ButtonKeys.RETRY].disabled =
         (runMetadata.status as NodePhase) !== NodePhase.FAILED &&
         (runMetadata.status as NodePhase) !== NodePhase.ERROR;
+      actions[ButtonKeys.RESUME].disabled =
+        (runMetadata.status as NodePhase) !== NodePhase.RUNNING ||
+        Object.values(workflow.status.nodes).filter(
+          node => (node.type as string) === 'Suspend' && node.phase === NodePhase.RUNNING,
+        ).length === 0;
       this.props.updateToolbar({
         actions,
         breadcrumbs,
