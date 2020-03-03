@@ -72,6 +72,10 @@ class TestCompiler(unittest.TestCase):
         ),
         attribute_outputs={"out": json}
       )
+      suspend_op = dsl.SuspendOp(
+        name="test-suspend",
+        duration=10
+      )
       golden_output = {
         'container': {
           'image': 'image',
@@ -148,11 +152,18 @@ class TestCompiler(unittest.TestCase):
           )
         }
       }
+      suspend_output = {
+        'name': 'test-suspend',
+        'suspend': {
+          'duration': '10'
+        }
+      }
 
       self.maxDiff = None
       self.assertEqual(golden_output, compiler._op_to_template._op_to_template(op))
       self.assertEqual(res_output, compiler._op_to_template._op_to_template(res))
-    
+      self.assertEqual(suspend_output, compiler._op_to_template._op_to_template(suspend_op))
+
     kfp.compiler.Compiler()._compile(my_pipeline)
 
   def _get_yaml_from_zip(self, zip_file):
