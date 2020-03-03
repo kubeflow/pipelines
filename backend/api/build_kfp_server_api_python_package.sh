@@ -35,7 +35,8 @@ if [ -z "$VERSION" ]; then
 fi
 
 codegen_file=/tmp/swagger-codegen-cli.jar
-codegen_uri=http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.7/swagger-codegen-cli-2.4.7.jar
+# Browse all versions in: https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.7/
+codegen_uri=https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.7/swagger-codegen-cli-2.4.7.jar
 if ! [ -f "$codegen_file" ]; then
     wget --no-verbose "$codegen_uri" -O "$codegen_file"
 fi

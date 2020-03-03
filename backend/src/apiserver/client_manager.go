@@ -22,11 +22,10 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -37,6 +36,10 @@ import (
 const (
 	minioServiceHost       = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort       = "MINIO_SERVICE_SERVICE_PORT"
+	minioServiceRegion     = "MINIO_SERVICE_REGION"
+	minioServiceSecure     = "MINIO_SERVICE_SECURE"
+	pipelineBucketName     = "MINIO_PIPELINE_BUCKET_NAME"
+	pipelinePath           = "MINIO_PIPELINE_PATH"
 	mysqlServiceHost       = "DBConfig.Host"
 	mysqlServicePort       = "DBConfig.Port"
 	mysqlUser              = "DBConfig.User"
@@ -150,7 +153,7 @@ func (c *ClientManager) init() {
 	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
-		common.GetStringConfig(client.PodNamespace), common.GetDurationConfig(initConnectionTimeout))
+		common.GetPodNamespace(), common.GetDurationConfig(initConnectionTimeout))
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
@@ -216,6 +219,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
 	}
 
+	response = db.Model(&model.RunDetail{}).AddIndex("experimentuuid_createatinsec", "ExperimentUUID", "CreatedAtInSec")
+	if response.Error != nil {
+		glog.Fatalf("Failed to create index experimentuuid_createatinsec on run_details. Error: %s", response.Error)
+	}
+
 	response = db.Model(&model.RunMetric{}).
 		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
@@ -231,6 +239,10 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// pipeline_versions to enter mlpipeline DB.
 	if initializePipelineVersions {
 		initPipelineVersionsFromPipelines(db)
+	}
+	err = backfillExperimentIDToRunTable(db)
+	if err != nil {
+		glog.Fatalf("Failed to backfill experiment UUID in run_details table: %s", err)
 	}
 
 	response = db.Model(&model.Pipeline{}).ModifyColumn("Description", "longtext not null")
@@ -309,29 +321,34 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
 	minioServicePort := common.GetStringConfigWithDefault(
 		"ObjectStoreConfig.Port", os.Getenv(minioServicePort))
-	accessKey := common.GetStringConfig("ObjectStoreConfig.AccessKey")
-	secretKey := common.GetStringConfig("ObjectStoreConfig.SecretAccessKey")
-	bucketName := common.GetStringConfig("ObjectStoreConfig.BucketName")
+	minioServiceRegion := common.GetStringConfigWithDefault(
+		"ObjectStoreConfig.Region", os.Getenv(minioServiceRegion))
+	minioServiceSecure := common.GetBoolConfigWithDefault(
+		"ObjectStoreConfig.Secure", common.GetBoolFromStringWithDefault(os.Getenv(minioServiceSecure), false))
+	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
+	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
+	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", os.Getenv(pipelineBucketName))
+	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelineFolder", os.Getenv(pipelinePath))
 	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
-		secretKey, initConnectionTimeout)
-	createMinioBucket(minioClient, bucketName)
+		secretKey, minioServiceSecure, minioServiceRegion, initConnectionTimeout)
+	createMinioBucket(minioClient, bucketName, minioServiceRegion)
 
-	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, disableMultipart)
+	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, pipelinePath, disableMultipart)
 }
 
-func createMinioBucket(minioClient *minio.Client, bucketName string) {
+func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
+	// Check to see if we already own this bucket.
+	exists, err := minioClient.BucketExists(bucketName)
+	if exists {
+		glog.Infof("We already own %s\n", bucketName)
+		return
+	}
 	// Create bucket if it does not exist
-	err := minioClient.MakeBucket(bucketName, "")
+	err = minioClient.MakeBucket(bucketName, region)
 	if err != nil {
-		// Check to see if we already own this bucket.
-		exists, err := minioClient.BucketExists(bucketName)
-		if err == nil && exists {
-			glog.Infof("We already own %s\n", bucketName)
-		} else {
-			glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
-		}
+		glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
 	}
 	glog.Infof("Successfully created bucket %s\n", bucketName)
 }
@@ -373,4 +390,31 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 	tx.Exec("update pipelines set DefaultVersionId=UUID;")
 
 	tx.Commit()
+}
+
+func backfillExperimentIDToRunTable(db *gorm.DB) (retError error) {
+	// check if there is any row in the run table has experiment ID being empty
+	rows, err := db.CommonDB().Query(`SELECT ExperimentUUID FROM run_details WHERE ExperimentUUID = '' LIMIT 1`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	// no row in run_details table has empty ExperimentUUID
+	if !rows.Next() {
+		return nil
+	}
+
+	_, err = db.CommonDB().Exec(`
+		UPDATE
+			run_details, resource_references
+		SET
+			run_details.ExperimentUUID = resource_references.ReferenceUUID
+		WHERE
+			run_details.UUID = resource_references.ResourceUUID
+			AND resource_references.ResourceType = 'Run'
+			AND resource_references.ReferenceType = 'Experiment'
+			AND run_details.ExperimentUUID = ''
+	`)
+	return err
 }

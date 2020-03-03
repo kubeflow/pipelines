@@ -369,7 +369,10 @@ describe('ExperimentDetails', () => {
   });
 
   it('navigates to the compare runs page', async () => {
-    const runs = [{ id: 'run-1-id', name: 'run-1' }, { id: 'run-2-id', name: 'run-2' }];
+    const runs = [
+      { id: 'run-1-id', name: 'run-1' },
+      { id: 'run-2-id', name: 'run-2' },
+    ];
     listRunsSpy.mockImplementation(() => ({ runs }));
     await listRunsSpy;
 

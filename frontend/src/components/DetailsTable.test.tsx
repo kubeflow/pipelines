@@ -95,7 +95,14 @@ describe('DetailsTable', () => {
   });
 
   it('does not render booleans as JSON', () => {
-    const tree = shallow(<DetailsTable fields={[['key1', 'true'], ['key2', 'false']]} />);
+    const tree = shallow(
+      <DetailsTable
+        fields={[
+          ['key1', 'true'],
+          ['key2', 'false'],
+        ]}
+      />,
+    );
     expect(tree).toMatchSnapshot();
   });
 

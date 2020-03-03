@@ -28,7 +28,7 @@ FROM python:3.5 as compiler
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
-RUN python3 -m pip install tfx==0.21.0rc0
+RUN python3 -m pip install tfx==0.21.0 tensorflow_transform==0.21.0
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY sdk sdk
@@ -66,7 +66,8 @@ COPY --from=compiler /samples/ /samples/
 RUN apt-get update && apt-get install -y ca-certificates
 
 # Pin sample doc links to the commit that built the backend image
-RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_config.json
+RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_config.json && \
+    sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i /config/sample_config.json
 
 # Expose apiserver port
 EXPOSE 8888

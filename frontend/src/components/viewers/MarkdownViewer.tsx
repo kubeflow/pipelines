@@ -65,10 +65,6 @@ interface MarkdownViewerProps {
 class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
   private _config = this.props.configs[0];
 
-  constructor(props: any) {
-    super(props);
-  }
-
   public getDisplayName(): string {
     return 'Markdown';
   }

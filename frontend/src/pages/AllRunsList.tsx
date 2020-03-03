@@ -46,8 +46,10 @@ class AllRunsList extends Page<{}, AllRunsListState> {
         .newExperiment()
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)
-        .archive(() => this.state.selectedIds, false, selectedIds =>
-          this._selectionChanged(selectedIds),
+        .archive(
+          () => this.state.selectedIds,
+          false,
+          selectedIds => this._selectionChanged(selectedIds),
         )
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),

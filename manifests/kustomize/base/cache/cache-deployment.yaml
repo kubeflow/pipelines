@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-server
+  labels:
+    app: cache-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache-server
+  template:
+    metadata:
+      labels:
+        app: cache-server
+    spec:
+      containers:
+      - name: server
+        image: gcr.io/ml-pipeline-test/cache-server:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+          name: webhook-api
+        volumeMounts:
+        - name: webhook-tls-certs
+          mountPath: /etc/webhook/certs
+          readOnly: true
+      volumes:
+      - name: webhook-tls-certs
+        secret:
+          secretName: webhook-server-tls

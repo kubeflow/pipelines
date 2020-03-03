@@ -409,6 +409,7 @@ func TestToApiJobs(t *testing.T) {
 			},
 		},
 		MaxConcurrency: 2,
+		NoCatchup:      true,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "2",
 			PipelineName: "p2",
@@ -444,6 +445,7 @@ func TestToApiJobs(t *testing.T) {
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
 			MaxConcurrency: 2,
+			NoCatchup:      true,
 			Trigger: &api.Trigger{
 				Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
 					StartTime: &timestamp.Timestamp{Seconds: 2},

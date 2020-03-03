@@ -94,6 +94,18 @@ steps:
          '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
          '/workspace/backend/metadata_writer/Dockerfile', '/workspace']
   waitFor: ["-"]
+- id: 'buildCacheServer'
+name: 'gcr.io/cloud-builders/docker'
+args: ['build', '-t', 'gcr.io/$PROJECT_ID/cache-server:$COMMIT_SHA',
+        '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
+        '/workspace/backend/Dockerfile.cacheserver', '/workspace']
+waitFor: ["-"]
+- id: 'buildCacheDeployer'
+name: 'gcr.io/cloud-builders/docker'
+args: ['build', '-t', 'gcr.io/$PROJECT_ID/cache-deployer:$COMMIT_SHA',
+        '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
+        '/workspace/backend/src/cache/deployer/Dockerfile', '/workspace']
+waitFor: ["-"]
 
 # Build marketplace deployer
 - id: 'buildMarketplaceDeployer'
@@ -182,6 +194,29 @@ steps:
          '/workspace/third_party/metadata_envoy/Dockerfile', '/workspace']
   id:   'buildMetadataEnvoy'
 
+# Tag for Hosted - SemVersion to Major.Minor parsing
+- id: "parseMajorMinorVersion"
+  waitFor: ["-"]
+  name: gcr.io/cloud-builders/docker
+  entrypoint: /bin/bash
+  args:
+    - -ceux
+    - |
+      # Parse major minor version and save to a file for reusing in other steps.
+      cat /workspace/VERSION | sed -e "s#[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)#\1.\2#" > /workspace/mm.ver
+
+# Tag for Hosted - Tag to hosted folder with MKP friendly name
+- id:   'tagForHosted'
+  waitFor: ['parseMajorMinorVersion', 'buildFrontend', 'buildApiServer', 'buildViewerCrdController',
+            'buildPersistenceAgent', 'buildInverseProxyAgent', 'buildVisualizationServer',
+            'buildMarketplaceDeployer']
+  name: 'gcr.io/cloud-builders/docker'
+  entrypoint: bash
+  args:
+  - -ceux
+  - |
+    /workspace/release/tag_for_hosted.sh $PROJECT_ID $COMMIT_SHA $(cat /workspace/VERSION) $(cat /workspace/mm.ver)
+
 images:
 # Images for the pipeline system itself
 - 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA'
@@ -192,6 +227,8 @@ images:
 - 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/cache-server:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/cache-deployer:$COMMIT_SHA'
 
 # Images for Marketplace
 - 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA'

@@ -56,6 +56,8 @@ kustomize edit set image gcr.io/ml-pipeline/viewer-crd-controller=${GCR_IMAGE_BA
 kustomize edit set image gcr.io/ml-pipeline/visualization-server=${GCR_IMAGE_BASE_DIR}/visualization-server:${GCR_IMAGE_TAG}
 kustomize edit set image gcr.io/ml-pipeline/inverse-proxy-agent=${GCR_IMAGE_BASE_DIR}/inverse-proxy-agent:${GCR_IMAGE_TAG}
 kustomize edit set image gcr.io/ml-pipeline/metadata-writer=${GCR_IMAGE_BASE_DIR}/metadata-writer:${GCR_IMAGE_TAG}
+kustomize edit set image gcr.io/ml-pipeline-test/cache-server=${GCR_IMAGE_BASE_DIR}/cache-server:${GCR_IMAGE_TAG}
+kustomize edit set image gcr.io/ml-pipeline-test/cache-deployer=${GCR_IMAGE_BASE_DIR}/cache-deployer:${GCR_IMAGE_TAG}
 cat kustomization.yaml
 
 kustomize build . | kubectl apply -f -
@@ -69,13 +71,22 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   export SYSTEM_GSA="test-kfp-system"
   export USER_GSA="test-kfp-user"
 
+  # Workaround for flakiness from gcp-workload-identity-setup.sh:
+  # When two tests add iam policy bindings at the same time, one will fail because
+  # there could be two concurrent changes.
+  # Wait here randomly to reduce chance both scripts are run at the same time
+  # between tests. gcp-workload-identity-setup.sh is user facing, we'd better
+  # not add retry there. Also unless for testing scenario like this, it won't
+  # meet the concurrent change issue.
+  sleep $((RANDOM%30))
   yes | PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
     ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
 
-  gcloud projects add-iam-policy-binding $PROJECT \
+  source "${DIR}/scripts/retry.sh"
+  retry gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$SYSTEM_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor"
-  gcloud projects add-iam-policy-binding $PROJECT \
+  retry gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$USER_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor"
 
