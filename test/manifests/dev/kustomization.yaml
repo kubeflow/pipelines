@@ -5,3 +5,5 @@ kind: Kustomization
 images: []
 resources:
 - ../../../manifests/kustomize/env/dev
+- ../../../manifests/kustomize/base/cache
+- ../../../manifests/kustomize/base/cache-deployer
