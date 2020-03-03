@@ -23,7 +23,6 @@ import { ReactWrapper, ShallowWrapper, shallow, mount } from 'enzyme';
 
 describe('Tensorboard', () => {
   let tree: ReactWrapper | ShallowWrapper;
-
   beforeEach(() => {
     jest.clearAllMocks();
   });

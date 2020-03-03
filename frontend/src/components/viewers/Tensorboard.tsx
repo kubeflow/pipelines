@@ -93,11 +93,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   public componentDidMount(): void {
-    console.log('mount');
     this._checkTensorboardApp();
     this.timerID = window.setInterval(
       () => this._checkTensorboardPodStatus(),
-      5000 /* try pull status every 5 seconds */
+      5000 /* try pulling status every 5 seconds */,
     );
   }
 
@@ -139,11 +138,13 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 className={classes(commonCss.buttonAction, css.button)}
                 disabled={this.state.busy}
                 color={'primary'}
-                title={this.state.tensorboardReady
-                  ? ''
-                  : 'Tensorboard is starting, and you may need to wait for a few minutes.'}
+                title={
+                  this.state.tensorboardReady
+                    ? ''
+                    : 'Tensorboard is starting, and you may need to wait for a few minutes.'
+                }
               >
-              Open Tensorboard
+                Open Tensorboard
               </Button>
             </a>
 
@@ -256,16 +257,18 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // If pod address is not null and tensorboard pod doesn't seem to be read, pull status again
     if (this.state.podAddress && !this.state.tensorboardReady) {
       fetch('apis/v1beta1/_proxy/' + this.state.podAddress.replace(/(^\w+:|^)\/\//, ''), {
-        method: 'HEAD'
+        method: 'HEAD',
       })
-      .then(res => {
-        if (res.status === 200) {
-          this.setState({ tensorboardReady: true });
-        } else {
+        .then(res => {
+          if (res.status === 200) {
+            this.setState({ tensorboardReady: true });
+          } else {
+            this.setState({ tensorboardReady: false });
+          }
+        })
+        .catch(error => {
           this.setState({ tensorboardReady: false });
-        }
-      })
-      .catch(error => { console.log('false'); this.setState({ tensorboardReady: false }); });
+        });
     }
   }
 
