@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
@@ -344,6 +345,51 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// Assign the create at time.
 	runDetail.CreatedAtInSec = r.time.Now().Unix()
 	return r.runStore.CreateRun(runDetail)
+}
+
+func (r *ResourceManager) ResumeRun(runID string) error {
+	runDetail, err := r.checkRunExist(runID)
+	if err != nil {
+		return util.Wrap(err, "Run does not exist")
+	}
+
+	namespace, err := r.GetNamespaceFromRunID(runID)
+	if err != nil {
+		return util.Wrap(err, "Cant find namespace for runId")
+	}
+
+	// Then we need to get the workflow from the runStore
+	var originalWorkflow util.Workflow
+	if err := json.Unmarshal([]byte(runDetail.WorkflowRuntimeManifest), &originalWorkflow); err != nil {
+		return util.NewInternalServerError(err, "Failed to find old workflow")
+	}
+	// Here we try to get the actual workflow from argo
+	latestWorkflow, err := r.getWorkflowClient(namespace).Get(originalWorkflow.Name, v1.GetOptions{})
+
+	updated := false
+
+	// Update spec Suspend field
+    if latestWorkflow.Spec.Suspend != nil && *latestWorkflow.Spec.Suspend {
+        latestWorkflow.Spec.Suspend = nil
+        updated = true
+    }
+
+    // To resume a workflow with a suspended node we simply mark the node as Successful
+    for nodeID, node := range latestWorkflow.Status.Nodes {
+        if node.Type == workflowapi.NodeTypeSuspend && node.Phase == workflowapi.NodeRunning {
+            node.Phase = workflowapi.NodeSucceeded
+            node.FinishedAt = v1.Time{Time: time.Now().UTC()}
+			latestWorkflow.Status.Nodes[nodeID] = node
+            updated = true
+        }
+    }
+
+    // Send the updated workflow to argo if there are changes
+    if updated {
+        _, err = r.getWorkflowClient(namespace).Update(latestWorkflow)
+        return err
+    }
+ 	return nil
 }
 
 func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
