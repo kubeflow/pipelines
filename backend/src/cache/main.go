@@ -76,9 +76,15 @@ func main() {
 		ExecutionCacheKey: "test123456",
 		ExecutionOutput:   "testoutput",
 	}
-	clientManager.cacheStore.CreateExecutionCache(&testCache)
+	_, err := clientManager.cacheStore.CreateExecutionCache(&testCache)
+	if err != nil {
+		log.Println(err.Error())
+	}
 
-	cacheResult, _ := clientManager.cacheStore.GetExecutionCache("test123456")
+	cacheResult, err := clientManager.cacheStore.GetExecutionCache("test123456")
+	if err != nil {
+		log.Printf(err.Error())
+	}
 	log.Println(cacheResult.GetExecutionOutput())
 
 	certPath := filepath.Join(TLSDir, TLSCertFile)
