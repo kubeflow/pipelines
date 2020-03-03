@@ -192,7 +192,10 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }) {
         res.send();
         return;
       }
-      console.log(`Found ${matchingFiles.length} matching files:`, matchingFiles);
+      console.log(
+        `Found ${matchingFiles.length} matching files: `,
+        matchingFiles.map(file => file.name).join(','),
+      );
       let contents = '';
       matchingFiles.forEach((f, i) => {
         const buffer: Buffer[] = [];
