@@ -410,7 +410,7 @@ class Client(object):
     return RunPipelineResult(self, run_info)
 
   def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, 
-    namespace=None, cron_schedule=None, description=None):
+    namespace=None, cron_schedule=None, description=None, max_concurrency=10, no_catchup=None):
     """Schedule pipeline on kubeflow to run based upon a cron job
     
     Arguments:
@@ -422,6 +422,13 @@ class Client(object):
         params {dict} -- The pipeline parameters (default: {{}})
         pipeline_id {[type]} -- The id of the pipeline which should run on schedule (default: {None})
         namespace {[type]} -- The name space with which the pipeline should run (default: {None})
+        max_concurrency {[type]} -- Max number of concurrent runs scheduled (default: {10})
+        no_catchup {[type]} -- Whether the recurring run should catch up if behind schedule.
+          For example, if the recurring run is paused for a while and re-enabled
+          afterwards. If no_catchup=False, the scheduler will catch up on (backfill) each
+          missed interval. Otherwise, it only schedules the latest interval.
+          Usually, if your pipeline handles backfill internally, you should turn catchup
+          off to avoid duplicate work. (default: {False})
     """
 
     pipeline_json_string = None
@@ -458,7 +465,8 @@ class Client(object):
         description=description,
         pipeline_spec=spec,
         resource_references=resource_references,
-        max_concurrency=10,
+        max_concurrency=max_concurrency,
+        no_catchup=no_catchup,
         trigger=trigger,
         enabled=True,
         )
