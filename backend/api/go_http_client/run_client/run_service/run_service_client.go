@@ -242,6 +242,35 @@ func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runti
 }
 
 /*
+ResumeRun resumes a suspended run
+*/
+func (a *Client) ResumeRun(params *ResumeRunParams, authInfo runtime.ClientAuthInfoWriter) (*ResumeRunOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewResumeRunParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ResumeRun",
+		Method:             "POST",
+		PathPattern:        "/apis/v1beta1/runs/{run_id}/resume",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ResumeRunReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ResumeRunOK), nil
+
+}
+
+/*
 RetryRun res initiate a failed or terminated run
 */
 func (a *Client) RetryRun(params *RetryRunParams, authInfo runtime.ClientAuthInfoWriter) (*RetryRunOK, error) {
