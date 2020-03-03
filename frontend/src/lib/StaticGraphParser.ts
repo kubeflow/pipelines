@@ -61,9 +61,9 @@ export function _populateInfoFromTemplate(
 
   if (template.container) {
     info.nodeType = 'container';
-    (info.args = template.container.args || []),
-      (info.command = template.container.command || []),
-      (info.image = template.container.image || '');
+    info.args = template.container.args || [];
+    info.command = template.container.command || [];
+    info.image = template.container.image || '';
     info.volumeMounts = (template.container.volumeMounts || []).map(v => [v.mountPath, v.name]);
   } else {
     info.nodeType = 'resource';

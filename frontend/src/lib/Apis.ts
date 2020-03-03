@@ -94,7 +94,7 @@ export class Apis {
   }
 
   public static get basePath(): string {
-    const path = location.protocol + '//' + location.host + location.pathname;
+    const path = window.location.protocol + '//' + window.location.host + window.location.pathname;
     // Trim trailing '/' if exists
     return path.endsWith('/') ? path.substr(0, path.length - 1) : path;
   }

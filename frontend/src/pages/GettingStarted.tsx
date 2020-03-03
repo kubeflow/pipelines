@@ -48,9 +48,10 @@ const PAGE_CONTENT_MD = ({
 }) => `
 <br/>
 
-## Build your own pipeline
+## Build your own pipeline with
 
-Build an end-to-end ML pipeline with TensorFlow Extended (TFX) [**Start Here!**](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb)
+  * TensorFlow Extended (TFX) [SDK](https://www.tensorflow.org/tfx/guide) with end-to-end ML Pipeline Template ([Open TF 2.1 Notebook](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb))
+  * Kubeflow Pipelines [SDK](https://www.kubeflow.org/docs/pipelines/sdk/)
 
 <br/>
 
@@ -70,14 +71,6 @@ This section contains demo and tutorial pipelines.
   * [DSL - Control structures](${control}) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
 
 Want to learn more? [Learn from sample and tutorial pipelines.](https://www.kubeflow.org/docs/pipelines/tutorials/)
-
-<br/>
-
-### Additional resources and documentation
-  * [TFX documentation](https://www.tensorflow.org/tfx)
-  * [AI Platform Pipelines documentation](https://cloud.google.com/ai-platform/pipelines/docs/)
-  * [Troubleshooting guide](https://cloud.google.com/ai-platform/pipelines/docs/troubleshooting/)
-  * [Kubeflow Pipelines documentation](https://www.kubeflow.org/docs/pipelines/)
 `;
 
 cssRaw(`
@@ -129,14 +122,11 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
           .listPipelines(undefined, 10, undefined, createAndEncodeFilter(name))
           .then(pipelineList => {
             const pipelines = pipelineList.pipelines;
-            if (!pipelines || pipelines.length !== 1) {
+            if (pipelines?.length !== 1) {
+              // This should be accurate, do not accept ambiguous results.
               return '';
             }
-            const pipeline = pipelines[0];
-            if (!pipeline.id) {
-              return '';
-            }
-            return pipeline.id;
+            return pipelines[0].id || '';
           })
           .catch(() => ''),
       ),

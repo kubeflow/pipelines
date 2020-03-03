@@ -1,11 +1,10 @@
 import React from 'react';
 import { GettingStarted } from './GettingStarted';
-import TestUtils, { formatHTML } from '../TestUtils';
+import TestUtils, { diffHTML } from '../TestUtils';
 import { render } from '@testing-library/react';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { ApiListPipelinesResponse } from '../apis/pipeline/api';
-import snapshotDiff from 'snapshot-diff';
 
 const PATH_BACKEND_CONFIG = '../../../backend/src/apiserver/config/sample_config.json';
 const PATH_FRONTEND_CONFIG = '../config/sample_config_from_backend.json';
@@ -60,12 +59,75 @@ describe('GettingStarted page', () => {
       return Promise.resolve(response);
     });
     const { container } = render(<GettingStarted {...generateProps()} />);
-    const initialHtml = container.innerHTML;
+    const base = container.innerHTML;
     await TestUtils.flushPromises();
     expect(pipelineListSpy.mock.calls).toMatchSnapshot();
-    expect(
-      snapshotDiff(formatHTML(initialHtml), formatHTML(container.innerHTML)),
-    ).toMatchSnapshot();
+    expect(diffHTML({ base, update: container.innerHTML })).toMatchInlineSnapshot(`
+      Snapshot Diff:
+      - Expected
+      + Received
+
+      @@ --- --- @@
+            <h2 id="demonstrations-and-tutorials">Demonstrations and Tutorials</h2>
+            <p>This section contains demo and tutorial pipelines.</p>
+            <p><strong>Demos</strong> - Try an end-to-end demonstration pipeline.</p>
+            <ul>
+              <li>
+      -         <a href="#/pipelines" class="link">TFX pipeline demo</a>
+      +         <a href="#/pipelines/details/pipeline-id-2?" class="link"
+      +           >TFX pipeline demo</a
+      +         >
+                <ul>
+                  <li>
+                    Classification pipeline with model analysis, based on a public
+                    BigQuery dataset of taxicab trips.
+                    <a
+      @@ --- --- @@
+                    >
+                  </li>
+                </ul>
+              </li>
+              <li>
+      -         <a href="#/pipelines" class="link">XGBoost Pipeline demo</a>
+      +         <a href="#/pipelines/details/pipeline-id-1?" class="link"
+      +           >XGBoost Pipeline demo</a
+      +         >
+                <ul>
+                  <li>
+                    An example of end-to-end distributed training for an XGBoost model.
+                    <a
+                      href="https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm"
+      @@ --- --- @@
+              <strong>Tutorials</strong> - Learn pipeline concepts by following a
+              tutorial.
+            </p>
+            <ul>
+              <li>
+      -         <a href="#/pipelines" class="link">Data passing in python components</a>
+      +         <a href="#/pipelines/details/pipeline-id-3?" class="link"
+      +           >Data passing in python components</a
+      +         >
+                <ul>
+                  <li>
+                    Shows how to pass data between python components.
+                    <a
+                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
+      @@ --- --- @@
+                    >
+                  </li>
+                </ul>
+              </li>
+              <li>
+      -         <a href="#/pipelines" class="link">DSL - Control structures</a>
+      +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
+      +           >DSL - Control structures</a
+      +         >
+                <ul>
+                  <li>
+                    Shows how to use conditional execution and exit handlers.
+                    <a
+                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures"
+    `);
   });
 
   it('fallbacks to show pipeline list page if request failed', async () => {
@@ -89,10 +151,28 @@ describe('GettingStarted page', () => {
       },
     );
     const { container } = render(<GettingStarted {...generateProps()} />);
-    const initialHtml = container.innerHTML;
+    const base = container.innerHTML;
     await TestUtils.flushPromises();
-    expect(
-      snapshotDiff(formatHTML(initialHtml), formatHTML(container.innerHTML)),
-    ).toMatchSnapshot();
+    expect(diffHTML({ base, update: container.innerHTML })).toMatchInlineSnapshot(`
+      Snapshot Diff:
+      - Expected
+      + Received
+
+      @@ --- --- @@
+                    >
+                  </li>
+                </ul>
+              </li>
+              <li>
+      -         <a href="#/pipelines" class="link">DSL - Control structures</a>
+      +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
+      +           >DSL - Control structures</a
+      +         >
+                <ul>
+                  <li>
+                    Shows how to use conditional execution and exit handlers.
+                    <a
+                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures"
+    `);
   });
 });

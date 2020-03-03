@@ -6175,23 +6175,8 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                   <WithStyles(WithFormControlContext(Select))
                     input={
                       <WithStyles(Input)
-                        autoComplete={undefined}
-                        autoFocus={undefined}
-                        defaultValue={undefined}
                         disableUnderline={true}
-                        fullWidth={undefined}
-                        id={undefined}
-                        inputProps={undefined}
-                        inputRef={undefined}
-                        multiline={undefined}
-                        name={undefined}
-                        onBlur={undefined}
                         onChange={[Function]}
-                        onFocus={undefined}
-                        placeholder={undefined}
-                        rows={undefined}
-                        rowsMax={undefined}
-                        type={undefined}
                         value={10}
                       />
                     }
@@ -6211,23 +6196,8 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       }
                       input={
                         <WithStyles(Input)
-                          autoComplete={undefined}
-                          autoFocus={undefined}
-                          defaultValue={undefined}
                           disableUnderline={true}
-                          fullWidth={undefined}
-                          id={undefined}
-                          inputProps={undefined}
-                          inputRef={undefined}
-                          multiline={undefined}
-                          name={undefined}
-                          onBlur={undefined}
                           onChange={[Function]}
-                          onFocus={undefined}
-                          placeholder={undefined}
-                          rows={undefined}
-                          rowsMax={undefined}
-                          type={undefined}
                           value={10}
                         />
                       }
@@ -6250,23 +6220,8 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         displayEmpty={false}
                         input={
                           <WithStyles(Input)
-                            autoComplete={undefined}
-                            autoFocus={undefined}
-                            defaultValue={undefined}
                             disableUnderline={true}
-                            fullWidth={undefined}
-                            id={undefined}
-                            inputProps={undefined}
-                            inputRef={undefined}
-                            multiline={undefined}
-                            name={undefined}
-                            onBlur={undefined}
                             onChange={[Function]}
-                            onFocus={undefined}
-                            placeholder={undefined}
-                            rows={undefined}
-                            rowsMax={undefined}
-                            type={undefined}
                             value={10}
                           />
                         }
@@ -7562,16 +7517,10 @@ exports[`RunList reloads the run when refresh is called 1`] = `
 </RunList>
 `;
 
-exports[`RunList renders an empty metric when metric is empty 1`] = `
-<Metric
-  metadata={undefined}
-  metric={undefined}
-/>
-`;
+exports[`RunList renders an empty metric when metric is empty 1`] = `<Metric />`;
 
 exports[`RunList renders an empty metric when metric value is empty 1`] = `
 <Metric
-  metadata={undefined}
   metric={Object {}}
 />
 `;
@@ -7611,7 +7560,6 @@ exports[`RunList renders no experiment name 1`] = `
 
 exports[`RunList renders percentage metric 1`] = `
 <Metric
-  metadata={undefined}
   metric={
     Object {
       "format": "PERCENTAGE",

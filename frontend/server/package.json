@@ -32,7 +32,7 @@
     "build": "tsc --lib es2015 --outDir ./dist --typeRoots ./node_modules/@types server.ts",
     "format": "npx prettier --write './**/*.{ts,tsx}'",
     "format:check": "npx prettier --check './**/*.{ts,tsx}' || node ../scripts/check-format-error-info.js",
-    "lint": "npx tslint -c ../tslint.prod.json -p ../tsconfig.prod.json",
+    "lint": "npx tslint -c tslint.json -p tsconfig.json",
     "test": "npx jest",
     "test:coverage": "npm test -- --coverage",
     "test:ci": "npm run format:check && npm run lint && npm run test:coverage"
@@ -43,7 +43,7 @@
     "globals": {
       "ts-jest": {
         "diagnostics": false,
-        "tsConfig": "../tsconfig.json"
+        "tsConfig": "tsconfig.json"
       }
     },
     "testPathIgnorePatterns": [
