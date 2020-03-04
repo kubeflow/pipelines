@@ -44,10 +44,8 @@ class VolumeOp(ResourceOp):
                  modes: List[str] = None,
                  annotations: Dict[str, str] = None,
                  data_source=None,
-                 action: str = "create",
                  **kwargs):
         """Create a new instance of VolumeOp.
-
         Args:
             resource_name: A desired name for the PVC which will be created
             size: The size of the PVC which will be created
@@ -70,8 +68,7 @@ class VolumeOp(ResourceOp):
                             V1TypedLocalObjectReference)
         """
         # Add size to attribute outputs
-        if action != "delete":
-            self.attribute_outputs = {"size": "{.status.capacity.storage}"}
+        self.attribute_outputs = {"size": "{.status.capacity.storage}"}
 
         if "k8s_resource" in kwargs:
             if resource_name or size or storage_class or modes or annotations:
@@ -80,30 +77,28 @@ class VolumeOp(ResourceOp):
             if not isinstance(kwargs["k8s_resource"], V1PersistentVolumeClaim):
                 raise ValueError("k8s_resource in VolumeOp must be an instance"
                                  " of V1PersistentVolumeClaim")
-            super().__init__(action=action, **kwargs)
-            if action != "delete":
-                self.volume = PipelineVolume(
-                    name=sanitize_k8s_name(self.name),
-                    pvc=self.outputs["name"]
-                )
+            super().__init__(**kwargs)
+            self.volume = PipelineVolume(
+                name=sanitize_k8s_name(self.name),
+                pvc=self.outputs["name"]
+            )
             return
 
-        if action != "delete":
-            if not size:
-                raise ValueError("Please provide size")
-            elif not match_serialized_pipelineparam(str(size)):
-                self._validate_memory_string(size)
+        if not size:
+            raise ValueError("Please provide size")
+        elif not match_serialized_pipelineparam(str(size)):
+            self._validate_memory_string(size)
 
-            if data_source and not isinstance(
-               data_source, (str, PipelineParam, V1TypedLocalObjectReference)):
-                raise ValueError("data_source can be one of (str, PipelineParam, "
-                                 "V1TypedLocalObjectReference).")
-            if data_source and isinstance(data_source, (str, PipelineParam)):
-                data_source = V1TypedLocalObjectReference(
-                    api_group="snapshot.storage.k8s.io",
-                    kind="VolumeSnapshot",
-                    name=data_source
-                )
+        if data_source and not isinstance(
+           data_source, (str, PipelineParam, V1TypedLocalObjectReference)):
+            raise ValueError("data_source can be one of (str, PipelineParam, "
+                             "V1TypedLocalObjectReference).")
+        if data_source and isinstance(data_source, (str, PipelineParam)):
+            data_source = V1TypedLocalObjectReference(
+                api_group="snapshot.storage.k8s.io",
+                kind="VolumeSnapshot",
+                name=data_source
+            )
 
         # Set the k8s_resource
         if not match_serialized_pipelineparam(str(resource_name)):
@@ -112,39 +107,42 @@ class VolumeOp(ResourceOp):
             name="{{workflow.name}}-%s" % resource_name,
             annotations=annotations
         )
-        if action != "delete":
-            requested_resources = V1ResourceRequirements(
-                requests={"storage": size}
-            )
-            pvc_spec = V1PersistentVolumeClaimSpec(
-                access_modes=modes or VOLUME_MODE_RWM,
-                resources=requested_resources,
-                storage_class_name=storage_class,
-                data_source=data_source
-            )
-            k8s_resource = V1PersistentVolumeClaim(
-                api_version="v1",
-                kind="PersistentVolumeClaim",
-                metadata=pvc_metadata,
-                spec=pvc_spec
-            )
-        else:
-            k8s_resource = V1PersistentVolumeClaim(
-                api_version="v1",
-                kind="PersistentVolumeClaim",
-                metadata=pvc_metadata,
-            )
+        requested_resources = V1ResourceRequirements(
+            requests={"storage": size}
+        )
+        pvc_spec = V1PersistentVolumeClaimSpec(
+            access_modes=modes or VOLUME_MODE_RWM,
+            resources=requested_resources,
+            storage_class_name=storage_class,
+            data_source=data_source
+        )
+        k8s_resource = V1PersistentVolumeClaim(
+            api_version="v1",
+            kind="PersistentVolumeClaim",
+            metadata=pvc_metadata,
+            spec=pvc_spec
+        )
 
         super().__init__(
             k8s_resource=k8s_resource,
-            action=action,
             **kwargs,
         )
-        if action != "delete":
-            self.volume = PipelineVolume(
-                name=sanitize_k8s_name(self.name),
-                pvc=self.outputs["name"]
-            )
+        self.volume = PipelineVolume(
+            name=sanitize_k8s_name(self.name),
+            pvc=self.outputs["name"]
+        )
+
+    def delete(self, name: str = None):
+        """Delete an existing PVC
+        Args:
+            name: the name of the op. It does not have to be unique within a pipeline
+              because the pipeline will generates a unique new name in case of conflicts.
+        """
+        return ResourceOp(
+            name=name,
+            k8s_resource=self.k8s_resource,
+            action="delete"
+        )
 
     def _validate_memory_string(self, memory_string):
         """Validate a given string is valid for memory request or limit."""
