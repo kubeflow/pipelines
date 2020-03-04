@@ -90,10 +90,12 @@ func mutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) 
 func isValidPod(pod *corev1.Pod) bool {
 	annotations := pod.ObjectMeta.Annotations
 	if !isKFPArgoPod(&annotations) {
+		log.Printf("This pod is not created by KFP.")
 		return false
 	}
 	containers := pod.Spec.Containers
 	if isTFXPod(&containers) {
+		log.Printf("This pod is created by TFX pipelines.")
 		return false
 	}
 	return true
@@ -102,6 +104,7 @@ func isValidPod(pod *corev1.Pod) bool {
 func isKFPArgoPod(annotations *map[string]string) bool {
 	// is argo pod or not
 	if _, exists := (*annotations)[ArgoWorkflowNodeName]; !exists {
+		log.Printf("This pod is not created by Argo.")
 		return false
 	}
 	// is KFP pod or not
