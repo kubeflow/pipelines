@@ -137,18 +137,18 @@ class Condition(OpsGroup):
 
   Example usage:
   ```python
-  with Condition(param1=='pizza'):
+  with Condition(param1=='pizza', '[param1 is pizza]'):
     op1 = ContainerOp(...)
     op2 = ContainerOp(...)
   ```
   """
 
-  def __init__(self, condition):
+  def __init__(self, condition, name = None):
     """Create a new instance of Condition.
     Args:
       condition (ConditionOperator): the condition.
     """
-    super(Condition, self).__init__('condition')
+    super(Condition, self).__init__('condition', name)
     self.condition = condition
 
 
