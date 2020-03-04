@@ -235,11 +235,12 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                   <p>
                     For example, if the recurring run is paused for a while and re-enabled
                     afterwards. If catchup=true, the scheduler will catch up on (backfill) each
-                    missed interval. Otherwise, it only schedules the latest interval.
+                    missed interval. Otherwise, it only schedules the latest interval if more than
+                    one interval is ready to be scheduled.
                   </p>
                   <p>
                     Usually, if your pipeline handles backfill internally, you should turn catchup
-                    off to avoid duplicate work.
+                    off to avoid duplicate backfill.
                   </p>
                 </div>
               }

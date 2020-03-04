@@ -414,21 +414,22 @@ class Client(object):
     """Schedule pipeline on kubeflow to run based upon a cron job
     
     Arguments:
-        experiment_id {[type]} -- The expriment within which we would like kubeflow 
-        job_name {[type]} -- The name of the scheduled job
+        experiment_id {string} -- The expriment within which we would like kubeflow 
+        job_name {string} -- The name of the scheduled job
     
     Keyword Arguments:
-        pipeline_package_path {[type]} -- The path to the pipeline package (default: {None})
+        pipeline_package_path {string} -- The path to the pipeline package (default: {None})
         params {dict} -- The pipeline parameters (default: {{}})
-        pipeline_id {[type]} -- The id of the pipeline which should run on schedule (default: {None})
-        namespace {[type]} -- The name space with which the pipeline should run (default: {None})
-        max_concurrency {[type]} -- Max number of concurrent runs scheduled (default: {10})
-        no_catchup {[type]} -- Whether the recurring run should catch up if behind schedule.
+        pipeline_id {string} -- The id of the pipeline which should run on schedule (default: {None})
+        namespace {string} -- The name space with which the pipeline should run (default: {None})
+        max_concurrency {int} -- Max number of concurrent runs scheduled (default: {10})
+        no_catchup {boolean} -- Whether the recurring run should catch up if behind schedule.
           For example, if the recurring run is paused for a while and re-enabled
           afterwards. If no_catchup=False, the scheduler will catch up on (backfill) each
-          missed interval. Otherwise, it only schedules the latest interval.
+          missed interval. Otherwise, it only schedules the latest interval if more than one interval
+          is ready to be scheduled.
           Usually, if your pipeline handles backfill internally, you should turn catchup
-          off to avoid duplicate work. (default: {False})
+          off to avoid duplicate backfill. (default: {False})
     """
 
     pipeline_json_string = None
