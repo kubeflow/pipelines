@@ -58,6 +58,8 @@ export function loadJSON<T>(filepath?: string, defaultValue?: T): T | undefined 
   try {
     return JSON.parse(readFileSync(filepath, 'utf-8'));
   } catch (error) {
+    console.error(`Failed reading json data from '${filepath}':`);
+    console.error(error);
     return defaultValue;
   }
 }
