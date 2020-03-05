@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	DBName                   = "mlpipeline"
+	DBName                   = "cachedb"
 	DefaultConnectionTimeout = "6m"
 )
 
@@ -103,8 +103,20 @@ func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) st
 	defer db.Close()
 	util.TerminateIfError(err)
 
-	// Use database
+	// Create database if not exist
 	dbName := DBName
+	operation = func() error {
+		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
+		if err != nil {
+			return err
+		}
+		log.Printf("Database created")
+		return nil
+	}
+	b = backoff.NewExponentialBackOff()
+	b.MaxElapsedTime = initConnectionTimeout
+	err = backoff.Retry(operation, b)
+
 	operation = func() error {
 		_, err = db.Exec(fmt.Sprintf("USE %s", dbName))
 		if err != nil {

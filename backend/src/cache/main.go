@@ -20,7 +20,6 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/server"
 )
 
@@ -72,20 +71,6 @@ func main() {
 
 	log.Println("Initing client manager....")
 	clientManager := NewClientManager(params)
-	testCache := model.ExecutionCache{
-		ExecutionCacheKey: "test123456",
-		ExecutionOutput:   "testoutput",
-	}
-	_, err := clientManager.cacheStore.CreateExecutionCache(&testCache)
-	if err != nil {
-		log.Println(err.Error())
-	}
-
-	cacheResult, err := clientManager.cacheStore.GetExecutionCache("test123456")
-	if err != nil {
-		log.Printf(err.Error())
-	}
-	log.Println(cacheResult.GetExecutionOutput())
 
 	certPath := filepath.Join(TLSDir, TLSCertFile)
 	keyPath := filepath.Join(TLSDir, TLSKeyFile)

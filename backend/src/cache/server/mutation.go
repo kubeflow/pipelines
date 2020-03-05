@@ -31,6 +31,7 @@ const (
 	ArgoWorkflowTemplate string = "workflows.argoproj.io/template"
 	ExecutionKey         string = "pipelines.kubeflow.org/execution_cache_key"
 	AnnotationPath       string = "/metadata/annotations"
+	ExecutionOutputs     string = "workflows.argoproj.io/outputs"
 )
 
 var (
@@ -73,6 +74,32 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	executionHashKey = hex.EncodeToString(md)
 
 	annotations[ExecutionKey] = executionHashKey
+
+	// Check cache existance
+	cachedExecution, err := clientMgr.CacheStore().GetExecutionCache(executionHashKey)
+	if err != nil {
+		return nil, err
+	}
+	var cachedOutput string
+	if cachedExecution != nil {
+		cachedOutput = cachedExecution.GetExecutionOutput()
+		if cachedOutput != "" {
+			annotations[ExecutionOutputs] = cachedOutput
+			pod.Spec.Containers = []corev1.Container{}
+		}
+	}
+	log.Println(annotations[ExecutionOutputs])
+	if cachedExecution == nil {
+		executionToCache := model.ExecutionCache{
+			ExecutionCacheKey: executionHashKey,
+			ExecutionOutput:   annotations[ExecutionOutputs],
+		}
+		_, err := clientMgr.CacheStore().CreateExecutionCache(&executionToCache)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Add executionKey to pod.metadata.annotations
 	patches = append(patches, patchOperation{
 		Op:    OperationTypeAdd,
@@ -80,20 +107,22 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		Value: annotations,
 	})
 
-	testCache := model.ExecutionCache{
-		ExecutionCacheKey: "test123456",
-		ExecutionOutput:   "testoutput",
-	}
-	_, err := clientMgr.CacheStore().CreateExecutionCache(&testCache)
-	if err != nil {
-		log.Println(err.Error())
-	}
+	// testCache := model.ExecutionCache{
+	// 	ExecutionCacheKey: "test123456",
+	// 	ExecutionOutput:   "testoutput",
+	// }
+	// if resultTest, _ := clientMgr.CacheStore().GetExecutionCache("test123456"); resultTest == nil {
+	// 	_, err := clientMgr.CacheStore().CreateExecutionCache(&testCache)
+	// 	if err != nil {
+	// 		log.Println(err.Error())
+	// 	}
+	// }
 
-	cacheResult, err := clientMgr.CacheStore().GetExecutionCache("test123456")
-	if err != nil {
-		log.Printf(err.Error())
-	}
-	log.Println(cacheResult.GetExecutionOutput())
+	// cacheResult, err := clientMgr.CacheStore().GetExecutionCache("test123456")
+	// if err != nil {
+	// 	log.Printf(err.Error())
+	// }
+	// log.Println(cacheResult.GetExecutionOutput())
 
 	return patches, nil
 }
