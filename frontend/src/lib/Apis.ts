@@ -205,6 +205,17 @@ export class Apis {
   }
 
   /**
+   * Check if the underlying Tensorboard pod is actually up, given
+   */
+  public static async isTensorboardPodReady(path: string): Promise<boolean> {
+    const resp = await fetch(path, { method: 'HEAD' })
+    if (resp.status === 200) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Delete a deployment and its service of the Tensorboard given the URL
    */
   public static deleteTensorboardApp(logdir: string): Promise<string> {

@@ -55,6 +55,8 @@ export interface TensorboardViewerConfig extends ViewerConfig {
 
 interface TensorboardViewerProps {
   configs: TensorboardViewerConfig[];
+  // Interval in ms. If not specified, default to 5000.
+  intervalOfCheckingTensorboardPodStatus?: number;
 }
 
 interface TensorboardViewerState {
@@ -70,7 +72,7 @@ interface TensorboardViewerState {
 const DEFAULT_TENSORBOARD_VERSION = '2.0.0';
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
-  timerID: number;
+  timerID: NodeJS.Timeout;
 
   constructor(props: any) {
     super(props);
@@ -94,9 +96,9 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
   public componentDidMount(): void {
     this._checkTensorboardApp();
-    this.timerID = window.setInterval(
+    this.timerID = setInterval(
       () => this._checkTensorboardPodStatus(),
-      5000 /* try pulling status every 5 seconds */,
+      this.props.intervalOfCheckingTensorboardPodStatus || 5000,
     );
   }
 
@@ -140,8 +142,8 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 color={'primary'}
                 title={
                   this.state.tensorboardReady
-                    ? ''
-                    : 'Tensorboard is starting, and you may need to wait for a few minutes.'
+                    ? ``
+                    : `Tensorboard is starting, and you may need to wait for a few minutes.`
                 }
               >
                 Open Tensorboard
@@ -256,19 +258,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   private async _checkTensorboardPodStatus(): Promise<void> {
     // If pod address is not null and tensorboard pod doesn't seem to be read, pull status again
     if (this.state.podAddress && !this.state.tensorboardReady) {
-      fetch('apis/v1beta1/_proxy/' + this.state.podAddress.replace(/(^\w+:|^)\/\//, ''), {
-        method: 'HEAD',
+      Apis.isTensorboardPodReady('apis/v1beta1/_proxy/' + this.state.podAddress.replace(/(^\w+:|^)\/\//, ''))
+      .then((ready) => {
+        this.setState(({ tensorboardReady }) => ({ tensorboardReady: tensorboardReady || ready }));
       })
-        .then(res => {
-          if (res.status === 200) {
-            this.setState({ tensorboardReady: true });
-          } else {
-            this.setState({ tensorboardReady: false });
-          }
-        })
-        .catch(error => {
-          this.setState({ tensorboardReady: false });
-        });
     }
   }
 
@@ -290,7 +283,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
         encodeURIComponent(this._buildUrl()),
         encodeURIComponent(this.state.tensorflowVersion),
       );
-      this.setState({ busy: false }, () => {
+      this.setState({ busy: false, tensorboardReady: false }, () => {
         this._checkTensorboardApp();
       });
     });

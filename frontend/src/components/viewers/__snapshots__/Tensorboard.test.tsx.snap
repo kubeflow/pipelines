@@ -129,7 +129,7 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
         className="buttonAction button"
         color="primary"
         disabled={false}
-        title="Tensorboard is starting, and you may need to wait for a few minutes."
+        title=""
       >
         Open Tensorboard
       </WithStyles(Button)>
