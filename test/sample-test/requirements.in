@@ -1,0 +1,13 @@
+wheel
+junit-xml
+kubernetes==9.0.0
+minio
+setuptools==41.0.0
+papermill==1.0.1
+ipykernel==5.1.0
+google-api-python-client==1.7.8
+google-cloud-storage==1.17.0
+fire==0.2.1
+yamale==2.0
+tfx==0.21.0
+tensorflow_transform==0.21.0
