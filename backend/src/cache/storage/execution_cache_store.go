@@ -21,7 +21,7 @@ type ExecutionCacheStore struct {
 }
 
 func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string) (*model.ExecutionCache, error) {
-	sql, args, err := sq.Select("*").From("executionCache").Where(sq.Eq{"executionCacheKey": executionCacheKey}).Limit(1).ToSql()
+	sql, args, err := sq.Select("*").From("execution_caches").Where(sq.Eq{"executionCacheKey": executionCacheKey}).Limit(1).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
 	}
@@ -65,7 +65,7 @@ func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.Executi
 
 	newExecutionCache.CreatedAtInSec = now
 	sql, args, err := sq.
-		Insert("executionCaches").
+		Insert("execution_caches").
 		SetMap(
 			sq.Eq{
 				"ExecutionCacheKey": newExecutionCache.ExecutionCacheKey,

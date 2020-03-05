@@ -44,7 +44,7 @@ type patchOperation struct {
 
 // admitFunc is a callback for admission controller logic. Given an AdmissionRequest, it returns the sequence of patch
 // operations to be applied in case of success, or the error that will be shown when the operation is rejected.
-type admitFunc func(*v1beta1.AdmissionRequest) ([]patchOperation, error)
+type admitFunc func(_ *v1beta1.AdmissionRequest, clientMgr ClientManagerInterface) ([]patchOperation, error)
 
 const (
 	ContentType     string = "Content-Type"
@@ -63,7 +63,7 @@ func isKubeNamespace(ns string) bool {
 // doServeAdmitFunc parses the HTTP request for an admission controller webhook, and -- in case of a well-formed
 // request -- delegates the admission control logic to the given admitFunc. The response body is then returned as raw
 // bytes.
-func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) ([]byte, error) {
+func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc, clientMgr ClientManagerInterface) ([]byte, error) {
 	// Step 1: Request validation. Only handle POST requests with a body and json content type.
 
 	if r.Method != http.MethodPost {
@@ -107,7 +107,7 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 
 	var patchOps []patchOperation
 
-	patchOps, err = admit(admissionReviewReq.Request)
+	patchOps, err = admit(admissionReviewReq.Request, clientMgr)
 	if err != nil {
 		return errorResponse(admissionReviewReq.Request.UID, err), nil
 	}
@@ -122,11 +122,11 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 }
 
 // serveAdmitFunc is a wrapper around doServeAdmitFunc that adds error handling and logging.
-func serveAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) {
+func serveAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc, clientMgr ClientManagerInterface) {
 	log.Print("Handling webhook request ...")
 
 	var writeErr error
-	if bytes, err := doServeAdmitFunc(w, r, admit); err != nil {
+	if bytes, err := doServeAdmitFunc(w, r, admit, clientMgr); err != nil {
 		log.Printf("Error handling webhook request: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		_, writeErr = w.Write([]byte(err.Error()))
@@ -141,9 +141,9 @@ func serveAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 }
 
 // AdmitFuncHandler takes an admitFunc and wraps it into a http.Handler by means of calling serveAdmitFunc.
-func AdmitFuncHandler(admit admitFunc) http.Handler {
+func AdmitFuncHandler(admit admitFunc, clientMgr ClientManagerInterface) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		serveAdmitFunc(w, r, admit)
+		serveAdmitFunc(w, r, admit, clientMgr)
 	})
 }
 

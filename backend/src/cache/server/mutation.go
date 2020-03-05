@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -41,7 +42,7 @@ type ClientManagerInterface interface {
 }
 
 // MutatePodIfCached will check whether the execution has already been run before from MLMD and apply the output into pod.metadata.output
-func MutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) {
+func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInterface) ([]patchOperation, error) {
 	// This handler should only get called on Pod objects as per the MutatingWebhookConfiguration in the YAML file.
 	// However, if (for whatever reason) this gets invoked on an object of a different kind, issue a log message but
 	// let the object request pass through otherwise.
@@ -78,6 +79,21 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) 
 		Path:  AnnotationPath,
 		Value: annotations,
 	})
+
+	testCache := model.ExecutionCache{
+		ExecutionCacheKey: "test123456",
+		ExecutionOutput:   "testoutput",
+	}
+	_, err := clientMgr.CacheStore().CreateExecutionCache(&testCache)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	cacheResult, err := clientMgr.CacheStore().GetExecutionCache("test123456")
+	if err != nil {
+		log.Printf(err.Error())
+	}
+	log.Println(cacheResult.GetExecutionOutput())
 
 	return patches, nil
 }

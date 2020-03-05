@@ -23,7 +23,7 @@ func (e *ExecutionCache) PrimaryKeyColumnName() string {
 
 // GetModelName returns the name of ExecutionCache.
 func (e *ExecutionCache) GetModelName() string {
-	return "executionCache"
+	return "executionCaches"
 }
 
 func (e *ExecutionCache) GetExecutionOutput() string {

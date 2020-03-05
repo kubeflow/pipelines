@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
+	"github.com/emicklei/go-restful/log"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
@@ -64,6 +65,12 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 	response := db.AutoMigrate(&model.ExecutionCache{})
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
+	}
+
+	var tableNames []string
+	db.Raw(`show tables`).Pluck("Tables_in_mlpipeline", &tableNames)
+	for _, tableName := range tableNames {
+		log.Printf(tableName)
 	}
 
 	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
