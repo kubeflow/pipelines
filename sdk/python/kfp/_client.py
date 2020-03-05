@@ -480,7 +480,6 @@ class Client(object):
       page_token: token for starting of the page.
       page_size: size of the page.
       sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
-      experiment_id: experiment id to filter upon
     Returns:
       A response object including a list of jobs and next page token.
     """
