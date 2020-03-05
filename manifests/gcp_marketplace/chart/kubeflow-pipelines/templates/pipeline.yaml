@@ -666,6 +666,8 @@ spec:
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
               value: '{{ tpl .Values.managedstorage.gcsBucketName . }}'
+            - name: OBJECTSTORECONFIG_SECURE
+              value: "false"
             - name: DBCONFIG_DBNAME
               {{ if .Values.managedstorage.databaseNamePrefix }}
               value: '{{ .Values.managedstorage.databaseNamePrefix }}_pipeline'
