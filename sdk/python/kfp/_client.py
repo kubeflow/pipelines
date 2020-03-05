@@ -475,7 +475,7 @@ class Client(object):
     response = self._job_api.create_job(body=schedule_body)
 
   def list_jobs(self):
-    """List runs.
+    """List jobs.
     Returns:
       A response object including a list of jobs and next page token.
     """
