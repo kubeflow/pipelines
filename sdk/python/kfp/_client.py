@@ -486,18 +486,6 @@ class Client(object):
     """
     return self._job_api.list_jobs()
 
-  def list_jobs(self, page_token='', page_size=10, sort_by=''):
-    """List runs.
-    Args:
-      page_token: token for starting of the page.
-      page_size: size of the page.
-      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
-      experiment_id: experiment id to filter upon
-    Returns:
-      A response object including a list of jobs and next page token.
-    """
-    return self._job_api.list_jobs()
-
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
     """List runs.
     Args:
