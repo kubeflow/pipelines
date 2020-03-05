@@ -41,7 +41,7 @@ google-pasta==0.1.8       # via tensorflow
 google-resumable-media==0.4.1  # via google-cloud-bigquery
 googleapis-common-protos[grpc]==1.51.0  # via google-api-core, grpc-google-iam-v1, tensorflow-metadata
 grpc-google-iam-v1==0.12.3  # via google-cloud-bigtable, google-cloud-pubsub
-grpcio==1.27.2            # via apache-beam, google-api-core, googleapis-common-protos, grpc-google-iam-v1, tensorboard, tensorflow, tensorflow-serving-api, tfx
+grpcio==1.27.1            # via apache-beam, google-api-core, googleapis-common-protos, grpc-google-iam-v1, tensorboard, tensorflow, tensorflow-serving-api, tfx
 h5py==2.10.0              # via keras-applications
 hdfs==2.5.8               # via apache-beam
 httplib2==0.12.0          # via apache-beam, google-api-python-client, google-apitools, google-auth-httplib2, oauth2client
@@ -64,7 +64,7 @@ keras-preprocessing==1.1.0  # via tensorflow
 markdown==3.2.1           # via tensorboard
 markupsafe==1.1.1         # via jinja2
 mistune==0.8.4            # via nbconvert
-ml-metadata==0.21.1       # via tfx
+ml-metadata==0.21.2       # via tfx
 mock==2.0.0               # via apache-beam
 monotonic==1.5            # via fasteners
 nbconvert==5.6.1          # via jupyter, notebook
@@ -74,7 +74,7 @@ numpy==1.18.1             # via h5py, keras-applications, keras-preprocessing, o
 oauth2client==3.0.0       # via apache-beam, google-apitools
 oauthlib==3.1.0           # via requests-oauthlib
 opt-einsum==3.1.0         # via tensorflow
-pandas==0.25.3            # via tensorflow-data-validation
+pandas==0.25.3            # via tensorflow-data-validation, tensorflow-model-analysis
 pandocfilters==1.4.2      # via nbconvert
 parso==0.6.1              # via jedi
 pbr==5.4.4                # via mock
@@ -84,7 +84,7 @@ prometheus-client==0.7.1  # via notebook
 prompt-toolkit==2.0.10    # via ipython, jupyter-console
 protobuf==3.11.3          # via apache-beam, google-api-core, google-cloud-bigquery, googleapis-common-protos, ml-metadata, tensorboard, tensorflow, tensorflow-data-validation, tensorflow-metadata, tensorflow-model-analysis, tensorflow-serving-api, tensorflow-transform, tfx, tfx-bsl
 ptyprocess==0.6.0         # via pexpect, terminado
-pyarrow==0.15.1           # via apache-beam, tensorflow-data-validation, tfx, tfx-bsl
+pyarrow==0.15.1           # via apache-beam, tensorflow-data-validation, tensorflow-model-analysis, tfx, tfx-bsl
 pyasn1-modules==0.2.8     # via google-auth, oauth2client
 pyasn1==0.4.8             # via oauth2client, pyasn1-modules, rsa
 pydot==1.4.1              # via apache-beam, tensorflow-transform
@@ -105,18 +105,18 @@ scipy==1.4.1              # via scikit-learn, tensorflow, tensorflow-model-analy
 send2trash==1.5.0         # via notebook
 six==1.14.0               # via absl-py, bleach, docker, fasteners, google-api-core, google-api-python-client, google-apitools, google-auth, google-pasta, google-resumable-media, grpcio, h5py, hdfs, jsonschema, keras-preprocessing, ml-metadata, mock, oauth2client, prompt-toolkit, protobuf, pyarrow, pyrsistent, python-dateutil, tensorboard, tensorflow, tensorflow-data-validation, tensorflow-model-analysis, tensorflow-transform, tfx, tfx-bsl, traitlets, websocket-client
 tensorboard==2.1.0        # via tensorflow
-tensorflow-data-validation==0.21.2  # via tfx
+tensorflow-data-validation==0.21.4  # via tfx
 tensorflow-estimator==2.1.0  # via tensorflow
 tensorflow-metadata==0.21.1  # via tensorflow-data-validation, tensorflow-model-analysis, tensorflow-transform, tfx-bsl
-tensorflow-model-analysis==0.21.3  # via tfx
+tensorflow-model-analysis==0.21.4  # via tfx
 tensorflow-serving-api==2.1.0  # via tfx, tfx-bsl
-tensorflow-transform==0.21.0  # via tensorflow-data-validation, tfx
+tensorflow-transform==0.21.2  # via tensorflow-data-validation, tfx
 tensorflow==2.1.0         # via ml-metadata, tensorflow-data-validation, tensorflow-model-analysis, tensorflow-serving-api, tensorflow-transform, tfx, tfx-bsl
 termcolor==1.1.0          # via tensorflow
 terminado==0.8.3          # via notebook
 testpath==0.4.4           # via nbconvert
-tfx-bsl==0.21.2           # via tensorflow-data-validation, tensorflow-model-analysis, tensorflow-transform, tfx
-tfx==0.21.0               # via -r requirements.in (line 1)
+tfx-bsl==0.21.3           # via tensorflow-data-validation, tensorflow-model-analysis, tensorflow-transform, tfx
+tfx==0.21.1               # via -r requirements.in (line 1)
 tornado==6.0.3            # via ipykernel, jupyter-client, notebook, terminado
 traitlets==4.3.3          # via ipykernel, ipython, ipywidgets, jupyter-client, jupyter-core, nbconvert, nbformat, notebook, qtconsole
 uritemplate==3.0.1        # via google-api-python-client
