@@ -667,7 +667,7 @@ spec:
             - name: OBJECTSTORECONFIG_BUCKETNAME
               value: '{{ tpl .Values.managedstorage.gcsBucketName . }}'
             - name: OBJECTSTORECONFIG_SECURE
-              value: "false"
+              value: "true"
             - name: DBCONFIG_DBNAME
               {{ if .Values.managedstorage.databaseNamePrefix }}
               value: '{{ .Values.managedstorage.databaseNamePrefix }}_pipeline'
@@ -684,6 +684,9 @@ spec:
                 secretKeyRef:
                   name: mysql-credential
                   key: password
+            {{ else }}
+            - name: OBJECTSTORECONFIG_SECURE
+              value: "false"
             {{ end }}
           image: {{ .Values.images.apiserver }}
           imagePullPolicy: IfNotPresent
