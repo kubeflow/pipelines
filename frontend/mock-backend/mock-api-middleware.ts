@@ -605,6 +605,20 @@ export default (app: express.Application) => {
     res.send(true);
   });
 
+  // Uncomment this instead to test 404 endpoints.
+  // app.get('/system/cluster-name', (_, res) => {
+  //   res.status(404).send('404 Not Found');
+  // });
+  // app.get('/system/project-id', (_, res) => {
+  //   res.status(404).send('404 Not Found');
+  // });
+  app.get('/system/cluster-name', (_, res) => {
+    res.send('mock-cluster-name');
+  });
+  app.get('/system/project-id', (_, res) => {
+    res.send('mock-project-id');
+  });
+
   app.all(v1beta1Prefix + '*', (req, res) => {
     res.status(404).send('Bad request endpoint.');
   });
