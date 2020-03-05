@@ -474,12 +474,8 @@ class Client(object):
     #[TODO] Add link to the scheduled job. 
     response = self._job_api.create_job(body=schedule_body)
 
-  def list_jobs(self, page_token='', page_size=10, sort_by=''):
+  def list_jobs(self):
     """List runs.
-    Args:
-      page_token: token for starting of the page.
-      page_size: size of the page.
-      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
     Returns:
       A response object including a list of jobs and next page token.
     """
