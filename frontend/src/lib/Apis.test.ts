@@ -186,15 +186,12 @@ describe('Apis', () => {
   it('checks if Tensorboard pod is ready', async () => {
     const spy = jest.fn(() =>
       Promise.resolve({
-        status: 200
+        status: 200,
       }),
     );
     window.fetch = spy;
     const ready = await Apis.isTensorboardPodReady('apis/v1beta1/_proxy/pod_address');
     expect(ready).toBe(true);
-    expect(spy).toHaveBeenCalledWith(
-      'apis/v1beta1/_proxy/pod_address',
-      { method: 'HEAD' },
-    );
+    expect(spy).toHaveBeenCalledWith('apis/v1beta1/_proxy/pod_address', { method: 'HEAD' });
   });
 });

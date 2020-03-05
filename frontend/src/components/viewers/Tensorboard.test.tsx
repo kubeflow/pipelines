@@ -289,7 +289,16 @@ describe('Tensorboard', () => {
     tree.update();
     expect(setInterval).toHaveBeenCalledTimes(1);
     expect(setInterval).toHaveBeenCalledWith(expect.any(Function), 5000);
-    expect(tree.findWhere(el => el.text() === 'Open Tensorboard' && el.prop('title') === `Tensorboard is starting, and you may need to wait for a few minutes.`).exists()).toBeTruthy();
+    expect(
+      tree
+        .findWhere(
+          el =>
+            el.text() === 'Open Tensorboard' &&
+            el.prop('title') ===
+              `Tensorboard is starting, and you may need to wait for a few minutes.`,
+        )
+        .exists(),
+    ).toBeTruthy();
     expect(tree.findWhere(el => el.text() === 'Delete Tensorboard').exists()).toBeTruthy();
 
     // After a while, it is ready and wait message is not shwon any more
@@ -297,6 +306,14 @@ describe('Tensorboard', () => {
     jest.runOnlyPendingTimers();
     await TestUtils.flushPromises();
     tree.update();
-    expect(tree.findWhere(el => el.prop('title') === `Tensorboard is starting, and you may need to wait for a few minutes.`).exists()).toEqual(false);
+    expect(
+      tree
+        .findWhere(
+          el =>
+            el.prop('title') ===
+            `Tensorboard is starting, and you may need to wait for a few minutes.`,
+        )
+        .exists(),
+    ).toEqual(false);
   });
 });

@@ -258,10 +258,11 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   private async _checkTensorboardPodStatus(): Promise<void> {
     // If pod address is not null and tensorboard pod doesn't seem to be read, pull status again
     if (this.state.podAddress && !this.state.tensorboardReady) {
-      Apis.isTensorboardPodReady('apis/v1beta1/_proxy/' + this.state.podAddress.replace(/(^\w+:|^)\/\//, ''))
-      .then((ready) => {
+      Apis.isTensorboardPodReady(
+        'apis/v1beta1/_proxy/' + this.state.podAddress.replace(/(^\w+:|^)\/\//, ''),
+      ).then(ready => {
         this.setState(({ tensorboardReady }) => ({ tensorboardReady: tensorboardReady || ready }));
-      })
+      });
     }
   }
 
