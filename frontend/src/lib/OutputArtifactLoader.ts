@@ -472,7 +472,7 @@ async function getExecutionInContextWithPodName(
     return undefined; // Not found, this is expected to happen normally when there's no mlmd data.
   }
   const state = foundExecution.getPropertiesMap().get('state');
-  if (state && state.getStringValue() === 'complete' || state.getStringValue() === 'cached')) {
+  if (state && (state.getStringValue() === 'complete' || state.getStringValue() === 'cached')) {
     return foundExecution
   }
   // No valid execution found.
