@@ -662,12 +662,12 @@ spec:
                   fieldPath: metadata.namespace
             - name: DEFAULTPIPELINERUNNERSERVICEACCOUNT
               value: 'pipeline-runner'
+            - name: OBJECTSTORECONFIG_SECURE
+              value: "false"
             # Following environment variables are only needed when using Cloud SQL and GCS.
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
               value: '{{ tpl .Values.managedstorage.gcsBucketName . }}'
-            - name: OBJECTSTORECONFIG_SECURE
-              value: "true"
             - name: DBCONFIG_DBNAME
               {{ if .Values.managedstorage.databaseNamePrefix }}
               value: '{{ .Values.managedstorage.databaseNamePrefix }}_pipeline'
@@ -684,9 +684,6 @@ spec:
                 secretKeyRef:
                   name: mysql-credential
                   key: password
-            {{ else }}
-            - name: OBJECTSTORECONFIG_SECURE
-              value: "false"
             {{ end }}
           image: {{ .Values.images.apiserver }}
           imagePullPolicy: IfNotPresent
