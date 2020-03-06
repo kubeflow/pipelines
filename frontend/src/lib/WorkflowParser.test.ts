@@ -310,35 +310,47 @@ describe('WorkflowParser', () => {
       expect(g.node('exitNode').label).toEqual('onExit - clean');
     });
 
-    it('gives nodes customized labels based on template annotation', () => {
-      const workflow = {
-        metadata: { name: 'testWorkflow' },
-        spec: {
-          templates: [
-            {
-              metadata: {
-                annotations: {
-                  'pipelines.kubeflow.org/task_display_name': 'Customized name',
-                },
+    const singleNodeWorkflow = {
+      metadata: { name: 'testWorkflow' },
+      spec: {
+        templates: [
+          {
+            metadata: {
+              annotations: {
+                // 'pipelines.kubeflow.org/task_display_name': 'Customized name',
               },
-              name: 'some-template',
             },
-          ],
-        },
-        status: {
-          nodes: {
-            node1: {
-              id: 'node1',
-              name: 'node1',
-              phase: 'Succeeded',
-              templateName: 'some-template',
-              type: 'Pod',
-            },
+            name: 'some-template',
+          },
+        ],
+      },
+      status: {
+        nodes: {
+          node1: {
+            id: 'node1',
+            name: 'node1',
+            phase: 'Succeeded',
+            templateName: 'some-template',
+            type: 'Pod',
           },
         },
+      },
+    };
+
+    it('gives nodes customized labels based on template annotation', () => {
+      const workflow1 = { ...singleNodeWorkflow };
+      workflow1.spec.templates[0].metadata.annotations = {
+        'pipelines.kubeflow.org/task_display_name': 'Customized name',
       };
-      const g = WorkflowParser.createRuntimeGraph(workflow as any);
+      const g = WorkflowParser.createRuntimeGraph(workflow1 as any);
       expect(g.node('node1').label).toEqual('Customized name');
+
+      const workflow2 = { ...singleNodeWorkflow };
+      workflow2.spec.templates[0].metadata.annotations = {
+        'pipelines.kubeflow.org/component_spec': '{"name":"Component Name"}',
+      };
+      const g2 = WorkflowParser.createRuntimeGraph(workflow2 as any);
+      expect(g2.node('node1').label).toEqual('Component Name');
     });
   });
 
