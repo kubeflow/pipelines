@@ -476,6 +476,11 @@ class Client(object):
 
   def list_jobs(self,page_token='', page_size=10, sort_by='',recurrent=False):
     """List jobs.
+    Args
+      page_token: token for starting of the page.
+      page_size: size of the page.
+      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+      recurrent: boolean to filter for only recurrent jobs
     Returns:
       A response object including a list of jobs and next page token.
     """
