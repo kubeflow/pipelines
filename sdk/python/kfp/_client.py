@@ -474,12 +474,16 @@ class Client(object):
     #[TODO] Add link to the scheduled job. 
     response = self._job_api.create_job(body=schedule_body)
 
-  def list_jobs(self):
+  def list_jobs(self,page_token='', page_size=10, sort_by='',recurrent=False):
     """List jobs.
     Returns:
       A response object including a list of jobs and next page token.
     """
-    return self._job_api.list_jobs()
+    if recurrent==True: 
+      response = self._job_api.list_jobs(page_token='', page_size=10, sort_by='',resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.JOB,filter='')
+    else: 
+      response =self._job_api.list_jobs(page_token='', page_size=10, sort_by='')
+    return respone
 
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
     """List runs.
