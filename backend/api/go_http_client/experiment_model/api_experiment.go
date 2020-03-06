@@ -20,6 +20,8 @@ package experiment_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"strconv"
+
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/errors"
@@ -43,6 +45,10 @@ type APIExperiment struct {
 
 	// Required input field. Unique experiment name provided by user.
 	Name string `json:"name,omitempty"`
+
+	// Optional input field. Specify which resource this run belongs to.
+	// For Experiment, the only valid resource reference is a single Namespace.
+	ResourceReferences []*APIResourceReference `json:"resource_references"`
 }
 
 // Validate validates this api experiment
@@ -50,6 +56,10 @@ func (m *APIExperiment) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateCreatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateResourceReferences(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -67,6 +77,31 @@ func (m *APIExperiment) validateCreatedAt(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("created_at", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *APIExperiment) validateResourceReferences(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ResourceReferences) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.ResourceReferences); i++ {
+		if swag.IsZero(m.ResourceReferences[i]) { // not required
+			continue
+		}
+
+		if m.ResourceReferences[i] != nil {
+			if err := m.ResourceReferences[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("resource_references" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil
