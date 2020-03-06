@@ -1,1 +1,2 @@
 tfx==0.21.1
+tensorflow-model-analysis>=0.21.5
