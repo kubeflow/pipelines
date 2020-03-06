@@ -38,6 +38,7 @@ REQUIRES = [
     'tabulate == 0.8.3',
     'click == 7.0',
     'Deprecated',
+    'strip-hints',
 ]
 
 def find_version(*file_path_parts):

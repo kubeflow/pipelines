@@ -242,7 +242,10 @@ describe('Compare', () => {
     const workflow = {
       spec: {
         arguments: {
-          parameters: [{ name: 'param1', value: 'value1' }, { name: 'param2', value: 'value2' }],
+          parameters: [
+            { name: 'param1', value: 'value1' },
+            { name: 'param2', value: 'value2' },
+          ],
         },
       },
     } as Workflow;

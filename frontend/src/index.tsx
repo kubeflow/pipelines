@@ -24,6 +24,7 @@ import { cssRule } from 'typestyle';
 import { theme, fonts } from './Css';
 import { HashRouter } from 'react-router-dom';
 import { KFP_FLAGS, Deployments } from './lib/Flags';
+import { GkeMetadataProvider } from './lib/GkeMetadata';
 
 // TODO: license headers
 
@@ -41,21 +42,20 @@ cssRule('html, body, #root', {
   width: '100%',
 });
 
-ReactDOM.render(
-  KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
-    <MuiThemeProvider theme={theme}>
-      <NamespaceContextProvider>
-        <HashRouter>
-          <Router />
-        </HashRouter>
-      </NamespaceContextProvider>
-    </MuiThemeProvider>
-  ) : (
-    <MuiThemeProvider theme={theme}>
+const app = (
+  <MuiThemeProvider theme={theme}>
+    <GkeMetadataProvider>
       <HashRouter>
         <Router />
       </HashRouter>
-    </MuiThemeProvider>
+    </GkeMetadataProvider>
+  </MuiThemeProvider>
+);
+ReactDOM.render(
+  KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
+    <NamespaceContextProvider>{app}</NamespaceContextProvider>
+  ) : (
+    app
   ),
   document.getElementById('root'),
 );

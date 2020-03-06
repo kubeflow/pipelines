@@ -46,7 +46,12 @@ import NewPipelineVersion from '../pages/NewPipelineVersion';
 import { GettingStarted } from '../pages/GettingStarted';
 import { KFP_FLAGS, Deployments } from '../lib/Flags';
 
-export type RouteConfig = { path: string; Component: React.ComponentType<any>; view?: any };
+export type RouteConfig = {
+  path: string;
+  Component: React.ComponentType<any>;
+  view?: any;
+  notExact?: boolean;
+};
 
 const css = stylesheet({
   dialog: {
@@ -154,7 +159,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.START, Component: GettingStarted },
     { path: RoutePage.ARCHIVE, Component: Archive },
     { path: RoutePage.ARTIFACTS, Component: ArtifactList },
-    { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails },
+    { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails, notExact: true },
     { path: RoutePage.EXECUTIONS, Component: ExecutionList },
     { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
     {
@@ -194,7 +199,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
             // network response handlers.
             <Route
               key={i}
-              exact={true}
+              exact={!route.notExact}
               path={path}
               render={props => <RoutedPage key={props.location.key} route={route} />}
             />
@@ -251,7 +256,7 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
               const { path, Component, ...otherProps } = { ...route };
               return (
                 <Route
-                  exact={true}
+                  exact={!route.notExact}
                   path={path}
                   render={({ ...props }) => (
                     <Component {...props} {...childProps} {...otherProps} />

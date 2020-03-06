@@ -38,7 +38,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
     >
       Upload pipeline with the specified package.
     </div>
-    <Component
+    <Input
       autoFocus={true}
       id="newPipelineName"
       inputRef={
@@ -52,7 +52,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       autoFocus={true}
       id="pipelineDescription"
       inputRef={
@@ -110,7 +110,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           }
         }
       >
-        <Component
+        <Input
           InputProps={
             Object {
               "endAdornment": <WithStyles(InputAdornment)
@@ -161,7 +161,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
         label="Import by url"
         onChange={[Function]}
       />
-      <Component
+      <Input
         disabled={false}
         id="pipelinePackageUrl"
         label="Package Url"
@@ -177,7 +177,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
         variant="outlined"
       />
     </div>
-    <Component
+    <Input
       id="pipelineVersionCodeSource"
       label="Code Source (optional)"
       multiline={true}
