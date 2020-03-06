@@ -473,7 +473,7 @@ async function getExecutionInContextWithPodName(
   }
   const state = foundExecution.getPropertiesMap().get('state');
   if (state && (state.getStringValue() === 'complete' || state.getStringValue() === 'cached')) {
-    return foundExecution
+    return foundExecution;
   }
   // No valid execution found.
   return undefined;
