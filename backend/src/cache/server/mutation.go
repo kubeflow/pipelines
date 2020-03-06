@@ -78,7 +78,8 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	// Check cache existance
 	cachedExecution, err := clientMgr.CacheStore().GetExecutionCache(executionHashKey)
 	if err != nil {
-		return nil, err
+		log.Println(err.Error())
+		// return nil, nil
 	}
 	var cachedOutput string
 	if cachedExecution != nil {
@@ -88,15 +89,17 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 			pod.Spec.Containers = []corev1.Container{}
 		}
 	}
-	log.Println(annotations[ExecutionOutputs])
-	if cachedExecution == nil {
+	log.Println("pod outputs: " + annotations[ExecutionOutputs])
+	executionOutputs, exist := annotations[ExecutionOutputs]
+	if cachedExecution == nil && exist {
 		executionToCache := model.ExecutionCache{
 			ExecutionCacheKey: executionHashKey,
-			ExecutionOutput:   annotations[ExecutionOutputs],
+			ExecutionOutput:   executionOutputs,
 		}
 		_, err := clientMgr.CacheStore().CreateExecutionCache(&executionToCache)
 		if err != nil {
-			return nil, err
+			log.Println(err.Error())
+			// return nil, nil
 		}
 	}
 

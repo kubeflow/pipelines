@@ -19,8 +19,13 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"reflect"
 
 	"github.com/kubeflow/pipelines/backend/src/cache/server"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 const (
@@ -35,14 +40,6 @@ const (
 )
 
 const (
-	mysqlServiceHost       = "DBConfig.Host"
-	mysqlServicePort       = "DBConfig.Port"
-	mysqlUser              = "DBConfig.User"
-	mysqlPassword          = "DBConfig.Password"
-	mysqlDBName            = "DBConfig.DBName"
-	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
-	mysqlExtraParams       = "DBConfig.ExtraParams"
-
 	initConnectionTimeout = "InitConnectionTimeout"
 
 	mysqlDBDriverDefault            = "mysql"
@@ -72,6 +69,8 @@ func main() {
 	log.Println("Initing client manager....")
 	clientManager := NewClientManager(params)
 
+	go WatchPods()
+
 	certPath := filepath.Join(TLSDir, TLSCertFile)
 	keyPath := filepath.Join(TLSDir, TLSKeyFile)
 
@@ -84,4 +83,39 @@ func main() {
 		Handler: mux,
 	}
 	log.Fatal(server.ListenAndServeTLS(certPath, keyPath))
+}
+
+func WatchPods() {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Printf(err.Error())
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Printf(err.Error())
+	}
+	for {
+		listOptions := metav1.ListOptions{
+			Watch:         true,
+			LabelSelector: "workflows.argoproj.io/workflow",
+		}
+		// pods, err := clientset.CoreV1().Pods("kubeflow").List(listOptions)
+		watcher, err := clientset.CoreV1().Pods("kubeflow").Watch(listOptions)
+
+		if err != nil {
+			log.Printf("watcher error:" + err.Error())
+		}
+		// for _, pod := range pods.Items {
+		// 	log.Printf(pod.ObjectMeta.Name)
+		// }
+		for event := range watcher.ResultChan() {
+			// pod := event.Object.(*corev1.Pod)
+			pod := reflect.ValueOf(event.Object).Interface().(*corev1.Pod)
+			log.Printf((*pod).GetName())
+		}
+		// pod := reflect.ValueOf(events.Object).Interface().(*corev1.Pod)
+		// // pod := events.Object.(*corev1.Pod)
+		// log.Printf((*pod).Kind)
+		// log.Printf((*pod).ObjectMeta.Name)
+	}
 }
