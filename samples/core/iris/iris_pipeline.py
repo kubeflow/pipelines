@@ -59,6 +59,7 @@ _data_root_param = data_types.RuntimeParameter(
 
 # Python module file to inject customized logic into the TFX components. The
 # Transform and Trainer both require user-defined functions to run successfully.
+# This file is fork from https://github.com/tensorflow/tfx/blob/master/tfx/examples/iris/iris_utils_native_keras.py
 _module_file_param = data_types.RuntimeParameter(
     name='module-file',
     default=
@@ -128,6 +129,7 @@ def _create_pipeline(
 
   # Uses TFMA to compute an evaluation statistics over features of a model and
   # perform quality validation of a candidate model (compared to a baseline).
+  # Note: to compile this successfully you'll need TFMA at >= 0.21.5
   eval_config = tfma.EvalConfig(
       model_specs=[
           tfma.ModelSpec(name='candidate', label_key='variety'),
