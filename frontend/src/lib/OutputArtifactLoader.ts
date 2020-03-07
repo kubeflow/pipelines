@@ -473,7 +473,7 @@ async function getExecutionInContextWithPodName(
   }
   const state = foundExecution.getPropertiesMap().get('state');
   // Both complete and cached executions are considered valid.
-  if (['complete', 'cached'].includes(state?.getStringValue()) {
+  if (['complete', 'cached'].includes(state?.getStringValue())) {
     return foundExecution;
   }
   // No valid execution found.
