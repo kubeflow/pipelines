@@ -44,10 +44,11 @@ export const getTensorboardHandler: Handler = async (req, res) => {
  * The handler expects the following query strings in the request:
  * - `logdir`
  * - `tfversion`
+ * @param tfImageName The name of the Tensorflow image.
  * @param podTemplateSpec Custom pod template specification to be applied on the
  * tensorboard pod.
  */
-export function getCreateTensorboardHandler(podTemplateSpec?: object): Handler {
+export function getCreateTensorboardHandler(tfImageName: string, podTemplateSpec?: object): Handler {
   return async (req, res) => {
     if (!k8sHelper.isInCluster) {
       res.status(500).send('Cannot talk to Kubernetes master');
@@ -68,7 +69,7 @@ export function getCreateTensorboardHandler(podTemplateSpec?: object): Handler {
     const tfversion = decodeURIComponent(req.query.tfversion);
 
     try {
-      await k8sHelper.newTensorboardInstance(logdir, tfversion, podTemplateSpec);
+      await k8sHelper.newTensorboardInstance(logdir, tfImageName, tfversion, podTemplateSpec);
       const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(logdir, 60 * 1000);
       res.send(tensorboardAddress);
     } catch (err) {
