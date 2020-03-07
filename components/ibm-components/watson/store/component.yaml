@@ -28,7 +28,7 @@ implementation:
     args: [
       /app/wml-store.py,
       --run-uid, {inputValue: run_uid},
-      --model-name, {inputValue: model_name}
+      --model-name, {inputValue: model_name},
       --training-uid, {inputValue: training_uid}
     ]
     fileOutputs:
