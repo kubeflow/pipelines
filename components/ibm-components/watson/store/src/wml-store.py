@@ -36,7 +36,7 @@ def store(wml_model_name, run_uid):
 
     # store the model
     stored_model_name    = wml_model_name
-    stored_model_details = client.repository.store_model( run_uid, stored_model_name )
+    stored_model_details = client.repository.store_model( run_uid, meta_props=None, stored_model_name )
     model_uid            = client.repository.get_model_uid( stored_model_details )
     print( "model_uid: ", model_uid )
 
