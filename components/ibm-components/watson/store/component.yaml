@@ -18,16 +18,18 @@ metadata:
 inputs:
   - {name: run_uid,        description: 'Required. UID for the Watson Machine Learning training-runs'}
   - {name: model_name,     description: 'Required. Model Name to store on Watson Machine Learning'}
+  - {name: training_uid,   description: 'Training Location UID for the Watson Machine Learning training-runs'}
 outputs:
   - {name: model_uid,      description: 'UID for the stored model on Watson Machine Learning'}
 implementation:
   container:
-    image: docker.io/kevinyu98/wml-store:v0.3
+    image: docker.io/kevinyu98/wml-store:v0.4
     command: ['python3']
     args: [
       /app/wml-store.py,
       --run-uid, {inputValue: run_uid},
       --model-name, {inputValue: model_name}
+      --training-uid, {inputValue: training_uid}
     ]
     fileOutputs:
       model_uid: /tmp/model_uid

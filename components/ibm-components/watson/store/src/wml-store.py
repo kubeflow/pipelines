@@ -18,13 +18,14 @@ def getSecret(secret):
     f.close()
     return res
 
-def store(wml_model_name, run_uid):
+def store(wml_model_name, run_uid, training_uid):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
 
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
     wml_instance_id = getSecret("/app/secrets/wml_instance_id")
     wml_apikey = getSecret("/app/secrets/wml_apikey")
+    wml_data_source_type = getSecret("/app/secrets/wml_data_source_type")
 
     # set up the WML client
     wml_credentials = {
@@ -32,12 +33,20 @@ def store(wml_model_name, run_uid):
                        "instance_id": wml_instance_id,
                        "apikey": wml_apikey
                       }
-    client = WatsonMachineLearningAPIClient( wml_credentials )
+    client = WatsonMachineLearningAPIClient(wml_credentials)
 
     # store the model
-    stored_model_name    = wml_model_name
-    stored_model_details = client.repository.store_model( run_uid, meta_props=None, stored_model_name )
-    model_uid            = client.repository.get_model_uid( stored_model_details )
+    meta_props_tf={
+     client.repository.ModelMetaNames.NAME: wml_model_name,
+     client.repository.ModelMetaNames.RUNTIME_UID : run_uid,
+     client.repository.ModelMetaNames.TYPE: wml_data_source_type
+    }
+    # stored_model_name    = wml_model_name
+    # stored_model_details = client.repository.store_model( run_uid, stored_model_name)
+    model_details = client.repository.store_model(training_uid, meta_props=meta_props_tf)
+
+    #model_uid = client.repository.get_model_uid( stored_model_details )
+    model_uid = client.repository.get_model_uid(model_details)
     print( "model_uid: ", model_uid )
 
     with open("/tmp/model_uid", "w") as f:
@@ -53,4 +62,4 @@ if __name__ == "__main__":
     parser.add_argument('--model-name', type=str, required=True)
     parser.add_argument('--run-uid', type=str, required=True)
     args = parser.parse_args()
-    store(args.model_name, args.run_uid)
+    store(args.model_name, args.run_uid, args.training_uid)
