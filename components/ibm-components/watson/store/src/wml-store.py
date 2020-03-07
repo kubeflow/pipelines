@@ -61,5 +61,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model-name', type=str, required=True)
     parser.add_argument('--run-uid', type=str, required=True)
+    parser.add_argument('--training-uid', type=str, required=True)
     args = parser.parse_args()
     store(args.model_name, args.run_uid, args.training_uid)
