@@ -82,8 +82,8 @@ def deploy(args):
         import json
         with open(payload_file) as data_file:
             test_data = json.load(data_file)
-        #payload = {client.deployments.ScoringMetaNames.INPUT_DATA: test_data['payload']}
-        payload = {client.deployments.ScoringMetaNames.INPUT_DATA: test_data}
+        payload = {client.deployments.ScoringMetaNames.INPUT_DATA: [{'fields': ['payload'], 'value': [test_data['payload']]}]}
+        #payload = {client.deployments.ScoringMetaNames.INPUT_DATA: test_data}
         data_file.close()
 
         print("Scoring result: ")
