@@ -43,9 +43,14 @@ def deploy(args):
     client = WatsonMachineLearningAPIClient(wml_credentials)
 
     # deploy the model
-    deployment_desc  = "deployment of %s" % wml_model_name
-    deployment       = client.deployments.create(model_uid, deployment_name, deployment_desc)
-    scoring_endpoint = client.deployments.get_scoring_url(deployment)
+    #deployment_desc  = "deployment of %s" % wml_model_name
+    meta_props = {
+        client.deployments.ConfigurationMetaNames.NAME: deployment_name,
+        client.deployments.ConfigurationMetaNames.ONLINE: {}
+    }
+    deployment_details = client.deployments.create(model_uid, meta_props)
+    #deployment       = client.deployments.create(model_uid, deployment_name, deployment_desc)
+    scoring_endpoint = client.deployments.get_scoring_href(deployment_details)
     print("scoring_endpoint: ", scoring_endpoint)
 
     if wml_scoring_payload:

@@ -38,7 +38,7 @@ def store(wml_model_name, run_uid, training_uid):
     # store the model
     meta_props_tf={
      client.repository.ModelMetaNames.NAME: wml_model_name,
-     client.repository.ModelMetaNames.RUNTIME_UID : run_uid,
+     client.repository.ModelMetaNames.RUNTIME_UID : "tensorflow_1.14-py3.6",
      client.repository.ModelMetaNames.TYPE: "tensorflow_1.14"
     }
     # stored_model_name    = wml_model_name
