@@ -42,6 +42,8 @@ def deploy(args):
                       }
     client = WatsonMachineLearningAPIClient(wml_credentials)
 
+    client.deployments.list()
+    
     # deploy the model
     #deployment_desc  = "deployment of %s" % wml_model_name
     meta_props = {
