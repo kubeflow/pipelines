@@ -57,8 +57,8 @@ def deploy(args):
     }
     deployment_details = client.deployments.create(model_uid, meta_props)
     #deployment       = client.deployments.create(model_uid, deployment_name, deployment_desc)
-    scoring_endpoint = client.deployments.get_scoring_href(deployment_details)
-    print("scoring_endpoint: ", scoring_endpoint)
+    deployment_uid = client.deployments.get_uid(deployment_details)
+    print("deployment_uid: ", deployment_uid)
 
     if wml_scoring_payload:
         # download scoring payload if exist
@@ -82,12 +82,11 @@ def deploy(args):
         import json
         with open(payload_file) as data_file:
             test_data = json.load(data_file)
-        payload = {client.deployments.ScoringMetaNames.INPUT_DATA: [{'fields': ['payload'], 'value': [test_data['payload']]}]}
-        #payload = {client.deployments.ScoringMetaNames.INPUT_DATA: test_data}
+        payload = {client.deployments.ScoringMetaNames.INPUT_DATA: [test_data['payload']]}
         data_file.close()
 
         print("Scoring result: ")
-        result = client.deployments.score(scoring_endpoint, payload)
+        result = client.deployments.score(deployment_uid, payload)
     else:
         result = 'Scoring payload is not provided'
 
