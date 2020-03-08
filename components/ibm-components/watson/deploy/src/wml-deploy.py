@@ -57,6 +57,7 @@ def deploy(args):
     }
     deployment_details = client.deployments.create(model_uid, meta_props)
     #deployment       = client.deployments.create(model_uid, deployment_name, deployment_desc)
+    scoring_endpoint = client.deployments.get_scoring_href(deployment_details)
     deployment_uid = client.deployments.get_uid(deployment_details)
     print("deployment_uid: ", deployment_uid)
 
