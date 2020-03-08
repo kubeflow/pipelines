@@ -18,14 +18,13 @@ def getSecret(secret):
     f.close()
     return res
 
-def store(wml_model_name, run_uid, training_uid):
+def store(wml_model_name, run_uid):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
 
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
     wml_instance_id = getSecret("/app/secrets/wml_instance_id")
     wml_apikey = getSecret("/app/secrets/wml_apikey")
-    wml_data_source_type = getSecret("/app/secrets/wml_data_source_type")
 
     # set up the WML client
     wml_credentials = {
@@ -36,16 +35,14 @@ def store(wml_model_name, run_uid, training_uid):
     client = WatsonMachineLearningAPIClient(wml_credentials)
 
     # store the model
-    meta_props_tf={
+    meta_props_tf = {
      client.repository.ModelMetaNames.NAME: wml_model_name,
      client.repository.ModelMetaNames.RUNTIME_UID : "tensorflow_1.14-py3.6",
      client.repository.ModelMetaNames.TYPE: "tensorflow_1.14"
     }
-    # stored_model_name    = wml_model_name
-    # stored_model_details = client.repository.store_model( run_uid, stored_model_name)
+
     model_details = client.repository.store_model(run_uid, meta_props=meta_props_tf)
 
-    #model_uid = client.repository.get_model_uid( stored_model_details )
     model_uid = client.repository.get_model_uid(model_details)
     print( "model_uid: ", model_uid )
 
@@ -61,6 +58,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model-name', type=str, required=True)
     parser.add_argument('--run-uid', type=str, required=True)
-    parser.add_argument('--training-uid', type=str, required=True)
     args = parser.parse_args()
-    store(args.model_name, args.run_uid, args.training_uid)
+    store(args.model_name, args.run_uid)
