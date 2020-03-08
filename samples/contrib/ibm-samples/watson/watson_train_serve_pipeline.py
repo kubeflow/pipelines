@@ -67,7 +67,6 @@ def kfp_wml_pipeline(
     # op3 - this operation stores the model trained above
     wml_store = store_op(
                    wml_train.outputs['run_uid'],
-                   wml_train.outputs['training_uid'],
                    model_name
                   ).apply(params.use_ai_pipeline_params(secret_name)).set_image_pull_policy('Always')
 
