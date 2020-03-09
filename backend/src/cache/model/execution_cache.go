@@ -2,8 +2,11 @@ package model
 
 type ExecutionCache struct {
 	ExecutionCacheKey string `gorm:"column:ExecutionCacheKey; not null; primary_key"`
-	ExecutionOutput   string `gorm:"column:ExecutionOutput; not null"`
-	CreatedAtInSec    int64  `gorm:"column:CreatedAtInSec; not null"`
+	ExecutionTemplate string `gorm:"column:ExecutionTemplate; not null"`
+	ExecutionOutput   string `gorm:"column:ExecutionOutput;"`
+	MaxCacheStaleness int64  `gorm:"column:MaxCacheStaleness;"`
+	StartedAtInSec    int64  `gorm:"column:StartedAtInSec; not null"`
+	EndedAtInSec      int64  `gorm:"column:EndedAtInSec; not null"`
 }
 
 // GetValueOfPrimaryKey returns the value of ExecutionCacheKey.
@@ -28,4 +31,16 @@ func (e *ExecutionCache) GetModelName() string {
 
 func (e *ExecutionCache) GetExecutionOutput() string {
 	return e.ExecutionOutput
+}
+
+func (e *ExecutionCache) GetExecutionTemplate() string {
+	return e.ExecutionTemplate
+}
+
+func (e *ExecutionCache) GetMaxCacheStaleness() int64 {
+	return e.MaxCacheStaleness
+}
+
+func (e *ExecutionCache) GetEndedAtInSec() int64 {
+	return e.EndedAtInSec
 }

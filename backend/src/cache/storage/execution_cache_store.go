@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"log"
 
 	"database/sql"
 
@@ -13,6 +14,7 @@ import (
 type ExecutionCacheStoreInterface interface {
 	GetExecutionCache(executionCacheKey string) (*model.ExecutionCache, error)
 	CreateExecutionCache(*model.ExecutionCache) (*model.ExecutionCache, error)
+	DeleteExecutionCache(executionCacheKey string) error
 }
 
 type ExecutionCacheStore struct {
@@ -44,16 +46,25 @@ func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string) (*mode
 func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache, error) {
 	var executionCaches []*model.ExecutionCache
 	for rows.Next() {
-		var executionCacheKey, executionOutput string
-		var createdAtInSec int64
-		err := rows.Scan(&executionCacheKey, &executionOutput, &createdAtInSec)
+		var executionCacheKey, executionTemplate, executionOutput string
+		var maxCacheStaleness, startedAtInSec, endedAtInSec int64
+		err := rows.Scan(
+			&executionCacheKey,
+			&executionTemplate,
+			&executionOutput,
+			&maxCacheStaleness,
+			&startedAtInSec,
+			&endedAtInSec)
 		if err != nil {
 			return executionCaches, nil
 		}
 		executionCaches = append(executionCaches, &model.ExecutionCache{
 			ExecutionCacheKey: executionCacheKey,
+			ExecutionTemplate: executionTemplate,
 			ExecutionOutput:   executionOutput,
-			CreatedAtInSec:    createdAtInSec,
+			MaxCacheStaleness: maxCacheStaleness,
+			StartedAtInSec:    startedAtInSec,
+			EndedAtInSec:      endedAtInSec,
 		})
 	}
 	return executionCaches, nil
@@ -63,23 +74,46 @@ func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.Executi
 	newExecutionCache := *executionCache
 	now := s.time.Now().Unix()
 
-	newExecutionCache.CreatedAtInSec = now
+	newExecutionCache.StartedAtInSec = now
+	newExecutionCache.MaxCacheStaleness = -1
 	sql, args, err := sq.
 		Insert("execution_caches").
 		SetMap(
 			sq.Eq{
 				"ExecutionCacheKey": newExecutionCache.ExecutionCacheKey,
-				"ExecutionOutput":   newExecutionCache.ExecutionOutput,
-				"CreatedAtInSec":    newExecutionCache.CreatedAtInSec}).
+				"ExecutionTemplate": newExecutionCache.ExecutionTemplate,
+				"ExecutionOutput":   "testoutput",
+				"MaxCacheStaleness": newExecutionCache.MaxCacheStaleness,
+				"StartedAtInSec":    newExecutionCache.StartedAtInSec,
+				"EndedAtInSec":      newExecutionCache.StartedAtInSec}).
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create query to insert execution cache to execution cache table")
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
+		log.Println(err.Error())
 		return nil, fmt.Errorf("Failed to create a new execution cache")
 	}
 	return &newExecutionCache, nil
+}
+
+func (s *ExecutionCacheStore) DeleteExecutionCache(executionCacheKey string) error {
+	sql, args, err := sq.Delete("execution_caches").Where(sq.Eq{"ExecutionCacheKey": executionCacheKey}).ToSql()
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
+		log.Println(err.Error())
+		return fmt.Errorf("Failed to delete cache entry")
+	}
+	// _, err = tx.Exec(sql, args...)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return fmt.Errorf("Failed to delete cache entry %s from table", executionCacheKey)
+	// }
+	return nil
 }
 
 // factory function for execution cache store

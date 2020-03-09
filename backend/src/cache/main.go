@@ -55,6 +55,7 @@ type WhSvrDBParameters struct {
 	dbUser              string
 	dbPwd               string
 	dbGroupConcatMaxLen string
+	namespaceToWatch    string
 }
 
 func main() {
@@ -64,12 +65,13 @@ func main() {
 	flag.StringVar(&params.dbPort, "db_port", mysqlDBPortDefault, "Database port number.")
 	flag.StringVar(&params.dbUser, "db_user", "root", "Database user name.")
 	flag.StringVar(&params.dbPwd, "db_password", "", "Database password.")
-	flag.StringVar(&params.dbGroupConcatMaxLen, "db_group_concat_max_len", mysqlDBGroupConcatMaxLenDefault, "Database password.")
+	flag.StringVar(&params.dbGroupConcatMaxLen, "db_group_concat_max_len", mysqlDBGroupConcatMaxLenDefault, "Database group concat max length.")
+	flag.StringVar(&params.namespaceToWatch, "namespace_to_watch", "kubeflow", "Namespace to watch.")
 
 	log.Println("Initing client manager....")
 	clientManager := NewClientManager(params)
 
-	go WatchPods()
+	go WatchPods(params.namespaceToWatch, clientManager)
 
 	certPath := filepath.Join(TLSDir, TLSCertFile)
 	keyPath := filepath.Join(TLSDir, TLSKeyFile)
@@ -85,8 +87,9 @@ func main() {
 	log.Fatal(server.ListenAndServeTLS(certPath, keyPath))
 }
 
-func WatchPods() {
+func WatchPods(namespaceToWatch string, clientManager ClientManager) {
 	config, err := rest.InClusterConfig()
+	log.Printf(config.Username)
 	if err != nil {
 		log.Printf(err.Error())
 	}
@@ -99,23 +102,25 @@ func WatchPods() {
 			Watch:         true,
 			LabelSelector: "workflows.argoproj.io/workflow",
 		}
-		// pods, err := clientset.CoreV1().Pods("kubeflow").List(listOptions)
-		watcher, err := clientset.CoreV1().Pods("kubeflow").Watch(listOptions)
+		watcher, err := clientset.CoreV1().Pods(namespaceToWatch).Watch(listOptions)
 
 		if err != nil {
 			log.Printf("watcher error:" + err.Error())
 		}
-		// for _, pod := range pods.Items {
-		// 	log.Printf(pod.ObjectMeta.Name)
-		// }
+
 		for event := range watcher.ResultChan() {
-			// pod := event.Object.(*corev1.Pod)
 			pod := reflect.ValueOf(event.Object).Interface().(*corev1.Pod)
 			log.Printf((*pod).GetName())
+
+			executionKey := pod.ObjectMeta.Annotations[server.ExecutionKey]
+			if executionKey != "" {
+				execution, err := clientManager.CacheStore().GetExecutionCache(executionKey)
+				if err != nil {
+					log.Println("Get execution error: " + err.Error())
+					continue
+				}
+				log.Printf(execution.ExecutionTemplate)
+			}
 		}
-		// pod := reflect.ValueOf(events.Object).Interface().(*corev1.Pod)
-		// // pod := events.Object.(*corev1.Pod)
-		// log.Printf((*pod).Kind)
-		// log.Printf((*pod).ObjectMeta.Name)
 	}
 }

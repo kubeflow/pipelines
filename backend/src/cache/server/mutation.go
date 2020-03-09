@@ -88,19 +88,23 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 			annotations[ExecutionOutputs] = cachedOutput
 			pod.Spec.Containers = []corev1.Container{}
 		}
+		log.Println(cachedExecution.ExecutionTemplate)
 	}
 	log.Println("pod outputs: " + annotations[ExecutionOutputs])
-	executionOutputs, exist := annotations[ExecutionOutputs]
-	if cachedExecution == nil && exist {
+	// executionOutputs, _ := annotations[ExecutionOutputs]
+	if cachedExecution == nil {
 		executionToCache := model.ExecutionCache{
 			ExecutionCacheKey: executionHashKey,
-			ExecutionOutput:   executionOutputs,
+			ExecutionTemplate: template,
+			MaxCacheStaleness: -1,
 		}
+		clientMgr.CacheStore().DeleteExecutionCache(executionHashKey)
 		_, err := clientMgr.CacheStore().CreateExecutionCache(&executionToCache)
 		if err != nil {
 			log.Println(err.Error())
 			// return nil, nil
 		}
+		log.Println("A new cache entry was created.")
 	}
 
 	// Add executionKey to pod.metadata.annotations
@@ -109,23 +113,6 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		Path:  AnnotationPath,
 		Value: annotations,
 	})
-
-	// testCache := model.ExecutionCache{
-	// 	ExecutionCacheKey: "test123456",
-	// 	ExecutionOutput:   "testoutput",
-	// }
-	// if resultTest, _ := clientMgr.CacheStore().GetExecutionCache("test123456"); resultTest == nil {
-	// 	_, err := clientMgr.CacheStore().CreateExecutionCache(&testCache)
-	// 	if err != nil {
-	// 		log.Println(err.Error())
-	// 	}
-	// }
-
-	// cacheResult, err := clientMgr.CacheStore().GetExecutionCache("test123456")
-	// if err != nil {
-	// 	log.Printf(err.Error())
-	// }
-	// log.Println(cacheResult.GetExecutionOutput())
 
 	return patches, nil
 }
