@@ -100,7 +100,7 @@ time source "${DIR}/check-build-image-status.sh"
 echo "KFP images built"
 
 time source "${DIR}/deploy-pipeline-lite.sh"
-echo "KFP lite deployed"
+echo "KFP standalone deployed"
 
 echo "submitting argo workflow to run tests for commit ${COMMIT_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \

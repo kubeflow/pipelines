@@ -30,7 +30,7 @@ usage()
 PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
-TIMEOUT_SECONDS=1800
+TIMEOUT_SECONDS=2700 # 45 minutes
 NAMESPACE=kubeflow
 WORKFLOW_FILE=e2e_test_gke_v2.yaml
 
@@ -60,31 +60,31 @@ while [ "$1" != "" ]; do
     shift
 done
 
-# PULL_PULL_SHA is empty whne Pros/Tide tests the batches.
-# PULL_BASE_SHA cannot be used here as it still points to master tip in that case.
-if [ -z "${PULL_PULL_SHA:-''}" ]; then
-    PULL_PULL_SHA=$(git rev-parse HEAD)
-fi
+# This is merged commit's SHA.
+COMMIT_SHA="$(git rev-parse HEAD)"
 
-# Variables
-GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${PULL_PULL_SHA}
-TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
+# Paths are using commit sha, instead of pull sha, because tests may be rerun with the same PR
+# commit, but merged on a different master version. When this happens, we cannot reuse cached
+# results on the previous test run.
+GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${COMMIT_SHA}
+TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${COMMIT_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
-
 LATEST_RELEASED_TAG=$(git tag --sort=v:refname | tail -1)
 
 # Configure `time` command output format.
 TIMEFORMAT="[test-timing] It took %lR."
 
-echo "presubmit test starts"
+echo "upgrade test starts"
+if [ -n "$PULL_PULL_SHA" ]; then
+    echo "PR commit is ${PULL_PULL_SHA}"
+fi
 time source "${DIR}/test-prep.sh"
 echo "test env prepared"
 
 time source "${DIR}/build-images.sh"
 echo "KFP images cloudbuild jobs submitted"
 
-time COMMIT_SHA=$PULL_PULL_SHA \
-  TEST_CLUSTER_PREFIX="upgrade" \
+time TEST_CLUSTER_PREFIX="upgrade" \
   source "${DIR}/deploy-cluster.sh"
 echo "cluster deployed"
 
@@ -93,17 +93,7 @@ time source "${DIR}/install-argo.sh"
 echo "argo installed"
 
 time KFP_DEPLOY_RELEASE=true source "${DIR}/deploy-pipeline-lite.sh"
-echo "KFP lite of latest release deployed"
-
-IMAGE_BUILDER_ARG=""
-if [ "$PROJECT" != "ml-pipeline-test" ]; then
-  COPIED_IMAGE_BUILDER_IMAGE=${GCR_IMAGE_BASE_DIR}/image-builder
-  echo "Copy image builder image to ${COPIED_IMAGE_BUILDER_IMAGE}"
-  yes | gcloud container images add-tag \
-    gcr.io/ml-pipeline-test/image-builder:v20200208-0.1.25-771-g4c571961 \
-    ${COPIED_IMAGE_BUILDER_IMAGE}:latest
-  IMAGE_BUILDER_ARG="-p image-builder-image=${COPIED_IMAGE_BUILDER_IMAGE}"
-fi
+echo "KFP standalone of latest release deployed"
 
 echo "submitting argo workflow to setup test env before upgrade..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
@@ -123,7 +113,7 @@ time source "${DIR}/check-build-image-status.sh"
 echo "KFP images built"
 
 time source "${DIR}/deploy-pipeline-lite.sh"
-echo "KFP lite of commit ${PULL_PULL_SHA} deployed"
+echo "KFP standalone of commit ${COMMIT_SHA} deployed"
 
 echo "submitting argo workflow to verify test env after upgrade..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
