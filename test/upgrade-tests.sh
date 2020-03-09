@@ -18,10 +18,9 @@ set -ex
 
 usage()
 {
-    echo "usage: deploy.sh
+    echo "usage: upgrade-tests.sh
     [--platform             the deployment platform. Valid values are: [gcp, minikube]. Default is gcp.]
     [--project              the gcp project. Default is ml-pipeline-test. Only used when platform is gcp.]
-    [--workflow_file        the file name of the argo workflow to run]
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
     [--timeout              timeout of the tests in seconds. Default is 1800 seconds. ]
@@ -33,7 +32,7 @@ PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
 TIMEOUT_SECONDS=2700 # 45 minutes
 NAMESPACE=kubeflow
-ENABLE_WORKLOAD_IDENTITY=true
+WORKFLOW_FILE=e2e_test_gke_v2.yaml
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -42,9 +41,6 @@ while [ "$1" != "" ]; do
                                       ;;
              --project )              shift
                                       PROJECT=$1
-                                      ;;
-             --workflow_file )        shift
-                                      WORKFLOW_FILE=$1
                                       ;;
              --test_result_bucket )   shift
                                       TEST_RESULT_BUCKET=$1
@@ -73,37 +69,35 @@ COMMIT_SHA="$(git rev-parse HEAD)"
 GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${COMMIT_SHA}
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${COMMIT_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+LATEST_RELEASED_TAG=$(git tag --sort=v:refname | tail -1)
 
 # Configure `time` command output format.
 TIMEFORMAT="[test-timing] It took %lR."
 
-echo "presubmit test starts"
+echo "upgrade test starts"
 if [ -n "$PULL_PULL_SHA" ]; then
     echo "PR commit is ${PULL_PULL_SHA}"
 fi
 time source "${DIR}/test-prep.sh"
 echo "test env prepared"
 
-# We don't wait for image building here, because cluster can be deployed in
-# parallel so that we save a few minutes of test time.
 time source "${DIR}/build-images.sh"
 echo "KFP images cloudbuild jobs submitted"
 
-time source "${DIR}/deploy-cluster.sh"
+time TEST_CLUSTER_PREFIX="upgrade" \
+  source "${DIR}/deploy-cluster.sh"
 echo "cluster deployed"
 
 # Install Argo CLI and test-runner service account
 time source "${DIR}/install-argo.sh"
 echo "argo installed"
 
-time source "${DIR}/check-build-image-status.sh"
-echo "KFP images built"
+time KFP_DEPLOY_RELEASE=true source "${DIR}/deploy-pipeline-lite.sh"
+echo "KFP standalone of latest release deployed"
 
-time source "${DIR}/deploy-pipeline-lite.sh"
-echo "KFP standalone deployed"
-
-echo "submitting argo workflow to run tests for commit ${COMMIT_SHA}..."
+echo "submitting argo workflow to setup test env before upgrade..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
+--entrypoint upgrade-test-preparation \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 ${IMAGE_BUILDER_ARG} \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
@@ -112,6 +106,25 @@ ${IMAGE_BUILDER_ARG} \
 --serviceaccount test-runner \
 -o name
 `
-echo "test workflow submitted successfully"
 time source "${DIR}/check-argo-status.sh"
-echo "test workflow completed"
+echo "upgrade test preparation workflow completed"
+
+time source "${DIR}/check-build-image-status.sh"
+echo "KFP images built"
+
+time source "${DIR}/deploy-pipeline-lite.sh"
+echo "KFP standalone of commit ${COMMIT_SHA} deployed"
+
+echo "submitting argo workflow to verify test env after upgrade..."
+ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
+--entrypoint upgrade-test-verification \
+-p image-build-context-gcs-uri="$remote_code_archive_uri" \
+${IMAGE_BUILDER_ARG} \
+-p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+-p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+-n ${NAMESPACE} \
+--serviceaccount test-runner \
+-o name
+`
+time source "${DIR}/check-argo-status.sh"
+echo "upgrade test verification workflow completed"

@@ -1,0 +1,126 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: upgrade-test-setup-
+spec:
+  entrypoint: integration-test
+  volumes:
+  - name: gcp-credentials
+    secret:
+      secretName: user-gcp-sa
+  arguments:
+    parameters:
+    - name: image-build-context-gcs-uri
+    - name: image-builder-image
+      value: gcr.io/ml-pipeline-test/image-builder:v20200208-0.1.25-771-g4c571961
+    - name: target-image-prefix
+    - name: test-results-gcs-dir
+    - name: initialization-test-image-suffix
+      value: initialization_test
+    - name: cluster-type
+      value: gke
+    - name: namespace
+      value: kubeflow
+  templates:
+  - name: integration-test
+    inputs:
+      parameters:
+      - name: target-image-prefix
+      - name: test-results-gcs-dir
+      - name: initialization-test-image-suffix
+      - name: api-integration-test-image-suffix
+      - name: frontend-integration-tests-image-suffix
+      - name: basic-e2e-tests-image-suffix
+      - name: namespace
+    steps:
+    - - name: build-initialization-test-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: docker-path
+            value: .
+          - name: docker-file
+            value: test/initialization-test/Dockerfile
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.initialization-test-image-suffix}}"
+    - - name: run-initialization-tests
+        template: run-initialization-tests
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: initialization-test-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.initialization-test-image-suffix}}"
+
+  # Build and push image
+  - name: build-image
+    inputs:
+      parameters:
+      # GCS URI prefix pointing to a .tar.gz archive of Docker build context
+      - name: image-build-context-gcs-uri
+        value: "{{workflow.parameters.image-build-context-gcs-uri}}"
+      # The relative code path to the Dockerfile
+      - name: docker-path
+      # Name of the Docker file to use. "Dockerfile" by default
+      - name: docker-file
+        value: Dockerfile
+      - name: image-name
+    outputs:
+      parameters:
+        - name: strict-image-name
+          valueFrom:
+            path: /outputs/strict-image-name/file
+    container:
+      image: "{{workflow.parameters.image-builder-image}}"
+      imagePullPolicy: 'Always'
+      args: [
+        "--image-build-context-gcs-uri", "{{inputs.parameters.image-build-context-gcs-uri}}",
+        "--docker_path", "{{inputs.parameters.docker-path}}",
+        "--docker_file", "{{inputs.parameters.docker-file}}",
+        "--image_name", "{{inputs.parameters.image-name}}",
+      ]
+      env:
+      - name: DOCKER_HOST
+        value: 127.0.0.1
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials
+    sidecars:
+    - name: dind
+      image: docker:17.10-dind
+      securityContext:
+        privileged: true
+      mirrorVolumeMounts: true
+
+  - name: run-initialization-tests
+    inputs:
+      parameters:
+      - name: test-results-gcs-dir
+      - name: initialization-test-image
+    container:
+      image: "{{inputs.parameters.initialization-test-image}}"
+      args: [
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+      ]
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials
