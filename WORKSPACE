@@ -455,12 +455,6 @@ go_repository(
 )
 
 go_repository(
-    name = "com_github_kataras_iris",
-    importpath = "github.com/kataras/iris",
-    tag = "v10.6.7",
-)
-
-go_repository(
     name = "com_github_kisielk_gotool",
     importpath = "github.com/kisielk/gotool",
     tag = "v1.0.0",
