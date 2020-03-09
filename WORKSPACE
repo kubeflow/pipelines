@@ -457,7 +457,7 @@ go_repository(
 go_repository(
     name = "com_github_kataras_iris",
     importpath = "github.com/kataras/iris",
-    tag = "v10.6.7",
+    tag = "v12.1.8",
 )
 
 go_repository(
