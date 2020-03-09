@@ -454,11 +454,11 @@ go_repository(
     tag = "v4.2.1",
 )
 
-# go_repository(
-#     name = "com_github_kataras_iris",
-#     importpath = "github.com/kataras/iris",
-#     tag = "v11.2.8",
-# )
+go_repository(
+    name = "com_github_kataras_iris",
+    importpath = "github.com/kataras/iris",
+    tag = "v12.1.8",
+)
 
 go_repository(
     name = "com_github_kisielk_gotool",

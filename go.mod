@@ -44,7 +44,7 @@ require (
 	github.com/jinzhu/now v0.0.0-20181116074157-8ec929ed50c3 // indirect
 	github.com/json-iterator/go v0.0.0-20180701071628-ab8a2e0c74be // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
-	// github.com/kataras/iris v10.6.7+incompatible
+	github.com/kataras/iris v12.1.8+incompatible
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lib/pq v1.0.0 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect

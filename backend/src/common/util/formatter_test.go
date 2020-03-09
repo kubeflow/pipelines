@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	// "github.com/kataras/iris/core/errors"
+	"github.com/kataras/iris/core/errgroup"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -71,16 +71,16 @@ func TestCreateSubstitute(t *testing.T) {
 
 }
 
-// func TestCreateSubstituteError(t *testing.T) {
-// 	uuid := NewFakeUUIDGeneratorOrFatal(defaultUUID, errors.New("UUID generation failed"))
-// 	formatter := NewWorkflowFormatter(uuid,
-// 		getDefaultScheduledAtSec(),
-// 		getDefaultCreatedAtSec())
+func TestCreateSubstituteError(t *testing.T) {
+	uuid := NewFakeUUIDGeneratorOrFatal(defaultUUID, errgroup.New("UUID generation failed"))
+	formatter := NewWorkflowFormatter(uuid,
+		getDefaultScheduledAtSec(),
+		getDefaultCreatedAtSec())
 
-// 	result, err := formatter.createSubtitute("[[uuid]]")
-// 	assert.Contains(t, err.Error(), "UUID generation failed")
-// 	assert.Equal(t, "", result)
-// }
+	result, err := formatter.createSubtitute("[[uuid]]")
+	assert.Contains(t, err.Error(), "UUID generation failed")
+	assert.Equal(t, "", result)
+}
 
 func TestFormatString(t *testing.T) {
 	uuid := NewFakeUUIDGeneratorOrFatal(defaultUUID, nil)
