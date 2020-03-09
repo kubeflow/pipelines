@@ -260,8 +260,8 @@ steps:
   args:
   - -ceux
   - |
-    docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:v0.21.1 gcr.io/ml-pipeline/google/pipelines/metadataserver:$(cat /workspace/mm.ver)
-    docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:v0.21.1 gcr.io/ml-pipeline/google/pipelines-test/metadataserver:$(cat /workspace/mm.ver)
+    docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.21.1 gcr.io/ml-pipeline/google/pipelines/metadataserver:$(cat /workspace/mm.ver)
+    docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.21.1 gcr.io/ml-pipeline/google/pipelines-test/metadataserver:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines/metadataserver:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines-test/metadataserver:$(cat /workspace/mm.ver)
 
