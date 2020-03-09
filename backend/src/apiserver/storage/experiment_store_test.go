@@ -22,7 +22,15 @@ const (
 )
 
 func createExperiment(name string) *model.Experiment {
-	return &model.Experiment{Name: name, Description: fmt.Sprintf("My name is %s", name)}
+	return createExperimentInNamespace(name, "")
+}
+
+func createExperimentInNamespace(name string, namespace string) *model.Experiment {
+	return &model.Experiment{
+		Name:        name,
+		Description: fmt.Sprintf("My name is %s", name),
+		Namespace:   namespace,
+	}
 }
 
 func TestListExperiments_Pagination(t *testing.T) {
@@ -227,6 +235,38 @@ func TestCreateExperiment(t *testing.T) {
 
 	experiment := createExperiment("experiment1")
 	experiment, err := experimentStore.CreateExperiment(experiment)
+	assert.Nil(t, err)
+	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
+}
+
+func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentExpected := model.Experiment{
+		UUID:           fakeID,
+		CreatedAtInSec: 1,
+		Name:           "experiment1",
+		Description:    "My name is experiment1",
+		Namespace:      "namespace1",
+	}
+
+	experiment := createExperimentInNamespace("experiment1", "namespace1")
+	experiment, err := experimentStore.CreateExperiment(experiment)
+	assert.Nil(t, err)
+	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
+
+	experimentStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeIDTwo, nil))
+	experiment = createExperimentInNamespace("experiment1", "namespace2")
+	experimentExpected = model.Experiment{
+		UUID:           fakeIDTwo,
+		CreatedAtInSec: 1,
+		Name:           "experiment1",
+		Description:    "My name is experiment1",
+		Namespace:      "namespace2",
+	}
+
+	experiment, err = experimentStore.CreateExperiment(experiment)
 	assert.Nil(t, err)
 	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
 }
