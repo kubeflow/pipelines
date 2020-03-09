@@ -134,6 +134,48 @@ spec:
           - recursion
           - volume_ops
 
+  - name: upgrade-test-preparation
+    inputs:
+      parameters:
+      - name: target-image-prefix
+      - name: test-results-gcs-dir
+      - name: api-integration-test-image-suffix
+    steps:
+    - - name: build-api-integration-test-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: docker-path
+            value: .
+          - name: docker-file
+            value: test/api-integration-test/Dockerfile
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
+    - - name: run-upgrade-tests-preparation
+        template: run-upgrade-tests-preparation
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: api-integration-test-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
+
+  - name: upgrade-test-verification
+    inputs:
+      parameters:
+      - name: target-image-prefix
+      - name: test-results-gcs-dir
+      - name: api-integration-test-image-suffix
+    steps:
+    - - name: run-upgrade-tests-verification
+        template: run-upgrade-tests-verification
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: api-integration-test-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
+
   # Build and push image
   - name: build-image
     retryStrategy:
@@ -220,4 +262,28 @@ spec:
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
+      ]
+
+  - name: run-upgrade-tests-preparation
+    inputs:
+      parameters:
+      - name: test-results-gcs-dir
+      - name: api-integration-test-image
+    container:
+      image: "{{inputs.parameters.api-integration-test-image}}"
+      args: [
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+        "--run_upgrade_tests_preparation",
+      ]
+
+  - name: run-upgrade-tests-verification
+    inputs:
+      parameters:
+      - name: test-results-gcs-dir
+      - name: api-integration-test-image
+    container:
+      image: "{{inputs.parameters.api-integration-test-image}}"
+      args: [
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+        "--run_upgrade_tests_verification",
       ]
