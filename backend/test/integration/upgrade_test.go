@@ -296,6 +296,7 @@ func (s *UpgradeTests) PrepareJobs() {
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
+		NoCatchup:      true,
 	}}
 	_, err := s.jobClient.Create(createJobRequest)
 	require.Nil(t, err)
@@ -311,8 +312,34 @@ func (s *UpgradeTests) VerifyJobs() {
 	jobs, _, _, err := s.jobClient.List(&jobparams.ListJobsParams{})
 	require.Nil(t, err)
 	require.Len(t, jobs, 1)
-	helloWorldJob := jobs[0]
-	checkHelloWorldJob(t, helloWorldJob, experiment.ID, experiment.Name, pipeline.ID)
+	job := jobs[0]
+
+	// Check workflow manifest is not empty
+	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
+	expectedJob := &job_model.APIJob{
+		ID:          job.ID,
+		Name:        "hello world",
+		Description: "this is hello world",
+		PipelineSpec: &job_model.APIPipelineSpec{
+			PipelineID:       pipeline.ID,
+			PipelineName:     "hello-world.yaml",
+			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
+		},
+		ResourceReferences: []*job_model.APIResourceReference{
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Name: experiment.Name, Relationship: job_model.APIRelationshipOWNER,
+			},
+		},
+		MaxConcurrency: 10,
+		NoCatchup:      true,
+		Enabled:        true,
+		CreatedAt:      job.CreatedAt,
+		UpdatedAt:      job.UpdatedAt,
+		Status:         job.Status,
+		Trigger:        &job_model.APITrigger{},
+	}
+
+	assert.Equal(t, expectedJob, job)
 }
 
 func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
@@ -405,32 +432,4 @@ func (s *UpgradeTests) createHelloWorldPipeline() *pipeline_model.APIPipeline {
 }
 
 func checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineID string) {
-	// Check workflow manifest is not empty
-	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
-
-	// Trigger field is different, suppress its comparison
-	job.Trigger = &job_model.APITrigger{}
-	expectedJob := &job_model.APIJob{
-		ID:          job.ID,
-		Name:        "hello world",
-		Description: "this is hello world",
-		PipelineSpec: &job_model.APIPipelineSpec{
-			PipelineID:       pipelineID,
-			PipelineName:     "hello-world.yaml",
-			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
-		},
-		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-				Name: experimentName, Relationship: job_model.APIRelationshipOWNER,
-			},
-		},
-		MaxConcurrency: 10,
-		Enabled:        true,
-		CreatedAt:      job.CreatedAt,
-		UpdatedAt:      job.UpdatedAt,
-		Status:         job.Status,
-		Trigger:        &job_model.APITrigger{},
-	}
-
-	assert.Equal(t, expectedJob, job)
 }
