@@ -83,7 +83,6 @@ elif [ -n "$UPGRADE_TESTS_VERIFICATION" ]; then
 else
   go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true |& tee $LOG_FILE || TEST_EXIT_CODE=$?
 fi
-TEST_EXIT_CODE=$?
 
 # Convert test result to junit.xml
 < "$LOG_FILE" go-junit-report > "${JUNIT_TEST_RESULT}"
