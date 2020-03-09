@@ -1,27 +1,45 @@
 steps:
-  - name: "gcr.io/cloud-builders/docker"
+  - id: "persistenceagent"
+    name: "gcr.io/cloud-builders/docker"
     args:
       ["build", "-t", "$_GCR_BASE/persistenceagent", "-f", "backend/Dockerfile.persistenceagent", "."]
     waitFor: ["-"]
-  - name: "gcr.io/cloud-builders/docker"
+  - id: "scheduledworkflow"
+    name: "gcr.io/cloud-builders/docker"
     args:
       ["build", "-t", "$_GCR_BASE/scheduledworkflow", "-f", "backend/Dockerfile.scheduledworkflow", "."]
     waitFor: ["-"]
-  - name: "gcr.io/cloud-builders/docker"
+  - id: "frontend"
+    name: "gcr.io/cloud-builders/docker"
     args:
       ["build", "-t", "$_GCR_BASE/frontend", "-f", "frontend/Dockerfile", "."]
     waitFor: ["-"]
-  - name: "gcr.io/cloud-builders/docker"
+  - id: "viewer-crd-controller"
+    name: "gcr.io/cloud-builders/docker"
     args:
       ["build", "-t", "$_GCR_BASE/viewer-crd-controller", "-f", "backend/Dockerfile.viewercontroller", "."]
     waitFor: ["-"]
-  - name: "gcr.io/cloud-builders/docker"
+  - id: "visualization-server"
+    name: "gcr.io/cloud-builders/docker"
     args:
       ["build", "-t", "$_GCR_BASE/visualization-server", "-f", "backend/Dockerfile.visualization", "."]
     waitFor: ["-"]
-  - name: "gcr.io/cloud-builders/docker"
+  - id: "inverse-proxy-agent"
+    name: "gcr.io/cloud-builders/docker"
     args:
       ["build", "-t", "$_GCR_BASE/inverse-proxy-agent", "-f", "proxy/Dockerfile", "./proxy"]
+    waitFor: ["-"]
+  - id: 'buildMetadataWriter'
+    name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '$_GCR_BASE/metadata-writer', '-f', 'backend/metadata_writer/Dockerfile', '.']
+    waitFor: ["-"]
+  - id: 'buildCacheServer'
+    name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '$_GCR_BASE/cache-server', '-f', 'backend/Dockerfile.cacheserver', '.']
+    waitFor: ["-"]
+  - id: 'buildCacheDeployer'
+    name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '$_GCR_BASE/cache-deployer', '-f', 'backend/src/cache/deployer/Dockerfile', '.']
     waitFor: ["-"]
 options:
   machineType: N1_HIGHCPU_8 # use a fast machine to build because there a lot of work
@@ -32,4 +50,7 @@ images:
   - "$_GCR_BASE/viewer-crd-controller"
   - "$_GCR_BASE/visualization-server"
   - "$_GCR_BASE/inverse-proxy-agent"
+  - "$_GCR_BASE/metadata-writer"
+  - "$_GCR_BASE/cache-server"
+  - "$_GCR_BASE/cache-deployer"
 timeout: 1800s # 30min

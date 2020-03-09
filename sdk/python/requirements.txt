@@ -4,7 +4,7 @@ certifi
 python-dateutil
 PyYAML
 google-cloud-storage>=1.13.0
-kubernetes>=8.0.0, <=9.0.0
+kubernetes>=8.0.0, <=10.0.0
 PyJWT>=1.6.4
 cryptography>=2.4.2
 google-auth>=1.6.1
@@ -16,3 +16,4 @@ jsonschema >= 3.0.1
 tabulate == 0.8.3
 click == 7.0
 Deprecated
+strip-hints

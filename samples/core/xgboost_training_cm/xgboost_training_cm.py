@@ -18,26 +18,28 @@ import json
 import kfp
 from kfp import components
 from kfp import dsl
-from kfp import gcp
 import os
 import subprocess
 
-confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/02c991dd265054b040265b3dfa1903d5b49df859/components/local/confusion_matrix/component.yaml')
+diagnose_me_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/566dddfdfc0a6a725b6e50ea85e73d8d5578bbb9/components/diagnostics/diagnose_me/component.yaml')
 
-roc_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/02c991dd265054b040265b3dfa1903d5b49df859/components/local/roc/component.yaml')
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/3f4b80127f35e40760eeb1813ce1d3f641502222/components/local/confusion_matrix/component.yaml')
+
+roc_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/3f4b80127f35e40760eeb1813ce1d3f641502222/components/local/roc/component.yaml')
 
 dataproc_create_cluster_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/02c991dd265054b040265b3dfa1903d5b49df859/components/gcp/dataproc/create_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/3f4b80127f35e40760eeb1813ce1d3f641502222/components/gcp/dataproc/create_cluster/component.yaml')
 
 dataproc_delete_cluster_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/02c991dd265054b040265b3dfa1903d5b49df859/components/gcp/dataproc/delete_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/3f4b80127f35e40760eeb1813ce1d3f641502222/components/gcp/dataproc/delete_cluster/component.yaml')
 
 dataproc_submit_pyspark_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/02c991dd265054b040265b3dfa1903d5b49df859/components/gcp/dataproc/submit_pyspark_job/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/3f4b80127f35e40760eeb1813ce1d3f641502222/components/gcp/dataproc/submit_pyspark_job/component.yaml'
 )
 
 dataproc_submit_spark_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/02c991dd265054b040265b3dfa1903d5b49df859/components/gcp/dataproc/submit_spark_job/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/3f4b80127f35e40760eeb1813ce1d3f641502222/components/gcp/dataproc/submit_spark_job/component.yaml'
 )
 
 _PYSRC_PREFIX = 'gs://ml-pipeline-playground/dataproc-example' # Common path to python src.
@@ -158,7 +160,7 @@ def dataproc_train_op(
       region=region,
       cluster_name=cluster_name,
       main_class=_TRAINER_MAIN_CLS,
-      spark_job=json.dumps({ 'jarFileUris': [_XGBOOST_PKG]}),
+      spark_job=json.dumps({'jarFileUris': [_XGBOOST_PKG]}),
       args=json.dumps([
         str(config),
         str(rounds),
@@ -187,7 +189,7 @@ def dataproc_predict_op(
       region=region,
       cluster_name=cluster_name,
       main_class=_PREDICTOR_MAIN_CLS,
-      spark_job=json.dumps({ 'jarFileUris': [_XGBOOST_PKG]}),
+      spark_job=json.dumps({'jarFileUris': [_XGBOOST_PKG]}),
       args=json.dumps([
         str(model),
         str(data),
@@ -203,19 +205,22 @@ def dataproc_predict_op(
     description='A trainer that does end-to-end distributed training for XGBoost models.'
 )
 def xgb_train_pipeline(
-    output='gs://your-gcs-bucket',
-    project='your-gcp-project',
-    cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER,
-    region='us-central1',
-    train_data='gs://ml-pipeline-playground/sfpd/train.csv',
-    eval_data='gs://ml-pipeline-playground/sfpd/eval.csv',
-    schema='gs://ml-pipeline-playground/sfpd/schema.json',
-    target='resolution',
-    rounds=200,
-    workers=2,
-    true_label='ACTION',
+    output='gs://{{kfp-default-bucket}}',
+    project='{{kfp-project-id}}',
+    diagnostic_mode='HALT_ON_ERROR',
+    rounds=5,
 ):
     output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
+    region='us-central1'
+    workers=2
+    quota_check=[{'region':region,'metric':'CPUS','quota_needed':12.0}]
+    train_data='gs://ml-pipeline-playground/sfpd/train.csv'
+    eval_data='gs://ml-pipeline-playground/sfpd/eval.csv'
+    schema='gs://ml-pipeline-playground/sfpd/schema.json'
+    true_label='ACTION'
+    target='resolution'
+    required_apis='dataproc.googleapis.com'
+    cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER
 
     # Current GCP pyspark/spark op do not provide outputs as return values, instead,
     # we need to use strings to pass the uri around.
@@ -224,7 +229,14 @@ def xgb_train_pipeline(
     transform_output_eval = os.path.join(output_template, 'eval', 'part-*')
     train_output = os.path.join(output_template, 'train_output')
     predict_output = os.path.join(output_template, 'predict_output')
-
+    
+    _diagnose_me_op = diagnose_me_op(
+        bucket=output,
+        execution_mode=diagnostic_mode,
+        project_id=project, 
+        target_apis=required_apis,
+        quota_check=quota_check)
+    
     with dsl.ExitHandler(exit_op=dataproc_delete_cluster_op(
         project_id=project,
         region=region,
@@ -239,7 +251,7 @@ def xgb_train_pipeline(
                            'initialization_actions.sh'),
             ],
             image_version='1.2'
-        )
+        ).after(_diagnose_me_op)
 
         _analyze_op = dataproc_analyze_op(
             project=project,
@@ -297,8 +309,5 @@ def xgb_train_pipeline(
             output_dir=output_template
         ).after(_predict_op)
 
-    dsl.get_pipeline_conf().add_op_transformer(
-        gcp.use_gcp_secret('user-gcp-sa'))
-
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.yaml')

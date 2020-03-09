@@ -14,18 +14,6 @@
 
 matrix:
   include:
-    - language: node_js
-      node_js: "11.8.0"
-      addons:
-        chrome: stable
-      before_install: npm i -g npm@latest
-      script:
-        # Frontend tests
-        - cd $TRAVIS_BUILD_DIR/frontend
-        - node -v
-        - npm ci
-        # Comment out next line if coverall has an ongoing outage to unblock.
-        - npm run test:ci
     - language: generic
       env:
         - BAZEL_URL="https://github.com/bazelbuild/bazel/releases/download/0.23.0/bazel-0.23.0-installer-linux-x86_64.sh"
@@ -58,6 +46,8 @@ matrix:
       python: "2.7"
       env: TOXENV=py27
       script:
+        - python -m pip
+        - pip install six==1.12.0
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
         - ./run_test.sh
@@ -69,7 +59,7 @@ matrix:
       install: &0
         - python3 -m pip install -r $TRAVIS_BUILD_DIR/sdk/python/requirements.txt
         # Additional dependencies
-        - pip3 install coverage coveralls
+        - pip3 install coverage==4.5.4 coveralls==1.9.2 six==1.12.0
         # Sample test infra dependencies
         - pip3 install minio
         - pip3 install junit_xml
@@ -105,7 +95,7 @@ matrix:
         - python3 -m pip install "${WHEEL_PATH}" --upgrade
         - set +e
         - set +x
-        # Two KFP-related unittests
+        # Three KFP-related unittests
         - cd $TRAVIS_BUILD_DIR/tfx/tfx/orchestration/kubeflow
         - python3 kubeflow_dag_runner_test.py
         - cd $TRAVIS_BUILD_DIR/tfx/tfx/examples/chicago_taxi_pipeline

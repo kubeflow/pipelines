@@ -21,7 +21,7 @@ from kfp import dsl
 def gcs_download_op(url):
     return dsl.ContainerOp(
         name='GCS - Download',
-        image='google/cloud-sdk:216.0.0',
+        image='google/cloud-sdk:279.0.0',
         command=['sh', '-c'],
         arguments=['gsutil cat $0 | tee $1', url, '/tmp/results.txt'],
         file_outputs={
@@ -54,4 +54,4 @@ def download_and_print(url='gs://ml-pipeline-playground/shakespeare1.txt'):
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(download_and_print, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(download_and_print, __file__ + '.yaml')

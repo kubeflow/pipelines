@@ -14,32 +14,40 @@
  * limitations under the License.
  */
 
-import React, { Component } from 'react';
-import { Page } from './Page';
-import { ToolbarProps } from '../components/Toolbar';
-import { RoutePage, RouteParams, RoutePageFactory } from '../components/Router';
-import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding } from '../Css';
-import { CircularProgress } from '@material-ui/core';
-import { titleCase, getResourceProperty, serviceErrorToString, logger } from '../lib/Utils';
-import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
-import { Execution, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
-import { Apis, ExecutionProperties, ArtifactProperties } from '../lib/Apis';
 import {
+  Api,
+  ArtifactCustomProperties,
+  ArtifactProperties,
+  ArtifactType,
+  Event,
+  Execution,
+  ExecutionCustomProperties,
+  ExecutionProperties,
+  GetArtifactsByIDRequest,
   GetExecutionsByIDRequest,
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
-  GetArtifactsByIDRequest,
-} from '../generated/src/apis/metadata/metadata_store_service_pb';
-import { EventTypes, getArtifactTypeMap } from '../lib/MetadataUtils';
-import { Event } from '../generated/src/apis/metadata/metadata_store_pb';
+  getArtifactTypes,
+  getResourceProperty,
+  logger,
+  titleCase,
+} from '@kubeflow/frontend';
+import { CircularProgress } from '@material-ui/core';
+import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
+import { classes, stylesheet } from 'typestyle';
+import { Page } from './Page';
+import { ToolbarProps } from '../components/Toolbar';
+import { RoutePage, RouteParams, RoutePageFactory } from '../components/Router';
+import { commonCss, padding } from '../Css';
+import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
+import { serviceErrorToString } from '../lib/Utils';
 
 type ArtifactIdList = number[];
 
 interface ExecutionDetailsState {
   execution?: Execution;
-  events?: Record<EventTypes, ArtifactIdList>;
+  events?: Record<Event.Type, ArtifactIdList>;
   artifactTypeMap?: Map<number, ArtifactType>;
 }
 
@@ -122,8 +130,10 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
   }
 
   private async load(): Promise<void> {
+    const metadataStoreServiceClient = Api.getInstance().metadataStoreService;
+
     // this runs parallelly because it's not a critical resource
-    getArtifactTypeMap()
+    getArtifactTypes(metadataStoreServiceClient)
       .then(artifactTypeMap => {
         this.setState({
           artifactTypeMap,
@@ -145,52 +155,51 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
     const getEventsRequest = new GetEventsByExecutionIDsRequest();
     getEventsRequest.setExecutionIdsList([numberId]);
 
-    const [executionResponse, eventResponse] = await Promise.all([
-      Apis.getMetadataServicePromiseClient().getExecutionsByID(getExecutionsRequest),
-      Apis.getMetadataServicePromiseClient().getEventsByExecutionIDs(getEventsRequest),
-    ]);
+    try {
+      const [executionResponse, eventResponse] = await Promise.all([
+        metadataStoreServiceClient.getExecutionsByID(getExecutionsRequest),
+        metadataStoreServiceClient.getEventsByExecutionIDs(getEventsRequest),
+      ]);
 
-    if (eventResponse.error) {
-      this.showPageError(serviceErrorToString(eventResponse.error));
-      // events data is optional, no need to skip the following
-    }
-    if (executionResponse.error) {
-      this.showPageError(serviceErrorToString(executionResponse.error));
-      return;
-    }
-    if (!executionResponse.response || !executionResponse.response.getExecutionsList().length) {
-      this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
-      return;
-    }
-    if (executionResponse.response.getExecutionsList().length > 1) {
-      this.showPageError(`Found multiple executions with ID: ${this.id}`);
-      return;
-    }
+      if (!executionResponse.getExecutionsList().length) {
+        this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
+      }
 
-    const execution = executionResponse.response.getExecutionsList()[0];
-    const executionName = getResourceProperty(execution, ExecutionProperties.COMPONENT_ID);
-    this.props.updateToolbar({
-      pageTitle: executionName ? executionName.toString() : '',
-    });
+      if (executionResponse.getExecutionsList().length > 1) {
+        this.showPageError(`Found multiple executions with ID: ${this.id}`);
+      }
 
-    const events = parseEventsByType(eventResponse.response);
+      const execution = executionResponse.getExecutionsList()[0];
+      const executionName =
+        getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
+        getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true);
+      this.props.updateToolbar({
+        pageTitle: executionName ? executionName.toString() : '',
+      });
 
-    this.setState({
-      events,
-      execution,
-    });
+      const events = parseEventsByType(eventResponse);
+
+      this.setState({
+        events,
+        execution,
+      });
+    } catch (err) {
+      this.showPageError(serviceErrorToString(err));
+    }
   }
 }
 
 function parseEventsByType(
   response: GetEventsByExecutionIDsResponse | null,
-): Record<EventTypes, ArtifactIdList> {
-  const events: Record<EventTypes, ArtifactIdList> = {
+): Record<Event.Type, ArtifactIdList> {
+  const events: Record<Event.Type, ArtifactIdList> = {
     [Event.Type.UNKNOWN]: [],
     [Event.Type.DECLARED_INPUT]: [],
     [Event.Type.INPUT]: [],
     [Event.Type.DECLARED_OUTPUT]: [],
     [Event.Type.OUTPUT]: [],
+    [Event.Type.INTERNAL_INPUT]: [],
+    [Event.Type.INTERNAL_OUTPUT]: [],
   };
 
   if (!response) {
@@ -236,31 +245,32 @@ class SectionIO extends Component<
     // loads extra metadata about artifacts
     const request = new GetArtifactsByIDRequest();
     request.setArtifactIdsList(this.props.artifactIds);
-    const { error, response } = await Apis.getMetadataServicePromiseClient().getArtifactsByID(
-      request,
-    );
-    if (error || !response) {
+
+    try {
+      const response = await Api.getInstance().metadataStoreService.getArtifactsByID(request);
+
+      const artifactDataMap = {};
+      response.getArtifactsList().forEach(artifact => {
+        const id = artifact.getId();
+        if (!id) {
+          logger.error('Artifact has empty id', artifact.toObject());
+          return;
+        }
+        artifactDataMap[id] = {
+          id,
+          name: (getResourceProperty(artifact, ArtifactProperties.NAME) ||
+            getResourceProperty(artifact, ArtifactCustomProperties.NAME, true) ||
+            '') as string, // TODO: assert name is string
+          typeId: artifact.getTypeId(),
+          uri: artifact.getUri() || '',
+        };
+      });
+      this.setState({
+        artifactDataMap,
+      });
+    } catch (err) {
       return;
     }
-
-    const artifactDataMap = {};
-    response.getArtifactsList().forEach(artifact => {
-      const id = artifact.getId();
-      if (!id) {
-        logger.error('Artifact has empty id', artifact.toObject());
-        return;
-      }
-      const data: ArtifactInfo = {
-        id,
-        name: (getResourceProperty(artifact, ArtifactProperties.NAME) || '') as string, // TODO: assert name is string
-        typeId: artifact.getTypeId(),
-        uri: artifact.getUri() || '',
-      };
-      artifactDataMap[id] = data;
-    });
-    this.setState({
-      artifactDataMap,
-    });
   }
 
   public render(): JSX.Element | null {

@@ -58,7 +58,7 @@ function isString(x: any): x is string {
   return typeof x === 'string';
 }
 
-export default (props: DetailsTableProps) => {
+const DetailsTable = (props: DetailsTableProps) => {
   return (
     <React.Fragment>
       {!!props.title && <div className={commonCss.header}>{props.title}</div>}
@@ -82,7 +82,8 @@ export default (props: DetailsTableProps) => {
                   <span className={css.key}>{key}</span>
                   <Editor
                     width='100%'
-                    height='300px'
+                    minLines={3}
+                    maxLines={20}
                     mode='json'
                     theme='github'
                     highlightActiveLine={true}
@@ -112,3 +113,5 @@ export default (props: DetailsTableProps) => {
     </React.Fragment>
   );
 };
+
+export default DetailsTable;

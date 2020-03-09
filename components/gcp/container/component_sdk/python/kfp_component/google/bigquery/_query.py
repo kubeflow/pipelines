@@ -48,6 +48,8 @@ def query(query, project_id, dataset_id=None, table_id=None,
         job_config = bigquery.QueryJobConfig()
         job_config.create_disposition = bigquery.job.CreateDisposition.CREATE_IF_NEEDED
         job_config.write_disposition = bigquery.job.WriteDisposition.WRITE_TRUNCATE
+    else:
+        job_config = bigquery.QueryJobConfig.from_api_repr(job_config)
     job_id = None
     def cancel():
         if job_id:

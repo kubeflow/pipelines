@@ -19,7 +19,7 @@ again.
 
 The Python part of the project will follow [Google Python style guide](http://google.github.io/styleguide/pyguide.html). We provide a [yapf](https://github.com/google/yapf) configuration file to help contributors auto-format their code to adopt the Google Python style. Also, it is encouraged to lint python docstrings by [docformatter](https://github.com/myint/docformatter).
 
-The frontend part of the project uses [prettier](https://prettier.io/) for formatting, read [frontend/README.md#code-style](frontend/#code-style) for more details.
+The frontend part of the project uses [prettier](https://prettier.io/) for formatting, read [frontend/README.md#code-style](frontend/README.md#code-style) for more details.
 
 ## Code reviews
 

@@ -6,7 +6,7 @@ from pathlib import Path
 import requests
 from typing import Callable
 from . import _components as comp
-from ._structures import ComponentReference
+from .structures import ComponentReference
 
 class ComponentStore:
     def __init__(self, local_search_paths=None, url_search_prefixes=None):

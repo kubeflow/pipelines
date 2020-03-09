@@ -5,30 +5,30 @@
     "outDir": "build/dist",
     "module": "esnext",
     "target": "es5",
-    "lib": [
-      "es6",
-      "dom"
-    ],
+    "lib": ["es6", "dom", "es2020"],
     "sourceMap": true,
     "allowJs": true,
+    "resolveJsonModule": true,
     "jsx": "react",
     "moduleResolution": "node",
-    "rootDir": "src",
-    "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noImplicitAny": true,
     "strictBindCallApply": true,
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "strictPropertyInitialization": false, // temporary workaround blocked by @kubeflow/frontend
+    "strict": true
   },
   "exclude": [
     "__mocks__",
     "acceptance-tests",
     "analyze_bundle.js",
-    "backstop.ts",
-    "backstop_data",
     "build",
     "coverage",
     "gen_licenses.js",
@@ -40,7 +40,7 @@
     "src/apis",
     "src/generated",
     "src/setupTests.ts",
-    "third_party",
     "webpack"
-  ]
+  ],
+  "include": ["src"]
 }

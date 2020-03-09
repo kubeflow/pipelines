@@ -16,6 +16,7 @@ from collections import defaultdict
 from deprecated import deprecated
 import inspect
 import tarfile
+import uuid
 import zipfile
 from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
@@ -27,7 +28,7 @@ from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
 from ._op_to_template import _op_to_template
 from ._default_transformers import add_pod_env
 
-from ..components._structures import InputSpec
+from ..components.structures import InputSpec
 from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
@@ -472,22 +473,38 @@ class Compiler(object):
           # i.e., rather than a static list, they are either the output of another task or were input
           # as global pipeline parameters
 
-          pipeline_param = sub_group.loop_args
+          pipeline_param = sub_group.loop_args.items_or_pipeline_param
           if pipeline_param.op_name is None:
             withparam_value = '{{workflow.parameters.%s}}' % pipeline_param.name
           else:
-            param_name = '%s-%s' % (pipeline_param.op_name, pipeline_param.name)
-            withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (pipeline_param.op_name, param_name)
+            param_name = '%s-%s' % (
+              sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
+            withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (
+                sanitize_k8s_name(pipeline_param.op_name),
+                param_name)
 
             # these loop args are the output of another task
             if 'dependencies' not in task or task['dependencies'] is None:
               task['dependencies'] = []
-            if pipeline_param.op_name not in task['dependencies']:
-              task['dependencies'].append(pipeline_param.op_name)
+            if sanitize_k8s_name(
+                pipeline_param.op_name) not in task['dependencies']:
+              task['dependencies'].append(
+                  sanitize_k8s_name(pipeline_param.op_name))
 
           task['withParam'] = withparam_value
         else:
-          task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
+          # Need to sanitize the dict keys for consistency.
+          loop_tasks = sub_group.loop_args.to_list_for_task_yaml()
+          sanitized_tasks = []
+          if isinstance(loop_tasks[0], dict):
+            for argument_set in loop_tasks:
+              c_dict = {}
+              for k, v in argument_set.items():
+                c_dict[sanitize_k8s_name(k, True)] = v
+              sanitized_tasks.append(c_dict)
+          else:
+            sanitized_tasks = loop_tasks
+          task['withItems'] = sanitized_tasks
 
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
@@ -511,19 +528,25 @@ class Compiler(object):
       else:
         argument_name = param_name
 
-      # default argument_value + special cases
-      argument_value = '{{inputs.parameters.%s}}' % param_name
+      # Preparing argument. It can be pipeline input reference, task output reference or loop item (or loop item attribute
+      sanitized_loop_arg_full_name = '---'
       if isinstance(sub_group, dsl.ParallelFor):
-        if sub_group.loop_args.name in param_name:
-          if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
-            subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(param_name)
-            argument_value = '{{item.%s}}' % subvar_name
-          elif _for_loop.LoopArguments.name_is_loop_arguments(param_name) or sub_group.items_is_pipeline_param:
-            argument_value = '{{item}}'
-          else:
-            raise ValueError("Failed to match loop args with parameter. param_name: {}, ".format(param_name))
-      elif dependent_name:
-        argument_value = '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
+        sanitized_loop_arg_full_name = sanitize_k8s_name(self._pipelineparam_full_name(sub_group.loop_args))
+      arg_ref_full_name = sanitize_k8s_name(param_name)
+      # We only care about the reference to the current loop item, not the outer loops
+      if isinstance(sub_group, dsl.ParallelFor) and arg_ref_full_name.startswith(sanitized_loop_arg_full_name):
+        if arg_ref_full_name == sanitized_loop_arg_full_name:
+          argument_value = '{{item}}'
+        elif _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
+          subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(param_name)
+          argument_value = '{{item.%s}}' % subvar_name
+        else:
+          raise ValueError("Argument seems to reference the loop item, but not the item itself and not some attribute of the item. param_name: {}, ".format(param_name))
+      else:
+        if dependent_name:
+          argument_value = '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
+        else:
+          argument_value = '{{inputs.parameters.%s}}' % param_name
 
       arguments.append({
         'name': argument_name,
@@ -608,9 +631,13 @@ class Compiler(object):
           param['value'] = str(arg.value)
       input_params.append(param)
 
+    # Making the pipeline group name unique to prevent name clashes with templates
+    pipeline_group = pipeline.groups[0]
+    temp_pipeline_group_name = uuid.uuid4().hex
+    pipeline_group.name = temp_pipeline_group_name
+
     # Templates
     templates = self._create_dag_templates(pipeline, op_transformers)
-    templates.sort(key=lambda x: x['name'])
 
     # Exit Handler
     exit_handler = None
@@ -621,12 +648,24 @@ class Compiler(object):
 
     # The whole pipeline workflow
     pipeline_name = pipeline.name or 'Pipeline'
+
+    # Workaround for pipeline name clashing with container template names
+    # TODO: Make sure template names cannot clash at all (container, DAG, workflow)
+    template_map = {template['name'].lower(): template  for template in templates}
+    from ..components._naming import _make_name_unique_by_adding_index
+    pipeline_template_name = _make_name_unique_by_adding_index(pipeline_name, template_map, '-')
+
+    # Restoring the name of the pipeline template
+    pipeline_template = template_map[temp_pipeline_group_name]
+    pipeline_template['name'] = pipeline_template_name
+
+    templates.sort(key=lambda x: x['name'])
     workflow = {
       'apiVersion': 'argoproj.io/v1alpha1',
       'kind': 'Workflow',
-      'metadata': {'generateName': pipeline_name + '-'},
+      'metadata': {'generateName': pipeline_template_name + '-'},
       'spec': {
-        'entrypoint': pipeline_name,
+        'entrypoint': pipeline_template_name,
         'templates': templates,
         'arguments': {'parameters': input_params},
         'serviceAccountName': 'pipeline-runner'
@@ -687,23 +726,23 @@ class Compiler(object):
       sanitized_name = sanitize_k8s_name(op.name)
       op.name = sanitized_name
       for param in op.outputs.values():
-        param.name = sanitize_k8s_name(param.name)
+        param.name = sanitize_k8s_name(param.name, True)
         if param.op_name:
           param.op_name = sanitize_k8s_name(param.op_name)
       if op.output is not None and not isinstance(op.output, dsl._container_op._MultipleOutputsError):
-        op.output.name = sanitize_k8s_name(op.output.name)
+        op.output.name = sanitize_k8s_name(op.output.name, True)
         op.output.op_name = sanitize_k8s_name(op.output.op_name)
       if op.dependent_names:
         op.dependent_names = [sanitize_k8s_name(name) for name in op.dependent_names]
       if isinstance(op, dsl.ContainerOp) and op.file_outputs is not None:
         sanitized_file_outputs = {}
         for key in op.file_outputs.keys():
-          sanitized_file_outputs[sanitize_k8s_name(key)] = op.file_outputs[key]
+          sanitized_file_outputs[sanitize_k8s_name(key, True)] = op.file_outputs[key]
         op.file_outputs = sanitized_file_outputs
       elif isinstance(op, dsl.ResourceOp) and op.attribute_outputs is not None:
         sanitized_attribute_outputs = {}
         for key in op.attribute_outputs.keys():
-          sanitized_attribute_outputs[sanitize_k8s_name(key)] = \
+          sanitized_attribute_outputs[sanitize_k8s_name(key, True)] = \
             op.attribute_outputs[key]
         op.attribute_outputs = sanitized_attribute_outputs
       sanitized_ops[sanitized_name] = op
@@ -746,7 +785,7 @@ class Compiler(object):
         if arg_name == input.name:
           arg_type = input.type
           break
-      args_list.append(dsl.PipelineParam(sanitize_k8s_name(arg_name), param_type=arg_type))
+      args_list.append(dsl.PipelineParam(sanitize_k8s_name(arg_name, True), param_type=arg_type))
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list)
@@ -759,7 +798,7 @@ class Compiler(object):
     # Fill in the default values.
     args_list_with_defaults = []
     if pipeline_meta.inputs:
-      args_list_with_defaults = [dsl.PipelineParam(sanitize_k8s_name(arg_name))
+      args_list_with_defaults = [dsl.PipelineParam(sanitize_k8s_name(arg_name, True))
                                  for arg_name in argspec.args]
       if argspec.defaults:
         for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
@@ -857,13 +896,7 @@ class Compiler(object):
         will be returned.
     """
     yaml.Dumper.ignore_aliases = lambda *args : True
-    yaml_text = yaml.dump(workflow, default_flow_style=False)
-
-    if '{{pipelineparam' in yaml_text:
-      raise RuntimeError(
-          'Internal compiler error: Found unresolved PipelineParam. '
-          'Please create a new issue at https://github.com/kubeflow/pipelines/issues '
-          'attaching the pipeline code and the pipeline package.' )
+    yaml_text = yaml.dump(workflow, default_flow_style=False, default_style='|')
 
     if package_path is None:
       return yaml_text
@@ -907,4 +940,33 @@ class Compiler(object):
         params_list,
         pipeline_conf)
     self._write_workflow(workflow, package_path)
+    _validate_workflow(workflow)
 
+
+def _validate_workflow(workflow: dict):
+  workflow = workflow.copy()
+  # Working around Argo lint issue
+  for argument in workflow['spec'].get('arguments', {}).get('parameters', []):
+    if 'value' not in argument:
+      argument['value'] = ''
+
+  yaml_text = yaml.dump(workflow)
+  if '{{pipelineparam' in yaml_text:
+    raise RuntimeError(
+        '''Internal compiler error: Found unresolved PipelineParam.
+Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.'''
+    )
+
+  # Running Argo lint if available
+  import shutil
+  import subprocess
+  argo_path = shutil.which('argo')
+  if argo_path:
+    result = subprocess.run([argo_path, 'lint', '/dev/stdin'], input=yaml_text.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode:
+      raise RuntimeError(
+        '''Internal compiler error: Compiler has produced Argo-incompatible workflow.
+Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
+Error: {}'''.format(result.stderr.decode('utf-8'))
+      )
+  

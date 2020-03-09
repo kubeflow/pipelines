@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -90,7 +90,8 @@ type ListJobsParams struct {
 
 	/*Filter
 	  A url-encoded, JSON-serialized Filter protocol buffer (see
-	filter.proto).
+	[filter.proto](https://github.com/kubeflow/pipelines/
+	blob/master/backend/api/filter.proto)).
 
 	*/
 	Filter *string
@@ -109,7 +110,7 @@ type ListJobsParams struct {
 	*/
 	ResourceReferenceKeyType *string
 	/*SortBy
-	  Can be format of "field_name", "field_name asc" or "field_name des"
+	  Can be format of "field_name", "field_name asc" or "field_name des".
 	Ascending by default.
 
 	*/

@@ -1,21 +1,23 @@
 images:
-  apiserver: gcr.io/ml-pipeline/google/pipelines/apiserver:0.1.31
-  argoexecutor: gcr.io/ml-pipeline/google/pipelines/argoexecutor:0.1.31
-  argoworkflowcontroller: gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:0.1.31
-  cloudsqlproxy: gcr.io/ml-pipeline/google/pipelines/cloudsqlproxy:0.1.31
-  frontend: gcr.io/ml-pipeline/google/pipelines/frontend:0.1.31
-  metadataserver: gcr.io/ml-pipeline/google/pipelines/metadataserver:0.1.31
-  minio: gcr.io/ml-pipeline/google/pipelines/minio:0.1.31
-  mysql: gcr.io/ml-pipeline/google/pipelines/mysql:0.1.31
-  persistenceagent: gcr.io/ml-pipeline/google/pipelines/persistenceagent:0.1.31
-  proxyagent: gcr.io/ml-pipeline/google/pipelines/proxyagent:0.1.31
-  scheduledworkflow: gcr.io/ml-pipeline/google/pipelines/scheduledworkflow:0.1.31
-  viewercrd: gcr.io/ml-pipeline/google/pipelines/viewercrd:0.1.31
-  visualizationserver: gcr.io/ml-pipeline/google/pipelines/visualizationserver:0.1.31
-  metadataenvoy: gcr.io/ml-pipeline/google/pipelines/metadataenvoy:0.1.31
+  apiserver: gcr.io/ml-pipeline/google/pipelines/apiserver:dummy
+  argoexecutor: gcr.io/ml-pipeline/google/pipelines/argoexecutor:dummy
+  argoworkflowcontroller: gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:dummy
+  cloudsqlproxy: gcr.io/ml-pipeline/google/pipelines/cloudsqlproxy:dummy
+  frontend: gcr.io/ml-pipeline/google/pipelines/frontend:dummy
+  metadataserver: gcr.io/ml-pipeline/google/pipelines/metadataserver:dummy
+  minio: gcr.io/ml-pipeline/google/pipelines/minio:dummy
+  mysql: gcr.io/ml-pipeline/google/pipelines/mysql:dummy
+  persistenceagent: gcr.io/ml-pipeline/google/pipelines/persistenceagent:dummy
+  proxyagent: gcr.io/ml-pipeline/google/pipelines/proxyagent:dummy
+  scheduledworkflow: gcr.io/ml-pipeline/google/pipelines/scheduledworkflow:dummy
+  viewercrd: gcr.io/ml-pipeline/google/pipelines/viewercrd:dummy
+  visualizationserver: gcr.io/ml-pipeline/google/pipelines/visualizationserver:dummy
+  metadataenvoy: gcr.io/ml-pipeline/google/pipelines/metadataenvoy:dummy
+  metadatawriter: gcr.io/ml-pipeline/google/pipelines/metadatawriter:dummy
 
 gcpSecretName: "user-gcp-sa"
 serviceAccountCredential: ""
+gcpDefaultConfigName: "gcp-default-config"
 
 managedstorage:
   enabled: false

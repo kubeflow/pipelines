@@ -49,4 +49,4 @@ def pipeline_with_sidecar(sleep_sec: int = 30):
     )
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(pipeline_with_sidecar, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(pipeline_with_sidecar, __file__ + '.yaml')

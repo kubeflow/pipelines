@@ -88,6 +88,32 @@ steps:
          '/workspace/backend/Dockerfile.visualization', '/workspace']
   id: 'buildVisualizationServer'
   waitFor: ["-"]
+- id: 'buildMetadataWriter'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA',
+         '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
+         '/workspace/backend/metadata_writer/Dockerfile', '/workspace']
+  waitFor: ["-"]
+- id: 'buildCacheServer'
+name: 'gcr.io/cloud-builders/docker'
+args: ['build', '-t', 'gcr.io/$PROJECT_ID/cache-server:$COMMIT_SHA',
+        '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
+        '/workspace/backend/Dockerfile.cacheserver', '/workspace']
+waitFor: ["-"]
+- id: 'buildCacheDeployer'
+name: 'gcr.io/cloud-builders/docker'
+args: ['build', '-t', 'gcr.io/$PROJECT_ID/cache-deployer:$COMMIT_SHA',
+        '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
+        '/workspace/backend/src/cache/deployer/Dockerfile', '/workspace']
+waitFor: ["-"]
+
+# Build marketplace deployer
+- id: 'buildMarketplaceDeployer'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA',
+         '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
+         '/workspace/manifests/gcp_marketplace/deployer/Dockerfile', '/workspace/manifests/gcp_marketplace']
+  waitFor: ["-"]
 
 # Build the Kubeflow-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
@@ -99,6 +125,11 @@ steps:
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/kubeflow/launcher && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildLauncher'
+  waitFor: ["-"]
+- id: 'buildCpuTrainer'
+  name: 'gcr.io/cloud-builders/docker'
+  entrypoint: '/bin/bash'
+  args: ['-c', 'cd /workspace/components/kubeflow/dnntrainer && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA -l ml-pipeline-kubeflow-tf-trainer -b 1.6.0']
   waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
@@ -163,6 +194,29 @@ steps:
          '/workspace/third_party/metadata_envoy/Dockerfile', '/workspace']
   id:   'buildMetadataEnvoy'
 
+# Tag for Hosted - SemVersion to Major.Minor parsing
+- id: "parseMajorMinorVersion"
+  waitFor: ["-"]
+  name: gcr.io/cloud-builders/docker
+  entrypoint: /bin/bash
+  args:
+    - -ceux
+    - |
+      # Parse major minor version and save to a file for reusing in other steps.
+      cat /workspace/VERSION | sed -e "s#[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)#\1.\2#" > /workspace/mm.ver
+
+# Tag for Hosted - Tag to hosted folder with MKP friendly name
+- id:   'tagForHosted'
+  waitFor: ['parseMajorMinorVersion', 'buildFrontend', 'buildApiServer', 'buildViewerCrdController',
+            'buildPersistenceAgent', 'buildInverseProxyAgent', 'buildVisualizationServer',
+            'buildMarketplaceDeployer']
+  name: 'gcr.io/cloud-builders/docker'
+  entrypoint: bash
+  args:
+  - -ceux
+  - |
+    /workspace/release/tag_for_hosted.sh $PROJECT_ID $COMMIT_SHA $(cat /workspace/VERSION) $(cat /workspace/mm.ver)
+
 images:
 # Images for the pipeline system itself
 - 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA'
@@ -172,12 +226,18 @@ images:
 - 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/cache-server:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/cache-deployer:$COMMIT_SHA'
+
+# Images for Marketplace
+- 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA'
 
 # Images for the Kubeflow-based pipeline components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer-gpu:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tfjob:$COMMIT_SHA'
 
 # Images for the Dataproc-based pipeline components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-analyze:$COMMIT_SHA'

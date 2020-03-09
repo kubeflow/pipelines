@@ -24,6 +24,7 @@ package reconciler
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	viewerV1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta1"
@@ -41,6 +42,8 @@ import (
 )
 
 const viewerTargetPort = 6006
+
+const defaultTensorflowImage = "tensorflow/tensorflow:1.13.2"
 
 // Reconciler implements reconcile.Reconciler for the Viewer CRD.
 type Reconciler struct {
@@ -88,6 +91,10 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		glog.Infof("Unsupported spec type: %q", view.Spec.Type)
 		// Return nil to indicate nothing more to do here.
 		return reconcile.Result{}, nil
+	}
+
+	if len(view.Spec.TensorboardSpec.TensorflowImage) == 0 {
+		view.Spec.TensorboardSpec.TensorflowImage = defaultTensorflowImage
 	}
 
 	// Check and maybe delete the oldest viewer before creating the next one.
@@ -165,7 +172,7 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 
 	c := &s.Containers[0]
 	c.Name = view.Name + "-pod"
-	c.Image = "tensorflow/tensorflow:1.13.2"
+	c.Image = view.Spec.TensorboardSpec.TensorflowImage
 	c.Args = []string{
 		"tensorboard",
 		fmt.Sprintf("--logdir=%s", view.Spec.TensorboardSpec.LogDir),
@@ -174,6 +181,11 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 		// when https://github.com/kubeflow/pipelines/issues/2514 is done
 		// "--bind_all",
 	}
+
+	if !strings.HasPrefix(view.Spec.TensorboardSpec.TensorflowImage, `tensorflow/tensorflow:1.`) {
+		c.Args = append(c.Args, "--bind_all")
+	}
+
 	c.Ports = []corev1.ContainerPort{
 		corev1.ContainerPort{ContainerPort: viewerTargetPort},
 	}
@@ -276,5 +288,5 @@ func (r *Reconciler) maybeDeleteOldestViewer(t viewerV1beta1.ViewerType, namespa
 		}
 	}
 
-	return r.Client.Delete(context.Background(), oldest, nil)
+	return r.Client.Delete(context.Background(), oldest)
 }

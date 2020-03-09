@@ -81,11 +81,12 @@ func TestToModelRunDetail(t *testing.T) {
 
 	expectedModelRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:        "123",
-			DisplayName: "name1",
-			Name:        "workflow-name",
-			Conditions:  "running",
-			Description: "this is a run",
+			UUID:           "123",
+			ExperimentUUID: experiment.UUID,
+			DisplayName:    "name1",
+			Name:           "workflow-name",
+			Conditions:     "running",
+			Description:    "this is a run",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: "workflow spec",
 				Parameters:           `[{"name":"param2","value":"world"}]`,
@@ -114,6 +115,7 @@ func TestToModelJob(t *testing.T) {
 		Name:           "name1",
 		Enabled:        true,
 		MaxConcurrency: 1,
+		NoCatchup:      true,
 		Trigger: &api.Trigger{
 			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
@@ -150,6 +152,7 @@ func TestToModelJob(t *testing.T) {
 			},
 		},
 		MaxConcurrency: 1,
+		NoCatchup:      true,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipeline.UUID,
 			PipelineName:         pipeline.Name,
@@ -196,6 +199,17 @@ func TestToModelResourceReferences_UnknownRefType(t *testing.T) {
 	})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to convert reference type")
+}
+
+func TestToModelResourceReferences_NamespaceRef(t *testing.T) {
+	store, manager, _ := initWithJob(t)
+	defer store.Close()
+
+	modelRefs, err := manager.toModelResourceReferences("r1", common.Run, []*api.ResourceReference{
+		{Key: &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "e1"}, Relationship: api.Relationship_OWNER},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(modelRefs))
 }
 
 func TestToModelResourceReferences_UnknownRelationship(t *testing.T) {

@@ -1,0 +1,20 @@
+name: Download from GCS
+inputs:
+- {name: GCS path, type: URI}
+outputs:
+- {name: Data}
+implementation:
+    container:
+        image: google/cloud-sdk
+        command:
+        - sh
+        - -ex
+        - -c
+        - |
+            if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+                gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+            fi
+            mkdir -p "$(dirname "$1")"
+            gsutil -m cp -r "$0" "$1"
+        - inputValue: GCS path
+        - outputPath: Data

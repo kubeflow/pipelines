@@ -30,13 +30,16 @@ if
   echo "$BUILT_IMAGES" | grep persistenceagent && \
   echo "$BUILT_IMAGES" | grep viewer-crd-controller && \
   echo "$BUILT_IMAGES" | grep inverse-proxy-agent && \
+  echo "$BUILT_IMAGES" | grep metadata-writer && \
+  echo "$BUILT_IMAGES" | grep cache-server && \
+  echo "$BUILT_IMAGES" | grep cache-deployer && \
   echo "$BUILT_IMAGES" | grep visualization-server;
 then
   echo "docker images for api-server, frontend, scheduledworkflow, \
-    persistenceagent, viewer-crd-controller, inverse-proxy-agent, and visualization-server \
-    are already built in ${GCR_IMAGE_BASE_DIR}."
+    persistenceagent, viewer-crd-controller, inverse-proxy-agent, metadata-writer, cache-server, \
+    cache-deployer and visualization-server are already built in ${GCR_IMAGE_BASE_DIR}."
 else
-  echo "submitting cloud build to build docker images for commit ${PULL_PULL_SHA}..."
+  echo "submitting cloud build to build docker images for commit ${COMMIT_SHA}..."
   IMAGES_BUILDING=true
   CLOUD_BUILD_COMMON_ARGS=(. --async --format='value(id)' --substitutions=_GCR_BASE=${GCR_IMAGE_BASE_DIR})
   # Split into two tasks because api_server builds slowly, use a separate task

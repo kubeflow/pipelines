@@ -17,6 +17,7 @@
   "paths": {
     "/apis/v1beta1/experiments": {
       "get": {
+        "summary": "Find all experiments.",
         "operationId": "ListExperiment",
         "responses": {
           "200": {
@@ -55,7 +56,30 @@
           },
           {
             "name": "filter",
-            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\nfilter.proto).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/\nblob/master/backend/api/filter.proto)).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "resource_reference_key.type",
+            "description": "The type of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "UNKNOWN_RESOURCE_TYPE",
+              "EXPERIMENT",
+              "JOB",
+              "PIPELINE",
+              "PIPELINE_VERSION",
+              "NAMESPACE"
+            ],
+            "default": "UNKNOWN_RESOURCE_TYPE"
+          },
+          {
+            "name": "resource_reference_key.id",
+            "description": "The ID of the resource that referred to.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -66,6 +90,7 @@
         ]
       },
       "post": {
+        "summary": "Create a new experiment.",
         "operationId": "CreateExperiment",
         "responses": {
           "200": {
@@ -84,7 +109,7 @@
         "parameters": [
           {
             "name": "body",
-            "description": "The experiment to be created",
+            "description": "The experiment to be created.",
             "in": "body",
             "required": true,
             "schema": {
@@ -99,6 +124,7 @@
     },
     "/apis/v1beta1/experiments/{id}": {
       "get": {
+        "summary": "Find a specific experiment by ID.",
         "operationId": "GetExperiment",
         "responses": {
           "200": {
@@ -117,7 +143,7 @@
         "parameters": [
           {
             "name": "id",
-            "description": "The ID of the experiment to be retrieved",
+            "description": "The ID of the experiment to be retrieved.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -128,6 +154,7 @@
         ]
       },
       "delete": {
+        "summary": "Delete an experiment.",
         "operationId": "DeleteExperiment",
         "responses": {
           "200": {
@@ -178,6 +205,13 @@
           "type": "string",
           "format": "date-time",
           "description": "Output. The time that the experiment created."
+        },
+        "resource_references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceReference"
+          },
+          "description": "Optional input field. Specify which resource this run belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
         }
       }
     },
@@ -201,6 +235,56 @@
           "description": "The token to list the next page of experiments."
         }
       }
+    },
+    "apiRelationship": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN_RELATIONSHIP",
+        "OWNER",
+        "CREATOR"
+      ],
+      "default": "UNKNOWN_RELATIONSHIP"
+    },
+    "apiResourceKey": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/apiResourceType",
+          "description": "The type of the resource that referred to."
+        },
+        "id": {
+          "type": "string",
+          "description": "The ID of the resource that referred to."
+        }
+      }
+    },
+    "apiResourceReference": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/definitions/apiResourceKey"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the resource that referred to."
+        },
+        "relationship": {
+          "$ref": "#/definitions/apiRelationship",
+          "description": "Required field. The relationship from referred resource to the object."
+        }
+      }
+    },
+    "apiResourceType": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN_RESOURCE_TYPE",
+        "EXPERIMENT",
+        "JOB",
+        "PIPELINE",
+        "PIPELINE_VERSION",
+        "NAMESPACE"
+      ],
+      "default": "UNKNOWN_RESOURCE_TYPE"
     },
     "apiStatus": {
       "type": "object",

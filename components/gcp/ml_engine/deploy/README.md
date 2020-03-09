@@ -59,10 +59,11 @@ The accepted file formats are:
 `model_uri` can also be an [Estimator export base directory, ](https://www.tensorflow.org/guide/saved_model#perform_the_export)which contains a list of subdirectories named by timestamp. The directory with the latest timestamp is used to load the trained model file.
 
 ## Output
-| Name    | Description                 | Type      |
-|:------- |:----                        | :---      |
-| job_id  | The ID of the created job.  |  String   |
-| job_dir | The Cloud Storage path that contains the trained model output files. |  GCSPath  |
+Name | Description | Type
+:--- | :---------- | :---
+| model_uri | The Cloud Storage URI of the trained model.  |  GCSPath |
+| model_name | The name of the deployed model. |  String  |
+| version_name | The name of the deployed version. |  String  |
 
 
 ## Cautions & requirements
@@ -70,14 +71,7 @@ The accepted file formats are:
 To use the component, you must:
 
 *   [Set up the cloud environment](https://cloud.google.com/ml-engine/docs/tensorflow/getting-started-training-prediction#setup).
-*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
-
-    ```
-    ```python
-    mlengine_deploy_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-
-    ```
-
+*   The component can authenticate to GCP. Refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication-pipelines/) for details.
 *   Grant read access to the Cloud Storage bucket that contains the trained model to the Kubeflow user service account.
 
 ## Detailed description
@@ -110,7 +104,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 mlengine_deploy_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/02c991dd265054b040265b3dfa1903d5b49df859/components/gcp/ml_engine/deploy/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/3f4b80127f35e40760eeb1813ce1d3f641502222/components/gcp/ml_engine/deploy/component.yaml')
 help(mlengine_deploy_op)
 ```
 
@@ -136,7 +130,6 @@ TRAINED_MODEL_PATH = 'gs://ml-pipeline-playground/samples/ml_engine/census/train
 
 ```python
 import kfp.dsl as dsl
-import kfp.gcp as gcp
 import json
 @dsl.pipeline(
     name='CloudML deploy pipeline',
@@ -163,7 +156,7 @@ def pipeline(
         version=version, 
         replace_existing_version=replace_existing_version, 
         set_default=set_default, 
-        wait_interval=wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        wait_interval=wait_interval)
 ```
 
 #### Compile the pipeline

@@ -1,0 +1,20 @@
+name: List blobs
+inputs:
+- {name: GCS path, type: URI, description: 'GCS path for listing. For recursive listing use the "gs://bucket/path/**" syntax".'}
+outputs:
+- {name: Paths}
+implementation:
+    container:
+        image: google/cloud-sdk
+        command:
+        - sh
+        - -ex
+        - -c
+        - |
+            if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+                gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+            fi
+            mkdir -p "$(dirname "$1")"
+            gsutil ls "$0" > "$1"
+        - inputValue: GCS path
+        - outputPath: Paths

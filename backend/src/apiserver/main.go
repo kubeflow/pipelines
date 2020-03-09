@@ -18,24 +18,24 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"github.com/fsnotify/fsnotify"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/spf13/viper"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
-	"fmt"
-	"os"
-
+	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -71,13 +71,24 @@ func main() {
 	clientManager.Close()
 }
 
+// A custom http request header matcher to pass on the user identity
+// Reference: https://github.com/grpc-ecosystem/grpc-gateway/blob/master/docs/_docs/customizingyourgateway.md#mapping-from-http-request-headers-to-grpc-client-metadata
+func grpcCustomMatcher(key string) (string, bool) {
+	switch strings.ToLower(key) {
+	case common.GoogleIAPUserIdentityHeader:
+		return strings.ToLower(key), true
+	default:
+		return strings.ToLower(key), false
+	}
+}
+
 func startRpcServer(resourceManager *resource.ResourceManager) {
 	glog.Info("Starting RPC server")
 	listener, err := net.Listen("tcp", *rpcPortFlag)
 	if err != nil {
 		glog.Fatalf("Failed to start RPC server: %v", err)
 	}
-	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor))
+	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor), grpc.MaxRecvMsgSize(math.MaxInt32))
 	api.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager))
 	api.RegisterExperimentServiceServer(s, server.NewExperimentServer(resourceManager))
 	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager))
@@ -107,7 +118,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	defer cancel()
 
 	// Create gRPC HTTP MUX and register services.
-	mux := runtime.NewServeMux()
+	mux := runtime.NewServeMux(runtime.WithIncomingHeaderMatcher(grpcCustomMatcher))
 	registerHttpHandlerFromEndpoint(api.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, mux)
@@ -123,6 +134,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	// https://github.com/grpc-ecosystem/grpc-gateway/issues/410
 	pipelineUploadServer := server.NewPipelineUploadServer(resourceManager)
 	topMux.HandleFunc("/apis/v1beta1/pipelines/upload", pipelineUploadServer.UploadPipeline)
+	topMux.HandleFunc("/apis/v1beta1/pipelines/upload_version", pipelineUploadServer.UploadPipelineVersion)
 	topMux.HandleFunc("/apis/v1beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfig("COMMIT_SHA")+`"}`)
 	})

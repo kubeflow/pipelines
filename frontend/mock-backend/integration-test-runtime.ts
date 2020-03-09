@@ -17,7 +17,8 @@ export default {
   metadata: {
     name: 'job-cloneofhelloworldls94q-1-3667110102',
     namespace: 'kubeflow',
-    selfLink: '/apis/argoproj.io/v1alpha1/namespaces/kubeflow/workflows/job-cloneofhelloworldls94q-1-3667110102',
+    selfLink:
+      '/apis/argoproj.io/v1alpha1/namespaces/kubeflow/workflows/job-cloneofhelloworldls94q-1-3667110102',
     uid: '55dc2b6d-d688-11e8-83db-42010a800093',
     resourceVersion: '128069',
     creationTimestamp: '2018-10-23T05:56:07Z',
@@ -27,7 +28,7 @@ export default {
       'scheduledworkflows.kubeflow.org/workflowEpoch': '1540274157',
       'scheduledworkflows.kubeflow.org/workflowIndex': '1',
       'workflows.argoproj.io/completed': 'true',
-      'workflows.argoproj.io/phase': 'Succeeded'
+      'workflows.argoproj.io/phase': 'Succeeded',
     },
     ownerReferences: [
       {
@@ -36,9 +37,9 @@ export default {
         name: 'job-cloneofhelloworldls94q',
         uid: '4fac8e0f-d688-11e8-83db-42010a800093',
         controller: true,
-        blockOwnerDeletion: true
-      }
-    ]
+        blockOwnerDeletion: true,
+      },
+    ],
   },
   spec: {
     templates: [
@@ -56,10 +57,10 @@ export default {
                 parameters: [
                   {
                     name: 'message',
-                    value: '{{workflow.parameters.message}} from node: A'
-                  }
-                ]
-              }
+                    value: '{{workflow.parameters.message}} from node: A',
+                  },
+                ],
+              },
             },
             {
               name: 'B',
@@ -68,13 +69,11 @@ export default {
                 parameters: [
                   {
                     name: 'message',
-                    value: '{{workflow.parameters.message}} from node: B'
-                  }
-                ]
+                    value: '{{workflow.parameters.message}} from node: B',
+                  },
+                ],
               },
-              dependencies: [
-                'A'
-              ]
+              dependencies: ['A'],
             },
             {
               name: 'C',
@@ -83,13 +82,11 @@ export default {
                 parameters: [
                   {
                     name: 'message',
-                    value: '{{workflow.parameters.message}} from node: C'
-                  }
-                ]
+                    value: '{{workflow.parameters.message}} from node: C',
+                  },
+                ],
               },
-              dependencies: [
-                'A'
-              ]
+              dependencies: ['A'],
             },
             {
               name: 'D',
@@ -98,49 +95,43 @@ export default {
                 parameters: [
                   {
                     name: 'message',
-                    value: '{{workflow.parameters.message}} from node: D'
-                  }
-                ]
+                    value: '{{workflow.parameters.message}} from node: D',
+                  },
+                ],
               },
-              dependencies: [
-                'B',
-                'C'
-              ]
-            }
-          ]
-        }
+              dependencies: ['B', 'C'],
+            },
+          ],
+        },
       },
       {
         name: 'echo',
         inputs: {
           parameters: [
             {
-              name: 'message'
-            }
-          ]
+              name: 'message',
+            },
+          ],
         },
         outputs: {},
         metadata: {},
         container: {
           name: '',
           image: 'alpine:3.7',
-          command: [
-            'echo',
-            '{{inputs.parameters.message}}'
-          ],
-          resources: {}
-        }
-      }
+          command: ['echo', '{{inputs.parameters.message}}'],
+          resources: {},
+        },
+      },
     ],
     entrypoint: 'diamond',
     arguments: {
       parameters: [
         {
           name: 'message',
-          value: 'hello world'
-        }
-      ]
-    }
+          value: 'hello world',
+        },
+      ],
+    },
   },
   status: {
     phase: 'Succeeded',
@@ -156,12 +147,8 @@ export default {
         phase: 'Succeeded',
         startedAt: '2018-10-23T05:56:07Z',
         finishedAt: '2018-10-23T05:56:25Z',
-        children: [
-          'job-cloneofhelloworldls94q-1-3667110102-3867833025'
-        ],
-        outboundNodes: [
-          'job-cloneofhelloworldls94q-1-3667110102-3918165882'
-        ]
+        children: ['job-cloneofhelloworldls94q-1-3667110102-3867833025'],
+        outboundNodes: ['job-cloneofhelloworldls94q-1-3667110102-3918165882'],
       },
       'job-cloneofhelloworldls94q-1-3667110102-3817500168': {
         id: 'job-cloneofhelloworldls94q-1-3667110102-3817500168',
@@ -177,13 +164,11 @@ export default {
           parameters: [
             {
               name: 'message',
-              value: 'hello world from node: B'
-            }
-          ]
+              value: 'hello world from node: B',
+            },
+          ],
         },
-        children: [
-          'job-cloneofhelloworldls94q-1-3667110102-3918165882'
-        ]
+        children: ['job-cloneofhelloworldls94q-1-3667110102-3918165882'],
       },
       'job-cloneofhelloworldls94q-1-3667110102-3834277787': {
         id: 'job-cloneofhelloworldls94q-1-3667110102-3834277787',
@@ -199,13 +184,11 @@ export default {
           parameters: [
             {
               name: 'message',
-              value: 'hello world from node: C'
-            }
-          ]
+              value: 'hello world from node: C',
+            },
+          ],
         },
-        children: [
-          'job-cloneofhelloworldls94q-1-3667110102-3918165882'
-        ]
+        children: ['job-cloneofhelloworldls94q-1-3667110102-3918165882'],
       },
       'job-cloneofhelloworldls94q-1-3667110102-3867833025': {
         id: 'job-cloneofhelloworldls94q-1-3667110102-3867833025',
@@ -221,14 +204,14 @@ export default {
           parameters: [
             {
               name: 'message',
-              value: 'hello world from node: A'
-            }
-          ]
+              value: 'hello world from node: A',
+            },
+          ],
         },
         children: [
           'job-cloneofhelloworldls94q-1-3667110102-3817500168',
-          'job-cloneofhelloworldls94q-1-3667110102-3834277787'
-        ]
+          'job-cloneofhelloworldls94q-1-3667110102-3834277787',
+        ],
       },
       'job-cloneofhelloworldls94q-1-3667110102-3918165882': {
         id: 'job-cloneofhelloworldls94q-1-3667110102-3918165882',
@@ -244,11 +227,11 @@ export default {
           parameters: [
             {
               name: 'message',
-              value: 'hello world from node: D'
-            }
-          ]
-        }
-      }
-    }
-  }
+              value: 'hello world from node: D',
+            },
+          ],
+        },
+      },
+    },
+  },
 };

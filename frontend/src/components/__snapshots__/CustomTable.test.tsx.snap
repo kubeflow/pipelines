@@ -5,7 +5,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -55,7 +55,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
         indeterminate={false}
         onChange={[Function]}
       />
-      <Component
+      <Separator
         orientation="horizontal"
         units={40}
       />
@@ -120,6 +120,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -133,13 +134,14 @@ exports[`CustomTable renders a collapsed row 1`] = `
             color="primary"
           />
           <WithStyles(IconButton)
+            aria-label="Expand"
             className="expandButton"
             onClick={[Function]}
           >
             <pure(ArrowRightIcon) />
           </WithStyles(IconButton)>
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -238,7 +240,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -282,7 +284,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
     <div
       className="columnName cell selectionToggle"
     >
-      <Component
+      <Separator
         orientation="horizontal"
         units={40}
       />
@@ -347,6 +349,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -356,13 +359,14 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(IconButton)
+            aria-label="Expand"
             className="expandButton"
             onClick={[Function]}
           >
             <pure(ArrowRightIcon) />
           </WithStyles(IconButton)>
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -461,7 +465,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -550,6 +554,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -563,7 +568,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -593,6 +598,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
       key="1"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -606,7 +612,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -704,7 +710,7 @@ exports[`CustomTable renders an expanded row 1`] = `
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -815,6 +821,7 @@ exports[`CustomTable renders an expanded row 1`] = `
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row expandedRow"
         onClick={[Function]}
         role="checkbox"
@@ -828,7 +835,7 @@ exports[`CustomTable renders an expanded row 1`] = `
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -927,7 +934,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -977,7 +984,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
         indeterminate={false}
         onChange={[Function]}
       />
-      <Component
+      <Separator
         orientation="horizontal"
         units={40}
       />
@@ -1042,6 +1049,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row expandedRow"
         onClick={[Function]}
         role="checkbox"
@@ -1055,13 +1063,14 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
             color="primary"
           />
           <WithStyles(IconButton)
+            aria-label="Expand"
             className="expandButton expandButtonExpanded"
             onClick={[Function]}
           >
             <pure(ArrowRightIcon) />
           </WithStyles(IconButton)>
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -1165,7 +1174,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -1343,7 +1352,7 @@ exports[`CustomTable renders empty message on no rows 1`] = `
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -1481,7 +1490,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -1592,6 +1601,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -1605,7 +1615,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -1703,7 +1713,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -1814,6 +1824,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -1827,7 +1838,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -1857,6 +1868,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
       key="1"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -1870,7 +1882,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -1968,7 +1980,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -2147,7 +2159,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -2325,7 +2337,7 @@ exports[`CustomTable renders some rows 1`] = `
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -2436,6 +2448,7 @@ exports[`CustomTable renders some rows 1`] = `
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -2449,7 +2462,7 @@ exports[`CustomTable renders some rows 1`] = `
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -2479,6 +2492,7 @@ exports[`CustomTable renders some rows 1`] = `
       key="1"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -2492,7 +2506,7 @@ exports[`CustomTable renders some rows 1`] = `
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -2590,7 +2604,7 @@ exports[`CustomTable renders with default filter label 1`] = `
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -2722,7 +2736,7 @@ exports[`CustomTable renders with provided filter label 1`] = `
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -2947,7 +2961,7 @@ exports[`CustomTable renders without rows or columns 1`] = `
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -3079,7 +3093,7 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -3180,12 +3194,13 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
       >
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -3215,12 +3230,13 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
       key="1"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
       >
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -3318,7 +3334,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
   className="pageOverflowHidden"
 >
   <div>
-    <Component
+    <Input
       InputLabelProps={
         Object {
           "classes": Object {
@@ -3429,6 +3445,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
       key="0"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -3442,7 +3459,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {
@@ -3472,6 +3489,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
       key="1"
     >
       <div
+        aria-checked={false}
         className="tableRow row"
         onClick={[Function]}
         role="checkbox"
@@ -3485,7 +3503,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
             color="primary"
           />
         </div>
-        <Component
+        <CustomTableRow
           columns={
             Array [
               Object {

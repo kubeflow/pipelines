@@ -235,16 +235,16 @@ status:
 `
 
 	var workflow util.Workflow
-	err := yaml.Unmarshal([]byte( wf), &workflow)
+	err := yaml.Unmarshal([]byte(wf), &workflow)
 	assert.Nil(t, err)
 	newWf, nodes, err := formulateRetryWorkflow(&workflow)
 
 	newWfString, err := yaml.Marshal(newWf)
 	assert.Nil(t, err)
-	assert.Equal(t, []string{"resubmit-hl9ft-3879090716"},nodes)
+	assert.Equal(t, []string{"resubmit-hl9ft-3879090716"}, nodes)
 
 	expectedNewWfString :=
-			`apiVersion: argoproj.io/v1alpha1
+		`apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   creationTimestamp: "2019-08-02T07:15:14Z"
@@ -319,7 +319,5 @@ status:
   startedAt: "2019-08-02T07:15:14Z"
 `
 
-	assert.Equal(t, expectedNewWfString,string(newWfString))
+	assert.Equal(t, expectedNewWfString, string(newWfString))
 }
-
-

@@ -21,6 +21,7 @@ from typing import Callable, NamedTuple, Sequence
 
 import kfp
 import kfp.components as comp
+from kfp.components._components import _resolve_command_line_and_paths
 
 def add_two_numbers(a: float, b: float) -> float:
     '''Returns sum of two arguments'''
@@ -82,11 +83,15 @@ class PythonOpTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir_name:
             with components_local_output_dir_context(temp_dir_name):
                 task = op(arguments[0], arguments[1])
+                resolved_cmd = _resolve_command_line_and_paths(
+                    task.component_ref.spec,
+                    task.arguments,
+                )
 
-            full_command = task.command + task.arguments
+            full_command = resolved_cmd.command + resolved_cmd.args
             subprocess.run(full_command, check=True)
 
-            output_path = list(task.file_outputs.values())[0]
+            output_path = list(resolved_cmd.output_paths.values())[0]
             actual_str = Path(output_path).read_text()
 
         self.assertEqual(float(actual_str), float(expected_str))
@@ -102,12 +107,16 @@ class PythonOpTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir_name:
             with components_local_output_dir_context(temp_dir_name):
                 task = op(arg1, arg2)
+                resolved_cmd = _resolve_command_line_and_paths(
+                    task.component_ref.spec,
+                    task.arguments,
+                )
 
-            full_command = task.command + task.arguments
+            full_command = resolved_cmd.command + resolved_cmd.args
 
             subprocess.run(full_command, check=True)
 
-            (output_path1, output_path2) = (task.file_outputs[output_names[0]], task.file_outputs[output_names[1]])
+            (output_path1, output_path2) = (resolved_cmd.output_paths[output_names[0]], resolved_cmd.output_paths[output_names[1]])
             actual1_str = Path(output_path1).read_text()
             actual2_str = Path(output_path2).read_text()
 
@@ -127,11 +136,7 @@ class PythonOpTestCase(unittest.TestCase):
         expected_output_values_list = [str(value) for value in expected_output_values_list]
 
         output_names = [output.name for output in op.component_spec.outputs]
-        from kfp.components._naming import generate_unique_name_conversion_table, _sanitize_python_function_name
-        output_name_to_pythonic = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
-        pythonic_output_names = [output_name_to_pythonic[name] for name in output_names]
-        from collections import OrderedDict
-        expected_output_values_dict = OrderedDict(zip(pythonic_output_names, expected_output_values_list))
+        expected_output_values_dict = dict(zip(output_names, expected_output_values_list))
 
         self.helper_test_component_using_local_call(op, arguments, expected_output_values_dict)
 
@@ -145,21 +150,25 @@ class PythonOpTestCase(unittest.TestCase):
             outputs_path = Path(temp_dir_name) / 'outputs'
             with components_override_input_output_dirs_context(str(inputs_path), str(outputs_path)):
                 task = component_task_factory(**arguments)
+                resolved_cmd = _resolve_command_line_and_paths(
+                    task.component_ref.spec,
+                    task.arguments,
+                )
 
             # Preparing input files
-            for input_name, input_file_path in (task.input_artifact_paths or {}).items():
+            for input_name, input_file_path in (resolved_cmd.input_paths or {}).items():
                 Path(input_file_path).parent.mkdir(parents=True, exist_ok=True)
                 Path(input_file_path).write_text(str(arguments[input_name]))
 
             # Constructing the full command-line from resolved command+args
-            full_command = task.command + task.arguments
+            full_command = resolved_cmd.command + resolved_cmd.args
 
             # Executing the command-line locally
             subprocess.run(full_command, check=True)
 
-            actual_output_values_dict = {output_name: Path(output_path).read_text() for output_name, output_path in task.file_outputs.items()}
+            actual_output_values_dict = {output_name: Path(output_path).read_text() for output_name, output_path in resolved_cmd.output_paths.items()}
 
-        self.assertEqual(actual_output_values_dict, expected_output_values)
+        self.assertDictEqual(actual_output_values_dict, expected_output_values)
 
     def test_func_to_container_op_local_call(self):
         func = add_two_numbers
@@ -277,7 +286,8 @@ class PythonOpTestCase(unittest.TestCase):
             bool_param : bool = True,
             none_param = None,
             custom_type_param: 'Custom type' = None,
-            ) -> NamedTuple('DummyName', [
+            custom_struct_type_param: {'CustomType': {'param1': 'value1', 'param2': 'value2'}} = None,
+        ) -> NamedTuple('DummyName', [
                 #('required_param',), # All typing.NamedTuple fields must have types
                 ('int_param', int),
                 ('float_param', float),
@@ -285,6 +295,7 @@ class PythonOpTestCase(unittest.TestCase):
                 ('bool_param', bool),
                 #('custom_type_param', 'Custom type'), #SyntaxError: Forward reference must be an expression -- got 'Custom type'
                 ('custom_type_param', 'CustomType'),
+                #('custom_struct_type_param', {'CustomType': {'param1': 'value1', 'param2': 'value2'}}), # TypeError: NamedTuple('Name', [(f0, t0), (f1, t1), ...]); each t must be a type Got {'CustomType': {'param1': 'value1', 'param2': 'value2'}}
             ]
         ):
             '''Function docstring'''
@@ -292,7 +303,7 @@ class PythonOpTestCase(unittest.TestCase):
 
         component_spec = comp._python_op._extract_component_interface(my_func)
 
-        from kfp.components._structures import InputSpec, OutputSpec
+        from kfp.components.structures import InputSpec, OutputSpec
         self.assertEqual(
             component_spec.inputs,
             [
@@ -303,6 +314,7 @@ class PythonOpTestCase(unittest.TestCase):
                 InputSpec(name='bool_param', type='Boolean', default='True', optional=True),
                 InputSpec(name='none_param', optional=True), # No default='None'
                 InputSpec(name='custom_type_param', type='Custom type', optional=True),
+                InputSpec(name='custom_struct_type_param', type={'CustomType': {'param1': 'value1', 'param2': 'value2'}}, optional=True),
             ]
         )
         self.assertEqual(
@@ -314,6 +326,7 @@ class PythonOpTestCase(unittest.TestCase):
                 OutputSpec(name='bool_param', type='Boolean'),
                 #OutputSpec(name='custom_type_param', type='Custom type', default='None'),
                 OutputSpec(name='custom_type_param', type='CustomType'),
+                #OutputSpec(name='custom_struct_type_param', type={'CustomType': {'param1': 'value1', 'param2': 'value2'}}, optional=True),
             ]
         )
 
@@ -322,7 +335,7 @@ class PythonOpTestCase(unittest.TestCase):
             component_spec.to_dict(),
             {
                 'name': 'My func',
-                'description': 'Function docstring\n',
+                'description': 'Function docstring',
                 'inputs': [
                     {'name': 'required_param'},
                     {'name': 'int_param', 'type': 'Integer', 'default': '42', 'optional': True},
@@ -331,6 +344,7 @@ class PythonOpTestCase(unittest.TestCase):
                     {'name': 'bool_param', 'type': 'Boolean', 'default': 'True', 'optional': True},
                     {'name': 'none_param', 'optional': True}, # No default='None'
                     {'name': 'custom_type_param', 'type': 'Custom type', 'optional': True},
+                    {'name': 'custom_struct_type_param', 'type': {'CustomType': {'param1': 'value1', 'param2': 'value2'}}, 'optional': True},
                 ],
                 'outputs': [
                     {'name': 'int_param', 'type': 'Integer'},
@@ -338,6 +352,7 @@ class PythonOpTestCase(unittest.TestCase):
                     {'name': 'str_param', 'type': 'String'},
                     {'name': 'bool_param', 'type': 'Boolean'},
                     {'name': 'custom_type_param', 'type': 'CustomType'},
+                    #{'name': 'custom_struct_type_param', 'type': {'CustomType': {'param1': 'value1', 'param2': 'value2'}}, 'optional': True},
                 ]
             }
         )
@@ -507,7 +522,11 @@ class PythonOpTestCase(unittest.TestCase):
         import kfp
         task_factory = comp.func_to_container_op(consume_list)
         task = task_factory([1, 2, 3, kfp.dsl.PipelineParam("aaa"), 4, 5, 6])
-        full_command_line = task.command + task.arguments
+        resolved_cmd = _resolve_command_line_and_paths(
+            task.component_ref.spec,
+            task.arguments,
+        )
+        full_command_line = resolved_cmd.command + resolved_cmd.args
         for arg in full_command_line:
             self.assertNotIn('PipelineParam', arg)
 
@@ -543,7 +562,7 @@ class PythonOpTestCase(unittest.TestCase):
         import json
         expected_output = json.dumps(["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}])
 
-        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'output': expected_output})
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'Output': expected_output})
 
 
     def test_input_path(self):
@@ -557,7 +576,7 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.assertEqual(task_factory.component_spec.inputs[0].type, 'Integer')
 
-        self.helper_test_component_using_local_call(task_factory, arguments={'number': "42"}, expected_output_values={'output': '42'})
+        self.helper_test_component_using_local_call(task_factory, arguments={'number': "42"}, expected_output_values={'Output': '42'})
 
 
     def test_input_text_file(self):
@@ -571,7 +590,7 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.assertEqual(task_factory.component_spec.inputs[0].type, 'Integer')
 
-        self.helper_test_component_using_local_call(task_factory, arguments={'number': "42"}, expected_output_values={'output': '42'})
+        self.helper_test_component_using_local_call(task_factory, arguments={'number': "42"}, expected_output_values={'Output': '42'})
 
 
     def test_input_binary_file(self):
@@ -585,7 +604,7 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.assertEqual(task_factory.component_spec.inputs[0].type, 'Integer')
 
-        self.helper_test_component_using_local_call(task_factory, arguments={'number': "42"}, expected_output_values={'output': '42'})
+        self.helper_test_component_using_local_call(task_factory, arguments={'number': "42"}, expected_output_values={'Output': '42'})
 
 
     def test_output_path(self):
@@ -645,7 +664,7 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
         self.assertEqual(task_factory.component_spec.outputs[1].type, 'String')
 
-        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number': '42', 'output': 'Hello'})
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number': '42', 'Output': 'Hello'})
 
 
     def test_all_data_passing_ways(self):
@@ -692,6 +711,26 @@ class PythonOpTestCase(unittest.TestCase):
             },
         )
 
+    def test_annotations_stripping(self):
+        import typing
+        import collections
+
+        MyFuncOutputs = typing.NamedTuple('Outputs', [('sum', int), ('product', int)])
+
+        class CustomType1:
+            pass
+
+        def my_func(
+            param1: CustomType1 = None,  # This caused failure previously
+            param2: collections.OrderedDict = None,  # This caused failure previously
+        ) -> MyFuncOutputs: # This caused failure previously
+            assert param1 == None
+            assert param2 == None
+            return (8, 15)
+
+        task_factory = comp.create_component_from_func(my_func)
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'sum': '8', 'product': '15'})
 
     def test_file_input_name_conversion(self):
         # Checking the input name conversion rules for file inputs:

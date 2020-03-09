@@ -38,6 +38,8 @@ import (
 
 var viewer *Reconciler
 
+const tensorflowImage = "tensorflow/tensorflow:dummy"
+
 func TestMain(m *testing.M) {
 	viewerV1beta1.AddToScheme(scheme.Scheme)
 	os.Exit(m.Run())
@@ -128,7 +130,8 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 		Spec: viewerV1beta1.ViewerSpec{
 			Type: viewerV1beta1.ViewerTypeTensorboard,
 			TensorboardSpec: viewerV1beta1.TensorboardSpec{
-				LogDir: "gs://tensorboard/logdir",
+				LogDir:          "gs://tensorboard/logdir",
+				TensorflowImage: tensorflowImage,
 			},
 		},
 	}
@@ -174,11 +177,12 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:  "viewer-123-pod",
-						Image: "tensorflow/tensorflow:1.13.2",
+						Image: tensorflowImage,
 						Args: []string{
 							"tensorboard",
 							"--logdir=gs://tensorboard/logdir",
-							"--path_prefix=/tensorboard/viewer-123/"},
+							"--path_prefix=/tensorboard/viewer-123/",
+							"--bind_all"},
 						Ports: []corev1.ContainerPort{{ContainerPort: 6006}},
 					}}}}}}}
 
@@ -200,7 +204,8 @@ func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
 		Spec: viewerV1beta1.ViewerSpec{
 			Type: viewerV1beta1.ViewerTypeTensorboard,
 			TensorboardSpec: viewerV1beta1.TensorboardSpec{
-				LogDir: "gs://tensorboard/logdir",
+				LogDir:          "gs://tensorboard/logdir",
+				TensorflowImage: tensorflowImage,
 			},
 			PodTemplateSpec: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
@@ -271,11 +276,12 @@ func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:  "viewer-123-pod",
-						Image: "tensorflow/tensorflow:1.13.2",
+						Image: tensorflowImage,
 						Args: []string{
 							"tensorboard",
 							"--logdir=gs://tensorboard/logdir",
-							"--path_prefix=/tensorboard/viewer-123/"},
+							"--path_prefix=/tensorboard/viewer-123/",
+							"--bind_all"},
 						Ports: []corev1.ContainerPort{{ContainerPort: 6006}},
 						VolumeMounts: []v1.VolumeMount{
 							{Name: "/volume-mount-name", MountPath: "/mount/path"},
@@ -311,7 +317,8 @@ func TestReconcile_EachViewerCreatesAService(t *testing.T) {
 		Spec: viewerV1beta1.ViewerSpec{
 			Type: viewerV1beta1.ViewerTypeTensorboard,
 			TensorboardSpec: viewerV1beta1.TensorboardSpec{
-				LogDir: "gs://tensorboard/logdir",
+				LogDir:          "gs://tensorboard/logdir",
+				TensorflowImage: tensorflowImage,
 			},
 		},
 	}
@@ -381,7 +388,8 @@ func TestReconcile_UnknownViewerTypesAreIgnored(t *testing.T) {
 		Spec: viewerV1beta1.ViewerSpec{
 			Type: "unknownType",
 			TensorboardSpec: viewerV1beta1.TensorboardSpec{
-				LogDir: "gs://tensorboard/logdir",
+				LogDir:          "gs://tensorboard/logdir",
+				TensorflowImage: tensorflowImage,
 			},
 		},
 	}
@@ -451,7 +459,8 @@ func makeViewer(id int) (*types.NamespacedName, *viewerV1beta1.Viewer) {
 		Spec: viewerV1beta1.ViewerSpec{
 			Type: viewerV1beta1.ViewerTypeTensorboard,
 			TensorboardSpec: viewerV1beta1.TensorboardSpec{
-				LogDir: "gs://tensorboard/logdir",
+				LogDir:          "gs://tensorboard/logdir",
+				TensorflowImage: tensorflowImage,
 			},
 		},
 	}

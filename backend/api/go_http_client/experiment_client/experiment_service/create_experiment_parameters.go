@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ for the create experiment operation typically these are written to a http.Reques
 type CreateExperimentParams struct {
 
 	/*Body
-	  The experiment to be created
+	  The experiment to be created.
 
 	*/
 	Body *experiment_model.APIExperiment

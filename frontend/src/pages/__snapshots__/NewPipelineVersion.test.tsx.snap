@@ -1,0 +1,213 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="flex"
+    >
+      <WithStyles(WithFormControlContext(FormControlLabel))
+        checked={true}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="createNewPipelineBtn"
+        label="Create a new pipeline"
+        onChange={[Function]}
+      />
+      <WithStyles(WithFormControlContext(FormControlLabel))
+        checked={false}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="createPipelineVersionUnderExistingPipelineBtn"
+        label="Create a new pipeline version under an existing pipeline"
+        onChange={[Function]}
+      />
+    </div>
+    <div
+      className="explanation"
+    >
+      Upload pipeline with the specified package.
+    </div>
+    <Input
+      autoFocus={true}
+      id="newPipelineName"
+      inputRef={
+        Object {
+          "current": null,
+        }
+      }
+      label="Pipeline Name"
+      onChange={[Function]}
+      required={true}
+      value=""
+      variant="outlined"
+    />
+    <Input
+      autoFocus={true}
+      id="pipelineDescription"
+      inputRef={
+        Object {
+          "current": null,
+        }
+      }
+      label="Pipeline Description"
+      onChange={[Function]}
+      required={true}
+      value=""
+      variant="outlined"
+    />
+    <div
+      className=""
+    >
+      URL must be publicly accessible.
+    </div>
+    <DocumentationCompilePipeline />
+    <div
+      className="flex"
+    >
+      <WithStyles(WithFormControlContext(FormControlLabel))
+        checked={false}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="localPackageBtn"
+        label="Upload a file"
+        onChange={[Function]}
+      />
+      <n
+        disableClick={true}
+        disablePreview={false}
+        disabled={true}
+        getDataTransferItems={[Function]}
+        id="dropZone"
+        inputProps={
+          Object {
+            "tabIndex": -1,
+          }
+        }
+        maxSize={Infinity}
+        minSize={0}
+        multiple={true}
+        onDragEnter={[Function]}
+        onDragLeave={[Function]}
+        onDrop={[Function]}
+        preventDropOnDocument={true}
+        style={
+          Object {
+            "position": "relative",
+          }
+        }
+      >
+        <Input
+          InputProps={
+            Object {
+              "endAdornment": <WithStyles(InputAdornment)
+                position="end"
+              >
+                <WithStyles(Button)
+                  color="secondary"
+                  disabled={true}
+                  onClick={[Function]}
+                  style={
+                    Object {
+                      "margin": 0,
+                      "padding": "3px 5px",
+                      "whiteSpace": "nowrap",
+                    }
+                  }
+                >
+                  Choose file
+                </WithStyles(Button)>
+              </WithStyles(InputAdornment)>,
+              "readOnly": true,
+              "style": Object {
+                "maxWidth": 2000,
+                "width": 455,
+              },
+            }
+          }
+          disabled={true}
+          label="File"
+          onChange={[Function]}
+          required={true}
+          value=""
+          variant="outlined"
+        />
+      </n>
+    </div>
+    <div
+      className="flex"
+    >
+      <WithStyles(WithFormControlContext(FormControlLabel))
+        checked={true}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="remotePackageBtn"
+        label="Import by url"
+        onChange={[Function]}
+      />
+      <Input
+        disabled={false}
+        id="pipelinePackageUrl"
+        label="Package Url"
+        multiline={true}
+        onChange={[Function]}
+        style={
+          Object {
+            "maxWidth": 2000,
+            "width": 465,
+          }
+        }
+        value=""
+        variant="outlined"
+      />
+    </div>
+    <Input
+      id="pipelineVersionCodeSource"
+      label="Code Source (optional)"
+      multiline={true}
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+    <div
+      className="flex"
+    >
+      <BusyButton
+        busy={false}
+        className="buttonAction"
+        disabled={true}
+        id="createNewPipelineOrVersionBtn"
+        onClick={[Function]}
+        title="Create"
+      />
+      <WithStyles(Button)
+        id="cancelNewPipelineOrVersionBtn"
+        onClick={[Function]}
+      >
+        Cancel
+      </WithStyles(Button)>
+      <div
+        className="errorMessage"
+      >
+        Must specify either package url  or file in .yaml, .zip, or .tar.gz
+      </div>
+    </div>
+  </div>
+</div>
+`;

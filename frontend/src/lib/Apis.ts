@@ -12,51 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
-import { ExperimentServiceApi } from '../apis/experiment';
+import * as portableFetch from 'portable-fetch';
+import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+import { ExperimentServiceApi, FetchAPI } from '../apis/experiment';
 import { JobServiceApi } from '../apis/job';
-import { ApiPipeline, PipelineServiceApi } from '../apis/pipeline';
+import { ApiPipeline, PipelineServiceApi, ApiPipelineVersion } from '../apis/pipeline';
 import { RunServiceApi } from '../apis/run';
 import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization';
 import { PlotType } from '../components/viewers/Viewer';
-import {
-  MetadataStoreServiceClient,
-  ServiceError,
-  UnaryResponse,
-} from '../generated/src/apis/metadata/metadata_store_service_pb_service';
 import * as Utils from './Utils';
 import { StoragePath } from './WorkflowParser';
 
 const v1beta1Prefix = 'apis/v1beta1';
-
-/** Known Artifact properties */
-export enum ArtifactProperties {
-  ALL_META = '__ALL_META__',
-  CREATE_TIME = 'create_time',
-  DESCRIPTION = 'description',
-  NAME = 'name',
-  PIPELINE_NAME = 'pipeline_name',
-  VERSION = 'version',
-}
-
-/** Known Artifact custom properties */
-export enum ArtifactCustomProperties {
-  WORKSPACE = '__kf_workspace__',
-  RUN = '__kf_run__',
-}
-
-/** Known Execution properties */
-export enum ExecutionProperties {
-  NAME = 'name', // currently not available in api, use component_id instead
-  COMPONENT_ID = 'component_id',
-  PIPELINE_NAME = 'pipeline_name',
-  STATE = 'state',
-}
-
-/** Known Execution custom properties */
-export enum ExecutionCustomProperties {
-  WORKSPACE = '__kf_workspace__',
-}
 
 export interface ListRequest {
   filter?: string;
@@ -75,51 +42,10 @@ export interface BuildInfo {
 
 let customVisualizationsAllowed: boolean;
 
-type Callback<R> = (err: ServiceError | null, res: R | null) => void;
-type MetadataApiMethod<T, R> = (request: T, callback: Callback<R>) => UnaryResponse;
-type PromiseBasedMetadataApiMethod<T, R> = (
-  request: T,
-) => Promise<{ response: R | null; error: ServiceError | null }>;
-
-/**
- * Converts a callback based api method to promise based api method.
- */
-function makePromiseApi<T, R>(
-  apiMethod: MetadataApiMethod<T, R>,
-): PromiseBasedMetadataApiMethod<T, R> {
-  return (request: T) =>
-    new Promise((resolve, reject) => {
-      const handler = (error: ServiceError | null, response: R | null) => {
-        // resolve both response and error to keep type information
-        resolve({ response, error });
-      };
-      apiMethod(request, handler);
-    });
-}
-const metadataServiceClient = new MetadataStoreServiceClient('');
-// TODO: add all other api methods we need here.
-const metadataServicePromiseClient = {
-  getArtifactTypes: makePromiseApi(
-    metadataServiceClient.getArtifactTypes.bind(metadataServiceClient),
-  ),
-  getArtifacts: makePromiseApi(metadataServiceClient.getArtifacts.bind(metadataServiceClient)),
-  getArtifactsByID: makePromiseApi(
-    metadataServiceClient.getArtifactsByID.bind(metadataServiceClient),
-  ),
-  getEventsByArtifactIDs: makePromiseApi(
-    metadataServiceClient.getEventsByArtifactIDs.bind(metadataServiceClient),
-  ),
-  getEventsByExecutionIDs: makePromiseApi(
-    metadataServiceClient.getEventsByExecutionIDs.bind(metadataServiceClient),
-  ),
-  getExecutionTypes: makePromiseApi(
-    metadataServiceClient.getExecutionTypes.bind(metadataServiceClient),
-  ),
-  getExecutions: makePromiseApi(metadataServiceClient.getExecutions.bind(metadataServiceClient)),
-  getExecutionsByID: makePromiseApi(
-    metadataServiceClient.getExecutionsByID.bind(metadataServiceClient),
-  ),
-};
+// For cross browser support, fetch should use 'same-origin' as default. This fixes firefox auth issues.
+// Refrence: https://github.com/github/fetch#sending-cookies
+const crossBrowserFetch: FetchAPI = (url, init) =>
+  portableFetch(url, { credentials: 'same-origin', ...init });
 
 export class Apis {
   public static async areCustomVisualizationsAllowed(): Promise<boolean> {
@@ -159,47 +85,71 @@ export class Apis {
   /**
    * Get pod logs
    */
-  public static getPodLogs(podName: string): Promise<string> {
-    return this._fetch(`k8s/pod/logs?podname=${encodeURIComponent(podName)}`);
+  public static getPodLogs(podName: string, podNamespace?: string): Promise<string> {
+    let query = `k8s/pod/logs?podname=${encodeURIComponent(podName)}`;
+    if (podNamespace) {
+      query += `&podnamespace=${encodeURIComponent(podNamespace)}`;
+    }
+    return this._fetch(query);
   }
 
   public static get basePath(): string {
-    const path = location.protocol + '//' + location.host + location.pathname;
+    const path = window.location.protocol + '//' + window.location.host + window.location.pathname;
     // Trim trailing '/' if exists
     return path.endsWith('/') ? path.substr(0, path.length - 1) : path;
   }
 
   public static get experimentServiceApi(): ExperimentServiceApi {
     if (!this._experimentServiceApi) {
-      this._experimentServiceApi = new ExperimentServiceApi({ basePath: this.basePath });
+      this._experimentServiceApi = new ExperimentServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._experimentServiceApi;
   }
 
   public static get jobServiceApi(): JobServiceApi {
     if (!this._jobServiceApi) {
-      this._jobServiceApi = new JobServiceApi({ basePath: this.basePath });
+      this._jobServiceApi = new JobServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._jobServiceApi;
   }
 
   public static get pipelineServiceApi(): PipelineServiceApi {
     if (!this._pipelineServiceApi) {
-      this._pipelineServiceApi = new PipelineServiceApi({ basePath: this.basePath });
+      this._pipelineServiceApi = new PipelineServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._pipelineServiceApi;
   }
 
   public static get runServiceApi(): RunServiceApi {
     if (!this._runServiceApi) {
-      this._runServiceApi = new RunServiceApi({ basePath: this.basePath });
+      this._runServiceApi = new RunServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._runServiceApi;
   }
 
   public static get visualizationServiceApi(): VisualizationServiceApi {
     if (!this._visualizationServiceApi) {
-      this._visualizationServiceApi = new VisualizationServiceApi({ basePath: this.basePath });
+      this._visualizationServiceApi = new VisualizationServiceApi(
+        { basePath: this.basePath },
+        undefined,
+        crossBrowserFetch,
+      );
     }
     return this._visualizationServiceApi;
   }
@@ -230,21 +180,39 @@ export class Apis {
   }
 
   /**
-   * Gets the address (IP + port) of a Tensorboard service given the logdir
+   * Gets the address (IP + port) of a Tensorboard service given the logdir and tfversion
    */
-  public static getTensorboardApp(logdir: string): Promise<string> {
-    return this._fetch(`apps/tensorboard?logdir=${encodeURIComponent(logdir)}`);
+  public static getTensorboardApp(
+    logdir: string,
+  ): Promise<{ podAddress: string; tfVersion: string }> {
+    return this._fetchAndParse<{ podAddress: string; tfVersion: string }>(
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
+    );
   }
 
   /**
    * Starts a deployment and service for Tensorboard given the logdir
    */
-  public static startTensorboardApp(logdir: string): Promise<string> {
+  public static startTensorboardApp(logdir: string, tfversion: string): Promise<string> {
+    return this._fetch(
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(
+        tfversion,
+      )}`,
+      undefined,
+      undefined,
+      { headers: { 'content-type': 'application/json' }, method: 'POST' },
+    );
+  }
+
+  /**
+   * Delete a deployment and its service of the Tensorboard given the URL
+   */
+  public static deleteTensorboardApp(logdir: string): Promise<string> {
     return this._fetch(
       `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
       undefined,
       undefined,
-      { headers: { 'content-type': 'application/json' }, method: 'POST' },
+      { method: 'DELETE' },
     );
   }
 
@@ -254,6 +222,7 @@ export class Apis {
    */
   public static async uploadPipeline(
     pipelineName: string,
+    pipelineDescription: string,
     pipelineData: File,
   ): Promise<ApiPipeline> {
     const fd = new FormData();
@@ -261,7 +230,28 @@ export class Apis {
     return await this._fetchAndParse<ApiPipeline>(
       '/pipelines/upload',
       v1beta1Prefix,
-      `name=${encodeURIComponent(pipelineName)}`,
+      `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
+        pipelineDescription,
+      )}`,
+      {
+        body: fd,
+        cache: 'no-cache',
+        method: 'POST',
+      },
+    );
+  }
+
+  public static async uploadPipelineVersion(
+    versionName: string,
+    pipelineId: string,
+    versionData: File,
+  ): Promise<ApiPipelineVersion> {
+    const fd = new FormData();
+    fd.append('uploadfile', versionData, versionData.name);
+    return await this._fetchAndParse<ApiPipelineVersion>(
+      '/pipelines/upload_version',
+      v1beta1Prefix,
+      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}`,
       {
         body: fd,
         cache: 'no-cache',
@@ -282,16 +272,6 @@ export class Apis {
    */
   public static async getProjectId(): Promise<string> {
     return this._fetch('system/project-id');
-  }
-
-  public static getMetadataServiceClient(): MetadataStoreServiceClient {
-    return metadataServiceClient;
-  }
-
-  // It will be a lot of boilerplate to type the following method, omit it here.
-  // tslint:disable-next-line:typedef
-  public static getMetadataServicePromiseClient() {
-    return metadataServicePromiseClient;
   }
 
   private static _experimentServiceApi?: ExperimentServiceApi;
@@ -372,5 +352,11 @@ export enum JobSortKeys {
 export enum ExperimentSortKeys {
   CREATED_AT = 'created_at',
   ID = 'id',
+  NAME = 'name',
+}
+
+// Valid sortKeys as specified by the backend.
+export enum PipelineVersionSortKeys {
+  CREATED_AT = 'created_at',
   NAME = 'name',
 }

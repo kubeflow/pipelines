@@ -16,18 +16,21 @@ package resource
 
 import (
 	"errors"
+	"fmt"
+	"regexp"
+	"strings"
+	"time"
+
 	wfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo/workflow/common"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	servercommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"regexp"
-	"strings"
-	"time"
 )
 
 func toCRDTrigger(apiTrigger *api.Trigger) *scheduledworkflow.Trigger {
@@ -171,11 +174,56 @@ func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error)
 	return util.NewWorkflow(newWF), podsToDelete, nil
 }
 
-func deletePods(podClient corev1.PodInterface, podsToDelete []string) error {
+func deletePods(k8sCoreClient client.KubernetesCoreInterface, podsToDelete []string, namespace string) error {
 	for _, podId := range podsToDelete {
-		err := podClient.Delete(podId, &metav1.DeleteOptions{})
+		err := k8sCoreClient.PodClient(namespace).Delete(podId, &metav1.DeleteOptions{})
 		if err != nil && !apierr.IsNotFound(err) {
 			return util.NewInternalServerError(err, "Failed to delete pods.")
+		}
+	}
+	return nil
+}
+
+// Mutate default values of specified pipeline spec.
+// Args:
+//  text: (part of) pipeline file in string.
+func PatchPipelineDefaultParameter(text string) (string, error) {
+	defaultBucket := servercommon.GetStringConfig(DefaultBucketNameEnvVar)
+	projectId := servercommon.GetStringConfig(ProjectIDEnvVar)
+	toPatch := map[string]string{
+		"{{kfp-default-bucket}}": defaultBucket,
+		"{{kfp-project-id}}":     projectId,
+	}
+	for key, value := range toPatch {
+		text = strings.Replace(text, key, value, -1)
+	}
+	return text, nil
+}
+
+// Patch the system-specified default parameters if available.
+func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run) error {
+	// Patch the default value to workflow spec.
+	if servercommon.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
+		patchedSlice := make([]wfv1.Parameter, 0)
+		for _, currentParam := range workflow.Spec.Arguments.Parameters {
+			desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
+			if err != nil {
+				return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			}
+			patchedSlice = append(patchedSlice, wfv1.Parameter{
+				Name:  currentParam.Name,
+				Value: util.StringPointer(desiredValue),
+			})
+		}
+		workflow.Spec.Arguments.Parameters = patchedSlice
+
+		// Patched the default value to apiRun
+		for _, param := range apiRun.PipelineSpec.Parameters {
+			var err error
+			param.Value, err = PatchPipelineDefaultParameter(param.Value)
+			if err != nil {
+				return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			}
 		}
 	}
 	return nil

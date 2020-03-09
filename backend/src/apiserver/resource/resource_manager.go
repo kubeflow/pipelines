@@ -24,6 +24,7 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -33,7 +34,6 @@ import (
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -41,6 +41,10 @@ import (
 const (
 	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
 	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
+	defaultServiceAccount                     = "default-editor"
+	HasDefaultBucketEnvVar                    = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar                           = "PROJECT_ID"
+	DefaultBucketNameEnvVar                   = "BUCKET_NAME"
 )
 
 type ClientManagerInterface interface {
@@ -52,9 +56,10 @@ type ClientManagerInterface interface {
 	DBStatusStore() storage.DBStatusStoreInterface
 	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
-	Workflow() workflowclient.WorkflowInterface
+	ArgoClient() client.ArgoClientInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
-	PodClient() corev1.PodInterface
+	KubernetesCoreClient() client.KubernetesCoreInterface
+	KFAMClient() client.KFAMClientInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
 }
@@ -68,9 +73,10 @@ type ResourceManager struct {
 	dBStatusStore           storage.DBStatusStoreInterface
 	defaultExperimentStore  storage.DefaultExperimentStoreInterface
 	objectStore             storage.ObjectStoreInterface
-	workflowClient          workflowclient.WorkflowInterface
+	argoClient              client.ArgoClientInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
-	podClient               corev1.PodInterface
+	k8sCoreClient           client.KubernetesCoreInterface
+	kfamClient              client.KFAMClientInterface
 	time                    util.TimeInterface
 	uuid                    util.UUIDGeneratorInterface
 }
@@ -85,12 +91,17 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		dBStatusStore:           clientManager.DBStatusStore(),
 		defaultExperimentStore:  clientManager.DefaultExperimentStore(),
 		objectStore:             clientManager.ObjectStore(),
-		workflowClient:          clientManager.Workflow(),
+		argoClient:              clientManager.ArgoClient(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		podClient:               clientManager.PodClient(),
+		k8sCoreClient:           clientManager.KubernetesCoreClient(),
+		kfamClient:              clientManager.KFAMClient(),
 		time:                    clientManager.Time(),
 		uuid:                    clientManager.UUID(),
 	}
+}
+
+func (r *ResourceManager) getWorkflowClient(namespace string) workflowclient.WorkflowInterface {
+	return r.argoClient.Workflow(namespace)
 }
 
 func (r *ResourceManager) GetTime() util.TimeInterface {
@@ -148,7 +159,7 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	// versions and hence multiple files, and we shall improve performance by
 	// either using async deletion in order for this method to be non-blocking
 	// or or exploring other performance optimization tools provided by gcs.
-	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
+	err = r.objectStore.DeleteFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineId)))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline %v", pipelineId))
 		return nil
@@ -184,7 +195,7 @@ func (r *ResourceManager) CreatePipeline(name string, description string, pipeli
 
 	// Store the pipeline file to a path dependent on pipeline version
 	err = r.objectStore.AddFile(pipelineFile,
-		storage.CreatePipelinePath(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
+		r.objectStore.GetPipelineKey(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
@@ -221,7 +232,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 		return nil, util.Wrap(err,
 			"Get pipeline template failed since no default version is defined")
 	}
-	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(pipeline.DefaultVersion.UUID)))
+	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipeline.DefaultVersion.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
@@ -259,11 +270,32 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 
-	workflow.SetServiceAccount(r.getDefaultSA())
+	multiuserMode := common.IsMultiUserMode()
+	if multiuserMode == true {
+		if len(workflow.Spec.ServiceAccountName) == 0 || workflow.Spec.ServiceAccountName == defaultPipelineRunnerServiceAccount {
+			// To reserve SDK backward compatibility, the backend currently replaces the serviceaccount in multi-user mode.
+			workflow.SetServiceAccount(defaultServiceAccount)
+		}
+	} else {
+		workflow.SetServiceAccount(r.getDefaultSA())
+	}
+
+	// Disable istio sidecar injection
+	if multiuserMode == true {
+		workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
+
+	err = OverrideParameterWithSystemDefault(workflow, apiRun)
+	if err != nil {
+		return nil, err
+	}
+
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, runId)
+	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
+	workflow.SetAnnotations(util.AnnotationKeyRunName, apiRun.Name)
 	// Replace {{workflow.uid}} with runId
 	err = workflow.ReplaceUID(runId)
 	if err != nil {
@@ -272,7 +304,6 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
-	// TODO: Change the compiler to stop auto-adding those two atrifacts to all tasks.
 	for templateIdx, template := range workflow.Workflow.Spec.Templates {
 		for artIdx, artifact := range template.Outputs.Artifacts {
 			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
@@ -281,8 +312,16 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		}
 	}
 
+	namespace := common.GetNamespaceFromAPIResourceReferences(apiRun.ResourceReferences)
+	if len(namespace) == 0 {
+		if multiuserMode {
+			return nil, util.NewInvalidInputError("Run should specify namespace")
+		} else {
+			namespace = common.GetPodNamespace()
+		}
+	}
 	// Create argo workflow CRD resource
-	newWorkflow, err := r.workflowClient.Create(workflow.Get())
+	newWorkflow, err := r.getWorkflowClient(namespace).Create(workflow.Get())
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
 	}
@@ -329,7 +368,11 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 	if err != nil {
 		return util.Wrap(err, "Delete run failed")
 	}
-	err = r.workflowClient.Delete(runDetail.Name, &v1.DeleteOptions{})
+	namespace, err := r.GetNamespaceFromRunID(runID)
+	if err != nil {
+		return util.Wrap(err, "Delete run failed")
+	}
+	err = r.getWorkflowClient(namespace).Delete(runDetail.Name, &v1.DeleteOptions{})
 	if err != nil {
 		// API won't need to delete the workflow CRD
 		// once persistent agent sync the state to DB and set TTL for it.
@@ -375,12 +418,17 @@ func (r *ResourceManager) TerminateRun(runId string) error {
 		return util.Wrap(err, "Terminate run failed")
 	}
 
+	namespace, err := r.GetNamespaceFromRunID(runId)
+	if err != nil {
+		return util.Wrap(err, "Terminate run failed")
+	}
+
 	err = r.runStore.TerminateRun(runId)
 	if err != nil {
 		return util.Wrap(err, "Terminate run failed")
 	}
 
-	err = TerminateWorkflow(r.workflowClient, runDetail.Run.Name)
+	err = TerminateWorkflow(r.getWorkflowClient(namespace), runDetail.Run.Name)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to terminate the run")
 	}
@@ -389,6 +437,10 @@ func (r *ResourceManager) TerminateRun(runId string) error {
 
 func (r *ResourceManager) RetryRun(runId string) error {
 	runDetail, err := r.checkRunExist(runId)
+	if err != nil {
+		return util.Wrap(err, "Retry run failed")
+	}
+	namespace, err := r.GetNamespaceFromRunID(runId)
 	if err != nil {
 		return util.Wrap(err, "Retry run failed")
 	}
@@ -406,16 +458,16 @@ func (r *ResourceManager) RetryRun(runId string) error {
 		return util.Wrap(err, "Retry run failed.")
 	}
 
-	if err = deletePods(r.podClient, podsToDelete); err != nil {
+	if err = deletePods(r.k8sCoreClient, podsToDelete, namespace); err != nil {
 		return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
 	}
 
 	// First try to update workflow
-	updateError := r.updateWorkflow(newWorkflow)
+	updateError := r.updateWorkflow(newWorkflow, namespace)
 	if updateError != nil {
 		// Remove resource version
 		newWorkflow.ResourceVersion = ""
-		newCreatedWorkflow, createError := r.workflowClient.Create(newWorkflow.Workflow)
+		newCreatedWorkflow, createError := r.getWorkflowClient(namespace).Create(newWorkflow.Workflow)
 		if createError != nil {
 			return util.NewInternalServerError(createError,
 				"Retry run failed. Failed to create or update the run. Update Error: %s, Create Error: %s",
@@ -430,15 +482,15 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	return nil
 }
 
-func (r *ResourceManager) updateWorkflow(newWorkflow *util.Workflow) error {
+func (r *ResourceManager) updateWorkflow(newWorkflow *util.Workflow, namespace string) error {
 	// If fail to get the workflow, return error.
-	latestWorkflow, err := r.workflowClient.Get(newWorkflow.Name, v1.GetOptions{})
+	latestWorkflow, err := r.getWorkflowClient(namespace).Get(newWorkflow.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	// Update the workflow's resource version to latest.
 	newWorkflow.ResourceVersion = latestWorkflow.ResourceVersion
-	_, err = r.workflowClient.Update(newWorkflow.Workflow)
+	_, err = r.getWorkflowClient(namespace).Update(newWorkflow.Workflow)
 	return err
 }
 
@@ -489,8 +541,20 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
 				Spec:       workflow.Spec,
 			},
+			NoCatchup: util.BoolPointer(apiJob.NoCatchup),
 		},
 	}
+
+	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
+	// TODO: Fix the components to explicitly declare the artifacts they really output.
+	for templateIdx, template := range scheduledWorkflow.Spec.Workflow.Spec.Templates {
+		for artIdx, artifact := range template.Outputs.Artifacts {
+			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
+				scheduledWorkflow.Spec.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
+			}
+		}
+	}
+
 	newScheduledWorkflow, err := r.scheduledWorkflowClient.Create(scheduledWorkflow)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
@@ -563,10 +627,13 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	}
 	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
+	if len(workflow.Namespace) == 0 {
+		return util.NewInvalidInputError("Workflow missing namespace")
+	}
 
 	if workflow.PersistedFinalState() {
 		// If workflow's final state has being persisted, the workflow should be garbage collected.
-		err := r.workflowClient.Delete(workflow.Name, &v1.DeleteOptions{})
+		err := r.getWorkflowClient(workflow.Namespace).Delete(workflow.Name, &v1.DeleteOptions{})
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 		}
@@ -634,7 +701,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	}
 
 	if workflow.IsInFinalState() {
-		err := AddWorkflowLabel(r.workflowClient, workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
+		err := AddWorkflowLabel(r.getWorkflowClient(workflow.Namespace), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
 			return util.Wrap(err, "Failed to add PersistedFinalState label to workflow")
 		}
@@ -705,7 +772,7 @@ func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, 
 	// run, we'll only check for the raw manifest in pipeline_spec.
 	if spec.GetPipelineId() != "" {
 		var workflow util.Workflow
-		err := r.objectStore.GetFromYamlFile(&workflow, storage.CreatePipelinePath(spec.GetPipelineId()))
+		err := r.objectStore.GetFromYamlFile(&workflow, r.objectStore.GetPipelineKey(spec.GetPipelineId()))
 		if err != nil {
 			return nil, util.Wrap(err, "Get pipeline YAML failed.")
 		}
@@ -728,7 +795,7 @@ func (r *ResourceManager) getWorkflowSpecBytesFromPipelineVersion(references []*
 		return nil, util.NewInvalidInputError("No pipeline version.")
 	}
 	var workflow util.Workflow
-	err := r.objectStore.GetFromYamlFile(&workflow, storage.CreatePipelinePath(pipelineVersionId))
+	err := r.objectStore.GetFromYamlFile(&workflow, r.objectStore.GetPipelineKey(pipelineVersionId))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline YAML failed.")
 	}
@@ -881,7 +948,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 	}
 
 	// Store the pipeline file
-	err = r.objectStore.AddFile(pipelineFile, storage.CreatePipelinePath(fmt.Sprint(version.UUID)))
+	err = r.objectStore.AddFile(pipelineFile, r.objectStore.GetPipelineKey(fmt.Sprint(version.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
@@ -917,7 +984,7 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 		return util.Wrap(err, "Delete pipeline version failed")
 	}
 
-	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineVersionId)))
+	err = r.objectStore.DeleteFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersionId)))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline version %v", pipelineVersionId))
 		return util.Wrap(err, "Delete pipeline version failed")
@@ -938,10 +1005,33 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 		return nil, util.Wrap(err, "Get pipeline version template failed")
 	}
 
-	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(versionId)))
+	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(versionId)))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline version template failed")
 	}
 
 	return template, nil
+}
+
+func (r *ResourceManager) IsRequestAuthorized(userIdentity string, namespace string) (bool, error) {
+	return r.kfamClient.IsAuthorized(userIdentity, namespace)
+}
+
+func (r *ResourceManager) GetNamespaceFromRunID(runId string) (string, error) {
+	runDetail, err := r.GetRun(runId)
+	if err != nil {
+		return "", util.Wrap(err, "Failed to get namespace from run id.")
+	}
+	namespace := model.GetNamespaceFromModelResourceReferences(runDetail.ResourceReferences)
+	if len(namespace) == 0 {
+		if common.IsMultiUserMode() {
+			// All runs should have namespace in multi user mode.
+			return "", errors.New("Invalid db data: run doesn't have a namespace resource reference")
+		} else {
+			// When db model doesn't have namespace stored (e.g. legacy runs), use
+			// pod namespace as default.
+			return common.GetPodNamespace(), nil
+		}
+	}
+	return namespace, nil
 }

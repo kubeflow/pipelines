@@ -8,7 +8,7 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: maxval
+    - name: maxVal
       value: '12'
   entrypoint: pipeline-flip-coin
   serviceAccountName: pipeline-runner

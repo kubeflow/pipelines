@@ -54,11 +54,7 @@ job_id | The ID of the created job. | String
 To use the component, you must:
 *   Set up a GCP project by following this [guide](https://cloud.google.com/dataproc/docs/guides/setup-project).
 *   [Create a new cluster](https://cloud.google.com/dataproc/docs/guides/create-cluster).
-*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
-
-    ```
-    component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-    ```
+*   The component can authenticate to GCP. Refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication-pipelines/) for details.
 *   Grant the Kubeflow user service account the role `roles/dataproc.editor` on the project.
 
 ## Detailed description
@@ -83,7 +79,7 @@ Follow these steps to use the component in a pipeline:
     ```python
     import kfp.components as comp
 
-    dataproc_submit_pyspark_job_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/02c991dd265054b040265b3dfa1903d5b49df859/components/gcp/dataproc/submit_pyspark_job/component.yaml')
+    dataproc_submit_pyspark_job_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/3f4b80127f35e40760eeb1813ce1d3f641502222/components/gcp/dataproc/submit_pyspark_job/component.yaml')
     help(dataproc_submit_pyspark_job_op)
     ```
 
@@ -120,7 +116,6 @@ EXPERIMENT_NAME = 'Dataproc - Submit PySpark Job'
 
 ```python
 import kfp.dsl as dsl
-import kfp.gcp as gcp
 import json
 @dsl.pipeline(
     name='Dataproc submit PySpark job pipeline',
@@ -144,7 +139,7 @@ def dataproc_submit_pyspark_job_pipeline(
         args=args, 
         pyspark_job=pyspark_job, 
         job=job, 
-        wait_interval=wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        wait_interval=wait_interval)
     
 ```
 

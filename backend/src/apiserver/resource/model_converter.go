@@ -53,9 +53,15 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 		}
 	}
 
+	experimentUUID, err := r.getOwningExperimentUUID(run.ResourceReferences)
+	if err != nil {
+		return nil, util.Wrap(err, "Error getting the experiment UUID")
+	}
+
 	return &model.RunDetail{
 		Run: model.Run{
 			UUID:               runId,
+			ExperimentUUID:     experimentUUID,
 			DisplayName:        run.Name,
 			Name:               workflow.Name,
 			Namespace:          workflow.Namespace,
@@ -101,6 +107,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 		Enabled:            job.Enabled,
 		Trigger:            toModelTrigger(job.Trigger),
 		MaxConcurrency:     job.MaxConcurrency,
+		NoCatchup:          job.NoCatchup,
 		ResourceReferences: resourceReferences,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           job.GetPipelineSpec().GetPipelineId(),
@@ -199,6 +206,8 @@ func (r *ResourceManager) toModelResourceReferences(
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to find the referred resource")
 		}
+
+		//TODO(gaoning777) further investigation: Is the plain namespace a good option?  maybe uuid for distinctness even with namespace deletion/recreation.
 		modelRef := &model.ResourceReference{
 			ResourceUUID:  resourceId,
 			ResourceType:  resourceType,
@@ -244,7 +253,24 @@ func (r *ResourceManager) getResourceName(resourceType common.ResourceType, reso
 			return "", util.Wrap(err, "Referred pipeline version not found.")
 		}
 		return version.Name, nil
+	case common.Namespace:
+		return resourceId, nil
 	default:
 		return "", util.NewInvalidInputError("Unsupported resource type: %s", string(resourceType))
 	}
+}
+
+func (r *ResourceManager) getOwningExperimentUUID(references []*api.ResourceReference) (string, error) {
+	var experimentUUID string
+	for _, ref := range references {
+		if ref.Key.Type == api.ResourceType_EXPERIMENT && ref.Relationship == api.Relationship_OWNER {
+			experimentUUID = ref.Key.Id
+			break
+		}
+	}
+
+	if experimentUUID == "" {
+		return "", util.NewInternalServerError(nil, "Missing owning experiment UUID")
+	}
+	return experimentUUID, nil
 }

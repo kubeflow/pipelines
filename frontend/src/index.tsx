@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { init as initKfClient, NamespaceContextProvider } from './lib/KubeflowClient';
 import './CSSReset';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -21,8 +22,15 @@ import MuiThemeProvider from '@material-ui/core/styles/MuiThemeProvider';
 import Router from './components/Router';
 import { cssRule } from 'typestyle';
 import { theme, fonts } from './Css';
+import { HashRouter } from 'react-router-dom';
+import { KFP_FLAGS, Deployments } from './lib/Flags';
+import { GkeMetadataProvider } from './lib/GkeMetadata';
 
 // TODO: license headers
+
+if (KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW) {
+  initKfClient();
+}
 
 cssRule('html, body, #root', {
   background: 'white',
@@ -34,9 +42,20 @@ cssRule('html, body, #root', {
   width: '100%',
 });
 
-ReactDOM.render(
+const app = (
   <MuiThemeProvider theme={theme}>
-    <Router />
-  </MuiThemeProvider>,
+    <GkeMetadataProvider>
+      <HashRouter>
+        <Router />
+      </HashRouter>
+    </GkeMetadataProvider>
+  </MuiThemeProvider>
+);
+ReactDOM.render(
+  KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
+    <NamespaceContextProvider>{app}</NamespaceContextProvider>
+  ) : (
+    app
+  ),
   document.getElementById('root'),
 );

@@ -17,7 +17,7 @@ import kfp.dsl as dsl
 from kfp.dsl import component, graph_component
 from kfp.dsl.types import Integer, GCSPath, InconsistentTypeException
 from kfp.dsl import ContainerOp, Pipeline, PipelineParam
-from kfp.components._structures import ComponentSpec, InputSpec, OutputSpec
+from kfp.components.structures import ComponentSpec, InputSpec, OutputSpec
 import unittest
 
 class TestPythonComponent(unittest.TestCase):
@@ -35,10 +35,10 @@ class TestPythonComponent(unittest.TestCase):
 
     containerOp = componentA(1,2,c=3)
 
-    golden_meta = ComponentSpec(name='componentA', inputs=[], outputs=[])
+    golden_meta = ComponentSpec(name='ComponentA', inputs=[], outputs=[])
     golden_meta.inputs.append(InputSpec(name='a', type={'ArtifactA': {'file_type': 'csv'}}))
-    golden_meta.inputs.append(InputSpec(name='b', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default="12"))
-    golden_meta.inputs.append(InputSpec(name='c', type={'ArtifactB': {'path_type':'file', 'file_type': 'tsv'}}, default='gs://hello/world'))
+    golden_meta.inputs.append(InputSpec(name='b', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default="12", optional=True))
+    golden_meta.inputs.append(InputSpec(name='c', type={'ArtifactB': {'path_type':'file', 'file_type': 'tsv'}}, default='gs://hello/world', optional=True))
     golden_meta.outputs.append(OutputSpec(name='model', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}))
 
     self.assertEqual(containerOp._metadata, golden_meta)

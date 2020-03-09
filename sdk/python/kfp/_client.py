@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import string
+import random
 import time
 import logging
 import json
@@ -81,7 +82,8 @@ class Client(object):
   IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
-  def __init__(self, host=None, client_id=None, namespace='kubeflow'):
+  # TODO: Wrap the configurations for different authentication methods.
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None):
     """Create a new instance of kfp client.
 
     Args:
@@ -93,29 +95,35 @@ class Client(object):
           If you connect to an IAP enabled cluster, set it to
           https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
       client_id: The client ID used by Identity-Aware Proxy.
+      namespace: the namespace where the kubeflow pipeline system is run.
+      other_client_id: The client ID used to obtain the auth codes and refresh tokens.
+        Reference: https://cloud.google.com/iap/docs/authentication-howto#authenticating_from_a_desktop_app.
+      other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
-    config = self._load_config(host, client_id, namespace)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret)
     api_client = kfp_server_api.api_client.ApiClient(config)
     _add_generated_apis(self, kfp_server_api, api_client)
+    self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
 
-  def _load_config(self, host, client_id, namespace):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret):
     config = kfp_server_api.configuration.Configuration()
     if host:
       config.host = host
 
     token = None
 
-    if self._is_inverse_proxy_host(host):
+    # Obtain the tokens if it is IAP or inverse proxy.
+    # client_id is only used for IAP, so when the value is provided, we assume it's IAP.
+    if client_id:
+      token = get_auth_token(client_id, other_client_id, other_client_secret)
+    elif self._is_inverse_proxy_host(host):
       token = get_gcp_access_token()
-    if self._is_iap_host(host,client_id):
-      # fetch IAP auth token
-      token = get_auth_token(client_id)
 
     if token:
       config.api_key['authorization'] = token
@@ -147,13 +155,6 @@ class Client(object):
     if config.host:
       config.host = config.host + '/' + Client.KUBE_PROXY_PATH.format(namespace)
     return config
-
-  def _is_iap_host(self, host, client_id):
-    if host and client_id:
-      if re.match(r'\S+.endpoints.\S+.cloud.goog/{0,1}$', host):
-        warnings.warn('Suffix /pipeline is not ignorable for IAP host.')
-      return re.match(r'\S+.endpoints.\S+.cloud.goog/pipeline', host)
-    return False
 
   def _is_inverse_proxy_host(self, host):
     if host:
@@ -290,7 +291,8 @@ class Client(object):
     """
     return self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by)
 
-  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None):
+  # TODO: provide default namespace, similar to kubectl default namespaces.
+  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, namespace=None):
     """Run a specified pipeline.
 
     Args:
@@ -299,6 +301,9 @@ class Client(object):
       pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: a dictionary with key (string) as param name and value (string) as as param value.
       pipeline_id: the string ID of a pipeline.
+      namespace: kubernetes namespace where the pipeline runs are created.
+        For single user deployment, leave it as None;
+        For multi user, input a namespace where the user is authorized
 
     Returns:
       A run object. Most important field is id.
@@ -308,17 +313,29 @@ class Client(object):
     if pipeline_package_path:
       pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
       pipeline_json_string = json.dumps(pipeline_obj)
-    api_params = [kfp_server_api.ApiParameter(name=sanitize_k8s_name(k), value=str(v))
-                  for k,v in params.items()]
+    api_params = [kfp_server_api.ApiParameter(
+        name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
+        value=str(v)) for k,v in params.items()]
+    resource_references = []
+
     key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
-    reference = kfp_server_api.models.ApiResourceReference(key, kfp_server_api.models.ApiRelationship.OWNER)
+    reference = kfp_server_api.models.ApiResourceReference(key=key,
+                                                           relationship=kfp_server_api.models.ApiRelationship.OWNER)
+    resource_references.append(reference)
+    if namespace is not None:
+      key = kfp_server_api.models.ApiResourceKey(id=namespace,
+                                                 type=kfp_server_api.models.ApiResourceType.NAMESPACE)
+      reference = kfp_server_api.models.ApiResourceReference(key=key,
+                                                             name=namespace,
+                                                             relationship=kfp_server_api.models.ApiRelationship.OWNER)
+      resource_references.append(reference)
     spec = kfp_server_api.models.ApiPipelineSpec(
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string,
         parameters=api_params)
     run_body = kfp_server_api.models.ApiRun(
-        pipeline_spec=spec, resource_references=[reference], name=job_name)
+        pipeline_spec=spec, resource_references=resource_references, name=job_name)
 
     response = self._run_api.create_run(body=run_body)
 
@@ -329,7 +346,7 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return response.run
 
-  def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None, pipeline_conf: kfp.dsl.PipelineConf = None):
+  def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None, pipeline_conf: kfp.dsl.PipelineConf = None, namespace=None):
     '''Runs pipeline on KFP-enabled Kubernetes cluster.
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
 
@@ -338,6 +355,9 @@ class Client(object):
       arguments: Arguments to the pipeline function provided as a dict.
       run_name: Optional. Name of the run to be shown in the UI.
       experiment_name: Optional. Name of the experiment to add the run to.
+      namespace: kubernetes namespace where the pipeline runs are created.
+        For single user deployment, leave it as None;
+        For multi user, input a namespace where the user is authorized
     '''
     #TODO: Check arguments against the pipeline function
     pipeline_name = pipeline_func.__name__
@@ -345,11 +365,11 @@ class Client(object):
     try:
       (_, pipeline_package_path) = tempfile.mkstemp(suffix='.zip')
       compiler.Compiler().compile(pipeline_func, pipeline_package_path, pipeline_conf=pipeline_conf)
-      return self.create_run_from_pipeline_package(pipeline_package_path, arguments, run_name, experiment_name)
+      return self.create_run_from_pipeline_package(pipeline_package_path, arguments, run_name, experiment_name, namespace)
     finally:
       os.remove(pipeline_package_path)
 
-  def create_run_from_pipeline_package(self, pipeline_file: str, arguments: Mapping[str, str], run_name=None, experiment_name=None):
+  def create_run_from_pipeline_package(self, pipeline_file: str, arguments: Mapping[str, str], run_name=None, experiment_name=None, namespace=None):
     '''Runs pipeline on KFP-enabled Kubernetes cluster.
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
 
@@ -358,6 +378,9 @@ class Client(object):
       arguments: Arguments to the pipeline function provided as a dict.
       run_name: Optional. Name of the run to be shown in the UI.
       experiment_name: Optional. Name of the experiment to add the run to.
+      namespace: kubernetes namespace where the pipeline runs are created.
+        For single user deployment, leave it as None;
+        For multi user, input a namespace where the user is authorized
     '''
 
     class RunPipelineResult:
@@ -383,8 +406,74 @@ class Client(object):
     experiment_name = overridden_experiment_name or 'Default'
     run_name = run_name or pipeline_name + ' ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
     experiment = self.create_experiment(name=experiment_name)
-    run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments)
+    run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments, namespace=namespace)
     return RunPipelineResult(self, run_info)
+
+  def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, 
+    namespace=None, cron_schedule=None, description=None, max_concurrency=10, no_catchup=None):
+    """Schedule pipeline on kubeflow to run based upon a cron job
+    
+    Arguments:
+        experiment_id {string} -- The expriment within which we would like kubeflow 
+        job_name {string} -- The name of the scheduled job
+    
+    Keyword Arguments:
+        pipeline_package_path {string} -- The path to the pipeline package (default: {None})
+        params {dict} -- The pipeline parameters (default: {{}})
+        pipeline_id {string} -- The id of the pipeline which should run on schedule (default: {None})
+        namespace {string} -- The name space with which the pipeline should run (default: {None})
+        max_concurrency {int} -- Max number of concurrent runs scheduled (default: {10})
+        no_catchup {boolean} -- Whether the recurring run should catch up if behind schedule.
+          For example, if the recurring run is paused for a while and re-enabled
+          afterwards. If no_catchup=False, the scheduler will catch up on (backfill) each
+          missed interval. Otherwise, it only schedules the latest interval if more than one interval
+          is ready to be scheduled.
+          Usually, if your pipeline handles backfill internally, you should turn catchup
+          off to avoid duplicate backfill. (default: {False})
+    """
+
+    pipeline_json_string = None
+    if pipeline_package_path:
+      pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
+      pipeline_json_string = json.dumps(pipeline_obj)
+    api_params = [kfp_server_api.ApiParameter(
+        name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
+        value=str(v)) for k,v in params.items()]
+    resource_references = []
+
+    key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
+                                        type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
+    reference = kfp_server_api.models.ApiResourceReference(key=key,
+                                                           relationship=kfp_server_api.models.ApiRelationship.OWNER)
+    resource_references.append(reference)
+    if namespace is not None:
+      key = kfp_server_api.models.ApiResourceKey(id=namespace,
+                                                 type=kfp_server_api.models.ApiResourceType.NAMESPACE)
+      reference = kfp_server_api.models.ApiResourceReference(key=key,
+                                                             name=namespace,
+                                                             relationship=kfp_server_api.models.ApiRelationship.OWNER)
+      resource_references.append(reference)
+    spec = kfp_server_api.models.ApiPipelineSpec(
+        pipeline_id=pipeline_id,
+        workflow_manifest=pipeline_json_string,
+        parameters=api_params)
+    
+    trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(cron=cron_schedule) #Example:cron_schedule="0 0 9 ? * 2-6"
+    job_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+    schedule_body = kfp_server_api.models.ApiJob(
+        id=job_id,
+        name=job_name,
+        description=description,
+        pipeline_spec=spec,
+        resource_references=resource_references,
+        max_concurrency=max_concurrency,
+        no_catchup=no_catchup,
+        trigger=trigger,
+        enabled=True,
+        )
+    #[TODO] Add link to the scheduled job. 
+    response = self._job_api.create_job(body=schedule_body)
+
 
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
     """List runs.

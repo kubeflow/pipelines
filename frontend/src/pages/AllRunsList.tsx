@@ -46,8 +46,10 @@ class AllRunsList extends Page<{}, AllRunsListState> {
         .newExperiment()
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)
-        .archive(() => this.state.selectedIds, false, selectedIds =>
-          this._selectionChanged(selectedIds),
+        .archive(
+          () => this.state.selectedIds,
+          false,
+          selectedIds => this._selectionChanged(selectedIds),
         )
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
@@ -65,6 +67,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
           onSelectionChange={this._selectionChanged.bind(this)}
           ref={this._runlistRef}
           storageState={RunStorageState.AVAILABLE}
+          hideMetricMetadata={true}
           {...this.props}
         />
       </div>

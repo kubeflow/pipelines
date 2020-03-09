@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ for the get experiment operation typically these are written to a http.Request
 type GetExperimentParams struct {
 
 	/*ID
-	  The ID of the experiment to be retrieved
+	  The ID of the experiment to be retrieved.
 
 	*/
 	ID string

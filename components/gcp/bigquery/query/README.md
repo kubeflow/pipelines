@@ -52,11 +52,7 @@ output_gcs_path | The path to the Cloud Storage bucket containing the query outp
 To use the component, the following requirements must be met:
 
 *   The BigQuery API is enabled.
-*   The component is running under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow Pipeline cluster.  For example:
-
-    ```
-    bigquery_query_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-    ```
+*   The component can authenticate to GCP. Refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication-pipelines/) for details.
 *   The Kubeflow user service account is a member of the `roles/bigquery.admin` role of the project.
 *   The Kubeflow user service account is a member of the `roles/storage.objectCreator `role of the Cloud Storage output bucket.
 
@@ -89,7 +85,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 bigquery_query_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/02c991dd265054b040265b3dfa1903d5b49df859/components/gcp/bigquery/query/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/3f4b80127f35e40760eeb1813ce1d3f641502222/components/gcp/bigquery/query/component.yaml')
 help(bigquery_query_op)
 ```
 
@@ -125,7 +121,6 @@ OUTPUT_PATH = '{}/bigquery/query/questions.csv'.format(GCS_WORKING_DIR)
 
 ```python
 import kfp.dsl as dsl
-import kfp.gcp as gcp
 import json
 @dsl.pipeline(
     name='Bigquery query pipeline',
@@ -147,7 +142,7 @@ def pipeline(
         table_id=table_id, 
         output_gcs_path=output_gcs_path, 
         dataset_location=dataset_location, 
-        job_config=job_config).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        job_config=job_config)
 ```
 
 #### Compile the pipeline

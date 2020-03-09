@@ -10,6 +10,7 @@ class LoopArguments(dsl.PipelineParam):
     """Class representing the arguments that are looped over in a ParallelFor loop in the KFP DSL.
     This doesn't need to be instantiated by the end user, rather it will be automatically created by a
     ParallelFor ops group."""
+    LOOP_ITEM_NAME_BASE = 'loop-item'
     LOOP_ITEM_PARAM_NAME_BASE = 'loop-item-param'
     # number of characters in the code which is passed to the constructor
     NUM_CODE_CHARS = 8
@@ -20,14 +21,14 @@ class LoopArguments(dsl.PipelineParam):
         return re.match(cls.LEGAL_SUBVAR_NAME_REGEX, proposed_variable_name) is not None
 
     def __init__(self, items: Union[ItemList, dsl.PipelineParam], code: Text, name_override: Optional[Text]=None, op_name: Optional[Text]=None, *args, **kwargs):
-        """_LoopArguments represent the set of items to loop over in a ParallelFor loop.  This class shoudn't be
+        """LoopArguments represent the set of items to loop over in a ParallelFor loop.  This class shouldn't be
         instantiated by the user but rather is created by _ops_group.ParallelFor.
 
         Args:
             items: List of items to loop over.  If a list of dicts then, all dicts must have the same keys and every
                 key must be a legal Python variable name.
             code: A unique code used to identify these loop arguments.  Should match the code for the ParallelFor
-                ops_group which created these _LoopArguments.  This prevents parameter name collissions.
+                ops_group which created these _LoopArguments.  This prevents parameter name collisions.
         """
         if name_override is None:
             super().__init__(name=self._make_name(code), *args, **kwargs)
@@ -52,7 +53,7 @@ class LoopArguments(dsl.PipelineParam):
                 if not self._subvar_name_is_legal(subvar_name):
                     raise ValueError("Tried to create subvariable named {} but that's not a legal Python variable "
                                      "name.".format(subvar_name))
-                setattr(self, subvar_name, LoopArgumentVariable(self.name, subvar_name))
+                setattr(self, subvar_name, LoopArgumentVariable(self.name, subvar_name, loop_args_op_name=self.op_name))
 
         self.items_or_pipeline_param = items
         self.referenced_subvar_names = []
@@ -62,7 +63,7 @@ class LoopArguments(dsl.PipelineParam):
         return LoopArguments(
             items=param,
             code=None,
-            name_override=param.name,
+            name_override=param.name + '-' + cls.LOOP_ITEM_NAME_BASE,
             op_name=param.op_name,
             value=param.value,
         )
@@ -71,7 +72,7 @@ class LoopArguments(dsl.PipelineParam):
         # this is being overridden so that we can access subvariables of the LoopArguments (i.e.: item.a) without
         # knowing the subvariable names ahead of time
         self.referenced_subvar_names.append(item)
-        return LoopArgumentVariable(self.name, item)
+        return LoopArgumentVariable(self.name, item, loop_args_op_name=self.op_name)
 
     def to_list_for_task_yaml(self):
         if isinstance(self.items_or_pipeline_param, (list, tuple)):
@@ -86,20 +87,29 @@ class LoopArguments(dsl.PipelineParam):
         return '{}-{}'.format(cls.LOOP_ITEM_PARAM_NAME_BASE, code)
 
     @classmethod
-    def name_is_loop_arguments(cls, param_name: Text) -> bool:
+    def name_is_withitems_loop_argument(cls, param_name: Text) -> bool:
         """Return True if the given parameter name looks like it came from a loop arguments parameter."""
         return re.match(
             '%s-[0-9a-f]{%s}' % (cls.LOOP_ITEM_PARAM_NAME_BASE, cls.NUM_CODE_CHARS),
             param_name,
         ) is not None
 
+    @classmethod
+    def name_is_withparams_loop_argument(cls, param_name: Text) -> bool:
+        """Return True if the given parameter name looks like it came from a withParams loop item."""
+        return ('-' + cls.LOOP_ITEM_NAME_BASE) in param_name
 
 class LoopArgumentVariable(dsl.PipelineParam):
     """Represents a subvariable for loop arguments.  This is used for cases where we're looping over maps,
     each of which contains several variables."""
     SUBVAR_NAME_DELIMITER = '-subvar-'
 
-    def __init__(self, loop_args_name: Text, this_variable_name: Text):
+    def __init__(
+        self,
+        loop_args_name: Text,
+        this_variable_name: Text,
+        loop_args_op_name: Text,
+    ):
         """
         If the user ran:
             with dsl.ParallelFor([{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]) as item:
@@ -111,7 +121,11 @@ class LoopArgumentVariable(dsl.PipelineParam):
             this_variable_name: the name of this subvariable, which is the name of the dict key that spawned
                 this subvariable.
         """
-        super().__init__(name=self.get_name(loop_args_name=loop_args_name, this_variable_name=this_variable_name))
+        super().__init__(
+            name=self.get_name(loop_args_name=loop_args_name,
+            this_variable_name=this_variable_name),
+            op_name=loop_args_op_name,
+        )
 
     @classmethod
     def get_name(cls, loop_args_name: Text, this_variable_name: Text) -> Text:

@@ -409,6 +409,7 @@ func TestToApiJobs(t *testing.T) {
 			},
 		},
 		MaxConcurrency: 2,
+		NoCatchup:      true,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "2",
 			PipelineName: "p2",
@@ -444,6 +445,7 @@ func TestToApiJobs(t *testing.T) {
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
 			MaxConcurrency: 2,
+			NoCatchup:      true,
 			Trigger: &api.Trigger{
 				Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
 					StartTime: &timestamp.Timestamp{Seconds: 2},
@@ -509,12 +511,16 @@ func TestToApiResourceReferences(t *testing.T) {
 			ReferenceName: "e1", ReferenceType: common.Experiment, Relationship: common.Owner},
 		{ResourceUUID: "run1", ResourceType: common.Run, ReferenceUUID: "job1",
 			ReferenceName: "j1", ReferenceType: common.Job, Relationship: common.Owner},
+		{ResourceUUID: "run1", ResourceType: common.Run, ReferenceUUID: "pipelineversion1",
+			ReferenceName: "k1", ReferenceType: common.PipelineVersion, Relationship: common.Owner},
 	}
 	expectedApiResourceReferences := []*api.ResourceReference{
 		{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "experiment1"},
 			Name: "e1", Relationship: api.Relationship_OWNER},
 		{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job1"},
 			Name: "j1", Relationship: api.Relationship_OWNER},
+		{Key: &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: "pipelineversion1"},
+			Name: "k1", Relationship: api.Relationship_OWNER},
 	}
 	assert.Equal(t, expectedApiResourceReferences, toApiResourceReferences(resourceReferences))
 }
