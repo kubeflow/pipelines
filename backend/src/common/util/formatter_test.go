@@ -28,6 +28,14 @@ const (
 	defaultUUID = "123e4567-e89b-12d3-a456-426655440000"
 )
 
+func New(errMsg string) Error {
+	uidv4, _ := uuid.NewV4() // skip error.
+	return Error{
+		ID:      uidv4.String(),
+		Message: errMsg,
+	}
+}
+
 func getDefaultCreatedAtSec() int64 {
 	return time.Date(2018, 8, 7, 6, 5, 4, 0, time.UTC).Unix()
 }
