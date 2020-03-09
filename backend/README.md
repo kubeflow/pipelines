@@ -15,7 +15,7 @@ commands target building and testing just the API server. `bazel build
 --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver/...` `bazel
 test --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver/...`
 
-## Building APIServer Image using Remote Build Execution
+## Building APIServer Image using Remote Build Execution ()
 
 If you are a dev in the Kubeflow Pipelines team, you can use
 [Remote Build Execution Service](https://cloud.google.com/sdk/gcloud/reference/alpha/remote-build-execution/)
