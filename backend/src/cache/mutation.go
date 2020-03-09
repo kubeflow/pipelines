@@ -90,7 +90,7 @@ func mutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) 
 func isValidPod(pod *corev1.Pod) bool {
 	annotations := pod.ObjectMeta.Annotations
 	if !isKFPArgoPod(&annotations) {
-		log.Printf("This pod is not created by KFP.")
+		log.Printf("This pod %s is not created by KFP.", pod.ObjectMeta.Name)
 		return false
 	}
 	containers := pod.Spec.Containers
