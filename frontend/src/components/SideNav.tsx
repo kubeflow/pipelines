@@ -136,11 +136,15 @@ export const css = stylesheet({
     opacity: 0,
     transition: 'opacity 0s',
     transitionDelay: '0s',
+    // guarantees info doesn't affect layout when hidden
+    overflow: 'hidden',
+    height: 0,
   },
   infoVisible: {
     opacity: 'initial',
     transition: 'opacity 0.2s',
     transitionDelay: '0.3s',
+    overflow: 'hidden',
   },
   label: {
     fontSize: fontsize.base,
