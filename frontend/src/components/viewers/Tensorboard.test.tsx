@@ -23,6 +23,11 @@ import { ReactWrapper, ShallowWrapper, shallow, mount } from 'enzyme';
 
 describe('Tensorboard', () => {
   let tree: ReactWrapper | ShallowWrapper;
+  const flushPromisesAndTimers = async () => {
+    jest.runOnlyPendingTimers();
+    await TestUtils.flushPromises();
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
@@ -107,10 +112,9 @@ describe('Tensorboard', () => {
     tree = shallow(<TensorboardViewer configs={[config]} />);
 
     await TestUtils.flushPromises();
-    jest.runOnlyPendingTimers();
-    await TestUtils.flushPromises();
-    expect(setInterval).toHaveBeenCalledTimes(1);
-    expect(setInterval).toHaveBeenCalledWith(expect.any(Function), 5000);
+    await flushPromisesAndTimers();
+    expect(Apis.isTensorboardPodReady).toHaveBeenCalledTimes(1);
+    expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apis/v1beta1/_proxy/test/address');
     expect(tree).toMatchSnapshot();
   });
 
@@ -284,18 +288,16 @@ describe('Tensorboard', () => {
     tree = mount(<TensorboardViewer configs={[config]} />);
 
     await TestUtils.flushPromises();
-    jest.runOnlyPendingTimers();
-    await TestUtils.flushPromises();
+    await flushPromisesAndTimers();
     tree.update();
-    expect(setInterval).toHaveBeenCalledTimes(1);
-    expect(setInterval).toHaveBeenCalledWith(expect.any(Function), 5000);
+    expect(Apis.isTensorboardPodReady).toHaveBeenCalledTimes(1);
+    expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apis/v1beta1/_proxy/podaddress');
+    expect(tree.findWhere(el => el.text() === 'Open Tensorboard').exists()).toBeTruthy();
     expect(
       tree
         .findWhere(
           el =>
-            el.text() === 'Open Tensorboard' &&
-            el.prop('title') ===
-              `Tensorboard is starting, and you may need to wait for a few minutes.`,
+            el.text() === 'Tensorboard is starting, and you may need to wait for a few minutes.',
         )
         .exists(),
     ).toBeTruthy();
@@ -303,15 +305,13 @@ describe('Tensorboard', () => {
 
     // After a while, it is ready and wait message is not shwon any more
     jest.spyOn(Apis, 'isTensorboardPodReady').mockImplementation(() => Promise.resolve(true));
-    jest.runOnlyPendingTimers();
-    await TestUtils.flushPromises();
+    await flushPromisesAndTimers();
     tree.update();
     expect(
       tree
         .findWhere(
           el =>
-            el.prop('title') ===
-            `Tensorboard is starting, and you may need to wait for a few minutes.`,
+            el.text() === `Tensorboard is starting, and you may need to wait for a few minutes.`,
         )
         .exists(),
     ).toEqual(false);

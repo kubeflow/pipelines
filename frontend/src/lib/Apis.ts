@@ -209,10 +209,7 @@ export class Apis {
    */
   public static async isTensorboardPodReady(path: string): Promise<boolean> {
     const resp = await fetch(path, { method: 'HEAD' });
-    if (resp.status === 200) {
-      return true;
-    }
-    return false;
+    return resp.ok;
   }
 
   /**

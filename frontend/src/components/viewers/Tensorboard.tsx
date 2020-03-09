@@ -140,14 +140,14 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 className={classes(commonCss.buttonAction, css.button)}
                 disabled={this.state.busy}
                 color={'primary'}
-                title={
-                  this.state.tensorboardReady
-                    ? ``
-                    : `Tensorboard is starting, and you may need to wait for a few minutes.`
-                }
               >
                 Open Tensorboard
               </Button>
+              {this.state.tensorboardReady ? (
+                ``
+              ) : (
+                <div>Tensorboard is starting, and you may need to wait for a few minutes.</div>
+              )}
             </a>
 
             <div>
