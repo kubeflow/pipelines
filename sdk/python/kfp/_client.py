@@ -484,7 +484,7 @@ class Client(object):
     Returns:
       A response object including a list of jobs and next page token.
     """
-    if recurrent==True: 
+    if recurrent is True: 
       response = self._job_api.list_jobs(page_token='', page_size=10, sort_by='',resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.JOB,filter='')
     else: 
       response =self._job_api.list_jobs(page_token='', page_size=10, sort_by='')
