@@ -487,7 +487,7 @@ class Client(object):
     if recurrent is True: 
       response = self._job_api.list_jobs(page_token='', page_size=10, sort_by='',resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.JOB,filter='')
     else: 
-      response =self._job_api.list_jobs(page_token='', page_size=10, sort_by='')
+      response = self._job_api.list_jobs(page_token='', page_size=10, sort_by='')
     return respone
 
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
