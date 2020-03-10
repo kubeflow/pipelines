@@ -31,7 +31,8 @@ implementation:
       --region, {inputValue: region},
       --database, {inputValue: database},
       --query, {inputValue: query},
-      --output, {inputValue: output_path}
+      --output, {inputValue: output_path},
+      --workgroup, {inputValue: workgroup}
     ]
     fileOutputs:
       output_path: /output.txt
