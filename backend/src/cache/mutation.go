@@ -89,22 +89,26 @@ func mutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) 
 
 func isValidPod(pod *corev1.Pod) bool {
 	annotations := pod.ObjectMeta.Annotations
-	if !isKFPArgoPod(&annotations) {
+	if annotations == nil || len(annotations) == 0 {
+		log.Printf("The annotation of this pod %s is empty.", pod.ObjectMeta.Name)
+		return false
+	}
+	if !isKFPArgoPod(&annotations, pod.ObjectMeta.Name) {
 		log.Printf("This pod %s is not created by KFP.", pod.ObjectMeta.Name)
 		return false
 	}
 	containers := pod.Spec.Containers
-	if isTFXPod(&containers) {
-		log.Printf("This pod is created by TFX pipelines.")
+	if containers != nil && len(containers) != 0 && isTFXPod(&containers) {
+		log.Printf("This pod %s is created by TFX pipelines.", pod.ObjectMeta.Name)
 		return false
 	}
 	return true
 }
 
-func isKFPArgoPod(annotations *map[string]string) bool {
+func isKFPArgoPod(annotations *map[string]string, podName string) bool {
 	// is argo pod or not
 	if _, exists := (*annotations)[ArgoWorkflowNodeName]; !exists {
-		log.Printf("This pod is not created by Argo.")
+		log.Printf("This pod %s is not created by Argo.", podName)
 		return false
 	}
 	// is KFP pod or not
@@ -119,7 +123,7 @@ func isKFPArgoPod(annotations *map[string]string) bool {
 func isTFXPod(containers *[]corev1.Container) bool {
 	var mainContainers []corev1.Container
 	for _, c := range *containers {
-		if c.Name == "main" {
+		if c.Name != "" && c.Name == "main" {
 			mainContainers = append(mainContainers, c)
 		}
 	}
