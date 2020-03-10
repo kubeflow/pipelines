@@ -101,14 +101,14 @@ class ResourceOp(BaseOp):
         ])
 
         if k8s_resource is None:
-            ValueError("You need to provide a k8s_resource.")
+            raise ValueError("You need to provide a k8s_resource.")
 
         if merge_strategy and action != "apply":
-            ValueError("You can't set merge_strategy when action != 'apply'")
+            raise ValueError("You can't set merge_strategy when action != 'apply'")
         
         # if action is delete, there should not be any outputs, success_condition, and failure_condition
         if action == "delete" and (success_condition or failure_condition or attribute_outputs):
-            ValueError("You can't set success_condition, failure_condition, or attribute_outputs when action == 'delete'")
+            raise ValueError("You can't set success_condition, failure_condition, or attribute_outputs when action == 'delete'")
 
         init_resource = {
             "action": action,
