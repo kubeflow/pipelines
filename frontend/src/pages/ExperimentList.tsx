@@ -30,7 +30,7 @@ import { ApiRun, RunStorageState } from '../apis/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
@@ -38,6 +38,7 @@ import { commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
 import { statusToIcon } from './Status';
 import Tooltip from '@material-ui/core/Tooltip';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface DisplayExperiment extends ApiExperiment {
   last5Runs?: ApiRun[];
@@ -51,7 +52,7 @@ interface ExperimentListState {
   selectedTab: number;
 }
 
-class ExperimentList extends Page<{}, ExperimentListState> {
+export class ExperimentList extends Page<{ namespace?: string }, ExperimentListState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -181,6 +182,8 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         request.pageSize,
         request.sortBy,
         request.filter,
+        this.props.namespace ? 'NAMESPACE' : undefined,
+        this.props.namespace || undefined,
       );
       displayExperiments = response.experiments || [];
       displayExperiments.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
@@ -267,4 +270,9 @@ class ExperimentList extends Page<{}, ExperimentListState> {
   }
 }
 
-export default ExperimentList;
+const EnhancedExperimentList: React.FC<PageProps> = props => {
+  const namespace = React.useContext(NamespaceContext);
+  return <ExperimentList {...props} namespace={namespace} />;
+};
+
+export default EnhancedExperimentList;
