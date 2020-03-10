@@ -207,15 +207,16 @@ steps:
 
 # Tag for Hosted - Tag to hosted folder with MKP friendly name
 - id:   'tagForHosted'
-  waitFor: ['parseMajorMinorVersion', 'buildFrontend', 'buildApiServer', 'buildViewerCrdController',
-            'buildPersistenceAgent', 'buildInverseProxyAgent', 'buildVisualizationServer',
+  waitFor: ['parseMajorMinorVersion', 'buildFrontend', 'buildApiServer', 'buildScheduledWorkflow',            
+            'buildViewerCrdController', 'buildPersistenceAgent', 'buildInverseProxyAgent', 'buildVisualizationServer',
+            'buildMetadataWriter', 'buildCacheServer', 'buildCacheDeployer', 'buildMetadataEnvoy',
             'buildMarketplaceDeployer']
   name: 'gcr.io/cloud-builders/docker'
   entrypoint: bash
   args:
   - -ceux
   - |
-    /workspace/release/tag_for_hosted.sh $PROJECT_ID $COMMIT_SHA $(cat /workspace/VERSION) $(cat /workspace/mm.ver)
+    /workspace/test/tag_for_hosted.sh $PROJECT_ID $COMMIT_SHA $(cat /workspace/VERSION) $(cat /workspace/mm.ver)
 
 images:
 # Images for the pipeline system itself

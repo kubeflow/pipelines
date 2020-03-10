@@ -1,7 +1,7 @@
 steps:
 - id:   'pullDeployer'
   name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/google/pipelines-test/deployer:${_MM_VERSION}']  
+  args: ['pull', 'gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA:${_MM_VERSION}']  
 - id: "verify"
   waitFor: ['pullDeployer']
   name: "gcr.io/cloud-marketplace-tools/k8s/dev:latest"
@@ -11,7 +11,7 @@ steps:
     - |
       gcloud container clusters get-credentials hosted-verify-test --zone us-central1-c --project ml-pipeline-test
       kubectl apply -f "https://raw.githubusercontent.com/GoogleCloudPlatform/marketplace-k8s-app-tools/master/crd/app-crd.yaml"
-      /scripts/verify --deployer="gcr.io/ml-pipeline/google/pipelines-test/deployer:${_MM_VERSION}" --wait_timeout="1800"
+      /scripts/verify --deployer="gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA:${_MM_VERSION}" --wait_timeout="1800"
      
 timeout: '3600s'
 options:
@@ -19,7 +19,3 @@ options:
 
 substitutions:
   _MM_VERSION: ''
-
-# TODO: create new cluster and handover name here. use existing cluster will hit image cache
-# kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user <GSA>
-# 
