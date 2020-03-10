@@ -21,8 +21,7 @@ version 0.21.2 by running `python3 -m pip install tfx==0.21.2`. After that, unde
 The compilation is done by invoking `kfp_runner.run(pipeline)` in the script.
 
 * `parameterized_tfx_oss.ipynb`:
-The notebook sample includes the installation of various dependencies as its first step. Especially,
-it depends on the latest released KFP and a nightly built TFX to leverage `TFX::RuntimeParameter`.
+The notebook sample includes the installation of various dependencies as its first step.
 
 # Permission
 
