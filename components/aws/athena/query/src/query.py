@@ -24,16 +24,29 @@ def get_client(region=None):
   client = boto3.client('athena', region_name=region)
   return client
 
-def query(client, query, database, output):
-  response = client.start_query_execution(
-      QueryString=query,
-      QueryExecutionContext={
-          'Database': database
-          },
-      ResultConfiguration={
-          'OutputLocation': output,
-          }
-      )
+def query(client, query, database, output, workgroup=None):
+
+  if workgroup:
+    response = client.start_query_execution(
+        QueryString=query,
+        QueryExecutionContext={
+            'Database': database
+            },
+        ResultConfiguration={
+            'OutputLocation': output,
+            },
+        WorkGroup=workgroup    
+        )
+  else: 
+    response = client.start_query_execution(
+        QueryString=query,
+        QueryExecutionContext={
+            'Database': database
+            },
+        ResultConfiguration={
+            'OutputLocation': output,
+            } 
+        )      
 
   execution_id = response['QueryExecutionId']
   logging.info('Execution ID: %s', execution_id)
@@ -76,6 +89,8 @@ def main():
   parser.add_argument('--query', type=str, required=True, help='The SQL query statements to be executed in Athena.')
   parser.add_argument('--output', type=str, required=False,
       help='The location in Amazon S3 where your query results are stored, such as s3://path/to/query/bucket/')
+  parser.add_argument('--workgroup', type=str, required=False,
+      help='Optional argument to provide Athena workgroup')    
 
   args = parser.parse_args()
 
