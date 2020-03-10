@@ -108,7 +108,7 @@ def main():
     args = parser.parse_args()
 
     client = get_client(args.region)
-    results = query(client, args.query, args.database, args.output)
+    results = query(client, args.query, args.database, args.output, args.workgroup)
 
     results["output"] = args.output
     logging.info("Athena results: %s", results)
