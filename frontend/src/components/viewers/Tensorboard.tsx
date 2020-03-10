@@ -55,6 +55,8 @@ export interface TensorboardViewerConfig extends ViewerConfig {
 
 interface TensorboardViewerProps {
   configs: TensorboardViewerConfig[];
+  // Interval in ms. If not specified, default to 5000.
+  intervalOfCheckingTensorboardPodStatus?: number;
 }
 
 interface TensorboardViewerState {
@@ -62,12 +64,16 @@ interface TensorboardViewerState {
   deleteDialogOpen: boolean;
   podAddress: string;
   tensorflowVersion: string;
+  // When podAddress is not null, we need to further tell whether the TensorBoard pod is accessible or not
+  tensorboardReady: boolean;
 }
 
 // TODO(jingzhang36): we'll later parse Tensorboard version from mlpipeline-ui-metadata.json file.
 const DEFAULT_TENSORBOARD_VERSION = '2.0.0';
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
+  timerID: NodeJS.Timeout;
+
   constructor(props: any) {
     super(props);
 
@@ -76,6 +82,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       deleteDialogOpen: false,
       podAddress: '',
       tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
+      tensorboardReady: false,
     };
   }
 
@@ -89,6 +96,14 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
   public componentDidMount(): void {
     this._checkTensorboardApp();
+    this.timerID = setInterval(
+      () => this._checkTensorboardPodStatus(),
+      this.props.intervalOfCheckingTensorboardPodStatus || 5000,
+    );
+  }
+
+  public componentWillUnmount(): void {
+    clearInterval(this.timerID);
   }
 
   public handleVersionSelect = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
@@ -128,6 +143,11 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
               >
                 Open Tensorboard
               </Button>
+              {this.state.tensorboardReady ? (
+                ``
+              ) : (
+                <div>Tensorboard is starting, and you may need to wait for a few minutes.</div>
+              )}
             </a>
 
             <div>
@@ -235,6 +255,18 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
   }
 
+  private async _checkTensorboardPodStatus(): Promise<void> {
+    // If pod address is not null and tensorboard pod doesn't seem to be read, pull status again
+    if (this.state.podAddress && !this.state.tensorboardReady) {
+      // Remove protocol prefix bofore ":" from pod address if any.
+      Apis.isTensorboardPodReady(
+        'apis/v1beta1/_proxy/' + this.state.podAddress.replace(/(^\w+:|^)\/\//, ''),
+      ).then(ready => {
+        this.setState(({ tensorboardReady }) => ({ tensorboardReady: tensorboardReady || ready }));
+      });
+    }
+  }
+
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
       const { podAddress, tfVersion } = await Apis.getTensorboardApp(this._buildUrl());
@@ -253,7 +285,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
         encodeURIComponent(this._buildUrl()),
         encodeURIComponent(this.state.tensorflowVersion),
       );
-      this.setState({ busy: false }, () => {
+      this.setState({ busy: false, tensorboardReady: false }, () => {
         this._checkTensorboardApp();
       });
     });
@@ -269,6 +301,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
         deleteDialogOpen: false,
         podAddress: '',
         tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
+        tensorboardReady: false,
       });
     });
   };
