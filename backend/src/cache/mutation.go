@@ -58,7 +58,7 @@ func mutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) 
 
 	// Pod filtering to only cache KFP argo pods except TFX pods
 	if !isValidPod(&pod) {
-		log.Printf("Not a valid pod")
+		log.Printf("This pod %s is not a valid pod.", pod.ObjectMeta.Name)
 		return nil, nil
 	}
 
