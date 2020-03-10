@@ -214,6 +214,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
 
+	response = db.Model(&model.Experiment{}).RemoveIndex("Name")
+	if response.Error != nil {
+		glog.Fatalf("Failed to drop unique key on experiment name. Error: %s", response.Error)
+	}
+
 	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext not null")
 	if response.Error != nil {
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
@@ -328,7 +333,7 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", os.Getenv(pipelineBucketName))
-	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelineFolder", os.Getenv(pipelinePath))
+	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", os.Getenv(pipelinePath))
 	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,

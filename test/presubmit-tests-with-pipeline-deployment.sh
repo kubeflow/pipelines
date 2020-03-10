@@ -92,15 +92,15 @@ echo "KFP images cloudbuild jobs submitted"
 time source "${DIR}/deploy-cluster.sh"
 echo "cluster deployed"
 
-time source "${DIR}/check-build-image-status.sh"
-echo "KFP images built"
-
 # Install Argo CLI and test-runner service account
 time source "${DIR}/install-argo.sh"
 echo "argo installed"
 
+time source "${DIR}/check-build-image-status.sh"
+echo "KFP images built"
+
 time source "${DIR}/deploy-pipeline-lite.sh"
-echo "KFP lite deployed"
+echo "KFP standalone deployed"
 
 echo "submitting argo workflow to run tests for commit ${COMMIT_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
@@ -108,7 +108,6 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 ${IMAGE_BUILDER_ARG} \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
--p cluster-type="${CLUSTER_TYPE}" \
 -n ${NAMESPACE} \
 --serviceaccount test-runner \
 -o name
