@@ -95,17 +95,17 @@ steps:
          '/workspace/backend/metadata_writer/Dockerfile', '/workspace']
   waitFor: ["-"]
 - id: 'buildCacheServer'
-name: 'gcr.io/cloud-builders/docker'
-args: ['build', '-t', 'gcr.io/$PROJECT_ID/cache-server:$COMMIT_SHA',
-        '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
-        '/workspace/backend/Dockerfile.cacheserver', '/workspace']
-waitFor: ["-"]
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/cache-server:$COMMIT_SHA',
+          '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
+          '/workspace/backend/Dockerfile.cacheserver', '/workspace']
+  waitFor: ["-"]
 - id: 'buildCacheDeployer'
-name: 'gcr.io/cloud-builders/docker'
-args: ['build', '-t', 'gcr.io/$PROJECT_ID/cache-deployer:$COMMIT_SHA',
-        '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
-        '/workspace/backend/src/cache/deployer/Dockerfile', '/workspace']
-waitFor: ["-"]
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/cache-deployer:$COMMIT_SHA',
+          '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
+          '/workspace/backend/src/cache/deployer/Dockerfile', '/workspace']
+  waitFor: ["-"]
 
 # Build marketplace deployer
 - id: 'buildMarketplaceDeployer'
