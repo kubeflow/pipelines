@@ -205,7 +205,7 @@ export class Apis {
   }
 
   /**
-   * Check if the underlying Tensorboard pod is actually up, given
+   * Check if the underlying Tensorboard pod is actually up, given the pod address
    */
   public static async isTensorboardPodReady(path: string): Promise<boolean> {
     const resp = await fetch(path, { method: 'HEAD' });
