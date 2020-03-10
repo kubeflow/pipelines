@@ -66,3 +66,22 @@ class TestVolumeOp(unittest.TestCase):
             )
         
         kfp.compiler.Compiler()._compile(my_pipeline)
+
+    def test_delete(self):
+        """Test delete method."""
+        vop = VolumeOp(name="vop", resource_name="vop", size="1Gi")
+
+        delete_vop = vop.delete()
+
+        self.assertEqual(delete_vop.resource.action, "delete")
+        self.assertEqual(delete_vop.attribute_outputs, {})
+        self.assertEqual(delete_vop.outputs, {})
+        self.assertEqual(delete_vop.output, None)
+        expected_name = PipelineParam(name="name", op_name=vop.name)
+        expected_resource = {"apiVersion": "v1",
+                             "kind": "PersistentVolumeClaim",
+                             "metadata": {"name": expected_name}}
+        self.assertEqual(delete_vop.k8s_resource, expected_resource)
+
+        with self.assertRaises(ValueError):
+            delete_vop.delete()
