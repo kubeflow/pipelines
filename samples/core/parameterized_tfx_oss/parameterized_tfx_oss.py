@@ -18,10 +18,10 @@ import os
 from typing import Text
 
 import kfp
+import tensorflow_model_analysis as tfma
 from tfx.components.evaluator.component import Evaluator
 from tfx.components.example_gen.csv_example_gen.component import CsvExampleGen
 from tfx.components.example_validator.component import ExampleValidator
-from tfx.components.model_validator.component import ModelValidator
 from tfx.components.pusher.component import Pusher
 from tfx.components.schema_gen.component import SchemaGen
 from tfx.components.statistics_gen.component import StatisticsGen
@@ -30,7 +30,6 @@ from tfx.components.transform.component import Transform
 from tfx.orchestration import data_types
 from tfx.orchestration import pipeline
 from tfx.orchestration.kubeflow import kubeflow_dag_runner
-from tfx.proto import evaluator_pb2
 from tfx.utils.dsl_utils import external_input
 from tfx.proto import pusher_pb2
 from tfx.proto import trainer_pb2
@@ -39,8 +38,7 @@ from tfx.proto import trainer_pb2
 # Path to the module file, should be a GCS path.
 _taxi_module_file_param = data_types.RuntimeParameter(
     name='module-file',
-    default=
-    'gs://ml-pipeline-playground/tfx_taxi_simple/modules/taxi_utils.py',
+    default='gs://ml-pipeline-playground/tfx_taxi_simple/modules/taxi_utils.py',
     ptype=Text,
 )
 
@@ -97,24 +95,56 @@ def _create_pipeline(
       train_args=trainer_pb2.TrainArgs(num_steps=10),
       eval_args=trainer_pb2.EvalArgs(num_steps=5),
   )
+  # Set the TFMA config for Model Evaluation and Validation.
+  eval_config = tfma.EvalConfig(
+      model_specs=[
+          # Using signature 'eval' implies the use of an EvalSavedModel. To use
+          # a serving model remove the signature to defaults to 'serving_default'
+          # and add a label_key.
+          tfma.ModelSpec(signature_name='eval')
+      ],
+      metrics_specs=[
+          tfma.MetricsSpec(
+              # The metrics added here are in addition to those saved with the
+              # model (assuming either a keras model or EvalSavedModel is used).
+              # Any metrics added into the saved model (for example using
+              # model.compile(..., metrics=[...]), etc) will be computed
+              # automatically.
+              metrics=[tfma.MetricConfig(class_name='ExampleCount')],
+              # To add validation thresholds for metrics saved with the model,
+              # add them keyed by metric name to the thresholds map.
+              thresholds={
+                  'binary_accuracy':
+                      tfma.MetricThreshold(
+                          value_threshold=tfma.GenericValueThreshold(
+                              lower_bound={'value': 0.5}
+                          ),
+                          change_threshold=tfma.GenericChangeThreshold(
+                              direction=tfma.MetricDirection.HIGHER_IS_BETTER,
+                              absolute={'value': -1e-10}
+                          )
+                      )
+              }
+          )
+      ],
+      slicing_specs=[
+          # An empty slice spec means the overall slice, i.e. the whole dataset.
+          tfma.SlicingSpec(),
+          # Data can be sliced along a feature column. In this case, data is
+          # sliced along feature column trip_start_hour.
+          tfma.SlicingSpec(feature_keys=['trip_start_hour'])
+      ]
+  )
+
   model_analyzer = Evaluator(
       examples=example_gen.outputs['examples'],
       model=trainer.outputs['model'],
-      feature_slicing_spec=evaluator_pb2.FeatureSlicingSpec(
-          specs=[
-              evaluator_pb2.SingleSlicingSpec(
-                  column_for_slicing=['trip_start_hour']
-              )
-          ]
-      ),
-  )
-  model_validator = ModelValidator(
-      examples=example_gen.outputs['examples'], model=trainer.outputs['model']
+      eval_config=eval_config,
   )
 
   pusher = Pusher(
       model=trainer.outputs['model'],
-      model_blessing=model_validator.outputs['blessing'],
+      model_blessing=model_analyzer.outputs['blessing'],
       push_destination=pusher_pb2.PushDestination(
           filesystem=pusher_pb2.PushDestination.Filesystem(
               base_directory=os.path.
@@ -128,7 +158,7 @@ def _create_pipeline(
       pipeline_root=pipeline_root,
       components=[
           example_gen, statistics_gen, infer_schema, validate_stats, transform,
-          trainer, model_analyzer, model_validator, pusher
+          trainer, model_analyzer, pusher
       ],
       enable_cache=enable_cache,
   )
@@ -147,7 +177,7 @@ if __name__ == '__main__':
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
-      tfx_image='tensorflow/tfx:0.21.1',
+      tfx_image='tensorflow/tfx:0.21.2',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
       output_filename=__file__ + '.yaml', config=config

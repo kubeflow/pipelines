@@ -11,6 +11,6 @@ pandas==0.24.2
 pyarrow==0.15.1
 scikit_learn==0.21.2
 tensorflow-metadata==0.21.1
-tensorflow-model-analysis==0.21.1
+tensorflow-model-analysis==0.21.5
 tensorflow-data-validation==0.21.1
 tornado==6.0.2

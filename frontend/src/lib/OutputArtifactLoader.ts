@@ -341,8 +341,7 @@ export class OutputArtifactLoader {
           `slicing_metrics_view = tfma.view.render_slicing_metrics(eval_result, slicing_spec=slicing_spec)`,
           `view = io.StringIO()`,
           `embed_minimal_html(view, views=[slicing_metrics_view], title='Slicing Metrics')`,
-          `html = view.getvalue().replace('dist/embed-amd.js" crossorigin="anonymous"></script>', 'dist/embed-amd.js" crossorigin="anonymous" data-jupyter-widgets-cdn="https://cdn.jsdelivr.net/gh/Bobgy/model-analysis@kfp/tensorflow_model_analysis/notebook/jupyter/js/dist/" crossorigin="anonymous"></script>')`,
-          `display(HTML(html))`,
+          `display(HTML(view.getvalue()))`,
         ];
         return buildArtifactViewer(script);
       }),
