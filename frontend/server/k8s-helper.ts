@@ -148,7 +148,7 @@ export async function getTensorboardInstance(
         ) {
           const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
           const tfImageParts = viewer.body.spec.tensorboardSpec.tensorflowImage.split(':', 1);
-          const tfVersion = (tfImageParts.length == 2) ? tfImageParts[1] : '';
+          const tfVersion = tfImageParts.length == 2 ? tfImageParts[1] : '';
           return { podAddress: address, tfVersion: tfVersion };
         } else {
           return { podAddress: '', tfVersion: '' };

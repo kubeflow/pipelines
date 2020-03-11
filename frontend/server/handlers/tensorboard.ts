@@ -48,7 +48,10 @@ export const getTensorboardHandler: Handler = async (req, res) => {
  * @param podTemplateSpec Custom pod template specification to be applied on the
  * tensorboard pod.
  */
-export function getCreateTensorboardHandler(tfImageName: string, podTemplateSpec?: object): Handler {
+export function getCreateTensorboardHandler(
+  tfImageName: string,
+  podTemplateSpec?: object,
+): Handler {
   return async (req, res) => {
     if (!k8sHelper.isInCluster) {
       res.status(500).send('Cannot talk to Kubernetes master');
