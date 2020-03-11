@@ -19,6 +19,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"strings"
 
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -26,9 +27,12 @@ import (
 )
 
 const (
+	KFPAnnotation        string = "pipelines.kubeflow.org"
+	ArgoWorkflowNodeName string = "workflows.argoproj.io/node-name"
 	ArgoWorkflowTemplate string = "workflows.argoproj.io/template"
 	ExecutionKey         string = "pipelines.kubeflow.org/execution_cache_key"
 	AnnotationPath       string = "/metadata/annotations"
+	TFXPodSuffix         string = "tfx/orchestration/kubeflow/container_entrypoint.py"
 )
 
 var (
@@ -50,6 +54,12 @@ func mutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) 
 	pod := corev1.Pod{}
 	if _, _, err := universalDeserializer.Decode(raw, nil, &pod); err != nil {
 		return nil, fmt.Errorf("could not deserialize pod object: %v", err)
+	}
+
+	// Pod filtering to only cache KFP argo pods except TFX pods
+	if !isValidPod(&pod) {
+		log.Printf("This pod %s is not a valid pod.", pod.ObjectMeta.Name)
+		return nil, nil
 	}
 
 	var patches []patchOperation
@@ -75,4 +85,51 @@ func mutatePodIfCached(req *v1beta1.AdmissionRequest) ([]patchOperation, error) 
 	})
 
 	return patches, nil
+}
+
+func isValidPod(pod *corev1.Pod) bool {
+	annotations := pod.ObjectMeta.Annotations
+	if annotations == nil || len(annotations) == 0 {
+		log.Printf("The annotation of this pod %s is empty.", pod.ObjectMeta.Name)
+		return false
+	}
+	if !isKFPArgoPod(&annotations, pod.ObjectMeta.Name) {
+		log.Printf("This pod %s is not created by KFP.", pod.ObjectMeta.Name)
+		return false
+	}
+	containers := pod.Spec.Containers
+	if containers != nil && len(containers) != 0 && isTFXPod(&containers) {
+		log.Printf("This pod %s is created by TFX pipelines.", pod.ObjectMeta.Name)
+		return false
+	}
+	return true
+}
+
+func isKFPArgoPod(annotations *map[string]string, podName string) bool {
+	// is argo pod or not
+	if _, exists := (*annotations)[ArgoWorkflowNodeName]; !exists {
+		log.Printf("This pod %s is not created by Argo.", podName)
+		return false
+	}
+	// is KFP pod or not
+	for k := range *annotations {
+		if strings.Contains(k, KFPAnnotation) {
+			return true
+		}
+	}
+	return false
+}
+
+func isTFXPod(containers *[]corev1.Container) bool {
+	var mainContainers []corev1.Container
+	for _, c := range *containers {
+		if c.Name != "" && c.Name == "main" {
+			mainContainers = append(mainContainers, c)
+		}
+	}
+	if len(mainContainers) != 1 {
+		return false
+	}
+	mainContainer := mainContainers[0]
+	return len(mainContainer.Command) != 0 && strings.HasSuffix(mainContainer.Command[len(mainContainer.Command)-1], TFXPodSuffix)
 }

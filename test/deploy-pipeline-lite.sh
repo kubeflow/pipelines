@@ -19,9 +19,13 @@ set -ex
 # Env inputs:
 # * $GCR_IMAGE_BASE_DIR
 # * $GCR_IMAGE_TAG
-# * ENABLE_WORKLOAD_IDENTITY
+# * $KFP_DEPLOY_RELEASE
+# * $ENABLE_WORKLOAD_IDENTITY
 GCR_IMAGE_TAG=${GCR_IMAGE_TAG:-latest}
 ENABLE_WORKLOAD_IDENTITY=${ENABLE_WORKLOAD_IDENTITY:-false}
+
+KFP_MANIFEST_DIR="${DIR}/manifests"
+pushd ${KFP_MANIFEST_DIR}
 
 if ! which kustomize; then
   # Download kustomize cli tool
@@ -33,37 +37,65 @@ if ! which kustomize; then
   PATH=${PATH}:${TOOL_DIR}
 fi
 
-# delete argo first because KFP comes with argo too
-kubectl delete namespace argo --wait || echo "No argo installed"
+if [ -z "$KFP_DEPLOY_RELEASE" ]; then
+  echo "Deploying KFP in working directory..."
+  KFP_MANIFEST_DIR=${DIR}/manifests
 
-KFP_MANIFEST_DIR=${DIR}/manifests
+  pushd ${KFP_MANIFEST_DIR}/crd
+  kustomize build . | kubectl apply -f -
+  kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+  popd
 
-pushd ${KFP_MANIFEST_DIR}/crd
-kustomize build . | kubectl apply -f -
-popd
+  pushd ${KFP_MANIFEST_DIR}/dev
 
-kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+  # This is the recommended approach to do this.
+  # reference: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/eschewedFeatures.md#build-time-side-effects-from-cli-args-or-env-variables
+  kustomize edit set image gcr.io/ml-pipeline/api-server=${GCR_IMAGE_BASE_DIR}/api-server:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/persistenceagent=${GCR_IMAGE_BASE_DIR}/persistenceagent:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/scheduledworkflow=${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/frontend=${GCR_IMAGE_BASE_DIR}/frontend:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/viewer-crd-controller=${GCR_IMAGE_BASE_DIR}/viewer-crd-controller:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/visualization-server=${GCR_IMAGE_BASE_DIR}/visualization-server:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/inverse-proxy-agent=${GCR_IMAGE_BASE_DIR}/inverse-proxy-agent:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/metadata-writer=${GCR_IMAGE_BASE_DIR}/metadata-writer:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline-test/cache-server=${GCR_IMAGE_BASE_DIR}/cache-server:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline-test/cache-deployer=${GCR_IMAGE_BASE_DIR}/cache-deployer:${GCR_IMAGE_TAG}
+  cat kustomization.yaml
 
-pushd ${KFP_MANIFEST_DIR}/dev
+  kustomize build . | kubectl apply -f -
+  popd
+else
+  KFP_LATEST_RELEASE=$(git tag --sort=v:refname | tail -1)
+  echo "Deploying KFP release $KFP_LATEST_RELEASE"
 
-# This is the recommended approach to do this.
-# reference: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/eschewedFeatures.md#build-time-side-effects-from-cli-args-or-env-variables
-kustomize edit set image gcr.io/ml-pipeline/api-server=${GCR_IMAGE_BASE_DIR}/api-server:${GCR_IMAGE_TAG}
-kustomize edit set image gcr.io/ml-pipeline/persistenceagent=${GCR_IMAGE_BASE_DIR}/persistenceagent:${GCR_IMAGE_TAG}
-kustomize edit set image gcr.io/ml-pipeline/scheduledworkflow=${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${GCR_IMAGE_TAG}
-kustomize edit set image gcr.io/ml-pipeline/frontend=${GCR_IMAGE_BASE_DIR}/frontend:${GCR_IMAGE_TAG}
-kustomize edit set image gcr.io/ml-pipeline/viewer-crd-controller=${GCR_IMAGE_BASE_DIR}/viewer-crd-controller:${GCR_IMAGE_TAG}
-kustomize edit set image gcr.io/ml-pipeline/visualization-server=${GCR_IMAGE_BASE_DIR}/visualization-server:${GCR_IMAGE_TAG}
-kustomize edit set image gcr.io/ml-pipeline/inverse-proxy-agent=${GCR_IMAGE_BASE_DIR}/inverse-proxy-agent:${GCR_IMAGE_TAG}
-kustomize edit set image gcr.io/ml-pipeline/metadata-writer=${GCR_IMAGE_BASE_DIR}/metadata-writer:${GCR_IMAGE_TAG}
-kustomize edit set image gcr.io/ml-pipeline-test/cache-server=${GCR_IMAGE_BASE_DIR}/cache-server:${GCR_IMAGE_TAG}
-kustomize edit set image gcr.io/ml-pipeline-test/cache-deployer=${GCR_IMAGE_BASE_DIR}/cache-deployer:${GCR_IMAGE_TAG}
-cat kustomization.yaml
+  # temporarily checkout last release tag
+  git checkout $KFP_LATEST_RELEASE
 
-kustomize build . | kubectl apply -f -
+  pushd ${KFP_MANIFEST_DIR}/crd
+  kustomize build . | kubectl apply -f -
+  kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+  popd
+
+  pushd ${KFP_MANIFEST_DIR}/dev
+  kustomize build . | kubectl apply -f -
+  popd
+
+  # go back to previous commit
+  git checkout -
+fi
 
 # show current info
 echo "Status of pods after kubectl apply"
+kubectl get pods -n ${NAMESPACE}
+
+# wait for all deployments to be successful
+# note, after we introduce statefulsets or daemonsets, we need to wait their rollout status here too
+for deployment in $(kubectl get deployments -n ${NAMESPACE} -o name)
+do
+  kubectl rollout status $deployment -n ${NAMESPACE}
+done
+
+echo "Status of pods after rollouts are successful"
 kubectl get pods -n ${NAMESPACE}
 
 if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
