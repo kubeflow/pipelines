@@ -16,13 +16,12 @@ Please refer to inline comments for the purpose of each step in both samples.
 # Compilation
 * `parameterized_tfx_oss.py`: 
 In order to successfully compile the Python sample, you'll need to have a TFX installation at 
-version 0.21.0 by running `python3 -m pip install tfx==0.21.0`. After that, under the sample dir run
+version 0.21.2 by running `python3 -m pip install tfx==0.21.2`. After that, under the sample dir run
 `python3 parameterized_tfx_oss.py` to compile the TFX pipeline into KFP pipeline package.
 The compilation is done by invoking `kfp_runner.run(pipeline)` in the script.
 
 * `parameterized_tfx_oss.ipynb`:
-The notebook sample includes the installation of various dependencies as its first step. Especially,
-it depends on the latest released KFP and a nightly built TFX to leverage `TFX::RuntimeParameter`.
+The notebook sample includes the installation of various dependencies as its first step.
 
 # Permission
 
