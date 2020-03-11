@@ -35,7 +35,18 @@ var (
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
+				ArgoWorkflowNodeName: "test_node",
 				ArgoWorkflowTemplate: "test_template",
+				KFPAnnotation:        "test_kfp",
+			},
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				corev1.Container{
+					Name:    "main",
+					Image:   "test_image",
+					Command: []string{"python"},
+				},
 			},
 		},
 	}
@@ -67,6 +78,12 @@ func EncodePod(pod *corev1.Pod) []byte {
 	return reqBodyBytes.Bytes()
 }
 
+func GetFakeRequestFromPod(pod *corev1.Pod) *v1beta1.AdmissionRequest {
+	fakeRequest := fakeAdmissionRequest
+	fakeRequest.Object.Raw = EncodePod(pod)
+	return &fakeRequest
+}
+
 func TestMutatePodIfCachedWithErrorPodResource(t *testing.T) {
 	mockAdmissionRequest := &v1beta1.AdmissionRequest{
 		Resource: metav1.GroupVersionResource{
@@ -84,6 +101,31 @@ func TestMutatePodIfCachedWithDecodeError(t *testing.T) {
 	patchOperation, err := mutatePodIfCached(&invalidAdmissionRequest)
 	assert.Nil(t, patchOperation)
 	assert.Contains(t, err.Error(), "could not deserialize pod object")
+}
+
+func TestMutatePodIfCachedWithNonKFPPod(t *testing.T) {
+	nonKFPPod := *fakePod
+	delete(nonKFPPod.Annotations, KFPAnnotation)
+	patchOperation, err := mutatePodIfCached(GetFakeRequestFromPod(&nonKFPPod))
+	assert.Nil(t, patchOperation)
+	assert.Nil(t, err)
+}
+
+func TestMutatePodIfCachedWithNonArgoPod(t *testing.T) {
+	nonArgoPod := *fakePod
+	delete(nonArgoPod.Annotations, ArgoWorkflowNodeName)
+	patchOperation, err := mutatePodIfCached(GetFakeRequestFromPod(&nonArgoPod))
+	assert.Nil(t, patchOperation)
+	assert.Nil(t, err)
+}
+
+func TestMutatePodIfCachedWithTFXPod(t *testing.T) {
+	tfxPod := *fakePod
+	mainContainerCommand := append(tfxPod.Spec.Containers[0].Command, "/tfx-src/"+TFXPodSuffix)
+	tfxPod.Spec.Containers[0].Command = mainContainerCommand
+	patchOperation, err := mutatePodIfCached(GetFakeRequestFromPod(&tfxPod))
+	assert.Nil(t, patchOperation)
+	assert.Nil(t, err)
 }
 
 func TestMutatePodIfCached(t *testing.T) {
