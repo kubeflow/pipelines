@@ -29,8 +29,9 @@ import { Page } from './Page';
 
 const DEMO_PIPELINES: string[] = SAMPLE_CONFIG.slice(0, 4);
 const DEMO_PIPELINES_ID_MAP = {
-  control: 3,
-  data: 2,
+  control: 4,
+  data: 3,
+  iris: 2,
   tfx: 1,
   xgboost: 0,
 };
@@ -145,6 +146,7 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
           {PAGE_CONTENT_MD({
             control: this.state.links[DEMO_PIPELINES_ID_MAP.control],
             data: this.state.links[DEMO_PIPELINES_ID_MAP.data],
+            iris: this.state.links[DEMO_PIPELINES_ID_MAP.iris],
             tfx: this.state.links[DEMO_PIPELINES_ID_MAP.tfx],
             xgboost: this.state.links[DEMO_PIPELINES_ID_MAP.xgboost],
           })}
