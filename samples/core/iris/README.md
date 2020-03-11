@@ -15,7 +15,7 @@ functionalities:
 
 # Compilation
 In order to successfully compile the Python sample, it is recommended to use
-`tfx>=0.21.1` and `tensorflow-model-analysis>=0.21.5`.
+`tfx>=0.21.2`.
 
 # Permission
 
