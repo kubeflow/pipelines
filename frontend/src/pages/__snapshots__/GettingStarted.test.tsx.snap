@@ -182,13 +182,13 @@ Array [
     undefined,
     10,
     undefined,
-    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BDemo%5D%20XGBoost%20-%20Training%20with%20Confusion%20Matrix%22%7D%5D%7D",
+    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BDemo%5D%20XGBoost%20-%20Training%20with%20confusion%20matrix%22%7D%5D%7D",
   ],
   Array [
     undefined,
     10,
     undefined,
-    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BDemo%5D%20TFX%20-%20Taxi%20Tip%20Prediction%20Model%20Trainer%22%7D%5D%7D",
+    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BDemo%5D%20TFX%20-%20Taxi%20tip%20prediction%20model%20trainer%22%7D%5D%7D",
   ],
   Array [
     undefined,
