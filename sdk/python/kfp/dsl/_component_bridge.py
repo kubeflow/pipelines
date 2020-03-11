@@ -14,8 +14,9 @@
 
 import copy
 from typing import Any, Mapping
-from .structures import ComponentSpec, ComponentReference
-from ._components import _default_component_name, _resolve_command_line_and_paths
+from ..components.structures import ComponentSpec, ComponentReference
+from ..components._components import _default_component_name, _resolve_command_line_and_paths
+from ..components._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
 from .. import dsl
 
 
@@ -40,7 +41,6 @@ def _create_container_op_from_component_and_arguments(
     )
 
     #Renaming outputs to conform with ContainerOp/Argo
-    from ._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
     output_names = (resolved_cmd.output_paths or {}).keys()
     output_name_to_python = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
     output_paths_for_container_op = {output_name_to_python[name]: path for name, path in resolved_cmd.output_paths.items()}
