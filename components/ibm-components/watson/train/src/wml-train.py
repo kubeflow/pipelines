@@ -35,6 +35,7 @@ def train(args):
     wml_author_name = args.author_name if args.author_name else 'default-author'
 
     wml_runtime_version_v4 = wml_framework_version + '-py' + wml_runtime_version
+    print("wml_runtime_version_v4: ", wml_runtime_version_v4)
 
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
