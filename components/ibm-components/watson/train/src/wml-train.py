@@ -35,8 +35,7 @@ def train(args):
     wml_author_name = args.author_name if args.author_name else 'default-author'
 
     wml_runtime_version_v4 = wml_framework_version + '-py' + wml_runtime_version
-    print("wml_runtime_version_v4: ", wml_runtime_version_v4)
-
+    
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
     wml_apikey = getSecret("/app/secrets/wml_apikey")
@@ -157,6 +156,7 @@ def train(args):
     training_id = client.training.get_uid(client.training.run(meta_props=metadata))
     print("training_id", client.training.get_details(training_id))
     print("get status", client.training.get_status(training_id))
+    print("wml_runtime_version_v4: ", wml_runtime_version_v4)
 
     # for v4
     run_details = client.training.get_details(training_id)
