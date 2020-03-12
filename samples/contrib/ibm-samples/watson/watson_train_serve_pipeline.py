@@ -67,10 +67,10 @@ def kfp_wml_pipeline(
     # op3 - this operation stores the model trained above
     wml_store = store_op(
                    wml_train.outputs['run_uid'],
-                   model_name, 
-                   framework,
-                   framework_version,
-                   runtime_version
+                   model_name,
+                   framework=framework,
+                   framework_version=framework_version,
+                   runtime_version=run_definition
                   ).apply(params.use_ai_pipeline_params(secret_name)).set_image_pull_policy('Always')
 
     # op4 - this operation deploys the model to a web service and run scoring with the payload in the cloud object store
