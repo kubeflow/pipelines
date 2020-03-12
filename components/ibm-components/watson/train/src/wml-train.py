@@ -34,6 +34,8 @@ def train(args):
     wml_run_name = args.run_name if args.run_name else 'python-tensorflow-run'
     wml_author_name = args.author_name if args.author_name else 'default-author'
 
+    wml_runtime_version = wml_framework_name + '-py' + wml_runtime_version
+    
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
     wml_apikey = getSecret("/app/secrets/wml_apikey")
