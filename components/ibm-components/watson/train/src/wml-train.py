@@ -84,21 +84,21 @@ def train(args):
     doc = {
         "doc_type": "pipeline",
         "version": "2.0",
-        "primary_pipeline": "dlaas_only",
+        "primary_pipeline": wml_framework_name,
         "pipelines": [{
-            "id": "dlaas_only",
+            "id": wml_framework_name,
             "runtime_ref": "hybrid",
             "nodes": [{
                 "id": "training",
                 "type": "model_node",
                 "op": "dl_train",
-                "runtime_ref": "DL",
+                "runtime_ref": wml_run_name,
                 "inputs": [],
                 "outputs": [],
                 "parameters": {
                     "name": "tf-mnist",
-                    "description": "Simple MNIST model implemented in Tensorflow for DL",
-                    "command": "python3 convolutional_network.py --trainImagesFile ${DATA_DIR}/train-images-idx3-ubyte.gz --trainLabelsFile ${DATA_DIR}/train-labels-idx1-ubyte.gz --testImagesFile ${DATA_DIR}/t10k-images-idx3-ubyte.gz  --testLabelsFile ${DATA_DIR}/t10k-labels-idx1-ubyte.gz --learningRate 0.001 --trainingIters 400000",
+                    "description": wml_run_definition,
+                    "command": wml_execution_command,
                     "training_lib_href": "/v4/libraries/"+custom_library_uid,
                     "compute": {
                         "name": "k80",
@@ -107,16 +107,9 @@ def train(args):
                 }
             }]
         }],
-        "schemas": [{
-            "id": "schema1",
-            "fields": [{
-                "name": "text",
-                "type": "string"
-            }]
-        }],
         "runtimes": [{
-            "id": "DL",
-            "name": "tensorflow",
+            "id": wml_run_name,
+            "name": wml_framework_name,
             "version": "1.14-py3.6"
         }]
     }
@@ -151,13 +144,6 @@ def train(args):
             },
             "location": {
                 "bucket": cos_input_bucket
-            },
-            "schema": {
-                    "id": "id123_schema",
-                    "fields": [{
-                        "name": "text",
-                        "type": "string"
-                    }]
             }
         }],
         client.training.ConfigurationMetaNames.PIPELINE_UID: pipeline_id
