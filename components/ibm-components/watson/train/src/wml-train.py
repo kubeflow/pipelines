@@ -157,7 +157,7 @@ def train(args):
     print("training_id", client.training.get_details(training_id))
     print("get status", client.training.get_status(training_id))
     print("wml_runtime_version_v4: ", wml_runtime_version_v4)
-
+    print("wml_runtime_version:", wml_runtime_version)
     # for v4
     run_details = client.training.get_details(training_id)
     run_uid = training_id
