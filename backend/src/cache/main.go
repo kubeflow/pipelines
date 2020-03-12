@@ -100,7 +100,7 @@ func WatchPods(namespaceToWatch string, clientManager ClientManager) {
 	for {
 		listOptions := metav1.ListOptions{
 			Watch:         true,
-			LabelSelector: "workflows.argoproj.io/workflow",
+			LabelSelector: server.CacheIDLabelKey,
 		}
 		watcher, err := clientset.CoreV1().Pods(namespaceToWatch).Watch(listOptions)
 
@@ -110,17 +110,20 @@ func WatchPods(namespaceToWatch string, clientManager ClientManager) {
 
 		for event := range watcher.ResultChan() {
 			pod := reflect.ValueOf(event.Object).Interface().(*corev1.Pod)
+			// if event.Type == watch.Error {
+			// 	continue
+			// }
 			log.Printf((*pod).GetName())
+			log.Printf(string(event.Type))
 
-			executionKey := pod.ObjectMeta.Annotations[server.ExecutionKey]
-			if executionKey != "" {
-				execution, err := clientManager.CacheStore().GetExecutionCache(executionKey)
-				if err != nil {
-					log.Println("Get execution error: " + err.Error())
-					continue
-				}
-				log.Printf(execution.ExecutionTemplate)
+			if pod.ObjectMeta.Labels["workflows.argoproj.io/completed"] == "true" {
+				log.Println("Completed!!")
 			}
+			if pod.Status.Phase == corev1.PodSucceeded {
+				log.Println("succeeded!!")
+			}
+			// executionKey := pod.ObjectMeta.Annotations[server.ExecutionKey]
+
 		}
 	}
 }

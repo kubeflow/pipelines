@@ -16,12 +16,12 @@ package storage
 
 import (
 	"bytes"
-	"database/sql"
 	"fmt"
 	"strings"
 
 	"github.com/VividCortex/mysqlerr"
 	"github.com/go-sql-driver/mysql"
+	"github.com/jinzhu/gorm"
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
@@ -29,12 +29,12 @@ import (
 // difference between MySQL, which is used in production, and Sqlite, which is used
 // for unit testing.
 type DB struct {
-	*sql.DB
+	*gorm.DB
 	SQLDialect
 }
 
 // NewDB creates a DB
-func NewDB(db *sql.DB, dialect SQLDialect) *DB {
+func NewDB(db *gorm.DB, dialect SQLDialect) *DB {
 	return &DB{db, dialect}
 }
 

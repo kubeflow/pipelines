@@ -61,6 +61,7 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 	db, err := gorm.Open(driverName, arg)
 	util.TerminateIfError(err)
 
+	db.DropTableIfExists(&model.ExecutionCache{})
 	// Create table
 	response := db.AutoMigrate(&model.ExecutionCache{})
 	if response.Error != nil {
@@ -68,12 +69,40 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 	}
 
 	var tableNames []string
-	db.Raw(`show tables`).Pluck("Tables_in_mlpipeline", &tableNames)
+	db.Raw(`show tables`).Pluck("Tables_in_caches", &tableNames)
 	for _, tableName := range tableNames {
 		log.Printf(tableName)
 	}
 
-	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
+	// testExecution := &model.ExecutionCache{
+	// 	ExecutionCacheKey: "12abceeeeeeeeeeee",
+	// 	ExecutionTemplate: "testTemplate",
+	// 	ExecutionOutput:   "testoutput",
+	// 	MaxCacheStaleness: -1,
+	// }
+	// db.Delete(testExecution)
+	// db.NewRecord(testExecution)
+	// err = db.Create(&testExecution).Error
+	// if err != nil {
+	// 	log.Printf(err.Error())
+	// }
+	// // var getExecution model.ExecutionCache
+	// row := db.Table("execution_caches").Where("ExecutionCacheKey = ?", "12abceeeeeeeeeeee").Select("*").Row()
+	// var executionCacheKey, executionTemplate, executionOutput string
+	// var id, maxCacheStaleness, startedAtInSec, endedAtInSec int64
+	// row.Scan(
+	// 	&id,
+	// 	&executionCacheKey,
+	// 	&executionTemplate,
+	// 	&executionOutput,
+	// 	&maxCacheStaleness,
+	// 	&startedAtInSec,
+	// 	&endedAtInSec,
+	// )
+	// // db.First(&getExecution, "ExecutionCacheKey = ?", "123abceeeeeeeeeeee")
+	// log.Printf("Get execution: %s", executionTemplate)
+
+	return storage.NewDB(db, storage.NewMySQLDialect())
 }
 
 func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) string {

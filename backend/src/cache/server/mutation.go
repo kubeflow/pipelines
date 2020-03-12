@@ -30,7 +30,9 @@ import (
 const (
 	ArgoWorkflowTemplate string = "workflows.argoproj.io/template"
 	ExecutionKey         string = "pipelines.kubeflow.org/execution_cache_key"
+	CacheIDLabelKey      string = "pipelines.kubeflow.org/cache_id"
 	AnnotationPath       string = "/metadata/annotations"
+	LabelPath            string = "/metadata/labels"
 	ExecutionOutputs     string = "workflows.argoproj.io/outputs"
 )
 
@@ -75,36 +77,34 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	annotations[ExecutionKey] = executionHashKey
 
-	// Check cache existance
+	testExecution := model.ExecutionCache{
+		ExecutionCacheKey: "123abceeeeeeeeeeee",
+		ExecutionTemplate: "testTemplate",
+		ExecutionOutput:   "testoutput",
+		MaxCacheStaleness: -1,
+		StartedAtInSec:    -1,
+		EndedAtInSec:      -1,
+	}
+	log.Println("Origin: " + testExecution.ExecutionTemplate)
+	var executionCreated *model.ExecutionCache
+	executionCreated, err := clientMgr.CacheStore().CreateExecutionCache(&testExecution)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	log.Println("Created: " + (*executionCreated).ExecutionTemplate)
+	var getExectuion *model.ExecutionCache
+	getExectuion, err = clientMgr.CacheStore().GetExecutionCache("123abceeeeeeeeeeee")
+	if err != nil {
+		log.Printf(err.Error())
+	}
+	log.Println(getExectuion)
+
 	cachedExecution, err := clientMgr.CacheStore().GetExecutionCache(executionHashKey)
 	if err != nil {
 		log.Println(err.Error())
-		// return nil, nil
 	}
-	var cachedOutput string
 	if cachedExecution != nil {
-		cachedOutput = cachedExecution.GetExecutionOutput()
-		if cachedOutput != "" {
-			annotations[ExecutionOutputs] = cachedOutput
-			pod.Spec.Containers = []corev1.Container{}
-		}
-		log.Println(cachedExecution.ExecutionTemplate)
-	}
-	log.Println("pod outputs: " + annotations[ExecutionOutputs])
-	// executionOutputs, _ := annotations[ExecutionOutputs]
-	if cachedExecution == nil {
-		executionToCache := model.ExecutionCache{
-			ExecutionCacheKey: executionHashKey,
-			ExecutionTemplate: template,
-			MaxCacheStaleness: -1,
-		}
-		clientMgr.CacheStore().DeleteExecutionCache(executionHashKey)
-		_, err := clientMgr.CacheStore().CreateExecutionCache(&executionToCache)
-		if err != nil {
-			log.Println(err.Error())
-			// return nil, nil
-		}
-		log.Println("A new cache entry was created.")
+		log.Println("Cached output: " + cachedExecution.ExecutionOutput)
 	}
 
 	// Add executionKey to pod.metadata.annotations
@@ -113,6 +113,18 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		Path:  AnnotationPath,
 		Value: annotations,
 	})
+
+	// Add cache_id label
+	labels := pod.ObjectMeta.Labels
+	_, exists = labels[CacheIDLabelKey]
+	if !exists {
+		labels[CacheIDLabelKey] = ""
+		patches = append(patches, patchOperation{
+			Op:    OperationTypeAdd,
+			Path:  LabelPath,
+			Value: labels,
+		})
+	}
 
 	return patches, nil
 }

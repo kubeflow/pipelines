@@ -1,12 +1,11 @@
 package storage
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
 
-	"database/sql"
-
-	sq "github.com/Masterminds/squirrel"
 	model "github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
@@ -23,11 +22,8 @@ type ExecutionCacheStore struct {
 }
 
 func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string) (*model.ExecutionCache, error) {
-	sql, args, err := sq.Select("*").From("execution_caches").Where(sq.Eq{"executionCacheKey": executionCacheKey}).Limit(1).ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
-	}
-	r, err := s.db.Query(sql, args...)
+	r, err := s.db.Table("execution_caches").Where("ExecutionCacheKey = ?", executionCacheKey).Rows()
+
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
 	}
@@ -47,8 +43,9 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache,
 	var executionCaches []*model.ExecutionCache
 	for rows.Next() {
 		var executionCacheKey, executionTemplate, executionOutput string
-		var maxCacheStaleness, startedAtInSec, endedAtInSec int64
+		var id, maxCacheStaleness, startedAtInSec, endedAtInSec int64
 		err := rows.Scan(
+			&id,
 			&executionCacheKey,
 			&executionTemplate,
 			&executionOutput,
@@ -58,7 +55,10 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache,
 		if err != nil {
 			return executionCaches, nil
 		}
+		log.Println("Get id: " + strconv.FormatInt(id, 10))
+		log.Println("Get template: " + executionTemplate)
 		executionCaches = append(executionCaches, &model.ExecutionCache{
+			ID:                id,
 			ExecutionCacheKey: executionCacheKey,
 			ExecutionTemplate: executionTemplate,
 			ExecutionOutput:   executionOutput,
@@ -71,48 +71,37 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache,
 }
 
 func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.ExecutionCache) (*model.ExecutionCache, error) {
+	log.Println("Input cache: " + executionCache.ExecutionCacheKey)
 	newExecutionCache := *executionCache
-	now := s.time.Now().Unix()
+	log.Println("Nex cache key: " + newExecutionCache.ExecutionCacheKey)
+	now := s.time.Now().UTC().Unix()
 
 	newExecutionCache.StartedAtInSec = now
 	newExecutionCache.MaxCacheStaleness = -1
-	sql, args, err := sq.
-		Insert("execution_caches").
-		SetMap(
-			sq.Eq{
-				"ExecutionCacheKey": newExecutionCache.ExecutionCacheKey,
-				"ExecutionTemplate": newExecutionCache.ExecutionTemplate,
-				"ExecutionOutput":   "testoutput",
-				"MaxCacheStaleness": newExecutionCache.MaxCacheStaleness,
-				"StartedAtInSec":    newExecutionCache.StartedAtInSec,
-				"EndedAtInSec":      newExecutionCache.StartedAtInSec}).
-		ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create query to insert execution cache to execution cache table")
-	}
-	_, err = s.db.Exec(sql, args...)
-	if err != nil {
-		log.Println(err.Error())
+
+	ok := s.db.NewRecord(newExecutionCache)
+	if !ok {
 		return nil, fmt.Errorf("Failed to create a new execution cache")
 	}
-	return &newExecutionCache, nil
+	var rowInsert model.ExecutionCache
+	d := s.db.Create(&newExecutionCache).Scan(&rowInsert)
+	if d.Error != nil {
+		return nil, d.Error
+	}
+	log.Println("Cache entry created with cache key: " + newExecutionCache.ExecutionCacheKey)
+	log.Println(newExecutionCache.ExecutionTemplate)
+	log.Println(rowInsert.ID)
+	return &rowInsert, nil
 }
 
-func (s *ExecutionCacheStore) DeleteExecutionCache(executionCacheKey string) error {
-	sql, args, err := sq.Delete("execution_caches").Where(sq.Eq{"ExecutionCacheKey": executionCacheKey}).ToSql()
-	if err != nil {
-		return err
-	}
-	_, err = s.db.Exec(sql, args...)
-	if err != nil {
-		log.Println(err.Error())
-		return fmt.Errorf("Failed to delete cache entry")
-	}
-	// _, err = tx.Exec(sql, args...)
+func (s *ExecutionCacheStore) DeleteExecutionCache(executionCacheID string) error {
+	// _, err = s.db.Exec(sql, args...)
+	s.db.Delete(&model.ExecutionCache{}, "ID = ?", executionCacheID)
 	// if err != nil {
-	// 	tx.Rollback()
-	// 	return fmt.Errorf("Failed to delete cache entry %s from table", executionCacheKey)
+	// 	log.Println(err.Error())
+	// 	return fmt.Errorf("Failed to delete cache entry")
 	// }
+
 	return nil
 }
 
