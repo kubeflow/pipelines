@@ -31,7 +31,7 @@ outputs:
   - {name: training_uid,      description: 'Training Location UID for the Watson Machine Learning training-runs'}
 implementation:
   container:
-    image: docker.io/kevinyu98/wml-train:v0.5
+    image: docker.io/kevinyu98/wml-train:v0.6
     command: ['python3']
     args: [
       /app/wml-train.py,
