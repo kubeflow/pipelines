@@ -36,7 +36,7 @@ def kfp_wml_pipeline(
     train_code='tf-model.zip',
     execution_command='\'python3 convolutional_network.py --trainImagesFile ${DATA_DIR}/train-images-idx3-ubyte.gz --trainLabelsFile ${DATA_DIR}/train-labels-idx1-ubyte.gz --testImagesFile ${DATA_DIR}/t10k-images-idx3-ubyte.gz --testLabelsFile ${DATA_DIR}/t10k-labels-idx1-ubyte.gz --learningRate 0.001 --trainingIters 20000\'',
     framework= 'tensorflow',
-    framework_version = '1.13',
+    framework_version = '1.14',
     runtime = 'python',
     runtime_version = '3.6',
     run_definition = 'wml-tensorflow-definition',
@@ -59,7 +59,7 @@ def kfp_wml_pipeline(
                    framework=framework,
                    framework_version=framework_version,
                    runtime=runtime,
-                   runtime_version=runtime_version,
+                   runtime_version=framework_version,
                    run_definition=run_definition,
                    run_name=run_name
                    ).apply(params.use_ai_pipeline_params(secret_name)).set_image_pull_policy('Always')
@@ -67,7 +67,10 @@ def kfp_wml_pipeline(
     # op3 - this operation stores the model trained above
     wml_store = store_op(
                    wml_train.outputs['run_uid'],
-                   model_name
+                   model_name, 
+                   framework,
+                   framework_version,
+                   runtime_version
                   ).apply(params.use_ai_pipeline_params(secret_name)).set_image_pull_policy('Always')
 
     # op4 - this operation deploys the model to a web service and run scoring with the payload in the cloud object store

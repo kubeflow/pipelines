@@ -18,13 +18,16 @@ def getSecret(secret):
     f.close()
     return res
 
-def store(wml_model_name, run_uid):
+def store(wml_model_name, run_uid, framework, framework_version, runtime_version):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
 
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
     wml_instance_id = getSecret("/app/secrets/wml_instance_id")
     wml_apikey = getSecret("/app/secrets/wml_apikey")
+
+    runtime_uid = framework + '_' + framework_version + '-py' + runtime_version,
+    runtime_type = framework + '_' + framework_version
 
     # set up the WML client
     wml_credentials = {
@@ -37,8 +40,8 @@ def store(wml_model_name, run_uid):
     # store the model
     meta_props_tf = {
      client.repository.ModelMetaNames.NAME: wml_model_name,
-     client.repository.ModelMetaNames.RUNTIME_UID : "tensorflow_1.14-py3.6",
-     client.repository.ModelMetaNames.TYPE: "tensorflow_1.14"
+     client.repository.ModelMetaNames.RUNTIME_UID : runtime_uid,
+     client.repository.ModelMetaNames.TYPE: runtime_type
     }
 
     model_details = client.repository.store_model(run_uid, meta_props=meta_props_tf)
@@ -58,5 +61,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model-name', type=str, required=True)
     parser.add_argument('--run-uid', type=str, required=True)
+    parser.add_argument('--framework', type=str, required=True)
+    parser.add_argument('--framework-version', type=str, required=True)
+    parser.add_argument('--runtime-version', type=str, required=True)
     args = parser.parse_args()
-    store(args.model_name, args.run_uid)
+    store(args.model_name, args.run_uid, args.framework, args.framework_version, args.runtime_version)

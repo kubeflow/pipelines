@@ -110,7 +110,7 @@ def train(args):
         "runtimes": [{
             "id": wml_run_name,
             "name": wml_framework_name,
-            "version": "1.14-py3.6"
+            "version": wml_runtime_version
         }]
     }
 
