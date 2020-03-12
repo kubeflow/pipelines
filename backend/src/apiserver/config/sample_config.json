@@ -21,7 +21,7 @@
   },
   {
     "name": "[Demo] TFX - Iris classification pipeline",
-    "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/iris). Example pipeline that classifies Iris flower subspecies.",
+    "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/iris). Example pipeline that classifies Iris flower subspecies and how to use native Keras within TFX.",
     "file": "/samples/core/iris/iris.py.yaml"
   }
 ]
