@@ -122,6 +122,8 @@ def train(args):
     }
     pipeline_id = client.pipelines.get_uid(client.repository.store_pipeline( meta_props=metadata))
         
+    client.pipelines.get_details(pipeline_id)
+
     # start the training run for v4
     metadata = {
         client.training.ConfigurationMetaNames.TRAINING_RESULTS_REFERENCE: {
@@ -159,9 +161,9 @@ def train(args):
     run_details = client.training.get_details(training_id)
     run_uid = training_id
 
-    with open("/tmp/run_uid", "w") as f:
-        f.write(run_uid)
-    f.close()
+    #with open("/tmp/run_uid", "w") as f:
+    #    f.write(run_uid)
+    #f.close()
 
     # print logs
     client.training.monitor_logs(run_uid)
@@ -175,6 +177,10 @@ def train(args):
         status = client.training.get_status( run_uid )
         #print("status: ", status)
     print(status)
+
+    with open("/tmp/run_uid", "w") as f:
+        f.write(run_uid)
+    f.close()
 
     # Get training details
     training_details = client.training.get_details(run_uid)
