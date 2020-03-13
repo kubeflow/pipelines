@@ -108,7 +108,7 @@ def _create_pipeline(
       module_file=_module_file_param
   )
 
-  # Uses user-provided Python function that implements a model using TF-Learn.
+  # Uses user-provided Python function that implements a model using Keras.
   trainer = Trainer(
       module_file=_module_file_param,
       custom_executor_spec=executor_spec.ExecutorClassSpec(GenericExecutor),
@@ -180,8 +180,6 @@ def _create_pipeline(
       )
   )
 
-  # TODO(numerology): Add pusher and model validator.
-
   return pipeline.Pipeline(
       pipeline_name=pipeline_name,
       pipeline_root=pipeline_root,
@@ -196,7 +194,7 @@ def _create_pipeline(
 if __name__ == '__main__':
   absl.logging.set_verbosity(absl.logging.INFO)
   # Make sure the version of TFX image used is consistent with the version of
-  # TFX SDK. Here we use tfx:0.21.1 image.
+  # TFX SDK. Here we use tfx:0.21.2 image.
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
