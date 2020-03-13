@@ -25,7 +25,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
-
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
@@ -87,34 +86,6 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 	for _, tableName := range tableNames {
 		log.Printf(tableName)
 	}
-
-	// testExecution := &model.ExecutionCache{
-	// 	ExecutionCacheKey: "12abceeeeeeeeeeee",
-	// 	ExecutionTemplate: "testTemplate",
-	// 	ExecutionOutput:   "testoutput",
-	// 	MaxCacheStaleness: -1,
-	// }
-	// db.Delete(testExecution)
-	// db.NewRecord(testExecution)
-	// err = db.Create(&testExecution).Error
-	// if err != nil {
-	// 	log.Printf(err.Error())
-	// }
-	// // var getExecution model.ExecutionCache
-	// row := db.Table("execution_caches").Where("ExecutionCacheKey = ?", "12abceeeeeeeeeeee").Select("*").Row()
-	// var executionCacheKey, executionTemplate, executionOutput string
-	// var id, maxCacheStaleness, startedAtInSec, endedAtInSec int64
-	// row.Scan(
-	// 	&id,
-	// 	&executionCacheKey,
-	// 	&executionTemplate,
-	// 	&executionOutput,
-	// 	&maxCacheStaleness,
-	// 	&startedAtInSec,
-	// 	&endedAtInSec,
-	// )
-	// // db.First(&getExecution, "ExecutionCacheKey = ?", "123abceeeeeeeeeeee")
-	// log.Printf("Get execution: %s", executionTemplate)
 
 	return storage.NewDB(db, storage.NewMySQLDialect())
 }

@@ -17,11 +17,11 @@ package server
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
 
-	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,8 +36,9 @@ const (
 	CacheIDLabelKey      string = "pipelines.kubeflow.org/cache_id"
 	AnnotationPath       string = "/metadata/annotations"
 	LabelPath            string = "/metadata/labels"
-	ExecutionOutputs     string = "workflows.argoproj.io/outputs"
+	ArgoWorkflowOutputs  string = "workflows.argoproj.io/outputs"
 	TFXPodSuffix         string = "tfx/orchestration/kubeflow/container_entrypoint.py"
+	ArchiveLocationKey   string = "archiveLocation"
 )
 
 var (
@@ -80,34 +81,13 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	}
 
 	// Generate the executionHashKey based on pod.metadata.annotations.workflows.argoproj.io/template
-	hash := sha256.New()
-	hash.Write([]byte(template))
-	md := hash.Sum(nil)
-	executionHashKey = hex.EncodeToString(md)
+	executionHashKey, err := generateCacheKeyFromTemplate(template)
+	if err != nil {
+		log.Printf("Unable to generate cache key for pod %s : %s", pod.ObjectMeta.Name, err.Error())
+		return patches, nil
+	}
 
 	annotations[ExecutionKey] = executionHashKey
-
-	testExecution := model.ExecutionCache{
-		ExecutionCacheKey: "123abceeeeeeeeeeee",
-		ExecutionTemplate: "testTemplate",
-		ExecutionOutput:   "testoutput",
-		MaxCacheStaleness: -1,
-		StartedAtInSec:    -1,
-		EndedAtInSec:      -1,
-	}
-	log.Println("Origin: " + testExecution.ExecutionTemplate)
-	var executionCreated *model.ExecutionCache
-	executionCreated, err := clientMgr.CacheStore().CreateExecutionCache(&testExecution)
-	if err != nil {
-		log.Println(err.Error())
-	}
-	log.Println("Created: " + (*executionCreated).ExecutionTemplate)
-	var getExectuion *model.ExecutionCache
-	getExectuion, err = clientMgr.CacheStore().GetExecutionCache("123abceeeeeeeeeeee")
-	if err != nil {
-		log.Printf(err.Error())
-	}
-	log.Println(getExectuion)
 
 	cachedExecution, err := clientMgr.CacheStore().GetExecutionCache(executionHashKey)
 	if err != nil {
@@ -124,7 +104,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		Value: annotations,
 	})
 
-	// Add cache_id label
+	// Add cache_id label key
 	labels := pod.ObjectMeta.Labels
 	_, exists = labels[CacheIDLabelKey]
 	if !exists {
@@ -137,6 +117,33 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	}
 
 	return patches, nil
+}
+
+func generateCacheKeyFromTemplate(template string) (string, error) {
+	var templateMap map[string]interface{}
+	b := []byte(template)
+	err := json.Unmarshal(b, &templateMap)
+	if err != nil {
+		return "", err
+	}
+
+	// template[archiveLocation] needs to be removed when calculating cache key.
+	// Because archiveLocation.key is different in every single run.
+	_, exists := templateMap[ArchiveLocationKey]
+	if exists {
+		log.Println("ArchiveLocation exists in template.")
+		delete(templateMap, ArchiveLocationKey)
+	}
+	b, err = json.Marshal(templateMap)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.New()
+	hash.Write(b)
+	md := hash.Sum(nil)
+	executionHashKey := hex.EncodeToString(md)
+
+	return executionHashKey, nil
 }
 
 func isValidPod(pod *corev1.Pod) bool {

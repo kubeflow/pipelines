@@ -29,7 +29,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-cmp v0.3.1
-	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
+	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
 	github.com/google/uuid v1.0.0
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect
