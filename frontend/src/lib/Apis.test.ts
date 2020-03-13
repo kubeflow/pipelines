@@ -26,6 +26,17 @@ const fetchSpy = (response: string) => {
   return spy;
 };
 
+const failedFetchSpy = (response: string) => {
+  const spy = jest.fn(() =>
+    Promise.resolve({
+      ok: false,
+      text: () => response,
+    }),
+  );
+  window.fetch = spy;
+  return spy;
+};
+
 describe('Apis', () => {
   it('hosts a singleton experimentServiceApi', () => {
     expect(Apis.experimentServiceApi).toBe(Apis.experimentServiceApi);
@@ -181,5 +192,19 @@ describe('Apis', () => {
         method: 'POST',
       },
     );
+  });
+
+  it('checks if Tensorboard pod is ready', async () => {
+    const spy = fetchSpy('');
+    const ready = await Apis.isTensorboardPodReady('apis/v1beta1/_proxy/pod_address');
+    expect(ready).toBe(true);
+    expect(spy).toHaveBeenCalledWith('apis/v1beta1/_proxy/pod_address', { method: 'HEAD' });
+  });
+
+  it('checks if Tensorboard pod is not ready', async () => {
+    const spy = failedFetchSpy('');
+    const ready = await Apis.isTensorboardPodReady('apis/v1beta1/_proxy/pod_address');
+    expect(ready).toBe(false);
+    expect(spy).toHaveBeenCalledWith('apis/v1beta1/_proxy/pod_address', { method: 'HEAD' });
   });
 });

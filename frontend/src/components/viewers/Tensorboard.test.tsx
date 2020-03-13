@@ -23,8 +23,14 @@ import { ReactWrapper, ShallowWrapper, shallow, mount } from 'enzyme';
 
 describe('Tensorboard', () => {
   let tree: ReactWrapper | ShallowWrapper;
+  const flushPromisesAndTimers = async () => {
+    jest.runOnlyPendingTimers();
+    await TestUtils.flushPromises();
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
   });
 
   afterEach(async () => {
@@ -102,9 +108,13 @@ describe('Tensorboard', () => {
     const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
     const getAppMock = () => Promise.resolve({ podAddress: 'test/address', tfVersion: '1.14.0' });
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
+    jest.spyOn(Apis, 'isTensorboardPodReady').mockImplementation(() => Promise.resolve(true));
     tree = shallow(<TensorboardViewer configs={[config]} />);
 
     await TestUtils.flushPromises();
+    await flushPromisesAndTimers();
+    expect(Apis.isTensorboardPodReady).toHaveBeenCalledTimes(1);
+    expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apis/v1beta1/_proxy/test/address');
     expect(tree).toMatchSnapshot();
   });
 
@@ -265,5 +275,45 @@ describe('Tensorboard', () => {
 
     expect(tree.findWhere(el => el.text() === 'Open Tensorboard').exists()).toBeTruthy();
     expect(tree.findWhere(el => el.text() === 'Delete Tensorboard').exists()).toBeTruthy();
+  });
+
+  it('asks user to wait when Tensorboard status is not ready', async () => {
+    const getAppMock = jest.fn(() =>
+      Promise.resolve({ podAddress: 'podaddress', tfVersion: '1.14.0' }),
+    );
+    jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
+    jest.spyOn(Apis, 'isTensorboardPodReady').mockImplementation(() => Promise.resolve(false));
+    jest.spyOn(Apis, 'deleteTensorboardApp').mockImplementation(jest.fn(() => Promise.resolve('')));
+    const config = { type: PlotType.TENSORBOARD, url: 'http://test/url' };
+    tree = mount(<TensorboardViewer configs={[config]} />);
+
+    await TestUtils.flushPromises();
+    await flushPromisesAndTimers();
+    tree.update();
+    expect(Apis.isTensorboardPodReady).toHaveBeenCalledTimes(1);
+    expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apis/v1beta1/_proxy/podaddress');
+    expect(tree.findWhere(el => el.text() === 'Open Tensorboard').exists()).toBeTruthy();
+    expect(
+      tree
+        .findWhere(
+          el =>
+            el.text() === 'Tensorboard is starting, and you may need to wait for a few minutes.',
+        )
+        .exists(),
+    ).toBeTruthy();
+    expect(tree.findWhere(el => el.text() === 'Delete Tensorboard').exists()).toBeTruthy();
+
+    // After a while, it is ready and wait message is not shwon any more
+    jest.spyOn(Apis, 'isTensorboardPodReady').mockImplementation(() => Promise.resolve(true));
+    await flushPromisesAndTimers();
+    tree.update();
+    expect(
+      tree
+        .findWhere(
+          el =>
+            el.text() === `Tensorboard is starting, and you may need to wait for a few minutes.`,
+        )
+        .exists(),
+    ).toEqual(false);
   });
 });

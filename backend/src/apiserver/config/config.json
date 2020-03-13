@@ -9,7 +9,7 @@
     "AccessKey": "minio",
     "SecretAccessKey": "minio123",
     "BucketName": "mlpipeline",
-    "PipelineFolder": "pipelines"
+    "PipelinePath": "pipelines"
   },
   "InitConnectionTimeout": "6m",
   "DefaultPipelineRunnerServiceAccount": "pipeline-runner"

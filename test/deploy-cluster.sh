@@ -18,8 +18,10 @@ set -ex
 
 # Env inputs:
 # * COMMIT_SHA - decides TEST_CLUSTER's name
+# * TEST_CLUSTER_PREFIX - decides default TEST_CLUSTER naming
 # * TEST_CLUSTER - [optional] specify to reuse existing TEST_CLUSTER
-TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
+DEFAULT_TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
+TEST_CLUSTER_PREFIX=${TEST_CLUSTER_PREFIX:-${DEFAULT_TEST_CLUSTER_PREFIX}}
 TEST_CLUSTER_DEFAULT=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${COMMIT_SHA:0:7}-${RANDOM}
 TEST_CLUSTER=${TEST_CLUSTER:-${TEST_CLUSTER_DEFAULT}}
 ENABLE_WORKLOAD_IDENTITY=${ENABLE_WORKLOAD_IDENTITY:-false}
@@ -69,7 +71,7 @@ else
   NODE_POOL_CONFIG_ARG="--num-nodes=2 --machine-type=n1-standard-8 \
     --enable-autoscaling --max-nodes=8 --min-nodes=2"
   # Use new kubernetes master to improve workload identity stability.
-  KUBERNETES_VERSION_ARG="--cluster-version=1.14.8-gke.33"
+  KUBERNETES_VERSION_ARG="--cluster-version=1.14.10-gke.17"
   if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
     WI_ARG="--identity-namespace=$PROJECT.svc.id.goog"
     SCOPE_ARG=

@@ -662,6 +662,8 @@ spec:
                   fieldPath: metadata.namespace
             - name: DEFAULTPIPELINERUNNERSERVICEACCOUNT
               value: 'pipeline-runner'
+            - name: OBJECTSTORECONFIG_SECURE
+              value: "false"
             # Following environment variables are only needed when using Cloud SQL and GCS.
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME

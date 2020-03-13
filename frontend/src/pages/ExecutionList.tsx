@@ -219,7 +219,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
               getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
                 getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
                 getResourceProperty(execution, ExecutionCustomProperties.RUN_ID, true),
-              getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
+              getResourceProperty(execution, ExecutionProperties.NAME) ||
+                getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
                 getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true),
               getResourceProperty(execution, ExecutionProperties.STATE),
               execution.getId(),
