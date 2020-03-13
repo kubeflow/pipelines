@@ -31,9 +31,6 @@ spec:
               
               _outputs = consume(**_parsed_args)
               
-              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-                  _outputs = [_outputs]
-              
               _output_serializers = [
               
               ]
@@ -75,9 +72,6 @@ spec:
               _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-              
-              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-                  _outputs = [_outputs]
               
               _output_serializers = [
               
@@ -121,9 +115,6 @@ spec:
               
               _outputs = consume(**_parsed_args)
               
-              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-                  _outputs = [_outputs]
-              
               _output_serializers = [
               
               ]
@@ -165,9 +156,6 @@ spec:
               _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-              
-              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-                  _outputs = [_outputs]
               
               _output_serializers = [
               
@@ -211,9 +199,6 @@ spec:
               
               _outputs = consume(**_parsed_args)
               
-              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-                  _outputs = [_outputs]
-              
               _output_serializers = [
               
               ]
@@ -256,9 +241,6 @@ spec:
               
               _outputs = consume(**_parsed_args)
               
-              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-                  _outputs = [_outputs]
-              
               _output_serializers = [
               
               ]
@@ -300,9 +282,6 @@ spec:
               _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-              
-              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-                  _outputs = [_outputs]
               
               _output_serializers = [
               
@@ -507,8 +486,7 @@ spec:
               
               _outputs = produce_list_of_dicts(**_parsed_args)
               
-              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-                  _outputs = [_outputs]
+              _outputs = [_outputs]
               
               _output_serializers = [
                   _serialize_json,
@@ -570,8 +548,7 @@ spec:
               
               _outputs = produce_list_of_ints(**_parsed_args)
               
-              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-                  _outputs = [_outputs]
+              _outputs = [_outputs]
               
               _output_serializers = [
                   _serialize_json,
@@ -633,8 +610,7 @@ spec:
               
               _outputs = produce_list_of_strings(**_parsed_args)
               
-              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-                  _outputs = [_outputs]
+              _outputs = [_outputs]
               
               _output_serializers = [
                   _serialize_json,
@@ -690,8 +666,7 @@ spec:
               
               _outputs = produce_str(**_parsed_args)
               
-              if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-                  _outputs = [_outputs]
+              _outputs = [_outputs]
               
               _output_serializers = [
                   _serialize_str,
