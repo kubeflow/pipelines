@@ -32,9 +32,14 @@ inputs:
   - name: pwd
     type: String
     description: 'The password of the Presto.'
+  - name: output
+    description: 'The path or name of the emitted output.'
+outputs:
+  - name: output
+    description: 'The path or name of the emitted output.'
 implementation:
   container:
-    image: docker.io/mkavi/kubeflow-pipeline-presto:20200311
+    image: docker.io/mkavi/kubeflow-pipeline-presto:latest
     command: [
 python3,  /pipelines/component/src/program.py,
       --host,  {inputValue:  host},
@@ -42,5 +47,8 @@ python3,  /pipelines/component/src/program.py,
       --schema, {inputValue: schema},
       --query, {inputValue: query},
       --user, {inputValue: user},
-      --pwd, {inputValue: pwd}
+      --pwd, {inputValue: pwd},
+      --output, {inputValue: output}
     ]
+    fileOutputs:
+      output: /output.txt
