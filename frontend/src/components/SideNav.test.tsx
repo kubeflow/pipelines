@@ -219,6 +219,8 @@ describe('SideNav', () => {
     (window as any).innerWidth = narrowWidth;
     const resizeEvent = new Event('resize');
     window.dispatchEvent(resizeEvent);
+
+    await TestUtils.flushPromises();
     expect(isCollapsed(tree)).toBe(true);
   });
 
