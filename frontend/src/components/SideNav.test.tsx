@@ -39,7 +39,6 @@ describe('SideNav', () => {
   const checkHubSpy = jest.spyOn(Apis, 'isJupyterHubAvailable');
   const clusterNameSpy = jest.spyOn(Apis, 'getClusterName');
   const projectIdSpy = jest.spyOn(Apis, 'getProjectId');
-  const localStorageHasKeySpy = jest.spyOn(LocalStorage, 'hasKey');
   const localStorageIsCollapsedSpy = jest.spyOn(LocalStorage, 'isNavbarCollapsed');
 
   beforeEach(() => {
@@ -57,7 +56,6 @@ describe('SideNav', () => {
     clusterNameSpy.mockImplementation(() => Promise.reject('Error when fetching cluster name'));
     projectIdSpy.mockImplementation(() => Promise.reject('Error when fetching project ID'));
 
-    localStorageHasKeySpy.mockImplementation(() => false);
     localStorageIsCollapsedSpy.mockImplementation(() => false);
   });
 
@@ -70,14 +68,12 @@ describe('SideNav', () => {
   });
 
   it('renders expanded state', () => {
-    localStorageHasKeySpy.mockImplementationOnce(() => false);
     (window as any).innerWidth = wideWidth;
     tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders collapsed state', () => {
-    localStorageHasKeySpy.mockImplementationOnce(() => false);
     (window as any).innerWidth = narrowWidth;
     tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
@@ -141,7 +137,6 @@ describe('SideNav', () => {
 
   it('collapses if collapse state is true localStorage', () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => true);
-    localStorageHasKeySpy.mockImplementationOnce(() => true);
 
     (window as any).innerWidth = wideWidth;
     tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
@@ -150,7 +145,6 @@ describe('SideNav', () => {
 
   it('expands if collapse state is false in localStorage', () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
-    localStorageHasKeySpy.mockImplementationOnce(() => true);
 
     tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(false);
@@ -158,7 +152,6 @@ describe('SideNav', () => {
 
   it('collapses if no collapse state in localStorage, and window is too narrow', () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
-    localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = narrowWidth;
     tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
@@ -167,7 +160,6 @@ describe('SideNav', () => {
 
   it('expands if no collapse state in localStorage, and window is wide', () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
-    localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = wideWidth;
     tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
@@ -176,7 +168,6 @@ describe('SideNav', () => {
 
   it('collapses if no collapse state in localStorage, and window goes from wide to narrow', () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
-    localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = wideWidth;
     tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
@@ -190,7 +181,6 @@ describe('SideNav', () => {
 
   it('expands if no collapse state in localStorage, and window goes from narrow to wide', () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
-    localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = narrowWidth;
     tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
@@ -204,7 +194,6 @@ describe('SideNav', () => {
 
   it('saves state in localStorage if chevron is clicked', () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
-    localStorageHasKeySpy.mockImplementationOnce(() => false);
     const spy = jest.spyOn(LocalStorage, 'saveNavbarCollapsed');
 
     (window as any).innerWidth = narrowWidth;
@@ -215,18 +204,22 @@ describe('SideNav', () => {
     expect(spy).toHaveBeenCalledWith(false);
   });
 
-  it('does not collapse if collapse state is saved in localStorage, and window resizes', () => {
+  it('Auto collapse if window is manually expanded', async () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
-    localStorageHasKeySpy.mockImplementationOnce(() => true);
 
     (window as any).innerWidth = wideWidth;
     tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(false);
 
+    tree.find('WithStyles(IconButton)').simulate('click');
+    tree.find('WithStyles(IconButton)').simulate('click');
+    await TestUtils.flushPromises();
+    expect(isCollapsed(tree)).toBe(false);
+
     (window as any).innerWidth = narrowWidth;
     const resizeEvent = new Event('resize');
     window.dispatchEvent(resizeEvent);
-    expect(isCollapsed(tree)).toBe(false);
+    expect(isCollapsed(tree)).toBe(true);
   });
 
   it('populates the display build information using the response from the healthz endpoint', async () => {
