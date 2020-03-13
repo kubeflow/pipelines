@@ -575,6 +575,17 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
         '_output_files = _parsed_args.pop("_output_paths", [])',
     ])
 
+    # Putting singular return values in a list to be "zipped" with the serializers and output paths
+    outputs_to_list_code = ''
+    return_ann = inspect.signature(func).return_annotation
+    if ( # The return type is singular, not sequence
+        return_ann is not None
+        and return_ann != inspect.Parameter.empty
+        and not isinstance(return_ann, dict)
+        and not hasattr(return_ann, '_fields') # namedtuple
+    ):
+        outputs_to_list_code = '_outputs = [_outputs]'
+
     output_serialization_code = ''.join('    {},\n'.format(s) for s in output_serialization_expression_strings)
 
     full_source = \
@@ -589,8 +600,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
 _outputs = {func_name}(**_parsed_args)
 
-if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-    _outputs = [_outputs]
+{outputs_to_list_code}
 
 _output_serializers = [
 {output_serialization_code}
@@ -611,6 +621,7 @@ for idx, output_file in enumerate(_output_files):
         extra_code=extra_code,
         arg_parse_code='\n'.join(arg_parse_code_lines),
         output_serialization_code=output_serialization_code,
+        outputs_to_list_code=outputs_to_list_code,
     )
 
     #Removing consecutive blank lines
