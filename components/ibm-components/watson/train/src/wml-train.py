@@ -106,7 +106,7 @@ def train(args):
                     "command": wml_execution_command,
                     "training_lib_href": "/v4/libraries/"+custom_library_uid,
                     "compute": {
-                        "name": wml_runtime_version_v4,
+                        "name": wml_compute_name,
                         "nodes": wml_compute_nodes_v4
                     }
                 }

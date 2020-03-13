@@ -26,7 +26,7 @@ inputs:
   - {name: run_definition,    description: 'Name for the Watson Machine Learning training definition', default: 'python-tensorflow-definition'}
   - {name: run_name,          description: 'Name for the Watson Machine Learning training-runs', default: 'python-tensorflow-run'}
   - {name: author_name,       description: 'Name of this training job author', default: 'default-author'}
-  - {name: compute_name,      description: 'Name of the compute tiers, in WML is the gpu count', default: 'k8'}
+  - {name: compute_name,      description: 'Name of the compute tiers, in WML is the gpu count', default: 'k80'}
   - {name: compute_nodes,     description: 'Number of compute machine', default: '1'}
 outputs:
   - {name: run_uid,           description: 'UID for the Watson Machine Learning training-runs'}
