@@ -42,7 +42,9 @@ def kfp_wml_pipeline(
     run_definition = 'wml-tensorflow-definition',
     run_name = 'wml-tensorflow-run',
     model_name='wml-tensorflow-mnist',
-    scoring_payload='tf-mnist-test-payload.json'
+    scoring_payload='tf-mnist-test-payload.json',
+    compute_name='k80',
+    compute_nodes='1'
 ):
     # op1 - this operation will create the credentials as secrets to be used by other operations
     get_configuration = configuration_op(
@@ -61,7 +63,9 @@ def kfp_wml_pipeline(
                    runtime=runtime,
                    runtime_version=runtime_version,
                    run_definition=run_definition,
-                   run_name=run_name
+                   run_name=run_name,
+                   compute_name=compute_name,
+                   compute_nodes=compute_nodes
                    ).apply(params.use_ai_pipeline_params(secret_name)).set_image_pull_policy('Always')
 
     # op3 - this operation stores the model trained above

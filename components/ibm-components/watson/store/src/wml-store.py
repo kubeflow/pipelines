@@ -49,7 +49,7 @@ def store(wml_model_name, run_uid, framework, framework_version, runtime_version
     model_details = client.repository.store_model(run_uid, meta_props=meta_props_tf)
 
     model_uid = client.repository.get_model_uid(model_details)
-    print( "model_uid: ", model_uid )
+    print("model_uid: ", model_uid)
 
     with open("/tmp/model_uid", "w") as f:
         f.write(model_uid)

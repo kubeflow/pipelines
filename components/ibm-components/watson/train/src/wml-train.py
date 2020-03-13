@@ -33,9 +33,12 @@ def train(args):
     wml_run_definition = args.run_definition if args.run_definition else 'python-tensorflow-definition'
     wml_run_name = args.run_name if args.run_name else 'python-tensorflow-run'
     wml_author_name = args.author_name if args.author_name else 'default-author'
+    wml_compute_name = args.compute_name if args.compute_name else 'k80'
+    wml_compute_nodes = args.compute_nodes if args.compute_nodes else '1'
 
     wml_runtime_version_v4 = wml_framework_version + '-py' + wml_runtime_version
-    
+    wml_compute_nodes_v4 = int(wml_compute_nodes)
+
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
     wml_apikey = getSecret("/app/secrets/wml_apikey")
@@ -59,9 +62,9 @@ def train(args):
     model_code = os.path.join('/app', wml_train_code)
 
     cos = Minio(cos_endpoint_hostname,
-               access_key = cos_access_key,
-               secret_key = cos_secret_key,
-               secure = True)
+               access_key=cos_access_key,
+               secret_key=cos_secret_key,
+               secure=True)
 
     cos.fget_object(cos_input_bucket, wml_train_code, model_code)
 
@@ -71,7 +74,7 @@ def train(args):
                        "instance_id": wml_instance_id,
                        "apikey": wml_apikey
                       }
-    client = WatsonMachineLearningAPIClient ( wml_credentials )
+    client = WatsonMachineLearningAPIClient(wml_credentials)
     # define the model
     lib_meta = {
         client.runtimes.LibraryMetaNames.NAME: wml_run_definition,
@@ -103,8 +106,8 @@ def train(args):
                     "command": wml_execution_command,
                     "training_lib_href": "/v4/libraries/"+custom_library_uid,
                     "compute": {
-                        "name": "k80",
-                        "nodes": 1
+                        "name": wml_runtime_version_v4,
+                        "nodes": wml_compute_nodes_v4
                     }
                 }
             }]
@@ -120,7 +123,7 @@ def train(args):
         client.repository.PipelineMetaNames.NAME: wml_run_name,
         client.repository.PipelineMetaNames.DOCUMENT: doc
     }
-    pipeline_id = client.pipelines.get_uid(client.repository.store_pipeline( meta_props=metadata))
+    pipeline_id = client.pipelines.get_uid(client.repository.store_pipeline(meta_props=metadata))
         
     client.pipelines.get_details(pipeline_id)
 
@@ -165,11 +168,11 @@ def train(args):
     client.training.monitor_metrics(run_uid)
 
     # checking the result
-    status = client.training.get_status( run_uid )
+    status = client.training.get_status(run_uid)
     print("status: ", status)
     while status['state'] != 'completed':
         time.sleep(20)
-        status = client.training.get_status( run_uid )
+        status = client.training.get_status(run_uid)
     print(status)
 
     with open("/tmp/run_uid", "w") as f:
@@ -198,6 +201,8 @@ if __name__ == "__main__":
     parser.add_argument('--run-name', type=str)
     parser.add_argument('--author-name', type=str)
     parser.add_argument('--config', type=str, default="secret_name")
+    parser.add_argument('--compute-name', type=str)
+    parser.add_argument('--compute-nodes', type=str)
     args = parser.parse_args()
     # Check secret name is not empty
     if (not args.config):
