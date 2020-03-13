@@ -26,9 +26,11 @@ def store(wml_model_name, run_uid, framework, framework_version, runtime_version
     wml_instance_id = getSecret("/app/secrets/wml_instance_id")
     wml_apikey = getSecret("/app/secrets/wml_apikey")
 
-    runtime_uid = framework + '_' + framework_version + '-py' + runtime_version,
+    runtime_uid = framework + '_' + framework_version + '-py' + runtime_version
     runtime_type = framework + '_' + framework_version
 
+    print("runtime_uid:", runtime_uid)
+    print("runtime_type:", runtime_type)
     # set up the WML client
     wml_credentials = {
                        "url": wml_url,
