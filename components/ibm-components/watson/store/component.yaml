@@ -31,6 +31,9 @@ implementation:
       /app/wml-store.py,
       --run-uid, {inputValue: run_uid},
       --model-name, {inputValue: model_name},
+      --framework, {inputValue: framework},
+      --framework-version, {inputValue: framework_version},
+      --runtime-version, {inputValue: runtime_version},
     ]
     fileOutputs:
       model_uid: /tmp/model_uid
