@@ -43,7 +43,6 @@ def deploy(args):
     client = WatsonMachineLearningAPIClient(wml_credentials)
 
     client.deployments.list()
-    #client.deployments.delete("ad489b8c-f821-47fc-a69c-da5d6bb8479d")
  
     # deploy the model
     meta_props = {

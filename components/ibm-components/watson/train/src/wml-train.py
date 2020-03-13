@@ -156,15 +156,9 @@ def train(args):
     training_id = client.training.get_uid(client.training.run(meta_props=metadata))
     print("training_id", client.training.get_details(training_id))
     print("get status", client.training.get_status(training_id))
-    print("wml_runtime_version_v4: ", wml_runtime_version_v4)
-    print("wml_runtime_version:", wml_runtime_version)
     # for v4
     run_details = client.training.get_details(training_id)
     run_uid = training_id
-
-    #with open("/tmp/run_uid", "w") as f:
-    #    f.write(run_uid)
-    #f.close()
 
     # print logs
     client.training.monitor_logs(run_uid)
@@ -176,7 +170,6 @@ def train(args):
     while status['state'] != 'completed':
         time.sleep(20)
         status = client.training.get_status( run_uid )
-        #print("status: ", status)
     print(status)
 
     with open("/tmp/run_uid", "w") as f:

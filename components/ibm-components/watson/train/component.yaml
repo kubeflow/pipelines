@@ -20,7 +20,7 @@ inputs:
   - {name: execution_command, description: 'Required. Execution command to start the model training.'}
   - {name: config,            description: 'Credential configfile is properly created.', default: 'secret_name'}
   - {name: framework,         description: 'ML/DL Model Framework', default: 'tensorflow'}
-  - {name: framework_version, description: 'Model Framework version', default: '1.13'}
+  - {name: framework_version, description: 'Model Framework version', default: '1.14'}
   - {name: runtime,           description: 'Model Code runtime language', default: 'python'}
   - {name: runtime_version,   description: 'Model Code runtime version', default: '3.6'}
   - {name: run_definition,    description: 'Name for the Watson Machine Learning training definition', default: 'python-tensorflow-definition'}
@@ -31,7 +31,7 @@ outputs:
   - {name: training_uid,      description: 'Training Location UID for the Watson Machine Learning training-runs'}
 implementation:
   container:
-    image: docker.io/kevinyu98/wml-train:v0.9
+    image: docker.io/aipipeline/wml-train:latest
     command: ['python3']
     args: [
       /app/wml-train.py,
