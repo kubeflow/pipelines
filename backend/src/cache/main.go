@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/server"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -122,8 +123,31 @@ func WatchPods(namespaceToWatch string, clientManager ClientManager) {
 			if pod.Status.Phase == corev1.PodSucceeded {
 				log.Println("succeeded!!")
 			}
-			// executionKey := pod.ObjectMeta.Annotations[server.ExecutionKey]
 
+			if pod.ObjectMeta.Labels["workflows.argoproj.io/completed"] != "true" || pod.Status.Phase != corev1.PodSucceeded {
+				continue
+			}
+
+			executionOutput, exists := pod.ObjectMeta.Annotations["workflows.argoproj.io/outputs"]
+			executionKey := pod.ObjectMeta.Annotations[server.ExecutionKey]
+			if !exists {
+				continue
+			}
+			executionTemplate := pod.ObjectMeta.Annotations["workflows.argoproj.io/template"]
+			executionToPersist := model.ExecutionCache{
+				ExecutionCacheKey: executionKey,
+				ExecutionTemplate: executionTemplate,
+				ExecutionOutput:   executionOutput,
+				MaxCacheStaleness: -1,
+			}
+
+			cacheEntryCreated, err := clientManager.CacheStore().CreateExecutionCache(&executionToPersist)
+			if err != nil {
+				log.Println("Unable to create cache entry.")
+				continue
+			}
+			id := cacheEntryCreated.ID
+			log.Println(id)
 		}
 	}
 }

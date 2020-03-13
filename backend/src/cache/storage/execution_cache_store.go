@@ -23,18 +23,23 @@ type ExecutionCacheStore struct {
 
 func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string) (*model.ExecutionCache, error) {
 	r, err := s.db.Table("execution_caches").Where("ExecutionCacheKey = ?", executionCacheKey).Rows()
-
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
 	}
 	defer r.Close()
 	executionCaches, err := s.scanRows(r)
-
-	if err != nil || len(executionCaches) > 1 {
+	if err != nil {
 		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
 	}
 	if len(executionCaches) == 0 {
 		return nil, fmt.Errorf("Execution cache not found with cache key: %q", executionCacheKey)
+	}
+	if len(executionCaches) > 1 {
+		latestCache, err := getLatestCacheEntry(executionCaches)
+		if err != nil {
+			return nil, err
+		}
+		return latestCache, nil
 	}
 	return executionCaches[0], nil
 }
@@ -70,6 +75,23 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache,
 	return executionCaches, nil
 }
 
+// Demo version will return the latest cache entry within same cache key. MaxCacheStaleness will
+// be taken into consideration in the future.
+func getLatestCacheEntry(executionCaches []*model.ExecutionCache) (*model.ExecutionCache, error) {
+	var latestCacheEntry *model.ExecutionCache
+	var maxStartedAtInSec int64
+	for _, cache := range executionCaches {
+		if cache.StartedAtInSec >= maxStartedAtInSec {
+			latestCacheEntry = cache
+			maxStartedAtInSec = cache.StartedAtInSec
+		}
+	}
+	if latestCacheEntry == nil {
+		return nil, fmt.Errorf("No cache entry found.")
+	}
+	return latestCacheEntry, nil
+}
+
 func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.ExecutionCache) (*model.ExecutionCache, error) {
 	log.Println("Input cache: " + executionCache.ExecutionCacheKey)
 	newExecutionCache := *executionCache
@@ -77,6 +99,8 @@ func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.Executi
 	now := s.time.Now().UTC().Unix()
 
 	newExecutionCache.StartedAtInSec = now
+	// TODO: ended time need to be modified after demo version.
+	newExecutionCache.EndedAtInSec = now
 	newExecutionCache.MaxCacheStaleness = -1
 
 	ok := s.db.NewRecord(newExecutionCache)
