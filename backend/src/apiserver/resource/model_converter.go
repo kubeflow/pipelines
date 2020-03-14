@@ -22,16 +22,17 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/pkg/errors"
 )
 
 func (r *ResourceManager) ToModelExperiment(apiExperiment *api.Experiment) (*model.Experiment, error) {
 	namespace := ""
-	if common.IsMultiUserMode() {
-		resourceReferences := apiExperiment.GetResourceReferences()
+	resourceReferences := apiExperiment.GetResourceReferences()
+	if resourceReferences != nil {
 		if len(resourceReferences) != 1 ||
 			resourceReferences[0].Key.Type != api.ResourceType_NAMESPACE ||
 			resourceReferences[0].Relationship != api.Relationship_OWNER {
-			return nil, util.NewInvalidInputError("Invalid resource references for experiment: %v", resourceReferences)
+			return nil, util.NewInternalServerError(errors.New("Invalid resource references for experiment"), "Unable to convert to model experiment.")
 		}
 		namespace = resourceReferences[0].Key.Id
 	}

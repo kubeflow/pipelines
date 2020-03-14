@@ -25,7 +25,7 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *api.Cr
 
 	err = CanAccessNamespaceInResourceReferences(s.resourceManager, ctx, request.Experiment.ResourceReferences)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
+		return nil, util.Wrap(err, "Failed to authorize the request.")
 	}
 
 	newExperiment, err := s.resourceManager.CreateExperiment(request.Experiment)
@@ -39,7 +39,7 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetEx
 	*api.Experiment, error) {
 	err := s.canAccessExperiment(ctx, request.Id)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
+		return nil, util.Wrap(err, "Failed to authorize the request.")
 	}
 
 	experiment, err := s.resourceManager.GetExperiment(request.Id)
@@ -81,7 +81,7 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *api.DeleteExperimentRequest) (*empty.Empty, error) {
 	err := s.canAccessExperiment(ctx, request.Id)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
+		return nil, util.Wrap(err, "Failed to authorize the request.")
 	}
 
 	err = s.resourceManager.DeleteExperiment(request.Id)
@@ -97,12 +97,16 @@ func ValidateCreateExperimentRequest(request *api.CreateExperimentRequest) error
 	}
 
 	if common.IsMultiUserMode() {
-		if len(request.Experiment.ResourceReferences) != 1 {
-			return util.NewInvalidInputError("Experiment should specify one and only one resource reference.")
+		resourceReferences := request.Experiment.GetResourceReferences()
+		if len(resourceReferences) != 1 ||
+			resourceReferences[0].Key.Type != api.ResourceType_NAMESPACE ||
+			resourceReferences[0].Relationship != api.Relationship_OWNER {
+			return util.NewInvalidInputError(
+				"Invalid resource references for experiment. Expect one namespace type with owner relationship. Got: %v", resourceReferences)
 		}
 		namespace := common.GetNamespaceFromAPIResourceReferences(request.Experiment.ResourceReferences)
 		if len(namespace) == 0 {
-			return util.NewInvalidInputError("Experiment should specify namespace.")
+			return util.NewInvalidInputError("Experiment namespace is empty. Please specify a valid namespace.")
 		}
 	}
 	return nil

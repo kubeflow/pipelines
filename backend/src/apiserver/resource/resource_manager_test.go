@@ -2290,3 +2290,46 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, version)
 }
+
+func TestCreateDefaultExperiment(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	experimentID, err := manager.CreateDefaultExperiment()
+	assert.Nil(t, err)
+	experiment, err := manager.GetExperiment(experimentID)
+	assert.Nil(t, err)
+
+	expectedExperiment := &model.Experiment{
+		UUID:           DefaultFakeUUID,
+		CreatedAtInSec: 1,
+		Name:           "Default",
+		Description:    "All runs created without specifying an experiment will be grouped here.",
+		Namespace:      "",
+	}
+	assert.Equal(t, expectedExperiment, experiment)
+}
+
+func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	experimentID, err := manager.CreateDefaultExperiment()
+	assert.Nil(t, err)
+	experiment, err := manager.GetExperiment(experimentID)
+	assert.Nil(t, err)
+
+	expectedExperiment := &model.Experiment{
+		UUID:           DefaultFakeUUID,
+		CreatedAtInSec: 1,
+		Name:           "Default",
+		Description:    "All runs created without specifying an experiment will be grouped here.",
+		Namespace:      "",
+	}
+	assert.Equal(t, expectedExperiment, experiment)
+}
