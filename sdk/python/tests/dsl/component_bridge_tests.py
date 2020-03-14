@@ -24,7 +24,7 @@ class TestComponentBridge(unittest.TestCase):
     # Alternatively, we could use kfp.dsl.Pipleine().__enter__ and __exit__
     def setUp(self):
         self.old_container_task_constructor = kfp.components._components._container_task_constructor
-        kfp.components._components._container_task_constructor = kfp.components._dsl_bridge._create_container_op_from_component_and_arguments
+        kfp.components._components._container_task_constructor = kfp.dsl._component_bridge._create_container_op_from_component_and_arguments
 
     def tearDown(self):
         kfp.components._components._container_task_constructor = self.old_container_task_constructor
