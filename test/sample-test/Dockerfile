@@ -4,7 +4,7 @@ FROM google/cloud-sdk:279.0.0
 
 RUN apt-get update -y
 RUN apt-get install --no-install-recommends -y -q libssl-dev libffi-dev wget ssh
-RUN apt-get install --no-install-recommends -y -q default-jre default-jdk python3-setuptools python3.7-dev gcc
+RUN apt-get install --no-install-recommends -y -q default-jre default-jdk python3-setuptools python3.7-dev gcc libpython3.7-dev zlib1g-dev
 
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 
