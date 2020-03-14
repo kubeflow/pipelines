@@ -108,7 +108,7 @@ tensorboard==2.1.0        # via tensorflow
 tensorflow-data-validation==0.21.4  # via tfx
 tensorflow-estimator==2.1.0  # via tensorflow
 tensorflow-metadata==0.21.1  # via tensorflow-data-validation, tensorflow-model-analysis, tensorflow-transform, tfx-bsl
-tensorflow-model-analysis==0.21.4  # via tfx
+tensorflow-model-analysis==0.21.5  # via -r requirements.in (line 2), tfx
 tensorflow-serving-api==2.1.0  # via tfx, tfx-bsl
 tensorflow-transform==0.21.2  # via tensorflow-data-validation, tfx
 tensorflow==2.1.0         # via ml-metadata, tensorflow-data-validation, tensorflow-model-analysis, tensorflow-serving-api, tensorflow-transform, tfx, tfx-bsl

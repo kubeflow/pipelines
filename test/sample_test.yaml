@@ -85,6 +85,7 @@ spec:
               - multiple_outputs
               - ai_platform
               - parameterized_tfx_oss
+              - iris
     # Build and push image
     - name: build-image-by-dockerfile
       retryStrategy:
