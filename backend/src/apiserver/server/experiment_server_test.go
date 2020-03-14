@@ -284,7 +284,7 @@ func TestValidateCreateExperimentRequest_Multiuser(t *testing.T) {
 				ResourceReferences: []*api.ResourceReference{},
 			},
 			true,
-			"Experiment should specify one and only one resource reference",
+			"Invalid resource references for experiment.",
 		},
 		{
 			"Multiple namespace",
@@ -303,7 +303,7 @@ func TestValidateCreateExperimentRequest_Multiuser(t *testing.T) {
 				},
 			},
 			true,
-			"Experiment should specify one and only one resource reference",
+			"Invalid resource references for experiment.",
 		},
 		{
 			"Invalid resource type",
@@ -318,7 +318,7 @@ func TestValidateCreateExperimentRequest_Multiuser(t *testing.T) {
 				},
 			},
 			true,
-			"Experiment should specify namespace",
+			"Invalid resource references for experiment.",
 		},
 	}
 
