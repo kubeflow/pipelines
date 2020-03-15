@@ -45,7 +45,7 @@ google-pasta==0.1.8       # via tensorflow
 google-resumable-media==0.4.1  # via google-cloud-bigquery, google-cloud-storage
 googleapis-common-protos[grpc]==1.51.0  # via google-api-core, grpc-google-iam-v1, tensorflow-metadata
 grpc-google-iam-v1==0.12.3  # via google-cloud-bigtable, google-cloud-pubsub
-grpcio==1.27.1            # via apache-beam, google-api-core, googleapis-common-protos, grpc-google-iam-v1, tensorboard, tensorflow, tensorflow-serving-api, tfx
+grpcio==1.27.1            # via apache-beam, google-api-core, grpc-google-iam-v1, tensorboard, tensorflow, tensorflow-serving-api, tfx
 h5py==2.10.0              # via keras-applications
 hdfs==2.5.8               # via apache-beam
 httplib2==0.12.0          # via apache-beam, google-api-python-client, google-apitools, google-auth-httplib2, oauth2client
@@ -117,7 +117,7 @@ tensorboard==2.1.0        # via tensorflow
 tensorflow-data-validation==0.21.4  # via tfx
 tensorflow-estimator==2.1.0  # via tensorflow
 tensorflow-metadata==0.21.1  # via tensorflow-data-validation, tensorflow-model-analysis, tensorflow-transform, tfx-bsl
-tensorflow-model-analysis==0.21.4  # via tfx
+tensorflow-model-analysis==0.21.5  # via -r requirements.in (line 13), tfx
 tensorflow-serving-api==2.1.0  # via tfx, tfx-bsl
 tensorflow-transform==0.21.2  # via tensorflow-data-validation, tfx
 tensorflow==2.1.0         # via ml-metadata, tensorflow-data-validation, tensorflow-model-analysis, tensorflow-serving-api, tensorflow-transform, tfx, tfx-bsl
