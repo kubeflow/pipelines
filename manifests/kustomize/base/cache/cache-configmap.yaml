@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cache-configmap
+  labels:
+    component: cache-server
+data:
+  mysql_driver: "mysql"
+  mysql_database: "cachedb"
+  mysql_host: "mysql"
+  mysql_port: "3306"
