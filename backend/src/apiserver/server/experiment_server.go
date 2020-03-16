@@ -62,9 +62,19 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
 
-	refKey := filterContext.ReferenceKey
-	if refKey != nil && refKey.Type != common.Namespace {
-		return nil, util.NewInvalidInputError("List experiment only supports filtering by namespace.")
+	if common.IsMultiUserMode() {
+		refKey := filterContext.ReferenceKey
+		if refKey == nil || refKey.Type != common.Namespace {
+			return nil, util.NewInvalidInputError("Invalid resource references for experiment. ListExperiment requires filtering by namespace.")
+		}
+		if len(refKey.ID) == 0 {
+			return nil, util.NewInvalidInputError("Invalid resource references for experiment. Namespace is empty.")
+		}
+	} else {
+		// In single user mode, apply filter with empty namespace for backward compatibile.
+		filterContext = &common.FilterContext{
+			ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: ""},
+		}
 	}
 
 	experiments, total_size, nextPageToken, err := s.resourceManager.ListExperiments(filterContext, opts)
@@ -106,7 +116,7 @@ func ValidateCreateExperimentRequest(request *api.CreateExperimentRequest) error
 		}
 		namespace := common.GetNamespaceFromAPIResourceReferences(request.Experiment.ResourceReferences)
 		if len(namespace) == 0 {
-			return util.NewInvalidInputError("Experiment namespace is empty. Please specify a valid namespace.")
+			return util.NewInvalidInputError("Invalid resource references for experiment. Namespace is empty.")
 		}
 	}
 	return nil
@@ -122,7 +132,7 @@ func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID
 		return util.Wrap(err, "Failed to authorize with the experiment ID.")
 	}
 	if len(namespace) == 0 {
-		return util.NewInternalServerError(errors.New("There is no namespace found"), "There is no namespace found")
+		return util.NewInternalServerError(errors.New("Empty namespace"), "The experiment doesn't have a valid namespace.")
 	}
 
 	err = isAuthorized(s.resourceManager, ctx, namespace)

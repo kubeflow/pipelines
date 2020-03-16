@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/google/go-cmp/cmp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -177,16 +178,16 @@ func TestListExperiment_Failed(t *testing.T) {
 func TestListExperiment_Multiuser(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
+
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager}
-	referenceKey := &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns1"}
 	resourceReferences := []*api.ResourceReference{
 		{
-			Key:          referenceKey,
+			Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns1"},
 			Relationship: api.Relationship_OWNER,
 		},
 	}
@@ -199,21 +200,92 @@ func TestListExperiment_Multiuser(t *testing.T) {
 	createResult, err := server.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
-	result, err := server.ListExperiment(ctx, &api.ListExperimentsRequest{ResourceReferenceKey: referenceKey})
-	assert.Nil(t, err)
-	expectedExperiment := []*api.Experiment{{
-		Id:                 createResult.Id,
-		Name:               "exp1",
-		Description:        "first experiment",
-		CreatedAt:          &timestamp.Timestamp{Seconds: 1},
-		ResourceReferences: resourceReferences,
-	}}
-	assert.Equal(t, expectedExperiment, result.Experiments)
+	tests := []struct {
+		name                string
+		request             *api.ListExperimentsRequest
+		wantError           bool
+		errorMessage        string
+		expectedExperiments []*api.Experiment
+	}{
+		{
+			"Valid",
+			&api.ListExperimentsRequest{
+				ResourceReferenceKey: &api.ResourceKey{
+					Type: api.ResourceType_NAMESPACE,
+					Id:   "ns1",
+				},
+			},
+			false,
+			"",
+			[]*api.Experiment{{
+				Id:                 createResult.Id,
+				Name:               "exp1",
+				Description:        "first experiment",
+				CreatedAt:          &timestamp.Timestamp{Seconds: 1},
+				ResourceReferences: resourceReferences,
+			}},
+		},
+		{
+			"Valid but empty result",
+			&api.ListExperimentsRequest{
+				ResourceReferenceKey: &api.ResourceKey{
+					Type: api.ResourceType_NAMESPACE,
+					Id:   "ns2",
+				},
+			},
+			false,
+			"",
+			[]*api.Experiment{},
+		},
+		{
+			"Missing resource reference key",
+			&api.ListExperimentsRequest{},
+			true,
+			"Invalid resource references for experiment.",
+			nil,
+		},
+		{
+			"Invalid resource reference key type",
+			&api.ListExperimentsRequest{
+				ResourceReferenceKey: &api.ResourceKey{
+					Type: api.ResourceType_EXPERIMENT,
+					Id:   "fake_id",
+				},
+			},
+			true,
+			"Invalid resource references for experiment.",
+			nil,
+		},
+		{
+			"Empty namespace",
+			&api.ListExperimentsRequest{
+				ResourceReferenceKey: &api.ResourceKey{
+					Type: api.ResourceType_NAMESPACE,
+					Id:   "",
+				},
+			},
+			true,
+			"Invalid resource references for experiment. Namespace is empty.",
+			nil,
+		},
+	}
 
-	result, err = server.ListExperiment(ctx, &api.ListExperimentsRequest{ResourceReferenceKey: &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns2"}})
-	assert.Nil(t, err)
-	expectedExperiment = []*api.Experiment{}
-	assert.Equal(t, expectedExperiment, result.Experiments)
+	for _, tc := range tests {
+		response, err := server.ListExperiment(ctx, tc.request)
+		if tc.wantError {
+			if err == nil {
+				t.Errorf("TestListExperiment_Multiuser(%v) expect error but got nil", tc.name)
+			} else if !strings.Contains(err.Error(), tc.errorMessage) {
+				t.Errorf("TestListExperiment_Multiusert(%v) expect error containing: %v, but got: %v", tc.name, tc.errorMessage, err)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("TestListExperiment_Multiuser(%v) expect no error but got %v", tc.name, err)
+			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments) {
+				t.Errorf("TestListExperiment_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedExperiments, response.Experiments)
+			}
+		}
+	}
 }
 
 func TestValidateCreateExperimentRequest(t *testing.T) {
@@ -279,12 +351,26 @@ func TestValidateCreateExperimentRequest_Multiuser(t *testing.T) {
 		{
 			"Missing namespace",
 			&api.Experiment{
-				Name:               "exp1",
-				Description:        "first experiment",
-				ResourceReferences: []*api.ResourceReference{},
+				Name:        "exp1",
+				Description: "first experiment",
 			},
 			true,
 			"Invalid resource references for experiment.",
+		},
+		{
+			"Empty namespace",
+			&api.Experiment{
+				Name:        "exp1",
+				Description: "first experiment",
+				ResourceReferences: []*api.ResourceReference{
+					{
+						Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: ""},
+						Relationship: api.Relationship_OWNER,
+					},
+				},
+			},
+			true,
+			"Invalid resource references for experiment. Namespace is empty.",
 		},
 		{
 			"Multiple namespace",
