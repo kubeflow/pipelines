@@ -344,19 +344,26 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
 	// Check workflow manifest is not empty
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
+
+	// Check resource references contain experiment and pipeline version.
+	resourceReferences := []*job_model.APIResourceReference{
+		{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
+			Name: experimentName, Relationship: job_model.APIRelationshipOWNER,
+		},
+		{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+			Name: pipelineVersionName, Relationship: job_model.APIRelationshipCREATOR},
+	}
+	assert.Len(t, job.ResourceReferences, 2)
+	assert.Subset(t, job.ResourceReferences, resourceReferences)
+
+	// Check other fields in job object (other than resource references)
+	job.ResourceReferences = nil
 	expectedJob := &job_model.APIJob{
 		ID:          job.ID,
 		Name:        "hello world",
 		Description: "this is hello world",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
-		},
-		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-				Name: experimentName, Relationship: job_model.APIRelationshipOWNER,
-			},
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
-				Name: pipelineVersionName, Relationship: job_model.APIRelationshipCREATOR},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
@@ -365,7 +372,6 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 		Status:         job.Status,
 		Trigger:        &job_model.APITrigger{},
 	}
-
 	assert.Equal(t, expectedJob, job)
 }
 
