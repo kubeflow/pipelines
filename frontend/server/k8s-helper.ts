@@ -73,6 +73,7 @@ function getNameOfViewerResource(logdir: string): string {
  */
 export async function newTensorboardInstance(
   logdir: string,
+  tfImageName: string,
   tfversion: string,
   podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<void> {
@@ -101,7 +102,7 @@ export async function newTensorboardInstance(
       podTemplateSpec,
       tensorboardSpec: {
         logDir: logdir,
-        tensorflowImage: 'tensorflow/tensorflow:' + tfversion,
+        tensorflowImage: tfImageName + ':' + tfversion,
       },
       type: 'tensorboard',
     },
@@ -146,10 +147,9 @@ export async function getTensorboardInstance(
           viewer.body.spec.type === 'tensorboard'
         ) {
           const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
-          const version = viewer.body.spec.tensorboardSpec.tensorflowImage
-            ? viewer.body.spec.tensorboardSpec.tensorflowImage.replace('tensorflow/tensorflow:', '')
-            : '';
-          return { podAddress: address, tfVersion: version };
+          const tfImageParts = viewer.body.spec.tensorboardSpec.tensorflowImage.split(':', 1);
+          const tfVersion = tfImageParts.length == 2 ? tfImageParts[1] : '';
+          return { podAddress: address, tfVersion: tfVersion };
         } else {
           return { podAddress: '', tfVersion: '' };
         }
