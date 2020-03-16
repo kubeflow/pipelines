@@ -91,6 +91,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	}
 
 	annotations[ExecutionKey] = executionHashKey
+	labels[CacheIDLabelKey] = ""
 
 	var cachedExecution *model.ExecutionCache
 	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(executionHashKey)
@@ -102,17 +103,25 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		log.Println("Cached output: " + cachedExecution.ExecutionOutput)
 		annotations[ArgoWorkflowOutputs] = cachedExecution.ExecutionOutput
 		labels[CacheIDLabelKey] = strconv.FormatInt(cachedExecution.ID, 10)
-		containers := pod.Spec.Containers
-		for _, container := range containers {
-			log.Println("Replace image in container.")
-			container.Image = "alpine"
-			container.Command = []string{"true"}
+		dummyContainer := corev1.Container{
+			Name:    "dummy",
+			Image:   "alpine",
+			Command: []string{"true"},
+		}
+		dummyContainers := []corev1.Container{
+			dummyContainer,
 		}
 		patches = append(patches, patchOperation{
-			Op:    OperationTypeAdd,
+			Op:    "replace",
 			Path:  "/spec/containers",
-			Value: containers,
+			Value: dummyContainers,
 		})
+		if pod.Spec.InitContainers != nil || len(pod.Spec.InitContainers) != 0 {
+			patches = append(patches, patchOperation{
+				Op:   "remove",
+				Path: "/spec/initContainers",
+			})
+		}
 	}
 	log.Println(cachedExecution)
 
@@ -124,15 +133,11 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	})
 
 	// Add cache_id label key
-	_, exists = labels[CacheIDLabelKey]
-	if !exists {
-		labels[CacheIDLabelKey] = ""
-		patches = append(patches, patchOperation{
-			Op:    OperationTypeAdd,
-			Path:  LabelPath,
-			Value: labels,
-		})
-	}
+	patches = append(patches, patchOperation{
+		Op:    OperationTypeAdd,
+		Path:  LabelPath,
+		Value: labels,
+	})
 
 	return patches, nil
 }
