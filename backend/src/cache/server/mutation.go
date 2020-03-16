@@ -20,8 +20,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
+	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -74,6 +76,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	var patches []patchOperation
 	annotations := pod.ObjectMeta.Annotations
+	labels := pod.ObjectMeta.Labels
 	template, exists := annotations[ArgoWorkflowTemplate]
 	var executionHashKey string
 	if !exists {
@@ -89,13 +92,29 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	annotations[ExecutionKey] = executionHashKey
 
-	cachedExecution, err := clientMgr.CacheStore().GetExecutionCache(executionHashKey)
+	var cachedExecution *model.ExecutionCache
+	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(executionHashKey)
 	if err != nil {
 		log.Println(err.Error())
 	}
+	// Found cached execution, add cached output and cache_id and replace container images.
 	if cachedExecution != nil {
 		log.Println("Cached output: " + cachedExecution.ExecutionOutput)
+		annotations[ArgoWorkflowOutputs] = cachedExecution.ExecutionOutput
+		labels[CacheIDLabelKey] = strconv.FormatInt(cachedExecution.ID, 10)
+		containers := pod.Spec.Containers
+		for _, container := range containers {
+			log.Println("Replace image in container.")
+			container.Image = "alpine"
+			container.Command = []string{"true"}
+		}
+		patches = append(patches, patchOperation{
+			Op:    OperationTypeAdd,
+			Path:  "/spec/containers",
+			Value: containers,
+		})
 	}
+	log.Println(cachedExecution)
 
 	// Add executionKey to pod.metadata.annotations
 	patches = append(patches, patchOperation{
@@ -105,7 +124,6 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	})
 
 	// Add cache_id label key
-	labels := pod.ObjectMeta.Labels
 	_, exists = labels[CacheIDLabelKey]
 	if !exists {
 		labels[CacheIDLabelKey] = ""

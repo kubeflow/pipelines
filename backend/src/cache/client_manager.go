@@ -81,6 +81,15 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 		glog.Fatalf("Failed to initialize the databases.")
 	}
 
+	response = db.Model(&model.ExecutionCache{}).ModifyColumn("ExecutionOutput", "longtext")
+	if response.Error != nil {
+		glog.Fatalf("Failed to update the execution output type. Error: %s", response.Error)
+	}
+	response = db.Model(&model.ExecutionCache{}).ModifyColumn("ExecutionTemplate", "longtext not null")
+	if response.Error != nil {
+		glog.Fatalf("Failed to update the execution template type. Error: %s", response.Error)
+	}
+
 	var tableNames []string
 	db.Raw(`show tables`).Pluck("Tables_in_caches", &tableNames)
 	for _, tableName := range tableNames {
