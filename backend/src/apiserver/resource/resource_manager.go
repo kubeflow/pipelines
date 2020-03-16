@@ -245,9 +245,10 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
 	var workflowSpecManifestBytes []byte
-	workflowSpecManifestBytes, err := r.getWorkflowSpecBytes(apiRun.GetPipelineSpec())
+	workflowSpecManifestBytes, err := r.getWorkflowSpecBytesFromPipelineVersion(apiRun.GetResourceReferences())
 	if err != nil {
-		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiRun.GetResourceReferences())
+		workflowSpecManifestBytes, err = r.getWorkflowSpecBytes(apiRun.GetPipelineSpec())
+
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 		}
@@ -776,12 +777,29 @@ func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, 
 		if err != nil {
 			return nil, util.Wrap(err, "Get pipeline YAML failed.")
 		}
-
 		return []byte(workflow.ToStringForStore()), nil
 	} else if spec.GetWorkflowManifest() != "" {
 		return []byte(spec.GetWorkflowManifest()), nil
 	}
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
+}
+
+func (r *ResourceManager) getWorkflowSpecBytesAndSetPipelineVersionReference(apiRun *api.Run) ([]byte, error) {
+	manifest, err := r.getWorkflowSpecBytes(apiRun.GetPipelineSpec())
+	if err != nil {
+		return manifest, err
+	}
+	if apiRun.GetPipelineSpec().GetPipelineId() != "" {
+		pipelineVersionId := apiRun.GetPipelineSpec().GetPipelineId()
+		_, err = r.pipelineStore.GetPipelineVersionWithStatus(pipelineVersionId, model.PipelineVersionReady)
+		if err == nil {
+			apiRun.ResourceReferences = append(apiRun.ResourceReferences, &api.ResourceReference{
+				Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: pipelineVersionId},
+				Relationship: api.Relationship_CREATOR,
+			})
+		}
+	}
+	return manifest, err
 }
 
 func (r *ResourceManager) getWorkflowSpecBytesFromPipelineVersion(references []*api.ResourceReference) ([]byte, error) {
