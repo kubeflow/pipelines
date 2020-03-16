@@ -183,11 +183,12 @@ export interface PipelineConfigs {
   host: string;
   port: string | number;
 }
+export interface ViewerTensorboardConfig {
+  podTemplateSpec?: object;
+  tfImageName: string;
+}
 export interface ViewerConfigs {
-  tensorboard: {
-    podTemplateSpec?: object;
-    tfImageName: string;
-  };
+  tensorboard: ViewerTensorboardConfig;
 }
 export interface VisualizationsConfigs {
   allowCustomVisualizations: boolean;
