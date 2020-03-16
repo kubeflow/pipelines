@@ -121,7 +121,7 @@ function createUIServer(options: UIConfigs) {
   registerHandler(
     app.post,
     '/apps/tensorboard',
-    getCreateTensorboardHandler(options.viewer.tensorboard.podTemplateSpec),
+    getCreateTensorboardHandler(options.viewer.tensorboard),
   );
 
   /** Pod logs */
