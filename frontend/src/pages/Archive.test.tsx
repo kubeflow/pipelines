@@ -51,6 +51,7 @@ describe('Archive', () => {
     historyPushSpy.mockClear();
     deleteRunSpy.mockClear();
     updateDialogSpy.mockClear();
+    updateSnackbarSpy.mockClear();
   });
 
   afterEach(() => tree.unmount());
@@ -162,6 +163,6 @@ describe('Archive', () => {
     expect(deleteRunSpy).toHaveBeenCalledWith('id2');
     expect(deleteRunSpy).toHaveBeenCalledWith('id3');
     console.log(tree.state('selectedIds'));
-    expect(tree.state('selectedIds')).toEqual(['id1']);
+    expect(tree.state('selectedIds')).toEqual(['id1']); // id1 is left over since its deletion failed.
   });
 });
