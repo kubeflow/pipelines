@@ -353,8 +353,7 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 		{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
 			Name: pipelineVersionName, Relationship: job_model.APIRelationshipCREATOR},
 	}
-	assert.Len(t, job.ResourceReferences, 2)
-	assert.Subset(t, job.ResourceReferences, resourceReferences)
+	assert.ElementsMatch(t, job.ResourceReferences, resourceReferences)
 
 	// Check other fields in job object (other than resource references)
 	job.ResourceReferences = nil
