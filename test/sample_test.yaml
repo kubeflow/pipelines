@@ -83,7 +83,7 @@ spec:
               - resource_ops
               - multiple_outputs
             when: "{{inputs.parameters.is-integration-test}} == false"
-        - - name: run-integration-tests-loop
+          - name: run-integration-tests-loop
             template: run-sample-tests
             arguments:
               parameters:
