@@ -7,13 +7,12 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -21,16 +20,15 @@ const (
 )
 
 func WatchPods(namespaceToWatch string, clientManager ClientManagerInterface) {
-	clientset, err := initClientSet()
-	if err != nil {
-		log.Printf(err.Error())
-	}
+	// clientset, err := client.CreateKubernetesClientsetOrFatal()
+	k8sCore := clientManager.KubernetesCoreClient()
+
 	for {
 		listOptions := metav1.ListOptions{
 			Watch:         true,
 			LabelSelector: CacheIDLabelKey,
 		}
-		watcher, err := clientset.CoreV1().Pods(namespaceToWatch).Watch(listOptions)
+		watcher, err := k8sCore.PodClient(namespaceToWatch).Watch(listOptions)
 
 		if err != nil {
 			log.Printf("Watcher error:" + err.Error())
@@ -70,20 +68,12 @@ func WatchPods(namespaceToWatch string, clientManager ClientManagerInterface) {
 				log.Println("Unable to create cache entry.")
 				continue
 			}
-			err = patchCacheID(clientset, pod, namespaceToWatch, cacheEntryCreated.ID)
+			err = patchCacheID(k8sCore, pod, namespaceToWatch, cacheEntryCreated.ID)
 			if err != nil {
 				log.Printf(err.Error())
 			}
 		}
 	}
-}
-
-func initClientSet() (*kubernetes.Clientset, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		log.Printf(err.Error())
-	}
-	return kubernetes.NewForConfig(config)
 }
 
 func isPodCompletedAndSucceeded(pod *corev1.Pod) bool {
@@ -95,7 +85,7 @@ func isCacheWriten(labels map[string]string) bool {
 	return cacheID != ""
 }
 
-func patchCacheID(clientSet *kubernetes.Clientset, podToPatch *corev1.Pod, namespaceToWatch string, id int64) error {
+func patchCacheID(k8sCore client.KubernetesCoreInterface, podToPatch *corev1.Pod, namespaceToWatch string, id int64) error {
 	labels := podToPatch.ObjectMeta.Labels
 	labels[CacheIDLabelKey] = strconv.FormatInt(id, 10)
 	log.Println(id)
@@ -109,7 +99,7 @@ func patchCacheID(clientSet *kubernetes.Clientset, podToPatch *corev1.Pod, names
 	if err != nil {
 		return fmt.Errorf("Unable to patch cache_id to pod: %s", podToPatch.ObjectMeta.Name)
 	}
-	_, err = clientSet.CoreV1().Pods(namespaceToWatch).Patch(podToPatch.ObjectMeta.Name, types.JSONPatchType, patchBytes)
+	_, err = k8sCore.PodClient(namespaceToWatch).Patch(podToPatch.ObjectMeta.Name, types.JSONPatchType, patchBytes)
 	if err != nil {
 		return err
 	}

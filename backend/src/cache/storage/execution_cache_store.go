@@ -109,7 +109,7 @@ func getLatestCacheEntry(executionCaches []*model.ExecutionCache) (*model.Execut
 func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.ExecutionCache) (*model.ExecutionCache, error) {
 	log.Println("Input cache: " + executionCache.ExecutionCacheKey)
 	newExecutionCache := *executionCache
-	log.Println("Nex cache key: " + newExecutionCache.ExecutionCacheKey)
+	log.Println("New cache key: " + newExecutionCache.ExecutionCacheKey)
 	now := s.time.Now().UTC().Unix()
 
 	newExecutionCache.StartedAtInSec = now
@@ -133,13 +133,10 @@ func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.Executi
 }
 
 func (s *ExecutionCacheStore) DeleteExecutionCache(executionCacheID string) error {
-	// _, err = s.db.Exec(sql, args...)
-	s.db.Delete(&model.ExecutionCache{}, "ID = ?", executionCacheID)
-	// if err != nil {
-	// 	log.Println(err.Error())
-	// 	return fmt.Errorf("Failed to delete cache entry")
-	// }
-
+	db := s.db.Delete(&model.ExecutionCache{}, "ID = ?", executionCacheID)
+	if db.Error != nil {
+		return db.Error
+	}
 	return nil
 }
 

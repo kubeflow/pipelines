@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"k8s.io/api/admission/v1beta1"
@@ -31,16 +32,18 @@ import (
 )
 
 const (
-	KFPAnnotation        string = "pipelines.kubeflow.org"
-	ArgoWorkflowNodeName string = "workflows.argoproj.io/node-name"
-	ArgoWorkflowTemplate string = "workflows.argoproj.io/template"
-	ExecutionKey         string = "pipelines.kubeflow.org/execution_cache_key"
-	CacheIDLabelKey      string = "pipelines.kubeflow.org/cache_id"
-	AnnotationPath       string = "/metadata/annotations"
-	LabelPath            string = "/metadata/labels"
-	ArgoWorkflowOutputs  string = "workflows.argoproj.io/outputs"
-	TFXPodSuffix         string = "tfx/orchestration/kubeflow/container_entrypoint.py"
-	ArchiveLocationKey   string = "archiveLocation"
+	KFPAnnotation          string = "pipelines.kubeflow.org"
+	ArgoWorkflowNodeName   string = "workflows.argoproj.io/node-name"
+	ArgoWorkflowTemplate   string = "workflows.argoproj.io/template"
+	ExecutionKey           string = "pipelines.kubeflow.org/execution_cache_key"
+	CacheIDLabelKey        string = "pipelines.kubeflow.org/cache_id"
+	ArgoWorkflowOutputs    string = "workflows.argoproj.io/outputs"
+	AnnotationPath         string = "/metadata/annotations"
+	LabelPath              string = "/metadata/labels"
+	SpecContainersPath     string = "/spec/containers"
+	SpecInitContainersPath string = "/spec/initContainers"
+	TFXPodSuffix           string = "tfx/orchestration/kubeflow/container_entrypoint.py"
+	ArchiveLocationKey     string = "archiveLocation"
 )
 
 var (
@@ -49,6 +52,7 @@ var (
 
 type ClientManagerInterface interface {
 	CacheStore() storage.ExecutionCacheStoreInterface
+	KubernetesCoreClient() client.KubernetesCoreInterface
 }
 
 // MutatePodIfCached will check whether the execution has already been run before from MLMD and apply the output into pod.metadata.output
@@ -112,18 +116,17 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 			dummyContainer,
 		}
 		patches = append(patches, patchOperation{
-			Op:    "replace",
-			Path:  "/spec/containers",
+			Op:    OperationTypeReplace,
+			Path:  SpecContainersPath,
 			Value: dummyContainers,
 		})
 		if pod.Spec.InitContainers != nil || len(pod.Spec.InitContainers) != 0 {
 			patches = append(patches, patchOperation{
-				Op:   "remove",
-				Path: "/spec/initContainers",
+				Op:   OperationTypeRemove,
+				Path: SpecInitContainersPath,
 			})
 		}
 	}
-	log.Println(cachedExecution)
 
 	// Add executionKey to pod.metadata.annotations
 	patches = append(patches, patchOperation{

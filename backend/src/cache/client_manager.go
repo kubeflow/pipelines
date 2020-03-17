@@ -35,13 +35,18 @@ const (
 )
 
 type ClientManager struct {
-	db         *storage.DB
-	cacheStore storage.ExecutionCacheStoreInterface
-	time       util.TimeInterface
+	db            *storage.DB
+	cacheStore    storage.ExecutionCacheStoreInterface
+	k8sCoreClient client.KubernetesCoreInterface
+	time          util.TimeInterface
 }
 
 func (c *ClientManager) CacheStore() storage.ExecutionCacheStoreInterface {
 	return c.cacheStore
+}
+
+func (c *ClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
+	return c.k8sCoreClient
 }
 
 func (c *ClientManager) Close() {
@@ -55,7 +60,7 @@ func (c *ClientManager) init(params WhSvrDBParameters) {
 	c.time = util.NewRealTime()
 	c.db = db
 	c.cacheStore = storage.NewExecutionCacheStore(db, c.time)
-
+	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(timeoutDuration)
 }
 
 func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration) *storage.DB {

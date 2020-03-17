@@ -32,7 +32,9 @@ import (
 type OperationType string
 
 const (
-	OperationTypeAdd OperationType = "add"
+	OperationTypeAdd     OperationType = "add"
+	OperationTypeReplace OperationType = "replace"
+	OperationTypeRemove  OperationType = "remove"
 )
 
 // patchOperation is an operation of a JSON patch, see https://tools.ietf.org/html/rfc6902 .

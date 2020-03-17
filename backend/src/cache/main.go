@@ -35,7 +35,7 @@ const (
 )
 
 const (
-	initConnectionTimeout = "InitConnectionTimeout"
+	initConnectionTimeout = "6m"
 
 	mysqlDBDriverDefault            = "mysql"
 	mysqlDBHostDefault              = "mysql"
