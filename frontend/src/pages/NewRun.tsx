@@ -43,7 +43,7 @@ import {
 import { ApiTrigger, ApiJob } from '../apis/job';
 import { Apis, PipelineSortKeys, PipelineVersionSortKeys, ExperimentSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
@@ -109,10 +109,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-class NewRun extends Page<{}, NewRunState> {
-  static contextType = NamespaceContext;
-  context!: React.ContextType<typeof NamespaceContext>;
-
+export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   public state: NewRunState = {
     catchup: true,
     description: '',
@@ -399,8 +396,20 @@ class NewRun extends Page<{}, NewRunState> {
                 {...this.props}
                 title='Choose an experiment'
                 filterLabel='Filter experiments'
-                listApi={async (...args) => {
-                  const response = await Apis.experimentServiceApi.listExperiment(...args);
+                listApi={async (
+                  page_token?: string,
+                  page_size?: number,
+                  sort_by?: string,
+                  filter?: string,
+                ) => {
+                  const response = await Apis.experimentServiceApi.listExperiment(
+                    page_token,
+                    page_size,
+                    sort_by,
+                    filter,
+                    this.props.namespace ? 'NAMESPACE' : undefined,
+                    this.props.namespace,
+                  );
                   return {
                     nextPageToken: response.next_page_token || '',
                     resources: response.experiments || [],
@@ -1005,7 +1014,7 @@ class NewRun extends Page<{}, NewRunState> {
 
     // namespace resource ref is only supported in create run for now
     if (!this.state.isRecurringRun) {
-      const currentNamespace = this.context;
+      const currentNamespace = this.props.namespace;
       if (currentNamespace) {
         references.push({
           key: {
@@ -1150,4 +1159,9 @@ class NewRun extends Page<{}, NewRunState> {
   }
 }
 
-export default NewRun;
+const EnhancedNewRun: React.FC<PageProps> = props => {
+  const namespace = React.useContext(NamespaceContext);
+  return <NewRun {...props} namespace={namespace} />;
+};
+
+export default EnhancedNewRun;

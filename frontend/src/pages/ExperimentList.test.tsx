@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import * as Utils from '../lib/Utils';
-import ExperimentList from './ExperimentList';
+import { ExperimentList } from './ExperimentList';
 import TestUtils from '../TestUtils';
 import { ApiFilter, PredicateOp } from '../apis/filter';
 import { RunStorageState } from '../apis/run';
@@ -58,7 +58,11 @@ describe('ExperimentList', () => {
     );
   }
 
-  async function mountWithNExperiments(n: number, nRuns: number): Promise<void> {
+  async function mountWithNExperiments(
+    n: number,
+    nRuns: number,
+    { namespace }: { namespace?: string } = {},
+  ): Promise<void> {
     listExperimentsSpy.mockImplementation(() => ({
       experiments: range(n).map(i => ({
         id: 'test-experiment-id' + i,
@@ -68,7 +72,7 @@ describe('ExperimentList', () => {
     listRunsSpy.mockImplementation(() => ({
       runs: range(nRuns).map(i => ({ id: 'test-run-id' + i, name: 'test run name' + i })),
     }));
-    tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} namespace={namespace} />);
     await listExperimentsSpy;
     await listRunsSpy;
     await TestUtils.flushPromises();
@@ -136,7 +140,14 @@ describe('ExperimentList', () => {
 
   it('calls Apis to list experiments, sorted by creation time in descending order', async () => {
     await mountWithNExperiments(1, 1);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith(
+      '',
+      10,
+      'created_at desc',
+      '',
+      undefined,
+      undefined,
+    );
     expect(listRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       5,
@@ -165,6 +176,18 @@ describe('ExperimentList', () => {
     ]);
   });
 
+  it('calls Apis to list experiments with namespace when available', async () => {
+    await mountWithNExperiments(1, 1, { namespace: 'test-ns' });
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith(
+      '',
+      10,
+      'created_at desc',
+      '',
+      'NAMESPACE',
+      'test-ns',
+    );
+  });
+
   it('has a Refresh button, clicking it refreshes the experiment list', async () => {
     await mountWithNExperiments(1, 1);
     const instance = tree.instance() as ExperimentList;
@@ -173,7 +196,14 @@ describe('ExperimentList', () => {
     expect(refreshBtn).toBeDefined();
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith(
+      '',
+      10,
+      'created_at desc',
+      '',
+      undefined,
+      undefined,
+    );
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
@@ -218,7 +248,14 @@ describe('ExperimentList', () => {
     TestUtils.makeErrorResponseOnce(listExperimentsSpy, 'bad stuff happened');
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith(
+      '',
+      10,
+      'created_at desc',
+      '',
+      undefined,
+      undefined,
+    );
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad stuff happened',
