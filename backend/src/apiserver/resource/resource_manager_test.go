@@ -88,8 +88,8 @@ func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
-	experiment := &model.Experiment{Name: "e1"}
-	experiment, err := manager.CreateExperiment(experiment)
+	apiExperiment := &api.Experiment{Name: "e1"}
+	experiment, err := manager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
 	return store, manager, experiment
 }
@@ -98,8 +98,8 @@ func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceM
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
-	experiment := &model.Experiment{Name: "e1"}
-	experiment, err := manager.CreateExperiment(experiment)
+	apiExperiment := &api.Experiment{Name: "e1"}
+	experiment, err := manager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
 	pipeline, err := manager.CreatePipeline("p1", "", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
@@ -307,8 +307,8 @@ func TestGetPipelineTemplate_PipelineFileNotFound(t *testing.T) {
 func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	store, manager, p := initWithPipeline(t)
 	defer store.Close()
-	experiment := &model.Experiment{Name: "e1"}
-	experiment, err := manager.CreateExperiment(experiment)
+	apiExperiment := &api.Experiment{Name: "e1"}
+	experiment, err := manager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
 	apiRun := &api.Run{
 		Name: "run1",
@@ -898,8 +898,8 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 func TestCreateJob_ThroughPipelineID(t *testing.T) {
 	store, manager, pipeline := initWithPipeline(t)
 	defer store.Close()
-	experiment := &model.Experiment{Name: "e1"}
-	experiment, err := manager.CreateExperiment(experiment)
+	apiExperiment := &api.Experiment{Name: "e1"}
+	experiment, err := manager.CreateExperiment(apiExperiment)
 	job := &api.Job{
 		Name:    "j1",
 		Enabled: true,
@@ -2289,4 +2289,47 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 	version, err := manager.pipelineStore.GetPipelineVersionWithStatus(FakeUUIDOne, model.PipelineVersionDeleting)
 	assert.Nil(t, err)
 	assert.NotNil(t, version)
+}
+
+func TestCreateDefaultExperiment(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	experimentID, err := manager.CreateDefaultExperiment()
+	assert.Nil(t, err)
+	experiment, err := manager.GetExperiment(experimentID)
+	assert.Nil(t, err)
+
+	expectedExperiment := &model.Experiment{
+		UUID:           DefaultFakeUUID,
+		CreatedAtInSec: 1,
+		Name:           "Default",
+		Description:    "All runs created without specifying an experiment will be grouped here.",
+		Namespace:      "",
+	}
+	assert.Equal(t, expectedExperiment, experiment)
+}
+
+func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	experimentID, err := manager.CreateDefaultExperiment()
+	assert.Nil(t, err)
+	experiment, err := manager.GetExperiment(experimentID)
+	assert.Nil(t, err)
+
+	expectedExperiment := &model.Experiment{
+		UUID:           DefaultFakeUUID,
+		CreatedAtInSec: 1,
+		Name:           "Default",
+		Description:    "All runs created without specifying an experiment will be grouped here.",
+		Namespace:      "",
+	}
+	assert.Equal(t, expectedExperiment, experiment)
 }
