@@ -26,28 +26,24 @@ import (
 )
 
 func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
+	resourceReferences := []*api.ResourceReference(nil)
 	if common.IsMultiUserMode() {
-		return &api.Experiment{
-			Id:          experiment.UUID,
-			Name:        experiment.Name,
-			Description: experiment.Description,
-			CreatedAt:   &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
-			ResourceReferences: []*api.ResourceReference{
-				&api.ResourceReference{
-					Key: &api.ResourceKey{
-						Type: api.ResourceType_NAMESPACE,
-						Id:   experiment.Namespace,
-					},
-					Relationship: api.Relationship_OWNER,
+		resourceReferences = []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Type: api.ResourceType_NAMESPACE,
+					Id:   experiment.Namespace,
 				},
+				Relationship: api.Relationship_OWNER,
 			},
 		}
 	}
 	return &api.Experiment{
-		Id:          experiment.UUID,
-		Name:        experiment.Name,
-		Description: experiment.Description,
-		CreatedAt:   &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
+		Id:                 experiment.UUID,
+		Name:               experiment.Name,
+		Description:        experiment.Description,
+		CreatedAt:          &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
+		ResourceReferences: resourceReferences,
 	}
 }
 

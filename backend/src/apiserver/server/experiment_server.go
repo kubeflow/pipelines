@@ -122,6 +122,7 @@ func ValidateCreateExperimentRequest(request *api.CreateExperimentRequest) error
 	return nil
 }
 
+// TODO(chensun): consider refactoring the code to get rid of double-query of experiment.
 func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID string) error {
 	if !common.IsMultiUserMode() {
 		// Skip authorization if not multi-user mode.
