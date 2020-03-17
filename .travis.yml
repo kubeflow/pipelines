@@ -59,7 +59,6 @@ matrix:
         - git clone https://github.com/tensorflow/tfx.git
         - cd $TRAVIS_BUILD_DIR/tfx
         - pip3 install --upgrade pip
-        - python3 -m pip install "tensorflow>=1.14,<2"
         - set -x
         - set -e
         - python3 setup.py bdist_wheel
