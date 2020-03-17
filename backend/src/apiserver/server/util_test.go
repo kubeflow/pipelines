@@ -346,9 +346,12 @@ func TestGetUserIdentity(t *testing.T) {
 }
 
 func TestCanAccessNamespaceInResourceReferencesUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
-	viper.Set(common.MultiUserMode, "true")
+
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	references := []*api.ResourceReference{
@@ -363,9 +366,12 @@ func TestCanAccessNamespaceInResourceReferencesUnauthorized(t *testing.T) {
 }
 
 func TestCanAccessNamespaceInResourceReferences_Authorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	viper.Set(common.MultiUserMode, "true")
+
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	references := []*api.ResourceReference{
