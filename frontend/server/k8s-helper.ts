@@ -23,6 +23,7 @@ import {
   Custom_objectsApi,
   KubeConfig,
   V1DeleteOptions,
+  V1Pod,
 } from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
@@ -56,11 +57,12 @@ export const isInCluster = fs.existsSync(namespaceFilePath);
 
 if (isInCluster) {
   namespace = fs.readFileSync(namespaceFilePath, 'utf-8');
-  const kc = new KubeConfig();
-  kc.loadFromDefault();
-  k8sV1Client = kc.makeApiClient(Core_v1Api);
-  k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
 }
+const kc = new KubeConfig();
+// This loads kubectl config when not in cluster.
+kc.loadFromDefault();
+k8sV1Client = kc.makeApiClient(Core_v1Api);
+k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
 
 function getNameOfViewerResource(logdir: string): string {
   // TODO: find some hash function with shorter resulting message.
@@ -219,6 +221,21 @@ export function getPodLogs(podName: string, podNamespace?: string): Promise<stri
       throw new Error(JSON.stringify(error.body));
     },
   );
+}
+
+export async function getPod(podName: string, podNamespace: string): Promise<V1Pod> {
+  if (!k8sV1Client) {
+    throw new Error('Cannot access kubernetes API');
+  }
+  try {
+    const { body } = await k8sV1Client.readNamespacedPod(podName, podNamespace);
+    return body;
+  } catch (error) {
+    if (error?.message) {
+      error.message = 'Error when reading pod yaml: ' + error.message;
+    }
+    throw error;
+  }
 }
 
 /**
