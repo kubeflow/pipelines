@@ -162,7 +162,6 @@ describe('Archive', () => {
     expect(deleteRunSpy).toHaveBeenCalledWith('id1');
     expect(deleteRunSpy).toHaveBeenCalledWith('id2');
     expect(deleteRunSpy).toHaveBeenCalledWith('id3');
-    console.log(tree.state('selectedIds'));
     expect(tree.state('selectedIds')).toEqual(['id1']); // id1 is left over since its deletion failed.
   });
 });
