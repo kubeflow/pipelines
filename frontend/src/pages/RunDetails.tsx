@@ -49,7 +49,7 @@ import VisualizationCreator, {
   VisualizationCreatorConfig,
 } from '../components/viewers/VisualizationCreator';
 import { color, commonCss, fonts, fontsize, padding } from '../Css';
-import { Apis } from '../lib/Apis';
+import { Apis, JSONObject } from '../lib/Apis';
 import Buttons, { ButtonKeys } from '../lib/Buttons';
 import CompareUtils from '../lib/CompareUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
@@ -75,6 +75,7 @@ enum SidePaneTab {
   MANIFEST,
   LOGS,
   POD,
+  EVENTS,
 }
 
 interface SelectedNodeDetails {
@@ -294,6 +295,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   'Manifest',
                                   'Logs',
                                   'Pod',
+                                  'Events',
                                 ]}
                                 selectedTab={sidepanelSelectedTab}
                                 onSwitch={this._loadSidePaneTab.bind(this)}
@@ -372,6 +374,14 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   <div className={commonCss.page}>
                                     {selectedNodeId && namespace && (
                                       <PodInfo name={selectedNodeId} namespace={namespace} />
+                                    )}
+                                  </div>
+                                )}
+
+                                {sidepanelSelectedTab === SidePaneTab.EVENTS && (
+                                  <div className={commonCss.page}>
+                                    {selectedNodeId && namespace && (
+                                      <PodEvents name={selectedNodeId} namespace={namespace} />
                                     )}
                                   </div>
                                 )}
@@ -1008,43 +1018,72 @@ const ArtifactsTabContent: React.FC<{
   );
 };
 
-// Hack types from https://github.com/microsoft/TypeScript/issues/1897#issuecomment-557057387
-type JSONPrimitive = string | number | boolean | null;
-type JSONValue = JSONPrimitive | JSONObject | JSONArray;
-type JSONObject = { [member: string]: JSONValue };
-type JSONArray = JSONValue[];
-
-function dumpPodJsonAsYaml(jsonData: JSONObject): string {
+function reorderPodJson(jsonData: JSONObject): JSONObject {
   const orderedData = { ...jsonData };
   if (jsonData.spec) {
     // Deleting spec property and add it again moves spec to the last property in the JSON object.
     delete orderedData.spec;
     orderedData.spec = jsonData.spec;
   }
-  return JsYaml.safeDump(orderedData, { skipInvalid: true });
+  return orderedData;
 }
 
+async function getPodYaml(name: string, namespace: string): Promise<string> {
+  const response = await Apis.getPodInfo(name, namespace);
+  return JsYaml.safeDump(reorderPodJson(response), { skipInvalid: true });
+}
 const PodInfo: React.FC<{ name: string; namespace: string }> = ({ name, namespace }) => {
-  const [info, setInfo] = React.useState<string | undefined>(undefined);
-  const [error, setError] = React.useState<
-    { message: string; detailedMessage: string } | undefined
-  >(undefined);
+  return (
+    <PodYamlViewer
+      name={name}
+      namespace={namespace}
+      errorMessage='Warning: failed to retrieve pod info. Possible reasons include cluster autoscaling or pod preemption'
+      getYaml={getPodYaml}
+    />
+  );
+};
+
+async function getPodEventsYaml(name: string, namespace: string): Promise<string> {
+  const response = await Apis.getPodEvents(name, namespace);
+  return JsYaml.safeDump(response, { skipInvalid: true });
+}
+const PodEvents: React.FC<{ name: string; namespace: string }> = ({ name, namespace }) => {
+  return (
+    <PodYamlViewer
+      name={name}
+      namespace={namespace}
+      errorMessage='Warning: failed to retrieve pod events. Possible reasons include cluster autoscaling or pod preemption'
+      getYaml={getPodEventsYaml}
+    />
+  );
+};
+
+const PodYamlViewer: React.FC<{
+  name: string;
+  namespace: string;
+  errorMessage: string;
+  getYaml: (name: string, namespace: string) => Promise<string>;
+}> = ({ name, namespace, getYaml, errorMessage }) => {
+  const [yaml, setYaml] = React.useState<string | undefined>(undefined);
+  const [error, setError] = React.useState<{ message: string; additionalInfo: string } | undefined>(
+    undefined,
+  );
   const [refreshes, setRefresh] = React.useState(0);
   React.useEffect(() => {
     let aborted = false;
     async function load() {
+      setYaml(undefined);
       setError(undefined);
       try {
-        const response = await Apis.getPodInfo(name, namespace);
+        const yaml = await getYaml(name, namespace);
         if (!aborted) {
-          setInfo(dumpPodJsonAsYaml(response));
+          setYaml(yaml);
         }
       } catch (err) {
         if (!aborted) {
           setError({
-            message:
-              'Warning: failed to retrieve pod info. Possible reasons include cluster autoscaling or pod preemption',
-            detailedMessage: await serviceErrorToString(err),
+            message: errorMessage,
+            additionalInfo: await serviceErrorToString(err),
           });
         }
       }
@@ -1053,22 +1092,21 @@ const PodInfo: React.FC<{ name: string; namespace: string }> = ({ name, namespac
     return () => {
       aborted = true;
     };
-  }, [name, namespace, refreshes]);
+  }, [name, namespace, refreshes]); // When refreshes change, request is fetched again.
   return (
     <>
       {error && (
-        <React.Fragment>
-          <Banner
-            message={error.message}
-            mode='warning'
-            additionalInfo={error.detailedMessage}
-            refresh={() => setRefresh(refresh => refresh + 1)}
-          />
-        </React.Fragment>
+        <Banner
+          message={error.message}
+          mode='warning'
+          additionalInfo={error.additionalInfo}
+          // Increases refresh counter, so it will automatically trigger a refetch.
+          refresh={() => setRefresh(refreshes => refreshes + 1)}
+        />
       )}
-      {!error && info && (
+      {!error && yaml && (
         <Editor
-          value={info || ''}
+          value={yaml || ''}
           height='100%'
           width='100%'
           mode='yaml'

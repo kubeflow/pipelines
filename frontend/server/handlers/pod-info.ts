@@ -36,8 +36,32 @@ export const podInfoHandler: Handler = async (req, res) => {
     res.status(200).send(JSON.stringify(pod));
   } catch (err) {
     const message = `Could not get pod ${podName} in namespace ${podNamespace}`;
-    console.error(message, err);
-    const detailedMessage = err?.body?.message || err?.message || err;
-    res.status(500).send(`${message}: ${detailedMessage}`);
+    console.error(message, err?.body || err);
+    const additionalInfo = err?.body?.message || err?.message || err;
+    res.status(500).send(`${message}: ${additionalInfo}`);
+  }
+};
+
+export const podEventsHandler: Handler = async (req, res) => {
+  const { podname, podnamespace } = req.query;
+  if (!podname) {
+    res.status(404).send('podname argument is required');
+    return;
+  }
+  if (!podnamespace) {
+    res.status(404).send('podnamespace argument is required');
+    return;
+  }
+  const podName = decodeURIComponent(podname);
+  const podNamespace = decodeURIComponent(podnamespace);
+
+  try {
+    const eventList = await k8sHelper.listPodEvents(podName, podNamespace);
+    res.status(200).send(JSON.stringify(eventList));
+  } catch (err) {
+    const message = `Could not list events for pod ${podName} in namespace ${podNamespace}`;
+    console.error(message, err?.body || err);
+    const additionalInfo = err?.body?.message || err?.message || err;
+    res.status(500).send(`${message}: ${additionalInfo}`);
   }
 };

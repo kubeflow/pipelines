@@ -24,6 +24,7 @@ import {
   KubeConfig,
   V1DeleteOptions,
   V1Pod,
+  V1EventList,
 } from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
@@ -33,8 +34,6 @@ import { PartialArgoWorkflow } from './workflow-helper';
 // path, this is also how we can tell whether we're running in the cluster.
 const namespaceFilePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
 let namespace = '';
-let k8sV1Client: Core_v1Api | null = null;
-let k8sV1CustomObjectClient: Custom_objectsApi | null = null;
 
 // Constants for creating customer resource Viewer.
 const viewerGroup = 'kubeflow.org';
@@ -61,8 +60,8 @@ if (isInCluster) {
 const kc = new KubeConfig();
 // This loads kubectl config when not in cluster.
 kc.loadFromDefault();
-k8sV1Client = kc.makeApiClient(Core_v1Api);
-k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
+const k8sV1Client = kc.makeApiClient(Core_v1Api);
+const k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
 
 function getNameOfViewerResource(logdir: string): string {
   // TODO: find some hash function with shorter resulting message.
@@ -79,8 +78,8 @@ export async function newTensorboardInstance(
   tfversion: string,
   podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<void> {
-  if (!k8sV1CustomObjectClient) {
-    throw new Error('Cannot access kubernetes Custom Object API');
+  if (!namespace) {
+    throw new Error('Cannot get namespace from /');
   }
   const currentPod = await getTensorboardInstance(logdir);
   if (currentPod.podAddress) {
@@ -125,8 +124,8 @@ export async function newTensorboardInstance(
 export async function getTensorboardInstance(
   logdir: string,
 ): Promise<{ podAddress: string; tfVersion: string }> {
-  if (!k8sV1CustomObjectClient) {
-    throw new Error('Cannot access kubernetes Custom Object API');
+  if (!namespace) {
+    throw new Error('Cannot get namespace from /');
   }
 
   return await k8sV1CustomObjectClient
@@ -212,8 +211,8 @@ export function waitForTensorboardInstance(logdir: string, timeout: number): Pro
 }
 
 export function getPodLogs(podName: string, podNamespace?: string): Promise<string> {
-  if (!k8sV1Client) {
-    throw new Error('Cannot access kubernetes API');
+  if (!podNamespace && !namespace) {
+    throw new Error('Cannot get namespace from /');
   }
   return (k8sV1Client.readNamespacedPodLog(podName, podNamespace || namespace, 'main') as any).then(
     (response: any) => (response && response.body ? response.body.toString() : ''),
@@ -224,9 +223,6 @@ export function getPodLogs(podName: string, podNamespace?: string): Promise<stri
 }
 
 export async function getPod(podName: string, podNamespace: string): Promise<V1Pod> {
-  if (!k8sV1Client) {
-    throw new Error('Cannot access kubernetes API');
-  }
   try {
     const { body } = await k8sV1Client.readNamespacedPod(podName, podNamespace);
     return body;
@@ -238,13 +234,34 @@ export async function getPod(podName: string, podNamespace: string): Promise<V1P
   }
 }
 
+export async function listPodEvents(podName: string, podNamespace: string): Promise<V1EventList> {
+  try {
+    const { body } = await k8sV1Client.listNamespacedEvent(
+      podNamespace,
+      undefined,
+      undefined,
+      undefined,
+      // The following fieldSelector can be found when running
+      // `kubectl describe <pod-name> -v 8`
+      // (-v 8) will verbosely print network requests sent by kubectl.
+      `involvedObject.namespace=${podNamespace},involvedObject.name=${podName}`,
+    );
+    return body;
+  } catch (error) {
+    if (error?.message) {
+      error.message = 'Error when listing pod events: ' + error.message;
+    }
+    throw error;
+  }
+}
+
 /**
  * Retrieves the argo workflow CRD.
  * @param workflowName name of the argo workflow
  */
 export async function getArgoWorkflow(workflowName: string): Promise<PartialArgoWorkflow> {
-  if (!k8sV1CustomObjectClient) {
-    throw new Error('Cannot access kubernetes Custom Object API');
+  if (!namespace) {
+    throw new Error('Cannot get namespace from /');
   }
 
   const res = await k8sV1CustomObjectClient.getNamespacedCustomObject(
@@ -271,8 +288,8 @@ export async function getArgoWorkflow(workflowName: string): Promise<PartialArgo
  * @param key key in the secret
  */
 export async function getK8sSecret(name: string, key: string) {
-  if (!k8sV1Client) {
-    throw new Error('Cannot access kubernetes API');
+  if (!namespace) {
+    throw new Error('Cannot get namespace from /');
   }
 
   const k8sSecret = await k8sV1Client.readNamespacedSecret(name, namespace);
