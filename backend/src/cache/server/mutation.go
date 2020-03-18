@@ -38,6 +38,7 @@ const (
 	ExecutionKey           string = "pipelines.kubeflow.org/execution_cache_key"
 	CacheIDLabelKey        string = "pipelines.kubeflow.org/cache_id"
 	ArgoWorkflowOutputs    string = "workflows.argoproj.io/outputs"
+	MetadataWritenKey      string = "pipelines.kubeflow.org/metadata_written"
 	AnnotationPath         string = "/metadata/annotations"
 	LabelPath              string = "/metadata/labels"
 	SpecContainersPath     string = "/spec/containers"
@@ -106,8 +107,12 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	// Found cached execution, add cached output and cache_id and replace container images.
 	if cachedExecution != nil {
 		log.Println("Cached output: " + cachedExecution.ExecutionOutput)
-		annotations[ArgoWorkflowOutputs] = cachedExecution.ExecutionOutput
+
+		annotations[ArgoWorkflowOutputs] = getOutputFromOutputMap(cachedExecution.ExecutionOutput)
 		labels[CacheIDLabelKey] = strconv.FormatInt(cachedExecution.ID, 10)
+		labels[MetadataExecutionIDKey] = getMetadataExecutionIDFromOutputMap(cachedExecution.ExecutionOutput)
+		labels[MetadataWritenKey] = "true"
+
 		dummyContainer := corev1.Container{
 			Name:    "main",
 			Image:   "alpine",
@@ -171,6 +176,36 @@ func generateCacheKeyFromTemplate(template string) (string, error) {
 	executionHashKey := hex.EncodeToString(md)
 
 	return executionHashKey, nil
+}
+
+func getOutputFromOutputMap(output string) string {
+	var outputMap map[string]interface{}
+	b := []byte(output)
+	err := json.Unmarshal(b, &outputMap)
+	if err != nil {
+		return ""
+	}
+
+	executionOutput, exist := outputMap[ArgoWorkflowOutputs].(string)
+	if executionOutput == "" || !exist {
+		return ""
+	}
+	return executionOutput
+}
+
+func getMetadataExecutionIDFromOutputMap(output string) string {
+	var outputMap map[string]interface{}
+	b := []byte(output)
+	err := json.Unmarshal(b, &outputMap)
+	if err != nil {
+		return ""
+	}
+
+	metadataExecutionID, exist := outputMap[MetadataExecutionIDKey].(string)
+	if metadataExecutionID == "" || !exist {
+		return ""
+	}
+	return metadataExecutionID
 }
 
 func isValidPod(pod *corev1.Pod) bool {

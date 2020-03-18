@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	ArgoCompleteLabelKey string = "workflows.argoproj.io/completed"
+	ArgoCompleteLabelKey   string = "workflows.argoproj.io/completed"
+	MetadataExecutionIDKey string = "pipelines.kubeflow.org/metadata_execution_id"
 )
 
 func WatchPods(namespaceToWatch string, clientManager ClientManagerInterface) {
@@ -49,16 +50,22 @@ func WatchPods(namespaceToWatch string, clientManager ClientManagerInterface) {
 				continue
 			}
 
-			executionOutput, exists := pod.ObjectMeta.Annotations["workflows.argoproj.io/outputs"]
+			executionOutput, exists := pod.ObjectMeta.Annotations[ArgoWorkflowOutputs]
 			executionKey := pod.ObjectMeta.Annotations[ExecutionKey]
 			if !exists {
 				continue
 			}
-			executionTemplate := pod.ObjectMeta.Annotations["workflows.argoproj.io/template"]
+
+			executionOutputMap := make(map[string]interface{})
+			executionOutputMap[ArgoWorkflowOutputs] = executionOutput
+			executionOutputMap[MetadataExecutionIDKey] = pod.ObjectMeta.Labels[MetadataExecutionIDKey]
+			executionOutputJSON, _ := json.Marshal(executionOutputMap)
+
+			executionTemplate := pod.ObjectMeta.Annotations[ArgoWorkflowTemplate]
 			executionToPersist := model.ExecutionCache{
 				ExecutionCacheKey: executionKey,
 				ExecutionTemplate: executionTemplate,
-				ExecutionOutput:   executionOutput,
+				ExecutionOutput:   string(executionOutputJSON),
 				MaxCacheStaleness: -1,
 			}
 
