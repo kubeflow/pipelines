@@ -1042,7 +1042,8 @@ const PodInfo: React.FC<{ name: string; namespace: string }> = ({ name, namespac
       } catch (err) {
         if (!aborted) {
           setError({
-            message: 'Failed getting pod info',
+            message:
+              'Warning: failed to retrieve pod info. Possible reasons include cluster autoscaling or pod preemption',
             detailedMessage: await serviceErrorToString(err),
           });
         }
@@ -1059,7 +1060,7 @@ const PodInfo: React.FC<{ name: string; namespace: string }> = ({ name, namespac
         <React.Fragment>
           <Banner
             message={error.message}
-            mode='error'
+            mode='warning'
             additionalInfo={error.detailedMessage}
             refresh={() => setRefresh(refresh => refresh + 1)}
           />
