@@ -109,9 +109,9 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		annotations[ArgoWorkflowOutputs] = cachedExecution.ExecutionOutput
 		labels[CacheIDLabelKey] = strconv.FormatInt(cachedExecution.ID, 10)
 		dummyContainer := corev1.Container{
-			Name:    "dummy",
+			Name:    "main",
 			Image:   "alpine",
-			Command: []string{"true"},
+			Command: []string{`echo`, `"This step output is taken from cache."`},
 		}
 		dummyContainers := []corev1.Container{
 			dummyContainer,
