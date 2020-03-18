@@ -67,7 +67,7 @@ describe('Archive', () => {
     expect(updateBannerSpy).toHaveBeenCalledWith({});
   });
 
-  it('only enables restore and delete button when at least one run is selected', () => {
+  it('enables restore and delete button when at least one run is selected', () => {
     tree = shallow(<Archive {...generateProps()} />);
     TestUtils.flushPromises();
     tree.update();
@@ -132,7 +132,7 @@ describe('Archive', () => {
   it('deletes selected ids when Confirm is clicked', async () => {
     tree = shallow(<Archive {...generateProps()} />);
     tree.setState({ selectedIds: ['id1', 'id2', 'id3'] });
-    console.log(tree.state('selectedIds'));
+
     // Mock the behavior where the deletion of id1 fails, the deletion of id2 and id3 succeed.
     TestUtils.makeErrorResponseOnce(deleteRunSpy, 'woops');
     deleteRunSpy.mockImplementation(() => Promise.resolve({}));
