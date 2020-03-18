@@ -29,6 +29,8 @@ spec:
         value: sample-tests
       - name: namespace
         value: kubeflow
+      - name: is-integration-test
+        value: "false"
   templates:
     - name: sample-test
       inputs:
@@ -37,6 +39,7 @@ spec:
           - name: test-results-gcs-dir
           - name: sample-tests-image-suffix
           - name: namespace
+          - name: is-integration-test
       steps:
         - - name: build-sample-tests-image
             template: build-image-by-dockerfile
@@ -63,29 +66,46 @@ spec:
                 - name: test-name
                   value: "{{item}}"
             withItems:
-              - xgboost_training_cm
               - lightweight_component
               - dsl_static_type_checking
               - pipeline_transformers
               - secret
               - sidecar
-              - dataflow
               - execution_order
               - imagepullsecrets
               - retry
               - artifact_location
               - preemptible_tpu_gpu
               - volume_snapshot_ops
-              - kubeflow_tf_serving
-              - container_build
               - loop_output
               - loop_parameter
               - loop_static
               - resource_ops
               - multiple_outputs
+            when: "{{inputs.parameters.is-integration-test}} == false"
+          - name: run-integration-tests-loop
+            template: run-sample-tests
+            arguments:
+              parameters:
+                - name: namespace
+                  value: "{{inputs.parameters.namespace}}"
+                - name: sample-tests-image
+                  value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
+                - name: target-image-prefix
+                  value: "{{inputs.parameters.target-image-prefix}}"
+                - name: test-results-gcs-dir
+                  value: "{{inputs.parameters.test-results-gcs-dir}}"
+                - name: test-name
+                  value: "{{item}}"
+            withItems:
+              - xgboost_training_cm
+              - dataflow
               - ai_platform
+              - kubeflow_tf_serving
+              - container_build
               - parameterized_tfx_oss
               - iris
+            # when: "{{inputs.parameters.is-integration-test}} == true"
     # Build and push image
     - name: build-image-by-dockerfile
       retryStrategy:
