@@ -100,7 +100,7 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 		log.Printf(tableName)
 	}
 
-	return storage.NewDB(db, storage.NewMySQLDialect())
+	return storage.NewDB(db)
 }
 
 func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) string {

@@ -32,7 +32,7 @@ func NewFakeDb() (*DB, error) {
 	// Create tables
 	db.AutoMigrate(&model.ExecutionCache{})
 
-	return NewDB(db, NewSQLiteDialect()), nil
+	return NewDB(db), nil
 }
 
 func NewFakeDbOrFatal() *DB {
