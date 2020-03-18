@@ -27,12 +27,17 @@ def train(args):
     wml_train_code = args.train_code
     wml_execution_command = args.execution_command.strip('\'')
     wml_framework_name = args.framework if args.framework else 'tensorflow'
-    wml_framework_version = args.framework_version if args.framework_version else '1.13'
+    wml_framework_version = args.framework_version if args.framework_version else '1.14'
     wml_runtime_name = args.runtime if args.runtime else 'python'
     wml_runtime_version = args.runtime_version if args.runtime_version else '3.6'
     wml_run_definition = args.run_definition if args.run_definition else 'python-tensorflow-definition'
     wml_run_name = args.run_name if args.run_name else 'python-tensorflow-run'
     wml_author_name = args.author_name if args.author_name else 'default-author'
+    wml_compute_name = args.compute_name if args.compute_name else 'k80'
+    wml_compute_nodes = args.compute_nodes if args.compute_nodes else '1'
+
+    wml_runtime_version_v4 = wml_framework_version + '-py' + wml_runtime_version
+    wml_compute_nodes_v4 = int(wml_compute_nodes)
 
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
@@ -40,7 +45,7 @@ def train(args):
     wml_instance_id = getSecret("/app/secrets/wml_instance_id")
 
     wml_data_source_type = getSecret("/app/secrets/wml_data_source_type")
-
+    
     cos_endpoint = getSecret("/app/secrets/cos_endpoint")
     cos_endpoint_parts = urlsplit(cos_endpoint)
     if bool(cos_endpoint_parts.scheme):
@@ -57,9 +62,10 @@ def train(args):
     model_code = os.path.join('/app', wml_train_code)
 
     cos = Minio(cos_endpoint_hostname,
-               access_key = cos_access_key,
-               secret_key = cos_secret_key,
-               secure = True)
+               access_key=cos_access_key,
+               secret_key=cos_secret_key,
+               secure=True)
+
     cos.fget_object(cos_input_bucket, wml_train_code, model_code)
 
     # set up the WML client
@@ -68,73 +74,117 @@ def train(args):
                        "instance_id": wml_instance_id,
                        "apikey": wml_apikey
                       }
-    client = WatsonMachineLearningAPIClient( wml_credentials )
-
+    client = WatsonMachineLearningAPIClient(wml_credentials)
     # define the model
-    metadata = {
-        client.repository.DefinitionMetaNames.NAME              : wml_run_definition,
-        client.repository.DefinitionMetaNames.AUTHOR_NAME       : wml_author_name,
-        client.repository.DefinitionMetaNames.FRAMEWORK_NAME    : wml_framework_name,
-        client.repository.DefinitionMetaNames.FRAMEWORK_VERSION : wml_framework_version,
-        client.repository.DefinitionMetaNames.RUNTIME_NAME      : wml_runtime_name,
-        client.repository.DefinitionMetaNames.RUNTIME_VERSION   : wml_runtime_version,
-        client.repository.DefinitionMetaNames.EXECUTION_COMMAND : wml_execution_command
+    lib_meta = {
+        client.runtimes.LibraryMetaNames.NAME: wml_run_definition,
+        client.runtimes.LibraryMetaNames.VERSION: wml_framework_version,
+        client.runtimes.LibraryMetaNames.FILEPATH: model_code,
+        client.runtimes.LibraryMetaNames.PLATFORM: {"name": wml_framework_name, "versions": [wml_framework_version]}
+    }
+    custom_library_details = client.runtimes.store_library(lib_meta)
+    custom_library_uid = client.runtimes.get_library_uid(custom_library_details)
+
+    # create a pipeline with the model definitions included
+    doc = {
+        "doc_type": "pipeline",
+        "version": "2.0",
+        "primary_pipeline": wml_framework_name,
+        "pipelines": [{
+            "id": wml_framework_name,
+            "runtime_ref": "hybrid",
+            "nodes": [{
+                "id": "training",
+                "type": "model_node",
+                "op": "dl_train",
+                "runtime_ref": wml_run_name,
+                "inputs": [],
+                "outputs": [],
+                "parameters": {
+                    "name": "tf-mnist",
+                    "description": wml_run_definition,
+                    "command": wml_execution_command,
+                    "training_lib_href": "/v4/libraries/"+custom_library_uid,
+                    "compute": {
+                        "name": wml_compute_name,
+                        "nodes": wml_compute_nodes_v4
+                    }
+                }
+            }]
+        }],
+        "runtimes": [{
+            "id": wml_run_name,
+            "name": wml_framework_name,
+            "version": wml_runtime_version_v4
+        }]
     }
 
-    definition_details = client.repository.store_definition( model_code, meta_props=metadata )
-    definition_uid     = client.repository.get_definition_uid( definition_details )
-    # print( "definition_uid: ", definition_uid )
-
-    # define the run
     metadata = {
-        client.training.ConfigurationMetaNames.NAME        : wml_run_name,
-        client.training.ConfigurationMetaNames.AUTHOR_NAME : wml_author_name,
-        client.training.ConfigurationMetaNames.TRAINING_DATA_REFERENCE : {
-            "connection" : {
-                "endpoint_url"      : cos_endpoint,
-                "access_key_id"     : cos_access_key,
-                "secret_access_key" : cos_secret_key
-            },
-            "source" : {
-                "bucket" : cos_input_bucket,
-            },
-            "type" : wml_data_source_type
-        },
+        client.repository.PipelineMetaNames.NAME: wml_run_name,
+        client.repository.PipelineMetaNames.DOCUMENT: doc
+    }
+    pipeline_id = client.pipelines.get_uid(client.repository.store_pipeline(meta_props=metadata))
+        
+    client.pipelines.get_details(pipeline_id)
+
+    # start the training run for v4
+    metadata = {
         client.training.ConfigurationMetaNames.TRAINING_RESULTS_REFERENCE: {
-            "connection" : {
-                "endpoint_url"      : cos_endpoint,
-                "access_key_id"     : cos_access_key,
-                "secret_access_key" : cos_secret_key
+            "name": "training-results-reference_name",
+            "connection": {
+                "endpoint_url": cos_endpoint,
+                "access_key_id": cos_access_key,
+                "secret_access_key": cos_secret_key
             },
-            "target" : {
-                "bucket" : cos_output_bucket,
+            "location": {
+                "bucket": cos_output_bucket
             },
-            "type" : wml_data_source_type
-        }
+            "type": wml_data_source_type
+        },
+        client.training.ConfigurationMetaNames.TRAINING_DATA_REFERENCES:[{
+            "name": "training_input_data",
+            "type": wml_data_source_type,
+            "connection": {
+                "endpoint_url": cos_endpoint,
+                "access_key_id": cos_access_key,
+                "secret_access_key": cos_secret_key
+            },
+            "location": {
+                "bucket": cos_input_bucket
+            }
+        }],
+        client.training.ConfigurationMetaNames.PIPELINE_UID: pipeline_id
     }
 
-    # start the training
-    run_details = client.training.run( definition_uid, meta_props=metadata, asynchronous=True )
-    run_uid     = client.training.get_run_uid( run_details )
-    with open("/tmp/run_uid", "w") as f:
-        f.write(run_uid)
-    f.close()
+    training_id = client.training.get_uid(client.training.run(meta_props=metadata))
+    print("training_id", client.training.get_details(training_id))
+    print("get status", client.training.get_status(training_id))
+    # for v4
+    run_details = client.training.get_details(training_id)
+    run_uid = training_id
 
     # print logs
     client.training.monitor_logs(run_uid)
     client.training.monitor_metrics(run_uid)
 
     # checking the result
-    status = client.training.get_status( run_uid )
+    status = client.training.get_status(run_uid)
+    print("status: ", status)
     while status['state'] != 'completed':
         time.sleep(20)
-        status = client.training.get_status( run_uid )
+        status = client.training.get_status(run_uid)
     print(status)
+
+    with open("/tmp/run_uid", "w") as f:
+        f.write(run_uid)
+    f.close()
 
     # Get training details
     training_details = client.training.get_details(run_uid)
+    print("training_details", training_details)
+ 
     with open("/tmp/training_uid", "w") as f:
-        training_uid = training_details['entity']['training_results_reference']['location']['model_location']
+        training_uid = training_uid = training_details['entity']['results_reference']['location']['training']
         f.write(training_uid)
     f.close()
 
@@ -151,6 +201,8 @@ if __name__ == "__main__":
     parser.add_argument('--run-name', type=str)
     parser.add_argument('--author-name', type=str)
     parser.add_argument('--config', type=str, default="secret_name")
+    parser.add_argument('--compute-name', type=str)
+    parser.add_argument('--compute-nodes', type=str)
     args = parser.parse_args()
     # Check secret name is not empty
     if (not args.config):
