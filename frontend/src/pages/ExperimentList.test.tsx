@@ -40,6 +40,7 @@ const LIST_EXPERIMENT_DEFAULTS = [
   undefined, // resource_reference_key_type
   undefined, // resource_reference_key_id
 ];
+const LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE = LIST_EXPERIMENT_DEFAULTS.slice(0, 4);
 
 describe('ExperimentList', () => {
   let tree: ShallowWrapper | ReactWrapper;
@@ -186,7 +187,7 @@ describe('ExperimentList', () => {
   it('calls Apis to list experiments with namespace when available', async () => {
     await mountWithNExperiments(1, 1, { namespace: 'test-ns' });
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
-      ...LIST_EXPERIMENT_DEFAULTS.slice(0, 4),
+      ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
       'NAMESPACE',
       'test-ns',
     );
@@ -442,7 +443,7 @@ describe('ExperimentList', () => {
         </NamespaceContext.Provider>,
       );
       expect(listExperimentsSpy).toHaveBeenLastCalledWith(
-        ...LIST_EXPERIMENT_DEFAULTS.slice(0, 4),
+        ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
         'NAMESPACE',
         'test-ns',
       );
@@ -456,7 +457,7 @@ describe('ExperimentList', () => {
       );
       expect(listExperimentsSpy).toHaveBeenCalledTimes(1);
       expect(listExperimentsSpy).toHaveBeenLastCalledWith(
-        ...LIST_EXPERIMENT_DEFAULTS.slice(0, 4),
+        ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
         'NAMESPACE',
         'test-ns-1',
       );
@@ -467,7 +468,7 @@ describe('ExperimentList', () => {
       );
       expect(listExperimentsSpy).toHaveBeenCalledTimes(2);
       expect(listExperimentsSpy).toHaveBeenLastCalledWith(
-        ...LIST_EXPERIMENT_DEFAULTS.slice(0, 4),
+        ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
         'NAMESPACE',
         'test-ns-2',
       );
