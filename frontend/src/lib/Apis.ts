@@ -93,6 +93,17 @@ export class Apis {
     return this._fetch(query);
   }
 
+  /**
+   * Get pod info
+   */
+  public static async getPodInfo(podName: string, podNamespace: string): Promise<any> {
+    const query = `k8s/pod?podname=${encodeURIComponent(podName)}&podnamespace=${encodeURIComponent(
+      podNamespace,
+    )}`;
+    const podInfo = await this._fetch(query);
+    return JSON.parse(podInfo);
+  }
+
   public static get basePath(): string {
     const path = window.location.protocol + '//' + window.location.host + window.location.pathname;
     // Trim trailing '/' if exists

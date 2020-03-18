@@ -14,57 +14,58 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import Banner, { Mode } from '../components/Banner';
-import Buttons, { ButtonKeys } from '../lib/Buttons';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import CompareTable from '../components/CompareTable';
-import CompareUtils from '../lib/CompareUtils';
-import DetailsTable from '../components/DetailsTable';
-import MinioArtifactLink from '../components/MinioArtifactLink';
-import Graph from '../components/Graph';
-import Hr from '../atoms/Hr';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
-import LogViewer from '../components/LogViewer';
-import MD2Tabs from '../atoms/MD2Tabs';
-import PlotCard from '../components/PlotCard';
-import RunUtils from '../lib/RunUtils';
-import Separator from '../atoms/Separator';
-import SidePanel from '../components/SidePanel';
-import WorkflowParser from '../lib/WorkflowParser';
+import * as JsYaml from 'js-yaml';
+import { flatten } from 'lodash';
+import * as React from 'react';
+import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
+import { classes, stylesheet } from 'typestyle';
+import {
+  NodePhase as ArgoNodePhase,
+  NodeStatus,
+  Workflow,
+} from '../../third_party/argo-ui/argo_template';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiRun, RunStorageState } from '../apis/run';
-import { Apis } from '../lib/Apis';
-import { NodePhase, hasFinished } from '../lib/StatusUtils';
-import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
-import { KeyValue } from '../lib/StaticGraphParser';
-import { Page, PageProps } from './Page';
+import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
+import Hr from '../atoms/Hr';
+import MD2Tabs from '../atoms/MD2Tabs';
+import Separator from '../atoms/Separator';
+import Banner, { Mode } from '../components/Banner';
+import CompareTable from '../components/CompareTable';
+import DetailsTable from '../components/DetailsTable';
+import Graph from '../components/Graph';
+import LogViewer from '../components/LogViewer';
+import MinioArtifactLink from '../components/MinioArtifactLink';
+import PlotCard from '../components/PlotCard';
 import { RoutePage, RouteParams } from '../components/Router';
+import SidePanel from '../components/SidePanel';
 import { ToolbarProps } from '../components/Toolbar';
-import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
-import {
-  Workflow,
-  NodeStatus,
-  NodePhase as ArgoNodePhase,
-} from '../../third_party/argo-ui/argo_template';
-import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding, color, fonts, fontsize } from '../Css';
+import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { componentMap } from '../components/viewers/ViewerContainer';
-import { flatten } from 'lodash';
-import {
-  formatDateString,
-  getRunDurationFromWorkflow,
-  logger,
-  errorToMessage,
-  serviceErrorToString,
-} from '../lib/Utils';
-import { statusToIcon } from './Status';
 import VisualizationCreator, {
   VisualizationCreatorConfig,
 } from '../components/viewers/VisualizationCreator';
-import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
-import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
-import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
+import { color, commonCss, fonts, fontsize, padding } from '../Css';
+import { Apis } from '../lib/Apis';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
+import CompareUtils from '../lib/CompareUtils';
+import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
+import RunUtils from '../lib/RunUtils';
+import { KeyValue } from '../lib/StaticGraphParser';
+import { hasFinished, NodePhase } from '../lib/StatusUtils';
+import {
+  errorToMessage,
+  formatDateString,
+  getRunDurationFromWorkflow,
+  logger,
+  serviceErrorToString,
+} from '../lib/Utils';
+import WorkflowParser from '../lib/WorkflowParser';
+import { Page, PageProps } from './Page';
+import { statusToIcon } from './Status';
 
 enum SidePaneTab {
   ARTIFACTS,
@@ -72,6 +73,7 @@ enum SidePaneTab {
   VOLUMES,
   MANIFEST,
   LOGS,
+  POD,
 }
 
 interface SelectedNodeDetails {
@@ -283,7 +285,14 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                             )}
                             <div className={commonCss.page}>
                               <MD2Tabs
-                                tabs={['Artifacts', 'Input/Output', 'Volumes', 'Manifest', 'Logs']}
+                                tabs={[
+                                  'Artifacts',
+                                  'Input/Output',
+                                  'Volumes',
+                                  'Manifest',
+                                  'Logs',
+                                  'Pod',
+                                ]}
                                 selectedTab={sidepanelSelectedTab}
                                 onSwitch={this._loadSidePaneTab.bind(this)}
                               />
@@ -354,6 +363,12 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                         selectedNodeId,
                                       )}
                                     />
+                                  </div>
+                                )}
+
+                                {sidepanelSelectedTab === SidePaneTab.POD && (
+                                  <div className={padding(20)}>
+                                    <PodInfo name={selectedNodeId} namespace={'kubeflow'} />
                                   </div>
                                 )}
 
@@ -987,6 +1002,23 @@ const ArtifactsTabContent: React.FC<{
       )}
     </div>
   );
+};
+
+function dumpPodJsonAsYaml(jsonData: any): string {
+  const orderedData = { ...jsonData };
+  delete orderedData.spec;
+  orderedData.spec = jsonData.spec;
+  return JsYaml.safeDump(orderedData, { skipInvalid: true });
+}
+
+const PodInfo: React.FC<{ name: string; namespace: string }> = ({ name, namespace }) => {
+  const [info, setInfo] = React.useState<string | undefined>(undefined);
+  React.useEffect(() => {
+    Apis.getPodInfo(name, namespace).then(response => {
+      setInfo(dumpPodJsonAsYaml(response));
+    });
+  }, []);
+  return <pre>{info}</pre>;
 };
 
 const EnhancedRunDetails: React.FC<RunDetailsProps> = props => {
