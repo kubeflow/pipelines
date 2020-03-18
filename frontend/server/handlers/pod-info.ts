@@ -37,7 +37,7 @@ export const podInfoHandler: Handler = async (req, res) => {
   } catch (err) {
     const message = `Could not get pod ${podName} in namespace ${podNamespace}`;
     console.error(message, err);
-    const errorMessage = err?.body?.message || err?.message || err;
-    res.status(500).send(`${message}: ${errorMessage}`);
+    const detailedMessage = err?.body?.message || err?.message || err;
+    res.status(500).send(`${message}: ${detailedMessage}`);
   }
 };

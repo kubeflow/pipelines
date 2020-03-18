@@ -66,6 +66,7 @@ import {
 import WorkflowParser from '../lib/WorkflowParser';
 import { Page, PageProps } from './Page';
 import { statusToIcon } from './Status';
+import Editor from 'src/components/Editor';
 
 enum SidePaneTab {
   ARTIFACTS,
@@ -367,8 +368,13 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                 )}
 
                                 {sidepanelSelectedTab === SidePaneTab.POD && (
-                                  <div className={padding(20)}>
-                                    <PodInfo name={selectedNodeId} namespace={'kubeflow'} />
+                                  <div className={commonCss.page}>
+                                    {/** key=selectedNodeId resets state when node id changes */}
+                                    <PodInfo
+                                      key={selectedNodeId}
+                                      name={selectedNodeId}
+                                      namespace={'kubeflow'}
+                                    />
                                   </div>
                                 )}
 
@@ -1004,10 +1010,19 @@ const ArtifactsTabContent: React.FC<{
   );
 };
 
-function dumpPodJsonAsYaml(jsonData: any): string {
+// Hack types from https://github.com/microsoft/TypeScript/issues/1897#issuecomment-557057387
+type JSONPrimitive = string | number | boolean | null;
+type JSONValue = JSONPrimitive | JSONObject | JSONArray;
+type JSONObject = { [member: string]: JSONValue };
+type JSONArray = JSONValue[];
+
+function dumpPodJsonAsYaml(jsonData: JSONObject): string {
   const orderedData = { ...jsonData };
-  delete orderedData.spec;
-  orderedData.spec = jsonData.spec;
+  if (jsonData.spec) {
+    // Deleting spec property and add it again moves spec to the last property in the JSON object.
+    delete orderedData.spec;
+    orderedData.spec = jsonData.spec;
+  }
   return JsYaml.safeDump(orderedData, { skipInvalid: true });
 }
 
@@ -1018,7 +1033,19 @@ const PodInfo: React.FC<{ name: string; namespace: string }> = ({ name, namespac
       setInfo(dumpPodJsonAsYaml(response));
     });
   }, []);
-  return <pre>{info}</pre>;
+  return (
+    <Editor
+      value={info || ''}
+      height='100%'
+      width='100%'
+      mode='yaml'
+      theme='github'
+      editorProps={{ $blockScrolling: true }}
+      readOnly={true}
+      highlightActiveLine={true}
+      showGutter={true}
+    />
+  );
 };
 
 const EnhancedRunDetails: React.FC<RunDetailsProps> = props => {
