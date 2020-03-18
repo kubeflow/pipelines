@@ -31,7 +31,15 @@ import { ButtonKeys } from '../lib/Buttons';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { render } from '@testing-library/react';
 
-const LIST_EXPERIMENT_DEFAULTS = ['', 10, 'created_at desc', '', undefined, undefined];
+// Default arguments for Apis.experimentServiceApi.listExperiment.
+const LIST_EXPERIMENT_DEFAULTS = [
+  '', // page token
+  10, // page size
+  'created_at desc', // sort by
+  '', // filter
+  undefined, // resource_reference_key_type
+  undefined, // resource_reference_key_id
+];
 
 describe('ExperimentList', () => {
   let tree: ShallowWrapper | ReactWrapper;
