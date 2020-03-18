@@ -16,14 +16,16 @@ package server
 
 import (
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 type FakeClientManager struct {
-	db         *storage.DB
-	cacheStore storage.ExecutionCacheStoreInterface
-	time       util.TimeInterface
+	db                *storage.DB
+	cacheStore        storage.ExecutionCacheStoreInterface
+	k8sCoreClientFake *client.FakeKuberneteCoreClient
+	time              util.TimeInterface
 }
 
 func NewFakeClientManager(time util.TimeInterface) (*FakeClientManager, error) {
@@ -37,9 +39,10 @@ func NewFakeClientManager(time util.TimeInterface) (*FakeClientManager, error) {
 	}
 
 	return &FakeClientManager{
-		db:         db,
-		cacheStore: storage.NewExecutionCacheStore(db, time),
-		time:       time,
+		db:                db,
+		cacheStore:        storage.NewExecutionCacheStore(db, time),
+		k8sCoreClientFake: client.NewFakeKuberneteCoresClient(),
+		time:              time,
 	}, nil
 }
 
@@ -65,4 +68,8 @@ func (f *FakeClientManager) DB() *storage.DB {
 
 func (f *FakeClientManager) Close() error {
 	return f.db.Close()
+}
+
+func (f *FakeClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
+	return f.k8sCoreClientFake
 }

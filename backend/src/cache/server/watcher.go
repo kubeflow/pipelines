@@ -20,7 +20,6 @@ const (
 )
 
 func WatchPods(namespaceToWatch string, clientManager ClientManagerInterface) {
-	// clientset, err := client.CreateKubernetesClientsetOrFatal()
 	k8sCore := clientManager.KubernetesCoreClient()
 
 	for {

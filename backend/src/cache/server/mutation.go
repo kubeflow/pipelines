@@ -89,6 +89,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	// Generate the executionHashKey based on pod.metadata.annotations.workflows.argoproj.io/template
 	executionHashKey, err := generateCacheKeyFromTemplate(template)
+	log.Println(executionHashKey)
 	if err != nil {
 		log.Printf("Unable to generate cache key for pod %s : %s", pod.ObjectMeta.Name, err.Error())
 		return patches, nil
