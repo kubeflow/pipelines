@@ -79,7 +79,6 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 	db, err := gorm.Open(driverName, arg)
 	util.TerminateIfError(err)
 
-	db.DropTableIfExists(&model.ExecutionCache{})
 	// Create table
 	response := db.AutoMigrate(&model.ExecutionCache{})
 	if response.Error != nil {
