@@ -7,3 +7,4 @@ resources:
   - cache-role.yaml
   - cache-rolebinding.yaml
   - cache-sa.yaml
+  - cache-configmap.yaml
