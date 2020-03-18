@@ -1026,29 +1026,59 @@ function dumpPodJsonAsYaml(jsonData: JSONObject): string {
 
 const PodInfo: React.FC<{ name: string; namespace: string }> = ({ name, namespace }) => {
   const [info, setInfo] = React.useState<string | undefined>(undefined);
+  const [error, setError] = React.useState<
+    { message: string; detailedMessage: string } | undefined
+  >(undefined);
+  const [refreshes, setRefresh] = React.useState(0);
   React.useEffect(() => {
     let aborted = false;
-    Apis.getPodInfo(name, namespace).then(response => {
-      if (!aborted) {
-        setInfo(dumpPodJsonAsYaml(response));
+    async function load() {
+      setError(undefined);
+      try {
+        const response = await Apis.getPodInfo(name, namespace);
+        if (!aborted) {
+          setInfo(dumpPodJsonAsYaml(response));
+        }
+      } catch (err) {
+        if (!aborted) {
+          setError({
+            message: 'Failed getting pod info',
+            detailedMessage: await serviceErrorToString(err),
+          });
+        }
       }
-    });
+    }
+    load();
     return () => {
       aborted = true;
     };
-  }, [name, namespace]);
+  }, [name, namespace, refreshes]);
   return (
-    <Editor
-      value={info || ''}
-      height='100%'
-      width='100%'
-      mode='yaml'
-      theme='github'
-      editorProps={{ $blockScrolling: true }}
-      readOnly={true}
-      highlightActiveLine={true}
-      showGutter={true}
-    />
+    <>
+      {error && (
+        <React.Fragment>
+          <Banner
+            message={error.message}
+            mode='error'
+            additionalInfo={error.detailedMessage}
+            refresh={() => setRefresh(refresh => refresh + 1)}
+          />
+        </React.Fragment>
+      )}
+      {!error && info && (
+        <Editor
+          value={info || ''}
+          height='100%'
+          width='100%'
+          mode='yaml'
+          theme='github'
+          editorProps={{ $blockScrolling: true }}
+          readOnly={true}
+          highlightActiveLine={true}
+          showGutter={true}
+        />
+      )}
+    </>
   );
 };
 
