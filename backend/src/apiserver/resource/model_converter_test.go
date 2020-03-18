@@ -15,10 +15,12 @@
 package resource
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/google/go-cmp/cmp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -31,6 +33,93 @@ import (
 func initResourceManager() (*FakeClientManager, *ResourceManager) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	return store, NewResourceManager(store)
+}
+
+func TestToModelExperiment(t *testing.T) {
+	store, manager := initResourceManager()
+	defer store.Close()
+
+	tests := []struct {
+		name                    string
+		experiment              *api.Experiment
+		wantError               bool
+		errorMessage            string
+		expectedModelExperiment *model.Experiment
+	}{
+		{
+			"No resource references",
+			&api.Experiment{
+				Name:        "exp1",
+				Description: "This is an experiment",
+			},
+			false,
+			"",
+			&model.Experiment{
+				Name:        "exp1",
+				Description: "This is an experiment",
+				Namespace:   "",
+			},
+		},
+		{
+			"Valid resource references",
+			&api.Experiment{
+				Name:        "exp1",
+				Description: "This is an experiment",
+				ResourceReferences: []*api.ResourceReference{
+					&api.ResourceReference{
+						Key: &api.ResourceKey{
+							Type: api.ResourceType_NAMESPACE,
+							Id:   "ns1",
+						},
+						Relationship: api.Relationship_OWNER,
+					},
+				},
+			},
+			false,
+			"",
+			&model.Experiment{
+				Name:        "exp1",
+				Description: "This is an experiment",
+				Namespace:   "ns1",
+			},
+		},
+		{
+			"Invalid resource references",
+			&api.Experiment{
+				Name:        "exp1",
+				Description: "This is an experiment",
+				ResourceReferences: []*api.ResourceReference{
+					&api.ResourceReference{
+						Key: &api.ResourceKey{
+							Type: api.ResourceType_EXPERIMENT,
+							Id:   "invalid",
+						},
+						Relationship: api.Relationship_OWNER,
+					},
+				},
+			},
+			true,
+			"Invalid resource references for experiment",
+			nil,
+		},
+	}
+
+	for _, tc := range tests {
+		modelExperiment, err := manager.ToModelExperiment(tc.experiment)
+		if tc.wantError {
+			if err == nil {
+				t.Errorf("TestToModelExperiment(%v) expect error but got nil", tc.name)
+			} else if !strings.Contains(err.Error(), tc.errorMessage) {
+				t.Errorf("TestToModelExperiment(%v) expect error containing: %v, but got: %v", tc.name, tc.errorMessage, err)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("TestToModelExperiment(%v) expect no error but got %v", tc.name, err)
+			} else if !cmp.Equal(tc.expectedModelExperiment, modelExperiment) {
+				t.Errorf("TestToModelExperiment(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedModelExperiment, modelExperiment)
+			}
+		}
+	}
 }
 
 func TestToModelRunMetric(t *testing.T) {

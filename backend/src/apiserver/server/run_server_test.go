@@ -377,10 +377,13 @@ func TestReportRunMetrics_PartialFailures(t *testing.T) {
 }
 
 func TestCanAccessRun_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
 	clients, manager, experiment := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
 	runServer := RunServer{resourceManager: manager}
-	viper.Set(common.MultiUserMode, "true")
+
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
@@ -410,10 +413,13 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 }
 
 func TestCanAccessRun_Authorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
 	runServer := RunServer{resourceManager: manager}
-	viper.Set(common.MultiUserMode, "true")
+
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 

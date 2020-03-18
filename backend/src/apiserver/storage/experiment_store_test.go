@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -60,7 +61,7 @@ func TestListExperiments_Pagination(t *testing.T) {
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "name", nil)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
@@ -84,7 +85,7 @@ func TestListExperiments_Pagination(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -119,7 +120,7 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "name desc", nil)
 	assert.Nil(t, err)
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
@@ -143,7 +144,7 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -166,7 +167,7 @@ func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "", nil)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
@@ -181,7 +182,7 @@ func TestListExperimentsError(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "", nil)
 	assert.Nil(t, err)
-	_, _, _, err = experimentStore.ListExperiments(opts)
+	_, _, _, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
@@ -368,7 +369,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "id", filterProto)
 	assert.Nil(t, err)
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
 
 	expected := []*model.Experiment{
 		&model.Experiment{
@@ -394,7 +395,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
 
 	expected = []*model.Experiment{
 		&model.Experiment{

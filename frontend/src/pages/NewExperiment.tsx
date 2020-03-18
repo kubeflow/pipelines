@@ -18,9 +18,9 @@ import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
 import Input from '../atoms/Input';
-import { ApiExperiment } from '../apis/experiment';
+import { ApiExperiment, ApiResourceType, ApiRelationship } from '../apis/experiment';
 import { Apis } from '../lib/Apis';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import { ToolbarProps } from '../components/Toolbar';
@@ -28,6 +28,7 @@ import { URLParser } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, fontsize } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface NewExperimentState {
   description: string;
@@ -47,7 +48,7 @@ const css = stylesheet({
   },
 });
 
-class NewExperiment extends Page<{}, NewExperimentState> {
+export class NewExperiment extends Page<{ namespace?: string }, NewExperimentState> {
   private _experimentNameRef = React.createRef<HTMLInputElement>();
 
   constructor(props: any) {
@@ -146,6 +147,17 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     const newExperiment: ApiExperiment = {
       description: this.state.description,
       name: this.state.experimentName,
+      resource_references: this.props.namespace
+        ? [
+            {
+              key: {
+                id: this.props.namespace,
+                type: ApiResourceType.NAMESPACE,
+              },
+              relationship: ApiRelationship.OWNER,
+            },
+          ]
+        : undefined,
     };
 
     this.setState({ isbeingCreated: true }, async () => {
@@ -193,4 +205,9 @@ class NewExperiment extends Page<{}, NewExperimentState> {
   }
 }
 
-export default NewExperiment;
+const EnhancedNewExperiment: React.FC<PageProps> = props => {
+  const namespace = React.useContext(NamespaceContext);
+  return <NewExperiment {...props} namespace={namespace} />;
+};
+
+export default EnhancedNewExperiment;

@@ -113,6 +113,11 @@ class Client(object):
 
   def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret):
     config = kfp_server_api.configuration.Configuration()
+
+    host = host or ''
+    # Preprocess the host endpoint to prevent some common user mistakes.
+    host = host.lstrip(r'(https|http)://').rstrip('/')
+
     if host:
       config.host = host
 
@@ -159,6 +164,10 @@ class Client(object):
   def _is_inverse_proxy_host(self, host):
     if host:
       return re.match(r'\S+.googleusercontent.com/{0,1}$', host)
+    if re.match(r'\w+', host):
+      warnings.warn(
+          'The received host is %s, please include the full endpoint address '
+          '(with ".(pipelines/notebooks).googleusercontent.com")' % host)
     return False
 
   def _is_ipython(self):
@@ -409,14 +418,14 @@ class Client(object):
     run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments, namespace=namespace)
     return RunPipelineResult(self, run_info)
 
-  def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, 
+  def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None,
     namespace=None, cron_schedule=None, description=None, max_concurrency=10, no_catchup=None):
     """Schedule pipeline on kubeflow to run based upon a cron job
-    
+
     Arguments:
-        experiment_id {string} -- The expriment within which we would like kubeflow 
+        experiment_id {string} -- The expriment within which we would like kubeflow
         job_name {string} -- The name of the scheduled job
-    
+
     Keyword Arguments:
         pipeline_package_path {string} -- The path to the pipeline package (default: {None})
         params {dict} -- The pipeline parameters (default: {{}})
@@ -457,7 +466,7 @@ class Client(object):
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string,
         parameters=api_params)
-    
+
     trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(cron=cron_schedule) #Example:cron_schedule="0 0 9 ? * 2-6"
     job_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
     schedule_body = kfp_server_api.models.ApiJob(
