@@ -225,6 +225,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     } = this.state;
     const { projectId, clusterName } = this.props.gkeMetadata;
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
+    const namespace = workflow?.metadata.namespace;
     let stackdriverK8sLogsUrl = '';
     if (projectId && clusterName && selectedNodeDetails && selectedNodeDetails.id) {
       stackdriverK8sLogsUrl = `https://console.cloud.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_name:"${selectedNodeDetails.id}"`;
@@ -369,12 +370,9 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
                                 {sidepanelSelectedTab === SidePaneTab.POD && (
                                   <div className={commonCss.page}>
-                                    {/** key=selectedNodeId resets state when node id changes */}
-                                    <PodInfo
-                                      key={selectedNodeId}
-                                      name={selectedNodeId}
-                                      namespace={'kubeflow'}
-                                    />
+                                    {selectedNodeId && namespace && (
+                                      <PodInfo name={selectedNodeId} namespace={namespace} />
+                                    )}
                                   </div>
                                 )}
 
@@ -1029,10 +1027,16 @@ function dumpPodJsonAsYaml(jsonData: JSONObject): string {
 const PodInfo: React.FC<{ name: string; namespace: string }> = ({ name, namespace }) => {
   const [info, setInfo] = React.useState<string | undefined>(undefined);
   React.useEffect(() => {
+    let aborted = false;
     Apis.getPodInfo(name, namespace).then(response => {
-      setInfo(dumpPodJsonAsYaml(response));
+      if (!aborted) {
+        setInfo(dumpPodJsonAsYaml(response));
+      }
     });
-  }, []);
+    return () => {
+      aborted = true;
+    };
+  }, [name, namespace]);
   return (
     <Editor
       value={info || ''}
