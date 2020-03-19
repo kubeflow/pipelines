@@ -225,7 +225,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     } = this.state;
     const { projectId, clusterName } = this.props.gkeMetadata;
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
-    const namespace = workflow?.metadata.namespace;
+    const namespace = workflow?.metadata?.namespace;
     let stackdriverK8sLogsUrl = '';
     if (projectId && clusterName && selectedNodeDetails && selectedNodeDetails.id) {
       stackdriverK8sLogsUrl = `https://console.cloud.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_name:"${selectedNodeDetails.id}"`;
@@ -666,7 +666,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       });
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
-      logger.error('Error loading run:', runId);
+      logger.error('Error loading run:', runId, err);
     }
 
     // Make sure logs and artifacts in the side panel are refreshed when

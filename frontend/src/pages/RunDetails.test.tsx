@@ -33,24 +33,22 @@ import { RunDetails, RunDetailsInternalProps } from './RunDetails';
 
 const NODE_DETAILS_SELECTOR = '[data-testid="run-details-node-details"]';
 describe('RunDetails', () => {
-  const updateBannerSpy = jest.fn();
-  const updateDialogSpy = jest.fn();
-  const updateSnackbarSpy = jest.fn();
-  const updateToolbarSpy = jest.fn();
-  const historyPushSpy = jest.fn();
-  const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
-  const isCustomVisualizationsAllowedSpy = jest.spyOn(Apis, 'areCustomVisualizationsAllowed');
-  const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
-  const pathsParser = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths');
-  const pathsWithStepsParser = jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames');
-  const loaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
-  const retryRunSpy = jest.spyOn(Apis.runServiceApi, 'retryRun');
-  const terminateRunSpy = jest.spyOn(Apis.runServiceApi, 'terminateRun');
-  const artifactTypesSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
-  // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
-  // test environments
-  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
+  let updateBannerSpy: any;
+  let updateDialogSpy: any;
+  let updateSnackbarSpy: any;
+  let updateToolbarSpy: any;
+  let historyPushSpy: any;
+  let getRunSpy: any;
+  let getExperimentSpy: any;
+  let isCustomVisualizationsAllowedSpy: any;
+  let getPodLogsSpy: any;
+  let pathsParser: any;
+  let pathsWithStepsParser: any;
+  let loaderSpy: any;
+  let retryRunSpy: any;
+  let terminateRunSpy: any;
+  let artifactTypesSpy: any;
+  let formatDateStringSpy: any;
 
   let testRun: ApiRunDetail = {};
   let tree: ShallowWrapper | ReactWrapper;
@@ -72,11 +70,11 @@ describe('RunDetails', () => {
     });
   }
 
-  beforeAll(() => jest.spyOn(console, 'error').mockImplementation());
-
   beforeEach(() => {
     // The RunDetails page uses timers to periodically refresh
     jest.useFakeTimers();
+    // TODO: mute error only for tests that are expected to have error
+    jest.spyOn(console, 'error').mockImplementation(() => null);
 
     testRun = {
       pipeline_runtime: {
@@ -94,6 +92,25 @@ describe('RunDetails', () => {
         status: 'Succeeded',
       },
     };
+    updateBannerSpy = jest.fn();
+    updateDialogSpy = jest.fn();
+    updateSnackbarSpy = jest.fn();
+    updateToolbarSpy = jest.fn();
+    historyPushSpy = jest.fn();
+    getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+    isCustomVisualizationsAllowedSpy = jest.spyOn(Apis, 'areCustomVisualizationsAllowed');
+    getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
+    pathsParser = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths');
+    pathsWithStepsParser = jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames');
+    loaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
+    retryRunSpy = jest.spyOn(Apis.runServiceApi, 'retryRun');
+    terminateRunSpy = jest.spyOn(Apis.runServiceApi, 'terminateRun');
+    artifactTypesSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
+    // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
+    // test environments
+    formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
+
     getRunSpy.mockImplementation(() => Promise.resolve(testRun));
     getExperimentSpy.mockImplementation(() =>
       Promise.resolve({ id: 'some-experiment-id', name: 'some experiment' }),
@@ -111,7 +128,6 @@ describe('RunDetails', () => {
       response.setArtifactTypesList([]);
       return response;
     });
-    jest.clearAllMocks();
   });
 
   afterEach(async () => {
@@ -119,6 +135,7 @@ describe('RunDetails', () => {
     // depends on mocks/spies
     await tree.unmount();
     jest.resetAllMocks();
+    jest.restoreAllMocks();
   });
 
   it('shows success run status in page title', async () => {
