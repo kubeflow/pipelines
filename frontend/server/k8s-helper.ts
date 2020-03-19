@@ -72,7 +72,7 @@ export async function newTensorboardInstance(
   podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<void> {
   if (!namespace) {
-    throw new Error('Cannot get namespace from /');
+    throw new Error(`Cannot get namespace from ${namespaceFilePath}.`);
   }
   const currentPod = await getTensorboardInstance(logdir);
   if (currentPod.podAddress) {
@@ -118,7 +118,7 @@ export async function getTensorboardInstance(
   logdir: string,
 ): Promise<{ podAddress: string; tfVersion: string }> {
   if (!namespace) {
-    throw new Error('Cannot get namespace from /');
+    throw new Error(`Cannot get namespace from ${namespaceFilePath}.`);
   }
 
   return await k8sV1CustomObjectClient
@@ -270,7 +270,7 @@ export async function listPodEvents(
  */
 export async function getArgoWorkflow(workflowName: string): Promise<PartialArgoWorkflow> {
   if (!namespace) {
-    throw new Error('Cannot get namespace from /');
+    throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
   }
 
   const res = await k8sV1CustomObjectClient.getNamespacedCustomObject(
@@ -298,7 +298,7 @@ export async function getArgoWorkflow(workflowName: string): Promise<PartialArgo
  */
 export async function getK8sSecret(name: string, key: string) {
   if (!namespace) {
-    throw new Error('Cannot get namespace from /');
+    throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
   }
 
   const k8sSecret = await k8sV1Client.readNamespacedSecret(name, namespace);
