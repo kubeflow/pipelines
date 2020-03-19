@@ -17,10 +17,10 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/emicklei/go-restful/log"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
