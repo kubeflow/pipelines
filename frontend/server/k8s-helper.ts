@@ -239,7 +239,12 @@ export async function getPod(
   }
 }
 
-export async function listPodEvents(podName: string, podNamespace: string): Promise<V1EventList> {
+// Golang style result type including an error.
+export type Result<T, E = K8sError> = [T, undefined] | [undefined, E];
+export async function listPodEvents(
+  podName: string,
+  podNamespace: string,
+): Promise<Result<V1EventList>> {
   try {
     const { body } = await k8sV1Client.listNamespacedEvent(
       podNamespace,
@@ -249,14 +254,13 @@ export async function listPodEvents(podName: string, podNamespace: string): Prom
       // The following fieldSelector can be found when running
       // `kubectl describe <pod-name> -v 8`
       // (-v 8) will verbosely print network requests sent by kubectl.
-      `involvedObject.namespace=${podNamespace},involvedObject.name=${podName}`,
+      `involvedObject.namespace=${podNamespace},involvedObject.name=${podName},involvedObject.kind=Pod`,
     );
-    return body;
+    return [body, undefined];
   } catch (error) {
-    if (error?.message) {
-      error.message = 'Error when listing pod events: ' + error.message;
-    }
-    throw error;
+    const { message, additionalInfo } = parseK8sError(error);
+    const userMessage = `Error when listing pod events for pod "${podName}" in "${podNamespace}" namespace: ${message}`;
+    return [undefined, { message: userMessage, additionalInfo }];
   }
 }
 

@@ -37,6 +37,7 @@ export const podInfoHandler: Handler = async (req, res) => {
     const { message, additionalInfo } = err;
     console.error(message, additionalInfo);
     res.status(500).send(message);
+    return;
   }
   res.status(200).send(JSON.stringify(pod));
 };
@@ -54,13 +55,12 @@ export const podEventsHandler: Handler = async (req, res) => {
   const podName = decodeURIComponent(podname);
   const podNamespace = decodeURIComponent(podnamespace);
 
-  try {
-    const eventList = await k8sHelper.listPodEvents(podName, podNamespace);
-    res.status(200).send(JSON.stringify(eventList));
-  } catch (err) {
-    const message = `Could not list events for pod ${podName} in namespace ${podNamespace}`;
-    console.error(message, err?.body || err);
-    const additionalInfo = err?.body?.message || err?.message || err;
-    res.status(500).send(`${message}: ${additionalInfo}`);
+  const [eventList, err] = await k8sHelper.listPodEvents(podName, podNamespace);
+  if (err) {
+    const { message, additionalInfo } = err;
+    console.error(message, additionalInfo);
+    res.status(500).send(message);
+    return;
   }
+  res.status(200).send(JSON.stringify(eventList));
 };

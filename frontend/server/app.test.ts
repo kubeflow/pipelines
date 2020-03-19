@@ -451,17 +451,17 @@ describe('UIServer apis', () => {
   });
 
   describe('/k8s/pod', () => {
+    let request: requests.SuperTest<requests.Test>;
     beforeEach(() => {
       app = new UIServer(loadConfigs(argv, {}));
+      request = requests(app.start());
     });
 
     it('asks for podname if not provided', done => {
-      const request = requests(app.start());
       request.get('/k8s/pod').expect(422, 'podname argument is required', done);
     });
 
     it('asks for podnamespace if not provided', done => {
-      const request = requests(app.start());
       request
         .get('/k8s/pod?podname=test-pod')
         .expect(422, 'podnamespace argument is required', done);
@@ -471,17 +471,14 @@ describe('UIServer apis', () => {
       const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
       readPodSpy.mockImplementation(() =>
         Promise.resolve({
-          body: '{"Kind": "Pod"}', // only body is used
+          body: { kind: 'Pod' }, // only body is used
         } as any),
       );
-      app = new UIServer(loadConfigs(argv, {}));
-
-      const request = requests(app.start());
       request
         .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
-        .expect(200, '{"Kind": "Pod"}', () => {
+        .expect(200, '{"kind":"Pod"}', err => {
           expect(readPodSpy).toHaveBeenCalledWith('test-pod', 'test-ns');
-          done();
+          done(err);
         });
     });
 
@@ -496,15 +493,74 @@ describe('UIServer apis', () => {
         } as any),
       );
       const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
-      app = new UIServer(loadConfigs(argv, {}));
-
-      const request = requests(app.start());
       request
         .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
         .expect(500, 'Could not get pod test-pod in namespace test-ns: pod not found', () => {
           expect(spyError).toHaveBeenCalledTimes(1);
           done();
         });
+    });
+  });
+
+  describe('/k8s/pod/events', () => {
+    let request: requests.SuperTest<requests.Test>;
+    beforeEach(() => {
+      app = new UIServer(loadConfigs(argv, {}));
+      request = requests(app.start());
+    });
+
+    it('asks for podname if not provided', done => {
+      request.get('/k8s/pod/events').expect(422, 'podname argument is required', done);
+    });
+
+    it('asks for podnamespace if not provided', done => {
+      request
+        .get('/k8s/pod/events?podname=test-pod')
+        .expect(422, 'podnamespace argument is required', done);
+    });
+
+    it('responds with pod info in JSON', done => {
+      const listEventSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
+      listEventSpy.mockImplementation(() =>
+        Promise.resolve({
+          body: { kind: 'EventList' }, // only body is used
+        } as any),
+      );
+      request
+        .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
+        .expect(200, '{"kind":"EventList"}', err => {
+          expect(listEventSpy).toHaveBeenCalledWith(
+            'test-ns',
+            undefined,
+            undefined,
+            undefined,
+            'involvedObject.namespace=test-ns,involvedObject.name=test-pod,involvedObject.kind=Pod',
+          );
+          done(err);
+        });
+    });
+
+    it('responds with error when failed to retrieve pod info', done => {
+      const listEventSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
+      listEventSpy.mockImplementation(() =>
+        Promise.reject({
+          body: {
+            message: 'no events',
+            code: 404,
+          },
+        } as any),
+      );
+      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+      request
+        .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
+        .expect(
+          500,
+          'Error when listing pod events for pod "test-pod" in "test-ns" namespace: no events',
+          err => {
+            expect(spyError).toHaveBeenCalledTimes(1);
+            done(err);
+          },
+        );
     });
   });
 
