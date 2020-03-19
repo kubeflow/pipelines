@@ -42,7 +42,7 @@ urllib3==1.25.8           # via kfp-server-api, kubernetes, requests
 websocket-client==0.57.0  # via kubernetes
 wheel==0.34.2             # via strip-hints
 wrapt==1.12.1             # via deprecated
-zipp==3.1.0               # via importlib-metadata
+zipp==1.2.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
