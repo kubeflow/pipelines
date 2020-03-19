@@ -38,7 +38,7 @@ const (
 	ExecutionKey           string = "pipelines.kubeflow.org/execution_cache_key"
 	CacheIDLabelKey        string = "pipelines.kubeflow.org/cache_id"
 	ArgoWorkflowOutputs    string = "workflows.argoproj.io/outputs"
-	MetadataWritenKey      string = "pipelines.kubeflow.org/metadata_written"
+	MetadataWrittenKey     string = "pipelines.kubeflow.org/metadata_written"
 	AnnotationPath         string = "/metadata/annotations"
 	LabelPath              string = "/metadata/labels"
 	SpecContainersPath     string = "/spec/containers"
@@ -108,10 +108,10 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	if cachedExecution != nil {
 		log.Println("Cached output: " + cachedExecution.ExecutionOutput)
 
-		annotations[ArgoWorkflowOutputs] = getOutputFromOutputMap(cachedExecution.ExecutionOutput)
+		annotations[ArgoWorkflowOutputs] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, ArgoWorkflowOutputs)
 		labels[CacheIDLabelKey] = strconv.FormatInt(cachedExecution.ID, 10)
-		labels[MetadataExecutionIDKey] = getMetadataExecutionIDFromOutputMap(cachedExecution.ExecutionOutput)
-		labels[MetadataWritenKey] = "true"
+		labels[MetadataExecutionIDKey] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, MetadataExecutionIDKey)
+		labels[MetadataWrittenKey] = "true"
 
 		dummyContainer := corev1.Container{
 			Name:    "main",
@@ -178,34 +178,19 @@ func generateCacheKeyFromTemplate(template string) (string, error) {
 	return executionHashKey, nil
 }
 
-func getOutputFromOutputMap(output string) string {
+func getValueFromSerializedMap(serializedMap string, key string) string {
 	var outputMap map[string]interface{}
-	b := []byte(output)
+	b := []byte(serializedMap)
 	err := json.Unmarshal(b, &outputMap)
 	if err != nil {
 		return ""
 	}
 
-	executionOutput, exist := outputMap[ArgoWorkflowOutputs].(string)
-	if executionOutput == "" || !exist {
+	value, exist := outputMap[key].(string)
+	if !exist || value == "" {
 		return ""
 	}
-	return executionOutput
-}
-
-func getMetadataExecutionIDFromOutputMap(output string) string {
-	var outputMap map[string]interface{}
-	b := []byte(output)
-	err := json.Unmarshal(b, &outputMap)
-	if err != nil {
-		return ""
-	}
-
-	metadataExecutionID, exist := outputMap[MetadataExecutionIDKey].(string)
-	if metadataExecutionID == "" || !exist {
-		return ""
-	}
-	return metadataExecutionID
+	return value
 }
 
 func isValidPod(pod *corev1.Pod) bool {

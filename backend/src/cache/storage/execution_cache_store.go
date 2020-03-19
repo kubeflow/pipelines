@@ -48,14 +48,11 @@ func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string) (*mode
 	if len(executionCaches) == 0 {
 		return nil, fmt.Errorf("Execution cache not found with cache key: %q", executionCacheKey)
 	}
-	if len(executionCaches) > 1 {
-		latestCache, err := getLatestCacheEntry(executionCaches)
-		if err != nil {
-			return nil, err
-		}
-		return latestCache, nil
+	latestCache, err := getLatestCacheEntry(executionCaches)
+	if err != nil {
+		return nil, err
 	}
-	return executionCaches[0], nil
+	return latestCache, nil
 }
 
 func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache, error) {
