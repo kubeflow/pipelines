@@ -373,9 +373,6 @@ describe('UIServer apis', () => {
 
   describe('/system', () => {
     describe('/cluster-name', () => {
-      beforeEach(() => {
-        mockedK8sHelper.isInCluster = true;
-      });
       it('responds with cluster name data from gke metadata', done => {
         mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
           url === 'http://metadata/computeMetadata/v1/instance/attributes/cluster-name'
@@ -412,9 +409,6 @@ describe('UIServer apis', () => {
       });
     });
     describe('/project-id', () => {
-      beforeEach(() => {
-        mockedK8sHelper.isInCluster = true;
-      });
       it('responds with project id data from gke metadata', done => {
         mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
           url === 'http://metadata/computeMetadata/v1/project/project-id'
@@ -446,10 +440,7 @@ describe('UIServer apis', () => {
     });
   });
 
-  // TODO: refractor k8s helper module so that api that interact with k8s can be
-  // mocked and tested. There is currently no way to mock k8s APIs as
-  // `k8s-helper.isInCluster` is a constant that is generated when the module is
-  // first loaded.
+  // TODO: Add integration tests for k8s helper related endpoints
 
   // describe('/apps/tensorboard', () => {
 

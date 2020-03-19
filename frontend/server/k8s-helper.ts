@@ -12,12 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO: refractor k8s helper module so that api that interact with k8s can be
-// mocked and tested. There is currently no way to mock k8s APIs as
-// `k8s-helper.isInCluster` is a constant that is generated when the module is
-// first loaded.
-
-// @ts-ignore
 import {
   Core_v1Api,
   Custom_objectsApi,
@@ -33,7 +27,7 @@ import { PartialArgoWorkflow } from './workflow-helper';
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
 const namespaceFilePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
-let namespace = '';
+let namespace: string | undefined = undefined;
 
 // Constants for creating customer resource Viewer.
 const viewerGroup = 'kubeflow.org';
@@ -52,9 +46,8 @@ export const defaultPodTemplateSpec = {
   },
 };
 
-export const isInCluster = fs.existsSync(namespaceFilePath);
-
-if (isInCluster) {
+// The file path contains pod namespace when in Kubernetes cluster.
+if (fs.existsSync(namespaceFilePath)) {
   namespace = fs.readFileSync(namespaceFilePath, 'utf-8');
 }
 const kc = new KubeConfig();
@@ -169,6 +162,9 @@ export async function getTensorboardInstance(
  */
 
 export async function deleteTensorboardInstance(logdir: string): Promise<void> {
+  if (!namespace) {
+    throw new Error(`Cannot get namespace from ${namespaceFilePath}.`);
+  }
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
@@ -211,10 +207,13 @@ export function waitForTensorboardInstance(logdir: string, timeout: number): Pro
 }
 
 export function getPodLogs(podName: string, podNamespace?: string): Promise<string> {
-  if (!podNamespace && !namespace) {
-    throw new Error('Cannot get namespace from /');
+  podNamespace = podNamespace || namespace;
+  if (!podNamespace) {
+    throw new Error(
+      `podNamespace is not specified and cannot get namespace from ${namespaceFilePath}.`,
+    );
   }
-  return (k8sV1Client.readNamespacedPodLog(podName, podNamespace || namespace, 'main') as any).then(
+  return (k8sV1Client.readNamespacedPodLog(podName, podNamespace, 'main') as any).then(
     (response: any) => (response && response.body ? response.body.toString() : ''),
     (error: any) => {
       throw new Error(JSON.stringify(error.body));
