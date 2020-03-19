@@ -272,7 +272,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
 
 const EnhancedExperimentList: React.FC<PageProps> = props => {
   const namespace = React.useContext(NamespaceContext);
-  return <ExperimentList {...props} namespace={namespace} />;
+  return <ExperimentList key={namespace} {...props} namespace={namespace} />;
 };
 
 export default EnhancedExperimentList;
