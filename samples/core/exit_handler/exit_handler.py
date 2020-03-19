@@ -30,7 +30,7 @@ def gcs_download_op(url):
     )
 
 
-def echo_op(text, is_exit_handler=False):
+def echo_op(text):
     return dsl.ContainerOp(
         name='echo',
         image='library/bash:4.4.23',
