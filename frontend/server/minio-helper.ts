@@ -59,6 +59,9 @@ export async function createMinioClient(config: MinioClientOptionsWithOptionalSe
 /**
  * Checks the magic number of a buffer to see if the mime type is a uncompressed
  * tarball. The buffer must be of length 264 bytes or more.
+ *
+ * See also: https://www.gnu.org/software/tar/manual/html_node/Standard.html
+ *
  * @param buf Buffer
  */
 export function isTarball(buf: Buffer) {
@@ -83,8 +86,8 @@ export function maybeTarball(): Transform {
   return peek(
     { newline: false, maxBuffer: 264 },
     (data: Buffer, swap: (error?: Error, parser?: Transform) => void) => {
-      if (isTarball(data)) swap(null, extractFirstTarRecordAsStream());
-      else swap(null, new PassThrough());
+      if (isTarball(data)) swap(undefined, extractFirstTarRecordAsStream());
+      else swap(undefined, new PassThrough());
     },
   );
 }
@@ -101,7 +104,7 @@ function extractFirstTarRecordAsStream() {
     },
   });
   extract.once('entry', function(_header, stream, next) {
-    stream.on('data', buffer => transformStream.push(buffer));
+    stream.on('data', (buffer: any) => transformStream.push(buffer));
     stream.on('end', () => {
       transformStream.emit('end');
       next();
