@@ -28,7 +28,7 @@ implementation:
     image: docker.io/aipipeline/wml-store:latest
     command: ['python3']
     args: [
-      /app/wml-store.py,
+      -u, /app/wml-store.py,
       --run-uid, {inputValue: run_uid},
       --model-name, {inputValue: model_name},
       --framework, {inputValue: framework},

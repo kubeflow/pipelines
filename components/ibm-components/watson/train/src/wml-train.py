@@ -84,18 +84,14 @@ def train(args):
         client.runtimes.LibraryMetaNames.PLATFORM: {"name": wml_framework_name, "versions": [wml_framework_version]}
     }
     # check exisiting library
-    custom_library_details = ''
-    library_details = client.runtimes.list_libraries()
-    for library_detail in library_details:
+    library_details = client.runtimes.get_library_details()
+    for library_detail in library_details['resources']:
         if library_detail['entity']['name'] == wml_run_definition:
-            # Update library if exist
-            custom_library_details = library_detail
-            uid = client.runtimes.get_library_uid(custom_library_details)
-            client.runtimes.update_library(uid, changes=lib_meta)
+            # Delete library if exist because we cannot update model_code
+            uid = client.runtimes.get_library_uid(library_detail)
+            client.repository.delete(uid)
             break
-    if not custom_library_details:
-        custom_library_details = client.runtimes.store_library(lib_meta)
-
+    custom_library_details = client.runtimes.store_library(lib_meta)
     custom_library_uid = client.runtimes.get_library_uid(custom_library_details)
 
     # create a pipeline with the model definitions included
