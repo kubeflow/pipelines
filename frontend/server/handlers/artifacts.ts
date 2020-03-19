@@ -14,7 +14,7 @@
 import fetch from 'node-fetch';
 import { AWSConfigs, HttpConfigs, MinioConfigs } from '../configs';
 import { Client as MinioClient } from 'minio';
-import { consistentDecodeURIComponent } from '../utils';
+import { consistentDecodeURIComponent, PreviewStream } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
@@ -137,8 +137,10 @@ function getHttpArtifactsHandler(
         req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
     }
     const response = await fetch(url, { headers });
-    const content = await response.buffer();
-    res.send(peek > 0 ? content.slice(0, peek) : content);
+    response.body
+      .on('error', err => res.status(500).send(`Unable to retrieve artifact at ${url}: ${err}`))
+      .pipe(new PreviewStream({ peek }))
+      .pipe(res);
   };
 }
 
@@ -149,25 +151,16 @@ function getMinioArtifactHandler(
   return async (_: Request, res: Response) => {
     try {
       const stream = await getObjectStream(options);
-      stream.on('error', err =>
-        res
-          .status(500)
-          .send(`Failed to get object in bucket ${options.bucket} at path ${options.key}: ${err}`),
-      );
-
-      if (peek) {
-        let content = '';
-        const onData = (data: any) => {
-          content += Buffer.isBuffer(data) ? data.toString() : data;
-          if (content.length >= peek) {
-            res.send(content.slice(0, peek));
-            stream.off('data', onData);
-          }
-        };
-        stream.on('data', onData);
-        return;
-      }
-      stream.pipe(res);
+      stream
+        .on('error', err =>
+          res
+            .status(500)
+            .send(
+              `Failed to get object in bucket ${options.bucket} at path ${options.key}: ${err}`,
+            ),
+        )
+        .pipe(new PreviewStream({ peek }))
+        .pipe(res);
     } catch (err) {
       res
         .status(500)
@@ -214,6 +207,15 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
         matchingFiles.map(file => file.name).join(','),
       );
       let contents = '';
+      if (peek) {
+        matchingFiles[0]
+          .createReadStream()
+          .pipe(new PreviewStream({ peek }))
+          .pipe(res);
+        return;
+      }
+
+      // if not peeking, iterate and append all the files
       matchingFiles.forEach((f, i) => {
         const buffer: Buffer[] = [];
         f.createReadStream()
@@ -224,7 +226,7 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
                 .toString()
                 .trim() + '\n';
             if (i === matchingFiles.length - 1) {
-              res.send(peek > 0 ? contents.slice(0, peek) : contents);
+              res.send(contents);
             }
           })
           .on('error', () => res.status(500).send('Failed to read file: ' + f.name));

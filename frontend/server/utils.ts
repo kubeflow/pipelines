@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { readFileSync } from 'fs';
+import {Transform, TransformOptions} from 'stream';
 
 /** get the server address from host, port, and schema (defaults to 'http'). */
 export function getAddress({
@@ -91,4 +92,31 @@ export function consistentDecodeURIComponent(uri: string) {
  */
 export function consistentEncodeURIComponent(uri: string) {
   return encodeURIComponent(consistentDecodeURIComponent(uri));
+}
+
+
+export interface PreviewStreamOptions extends TransformOptions {
+  peek: number;
+}
+
+/**
+ * Transform stream that only stream the first X number of bytes.
+ */
+export class PreviewStream extends Transform {
+  _peek: number;
+
+  constructor({peek, ...opts}: PreviewStreamOptions) {
+    let size = 0
+    super({...opts, transform: (chunk, _encoding, callback) =>{
+      if (!peek) return callback(undefined, chunk);
+      const delta = peek - size;
+      size += chunk.length;
+      if (size >= peek) {
+        callback(undefined, chunk.slice(0, delta));
+        this.resume();
+        return;
+      }
+      callback(undefined, chunk);
+    }});
+  }
 }
