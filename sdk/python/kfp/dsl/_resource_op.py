@@ -101,14 +101,14 @@ class ResourceOp(BaseOp):
         ])
 
         if k8s_resource is None:
-            ValueError("You need to provide a k8s_resource.")
+            raise ValueError("You need to provide a k8s_resource.")
 
         if merge_strategy and action != "apply":
-            ValueError("You can't set merge_strategy when action != 'apply'")
+            raise ValueError("You can't set merge_strategy when action != 'apply'")
         
         # if action is delete, there should not be any outputs, success_condition, and failure_condition
         if action == "delete" and (success_condition or failure_condition or attribute_outputs):
-            ValueError("You can't set success_condition, failure_condition, or attribute_outputs when action == 'delete'")
+            raise ValueError("You can't set success_condition, failure_condition, or attribute_outputs when action == 'delete'")
 
         init_resource = {
             "action": action,
@@ -158,3 +158,21 @@ class ResourceOp(BaseOp):
         `io.argoproj.workflow.v1alpha1.Template`.
         """
         return self._resource
+
+    def delete(self):
+        """Returns a ResourceOp which deletes the resource."""
+        if self.resource.action == "delete":
+            raise ValueError("This operation is already a resource deletion.")
+
+        k8s_resource = dict()
+        if isinstance(self.k8s_resource, dict):
+            k8s_resource["apiVersion"] = self.k8s_resource["apiVersion"]
+            k8s_resource["kind"] = self.k8s_resource["kind"]
+        else:
+            k8s_resource["apiVersion"] = self.k8s_resource.api_version
+            k8s_resource["kind"] = self.k8s_resource.kind
+        k8s_resource["metadata"] = {"name": self.outputs["name"]}
+
+        return ResourceOp(name="del-%s" % self.name,
+                          action="delete",
+                          k8s_resource=k8s_resource)

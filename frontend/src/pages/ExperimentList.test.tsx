@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import * as Utils from '../lib/Utils';
-import ExperimentList from './ExperimentList';
+import EnhancedExperimentList, { ExperimentList } from './ExperimentList';
 import TestUtils from '../TestUtils';
 import { ApiFilter, PredicateOp } from '../apis/filter';
 import { RunStorageState } from '../apis/run';
@@ -28,6 +28,19 @@ import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
 import { range } from 'lodash';
 import { ButtonKeys } from '../lib/Buttons';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { render } from '@testing-library/react';
+
+// Default arguments for Apis.experimentServiceApi.listExperiment.
+const LIST_EXPERIMENT_DEFAULTS = [
+  '', // page token
+  10, // page size
+  'created_at desc', // sort by
+  '', // filter
+  undefined, // resource_reference_key_type
+  undefined, // resource_reference_key_id
+];
+const LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE = LIST_EXPERIMENT_DEFAULTS.slice(0, 4);
 
 describe('ExperimentList', () => {
   let tree: ShallowWrapper | ReactWrapper;
@@ -58,7 +71,11 @@ describe('ExperimentList', () => {
     );
   }
 
-  async function mountWithNExperiments(n: number, nRuns: number): Promise<void> {
+  async function mountWithNExperiments(
+    n: number,
+    nRuns: number,
+    { namespace }: { namespace?: string } = {},
+  ): Promise<void> {
     listExperimentsSpy.mockImplementation(() => ({
       experiments: range(n).map(i => ({
         id: 'test-experiment-id' + i,
@@ -68,7 +85,7 @@ describe('ExperimentList', () => {
     listRunsSpy.mockImplementation(() => ({
       runs: range(nRuns).map(i => ({ id: 'test-run-id' + i, name: 'test run name' + i })),
     }));
-    tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} namespace={namespace} />);
     await listExperimentsSpy;
     await listRunsSpy;
     await TestUtils.flushPromises();
@@ -78,7 +95,9 @@ describe('ExperimentList', () => {
   afterEach(() => {
     jest.resetAllMocks();
     jest.clearAllMocks();
-    tree.unmount();
+    if (tree.exists()) {
+      tree.unmount();
+    }
   });
 
   it('renders an empty list with empty state message', () => {
@@ -136,7 +155,7 @@ describe('ExperimentList', () => {
 
   it('calls Apis to list experiments, sorted by creation time in descending order', async () => {
     await mountWithNExperiments(1, 1);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith(...LIST_EXPERIMENT_DEFAULTS);
     expect(listRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       5,
@@ -165,6 +184,15 @@ describe('ExperimentList', () => {
     ]);
   });
 
+  it('calls Apis to list experiments with namespace when available', async () => {
+    await mountWithNExperiments(1, 1, { namespace: 'test-ns' });
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith(
+      ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
+      'NAMESPACE',
+      'test-ns',
+    );
+  });
+
   it('has a Refresh button, clicking it refreshes the experiment list', async () => {
     await mountWithNExperiments(1, 1);
     const instance = tree.instance() as ExperimentList;
@@ -173,7 +201,7 @@ describe('ExperimentList', () => {
     expect(refreshBtn).toBeDefined();
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith(...LIST_EXPERIMENT_DEFAULTS);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
@@ -218,7 +246,7 @@ describe('ExperimentList', () => {
     TestUtils.makeErrorResponseOnce(listExperimentsSpy, 'bad stuff happened');
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith(...LIST_EXPERIMENT_DEFAULTS);
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad stuff happened',
@@ -400,5 +428,50 @@ describe('ExperimentList', () => {
         ],
       }),
     ).toMatchSnapshot();
+  });
+
+  describe('EnhancedExperimentList', () => {
+    it('defaults to no namespace', () => {
+      render(<EnhancedExperimentList {...generateProps()} />);
+      expect(listExperimentsSpy).toHaveBeenLastCalledWith(...LIST_EXPERIMENT_DEFAULTS);
+    });
+
+    it('gets namespace from context', () => {
+      render(
+        <NamespaceContext.Provider value='test-ns'>
+          <EnhancedExperimentList {...generateProps()} />
+        </NamespaceContext.Provider>,
+      );
+      expect(listExperimentsSpy).toHaveBeenLastCalledWith(
+        ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
+        'NAMESPACE',
+        'test-ns',
+      );
+    });
+
+    it('auto refreshes list when namespace changes', () => {
+      const { rerender } = render(
+        <NamespaceContext.Provider value='test-ns-1'>
+          <EnhancedExperimentList {...generateProps()} />
+        </NamespaceContext.Provider>,
+      );
+      expect(listExperimentsSpy).toHaveBeenCalledTimes(1);
+      expect(listExperimentsSpy).toHaveBeenLastCalledWith(
+        ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
+        'NAMESPACE',
+        'test-ns-1',
+      );
+      rerender(
+        <NamespaceContext.Provider value='test-ns-2'>
+          <EnhancedExperimentList {...generateProps()} />
+        </NamespaceContext.Provider>,
+      );
+      expect(listExperimentsSpy).toHaveBeenCalledTimes(2);
+      expect(listExperimentsSpy).toHaveBeenLastCalledWith(
+        ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
+        'NAMESPACE',
+        'test-ns-2',
+      );
+    });
   });
 });

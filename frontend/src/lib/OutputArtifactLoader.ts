@@ -341,8 +341,7 @@ export class OutputArtifactLoader {
           `slicing_metrics_view = tfma.view.render_slicing_metrics(eval_result, slicing_spec=slicing_spec)`,
           `view = io.StringIO()`,
           `embed_minimal_html(view, views=[slicing_metrics_view], title='Slicing Metrics')`,
-          `html = view.getvalue().replace('dist/embed-amd.js" crossorigin="anonymous"></script>', 'dist/embed-amd.js" crossorigin="anonymous" data-jupyter-widgets-cdn="https://cdn.jsdelivr.net/gh/Bobgy/model-analysis@kfp/tensorflow_model_analysis/notebook/jupyter/js/dist/" crossorigin="anonymous"></script>')`,
-          `display(HTML(html))`,
+          `display(HTML(view.getvalue()))`,
         ];
         return buildArtifactViewer(script);
       }),
@@ -472,10 +471,12 @@ async function getExecutionInContextWithPodName(
     return undefined; // Not found, this is expected to happen normally when there's no mlmd data.
   }
   const state = foundExecution.getPropertiesMap().get('state');
-  if (!state || state.getStringValue() !== 'complete') {
-    return undefined; // Execution doesn't have a valid state, or it has not finished.
+  // Both complete and cached executions are considered valid.
+  if (state && ['complete', 'cached'].includes(state.getStringValue())) {
+    return foundExecution;
   }
-  return foundExecution;
+  // No valid execution found.
+  return undefined;
 }
 
 /**

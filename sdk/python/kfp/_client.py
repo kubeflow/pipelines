@@ -113,6 +113,11 @@ class Client(object):
 
   def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret):
     config = kfp_server_api.configuration.Configuration()
+
+    host = host or ''
+    # Preprocess the host endpoint to prevent some common user mistakes.
+    host = host.lstrip(r'(https|http)://').rstrip('/')
+
     if host:
       config.host = host
 
@@ -159,6 +164,10 @@ class Client(object):
   def _is_inverse_proxy_host(self, host):
     if host:
       return re.match(r'\S+.googleusercontent.com/{0,1}$', host)
+    if re.match(r'\w+', host):
+      warnings.warn(
+          'The received host is %s, please include the full endpoint address '
+          '(with ".(pipelines/notebooks).googleusercontent.com")' % host)
     return False
 
   def _is_ipython(self):
@@ -409,19 +418,27 @@ class Client(object):
     run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments, namespace=namespace)
     return RunPipelineResult(self, run_info)
 
-  def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, 
-    namespace=None, cron_schedule=None, description=None):
+  def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None,
+    namespace=None, cron_schedule=None, description=None, max_concurrency=10, no_catchup=None):
     """Schedule pipeline on kubeflow to run based upon a cron job
-    
+
     Arguments:
-        experiment_id {[type]} -- The expriment within which we would like kubeflow 
-        job_name {[type]} -- The name of the scheduled job
-    
+        experiment_id {string} -- The expriment within which we would like kubeflow
+        job_name {string} -- The name of the scheduled job
+
     Keyword Arguments:
-        pipeline_package_path {[type]} -- The path to the pipeline package (default: {None})
+        pipeline_package_path {string} -- The path to the pipeline package (default: {None})
         params {dict} -- The pipeline parameters (default: {{}})
-        pipeline_id {[type]} -- The id of the pipeline which should run on schedule (default: {None})
-        namespace {[type]} -- The name space with which the pipeline should run (default: {None})
+        pipeline_id {string} -- The id of the pipeline which should run on schedule (default: {None})
+        namespace {string} -- The name space with which the pipeline should run (default: {None})
+        max_concurrency {int} -- Max number of concurrent runs scheduled (default: {10})
+        no_catchup {boolean} -- Whether the recurring run should catch up if behind schedule.
+          For example, if the recurring run is paused for a while and re-enabled
+          afterwards. If no_catchup=False, the scheduler will catch up on (backfill) each
+          missed interval. Otherwise, it only schedules the latest interval if more than one interval
+          is ready to be scheduled.
+          Usually, if your pipeline handles backfill internally, you should turn catchup
+          off to avoid duplicate backfill. (default: {False})
     """
 
     pipeline_json_string = None
@@ -449,7 +466,7 @@ class Client(object):
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string,
         parameters=api_params)
-    
+
     trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(cron=cron_schedule) #Example:cron_schedule="0 0 9 ? * 2-6"
     job_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
     schedule_body = kfp_server_api.models.ApiJob(
@@ -458,7 +475,8 @@ class Client(object):
         description=description,
         pipeline_spec=spec,
         resource_references=resource_references,
-        max_concurrency=10,
+        max_concurrency=max_concurrency,
+        no_catchup=no_catchup,
         trigger=trigger,
         enabled=True,
         )
@@ -551,3 +569,15 @@ class Client(object):
       Exception if pipeline is not found.
     """
     return self._pipelines_api.get_pipeline(id=pipeline_id)
+
+  def delete_pipeline(self, pipeline_id):
+    """Delete pipeline.
+    Args:
+      id of the pipeline.
+    Returns:
+      Object. If the method is called asynchronously,
+      returns the request thread.
+    Throws:
+      Exception if pipeline is not found.
+    """
+    return self._pipelines_api.delete_pipeline(id=pipeline_id)

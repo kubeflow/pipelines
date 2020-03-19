@@ -148,7 +148,7 @@ export default class Buttons {
   // or recurring run config.
   public delete(
     getSelectedIds: () => string[],
-    resourceName: 'pipeline' | 'recurring run config' | 'pipeline version',
+    resourceName: 'pipeline' | 'recurring run config' | 'pipeline version' | 'run',
     callback: (selectedIds: string[], success: boolean) => void,
     useCurrentResource: boolean,
   ): Buttons {
@@ -158,6 +158,8 @@ export default class Buttons {
           ? this._deletePipeline(getSelectedIds(), useCurrentResource, callback)
           : resourceName === 'pipeline version'
           ? this._deletePipelineVersion(getSelectedIds(), useCurrentResource, callback)
+          : resourceName === 'run'
+          ? this._deleteRun(getSelectedIds(), useCurrentResource, callback)
           : this._deleteRecurringRun(getSelectedIds()[0], useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource
@@ -493,6 +495,22 @@ export default class Buttons {
       id => Apis.runServiceApi.terminateRun(id),
       callback,
       'Terminate',
+      'run',
+    );
+  }
+
+  private _deleteRun(
+    ids: string[],
+    useCurrentResource: boolean,
+    callback: (_: string[], success: boolean) => void,
+  ): void {
+    this._dialogActionHandler(
+      ids,
+      'Do you want to delete the selected runs? This action cannot be undone.',
+      useCurrentResource,
+      id => Apis.runServiceApi.deleteRun(id),
+      callback,
+      'Delete',
       'run',
     );
   }

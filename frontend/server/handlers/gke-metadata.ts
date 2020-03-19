@@ -37,6 +37,10 @@ const clusterNameHandler: Handler = async (_, res) => {
     'http://metadata/computeMetadata/v1/instance/attributes/cluster-name',
     { headers: { 'Metadata-Flavor': 'Google' } },
   );
+  if (!response.ok) {
+    res.status(500).send('Failed fetching GKE cluster name');
+    return;
+  }
   res.send(await response.text());
 };
 
@@ -56,5 +60,9 @@ const projectIdHandler: Handler = async (_, res) => {
   const response = await fetch('http://metadata/computeMetadata/v1/project/project-id', {
     headers: { 'Metadata-Flavor': 'Google' },
   });
+  if (!response.ok) {
+    res.status(500).send('Failed fetching GKE project id');
+    return;
+  }
   res.send(await response.text());
 };

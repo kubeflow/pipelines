@@ -14,7 +14,7 @@ exports[`ExperimentsAndRuns renders experiments page 1`] = `
       ]
     }
   />
-  <ExperimentList
+  <EnhancedExperimentList
     history={Object {}}
     location=""
     match=""

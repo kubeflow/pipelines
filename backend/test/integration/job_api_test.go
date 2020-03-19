@@ -88,6 +88,15 @@ func (s *JobApiTestSuite) TestJobApis() {
 	helloWorldPipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
 	assert.Nil(t, err)
 
+	/* ---------- Upload pipeline version YAML ---------- */
+	time.Sleep(1 * time.Second)
+	helloWorldPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
+		"../resources/hello-world.yaml", &uploadParams.UploadPipelineVersionParams{
+			Name:       util.StringPointer("hello-world-version"),
+			Pipelineid: util.StringPointer(helloWorldPipeline.ID),
+		})
+	assert.Nil(t, err)
+
 	/* ---------- Create a new hello world experiment ---------- */
 	experiment := &experiment_model.APIExperiment{Name: "hello world experiment"}
 	helloWorldExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
@@ -97,24 +106,23 @@ func (s *JobApiTestSuite) TestJobApis() {
 	createJobRequest := &jobparams.CreateJobParams{Body: &job_model.APIJob{
 		Name:        "hello world",
 		Description: "this is hello world",
-		PipelineSpec: &job_model.APIPipelineSpec{
-			PipelineID: helloWorldPipeline.ID,
-		},
 		ResourceReferences: []*job_model.APIResourceReference{
 			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
 				Relationship: job_model.APIRelationshipOWNER},
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: helloWorldPipelineVersion.ID},
+				Relationship: job_model.APIRelationshipCREATOR},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
 	}}
 	helloWorldJob, err := s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)
-	s.checkHelloWorldJob(t, helloWorldJob, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipeline.ID)
+	s.checkHelloWorldJob(t, helloWorldJob, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipelineVersion.ID, helloWorldPipelineVersion.Name)
 
 	/* ---------- Get hello world job ---------- */
 	helloWorldJob, err = s.jobClient.Get(&jobparams.GetJobParams{ID: helloWorldJob.ID})
 	assert.Nil(t, err)
-	s.checkHelloWorldJob(t, helloWorldJob, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipeline.ID)
+	s.checkHelloWorldJob(t, helloWorldJob, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipelineVersion.ID, helloWorldPipelineVersion.Name)
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	experiment = &experiment_model.APIExperiment{Name: "argument parameter experiment"}
@@ -228,15 +236,24 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
 	assert.Nil(t, err)
 
+	/* ---------- Upload pipeline version YAML ---------- */
+	time.Sleep(1 * time.Second)
+	helloWorldPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
+		"../resources/hello-world.yaml", &uploadParams.UploadPipelineVersionParams{
+			Name:       util.StringPointer("hello-world-version"),
+			Pipelineid: util.StringPointer(pipeline.ID),
+		})
+	assert.Nil(t, err)
+
 	/* ---------- Create a periodic job with start and end date in the past and catchup = true ---------- */
 	experiment := &experiment_model.APIExperiment{Name: "periodic catchup true"}
 	periodicCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
 	job := jobInThePastForTwoMinutes(jobOptions{
-		pipelineId:   pipeline.ID,
-		experimentId: periodicCatchupTrueExperiment.ID,
-		periodic:     true,
+		pipelineVersionId: helloWorldPipelineVersion.ID,
+		experimentId:      periodicCatchupTrueExperiment.ID,
+		periodic:          true,
 	})
 	job.Name = "periodic-catchup-true-"
 	job.Description = "A job with NoCatchup=false will backfill each past interval when behind schedule."
@@ -251,9 +268,9 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	assert.Nil(t, err)
 
 	job = jobInThePastForTwoMinutes(jobOptions{
-		pipelineId:   pipeline.ID,
-		experimentId: periodicCatchupFalseExperiment.ID,
-		periodic:     true,
+		pipelineVersionId: helloWorldPipelineVersion.ID,
+		experimentId:      periodicCatchupFalseExperiment.ID,
+		periodic:          true,
 	})
 	job.Name = "periodic-catchup-false-"
 	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
@@ -268,9 +285,9 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	assert.Nil(t, err)
 
 	job = jobInThePastForTwoMinutes(jobOptions{
-		pipelineId:   pipeline.ID,
-		experimentId: cronCatchupTrueExperiment.ID,
-		periodic:     false,
+		pipelineVersionId: helloWorldPipelineVersion.ID,
+		experimentId:      cronCatchupTrueExperiment.ID,
+		periodic:          false,
 	})
 	job.Name = "cron-catchup-true-"
 	job.Description = "A job with NoCatchup=false will backfill each past interval when behind schedule."
@@ -285,9 +302,9 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	assert.Nil(t, err)
 
 	job = jobInThePastForTwoMinutes(jobOptions{
-		pipelineId:   pipeline.ID,
-		experimentId: cronCatchupFalseExperiment.ID,
-		periodic:     false,
+		pipelineVersionId: helloWorldPipelineVersion.ID,
+		experimentId:      cronCatchupFalseExperiment.ID,
+		periodic:          false,
 	})
 	job.Name = "cron-catchup-false-"
 	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
@@ -324,22 +341,28 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	assert.Equal(t, 1, runsWhenCatchupFalse)
 }
 
-func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineID string) {
+func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
 	// Check workflow manifest is not empty
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
+
+	// Check resource references contain experiment and pipeline version.
+	resourceReferences := []*job_model.APIResourceReference{
+		{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
+			Name: experimentName, Relationship: job_model.APIRelationshipOWNER,
+		},
+		{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+			Name: pipelineVersionName, Relationship: job_model.APIRelationshipCREATOR},
+	}
+	assert.ElementsMatch(t, job.ResourceReferences, resourceReferences)
+
+	// Check other fields in job object (other than resource references)
+	job.ResourceReferences = nil
 	expectedJob := &job_model.APIJob{
 		ID:          job.ID,
 		Name:        "hello world",
 		Description: "this is hello world",
 		PipelineSpec: &job_model.APIPipelineSpec{
-			PipelineID:       pipelineID,
-			PipelineName:     "hello-world.yaml",
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
-		},
-		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-				Name: experimentName, Relationship: job_model.APIRelationshipOWNER,
-			},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
@@ -348,7 +371,6 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 		Status:         job.Status,
 		Trigger:        &job_model.APITrigger{},
 	}
-
 	assert.Equal(t, expectedJob, job)
 }
 
@@ -420,8 +442,6 @@ func TestJobApi(t *testing.T) {
 	suite.Run(t, new(JobApiTestSuite))
 }
 
-// TODO(jingzhang36): include UploadPipelineVersion in integration test
-
 func (s *JobApiTestSuite) TearDownSuite() {
 	if *runIntegrationTests {
 		if !*isDevMode {
@@ -439,16 +459,15 @@ func (s *JobApiTestSuite) cleanUp() {
 	test.DeleteAllRuns(s.runClient, s.T())
 }
 
-func defaultApiJob(pipelineId, experimentId string) *job_model.APIJob {
+func defaultApiJob(pipelineVersionId, experimentId string) *job_model.APIJob {
 	return &job_model.APIJob{
 		Name:        "default-pipeline-name",
 		Description: "This is a default pipeline",
-		PipelineSpec: &job_model.APIPipelineSpec{
-			PipelineID: pipelineId,
-		},
 		ResourceReferences: []*job_model.APIResourceReference{
 			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentId},
 				Relationship: job_model.APIRelationshipOWNER},
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+				Relationship: job_model.APIRelationshipCREATOR},
 		},
 		MaxConcurrency: 10,
 		NoCatchup:      false,
@@ -464,15 +483,15 @@ func defaultApiJob(pipelineId, experimentId string) *job_model.APIJob {
 }
 
 type jobOptions struct {
-	pipelineId, experimentId string
-	periodic                 bool
+	pipelineVersionId, experimentId string
+	periodic                        bool
 }
 
 func jobInThePastForTwoMinutes(options jobOptions) *job_model.APIJob {
 	startTime := strfmt.DateTime(time.Unix(10*hour, 0))
 	endTime := strfmt.DateTime(time.Unix(10*hour+2*minute, 0))
 
-	job := defaultApiJob(options.pipelineId, options.experimentId)
+	job := defaultApiJob(options.pipelineVersionId, options.experimentId)
 	if options.periodic {
 		job.Trigger = &job_model.APITrigger{
 			PeriodicSchedule: &job_model.APIPeriodicSchedule{
