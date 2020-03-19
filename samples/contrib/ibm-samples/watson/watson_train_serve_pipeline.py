@@ -78,7 +78,7 @@ def kfp_wml_pipeline(
                    run_name=run_name,
                    compute_name=compute_name,
                    compute_nodes=compute_nodes
-                   ).apply(use_ai_pipeline_params(secret_name, 'Always'))
+                   ).apply(use_ai_pipeline_params(secret_name, image_pull_policy='Always'))
 
     # op3 - this operation stores the model trained above
     wml_store = store_op(
@@ -87,14 +87,14 @@ def kfp_wml_pipeline(
                    framework=framework,
                    framework_version=framework_version,
                    runtime_version=runtime_version
-                   ).apply(use_ai_pipeline_params(secret_name, 'Always'))
+                   ).apply(use_ai_pipeline_params(secret_name, image_pull_policy='Always'))
 
     # op4 - this operation deploys the model to a web service and run scoring with the payload in the cloud object store
     wml_deploy = deploy_op(
                   wml_store.output,
                   model_name,
                   scoring_payload
-                  ).apply(use_ai_pipeline_params(secret_name, 'Always'))
+                  ).apply(use_ai_pipeline_params(secret_name, image_pull_policy='Always'))
 
 if __name__ == '__main__':
     # compile the pipeline
