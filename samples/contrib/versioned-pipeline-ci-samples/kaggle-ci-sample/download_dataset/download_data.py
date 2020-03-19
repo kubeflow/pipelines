@@ -2,7 +2,7 @@
 step #1: download data from kaggle website, and push it to gs bucket
 """
 
-def processAndUpload(
+def process_and_upload(
     bucket_name
 ):
     from google.cloud import storage
@@ -27,5 +27,5 @@ if __name__ == '__main__':
     parser.add_argument('--bucket_name', type=str)
     args = parser.parse_args()
 
-    processAndUpload(args.bucket_name)
+    process_and_upload(args.bucket_name)
     

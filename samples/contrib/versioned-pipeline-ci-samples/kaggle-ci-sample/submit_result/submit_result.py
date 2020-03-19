@@ -2,7 +2,7 @@
 step #4: submit result to kaggle
 """
 
-def downoadResult(
+def download_result(
     result_file
 ):
     import gcsfs
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     parser.add_argument('--submit_message', type=str, default = 'default submit')
     args = parser.parse_args()
 
-    downoadResult(args.result_file)
+    download_result(args.result_file)
     import os
     os.system("kaggle competitions submit -c house-prices-advanced-regression-techniques -f submission.csv -m " + args.submit_message)
 

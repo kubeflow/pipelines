@@ -4,13 +4,12 @@ from kfp.gcp import use_gcp_secret
 
 @dsl.pipeline(
     name = "kaggle pipeline",
-    description = "kaggle pipeline that go from download data, train model to display result"
+    description = "kaggle pipeline that goes from download data, analyse data, train model to submit result"
 )
 def kaggle_houseprice(
     bucket_name: str,
     commit_sha: str
 ):
-    import os
 
     downloadDataOp = components.load_component_from_file('./download_dataset/component.yaml')
     downloadDataStep = downloadDataOp(bucket_name=bucket_name).apply(use_gcp_secret('user-gcp-sa'))
