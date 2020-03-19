@@ -21,35 +21,34 @@ import * as k8sHelper from '../k8s-helper';
 export const podInfoHandler: Handler = async (req, res) => {
   const { podname, podnamespace } = req.query;
   if (!podname) {
-    res.status(404).send('podname argument is required');
+    // 422 status code "Unprocessable entity", refer to https://stackoverflow.com/a/42171674
+    res.status(422).send('podname argument is required');
     return;
   }
   if (!podnamespace) {
-    res.status(404).send('podnamespace argument is required');
+    res.status(422).send('podnamespace argument is required');
     return;
   }
   const podName = decodeURIComponent(podname);
   const podNamespace = decodeURIComponent(podnamespace);
 
-  try {
-    const pod = await k8sHelper.getPod(podName, podNamespace);
-    res.status(200).send(JSON.stringify(pod));
-  } catch (err) {
-    const message = `Could not get pod ${podName} in namespace ${podNamespace}`;
-    console.error(message, err?.body || err);
-    const additionalInfo = err?.body?.message || err?.message || err;
-    res.status(500).send(`${message}: ${additionalInfo}`);
+  const [pod, err] = await k8sHelper.getPod(podName, podNamespace);
+  if (err) {
+    const { message, additionalInfo } = err;
+    console.error(message, additionalInfo);
+    res.status(500).send(message);
   }
+  res.status(200).send(JSON.stringify(pod));
 };
 
 export const podEventsHandler: Handler = async (req, res) => {
   const { podname, podnamespace } = req.query;
   if (!podname) {
-    res.status(404).send('podname argument is required');
+    res.status(422).send('podname argument is required');
     return;
   }
   if (!podnamespace) {
-    res.status(404).send('podnamespace argument is required');
+    res.status(422).send('podnamespace argument is required');
     return;
   }
   const podName = decodeURIComponent(podname);

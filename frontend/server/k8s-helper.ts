@@ -221,15 +221,21 @@ export function getPodLogs(podName: string, podNamespace?: string): Promise<stri
   );
 }
 
-export async function getPod(podName: string, podNamespace: string): Promise<V1Pod> {
+export interface K8sError {
+  message: string;
+  additionalInfo: any;
+}
+export async function getPod(
+  podName: string,
+  podNamespace: string,
+): Promise<[V1Pod, undefined] | [undefined, K8sError]> {
   try {
     const { body } = await k8sV1Client.readNamespacedPod(podName, podNamespace);
-    return body;
+    return [body, undefined];
   } catch (error) {
-    if (error?.message) {
-      error.message = 'Error when reading pod yaml: ' + error.message;
-    }
-    throw error;
+    const { message, additionalInfo } = parseK8sError(error);
+    const userMessage = `Could not get pod ${podName} in namespace ${podNamespace}: ${message}`;
+    return [undefined, { message: userMessage, additionalInfo }];
   }
 }
 
@@ -296,3 +302,50 @@ export async function getK8sSecret(name: string, key: string) {
   const buff = new Buffer(secretb64, 'base64');
   return buff.toString('ascii');
 }
+
+const UNKOWN_ERROR = {
+  message: 'Unknown error',
+  additionalInfo: 'Unknown error',
+};
+function parseK8sError(error: any): { message: string; additionalInfo: any } {
+  try {
+    if (!error) {
+      return UNKOWN_ERROR;
+    } else if (typeof error === 'string') {
+      return {
+        message: error,
+        additionalInfo: error,
+      };
+    } else if (error.body) {
+      // Kubernetes client http error has body with all the info.
+      // Example error.body
+      // {
+      //   kind: 'Status',
+      //   apiVersion: 'v1',
+      //   metadata: {},
+      //   status: 'Failure',
+      //   message: 'pods "test-pod" not found',
+      //   reason: 'NotFound',
+      //   details: { name: 'test-pod', kind: 'pods' },
+      //   code: 404
+      // }
+      return {
+        message: error.body.message || UNKOWN_ERROR.message,
+        additionalInfo: error.body,
+      };
+    } else {
+      return {
+        message: error.message || UNKOWN_ERROR.message,
+        additionalInfo: error,
+      };
+    }
+  } catch (parsingError) {
+    console.error('There was a parsing error: ', parsingError);
+    return UNKOWN_ERROR;
+  }
+}
+
+export const TEST_ONLY = {
+  k8sV1Client,
+  k8sV1CustomObjectClient,
+};

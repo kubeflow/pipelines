@@ -24,16 +24,26 @@ import { Storage as GCSStorage } from '@google-cloud/storage';
 import { UIServer } from './app';
 import { loadConfigs } from './configs';
 import * as minioHelper from './minio-helper';
-import * as k8sHelper from './k8s-helper';
+import { TEST_ONLY as K8S_TEST_EXPORT } from './k8s-helper';
 
 jest.mock('minio');
 jest.mock('node-fetch');
 jest.mock('@google-cloud/storage');
 jest.mock('./minio-helper');
-jest.mock('./k8s-helper');
 
 const mockedFetch: jest.Mock = fetch as any;
-const mockedK8sHelper: jest.Mock = k8sHelper as any;
+
+beforeEach(() => {
+  const consoleInfoSpy = jest.spyOn(global.console, 'info');
+  consoleInfoSpy.mockImplementation(() => null);
+  const consoleLogSpy = jest.spyOn(global.console, 'log');
+  consoleLogSpy.mockImplementation(() => null);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+  jest.resetAllMocks();
+});
 
 describe('UIServer apis', () => {
   let app: UIServer;
@@ -437,6 +447,64 @@ describe('UIServer apis', () => {
         const request = requests(app.start());
         request.get('/system/project-id').expect(500, 'GKE metadata endpoints are disabled.', done);
       });
+    });
+  });
+
+  describe('/k8s/pod', () => {
+    beforeEach(() => {
+      app = new UIServer(loadConfigs(argv, {}));
+    });
+
+    it('asks for podname if not provided', done => {
+      const request = requests(app.start());
+      request.get('/k8s/pod').expect(422, 'podname argument is required', done);
+    });
+
+    it('asks for podnamespace if not provided', done => {
+      const request = requests(app.start());
+      request
+        .get('/k8s/pod?podname=test-pod')
+        .expect(422, 'podnamespace argument is required', done);
+    });
+
+    it('responds with pod info in JSON', done => {
+      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      readPodSpy.mockImplementation(() =>
+        Promise.resolve({
+          body: '{"Kind": "Pod"}', // only body is used
+        } as any),
+      );
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const request = requests(app.start());
+      request
+        .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
+        .expect(200, '{"Kind": "Pod"}', () => {
+          expect(readPodSpy).toHaveBeenCalledWith('test-pod', 'test-ns');
+          done();
+        });
+    });
+
+    it('responds with error when failed to retrieve pod info', done => {
+      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      readPodSpy.mockImplementation(() =>
+        Promise.reject({
+          body: {
+            message: 'pod not found',
+            code: 404,
+          },
+        } as any),
+      );
+      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const request = requests(app.start());
+      request
+        .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
+        .expect(500, 'Could not get pod test-pod in namespace test-ns: pod not found', () => {
+          expect(spyError).toHaveBeenCalledTimes(1);
+          done();
+        });
     });
   });
 
