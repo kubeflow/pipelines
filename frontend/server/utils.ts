@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { readFileSync } from 'fs';
-import {Transform, TransformOptions} from 'stream';
+import { Transform, TransformOptions } from 'stream';
 
 /** get the server address from host, port, and schema (defaults to 'http'). */
 export function getAddress({
@@ -75,18 +75,23 @@ export interface PreviewStreamOptions extends TransformOptions {
 export class PreviewStream extends Transform {
   _peek: number;
 
-  constructor({peek, ...opts}: PreviewStreamOptions) {
-    let size = 0
-    super({...opts, transform: (chunk, _encoding, callback) =>{
-      if (!peek) return callback(undefined, chunk);
-      const delta = peek - size;
-      size += chunk.length;
-      if (size >= peek) {
-        callback(undefined, chunk.slice(0, delta));
-        this.resume();
-        return;
-      }
+  constructor({ peek, ...opts }: PreviewStreamOptions) {
+    let size = 0;
+    let transform: TransformOptions['transform'] = (chunk, _encoding, callback) =>
       callback(undefined, chunk);
-    }});
+    if (peek) {
+      transform = (chunk, _encoding, callback) => {
+        if (!peek) return callback(undefined, chunk);
+        const delta = peek - size;
+        size += chunk.length;
+        if (size >= peek) {
+          callback(undefined, chunk.slice(0, delta));
+          this.resume();
+          return;
+        }
+        callback(undefined, chunk);
+      };
+    }
+    super({ ...opts, transform });
   }
 }

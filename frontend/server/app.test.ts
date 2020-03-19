@@ -278,7 +278,10 @@ describe('UIServer apis', () => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'http://foo.bar/ml-pipeline/hello/world.txt'
-          ? Promise.resolve({ buffer: () => Promise.resolve(artifactContent), body: new PassThrough().end(artifactContent) })
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: new PassThrough().end(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -302,7 +305,10 @@ describe('UIServer apis', () => {
       const mockedFetch: jest.Mock = fetch as any;
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'http://foo.bar/ml-pipeline/hello/world.txt'
-          ? Promise.resolve({ buffer: () => Promise.resolve(artifactContent), body: new PassThrough().end(artifactContent) })
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: new PassThrough().end(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -326,7 +332,10 @@ describe('UIServer apis', () => {
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt' &&
         opts.headers.Authorization === 'someToken'
-          ? Promise.resolve({ buffer: () => Promise.resolve(artifactContent), body: new PassThrough().end(artifactContent) })
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: new PassThrough().end(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -353,7 +362,10 @@ describe('UIServer apis', () => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt'
-          ? Promise.resolve({ buffer: () => Promise.resolve(artifactContent), body: new PassThrough().end(artifactContent) })
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: new PassThrough().end(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
