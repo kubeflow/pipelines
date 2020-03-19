@@ -14,7 +14,7 @@
 import fetch from 'node-fetch';
 import { AWSConfigs, HttpConfigs, MinioConfigs } from '../configs';
 import { Client as MinioClient } from 'minio';
-import { consistentDecodeURIComponent, PreviewStream } from '../utils';
+import { PreviewStream } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
@@ -61,7 +61,7 @@ export function getArtifactsHandler(artifactsConfigs: {
       res.status(500).send('Storage key is missing from artifact request');
       return;
     }
-    const key = consistentDecodeURIComponent(encodedKey);
+    const key = decodeURIComponent(encodedKey);
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
     switch (source) {
       case 'gcs':
