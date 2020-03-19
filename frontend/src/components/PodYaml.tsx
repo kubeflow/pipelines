@@ -77,7 +77,7 @@ const PodYaml: React.FC<{
     return () => {
       aborted = true;
     };
-  }, [name, namespace, refreshes]); // When refreshes change, request is fetched again.
+  }, [name, namespace, refreshes, getYaml, errorMessage]); // When refreshes change, request is fetched again.
 
   return (
     <>
@@ -116,3 +116,7 @@ function reorderPodJson(jsonData: JSONObject): JSONObject {
   }
   return orderedData;
 }
+
+export const TEST_ONLY = {
+  PodYaml,
+};

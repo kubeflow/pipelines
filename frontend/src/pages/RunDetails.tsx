@@ -48,7 +48,7 @@ import VisualizationCreator, {
   VisualizationCreatorConfig,
 } from '../components/viewers/VisualizationCreator';
 import { color, commonCss, fonts, fontsize, padding } from '../Css';
-import { Apis, JSONObject } from '../lib/Apis';
+import { Apis } from '../lib/Apis';
 import Buttons, { ButtonKeys } from '../lib/Buttons';
 import CompareUtils from '../lib/CompareUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
