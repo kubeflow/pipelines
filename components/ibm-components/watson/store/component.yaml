@@ -34,6 +34,5 @@ implementation:
       --framework, {inputValue: framework},
       --framework-version, {inputValue: framework_version},
       --runtime-version, {inputValue: runtime_version},
+      --output-model-uid-path, {outputPath: model_uid}
     ]
-    fileOutputs:
-      model_uid: /tmp/model_uid
