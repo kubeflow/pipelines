@@ -28,12 +28,14 @@ import Toolbar, { ToolbarProps } from '../components/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
 import { ApiExperiment } from '../apis/experiment';
 import { Apis } from '../lib/Apis';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { RunStorageState } from '../apis/run';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { Redirect } from 'react-router-dom';
 
 const css = stylesheet({
   card: {
@@ -106,7 +108,7 @@ interface ExperimentDetailsState {
   runListToolbarProps: ToolbarProps;
 }
 
-class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
+export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
@@ -343,4 +345,17 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 }
 
-export default ExperimentDetails;
+const EnhancedExperimentDetails: React.FC<PageProps> = props => {
+  const namespace = React.useContext(NamespaceContext);
+  const [initialNamespace] = React.useState(namespace);
+
+  // When namespace changes, this experiment no longer belongs to new namespace.
+  // So we redirect to experiment list page instead.
+  if (namespace !== initialNamespace) {
+    return <Redirect to={RoutePage.EXPERIMENTS} />;
+  }
+
+  return <ExperimentDetails {...props} />;
+};
+
+export default EnhancedExperimentDetails;

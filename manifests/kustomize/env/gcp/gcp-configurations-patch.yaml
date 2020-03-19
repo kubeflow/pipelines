@@ -53,6 +53,7 @@ data:
                 name: mlpipeline-minio-artifact,
                 key: secretkey
             }
-        }
+        },
+        archiveLogs: true
     }
     }
