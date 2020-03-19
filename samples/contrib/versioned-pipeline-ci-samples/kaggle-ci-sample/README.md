@@ -10,6 +10,9 @@ This is a pipeline for [house price prediction](https://www.kaggle.com/c/house-p
 
 * We use [cloud build](https://cloud.google.com/cloud-build/) for CI process. That is, we automatically triggered a build and run as soon as we pushed our code to github repo. You need to setup a trigger on cloud build for your github repo branch to achieve the CI process.
 
+## Notice
+* You can authenticate to gcp services by either: Create a "user-gcp-sa" secret following the troubleshooting parts in [Kubeflow pipeline repo](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize), or configure workload identity as instructed in [this guide](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity). This sample uses the first method, but this will soon be deprecated. We would recommend using second method to replace the use of "user-gcp-sa" service account in the future.
+
 ## Usage
 
 * Substitute the constants in "substitutions" in cloudbuild.yaml
