@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import re
 import warnings
 import yaml
@@ -287,7 +288,10 @@ def _op_to_template(op: BaseOp):
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/task_display_name'] = processed_op.display_name
 
     if isinstance(op, dsl.ContainerOp) and op._metadata:
-        import json
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)
+
+    if isinstance(op, dsl.ContainerOp) and op.execution_options:
+        if op.execution_options.caching_strategy.max_cache_staleness:
+            template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/max_cache_staleness'] = str(op.execution_options.caching_strategy.max_cache_staleness)
 
     return template

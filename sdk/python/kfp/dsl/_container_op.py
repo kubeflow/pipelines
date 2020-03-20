@@ -25,7 +25,7 @@ from kubernetes.client.models import (
 )
 
 from . import _pipeline_param
-from ..components.structures import ComponentSpec
+from ..components.structures import ComponentSpec, ExecutionOptionsSpec, CachingStrategySpec
 
 # generics
 T = TypeVar('T')
@@ -1088,6 +1088,10 @@ class ContainerOp(BaseOp):
             warnings.warn('Setting per-ContainerOp artifact_location is deprecated since SDK v0.1.32. Please configure the artifact location in the cluster configMap: https://github.com/argoproj/argo/blob/master/ARTIFACT_REPO.md#configure-the-default-artifact-repository . For short-term workaround use the pipeline-wide kfp.dsl.PipelineConf().set_artifact_location, but it can also be deprecated in future.', PendingDeprecationWarning)
 
         self._metadata = None
+
+        self.execution_options = ExecutionOptionsSpec(
+            caching_strategy=CachingStrategySpec(),
+        )
 
         self.outputs = {}
         if file_outputs:
