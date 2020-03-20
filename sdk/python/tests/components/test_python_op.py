@@ -412,36 +412,34 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
-    def test_python_component_decorator(self):
-        from kfp.dsl import python_component
-        import kfp.components._python_op as _python_op
+    def test_legacy_python_component_name_description_overrides(self):
+        # Deprecated feature
 
         expected_name = 'Sum component name'
         expected_description = 'Sum component description'
         expected_image = 'org/image'
 
-        @python_component(
-            name=expected_name,
-            description=expected_description,
-            base_image=expected_image
-        )
         def add_two_numbers_decorated(
             a: float,
             b: float,
         ) -> float:
             '''Returns sum of two arguments'''
             return a + b
+        
+        # Deprecated features
+        add_two_numbers_decorated._component_human_name = expected_name
+        add_two_numbers_decorated._component_description = expected_description
+        add_two_numbers_decorated._component_base_image = expected_image
 
-        component_spec = _python_op._func_to_component_spec(add_two_numbers_decorated)
+        func = add_two_numbers_decorated
+        op = comp.func_to_container_op(func)
+
+        component_spec = op.component_spec
 
         self.assertEqual(component_spec.name, expected_name)
         self.assertEqual(component_spec.description.strip(), expected_description.strip())
         self.assertEqual(component_spec.implementation.container.image, expected_image)
 
-        func = add_two_numbers_decorated
-        op = comp.func_to_container_op(func)
-
-        self.helper_test_component_against_func_using_local_call(func, op, arguments={'a': 3, 'b': 5.0})
 
     def test_saving_default_values(self):
         from typing import NamedTuple
