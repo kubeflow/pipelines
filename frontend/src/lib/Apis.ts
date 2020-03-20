@@ -40,6 +40,12 @@ export interface BuildInfo {
   frontendCommitHash?: string;
 }
 
+// Hack types from https://github.com/microsoft/TypeScript/issues/1897#issuecomment-557057387
+export type JSONPrimitive = string | number | boolean | null;
+export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
+export type JSONObject = { [member: string]: JSONValue };
+export type JSONArray = JSONValue[];
+
 let customVisualizationsAllowed: boolean;
 
 // For cross browser support, fetch should use 'same-origin' as default. This fixes firefox auth issues.
@@ -91,6 +97,28 @@ export class Apis {
       query += `&podnamespace=${encodeURIComponent(podNamespace)}`;
     }
     return this._fetch(query);
+  }
+
+  /**
+   * Get pod info
+   */
+  public static async getPodInfo(podName: string, podNamespace: string): Promise<JSONObject> {
+    const query = `k8s/pod?podname=${encodeURIComponent(podName)}&podnamespace=${encodeURIComponent(
+      podNamespace,
+    )}`;
+    const podInfo = await this._fetch(query);
+    return JSON.parse(podInfo);
+  }
+
+  /**
+   * Get pod events
+   */
+  public static async getPodEvents(podName: string, podNamespace: string): Promise<JSONObject> {
+    const query = `k8s/pod/events?podname=${encodeURIComponent(
+      podName,
+    )}&podnamespace=${encodeURIComponent(podNamespace)}`;
+    const eventList = await this._fetch(query);
+    return JSON.parse(eventList);
   }
 
   public static get basePath(): string {
