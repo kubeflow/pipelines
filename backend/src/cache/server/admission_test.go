@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package server
 
 import (
 	"encoding/json"
@@ -21,6 +21,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/api/admission/v1beta1"
@@ -42,7 +43,9 @@ var (
 	}
 )
 
-func fakeAdmitFunc(req *v1beta1.AdmissionRequest) ([]patchOperation, error) {
+var fakeClientManager = NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+
+func fakeAdmitFunc(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInterface) ([]patchOperation, error) {
 	operation := patchOperation{
 		Op:    OperationTypeAdd,
 		Path:  "test",
@@ -67,7 +70,7 @@ func TestDoServeAdmitFunc(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc)
+	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc, fakeClientManager)
 	require.NotNil(t, patchOperations)
 	assert.Nil(t, err)
 }
@@ -75,7 +78,7 @@ func TestDoServeAdmitFunc(t *testing.T) {
 func TestDoServeAdmitFuncWithInvalidHttpMethod(t *testing.T) {
 	req, _ := http.NewRequest("Get", "", nil)
 	rr := httptest.NewRecorder()
-	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc)
+	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc, fakeClientManager)
 	assert.Nil(t, patchOperations)
 	assert.Contains(t, err.Error(), "Invalid method")
 }
@@ -83,7 +86,7 @@ func TestDoServeAdmitFuncWithInvalidHttpMethod(t *testing.T) {
 func TestDoServeAdmitFuncWithInvalidContentType(t *testing.T) {
 	req, err := http.NewRequest("POST", "/url", strings.NewReader(""))
 	rr := httptest.NewRecorder()
-	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc)
+	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc, fakeClientManager)
 	assert.Nil(t, patchOperations)
 	assert.Contains(t, err.Error(), "Unsupported content type")
 }
@@ -92,7 +95,7 @@ func TestDoServeAdmitFuncWithInvalidRequestBody(t *testing.T) {
 	req, err := http.NewRequest("POST", "/url", strings.NewReader("invalid"))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
-	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc)
+	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc, fakeClientManager)
 	assert.Nil(t, patchOperations)
 	assert.Contains(t, err.Error(), "Could not deserialize request")
 }
@@ -105,7 +108,7 @@ func TestDoServeAdmitFuncWithEmptyAdmissionRequest(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc)
+	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc, fakeClientManager)
 	assert.Nil(t, patchOperations)
 	assert.Contains(t, err.Error(), "Malformed admission review request: request body is nil")
 }

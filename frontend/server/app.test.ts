@@ -24,16 +24,26 @@ import { Storage as GCSStorage } from '@google-cloud/storage';
 import { UIServer } from './app';
 import { loadConfigs } from './configs';
 import * as minioHelper from './minio-helper';
-import * as k8sHelper from './k8s-helper';
+import { TEST_ONLY as K8S_TEST_EXPORT } from './k8s-helper';
 
 jest.mock('minio');
 jest.mock('node-fetch');
 jest.mock('@google-cloud/storage');
 jest.mock('./minio-helper');
-jest.mock('./k8s-helper');
 
 const mockedFetch: jest.Mock = fetch as any;
-const mockedK8sHelper: jest.Mock = k8sHelper as any;
+
+beforeEach(() => {
+  const consoleInfoSpy = jest.spyOn(global.console, 'info');
+  consoleInfoSpy.mockImplementation(() => null);
+  const consoleLogSpy = jest.spyOn(global.console, 'log');
+  consoleLogSpy.mockImplementation(() => null);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+  jest.resetAllMocks();
+});
 
 describe('UIServer apis', () => {
   let app: UIServer;
@@ -373,9 +383,6 @@ describe('UIServer apis', () => {
 
   describe('/system', () => {
     describe('/cluster-name', () => {
-      beforeEach(() => {
-        mockedK8sHelper.isInCluster = true;
-      });
       it('responds with cluster name data from gke metadata', done => {
         mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
           url === 'http://metadata/computeMetadata/v1/instance/attributes/cluster-name'
@@ -412,9 +419,6 @@ describe('UIServer apis', () => {
       });
     });
     describe('/project-id', () => {
-      beforeEach(() => {
-        mockedK8sHelper.isInCluster = true;
-      });
       it('responds with project id data from gke metadata', done => {
         mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
           url === 'http://metadata/computeMetadata/v1/project/project-id'
@@ -446,10 +450,121 @@ describe('UIServer apis', () => {
     });
   });
 
-  // TODO: refractor k8s helper module so that api that interact with k8s can be
-  // mocked and tested. There is currently no way to mock k8s APIs as
-  // `k8s-helper.isInCluster` is a constant that is generated when the module is
-  // first loaded.
+  describe('/k8s/pod', () => {
+    let request: requests.SuperTest<requests.Test>;
+    beforeEach(() => {
+      app = new UIServer(loadConfigs(argv, {}));
+      request = requests(app.start());
+    });
+
+    it('asks for podname if not provided', done => {
+      request.get('/k8s/pod').expect(422, 'podname argument is required', done);
+    });
+
+    it('asks for podnamespace if not provided', done => {
+      request
+        .get('/k8s/pod?podname=test-pod')
+        .expect(422, 'podnamespace argument is required', done);
+    });
+
+    it('responds with pod info in JSON', done => {
+      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      readPodSpy.mockImplementation(() =>
+        Promise.resolve({
+          body: { kind: 'Pod' }, // only body is used
+        } as any),
+      );
+      request
+        .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
+        .expect(200, '{"kind":"Pod"}', err => {
+          expect(readPodSpy).toHaveBeenCalledWith('test-pod', 'test-ns');
+          done(err);
+        });
+    });
+
+    it('responds with error when failed to retrieve pod info', done => {
+      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      readPodSpy.mockImplementation(() =>
+        Promise.reject({
+          body: {
+            message: 'pod not found',
+            code: 404,
+          },
+        } as any),
+      );
+      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+      request
+        .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
+        .expect(500, 'Could not get pod test-pod in namespace test-ns: pod not found', () => {
+          expect(spyError).toHaveBeenCalledTimes(1);
+          done();
+        });
+    });
+  });
+
+  describe('/k8s/pod/events', () => {
+    let request: requests.SuperTest<requests.Test>;
+    beforeEach(() => {
+      app = new UIServer(loadConfigs(argv, {}));
+      request = requests(app.start());
+    });
+
+    it('asks for podname if not provided', done => {
+      request.get('/k8s/pod/events').expect(422, 'podname argument is required', done);
+    });
+
+    it('asks for podnamespace if not provided', done => {
+      request
+        .get('/k8s/pod/events?podname=test-pod')
+        .expect(422, 'podnamespace argument is required', done);
+    });
+
+    it('responds with pod info in JSON', done => {
+      const listEventSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
+      listEventSpy.mockImplementation(() =>
+        Promise.resolve({
+          body: { kind: 'EventList' }, // only body is used
+        } as any),
+      );
+      request
+        .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
+        .expect(200, '{"kind":"EventList"}', err => {
+          expect(listEventSpy).toHaveBeenCalledWith(
+            'test-ns',
+            undefined,
+            undefined,
+            undefined,
+            'involvedObject.namespace=test-ns,involvedObject.name=test-pod,involvedObject.kind=Pod',
+          );
+          done(err);
+        });
+    });
+
+    it('responds with error when failed to retrieve pod info', done => {
+      const listEventSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
+      listEventSpy.mockImplementation(() =>
+        Promise.reject({
+          body: {
+            message: 'no events',
+            code: 404,
+          },
+        } as any),
+      );
+      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+      request
+        .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
+        .expect(
+          500,
+          'Error when listing pod events for pod "test-pod" in "test-ns" namespace: no events',
+          err => {
+            expect(spyError).toHaveBeenCalledTimes(1);
+            done(err);
+          },
+        );
+    });
+  });
+
+  // TODO: Add integration tests for k8s helper related endpoints
 
   // describe('/apps/tensorboard', () => {
 
