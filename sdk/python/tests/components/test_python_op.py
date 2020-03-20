@@ -554,7 +554,7 @@ class PythonOpTestCase(unittest.TestCase):
 
     def test_handling_list_dict_output_values(self):
         def produce_list() -> list:
-            return (["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}], )
+            return ["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}]
         
         # ! JSON map keys are always strings. Python converts all keys to strings without warnings
         task_factory = comp.func_to_container_op(produce_list)

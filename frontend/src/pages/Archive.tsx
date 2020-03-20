@@ -44,6 +44,12 @@ export default class Archive extends Page<{}, ArchiveState> {
       actions: buttons
         .restore(() => this.state.selectedIds, false, this._selectionChanged.bind(this))
         .refresh(this.refresh.bind(this))
+        .delete(
+          () => this.state.selectedIds,
+          'run',
+          this._selectionChanged.bind(this),
+          false /* useCurrentResource */,
+        )
         .getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: 'Archive',
@@ -76,6 +82,7 @@ export default class Archive extends Page<{}, ArchiveState> {
   private _selectionChanged(selectedIds: string[]): void {
     const toolbarActions = this.props.toolbarProps.actions;
     toolbarActions[ButtonKeys.RESTORE].disabled = !selectedIds.length;
+    toolbarActions[ButtonKeys.DELETE_RUN].disabled = !selectedIds.length;
     this.props.updateToolbar({
       actions: toolbarActions,
       breadcrumbs: this.props.toolbarProps.breadcrumbs,

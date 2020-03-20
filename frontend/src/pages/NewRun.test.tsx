@@ -15,13 +15,13 @@
  */
 
 import * as React from 'react';
-import NewRun from './NewRun';
+import { NewRun } from './NewRun';
 import TestUtils from '../TestUtils';
 import { shallow, ShallowWrapper, ReactWrapper, mount, render } from 'enzyme';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { ApiExperiment } from '../apis/experiment';
+import { ApiExperiment, ApiListExperimentsResponse } from '../apis/experiment';
 import { ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
 import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '../apis/run';
 import { MemoryRouter } from 'react-router';
@@ -49,6 +49,7 @@ describe('NewRun', () => {
   const startJobSpy = jest.spyOn(Apis.jobServiceApi, 'createJob');
   const startRunSpy = jest.spyOn(Apis.runServiceApi, 'createRun');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  const listExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'listExperiment');
   const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
   const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
@@ -167,6 +168,13 @@ describe('NewRun', () => {
     // consoleErrorSpy.mockImplementation(() => null);
     startRunSpy.mockImplementation(() => ({ id: 'new-run-id' }));
     getExperimentSpy.mockImplementation(() => MOCK_EXPERIMENT);
+    listExperimentSpy.mockImplementation(() => {
+      const response: ApiListExperimentsResponse = {
+        experiments: [MOCK_EXPERIMENT],
+        total_size: 1,
+      };
+      return response;
+    });
     getPipelineSpy.mockImplementation(() => MOCK_PIPELINE);
     getPipelineVersionSpy.mockImplementation(() => MOCK_PIPELINE_VERSION);
     getRunSpy.mockImplementation(() => MOCK_RUN_DETAIL);
@@ -590,6 +598,35 @@ describe('NewRun', () => {
         .simulate('click');
       await TestUtils.flushPromises();
       expect(tree.state('experimentSelectorOpen')).toBe(true);
+      expect(listExperimentSpy).toHaveBeenCalledWith(
+        '',
+        10,
+        'created_at desc',
+        '',
+        undefined,
+        undefined,
+      );
+    });
+
+    it('lists available experiments by namespace if available', async () => {
+      tree = TestUtils.mountWithRouter(
+        <TestNewRun {...(generateProps() as any)} namespace='test-ns' />,
+      );
+      await TestUtils.flushPromises();
+
+      tree
+        .find('#chooseExperimentBtn')
+        .at(0)
+        .simulate('click');
+      await TestUtils.flushPromises();
+      expect(listExperimentSpy).toHaveBeenCalledWith(
+        '',
+        10,
+        'created_at desc',
+        '',
+        'NAMESPACE',
+        'test-ns',
+      );
     });
 
     it('closes the experiment selector modal', async () => {
@@ -1225,11 +1262,7 @@ describe('NewRun', () => {
         `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}` +
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
-      tree = mount(
-        <NamespaceContext.Provider value='test-ns'>
-          <TestNewRun {...props} />
-        </NamespaceContext.Provider>,
-      );
+      tree = mount(<TestNewRun {...props} namespace='test-ns' />);
       fillRequiredFields(tree.find(TestNewRun).instance() as TestNewRun);
       await TestUtils.flushPromises();
 

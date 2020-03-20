@@ -18,7 +18,7 @@ def getSecret(secret):
     f.close()
     return res
 
-def store(wml_model_name, run_uid):
+def store(wml_model_name, run_uid, framework, framework_version, runtime_version):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
 
     # retrieve credentials
@@ -26,19 +26,30 @@ def store(wml_model_name, run_uid):
     wml_instance_id = getSecret("/app/secrets/wml_instance_id")
     wml_apikey = getSecret("/app/secrets/wml_apikey")
 
+    runtime_uid = framework + '_' + framework_version + '-py' + runtime_version
+    runtime_type = framework + '_' + framework_version
+
+    print("runtime_uid:", runtime_uid)
+    print("runtime_type:", runtime_type)
     # set up the WML client
     wml_credentials = {
                        "url": wml_url,
                        "instance_id": wml_instance_id,
                        "apikey": wml_apikey
                       }
-    client = WatsonMachineLearningAPIClient( wml_credentials )
+    client = WatsonMachineLearningAPIClient(wml_credentials)
 
     # store the model
-    stored_model_name    = wml_model_name
-    stored_model_details = client.repository.store_model( run_uid, stored_model_name )
-    model_uid            = client.repository.get_model_uid( stored_model_details )
-    print( "model_uid: ", model_uid )
+    meta_props_tf = {
+     client.repository.ModelMetaNames.NAME: wml_model_name,
+     client.repository.ModelMetaNames.RUNTIME_UID : runtime_uid,
+     client.repository.ModelMetaNames.TYPE: runtime_type
+    }
+
+    model_details = client.repository.store_model(run_uid, meta_props=meta_props_tf)
+
+    model_uid = client.repository.get_model_uid(model_details)
+    print("model_uid: ", model_uid)
 
     with open("/tmp/model_uid", "w") as f:
         f.write(model_uid)
@@ -52,5 +63,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model-name', type=str, required=True)
     parser.add_argument('--run-uid', type=str, required=True)
+    parser.add_argument('--framework', type=str, required=True)
+    parser.add_argument('--framework-version', type=str, required=True)
+    parser.add_argument('--runtime-version', type=str, required=True)
     args = parser.parse_args()
-    store(args.model_name, args.run_uid)
+    store(args.model_name, args.run_uid, args.framework, args.framework_version, args.runtime_version)

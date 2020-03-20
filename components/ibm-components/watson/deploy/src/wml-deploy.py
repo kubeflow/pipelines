@@ -42,11 +42,17 @@ def deploy(args):
                       }
     client = WatsonMachineLearningAPIClient(wml_credentials)
 
+    client.deployments.list()
+ 
     # deploy the model
-    deployment_desc  = "deployment of %s" % wml_model_name
-    deployment       = client.deployments.create(model_uid, deployment_name, deployment_desc)
-    scoring_endpoint = client.deployments.get_scoring_url(deployment)
-    print("scoring_endpoint: ", scoring_endpoint)
+    meta_props = {
+        client.deployments.ConfigurationMetaNames.NAME: deployment_name,
+        client.deployments.ConfigurationMetaNames.ONLINE: {}
+    }
+    deployment_details = client.deployments.create(model_uid, meta_props)
+    scoring_endpoint = client.deployments.get_scoring_href(deployment_details)
+    deployment_uid = client.deployments.get_uid(deployment_details)
+    print("deployment_uid: ", deployment_uid)
 
     if wml_scoring_payload:
         # download scoring payload if exist
@@ -70,11 +76,11 @@ def deploy(args):
         import json
         with open(payload_file) as data_file:
             test_data = json.load(data_file)
-        payload = test_data['payload']
+        payload = {client.deployments.ScoringMetaNames.INPUT_DATA: [test_data['payload']]}
         data_file.close()
 
         print("Scoring result: ")
-        result = client.deployments.score(scoring_endpoint, payload)
+        result = client.deployments.score(deployment_uid, payload)
     else:
         result = 'Scoring payload is not provided'
 

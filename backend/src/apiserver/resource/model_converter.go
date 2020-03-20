@@ -22,7 +22,26 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/pkg/errors"
 )
+
+func (r *ResourceManager) ToModelExperiment(apiExperiment *api.Experiment) (*model.Experiment, error) {
+	namespace := ""
+	resourceReferences := apiExperiment.GetResourceReferences()
+	if resourceReferences != nil {
+		if len(resourceReferences) != 1 ||
+			resourceReferences[0].Key.Type != api.ResourceType_NAMESPACE ||
+			resourceReferences[0].Relationship != api.Relationship_OWNER {
+			return nil, util.NewInternalServerError(errors.New("Invalid resource references for experiment"), "Unable to convert to model experiment.")
+		}
+		namespace = resourceReferences[0].Key.Id
+	}
+	return &model.Experiment{
+		Name:        apiExperiment.Name,
+		Description: apiExperiment.Description,
+		Namespace:   namespace,
+	}, nil
+}
 
 func (r *ResourceManager) ToModelRunMetric(metric *api.RunMetric, runUUID string) *model.RunMetric {
 	return &model.RunMetric{
