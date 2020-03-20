@@ -809,4 +809,4 @@ implementation:
 
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
     template = workflow_dict['spec']['templates'][0]
-    self.assertEqual(template['metadata']['annotations']['max_cache_staleness'], "P30D")
+    self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/max_cache_staleness'], "P30D")

@@ -292,6 +292,6 @@ def _op_to_template(op: BaseOp):
 
     if isinstance(op, dsl.ContainerOp) and op.execution_options:
         if op.execution_options.caching_strategy.max_cache_staleness:
-            template.setdefault('metadata', {}).setdefault('annotations', {})['max_cache_staleness'] = str(op.execution_options.caching_strategy.max_cache_staleness)
+            template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/max_cache_staleness'] = str(op.execution_options.caching_strategy.max_cache_staleness)
 
     return template
