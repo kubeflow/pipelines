@@ -1,7 +1,7 @@
 steps:
 - id:   'pullDeployer'
   name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA:${_MM_VERSION}']  
+  args: ['pull', 'gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/deployer:${_DEPLOYER_VERSION}']  
 - id: "verify"
   waitFor: ['pullDeployer']
   name: "gcr.io/cloud-marketplace-tools/k8s/dev:latest"
@@ -11,11 +11,11 @@ steps:
     - |
       gcloud container clusters get-credentials hosted-verify-test --zone us-central1-c --project ml-pipeline-test
       kubectl apply -f "https://raw.githubusercontent.com/GoogleCloudPlatform/marketplace-k8s-app-tools/master/crd/app-crd.yaml"
-      /scripts/verify --deployer="gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA:${_MM_VERSION}" --wait_timeout="1800"
+      /scripts/verify --deployer="gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/deployer:${_DEPLOYER_VERSION}" --wait_timeout="1800"
      
 timeout: '3600s'
 options:
   machineType: N1_HIGHCPU_8
 
 substitutions:
-  _MM_VERSION: ''
+  _DEPLOYER_VERSION: ''
