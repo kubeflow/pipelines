@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -ex
 
 VERSION=$1
 COMMIT_SHA=$2
 
 # sync trigger to avoid wait
 gcloud builds submit --config=test/cloudbuild/mkp_verify.yaml --substitutions=_MM_VERSION="$VERSION",COMMIT_SHA="$COMMIT_SHA" --project=ml-pipeline-test
-return $?
