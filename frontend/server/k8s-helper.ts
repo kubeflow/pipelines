@@ -165,9 +165,6 @@ export async function deleteTensorboardInstance(logdir: string): Promise<void> {
   if (!namespace) {
     throw new Error(`Cannot get namespace from ${namespaceFilePath}.`);
   }
-  if (!k8sV1CustomObjectClient) {
-    throw new Error('Cannot access kubernetes Custom Object API');
-  }
   const currentPod = await getTensorboardInstance(logdir);
   if (!currentPod.podAddress) {
     return;
