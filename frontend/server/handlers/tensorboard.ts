@@ -20,11 +20,6 @@ import { ViewerTensorboardConfig } from '../configs';
  * handler expects a query string `logdir`.
  */
 export const getTensorboardHandler: Handler = async (req, res) => {
-  if (!k8sHelper.isInCluster) {
-    res.status(500).send('Cannot talk to Kubernetes master');
-    return;
-  }
-
   if (!req.query.logdir) {
     res.status(404).send('logdir argument is required');
     return;
@@ -49,11 +44,6 @@ export const getTensorboardHandler: Handler = async (req, res) => {
  */
 export function getCreateTensorboardHandler(tensorboardConfig: ViewerTensorboardConfig): Handler {
   return async (req, res) => {
-    if (!k8sHelper.isInCluster) {
-      res.status(500).send('Cannot talk to Kubernetes master');
-      return;
-    }
-
     if (!req.query.logdir) {
       res.status(404).send('logdir argument is required');
       return;
@@ -87,11 +77,6 @@ export function getCreateTensorboardHandler(tensorboardConfig: ViewerTensorboard
  * `logdir` in the request.
  */
 export const deleteTensorboardHandler: Handler = async (req, res) => {
-  if (!k8sHelper.isInCluster) {
-    res.status(500).send('Cannot talk to Kubernetes master');
-    return;
-  }
-
   if (!req.query.logdir) {
     res.status(404).send('logdir argument is required');
     return;

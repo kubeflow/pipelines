@@ -570,6 +570,8 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
                     "Volumes",
                     "Manifest",
                     "Logs",
+                    "Pod",
+                    "Events",
                   ]
                 }
               />
@@ -686,6 +688,8 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
                     "Volumes",
                     "Manifest",
                     "Logs",
+                    "Pod",
+                    "Events",
                   ]
                 }
               />
@@ -802,6 +806,8 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
                     "Volumes",
                     "Manifest",
                     "Logs",
+                    "Pod",
+                    "Events",
                   ]
                 }
               />
@@ -918,6 +924,8 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
                     "Volumes",
                     "Manifest",
                     "Logs",
+                    "Pod",
+                    "Events",
                   ]
                 }
               />
@@ -1034,6 +1042,8 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
                     "Volumes",
                     "Manifest",
                     "Logs",
+                    "Pod",
+                    "Events",
                   ]
                 }
               />
@@ -1276,6 +1286,8 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
                     "Volumes",
                     "Manifest",
                     "Logs",
+                    "Pod",
+                    "Events",
                   ]
                 }
               />
@@ -1725,6 +1737,8 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                     "Volumes",
                     "Manifest",
                     "Logs",
+                    "Pod",
+                    "Events",
                   ]
                 }
               />
@@ -1866,6 +1880,8 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
                     "Volumes",
                     "Manifest",
                     "Logs",
+                    "Pod",
+                    "Events",
                   ]
                 }
               />
@@ -2015,6 +2031,8 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
                     "Volumes",
                     "Manifest",
                     "Logs",
+                    "Pod",
+                    "Events",
                   ]
                 }
               />
