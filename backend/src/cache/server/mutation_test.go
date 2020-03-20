@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package server
 
 import (
 	"bytes"
 	"encoding/json"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/api/admission/v1beta1"
@@ -36,8 +37,11 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
 				ArgoWorkflowNodeName: "test_node",
-				ArgoWorkflowTemplate: "test_template",
+				ArgoWorkflowTemplate: `{"name": "test_template"}`,
 				KFPAnnotation:        "test_kfp",
+			},
+			Labels: map[string]string{
+				ArgoCompleteLabelKey: "true",
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -90,7 +94,7 @@ func TestMutatePodIfCachedWithErrorPodResource(t *testing.T) {
 			Version: "wrong", Resource: "wrong",
 		},
 	}
-	patchOperations, err := mutatePodIfCached(mockAdmissionRequest)
+	patchOperations, err := MutatePodIfCached(mockAdmissionRequest, fakeClientManager)
 	assert.Nil(t, patchOperations)
 	assert.Nil(t, err)
 }
@@ -98,7 +102,7 @@ func TestMutatePodIfCachedWithErrorPodResource(t *testing.T) {
 func TestMutatePodIfCachedWithDecodeError(t *testing.T) {
 	invalidAdmissionRequest := fakeAdmissionRequest
 	invalidAdmissionRequest.Object.Raw = []byte{5, 5}
-	patchOperation, err := mutatePodIfCached(&invalidAdmissionRequest)
+	patchOperation, err := MutatePodIfCached(&invalidAdmissionRequest, fakeClientManager)
 	assert.Nil(t, patchOperation)
 	assert.Contains(t, err.Error(), "could not deserialize pod object")
 }
@@ -106,7 +110,7 @@ func TestMutatePodIfCachedWithDecodeError(t *testing.T) {
 func TestMutatePodIfCachedWithNonKFPPod(t *testing.T) {
 	nonKFPPod := *fakePod
 	delete(nonKFPPod.Annotations, KFPAnnotation)
-	patchOperation, err := mutatePodIfCached(GetFakeRequestFromPod(&nonKFPPod))
+	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&nonKFPPod), fakeClientManager)
 	assert.Nil(t, patchOperation)
 	assert.Nil(t, err)
 }
@@ -114,7 +118,7 @@ func TestMutatePodIfCachedWithNonKFPPod(t *testing.T) {
 func TestMutatePodIfCachedWithNonArgoPod(t *testing.T) {
 	nonArgoPod := *fakePod
 	delete(nonArgoPod.Annotations, ArgoWorkflowNodeName)
-	patchOperation, err := mutatePodIfCached(GetFakeRequestFromPod(&nonArgoPod))
+	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&nonArgoPod), fakeClientManager)
 	assert.Nil(t, patchOperation)
 	assert.Nil(t, err)
 }
@@ -123,15 +127,33 @@ func TestMutatePodIfCachedWithTFXPod(t *testing.T) {
 	tfxPod := *fakePod
 	mainContainerCommand := append(tfxPod.Spec.Containers[0].Command, "/tfx-src/"+TFXPodSuffix)
 	tfxPod.Spec.Containers[0].Command = mainContainerCommand
-	patchOperation, err := mutatePodIfCached(GetFakeRequestFromPod(&tfxPod))
+	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&tfxPod), fakeClientManager)
 	assert.Nil(t, patchOperation)
 	assert.Nil(t, err)
 }
 
 func TestMutatePodIfCached(t *testing.T) {
-	patchOperation, err := mutatePodIfCached(&fakeAdmissionRequest)
+	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
 	assert.Nil(t, err)
 	require.NotNil(t, patchOperation)
-	require.Equal(t, 1, len(patchOperation))
+	require.Equal(t, 2, len(patchOperation))
 	require.Equal(t, patchOperation[0].Op, OperationTypeAdd)
+	require.Equal(t, patchOperation[1].Op, OperationTypeAdd)
+}
+
+func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
+	executionCache := &model.ExecutionCache{
+		ExecutionCacheKey: "f98b62e4625b9f96bac478ac72d88181a37e4f1d6bfd3bd5f53e29286b2ca034",
+		ExecutionOutput:   "testOutput",
+		ExecutionTemplate: `{"name": "test_template"}`,
+	}
+	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
+
+	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
+	assert.Nil(t, err)
+	require.NotNil(t, patchOperation)
+	require.Equal(t, 3, len(patchOperation))
+	require.Equal(t, patchOperation[0].Op, OperationTypeReplace)
+	require.Equal(t, patchOperation[1].Op, OperationTypeAdd)
+	require.Equal(t, patchOperation[2].Op, OperationTypeAdd)
 }
