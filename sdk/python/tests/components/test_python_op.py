@@ -840,7 +840,7 @@ class PythonOpTestCase(unittest.TestCase):
             self.helper_test_component_using_local_call(task_factory2, arguments={}, expected_output_values={})
 
 
-    def test_end_to_end_python_component_pipeline_compilation(self):
+    def test_end_to_end_python_component_pipeline(self):
         import kfp.components as comp
 
         #Defining the Python function
@@ -858,11 +858,6 @@ class PythonOpTestCase(unittest.TestCase):
             add_op2 = comp.load_component_from_file(add_component_file)
 
             #Building the pipeline
-            import kfp.dsl as dsl
-            @dsl.pipeline(
-                name='Calculation pipeline',
-                description='A pipeline that performs arithmetic calculations.'
-            )
             def calc_pipeline(
                 a1,
                 a2='7',
@@ -870,13 +865,11 @@ class PythonOpTestCase(unittest.TestCase):
             ):
                 task_1 = add_op(a1, a2)
                 task_2 = add_op2(a1, a2)
-                task_3 = add_op(task_1.output, task_2.output)
-                task_4 = add_op2(task_3.output, a3)
+                task_3 = add_op(task_1.outputs['Output'], task_2.outputs['Output'])
+                task_4 = add_op2(task_3.outputs['Output'], a3)
 
-            #Compiling the pipleine:
-            pipeline_filename = str(Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz'))
-            import kfp.compiler as compiler
-            compiler.Compiler().compile(calc_pipeline, pipeline_filename)
+            #Instantiating the pipleine:
+            calc_pipeline(42)
 
 
 if __name__ == '__main__':
