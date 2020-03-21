@@ -36,7 +36,7 @@ implementation:
     image: docker.io/aipipeline/wml-train:latest
     command: ['python3']
     args: [
-      /app/wml-train.py,
+      -u, /app/wml-train.py,
       --config, {inputValue: config},
       --train-code, {inputValue: train_code},
       --execution-command, {inputValue: execution_command},
@@ -48,8 +48,7 @@ implementation:
       --run-name, {inputValue: run_name},
       --author-name, {inputValue: author_name},
       --compute-name, {inputValue: compute_name},
-      --compute-nodes,{inputValue: compute_nodes}
+      --compute-nodes,{inputValue: compute_nodes},
+      --output-run-uid-path, {outputPath: run_uid},
+      --output-training-uid-path, {outputPath: training_uid}
     ]
-    fileOutputs:
-      run_uid: /tmp/run_uid
-      training_uid: /tmp/training_uid
