@@ -10,11 +10,8 @@ Deploy latest version of Kubeflow Pipelines
 
 ```
 export PIPELINE_VERSION=0.3.0
-kubectl apply -f
-https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/crd.yaml
-kubectl wait --for condition=established --timeout=60s
-crd/applications.app.k8s.io kubectl apply -f
-https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
+kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/crd.yaml
+kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
 ```
 
 Then get the Pipeline URL
@@ -38,10 +35,12 @@ See [here](env/gcp/README.md) for more details.
 
 ### Change deploy namespace
 
-To deploy Kubeflow Pipelines in namespace FOO, - Edit
-[dev/kustomization.yaml](env/dev/kustomization.yaml) or
-[gcp/kustomization.yaml](env/gcp/kustomization.yaml) namespace section to FOO -
-Then run
+To deploy Kubeflow Pipelines in namespace FOO,
+
+-   Edit [dev/kustomization.yaml](env/dev/kustomization.yaml) or
+    [gcp/kustomization.yaml](env/gcp/kustomization.yaml) namespace section to
+    FOO
+-   Then run
 
 ```
 kubectl kustomize base/crds | kubectl apply -f -
@@ -59,8 +58,11 @@ kubectl kustomize env/gcp | kubectl apply -f -
 
 By default, the deployment install an
 [invert proxy agent](https://github.com/google/inverting-proxy) that exposes a
-public URL. If you want to skip installing it, - Comment out the proxy component
-in the [kustomization.yaml](base/kustomization.yaml). - Then run
+public URL. If you want to skip installing it:
+
+-   Comment out the proxy component in the
+    [kustomization.yaml](base/kustomization.yaml).
+-   Then run
 
 ```
 kubectl kustomize . | kubectl apply -f -
@@ -116,8 +118,13 @@ kubectl create clusterrolebinding your-binding --clusterrole=cluster-admin
 If sample code requires a "user-gcp-sa" secret, you could create one by - First
 download the GCE VM service account token
 [Document](https://cloud.google.com/iam/docs/creating-managing-service-account-keys#creating_service_account_keys)
-`gcloud iam service-accounts keys create application_default_credentials.json \
---iam-account [SA-NAME]@[PROJECT-ID].iam.gserviceaccount.com` - Run
+
+```
+gcloud iam service-accounts keys create application_default_credentials.json \
+--iam-account [SA-NAME]@[PROJECT-ID].iam.gserviceaccount.com`
+```
+
+Run
 
 ```
 kubectl
