@@ -115,16 +115,17 @@ kubectl create clusterrolebinding your-binding --clusterrole=cluster-admin
 
 ### Samples requires "user-gcp-sa" secret
 
-If sample code requires a "user-gcp-sa" secret, you could create one by - First
-download the GCE VM service account token
-[Document](https://cloud.google.com/iam/docs/creating-managing-service-account-keys#creating_service_account_keys)
+If sample code requires a "user-gcp-sa" secret, you could create one by
+
+-   First download the GCE VM service account token
+    [Document](https://cloud.google.com/iam/docs/creating-managing-service-account-keys#creating_service_account_keys)
 
 ```
 gcloud iam service-accounts keys create application_default_credentials.json \
---iam-account [SA-NAME]@[PROJECT-ID].iam.gserviceaccount.com`
+--iam-account [SA-NAME]@[PROJECT-ID].iam.gserviceaccount.com
 ```
 
-Run
+-   Run
 
 ```
 kubectl
