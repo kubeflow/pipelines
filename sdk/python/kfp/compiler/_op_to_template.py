@@ -69,17 +69,9 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
         return map_to_tmpl_var.get(str(obj), '{{inputs.parameters.%s}}' % obj.full_name)
 
     # k8s objects (generated from swaggercodegen)
-    if hasattr(obj, 'swagger_types') and isinstance(obj.swagger_types, dict):
+    if hasattr(obj, 'attribute_map') and isinstance(obj.attribute_map, dict):
         # process everything inside recursively
-        for key in obj.swagger_types.keys():
-            setattr(obj, key, _process_obj(getattr(obj, key), map_to_tmpl_var))
-        # return json representation of the k8s obj
-        return convert_k8s_obj_to_json(obj)
-
-    # k8s objects (generated from openapi)
-    if hasattr(obj, 'openapi_types') and isinstance(obj.openapi_types, dict):
-        # process everything inside recursively
-        for key in obj.openapi_types.keys():
+        for key in obj.attribute_map.keys():
             setattr(obj, key, _process_obj(getattr(obj, key), map_to_tmpl_var))
         # return json representation of the k8s obj
         return convert_k8s_obj_to_json(obj)

@@ -130,16 +130,21 @@ class Container(V1Container):
     """
     """
     Attributes:
-      swagger_types (dict): The key is attribute name
-                            and the value is attribute type.
       attribute_map (dict): The key is attribute name
                             and the value is json key in definition.
     """
-    # remove `name` from swagger_types so `name` is not generated in the JSON
-    swagger_types = {
-        key: value
-        for key, value in V1Container.swagger_types.items() if key != 'name'
-    }
+    # remove `name` from attribute_map, swagger_types and openapi_types so `name` is not generated in the JSON
+
+    if hasattr(V1Container, 'swagger_types'):
+        swagger_types = {
+            key: value
+            for key, value in V1Container.swagger_types.items() if key != 'name'
+        }
+    if hasattr(V1Container, 'openapi_types'):
+        openapi_types = {
+            key: value
+            for key, value in V1Container.openapi_types.items() if key != 'name'
+        }
     attribute_map = {
         key: value
         for key, value in V1Container.attribute_map.items() if key != 'name'
@@ -572,9 +577,12 @@ class UserContainer(Container):
     # adds `mirror_volume_mounts` to `UserContainer` swagger definition
     # NOTE inherits definition from `V1Container` rather than `Container`
     #      because `Container` has no `name` property.
-    swagger_types = dict(
-        **V1Container.swagger_types, mirror_volume_mounts='bool')
-
+    if hasattr(V1Container, 'swagger_types'):
+        swagger_types = dict(
+            **V1Container.swagger_types, mirror_volume_mounts='bool')
+    if hasattr(V1Container, 'openapi_types'):
+        openapi_types = dict(
+            **V1Container.openapi_types, mirror_volume_mounts='bool')
     attribute_map = dict(
         **V1Container.attribute_map, mirror_volume_mounts='mirrorVolumeMounts')
 
