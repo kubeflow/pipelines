@@ -21,6 +21,8 @@ from typing import Callable, NamedTuple, Sequence
 
 import kfp
 import kfp.components as comp
+from kfp.components import InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile
+from kfp.components.structures import InputSpec, OutputSpec
 from kfp.components._components import _resolve_command_line_and_paths
 
 def add_two_numbers(a: float, b: float) -> float:
@@ -303,7 +305,6 @@ class PythonOpTestCase(unittest.TestCase):
 
         component_spec = comp._python_op._extract_component_interface(my_func)
 
-        from kfp.components.structures import InputSpec, OutputSpec
         self.assertEqual(
             component_spec.inputs,
             [
@@ -564,7 +565,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_input_path(self):
-        from kfp.components import InputPath
         def consume_file_path(number_file_path: InputPath(int)) -> int:
             with open(number_file_path) as f:
                 string_data = f.read()
@@ -578,7 +578,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_input_text_file(self):
-        from kfp.components import InputTextFile
         def consume_file_path(number_file: InputTextFile(int)) -> int:
             string_data = number_file.read()
             assert isinstance(string_data, str)
@@ -592,7 +591,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_input_binary_file(self):
-        from kfp.components import InputBinaryFile
         def consume_file_path(number_file: InputBinaryFile(int)) -> int:
             bytes_data = number_file.read()
             assert isinstance(bytes_data, bytes)
@@ -606,7 +604,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_output_path(self):
-        from kfp.components import OutputPath
         def write_to_file_path(number_file_path: OutputPath(int)):
             with open(number_file_path, 'w') as f:
                 f.write(str(42))
@@ -621,7 +618,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_output_text_file(self):
-        from kfp.components import OutputTextFile
         def write_to_file_path(number_file: OutputTextFile(int)):
             number_file.write(str(42))
 
@@ -635,7 +631,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_output_binary_file(self):
-        from kfp.components import OutputBinaryFile
         def write_to_file_path(number_file: OutputBinaryFile(int)):
             number_file.write(b'42')
 
@@ -649,7 +644,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_output_path_plus_return_value(self):
-        from kfp.components import OutputPath
         def write_to_file_path(number_file_path: OutputPath(int)) -> str:
             with open(number_file_path, 'w') as f:
                 f.write(str(42))
@@ -666,7 +660,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_all_data_passing_ways(self):
-        from kfp.components import InputTextFile, InputPath, OutputTextFile, OutputPath
         def write_to_file_path(
             file_input1_path: InputPath(str),
             file_input2_file: InputTextFile(str),
@@ -735,7 +728,6 @@ class PythonOpTestCase(unittest.TestCase):
         # For InputPath, the "_path" suffix is removed
         # For Input*, the "_file" suffix is removed
 
-        from kfp.components import InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile
         def consume_file_path(
             number: int,
 
