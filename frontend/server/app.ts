@@ -154,6 +154,11 @@ function createUIServer(options: UIConfigs) {
     }),
   );
 
+  // Original API endpoint is /runs/{run_id}:reportMetrics, but ':reportMetrics' means a url parameter, so we don't use : here.
+  registerHandler(app.use, `/${apiVersionPrefix}/runs/*reportMetrics`, (req, res) => {
+    res.status(403).send(`${req.originalUrl} endpoint is not meant for external usage.`);
+  });
+
   // Order matters here, since both handlers can match any proxied request with a referer,
   // and we prioritize the basepath-friendly handler
   proxyMiddleware(app, `${basePath}/${apiVersionPrefix}`);
@@ -165,7 +170,7 @@ function createUIServer(options: UIConfigs) {
     proxy({
       changeOrigin: true,
       onProxyReq: proxyReq => {
-        console.log('Proxied request: ', (proxyReq as any).path);
+        console.log('Proxied request: ', proxyReq.path);
       },
       target: apiServerAddress,
     }),
@@ -175,7 +180,7 @@ function createUIServer(options: UIConfigs) {
     proxy({
       changeOrigin: true,
       onProxyReq: proxyReq => {
-        console.log('Proxied request: ', (proxyReq as any).path);
+        console.log('Proxied request: ', proxyReq.path);
       },
       pathRewrite: pathStr =>
         pathStr.startsWith(basePath) ? pathStr.substr(basePath.length, pathStr.length) : pathStr,
