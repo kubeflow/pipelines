@@ -154,10 +154,14 @@ function createUIServer(options: UIConfigs) {
     }),
   );
 
-  // Original API endpoint is /runs/{run_id}:reportMetrics, but ':reportMetrics' means a url parameter, so we don't use : here.
   registerHandler(
     app.use,
-    [`/${apiVersionPrefix}/runs/*reportMetrics`, `/${apiVersionPrefix}/workflows`],
+    [
+      // Original API endpoint is /runs/{run_id}:reportMetrics, but ':reportMetrics' means a url parameter, so we don't use : here.
+      `/${apiVersionPrefix}/runs/*reportMetrics`,
+      `/${apiVersionPrefix}/workflows`,
+      `/${apiVersionPrefix}/scheduledworkflows`,
+    ],
     (req, res) => {
       res.status(403).send(`${req.originalUrl} endpoint is not meant for external usage.`);
     },
