@@ -301,7 +301,7 @@ class Client(object):
     return self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by)
 
   # TODO: provide default namespace, similar to kubectl default namespaces.
-  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, namespace=None):
+  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, namespace=None, version_id=None):
     """Run a specified pipeline.
 
     Args:
@@ -313,6 +313,7 @@ class Client(object):
       namespace: kubernetes namespace where the pipeline runs are created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized
+      version_id: the string ID of a pipeline version
 
     Returns:
       A run object. Most important field is id.
@@ -339,6 +340,14 @@ class Client(object):
                                                              name=namespace,
                                                              relationship=kfp_server_api.models.ApiRelationship.OWNER)
       resource_references.append(reference)
+
+    if version_id is not None:
+      key = kfp_server_api.models.ApiResourceKey(id=version_id,
+                                                 type=kfp_server_api.models.ApiResourceType.PIPELINE_VERSION)
+      reference = kfp_server_api.models.ApiResourceReference(key=key, 
+                                                             relationship=kfp_server_api.models.ApiRelationship.OWNER)
+      resource_references.append(reference)
+
     spec = kfp_server_api.models.ApiPipelineSpec(
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string,
