@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019-2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -186,10 +186,13 @@ describe('UIServer apis', () => {
     it('responds with a minio artifact if source=minio', done => {
       const artifactContent = 'hello world';
       const mockedMinioClient: jest.Mock = MinioClient as any;
-      const mockedGetTarObjectAsString: jest.Mock = minioHelper.getTarObjectAsString as any;
-      mockedGetTarObjectAsString.mockImplementationOnce(opt =>
+      const mockedGetObjectStream: jest.Mock = minioHelper.getObjectStream as any;
+      const objStream = new PassThrough();
+      objStream.end(artifactContent);
+
+      mockedGetObjectStream.mockImplementationOnce(opt =>
         opt.bucket === 'ml-pipeline' && opt.key === 'hello/world.txt'
-          ? Promise.resolve(artifactContent)
+          ? Promise.resolve(objStream)
           : Promise.reject('Unable to retrieve minio artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -249,7 +252,7 @@ describe('UIServer apis', () => {
         });
     });
 
-    it('responds with a s3 artifact if source=s3', done => {
+    it('responds with partial s3 artifact if peek=5 flag is set', done => {
       const artifactContent = 'hello world';
       const mockedMinioClient: jest.Mock = minioHelper.createMinioClient as any;
       const mockedGetObjectStream: jest.Mock = minioHelper.getObjectStream as any;
@@ -270,8 +273,8 @@ describe('UIServer apis', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
-        .expect(200, artifactContent, err => {
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
+        .expect(200, artifactContent.slice(0, 5), err => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
             endPoint: 's3.amazonaws.com',
@@ -285,7 +288,10 @@ describe('UIServer apis', () => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'http://foo.bar/ml-pipeline/hello/world.txt'
-          ? Promise.resolve({ buffer: () => Promise.resolve(artifactContent) })
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: new PassThrough().end(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -304,12 +310,42 @@ describe('UIServer apis', () => {
         });
     });
 
+    it('responds with partial http artifact if peek=5 flag is set', done => {
+      const artifactContent = 'hello world';
+      const mockedFetch: jest.Mock = fetch as any;
+      mockedFetch.mockImplementationOnce((url: string, opts: any) =>
+        url === 'http://foo.bar/ml-pipeline/hello/world.txt'
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: new PassThrough().end(artifactContent),
+            })
+          : Promise.reject('Unable to retrieve http artifact.'),
+      );
+      const configs = loadConfigs(argv, {
+        HTTP_BASE_URL: 'foo.bar/',
+      });
+      app = new UIServer(configs);
+
+      const request = requests(app.start());
+      request
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
+        .expect(200, artifactContent.slice(0, 5), err => {
+          expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello/world.txt', {
+            headers: {},
+          });
+          done(err);
+        });
+    });
+
     it('responds with a https artifact if source=https', done => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt' &&
         opts.headers.Authorization === 'someToken'
-          ? Promise.resolve({ buffer: () => Promise.resolve(artifactContent) })
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: new PassThrough().end(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -336,7 +372,10 @@ describe('UIServer apis', () => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt'
-          ? Promise.resolve({ buffer: () => Promise.resolve(artifactContent) })
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: new PassThrough().end(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -379,6 +418,26 @@ describe('UIServer apis', () => {
         .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(200, artifactContent + '\n', done);
     });
+
+    it('responds with a partial gcs artifact if peek=5 is set', done => {
+      const artifactContent = 'hello world';
+      const mockedGcsStorage: jest.Mock = GCSStorage as any;
+      const stream = new PassThrough();
+      stream.end(artifactContent);
+      mockedGcsStorage.mockImplementationOnce(() => ({
+        bucket: () => ({
+          getFiles: () =>
+            Promise.resolve([[{ name: 'hello/world.txt', createReadStream: () => stream }]]),
+        }),
+      }));
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const request = requests(app.start());
+      request
+        .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
+        .expect(200, artifactContent.slice(0, 5), done);
+    });
   });
 
   describe('/system', () => {
@@ -418,6 +477,7 @@ describe('UIServer apis', () => {
           .expect(500, 'GKE metadata endpoints are disabled.', done);
       });
     });
+
     describe('/project-id', () => {
       it('responds with project id data from gke metadata', done => {
         mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
