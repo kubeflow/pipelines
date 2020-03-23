@@ -32,7 +32,11 @@ REQUIRES = [
     'google-auth>=1.6.1',
     'requests_toolbelt>=0.8.0',
     'cloudpickle==1.1.1',
-    'kfp-server-api==0.2.5',  #Update the upper version whenever a new version of the kfp-server-api package is released. Update the lower version when there is a breaking change in kfp-server-api, or kfp sdk depends on new api changes in kfp-server-api.
+    # Update the upper version whenever a new major version of the
+    # kfp-server-api package is released. Update the lower version when there is
+    # a breaking change in kfp-server-api, or kfp sdk depends on new api changes
+    # in kfp-server-api.
+    'kfp-server-api>=0.2.5, <0.4.0',
     'argo-models == 2.2.1a',  #2.2.1a is equivalent to argo 2.2.1
     'jsonschema >= 3.0.1',
     'tabulate == 0.8.3',
@@ -41,24 +45,26 @@ REQUIRES = [
     'strip-hints',
 ]
 
+
 def find_version(*file_path_parts):
-    here = os.path.abspath(os.path.dirname(__file__))
-    with open(os.path.join(here, *file_path_parts), 'r') as fp:
-        version_file_text = fp.read()
+  here = os.path.abspath(os.path.dirname(__file__))
+  with open(os.path.join(here, *file_path_parts), 'r') as fp:
+    version_file_text = fp.read()
 
-    version_match = re.search(
-        r"^__version__ = ['\"]([^'\"]*)['\"]",
-        version_file_text,
-        re.M,
-    )
-    if version_match:
-        return version_match.group(1)
+  version_match = re.search(
+      r"^__version__ = ['\"]([^'\"]*)['\"]",
+      version_file_text,
+      re.M,
+  )
+  if version_match:
+    return version_match.group(1)
 
-    raise RuntimeError("Unable to find version string.")
+  raise RuntimeError('Unable to find version string.')
+
 
 setup(
     name=NAME,
-    version=find_version("kfp", "__init__.py"),
+    version=find_version('kfp', '__init__.py'),
     description='KubeFlow Pipelines SDK',
     author='google',
     install_requires=REQUIRES,
