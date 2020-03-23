@@ -15,28 +15,64 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
 	"path/filepath"
+
+	"github.com/kubeflow/pipelines/backend/src/cache/server"
 )
 
 const (
-	TlsDir      string = "/etc/webhook/certs"
-	TlsCertFile string = "cert.pem"
-	TlsKeyFile  string = "key.pem"
+	TLSDir      string = "/etc/webhook/certs"
+	TLSCertFile string = "cert.pem"
+	TLSKeyFile  string = "key.pem"
 )
 
 const (
-	MutateApi   string = "/mutate"
+	MutateAPI   string = "/mutate"
 	WebhookPort string = ":8443"
 )
 
+const (
+	initConnectionTimeout = "6m"
+
+	mysqlDBDriverDefault            = "mysql"
+	mysqlDBHostDefault              = "mysql"
+	mysqlDBPortDefault              = "3306"
+	mysqlDBGroupConcatMaxLenDefault = "4194304"
+)
+
+type WhSvrDBParameters struct {
+	dbDriver            string
+	dbHost              string
+	dbPort              string
+	dbUser              string
+	dbPwd               string
+	dbGroupConcatMaxLen string
+	namespaceToWatch    string
+}
+
 func main() {
-	certPath := filepath.Join(TlsDir, TlsCertFile)
-	keyPath := filepath.Join(TlsDir, TlsKeyFile)
+	var params WhSvrDBParameters
+	flag.StringVar(&params.dbDriver, "db_driver", mysqlDBDriverDefault, "Database driver name, mysql is the default value")
+	flag.StringVar(&params.dbHost, "db_host", mysqlDBHostDefault, "Database host name.")
+	flag.StringVar(&params.dbPort, "db_port", mysqlDBPortDefault, "Database port number.")
+	flag.StringVar(&params.dbUser, "db_user", "root", "Database user name.")
+	flag.StringVar(&params.dbPwd, "db_password", "", "Database password.")
+	flag.StringVar(&params.dbGroupConcatMaxLen, "db_group_concat_max_len", mysqlDBGroupConcatMaxLenDefault, "Database group concat max length.")
+	flag.StringVar(&params.namespaceToWatch, "namespace_to_watch", "kubeflow", "Namespace to watch.")
+
+	log.Println("Initing client manager....")
+	clientManager := NewClientManager(params)
+
+	go server.WatchPods(params.namespaceToWatch, &clientManager)
+
+	certPath := filepath.Join(TLSDir, TLSCertFile)
+	keyPath := filepath.Join(TLSDir, TLSKeyFile)
 
 	mux := http.NewServeMux()
-	mux.Handle(MutateApi, admitFuncHandler(mutatePodIfCached))
+	mux.Handle(MutateAPI, server.AdmitFuncHandler(server.MutatePodIfCached, &clientManager))
 	server := &http.Server{
 		// We listen on port 8443 such that we do not need root privileges or extra capabilities for this server.
 		// The Service object will take care of mapping this port to the HTTPS port 443.

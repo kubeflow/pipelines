@@ -28,12 +28,11 @@ implementation:
     image: docker.io/aipipeline/wml-store:latest
     command: ['python3']
     args: [
-      /app/wml-store.py,
+      -u, /app/wml-store.py,
       --run-uid, {inputValue: run_uid},
       --model-name, {inputValue: model_name},
       --framework, {inputValue: framework},
       --framework-version, {inputValue: framework_version},
       --runtime-version, {inputValue: runtime_version},
+      --output-model-uid-path, {outputPath: model_uid}
     ]
-    fileOutputs:
-      model_uid: /tmp/model_uid
