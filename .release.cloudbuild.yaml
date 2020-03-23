@@ -58,10 +58,10 @@ steps:
   args:
   - -ceux
   - |
-  	docker tag gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA 'gcr.io/ml-pipeline/api-server:$TAG_NAME'
-  	docker tag gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA 'gcr.io/ml-pipeline/api-server:$COMMIT_SHA'
-  	docker tag gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA 'gcr.io/ml-pipeline/google/pipelines/apiserver:$TAG_NAME'
-  	docker tag gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA 'gcr.io/ml-pipeline/google/pipelines-test/apiserver:$TAG_NAME'
+    docker tag gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA 'gcr.io/ml-pipeline/api-server:$TAG_NAME'
+    docker tag gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA 'gcr.io/ml-pipeline/api-server:$COMMIT_SHA'
+    docker tag gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA 'gcr.io/ml-pipeline/google/pipelines/apiserver:$TAG_NAME'
+    docker tag gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA 'gcr.io/ml-pipeline/google/pipelines-test/apiserver:$TAG_NAME'
     docker tag gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA gcr.io/ml-pipeline/google/pipelines/apiserver:$(cat /workspace/mm.ver)
     docker tag gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA gcr.io/ml-pipeline/google/pipelines-test/apiserver:$(cat /workspace/mm.ver)
     docker push 'gcr.io/ml-pipeline/api-server:$TAG_NAME'
@@ -574,7 +574,6 @@ steps:
 
 
 images:
-
 - 'gcr.io/ml-pipeline/scheduledworkflow:$TAG_NAME'
 - 'gcr.io/ml-pipeline/scheduledworkflow:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/persistenceagent:$TAG_NAME'
