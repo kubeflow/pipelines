@@ -7,5 +7,6 @@ namespace: kubeflow
 images: []
 resources:
 - ../../../manifests/kustomize/env/dev
-- ../../../manifests/kustomize/base/cache
-- ../../../manifests/kustomize/base/cache-deployer
+# Disables cache and cache-deployer temporarily because they block upgrade tests
+# - ../../../manifests/kustomize/base/cache
+# - ../../../manifests/kustomize/base/cache-deployer
