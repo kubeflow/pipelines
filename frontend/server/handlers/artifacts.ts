@@ -207,6 +207,7 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
         matchingFiles.map(file => file.name).join(','),
       );
       let contents = '';
+      // TODO: support peek for concatenated matching files
       if (peek) {
         matchingFiles[0]
           .createReadStream()
