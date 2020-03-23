@@ -91,6 +91,8 @@ describe('workflow-helper', () => {
   describe('toGetPodLogsStream', () => {
     it('wraps a getMinioRequestConfig function to return the corresponding object stream.', async () => {
       const objStream = new PassThrough();
+      objStream.end('some fake logs.');
+
       const client = new MinioClient(minioConfig);
       const mockedClientGetObject: jest.Mock = client.getObject as any;
       mockedClientGetObject.mockResolvedValueOnce(objStream);
@@ -104,7 +106,6 @@ describe('workflow-helper', () => {
       );
       const stream = await toGetPodLogsStream(createRequest)('podName', 'namespace');
       expect(mockedClientGetObject).toBeCalledWith('bucket', 'folder/key');
-      expect(stream).toBe(objStream);
     });
   });
 
@@ -171,6 +172,7 @@ describe('workflow-helper', () => {
       const mockedClient: jest.Mock = MinioClient as any;
       const mockedClientGetObject: jest.Mock = MinioClient.prototype.getObject as any;
       mockedClientGetObject.mockResolvedValueOnce(objStream);
+      objStream.end('some fake logs.');
 
       const stream = await getPodLogsStreamFromWorkflow('workflow-name-abc');
 
@@ -193,7 +195,6 @@ describe('workflow-helper', () => {
         'bucket',
         'prefix/workflow-name/workflow-name-abc/main.log',
       );
-      expect(stream).toBe(objStream);
     });
   });
 });
