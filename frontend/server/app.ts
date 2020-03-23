@@ -37,7 +37,7 @@ import { Server } from 'http';
 function getRegisterHandler(app: Application, basePath: string) {
   return (
     func: (name: string, handler: express.Handler) => express.Application,
-    route: string,
+    route: string | string[],
     handler: express.Handler,
   ) => {
     func.call(app, route, handler);
@@ -155,9 +155,13 @@ function createUIServer(options: UIConfigs) {
   );
 
   // Original API endpoint is /runs/{run_id}:reportMetrics, but ':reportMetrics' means a url parameter, so we don't use : here.
-  registerHandler(app.use, `/${apiVersionPrefix}/runs/*reportMetrics`, (req, res) => {
-    res.status(403).send(`${req.originalUrl} endpoint is not meant for external usage.`);
-  });
+  registerHandler(
+    app.use,
+    [`/${apiVersionPrefix}/runs/*reportMetrics`, `/${apiVersionPrefix}/workflows`],
+    (req, res) => {
+      res.status(403).send(`${req.originalUrl} endpoint is not meant for external usage.`);
+    },
+  );
 
   // Order matters here, since both handlers can match any proxied request with a referer,
   // and we prioritize the basepath-friendly handler

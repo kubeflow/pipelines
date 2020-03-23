@@ -616,6 +616,17 @@ describe('UIServer apis', () => {
         );
     });
 
+    it('rejects reportWorkflow because it is not public kfp api', done => {
+      const workflowId = 'a-random-workflow-id';
+      request
+        .post(`/apis/v1beta1/workflows/${workflowId}`)
+        .expect(
+          403,
+          '/apis/v1beta1/workflows/a-random-workflow-id endpoint is not meant for external usage.',
+          done,
+        );
+    });
+
     it('does not reject similar apis', done => {
       request // use reportMetrics as runId to see if it can confuse route parsing
         .post(`/apis/v1beta1/runs/xxx-reportMetrics:archive`)
