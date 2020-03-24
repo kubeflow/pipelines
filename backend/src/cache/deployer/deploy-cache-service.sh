@@ -49,6 +49,3 @@ while true; do
     fi
     sleep 10
 done
-
-# Delete the cache deployer job
-# kubectl delete job cache-deployer-job -n "${NAMESPACE}"
