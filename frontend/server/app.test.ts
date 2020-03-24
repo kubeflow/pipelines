@@ -15,6 +15,7 @@ import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PassThrough } from 'stream';
+import * as express from 'express';
 
 import fetch from 'node-fetch';
 import * as requests from 'supertest';
@@ -25,6 +26,7 @@ import { UIServer } from './app';
 import { loadConfigs } from './configs';
 import * as minioHelper from './minio-helper';
 import { TEST_ONLY as K8S_TEST_EXPORT } from './k8s-helper';
+import { Server } from 'http';
 
 jest.mock('minio');
 jest.mock('node-fetch');
@@ -642,4 +644,70 @@ describe('UIServer apis', () => {
   // });
 
   // describe('/k8s/pod/logs', () => {});
+
+  describe('/apis/v1beta1/', () => {
+    let request: requests.SuperTest<requests.Test>;
+    let kfpApiServer: Server;
+
+    beforeEach(() => {
+      app = new UIServer(loadConfigs(argv, {}));
+      request = requests(app.start());
+      const appKfpApi = express();
+      appKfpApi.all('/*', (_, res) => {
+        res.status(200).send('KFP API is working');
+      });
+      kfpApiServer = appKfpApi.listen(3001);
+    });
+
+    afterEach(() => {
+      if (kfpApiServer) {
+        kfpApiServer.close();
+      }
+    });
+
+    it('rejects reportMetrics because it is not public kfp api', done => {
+      const runId = 'a-random-run-id';
+      request
+        .post(`/apis/v1beta1/runs/${runId}:reportMetrics`)
+        .expect(
+          403,
+          '/apis/v1beta1/runs/a-random-run-id:reportMetrics endpoint is not meant for external usage.',
+          done,
+        );
+    });
+
+    it('rejects reportWorkflow because it is not public kfp api', done => {
+      const workflowId = 'a-random-workflow-id';
+      request
+        .post(`/apis/v1beta1/workflows/${workflowId}`)
+        .expect(
+          403,
+          '/apis/v1beta1/workflows/a-random-workflow-id endpoint is not meant for external usage.',
+          done,
+        );
+    });
+
+    it('rejects reportScheduledWorkflow because it is not public kfp api', done => {
+      const swf = 'a-random-swf-id';
+      request
+        .post(`/apis/v1beta1/scheduledworkflows/${swf}`)
+        .expect(
+          403,
+          '/apis/v1beta1/scheduledworkflows/a-random-swf-id endpoint is not meant for external usage.',
+          done,
+        );
+    });
+
+    it('does not reject similar apis', done => {
+      request // use reportMetrics as runId to see if it can confuse route parsing
+        .post(`/apis/v1beta1/runs/xxx-reportMetrics:archive`)
+        .expect(200, 'KFP API is working', done);
+    });
+
+    it('proxies other run apis', done => {
+      request
+        .post(`/apis/v1beta1/runs/a-random-run-id:archive`)
+        .expect(200, 'KFP API is working', done);
+    });
+  });
 });
