@@ -412,3 +412,59 @@ func TestListExperiments_Filtering(t *testing.T) {
 	assert.Equal(t, expected, experiments)
 	assert.Equal(t, 3, total_size)
 }
+
+func TestArchiveExperiment(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore.CreateExperiment(createExperiment("experiment1"))
+
+	// Archive experiment
+	err := experimentStore.ArchiveExperiment(fakeID)
+	assert.Nil(t, err)
+	exp, err := experimentStore.GetExperiment(fakeID)
+	assert.Nil(t, err)
+	assert.Equal(t, exp.StorageState, api.Experiment_STORAGESTATE_ARCHIVED.String())
+}
+
+func TestArchiveExperiment_InternalError(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore.CreateExperiment(createExperiment("experiment1"))
+	db.Close()
+
+	err := experimentStore.ArchiveExperiment(fakeID)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
+		"Expected archive experiment to return internal error")
+}
+
+func TestUnarchiveExperiment(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore.CreateExperiment(createExperiment("experiment1"))
+
+	// Archive experiment
+	err := experimentStore.ArchiveExperiment(fakeID)
+	assert.Nil(t, err)
+	exp, err := experimentStore.GetExperiment(fakeID)
+	assert.Nil(t, err)
+	assert.Equal(t, exp.StorageState, api.Experiment_STORAGESTATE_ARCHIVED.String())
+
+	// Unarchive it
+	err = experimentStore.UnarchiveExperiment(fakeID)
+	assert.Nil(t, err)
+	exp, err = experimentStore.GetExperiment(fakeID)
+	assert.Nil(t, err)
+	assert.Equal(t, exp.StorageState, api.Experiment_STORAGESTATE_AVAILABLE.String())
+}
+
+func TestUnarchiveExperiment_InternalError(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	db.Close()
+
+	err := experimentStore.UnarchiveExperiment(fakeID)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
+		"Expected unarchive experiment to return internal error")
+}

@@ -80,3 +80,11 @@ func (c *ExperimentClientFake) ListAll(params *experimentparams.ListExperimentPa
 	maxResultSize int) ([]*experimentmodel.APIExperiment, error) {
 	return listAllForExperiment(c, params, maxResultSize)
 }
+
+func (c *ExperimentClientFake) Archive(params *experimentparams.ArchiveExperimentParams) error {
+	return nil
+}
+
+func (c *ExperimentClientFake) Unarchive(params *experimentparams.UnarchiveExperimentParams) error {
+	return nil
+}
