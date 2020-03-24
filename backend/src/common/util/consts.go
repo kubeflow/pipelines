@@ -40,15 +40,17 @@ const (
 	// It captures whether the name of the owning ScheduledWorkflow.
 	LabelKeyWorkflowScheduledWorkflowName = constants.FullName + "/scheduledWorkflowName"
 
-
-	LabelKeyWorkflowRunId = "pipeline/runid"
+	LabelKeyWorkflowRunId               = "pipeline/runid"
 	LabelKeyWorkflowPersistedFinalState = "pipeline/persistedFinalState"
 
 	// LabelKeyWorkflowEpoch is a Workflow annotation key.
 	// It captures the the name of the Run.
 	AnnotationKeyRunName = "pipelines.kubeflow.org/run_name"
 
-	AnnotationKeyIstioSidecarInject = "sidecar.istio.io/inject"
-	AnnotationValueIstioSidecarInjectEnabled = "true"
+	AnnotationKeyIstioSidecarInject           = "sidecar.istio.io/inject"
+	AnnotationValueIstioSidecarInjectEnabled  = "true"
 	AnnotationValueIstioSidecarInjectDisabled = "false"
+
+	AnnotationKeyCacheEnabled   = "pipelines.kubeflow.org/cache_enabled"
+	AnnotationValueCacheEnabled = "true"
 )
