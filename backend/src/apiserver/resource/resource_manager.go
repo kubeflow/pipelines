@@ -287,7 +287,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// Disable istio sidecar injection
 	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
 	// Add a KFP specific annotation for cache service filtering
-	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyCacheEnabled, util.AnnotationValueCacheEnabled)
+	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyCacheQualified, util.AnnotationValueCacheQualified)
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
 
