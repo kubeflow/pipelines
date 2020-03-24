@@ -188,10 +188,6 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       displayExperiments = response.experiments || [];
       displayExperiments.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
     } catch (err) {
-      // skip side effect if component is no longer mounted
-      if (!this._isMounted) {
-        return '';
-      }
       await this.showPageError('Error: failed to retrieve list of experiments.', err);
       // No point in continuing if we couldn't retrieve any experiments.
       return '';
