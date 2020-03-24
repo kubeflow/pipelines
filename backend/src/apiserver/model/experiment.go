@@ -6,6 +6,7 @@ type Experiment struct {
 	Description    string `gorm:"column:Description; not null"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`
 	Namespace      string `gorm:"column:Namespace; not null; unique_index:idx_name_namespace"`
+	StorageState   string `gorm:"column:StorageState; not null;"`
 }
 
 func (e Experiment) GetValueOfPrimaryKey() string {
@@ -27,11 +28,12 @@ func (e *Experiment) DefaultSortField() string {
 }
 
 var experimentAPIToModelFieldMap = map[string]string{
-	"id":          "UUID",
-	"name":        "Name",
-	"created_at":  "CreatedAtInSec",
-	"description": "Description",
-	"namespace":   "Namespace",
+	"id":            "UUID",
+	"name":          "Name",
+	"created_at":    "CreatedAtInSec",
+	"description":   "Description",
+	"namespace":     "Namespace",
+	"storage_state": "StorageState",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model

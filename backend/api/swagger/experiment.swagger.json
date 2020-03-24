@@ -186,6 +186,14 @@
     }
   },
   "definitions": {
+    "ExperimentStorageState": {
+      "type": "string",
+      "enum": [
+        "STORAGESTATE_AVAILABLE",
+        "STORAGESTATE_ARCHIVED"
+      ],
+      "default": "STORAGESTATE_AVAILABLE"
+    },
     "apiExperiment": {
       "type": "object",
       "properties": {
@@ -212,6 +220,9 @@
             "$ref": "#/definitions/apiResourceReference"
           },
           "description": "Optional input field. Specify which resource this run belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
+        },
+        "storage_state": {
+          "$ref": "#/definitions/ExperimentStorageState"
         }
       }
     },
