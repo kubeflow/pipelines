@@ -72,7 +72,7 @@ describe('ExperimentList', () => {
     );
   }
 
-  function mockListNExpperiment(n: number = 1) {
+  function mockListNExpperiments(n: number = 1) {
     return () =>
       Promise.resolve({
         experiments: range(n).map(i => ({
@@ -87,7 +87,7 @@ describe('ExperimentList', () => {
     nRuns: number,
     { namespace }: { namespace?: string } = {},
   ): Promise<void> {
-    listExperimentsSpy.mockImplementation(mockListNExpperiment(n));
+    listExperimentsSpy.mockImplementation(mockListNExpperiments(n));
     listRunsSpy.mockImplementation(() => ({
       runs: range(nRuns).map(i => ({ id: 'test-run-id' + i, name: 'test run name' + i })),
     }));
@@ -490,7 +490,7 @@ describe('ExperimentList', () => {
         </MemoryRouter>,
       );
 
-      listExperimentsSpy.mockImplementation(mockListNExpperiment());
+      listExperimentsSpy.mockImplementation(mockListNExpperiments());
       rerender(
         <MemoryRouter>
           <NamespaceContext.Provider value={'test-ns'}>
