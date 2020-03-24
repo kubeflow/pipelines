@@ -25,6 +25,11 @@ RUN if [ "$use_remote_build" = "true" ]; then \
 
 # Compile
 FROM python:3.5 as compiler
+RUN apt-get update -y && \
+    apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev
+RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+COPY backend/requirements.txt .
+RUN python3 -m pip install -r requirements.txt
 
 # Downloading Argo CLI so that the samples are validated
 ADD  https://github.com/argoproj/argo/releases/download/v2.3.0/argo-linux-amd64 /usr/local/bin/argo
@@ -33,8 +38,7 @@ RUN chmod +x /usr/local/bin/argo
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY sdk sdk
 WORKDIR /go/src/github.com/kubeflow/pipelines/sdk/python
-RUN python3 -m pip install -r requirements.txt
-RUN python3 -m pip install .
+RUN python3 setup.py install
 
 WORKDIR /samples
 COPY ./samples .
