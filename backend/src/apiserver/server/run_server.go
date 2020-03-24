@@ -75,7 +75,7 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 		if refKey != nil && refKey.Type == common.Namespace {
 			namespace := refKey.ID
 			if len(namespace) == 0 {
-				return nil, util.NewInvalidInputError("Invalid resource references for experiment. Namespace is empty.")
+				return nil, util.NewInvalidInputError("Invalid resource references for run. Namespace is empty.")
 			}
 			err = isAuthorized(s.resourceManager, ctx, namespace)
 			if err != nil {
