@@ -1,4 +1,6 @@
-# Copyright 2018 Google LLC
+#!/bin/bash
+#
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = '0.3.0'
-
-from . import components
-from . import containers
-from . import dsl
-from ._client import Client
-from ._config import *
-from ._runners import *
+# It would slow down presubmit as build full set images take longer time.
+# We enable post-submit for Hosted and then back here.
+echo "Placeholder for presubmit test with Hosted/MKP"

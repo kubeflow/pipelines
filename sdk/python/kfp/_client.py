@@ -193,25 +193,38 @@ class Client(object):
     # In-cluster pod. We could use relative URL.
     return '/pipeline'
 
-  def create_experiment(self, name, description=None):
+  def create_experiment(self, name, description=None, namespace=''):
     """Create a new experiment.
     Args:
       name: the name of the experiment.
-      description: description of the experiment
+      description: description of the experiment.
+      namespace: kubernetes namespace where the experiment should be created.
+        For single user deployment, leave it as empty;
+        For multi user, input a namespace where the user is authorized.
     Returns:
       An Experiment object. Most important field is id.
     """
 
     experiment = None
     try:
-      experiment = self.get_experiment(experiment_name=name)
+      experiment = self.get_experiment(experiment_name=name, namespace=namespace)
     except:
       # Ignore error if the experiment does not exist.
       pass
 
     if not experiment:
       logging.info('Creating experiment {}.'.format(name))
-      experiment = kfp_server_api.models.ApiExperiment(name=name, description=description)
+
+      resource_references = []
+      if namespace is not None:
+        key = kfp_server_api.models.ApiResourceKey(id=namespace, type=kfp_server_api.models.ApiResourceType.NAMESPACE)
+        reference = kfp_server_api.models.ApiResourceReference(key=key, relationship=kfp_server_api.models.ApiRelationship.OWNER)
+        resource_references.append(reference)
+
+      experiment = kfp_server_api.models.ApiExperiment(
+        name=name,
+        description=description,
+        resource_references=resource_references)
       experiment = self._experiment_api.create_experiment(body=experiment)
 
     if self._is_ipython():
@@ -222,25 +235,35 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return experiment
 
-  def list_experiments(self, page_token='', page_size=10, sort_by=''):
+  def list_experiments(self, page_token='', page_size=10, sort_by='', namespace=''):
     """List experiments.
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
       sort_by: can be '[field_name]', '[field_name] des'. For example, 'name des'.
+      namespace: kubernetes namespace where the experiment was created.
+        For single user deployment, leave it as empty;
+        For multi user, input a namespace where the user is authorized.
     Returns:
       A response object including a list of experiments and next page token.
     """
     response = self._experiment_api.list_experiment(
-        page_token=page_token, page_size=page_size, sort_by=sort_by)
+      page_token=page_token,
+      page_size=page_size,
+      sort_by=sort_by,
+      resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE,
+      resource_reference_key_id=namespace)
     return response
 
-  def get_experiment(self, experiment_id=None, experiment_name=None):
+  def get_experiment(self, experiment_id=None, experiment_name=None, namespace=''):
     """Get details of an experiment
     Either experiment_id or experiment_name is required
     Args:
       experiment_id: id of the experiment. (Optional)
       experiment_name: name of the experiment. (Optional)
+      namespace: kubernetes namespace where the experiment was created.
+        For single user deployment, leave it as empty;
+        For multi user, input the namespace where the user is authorized.
     Returns:
       A response object including details of a experiment.
     Throws:
@@ -252,7 +275,7 @@ class Client(object):
       return self._experiment_api.get_experiment(id=experiment_id)
     next_page_token = ''
     while next_page_token is not None:
-      list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token)
+      list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token, namespace=namespace)
       next_page_token = list_experiments_response.next_page_token
       for experiment in list_experiments_response.experiments:
         if experiment.name == experiment_name:

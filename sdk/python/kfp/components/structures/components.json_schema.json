@@ -320,6 +320,15 @@
       "additionalProperties": false
     },
 
+    "CachingStrategySpec": {
+      "description": "Optional configuration that specifies how the task execution may be skipped if the output data exist in cache.",
+      "type": "object",
+      "properties": {
+        "maxCacheStaleness": {"type": "string", "format": "duration"}
+      },
+      "additionalProperties": false
+    },
+
     "KubernetesExecutionOptionsSpec": {
       "description": "When running on Kubernetes, KubernetesExecutionOptionsSpec describes changes to the configuration of a Kubernetes Pod that will execute the task.",
       "type": "object",
@@ -336,6 +345,7 @@
       "type": "object",
       "properties": {
         "retryStrategy": {"$ref": "#/definitions/RetryStrategySpec"},
+        "cachingStrategy": {"$ref": "#/definitions/CachingStrategySpec"},
         "kubernetesOptions": {"$ref": "#/definitions/KubernetesExecutionOptionsSpec"}
       },
       "additionalProperties": false

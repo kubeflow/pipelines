@@ -137,23 +137,23 @@ GCR_IMAGE_TAG=${PULL_BASE_SHA}
 if [ ${KFP_DEPLOYMENT} == standalone ]; then
   time source "${DIR}/deploy-pipeline-lite.sh"
   echo "KFP standalone deployed"
+  # Submit the argo job and check the results
+  echo "submitting argo workflow for commit ${PULL_BASE_SHA}..."
+  ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
+  -p image-build-context-gcs-uri="$remote_code_archive_uri" \
+  -p commit-sha="${PULL_BASE_SHA}" \
+  -p component-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+  -p target-image-prefix="${TARGET_IMAGE_BASE_DIR}/" \
+  -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+  -n ${NAMESPACE} \
+  --serviceaccount test-runner \
+  -o name
+  `
+  echo "argo workflow submitted successfully"
+  source "${DIR}/check-argo-status.sh"
+  echo "test workflow completed"
 else
-  time source "${DIR}/deploy-pipeline-mkp-cli.sh"
-  echo "KFP mkp deployed"
+  SEM_VERSION="$(cat ${DIR}/../VERSION)"
+  source "${DIR}/deploy-pipeline-mkp-cli.sh" $SEM_VERSION $COMMIT_SHA
+  exit $?
 fi
-
-# Submit the argo job and check the results
-echo "submitting argo workflow for commit ${PULL_BASE_SHA}..."
-ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
--p image-build-context-gcs-uri="$remote_code_archive_uri" \
--p commit-sha="${PULL_BASE_SHA}" \
--p component-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
--p target-image-prefix="${TARGET_IMAGE_BASE_DIR}/" \
--p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
--n ${NAMESPACE} \
---serviceaccount test-runner \
--o name
-`
-echo "argo workflow submitted successfully"
-source "${DIR}/check-argo-status.sh"
-echo "test workflow completed"
