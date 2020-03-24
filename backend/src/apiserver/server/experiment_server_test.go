@@ -25,10 +25,11 @@ func TestCreateExperiment(t *testing.T) {
 	result, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	expectedExperiment := &api.Experiment{
-		Id:          resource.DefaultFakeUUID,
-		Name:        "ex1",
-		Description: "first experiment",
-		CreatedAt:   &timestamp.Timestamp{Seconds: 1},
+		Id:           resource.DefaultFakeUUID,
+		Name:         "ex1",
+		Description:  "first experiment",
+		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+		StorageState: api.Experiment_STORAGESTATE_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -73,6 +74,7 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 		Description:        "first experiment",
 		CreatedAt:          &timestamp.Timestamp{Seconds: 1},
 		ResourceReferences: resourceReferences,
+		StorageState:       api.Experiment_STORAGESTATE_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -87,10 +89,11 @@ func TestGetExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	result, err := server.GetExperiment(nil, &api.GetExperimentRequest{Id: createResult.Id})
 	expectedExperiment := &api.Experiment{
-		Id:          createResult.Id,
-		Name:        "ex1",
-		Description: "first experiment",
-		CreatedAt:   &timestamp.Timestamp{Seconds: 1},
+		Id:           createResult.Id,
+		Name:         "ex1",
+		Description:  "first experiment",
+		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+		StorageState: api.Experiment_STORAGESTATE_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -139,6 +142,7 @@ func TestGetExperiment_Multiuser(t *testing.T) {
 		Description:        "first experiment",
 		CreatedAt:          &timestamp.Timestamp{Seconds: 1},
 		ResourceReferences: resourceReferences,
+		StorageState:       api.Experiment_STORAGESTATE_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -153,10 +157,11 @@ func TestListExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	result, err := server.ListExperiment(nil, &api.ListExperimentsRequest{})
 	expectedExperiment := []*api.Experiment{{
-		Id:          createResult.Id,
-		Name:        "ex1",
-		Description: "first experiment",
-		CreatedAt:   &timestamp.Timestamp{Seconds: 1},
+		Id:           createResult.Id,
+		Name:         "ex1",
+		Description:  "first experiment",
+		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+		StorageState: api.Experiment_STORAGESTATE_AVAILABLE,
 	}}
 	assert.Equal(t, expectedExperiment, result.Experiments)
 }
@@ -223,6 +228,7 @@ func TestListExperiment_Multiuser(t *testing.T) {
 				Description:        "first experiment",
 				CreatedAt:          &timestamp.Timestamp{Seconds: 1},
 				ResourceReferences: resourceReferences,
+				StorageState:       api.Experiment_STORAGESTATE_AVAILABLE,
 			}},
 		},
 		{
@@ -421,4 +427,38 @@ func TestValidateCreateExperimentRequest_Multiuser(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestArchiveAndUnarchiveExperiment(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager}
+	experiment := &api.Experiment{Name: "ex1", Description: "first experiment"}
+
+	// Create experiment
+	createResult, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+	result, err := server.GetExperiment(nil, &api.GetExperimentRequest{Id: createResult.Id})
+	expectedExperiment := &api.Experiment{
+		Id:           createResult.Id,
+		Name:         "ex1",
+		Description:  "first experiment",
+		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+		StorageState: api.Experiment_STORAGESTATE_AVAILABLE,
+	}
+	assert.Equal(t, expectedExperiment, result)
+
+	// Archive it
+	_, err = server.ArchiveExperiment(nil, &api.ArchiveExperimentRequest{Id: createResult.Id})
+	assert.Nil(t, err)
+	result, err = server.GetExperiment(nil, &api.GetExperimentRequest{Id: createResult.Id})
+	expectedExperiment.StorageState = api.Experiment_STORAGESTATE_ARCHIVED
+	assert.Equal(t, expectedExperiment, result)
+
+	// Unarchive it
+	_, err = server.UnarchiveExperiment(nil, &api.UnarchiveExperimentRequest{Id: createResult.Id})
+	assert.Nil(t, err)
+	result, err = server.GetExperiment(nil, &api.GetExperimentRequest{Id: createResult.Id})
+	expectedExperiment.StorageState = api.Experiment_STORAGESTATE_AVAILABLE
+	assert.Equal(t, expectedExperiment, result)
 }
