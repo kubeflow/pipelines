@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
@@ -159,6 +160,14 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTrainingExperiment, experiment)
+
+	/* ---------- Archive an experiment -----------------*/
+	err = s.experimentClient.Archive(&params.ArchiveExperimentParams{ID: trainingExperiment.ID})
+
+	/* ---------- Get experiment again ----------------- */
+	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, experiment.StorageState, api.Experiment_STORAGESTATE_ARCHIVED.String())
 }
 
 func TestExperimentAPI(t *testing.T) {
