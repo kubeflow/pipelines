@@ -24,11 +24,16 @@ export const getTensorboardHandler: Handler = async (req, res) => {
     res.status(404).send('logdir argument is required');
     return;
   }
+  if (!req.query.namespace) {
+    res.status(404).send('namespace argument is required');
+    return;
+  }
 
   const logdir = decodeURIComponent(req.query.logdir);
+  const namespace = decodeURIComponent(req.query.namespace);
 
   try {
-    res.send(await k8sHelper.getTensorboardInstance(logdir));
+    res.send(await k8sHelper.getTensorboardInstance(logdir, namespace));
   } catch (err) {
     res.status(500).send('Failed to list Tensorboard pods: ' + JSON.stringify(err));
   }
@@ -48,23 +53,32 @@ export function getCreateTensorboardHandler(tensorboardConfig: ViewerTensorboard
       res.status(404).send('logdir argument is required');
       return;
     }
-
+    if (!req.query.namespace) {
+      res.status(404).send('namespace argument is required');
+      return;
+    }
     if (!req.query.tfversion) {
       res.status(404).send('tensorflow version argument is required');
       return;
     }
 
     const logdir = decodeURIComponent(req.query.logdir);
+    const namespace = decodeURIComponent(req.query.namespace);
     const tfversion = decodeURIComponent(req.query.tfversion);
 
     try {
       await k8sHelper.newTensorboardInstance(
         logdir,
+        namespace,
         tensorboardConfig.tfImageName,
         tfversion,
         tensorboardConfig.podTemplateSpec,
       );
-      const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(logdir, 60 * 1000);
+      const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(
+        logdir,
+        namespace,
+        60 * 1000,
+      );
       res.send(tensorboardAddress);
     } catch (err) {
       res.status(500).send('Failed to start Tensorboard app: ' + JSON.stringify(err));
@@ -81,11 +95,15 @@ export const deleteTensorboardHandler: Handler = async (req, res) => {
     res.status(404).send('logdir argument is required');
     return;
   }
+  if (!req.query.namespace) {
+    res.status(404).send('namespace argument is required');
+  }
 
   const logdir = decodeURIComponent(req.query.logdir);
+  const namespace = decodeURIComponent(req.query.namespace);
 
   try {
-    await k8sHelper.deleteTensorboardInstance(logdir);
+    await k8sHelper.deleteTensorboardInstance(logdir, namespace);
     res.send('Tensorboard deleted.');
   } catch (err) {
     res.status(500).send('Failed to delete Tensorboard app: ' + JSON.stringify(err));
