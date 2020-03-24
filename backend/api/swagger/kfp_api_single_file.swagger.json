@@ -1257,14 +1257,6 @@
     }
   },
   "definitions": {
-    "ExperimentStorageState": {
-      "type": "string",
-      "enum": [
-        "STORAGESTATE_AVAILABLE",
-        "STORAGESTATE_ARCHIVED"
-      ],
-      "default": "STORAGESTATE_AVAILABLE"
-    },
     "ReportRunMetricsResponseReportRunMetricResult": {
       "type": "object",
       "properties": {
@@ -1883,6 +1875,14 @@
           "type": "string"
         }
       }
+    },
+    "ExperimentStorageState": {
+      "type": "string",
+      "enum": [
+        "STORAGESTATE_AVAILABLE",
+        "STORAGESTATE_ARCHIVED"
+      ],
+      "default": "STORAGESTATE_AVAILABLE"
     },
     "apiExperiment": {
       "type": "object",
