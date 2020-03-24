@@ -14,14 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-# Test before submit:
-# test/deploy-pipline-mkp-cli.sh 0.2 $(git rev-parse HEAD)
-
-set -ex
-
-VERSION=$1
-COMMIT_SHA=$2
-
-# sync trigger to avoid wait
-gcloud builds submit --config=test/cloudbuild/mkp_verify.yaml --substitutions=_DEPLOYER_VERSION="$VERSION",COMMIT_SHA="$COMMIT_SHA" --project=ml-pipeline-test
+# It would slow down presubmit as build full set images take longer time.
+# We enable post-submit for Hosted and then back here.
+echo "Placeholder for presubmit test with Hosted/MKP"
