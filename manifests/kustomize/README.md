@@ -11,7 +11,8 @@ Deploy latest version of Kubeflow Pipelines
 ```
 export PIPELINE_VERSION=0.3.0
 kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/crd.yaml
-kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
+kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
 ```
 
 Then get the Pipeline URL
@@ -68,8 +69,13 @@ public URL. If you want to skip installing it:
 kubectl kustomize . | kubectl apply -f -
 ```
 
-The UI is still accessible by port-forwarding `kubectl port-forward -n kubeflow
-svc/ml-pipeline-ui 8080:80` and open http://localhost:8080/
+The UI is still accessible by port-forwarding
+
+```
+kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
+```
+
+and open http://localhost:8080/
 
 ### Deploy on AWS (with S3 buckets as artifact store)
 
