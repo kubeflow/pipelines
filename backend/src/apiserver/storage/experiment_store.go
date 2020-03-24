@@ -232,6 +232,9 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 }
 
 func (s *ExperimentStore) ArchiveExperiment(expId string) error {
+	// ArchiveExperiment results in
+	// 1. The experiment getting archived
+	// 2. All the runs in the experiment getting archived no matter what previous storage state they are in
 	sql, args, err := sq.
 		Update("experiments").
 		SetMap(sq.Eq{
@@ -239,22 +242,54 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 		}).
 		Where(sq.Eq{"UUID": expId}).
 		ToSql()
-
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to create query to archive experiment %s. error: '%v'", expId, err.Error())
 	}
 
-	_, err = s.db.Exec(sql, args...)
+	updateRunsSql, updateRunsArgs, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"StorageState": api.Run_STORAGESTATE_ARCHIVED.String(),
+		}).
+		Where(sq.Eq{"ExperimentUUID": expId}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
+			"Failed to create query to archive the runs in an experiment %s. error: '%v'", expId, err.Error())
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create a new transaction to archive an experiment.")
+	}
+
+	_, err = tx.Exec(sql, args...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err,
 			"Failed to archive experiment %s. error: '%v'", expId, err.Error())
+	}
+
+	_, err = tx.Exec(updateRunsSql, updateRunsArgs...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err,
+			"Failed to archive all runs in an experiment %s. error: '%v'", expId, err.Error())
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to archive an experiment %s and its runs", expId)
 	}
 
 	return nil
 }
 
 func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
+	// UnarchiveExperiment results in
+	// 1. The experiment getting unarchived
+	// 2. All the runs in the experiment getting unarchived
 	sql, args, err := sq.
 		Update("experiments").
 		SetMap(sq.Eq{
@@ -262,16 +297,43 @@ func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
 		}).
 		Where(sq.Eq{"UUID": expId}).
 		ToSql()
-
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to create query to unarchive experiment %s. error: '%v'", expId, err.Error())
 	}
 
-	_, err = s.db.Exec(sql, args...)
+	updateRunsSql, updateRunsArgs, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"StorageState": api.Run_STORAGESTATE_AVAILABLE.String(),
+		}).
+		Where(sq.Eq{"ExperimentUUID": expId}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to unarchive the runs in an experiment %s. error: '%v'", expId, err.Error())
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create a new transaction to unarchive an experiment.")
+	}
+
+	_, err = tx.Exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to unarchive experiment %s. error: '%v'", expId, err.Error())
+	}
+
+	_, err = tx.Exec(updateRunsSql, updateRunsArgs...)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to unarchive the runs in an experiment %s. error: '%v'", expId, err.Error())
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to unarchive an experiment %s and its runs", expId)
 	}
 
 	return nil

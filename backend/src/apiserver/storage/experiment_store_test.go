@@ -429,20 +429,6 @@ func TestListExperiments_Filtering(t *testing.T) {
 	assert.Equal(t, 3, total_size)
 }
 
-func TestArchiveExperiment(t *testing.T) {
-	db := NewFakeDbOrFatal()
-	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
-	experimentStore.CreateExperiment(createExperiment("experiment1"))
-
-	// Archive experiment
-	err := experimentStore.ArchiveExperiment(fakeID)
-	assert.Nil(t, err)
-	exp, err := experimentStore.GetExperiment(fakeID)
-	assert.Nil(t, err)
-	assert.Equal(t, exp.StorageState, api.Experiment_STORAGESTATE_ARCHIVED.String())
-}
-
 func TestArchiveExperiment_InternalError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
@@ -454,25 +440,85 @@ func TestArchiveExperiment_InternalError(t *testing.T) {
 		"Expected archive experiment to return internal error")
 }
 
-func TestUnarchiveExperiment(t *testing.T) {
+func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
+
+	// Initial state: 1 experiment and 2 runs in it. The experiment is unarchived. One run is archived and the other is not.
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	run1 := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "1",
+			Name:             "run1",
+			DisplayName:      "run1",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			Namespace:        "n1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "Running",
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID: "1", ResourceType: common.Run,
+					ReferenceUUID: fakeID, ReferenceName: "experiment1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: "workflow1",
+		},
+	}
+	run2 := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "2",
+			Name:             "run2",
+			DisplayName:      "run2",
+			StorageState:     api.Run_STORAGESTATE_ARCHIVED.String(),
+			Namespace:        "n2",
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			Conditions:       "done",
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID: "2", ResourceType: common.Run,
+					ReferenceUUID: fakeID, ReferenceName: "experiment1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: "workflow1",
+		},
+	}
+	runStore.CreateRun(run1)
+	runStore.CreateRun(run2)
 
-	// Archive experiment
+	// Archive experiment and verify the experiment and two runs in it are all archived.
 	err := experimentStore.ArchiveExperiment(fakeID)
 	assert.Nil(t, err)
 	exp, err := experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
 	assert.Equal(t, exp.StorageState, api.Experiment_STORAGESTATE_ARCHIVED.String())
+	opts, err := list.NewOptions(&model.Run{}, 10, "id", nil)
+	runs, total_run_size, _, err := runStore.ListRuns(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, total_run_size, 2)
+	assert.Equal(t, runs[0].StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
+	assert.Equal(t, runs[1].StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
 
-	// Unarchive it
+	// Unarchive the experiment and verify the experiment and two runs in it are all unarchived.
 	err = experimentStore.UnarchiveExperiment(fakeID)
 	assert.Nil(t, err)
 	exp, err = experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
 	assert.Equal(t, exp.StorageState, api.Experiment_STORAGESTATE_AVAILABLE.String())
+	runs, total_run_size, _, err = runStore.ListRuns(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, total_run_size, 2)
+	assert.Equal(t, runs[0].StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
+	assert.Equal(t, runs[1].StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
 }
 
 func TestUnarchiveExperiment_InternalError(t *testing.T) {
