@@ -269,7 +269,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
-      const { podAddress, tfVersion } = await Apis.getTensorboardApp(this._buildUrl());
+      const { podAddress, tfVersion } = await Apis.getTensorboardApp(this._buildUrl(), 'yuan');
       if (podAddress) {
         this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
       } else {
@@ -284,6 +284,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       await Apis.startTensorboardApp(
         encodeURIComponent(this._buildUrl()),
         encodeURIComponent(this.state.tensorflowVersion),
+        encodeURIComponent('yuan'),
       );
       this.setState({ busy: false, tensorboardReady: false }, () => {
         this._checkTensorboardApp();
@@ -295,7 +296,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // delete the already opened Tensorboard, clear the podAddress recorded in frontend,
     // and return to the select & start tensorboard page
     this.setState({ busy: true }, async () => {
-      await Apis.deleteTensorboardApp(encodeURIComponent(this._buildUrl()));
+      await Apis.deleteTensorboardApp(
+        encodeURIComponent(this._buildUrl()),
+        encodeURIComponent('yuan'),
+      );
       this.setState({
         busy: false,
         deleteDialogOpen: false,
