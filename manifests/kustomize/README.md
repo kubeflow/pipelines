@@ -45,13 +45,9 @@ To deploy Kubeflow Pipelines in namespace FOO,
 
 ```
 kubectl kustomize base/crds | kubectl apply -f -
-
 # then
-
 kubectl kustomize env/dev | kubectl apply -f -
-
 # or
-
 kubectl kustomize env/gcp | kubectl apply -f -
 ```
 
@@ -98,13 +94,9 @@ Or if you deploy through kustomize
 
 ```
 kubectl kustomize env/dev | kubectl delete -f -
-
 # or
-
 kubectl kustomize env/gcp | kubectl delete -f -
-
 # then
-
 kubectl kustomize base/crds | kubectl delete -f -
 ```
 
@@ -115,8 +107,7 @@ kubectl kustomize base/crds | kubectl delete -f -
 Run
 
 ```
-kubectl create clusterrolebinding your-binding --clusterrole=cluster-admin
---user=[your-user-name]
+kubectl create clusterrolebinding your-binding --clusterrole=cluster-admin --user=[your-user-name]
 ```
 
 ### Samples requires "user-gcp-sa" secret
@@ -128,13 +119,11 @@ If sample code requires a "user-gcp-sa" secret, you could create one by
 
 ```
 gcloud iam service-accounts keys create application_default_credentials.json \
---iam-account [SA-NAME]@[PROJECT-ID].iam.gserviceaccount.com
+  --iam-account [SA-NAME]@[PROJECT-ID].iam.gserviceaccount.com
 ```
 
 -   Run
 
 ```
-kubectl
-create secret -n [your-namespace] generic user-gcp-sa
---from-file=user-gcp-sa.json=application_default_credentials.json`
+kubectl create secret -n [your-namespace] generic user-gcp-sa --from-file=user-gcp-sa.json=application_default_credentials.json`
 ```
