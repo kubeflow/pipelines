@@ -6,8 +6,7 @@ metadata:
     app: cache-deployer
     app.kubernetes.io/name: {{ .Release.Name }}
   annotations:
-    "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-delete-policy": hook-succeeded,hook-failed
+    "helm.sh/hook-delete-policy": hook-succeeded, hook-failed
 spec:
   template:
     metadata:
@@ -218,7 +217,7 @@ kind: ConfigMap
 metadata:
   name: cache-configmap
   labels:
-  component: cache-server
+    component: cache-server
 data:
   mysql_driver: "mysql"
   mysql_database: "cachedb"
