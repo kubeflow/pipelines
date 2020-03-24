@@ -135,9 +135,9 @@ func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) 
 func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) {
 	var experiments []*model.Experiment
 	for rows.Next() {
-		var uuid, name, description, namespace string
+		var uuid, name, description, namespace, storageState string
 		var createdAtInSec int64
-		err := rows.Scan(&uuid, &name, &description, &createdAtInSec, &namespace)
+		err := rows.Scan(&uuid, &name, &description, &createdAtInSec, &namespace, &storageState)
 		if err != nil {
 			return experiments, err
 		}
@@ -147,6 +147,7 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) 
 			Description:    description,
 			CreatedAtInSec: createdAtInSec,
 			Namespace:      namespace,
+			StorageState:   storageState,
 		})
 	}
 	return experiments, nil
