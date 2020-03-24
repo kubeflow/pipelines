@@ -38,3 +38,6 @@ echo "CA_BUNDLE patched successfully"
 # Create MutatingWebhookConfiguration
 cat ./cache-configmap-ca-bundle.yaml
 kubectl apply -f ./cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
+
+# Delete the cache deployer job
+kubectl delete job cache-deployer-job -n "${NAMESPACE}"
