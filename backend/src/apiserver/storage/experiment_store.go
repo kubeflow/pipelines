@@ -161,6 +161,15 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 		return nil, util.NewInternalServerError(err, "Failed to create an experiment id.")
 	}
 	newExperiment.UUID = id.String()
+
+	if newExperiment.StorageState == "" {
+		// Default to available if not set.
+		newExperiment.StorageState = api.Experiment_STORAGESTATE_AVAILABLE.String()
+	} else if newExperiment.StorageState != api.Experiment_STORAGESTATE_AVAILABLE.String() &&
+		newExperiment.StorageState != api.Experiment_STORAGESTATE_ARCHIVED.String() {
+		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q.", newExperiment.StorageState)
+	}
+
 	sql, args, err := sq.
 		Insert("experiments").
 		SetMap(sq.Eq{
@@ -169,6 +178,7 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 			"Name":           newExperiment.Name,
 			"Description":    newExperiment.Description,
 			"Namespace":      newExperiment.Namespace,
+			"StorageState":   newExperiment.StorageState,
 		}).
 		ToSql()
 	if err != nil {
