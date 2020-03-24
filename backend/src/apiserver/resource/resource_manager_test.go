@@ -1087,7 +1087,7 @@ func TestCreateJob_ExtraInputParameterError(t *testing.T) {
 func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 	store, manager, p := initWithPipeline(t)
 	defer store.Close()
-	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
+	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
 	job := &api.Job{
 		Name:         "pp1",
 		Enabled:      true,
@@ -1142,7 +1142,7 @@ func TestEnableJob_JobNotExist(t *testing.T) {
 func TestEnableJob_CrdFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
+	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
 	err := manager.EnableJob(job.UUID, false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
@@ -1181,7 +1181,7 @@ func TestDeleteJob_CrdFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
 
-	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
+	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
 	err := manager.DeleteJob(job.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
