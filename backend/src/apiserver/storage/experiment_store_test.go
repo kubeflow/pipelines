@@ -50,12 +50,14 @@ func TestListExperiments_Pagination(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
+		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 	expectedExperiment4 := &model.Experiment{
 		UUID:           fakeIDFour,
 		CreatedAtInSec: 4,
 		Name:           "experiment2",
 		Description:    "My name is experiment2",
+		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 	experimentsExpected := []*model.Experiment{expectedExperiment1, expectedExperiment4}
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "name", nil)
@@ -73,12 +75,14 @@ func TestListExperiments_Pagination(t *testing.T) {
 		CreatedAtInSec: 2,
 		Name:           "experiment3",
 		Description:    "My name is experiment3",
+		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 	expectedExperiment3 := &model.Experiment{
 		UUID:           fakeIDThree,
 		CreatedAtInSec: 3,
 		Name:           "experiment4",
 		Description:    "My name is experiment4",
+		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 	experimentsExpected2 := []*model.Experiment{expectedExperiment2, expectedExperiment3}
 
@@ -109,12 +113,14 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 		CreatedAtInSec: 2,
 		Name:           "experiment3",
 		Description:    "My name is experiment3",
+		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 	expectedExperiment3 := &model.Experiment{
 		UUID:           fakeIDThree,
 		CreatedAtInSec: 3,
 		Name:           "experiment4",
 		Description:    "My name is experiment4",
+		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 	experimentsExpected := []*model.Experiment{expectedExperiment3, expectedExperiment2}
 
@@ -132,12 +138,14 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
+		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 	expectedExperiment4 := &model.Experiment{
 		UUID:           fakeIDFour,
 		CreatedAtInSec: 4,
 		Name:           "experiment2",
 		Description:    "My name is experiment2",
+		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 	experimentsExpected2 := []*model.Experiment{expectedExperiment4, expectedExperiment1}
 
@@ -161,6 +169,7 @@ func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
+		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 	experimentsExpected := []*model.Experiment{expectedExperiment1}
 
@@ -196,6 +205,7 @@ func TestGetExperiment(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
+		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 
 	experiment, err := experimentStore.GetExperiment(fakeID)
@@ -232,6 +242,7 @@ func TestCreateExperiment(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
+		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 
 	experiment := createExperiment("experiment1")
@@ -250,6 +261,7 @@ func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
 		Namespace:      "namespace1",
+		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 
 	experiment := createExperimentInNamespace("experiment1", "namespace1")
@@ -265,6 +277,7 @@ func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
 		Namespace:      "namespace2",
+		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 
 	experiment, err = experimentStore.CreateExperiment(experiment)
@@ -377,12 +390,14 @@ func TestListExperiments_Filtering(t *testing.T) {
 			CreatedAtInSec: 2,
 			Name:           "experiment2",
 			Description:    "My name is experiment2",
+			StorageState:   "STORAGESTATE_AVAILABLE",
 		},
 		&model.Experiment{
 			UUID:           fakeIDThree,
 			CreatedAtInSec: 3,
 			Name:           "experiment3",
 			Description:    "My name is experiment3",
+			StorageState:   "STORAGESTATE_AVAILABLE",
 		},
 	}
 
@@ -403,6 +418,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 			CreatedAtInSec: 4,
 			Name:           "experiment4",
 			Description:    "My name is experiment4",
+			StorageState:   "STORAGESTATE_AVAILABLE",
 		},
 	}
 
