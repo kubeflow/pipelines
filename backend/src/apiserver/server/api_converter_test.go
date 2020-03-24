@@ -524,3 +524,38 @@ func TestToApiResourceReferences(t *testing.T) {
 	}
 	assert.Equal(t, expectedApiResourceReferences, toApiResourceReferences(resourceReferences))
 }
+
+func TestToApiExperiments(t *testing.T) {
+	exp1 := &model.Experiment{
+		UUID:           "exp1",
+		CreatedAtInSec: 1,
+		Name:           "experiment1",
+		Description:    "My name is experiment1",
+		StorageState:   "STORAGESTATE_AVAILABLE",
+	}
+	exp2 := &model.Experiment{
+		UUID:           "exp2",
+		CreatedAtInSec: 2,
+		Name:           "experiment2",
+		Description:    "My name is experiment2",
+		StorageState:   "STORAGESTATE_ARCHIVED",
+	}
+	apiExps := ToApiExperiments([]*model.Experiment{exp1, exp2})
+	expectedApiExps := []*api.Experiment{
+		{
+			Id:           "exp1",
+			Name:         "experiment1",
+			Description:  "My name is experiment1",
+			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			StorageState: api.Experiment_StorageState(api.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
+		},
+		{
+			Id:           "exp2",
+			Name:         "experiment2",
+			Description:  "My name is experiment2",
+			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
+			StorageState: api.Experiment_StorageState(api.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
+		},
+	}
+	assert.Equal(t, expectedApiExps, apiExps)
+}
