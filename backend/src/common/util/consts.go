@@ -51,6 +51,7 @@ const (
 	AnnotationValueIstioSidecarInjectEnabled  = "true"
 	AnnotationValueIstioSidecarInjectDisabled = "false"
 
-	AnnotationKeyCacheEnabled   = "pipelines.kubeflow.org/cache_enabled"
-	AnnotationValueCacheEnabled = "true"
+	AnnotationKeyCacheEnabled    = "pipelines.kubeflow.org/cache_enabled"
+	AnnotationValueCacheEnabled  = "true"
+	AnnotationValueCacheDisabled = "false"
 )
