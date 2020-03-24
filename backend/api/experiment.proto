@@ -87,6 +87,20 @@ service ExperimentService {
       delete: "/apis/v1beta1/experiments/{id}"
     };
   }
+
+  //Archive an experiment.
+  rpc ArchiveExperiment(ArchiveExperimentRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/experiments/{id}:archive"
+    };
+  }
+
+  //Restore an archived experiment.
+  rpc UnarchiveExperiment(UnarchiveExperimentRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/experiments/{id}:unarchive"
+    };
+  }
 }
 
 message CreateExperimentRequest {
@@ -157,4 +171,12 @@ message Experiment {
   }
 
   StorageState storage_state = 6;
+}
+
+message ArchiveExperimentRequest {
+  string id = 1;
+}
+
+message UnarchiveExperimentRequest {
+  string id = 1;
 }

@@ -133,6 +133,14 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 	return r.experimentStore.DeleteExperiment(experimentID)
 }
 
+func (r *ResourceManager) ArchiveExperiment(experimentId string) error {
+	return r.experimentStore.ArchiveExperiment(experimentId)
+}
+
+func (r *ResourceManager) UnarchiveExperiment(experimentId string) error {
+	return r.experimentStore.UnarchiveExperiment(experimentId)
+}
+
 func (r *ResourceManager) ListPipelines(opts *list.Options) (
 	pipelines []*model.Pipeline, total_size int, nextPageToken string, err error) {
 	return r.pipelineStore.ListPipelines(opts)

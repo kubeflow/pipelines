@@ -44,6 +44,7 @@ func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
 		Description:        experiment.Description,
 		CreatedAt:          &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
 		ResourceReferences: resourceReferences,
+		StorageState:       api.Experiment_StorageState(api.Experiment_StorageState_value[experiment.StorageState]),
 	}
 }
 

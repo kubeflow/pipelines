@@ -7,6 +7,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -18,6 +19,8 @@ type ExperimentStoreInterface interface {
 	GetExperiment(uuid string) (*model.Experiment, error)
 	CreateExperiment(*model.Experiment) (*model.Experiment, error)
 	DeleteExperiment(uuid string) error
+	ArchiveExperiment(expId string) error
+	UnarchiveExperiment(expId string) error
 }
 
 type ExperimentStore struct {
@@ -214,6 +217,52 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to delete experiment %v and its resource references from table", id)
 	}
+	return nil
+}
+
+func (s *ExperimentStore) ArchiveExperiment(expId string) error {
+	sql, args, err := sq.
+		Update("experiments").
+		SetMap(sq.Eq{
+			"StorageState": api.Experiment_STORAGESTATE_ARCHIVED.String(),
+		}).
+		Where(sq.Eq{"UUID": expId}).
+		ToSql()
+
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to archive experiment %s. error: '%v'", expId, err.Error())
+	}
+
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to archive experiment %s. error: '%v'", expId, err.Error())
+	}
+
+	return nil
+}
+
+func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
+	sql, args, err := sq.
+		Update("experiments").
+		SetMap(sq.Eq{
+			"StorageState": api.Experiment_STORAGESTATE_AVAILABLE.String(),
+		}).
+		Where(sq.Eq{"UUID": expId}).
+		ToSql()
+
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to unarchive experiment %s. error: '%v'", expId, err.Error())
+	}
+
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to unarchive experiment %s. error: '%v'", expId, err.Error())
+	}
+
 	return nil
 }
 
