@@ -430,35 +430,41 @@ func TestValidateCreateExperimentRequest_Multiuser(t *testing.T) {
 }
 
 func TestArchiveAndUnarchiveExperiment(t *testing.T) {
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-	server := ExperimentServer{resourceManager: resourceManager}
-	experiment := &api.Experiment{Name: "ex1", Description: "first experiment"}
-
-	// Create experiment
-	createResult, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
-	assert.Nil(t, err)
-	result, err := server.GetExperiment(nil, &api.GetExperimentRequest{Id: createResult.Id})
-	expectedExperiment := &api.Experiment{
-		Id:           createResult.Id,
-		Name:         "ex1",
-		Description:  "first experiment",
-		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-		StorageState: api.Experiment_STORAGESTATE_AVAILABLE,
+	// Create experiment and runs under it.
+	clients, manager, experiment := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	experimentServer := NewExperimentServer(manager)
+	runServer := NewRunServer(manager)
+	run1 := &api.Run{
+		Name:               "123",
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	assert.Equal(t, expectedExperiment, result)
-
-	// Archive it
-	_, err = server.ArchiveExperiment(nil, &api.ArchiveExperimentRequest{Id: createResult.Id})
+	err := runServer.validateCreateRunRequest(&api.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
-	result, err = server.GetExperiment(nil, &api.GetExperimentRequest{Id: createResult.Id})
-	expectedExperiment.StorageState = api.Experiment_STORAGESTATE_ARCHIVED
-	assert.Equal(t, expectedExperiment, result)
-
-	// Unarchive it
-	_, err = server.UnarchiveExperiment(nil, &api.UnarchiveExperimentRequest{Id: createResult.Id})
+	run2 := &api.Run{
+		Name:               "456",
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+	}
+	err = runServer.validateCreateRunRequest(&api.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
-	result, err = server.GetExperiment(nil, &api.GetExperimentRequest{Id: createResult.Id})
-	expectedExperiment.StorageState = api.Experiment_STORAGESTATE_AVAILABLE
-	assert.Equal(t, expectedExperiment, result)
+
+	// Archive the experiment and thus all runs under it.
+	_, err = experimentServer.ArchiveExperiment(nil, &api.ArchiveExperimentRequest{Id: experiment.UUID})
+	assert.Nil(t, err)
+	result, err := experimentServer.GetExperiment(nil, &api.GetExperimentRequest{Id: experiment.UUID})
+	assert.Equal(t, result.StorageState, api.Experiment_STORAGESTATE_ARCHIVED)
+	runs, err := runServer.ListRuns(nil, &api.ListRunsRequest{})
+	assert.Equal(t, 2, len(runs.Runs))
+	assert.Equal(t, runs.Runs[0], api.Run_STORAGESTATE_ARCHIVED)
+	assert.Equal(t, runs.Runs[1], api.Run_STORAGESTATE_ARCHIVED)
+
+	// Unarchive the experiment and thus all runs under it.
+	_, err = experimentServer.UnarchiveExperiment(nil, &api.UnarchiveExperimentRequest{Id: experiment.UUID})
+	assert.Nil(t, err)
+	result, err = experimentServer.GetExperiment(nil, &api.GetExperimentRequest{Id: experiment.UUID})
+	assert.Equal(t, result.StorageState, api.Experiment_STORAGESTATE_AVAILABLE)
+	runs, err = runServer.ListRuns(nil, &api.ListRunsRequest{})
+	assert.Equal(t, 2, len(runs.Runs))
+	assert.Equal(t, runs.Runs[0], api.Run_STORAGESTATE_AVAILABLE)
+	assert.Equal(t, runs.Runs[1], api.Run_STORAGESTATE_AVAILABLE)
 }

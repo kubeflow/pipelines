@@ -458,6 +458,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "Running",
+			ExperimentUUID:   fakeID,
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
@@ -480,6 +481,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
+			ExperimentUUID:   fakeID,
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Run,
