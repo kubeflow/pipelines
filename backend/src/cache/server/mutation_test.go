@@ -36,9 +36,9 @@ var (
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				ArgoWorkflowNodeName: "test_node",
-				ArgoWorkflowTemplate: `{"name": "test_template"}`,
-				KFPAnnotation:        "test_kfp",
+				ArgoWorkflowNodeName:         "test_node",
+				ArgoWorkflowTemplate:         `{"name": "test_template"}`,
+				KFPAnnotationKeyCacheEnabled: KFPAnnotationValueCacheEnabled,
 			},
 			Labels: map[string]string{
 				ArgoCompleteLabelKey: "true",
@@ -109,7 +109,7 @@ func TestMutatePodIfCachedWithDecodeError(t *testing.T) {
 
 func TestMutatePodIfCachedWithNonKFPPod(t *testing.T) {
 	nonKFPPod := *fakePod
-	delete(nonKFPPod.Annotations, KFPAnnotation)
+	delete(nonKFPPod.Annotations, KFPAnnotationKeyCacheEnabled)
 	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&nonKFPPod), fakeClientManager)
 	assert.Nil(t, patchOperation)
 	assert.Nil(t, err)

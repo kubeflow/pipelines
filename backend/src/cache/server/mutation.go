@@ -32,19 +32,21 @@ import (
 )
 
 const (
-	KFPAnnotation          string = "pipelines.kubeflow.org"
-	ArgoWorkflowNodeName   string = "workflows.argoproj.io/node-name"
-	ArgoWorkflowTemplate   string = "workflows.argoproj.io/template"
-	ExecutionKey           string = "pipelines.kubeflow.org/execution_cache_key"
-	CacheIDLabelKey        string = "pipelines.kubeflow.org/cache_id"
-	ArgoWorkflowOutputs    string = "workflows.argoproj.io/outputs"
-	MetadataWrittenKey     string = "pipelines.kubeflow.org/metadata_written"
-	AnnotationPath         string = "/metadata/annotations"
-	LabelPath              string = "/metadata/labels"
-	SpecContainersPath     string = "/spec/containers"
-	SpecInitContainersPath string = "/spec/initContainers"
-	TFXPodSuffix           string = "tfx/orchestration/kubeflow/container_entrypoint.py"
-	ArchiveLocationKey     string = "archiveLocation"
+	KFPAnnotationKeyCacheEnabled    string = "pipelines.kubeflow.org/cache_enabled"
+	KFPAnnotationValueCacheEnabled  string = "true"
+	KFPAnnotationValueCacheDisabled string = "false"
+	ArgoWorkflowNodeName            string = "workflows.argoproj.io/node-name"
+	ArgoWorkflowTemplate            string = "workflows.argoproj.io/template"
+	ExecutionKey                    string = "pipelines.kubeflow.org/execution_cache_key"
+	CacheIDLabelKey                 string = "pipelines.kubeflow.org/cache_id"
+	ArgoWorkflowOutputs             string = "workflows.argoproj.io/outputs"
+	MetadataWrittenKey              string = "pipelines.kubeflow.org/metadata_written"
+	AnnotationPath                  string = "/metadata/annotations"
+	LabelPath                       string = "/metadata/labels"
+	SpecContainersPath              string = "/spec/containers"
+	SpecInitContainersPath          string = "/spec/initContainers"
+	TFXPodSuffix                    string = "tfx/orchestration/kubeflow/container_entrypoint.py"
+	ArchiveLocationKey              string = "archiveLocation"
 )
 
 var (
@@ -218,11 +220,10 @@ func isKFPArgoPod(annotations *map[string]string, podName string) bool {
 		return false
 	}
 	// is KFP pod or not
-	for k := range *annotations {
-		if strings.Contains(k, KFPAnnotation) {
-			return true
-		}
+	if v, exists := (*annotations)[KFPAnnotationKeyCacheEnabled]; exists && v == KFPAnnotationValueCacheEnabled {
+		return true
 	}
+
 	return false
 }
 
