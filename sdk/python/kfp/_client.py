@@ -82,7 +82,7 @@ class Client(object):
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
   # TODO: Wrap the configurations for different authentication methods.
-  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, other_token=None):
     """Create a new instance of kfp client.
 
     Args:
@@ -98,10 +98,11 @@ class Client(object):
       other_client_id: The client ID used to obtain the auth codes and refresh tokens.
         Reference: https://cloud.google.com/iap/docs/authentication-howto#authenticating_from_a_desktop_app.
       other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
+      other_token: pass in token directly, it's used for cases better get token outside of SDK, e.x. GCP Cloud Functions.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
-    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, other_token)
     api_client = kfp_server_api.api_client.ApiClient(config)
     _add_generated_apis(self, kfp_server_api, api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
@@ -109,17 +110,18 @@ class Client(object):
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
 
-  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, other_token):
     config = kfp_server_api.configuration.Configuration()
     if host:
       config.host = host
 
     token = None
 
-    # Obtain the tokens if it is inverse proxy or IAP.
-    if self._is_inverse_proxy_host(host):
+    if other_token:
+      token = other_token
+    elif self._is_inverse_proxy_host(host):
       token = get_gcp_access_token()
-    if self._is_iap_host(host,client_id):
+    elif self._is_iap_host(host,client_id):
       token = get_auth_token(client_id, other_client_id, other_client_secret)
 
     if token:
