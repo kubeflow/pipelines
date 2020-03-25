@@ -9,6 +9,9 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
+	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	runParams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
@@ -18,8 +21,10 @@ import (
 
 type ExperimentApiTest struct {
 	suite.Suite
-	namespace        string
-	experimentClient *api_server.ExperimentClient
+	namespace            string
+	experimentClient     *api_server.ExperimentClient
+	pipelineUploadClient *api_server.PipelineUploadClient
+	runClient            *api_server.RunClient
 }
 
 // Check the namespace have ML job installed and ready
@@ -41,6 +46,14 @@ func (s *ExperimentApiTest) SetupTest() {
 	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
+	}
+	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
+	if err != nil {
+		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
+	}
+	s.runClient, err = api_server.NewRunClient(clientConfig, false)
+	if err != nil {
+		glog.Exitf("Failed to get run client. Error: %s", err.Error())
 	}
 
 	s.cleanUp()
@@ -161,13 +174,58 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTrainingExperiment, experiment)
 
+	/* ---------- Create a pipeline version and two run -------------- */
+	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
+	assert.Nil(t, err)
+	time.Sleep(1 * time.Second)
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
+		"../resources/hello-world.yaml", &uploadParams.UploadPipelineVersionParams{
+			Name:       util.StringPointer("hello-world-version"),
+			Pipelineid: util.StringPointer(pipeline.ID),
+		})
+	assert.Nil(t, err)
+	createRunRequest := &runParams.CreateRunParams{Body: &run_model.APIRun{
+		Name:        "hello world",
+		Description: "this is hello world",
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Name: experiment.Name, Relationship: run_model.APIRelationshipOWNER},
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR},
+		},
+	}}
+	run1, _, err := s.runClient.Create(createRunRequest)
+	assert.Nil(t, err)
+	run2, _, err := s.runClient.Create(createRunRequest)
+	assert.Nil(t, err)
+
 	/* ---------- Archive an experiment -----------------*/
 	err = s.experimentClient.Archive(&params.ArchiveExperimentParams{ID: trainingExperiment.ID})
 
-	/* ---------- Get experiment again ----------------- */
+	/* ---------- Verify experiment and its runs ------- */
 	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, experiment.StorageState, api.Experiment_STORAGESTATE_ARCHIVED.String())
+	retrievedRun1, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: run1.Run.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, retrievedRun1.Run.StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
+	retrievedRun2, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: run2.Run.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, retrievedRun2.Run.StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
+
+	/* ---------- Unarchive an experiment -----------------*/
+	err = s.experimentClient.Unarchive(&params.UnarchiveExperimentParams{ID: trainingExperiment.ID})
+
+	/* ---------- Verify experiment and its runs --------- */
+	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, experiment.StorageState, api.Experiment_STORAGESTATE_AVAILABLE.String())
+	retrievedRun1, _, err = s.runClient.Get(&runParams.GetRunParams{RunID: run1.Run.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, retrievedRun1.Run.StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
+	retrievedRun2, _, err = s.runClient.Get(&runParams.GetRunParams{RunID: run2.Run.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, retrievedRun2.Run.StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
 }
 
 func TestExperimentAPI(t *testing.T) {
