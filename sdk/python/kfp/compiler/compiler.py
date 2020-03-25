@@ -668,7 +668,7 @@ class Compiler(object):
         'entrypoint': pipeline_template_name,
         'templates': templates,
         'arguments': {'parameters': input_params},
-        'serviceAccountName': 'pipeline-runner'
+        'serviceAccountName': pipeline_conf.service_account_name or 'pipeline-runner'
       }
     }
     # set ttl after workflow finishes
@@ -969,4 +969,4 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
 Error: {}'''.format(result.stderr.decode('utf-8'))
       )
-  
+

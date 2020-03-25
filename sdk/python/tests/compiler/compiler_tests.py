@@ -152,7 +152,7 @@ class TestCompiler(unittest.TestCase):
       self.maxDiff = None
       self.assertEqual(golden_output, compiler._op_to_template._op_to_template(op))
       self.assertEqual(res_output, compiler._op_to_template._op_to_template(res))
-    
+
     kfp.compiler.Compiler()._compile(my_pipeline)
 
   def _get_yaml_from_zip(self, zip_file):
@@ -327,7 +327,7 @@ class TestCompiler(unittest.TestCase):
 
       with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
         compiled = yaml.safe_load(f)
-      
+
       for workflow in golden, compiled:
         annotations = workflow['metadata']['annotations']
         del annotations['pipelines.kubeflow.org/pipeline_spec']
@@ -683,6 +683,25 @@ implementation:
       if container:
         self.assertEqual(template['retryStrategy']['limit'], 5)
 
+
+  def test_set_service_account_name(self):
+    """Test a pipeline using a custom service account."""
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().test_set_service_account_name('custom_pipeline_runner')
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']['serviceAccountName'], 'custom_pipeline_runner')
+
+
   def test_container_op_output_error_when_no_or_multiple_outputs(self):
 
     def no_outputs_pipeline():
@@ -751,11 +770,11 @@ implementation:
               name="foo-bar-cm",
               namespace="default"
           )
-        )        
+        )
         # delete the config map in k8s
         dsl.ResourceOp(
-          name="delete-config-map", 
-          action="delete", 
+          name="delete-config-map",
+          action="delete",
           k8s_resource=config_map
         )
 

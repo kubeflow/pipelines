@@ -20,7 +20,7 @@ from ._component_bridge import _create_container_op_from_component_and_arguments
 from ..components import _components
 from ..components._naming import _make_name_unique_by_adding_index
 import sys
-
+import typing
 
 # This handler is called whenever the @pipeline decorator is applied.
 # It can be used by command-line DSL compiler to inject code that runs for every pipeline definition.
@@ -62,12 +62,28 @@ class PipelineConf():
     self.ttl_seconds_after_finished = -1
     self.artifact_location = None
     self.op_transformers = []
+    self.service_account_name = "pipeline-runner"
 
-  def set_image_pull_secrets(self, image_pull_secrets):
+  def set_service_account_name(self, service_account_name: str):
+    """Configures the k8s service account to use for the pipeline. If not provided,
+    'pipeline-runner' will be used as the default service account.
+
+    Please ensure the service account has the required permissions required for
+    running the workflow.
+
+    See https://github.com/argoproj/argo/blob/master/docs/workflow-rbac.md
+
+    Args:
+        service_account_name (str): Name of the service account to use.
+    """
+    self.service_account_name = service_account_name
+    return self
+
+  def set_image_pull_secrets(self, image_pull_secrets: typing.List[str]):
     """Configures the pipeline level imagepullsecret
 
     Args:
-      image_pull_secrets: a list of Kubernetes V1LocalObjectReference
+      image_pull_secrets (List[str]): a list of Kubernetes V1LocalObjectReference
       For detailed description, check Kubernetes V1LocalObjectReference definition
       https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
     """
@@ -78,7 +94,7 @@ class PipelineConf():
     """Configures the pipeline level timeout
 
     Args:
-      seconds: number of seconds for timeout
+      seconds (int): number of seconds for timeout
     """
     self.timeout = seconds
     return self
@@ -87,7 +103,7 @@ class PipelineConf():
     """Configures the ttl after the pipeline has finished.
 
     Args:
-      seconds: number of seconds for the workflow to be garbage collected after it is finished.
+      seconds (int): number of seconds for the workflow to be garbage collected after it is finished.
     """
     self.ttl_seconds_after_finished = seconds
     return self
