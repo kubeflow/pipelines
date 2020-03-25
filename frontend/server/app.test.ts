@@ -641,7 +641,7 @@ describe('UIServer apis', () => {
       logDir?: string;
       tensorflowImage?: string;
       type?: string;
-    }) {
+    } = {}) {
       return {
         response: undefined as any, // unused
         body: {
@@ -681,6 +681,17 @@ describe('UIServer apis', () => {
         request
           .get('/apps/tensorboard?logdir=some-log-dir')
           .expect(404, 'namespace argument is required', done);
+      });
+
+      it('does not crash with a weird query', done => {
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(newGetTensorboardResponse()),
+        );
+        // The special case is that, decodeURIComponent('%2') throws an
+        // exception, so this can verify handler doesn't do extra
+        // decodeURIComponent on queries.
+        const weirdLogDir = encodeURIComponent('%2');
+        request.get(`/apps/tensorboard?logdir=${weirdLogDir}&namespace=test-ns`).expect(200, done);
       });
 
       it('gets tensorboard url and version', done => {

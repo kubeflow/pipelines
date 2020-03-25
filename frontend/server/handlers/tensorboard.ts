@@ -20,17 +20,15 @@ import { ViewerTensorboardConfig } from '../configs';
  * handler expects a query string `logdir`.
  */
 export const getTensorboardHandler: Handler = async (req, res) => {
-  if (!req.query.logdir) {
+  const { logdir, namespace } = req.query;
+  if (!logdir) {
     res.status(404).send('logdir argument is required');
     return;
   }
-  if (!req.query.namespace) {
+  if (!namespace) {
     res.status(404).send('namespace argument is required');
     return;
   }
-
-  const logdir = decodeURIComponent(req.query.logdir);
-  const namespace = decodeURIComponent(req.query.namespace);
 
   try {
     res.send(await k8sHelper.getTensorboardInstance(logdir, namespace));
@@ -50,22 +48,19 @@ export const getTensorboardHandler: Handler = async (req, res) => {
  */
 export function getCreateTensorboardHandler(tensorboardConfig: ViewerTensorboardConfig): Handler {
   return async (req, res) => {
-    if (!req.query.logdir) {
+    const { logdir, namespace, tfversion } = req.query;
+    if (!logdir) {
       res.status(404).send('logdir argument is required');
       return;
     }
-    if (!req.query.namespace) {
+    if (!namespace) {
       res.status(404).send('namespace argument is required');
       return;
     }
-    if (!req.query.tfversion) {
+    if (!tfversion) {
       res.status(404).send('tfversion (tensorflow version) argument is required');
       return;
     }
-
-    const logdir = decodeURIComponent(req.query.logdir);
-    const namespace = decodeURIComponent(req.query.namespace);
-    const tfversion = decodeURIComponent(req.query.tfversion);
 
     try {
       await k8sHelper.newTensorboardInstance(
@@ -93,17 +88,15 @@ export function getCreateTensorboardHandler(tensorboardConfig: ViewerTensorboard
  * `logdir` in the request.
  */
 export const deleteTensorboardHandler: Handler = async (req, res) => {
-  if (!req.query.logdir) {
+  const { logdir, namespace } = req.query;
+  if (!logdir) {
     res.status(404).send('logdir argument is required');
     return;
   }
-  if (!req.query.namespace) {
+  if (!namespace) {
     res.status(404).send('namespace argument is required');
     return;
   }
-
-  const logdir = decodeURIComponent(req.query.logdir);
-  const namespace = decodeURIComponent(req.query.namespace);
 
   try {
     await k8sHelper.deleteTensorboardInstance(logdir, namespace);

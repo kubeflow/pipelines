@@ -307,7 +307,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 }
 
 function makeProxyUrl(podAddress: string) {
-  return 'apis/v1beta1/_proxy/' + encodeURIComponent(podAddress).replace(/(^\w+:|^)\/\//, '');
+  return 'apis/v1beta1/_proxy/' + podAddress.replace(/(^\w+:|^)\/\//, '');
 }
 
 export default TensorboardViewer;
