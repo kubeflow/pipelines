@@ -35,7 +35,8 @@ export const getTensorboardHandler: Handler = async (req, res) => {
   try {
     res.send(await k8sHelper.getTensorboardInstance(logdir, namespace));
   } catch (err) {
-    res.status(500).send('Failed to list Tensorboard pods: ' + JSON.stringify(err));
+    console.error('Failed to list Tensorboard pods: ', err?.body || err);
+    res.status(500).send(`Failed to list Tensorboard pods: ${err}`);
   }
 };
 
@@ -58,7 +59,7 @@ export function getCreateTensorboardHandler(tensorboardConfig: ViewerTensorboard
       return;
     }
     if (!req.query.tfversion) {
-      res.status(404).send('tensorflow version argument is required');
+      res.status(404).send('tfversion (tensorflow version) argument is required');
       return;
     }
 
@@ -81,7 +82,8 @@ export function getCreateTensorboardHandler(tensorboardConfig: ViewerTensorboard
       );
       res.send(tensorboardAddress);
     } catch (err) {
-      res.status(500).send('Failed to start Tensorboard app: ' + JSON.stringify(err));
+      console.error('Failed to start Tensorboard app: ', err?.body || err);
+      res.status(500).send(`Failed to start Tensorboard app: ${err}`);
     }
   };
 }
@@ -97,6 +99,7 @@ export const deleteTensorboardHandler: Handler = async (req, res) => {
   }
   if (!req.query.namespace) {
     res.status(404).send('namespace argument is required');
+    return;
   }
 
   const logdir = decodeURIComponent(req.query.logdir);
@@ -106,6 +109,7 @@ export const deleteTensorboardHandler: Handler = async (req, res) => {
     await k8sHelper.deleteTensorboardInstance(logdir, namespace);
     res.send('Tensorboard deleted.');
   } catch (err) {
-    res.status(500).send('Failed to delete Tensorboard app: ' + JSON.stringify(err));
+    console.error('Failed to delete Tensorboard app: ', err?.body || err);
+    res.status(500).send(`Failed to delete Tensorboard app: ${err}`);
   }
 };

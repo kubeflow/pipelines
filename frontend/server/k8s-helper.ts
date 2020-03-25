@@ -72,11 +72,6 @@ export async function newTensorboardInstance(
   tfversion: string,
   podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<void> {
-  if (!namespace) {
-    throw new Error(
-      `Namespace not specified and cannot get namespace from neither ${namespaceFilePath}.`,
-    );
-  }
   const currentPod = await getTensorboardInstance(logdir, namespace);
   if (currentPod.podAddress) {
     if (tfversion === currentPod.tfVersion) {
@@ -141,7 +136,7 @@ export async function getTensorboardInstance(
           viewer.body.spec.type === 'tensorboard'
         ) {
           const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
-          const tfImageParts = viewer.body.spec.tensorboardSpec.tensorflowImage.split(':', 1);
+          const tfImageParts = viewer.body.spec.tensorboardSpec.tensorflowImage.split(':', 2);
           const tfVersion = tfImageParts.length == 2 ? tfImageParts[1] : '';
           return { podAddress: address, tfVersion: tfVersion };
         } else {
@@ -150,7 +145,12 @@ export async function getTensorboardInstance(
       },
       // No existing custom object with the given name, i.e., no existing
       // tensorboard instance.
-      (_: any) => {
+      err => {
+        // This is often expected, so only use debug level for logging.
+        console.debug(
+          `Failed getting viewer custom object for logdir=${logdir} in ${namespace} namespace, err: `,
+          err?.body || err,
+        );
         return { podAddress: '', tfVersion: '' };
       },
     );
@@ -199,6 +199,7 @@ export function waitForTensorboardInstance(
       const tensorboardInstance = await getTensorboardInstance(logdir, namespace);
       const tensorboardAddress = tensorboardInstance.podAddress;
       if (tensorboardAddress) {
+        clearInterval(handle);
         resolve(encodeURIComponent(tensorboardAddress));
       }
     }, 1000);
