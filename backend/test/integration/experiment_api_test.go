@@ -205,13 +205,13 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify experiment and its runs ------- */
 	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, experiment.StorageState, api.Experiment_STORAGESTATE_ARCHIVED.String())
+	assert.Equal(t, experiment.StorageState, experiment_model.ExperimentStorageState("STORAGESTATE_ARCHIVED"))
 	retrievedRun1, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: run1.Run.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, retrievedRun1.Run.StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
+	assert.Equal(t, retrievedRun1.Run.StorageState, run_model.RunStorageState("STORAGESTATE_ARCHIVED"))
 	retrievedRun2, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: run2.Run.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, retrievedRun2.Run.StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
+	assert.Equal(t, retrievedRun2.Run.StorageState, run_model.RunStorageState("STORAGESTATE_ARCHIVED"))
 
 	/* ---------- Unarchive an experiment -----------------*/
 	err = s.experimentClient.Unarchive(&params.UnarchiveExperimentParams{ID: trainingExperiment.ID})
@@ -219,13 +219,13 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify experiment and its runs --------- */
 	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, experiment.StorageState, api.Experiment_STORAGESTATE_AVAILABLE.String())
+	assert.Equal(t, experiment.StorageState, experiment_model.ExperimentStorageState("STORAGESTATE_AVAILABLE"))
 	retrievedRun1, _, err = s.runClient.Get(&runParams.GetRunParams{RunID: run1.Run.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, retrievedRun1.Run.StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
+	assert.Equal(t, retrievedRun1.Run.StorageState, run_model.RunStorageState("STORAGESTATE_AVAILABLE"))
 	retrievedRun2, _, err = s.runClient.Get(&runParams.GetRunParams{RunID: run2.Run.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, retrievedRun2.Run.StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
+	assert.Equal(t, retrievedRun2.Run.StorageState, run_model.RunStorageState("STORAGESTATE_AVAILABLE"))
 }
 
 func TestExperimentAPI(t *testing.T) {
