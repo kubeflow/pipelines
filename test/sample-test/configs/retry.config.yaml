@@ -14,4 +14,4 @@
 
 test_name: retry
 arguments:
-run_pipeline: True
+run_pipeline: False
