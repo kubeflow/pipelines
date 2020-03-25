@@ -696,7 +696,7 @@ implementation:
     @dsl.pipeline()
     def some_pipeline():
       some_op()
-      dsl.get_pipeline_conf().test_set_service_account_name('custom_pipeline_runner')
+      dsl.get_pipeline_conf().set_service_account_name('custom_pipeline_runner')
 
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
     self.assertEqual(workflow_dict['spec']['serviceAccountName'], 'custom_pipeline_runner')
