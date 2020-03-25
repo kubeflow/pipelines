@@ -17,7 +17,7 @@ import textwrap
 import unittest
 import kfp
 from pathlib import Path
-from kfp.components import load_component_from_text
+from kfp.components import load_component_from_text, create_component_from_func
 from kfp.dsl.types import InconsistentTypeException
 
 
@@ -181,3 +181,16 @@ class TestComponentBridge(unittest.TestCase):
             #Compiling the pipleine:
             pipeline_filename = str(Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz'))
             kfp.compiler.Compiler().compile(calc_pipeline, pipeline_filename)
+
+    def test_handling_list_arguments_containing_pipelineparam(self):
+        '''Checks that lists containing PipelineParam can be properly serialized'''
+        def consume_list(list_param: list) -> int:
+            pass
+
+        import kfp
+        task_factory = create_component_from_func(consume_list)
+        task = task_factory([1, 2, 3, kfp.dsl.PipelineParam('aaa'), 4, 5, 6])
+
+        full_command_line = task.command + task.arguments
+        for arg in full_command_line:
+            self.assertNotIn('PipelineParam', arg)
