@@ -115,15 +115,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   };
 
   public render(): JSX.Element {
-    // Strip the protocol from the URL. This is a workaround for cloud shell
-    // incorrectly decoding the address and replacing the protocol's // with /.
-    // Pod address (after stripping protocol) is of the format
-    // <viewer_service_dns>.kubeflow.svc.cluster.local:6006/tensorboard/<viewer_name>/
-    // We use this pod address without encoding since encoded pod address failed to open the
-    // tensorboard instance on this pod.
-    // TODO: figure out why the encoded pod address failed to open the tensorboard.
-    const podAddress = this.state.podAddress.replace(/(^\w+:|^)\/\//, '');
-
     return (
       <div>
         {this.state.podAddress && (
@@ -132,7 +123,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
               className={padding(20, 'b')}
             >{`Tensorboard ${this.state.tensorflowVersion} is running for this output.`}</div>
             <a
-              href={'apis/v1beta1/_proxy/' + podAddress}
+              href={makeProxyUrl(this.state.podAddress)}
               target='_blank'
               rel='noopener noreferrer'
               className={commonCss.unstyled}
@@ -265,9 +256,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // If pod address is not null and tensorboard pod doesn't seem to be read, pull status again
     if (this.state.podAddress && !this.state.tensorboardReady) {
       // Remove protocol prefix bofore ":" from pod address if any.
-      Apis.isTensorboardPodReady(
-        'apis/v1beta1/_proxy/' + this.state.podAddress.replace(/(^\w+:|^)\/\//, ''),
-      ).then(ready => {
+      Apis.isTensorboardPodReady(makeProxyUrl(this.state.podAddress)).then(ready => {
         this.setState(({ tensorboardReady }) => ({ tensorboardReady: tensorboardReady || ready }));
       });
     }
@@ -315,6 +304,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       });
     });
   };
+}
+
+function makeProxyUrl(podAddress: string) {
+  return 'apis/v1beta1/_proxy/' + encodeURIComponent(podAddress).replace(/(^\w+:|^)\/\//, '');
 }
 
 export default TensorboardViewer;
