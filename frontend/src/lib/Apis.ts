@@ -13,10 +13,10 @@
 // limitations under the License.
 
 import * as portableFetch from 'portable-fetch';
-import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
+import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { ExperimentServiceApi, FetchAPI } from '../apis/experiment';
 import { JobServiceApi } from '../apis/job';
-import { ApiPipeline, PipelineServiceApi } from '../apis/pipeline';
+import { ApiPipeline, PipelineServiceApi, ApiPipelineVersion } from '../apis/pipeline';
 import { RunServiceApi } from '../apis/run';
 import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization';
 import { PlotType } from '../components/viewers/Viewer';
@@ -39,6 +39,12 @@ export interface BuildInfo {
   buildDate?: string;
   frontendCommitHash?: string;
 }
+
+// Hack types from https://github.com/microsoft/TypeScript/issues/1897#issuecomment-557057387
+export type JSONPrimitive = string | number | boolean | null;
+export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
+export type JSONObject = { [member: string]: JSONValue };
+export type JSONArray = JSONValue[];
 
 let customVisualizationsAllowed: boolean;
 
@@ -93,8 +99,30 @@ export class Apis {
     return this._fetch(query);
   }
 
+  /**
+   * Get pod info
+   */
+  public static async getPodInfo(podName: string, podNamespace: string): Promise<JSONObject> {
+    const query = `k8s/pod?podname=${encodeURIComponent(podName)}&podnamespace=${encodeURIComponent(
+      podNamespace,
+    )}`;
+    const podInfo = await this._fetch(query);
+    return JSON.parse(podInfo);
+  }
+
+  /**
+   * Get pod events
+   */
+  public static async getPodEvents(podName: string, podNamespace: string): Promise<JSONObject> {
+    const query = `k8s/pod/events?podname=${encodeURIComponent(
+      podName,
+    )}&podnamespace=${encodeURIComponent(podNamespace)}`;
+    const eventList = await this._fetch(query);
+    return JSON.parse(eventList);
+  }
+
   public static get basePath(): string {
-    const path = location.protocol + '//' + location.host + location.pathname;
+    const path = window.location.protocol + '//' + window.location.host + window.location.pathname;
     // Trim trailing '/' if exists
     return path.endsWith('/') ? path.substr(0, path.length - 1) : path;
   }
@@ -205,6 +233,14 @@ export class Apis {
   }
 
   /**
+   * Check if the underlying Tensorboard pod is actually up, given the pod address
+   */
+  public static async isTensorboardPodReady(path: string): Promise<boolean> {
+    const resp = await fetch(path, { method: 'HEAD' });
+    return resp.ok;
+  }
+
+  /**
    * Delete a deployment and its service of the Tensorboard given the URL
    */
   public static deleteTensorboardApp(logdir: string): Promise<string> {
@@ -233,6 +269,25 @@ export class Apis {
       `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
         pipelineDescription,
       )}`,
+      {
+        body: fd,
+        cache: 'no-cache',
+        method: 'POST',
+      },
+    );
+  }
+
+  public static async uploadPipelineVersion(
+    versionName: string,
+    pipelineId: string,
+    versionData: File,
+  ): Promise<ApiPipelineVersion> {
+    const fd = new FormData();
+    fd.append('uploadfile', versionData, versionData.name);
+    return await this._fetchAndParse<ApiPipelineVersion>(
+      '/pipelines/upload_version',
+      v1beta1Prefix,
+      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}`,
       {
         body: fd,
         cache: 'no-cache',

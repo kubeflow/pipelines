@@ -1,25 +1,15 @@
 # This image has the script to kick off the ML pipeline sample e2e test,
 
-FROM google/cloud-sdk:272.0.0
+FROM google/cloud-sdk:279.0.0
 
 RUN apt-get update -y
 RUN apt-get install --no-install-recommends -y -q libssl-dev libffi-dev wget ssh
-RUN apt-get install --no-install-recommends -y -q default-jre default-jdk python3-setuptools python3-dev gcc
+RUN apt-get install --no-install-recommends -y -q default-jre default-jdk python3-setuptools python3.7-dev gcc libpython3.7-dev zlib1g-dev
 
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 
-RUN pip3 install wheel
-RUN pip3 install junit-xml
-RUN pip3 install kubernetes==9.0.0
-RUN pip3 install minio
-RUN pip3 install setuptools==40.5.0
-RUN pip3 install papermill==1.0.1
-RUN pip3 install ipykernel==5.1.0
-RUN pip3 install google-api-python-client==1.7.0
-RUN pip3 install google-cloud-storage==1.17.0
-RUN pip3 install fire==0.2.1
-RUN pip3 install yamale==2.0
-RUN pip3 install tfx==0.21.0rc0
+COPY ./test/sample-test/requirements.txt /python/src/github.com/kubeflow/pipelines/test/sample-test/requirements.txt
+RUN pip3 install -r /python/src/github.com/kubeflow/pipelines/test/sample-test/requirements.txt
 
 # Install python client, including DSL compiler.
 COPY ./sdk/python /sdk/python

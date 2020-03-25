@@ -22,7 +22,7 @@ export const ArtifactLink: React.FC<{ artifactUri?: string }> = ({ artifactUri }
   if (clickableUrl) {
     // Opens in new window safely
     return (
-      <a href={clickableUrl} target={'_blank'} rel={'noreferrer noopener'}>
+      <a href={clickableUrl} target={'_blank'} rel='noreferrer noopener'>
         {artifactUri}
       </a>
     );

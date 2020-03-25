@@ -87,6 +87,61 @@ func TestValidNewFilters(t *testing.T) {
 	}
 }
 
+func TestValidNewFiltersWithKeyMap(t *testing.T) {
+	opts := []cmp.Option{
+		cmp.AllowUnexported(Filter{}),
+		cmp.FilterPath(func(p cmp.Path) bool {
+			return p.String() == "filterProto"
+		}, cmp.Ignore()),
+		cmpopts.EquateEmpty(),
+	}
+
+	tests := []struct {
+		protoStr string
+		want     *Filter
+	}{
+		{
+			`predicates { key: "name" op: EQUALS string_value: "pipeline" }`,
+			&Filter{eq: map[string]interface{}{"pipelines.Name": "pipeline"}},
+		},
+		{
+			`predicates { key: "name" op: NOT_EQUALS string_value: "pipeline" }`,
+			&Filter{neq: map[string]interface{}{"pipelines.Name": "pipeline"}},
+		},
+		{
+			`predicates {
+				key: "name" op: IN
+				string_values { values: 'pipeline_1' values: 'pipeline_2' } }`,
+			&Filter{in: map[string]interface{}{"pipelines.Name": []string{"pipeline_1", "pipeline_2"}}},
+		},
+		{
+			`predicates {
+				key: "name" op: IS_SUBSTRING string_value: "pipeline" }`,
+			&Filter{substring: map[string]interface{}{"pipelines.Name": "pipeline"}},
+		},
+	}
+
+	for _, test := range tests {
+		filterProto := &api.Filter{}
+		if err := proto.UnmarshalText(test.protoStr, filterProto); err != nil {
+			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
+			continue
+		}
+
+		keyMap := map[string]string{
+			"id":          "UUID",
+			"name":        "Name",
+			"created_at":  "CreatedAtInSec",
+			"description": "Description",
+		}
+		modelName := "pipelines"
+		got, err := NewWithKeyMap(filterProto, keyMap, modelName)
+		if !cmp.Equal(got, test.want, opts...) || err != nil {
+			t.Errorf("New(%+v) = %+v, %v\nWant %+v, nil", *filterProto, got, err, test.want)
+		}
+	}
+}
+
 func TestInvalidFilters(t *testing.T) {
 	tests := []struct {
 		protoStr string

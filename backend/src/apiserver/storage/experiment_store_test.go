@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -22,7 +23,15 @@ const (
 )
 
 func createExperiment(name string) *model.Experiment {
-	return &model.Experiment{Name: name, Description: fmt.Sprintf("My name is %s", name)}
+	return createExperimentInNamespace(name, "")
+}
+
+func createExperimentInNamespace(name string, namespace string) *model.Experiment {
+	return &model.Experiment{
+		Name:        name,
+		Description: fmt.Sprintf("My name is %s", name),
+		Namespace:   namespace,
+	}
 }
 
 func TestListExperiments_Pagination(t *testing.T) {
@@ -52,7 +61,7 @@ func TestListExperiments_Pagination(t *testing.T) {
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "name", nil)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
@@ -76,7 +85,7 @@ func TestListExperiments_Pagination(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -111,7 +120,7 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "name desc", nil)
 	assert.Nil(t, err)
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
@@ -135,7 +144,7 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -158,7 +167,7 @@ func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "", nil)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
@@ -173,7 +182,7 @@ func TestListExperimentsError(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "", nil)
 	assert.Nil(t, err)
-	_, _, _, err = experimentStore.ListExperiments(opts)
+	_, _, _, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
@@ -227,6 +236,38 @@ func TestCreateExperiment(t *testing.T) {
 
 	experiment := createExperiment("experiment1")
 	experiment, err := experimentStore.CreateExperiment(experiment)
+	assert.Nil(t, err)
+	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
+}
+
+func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentExpected := model.Experiment{
+		UUID:           fakeID,
+		CreatedAtInSec: 1,
+		Name:           "experiment1",
+		Description:    "My name is experiment1",
+		Namespace:      "namespace1",
+	}
+
+	experiment := createExperimentInNamespace("experiment1", "namespace1")
+	experiment, err := experimentStore.CreateExperiment(experiment)
+	assert.Nil(t, err)
+	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
+
+	experimentStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeIDTwo, nil))
+	experiment = createExperimentInNamespace("experiment1", "namespace2")
+	experimentExpected = model.Experiment{
+		UUID:           fakeIDTwo,
+		CreatedAtInSec: 1,
+		Name:           "experiment1",
+		Description:    "My name is experiment1",
+		Namespace:      "namespace2",
+	}
+
+	experiment, err = experimentStore.CreateExperiment(experiment)
 	assert.Nil(t, err)
 	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment.")
 }
@@ -328,7 +369,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "id", filterProto)
 	assert.Nil(t, err)
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
 
 	expected := []*model.Experiment{
 		&model.Experiment{
@@ -354,7 +395,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
 
 	expected = []*model.Experiment{
 		&model.Experiment{

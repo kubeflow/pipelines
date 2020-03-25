@@ -16,6 +16,7 @@ package storage
 
 import (
 	"bytes"
+	"path"
 	"regexp"
 
 	"github.com/ghodss/yaml"
@@ -34,13 +35,20 @@ type ObjectStoreInterface interface {
 	GetFile(filePath string) ([]byte, error)
 	AddAsYamlFile(o interface{}, filePath string) error
 	GetFromYamlFile(o interface{}, filePath string) error
+	GetPipelineKey(pipelineId string) string
 }
 
 // Managing pipeline using Minio
 type MinioObjectStore struct {
 	minioClient      MinioClientInterface
 	bucketName       string
+	baseFolder       string
 	disableMultipart bool
+}
+
+// GetPipelineKey adds the configured base folder to pipeline id.
+func (m *MinioObjectStore) GetPipelineKey(pipelineID string) string {
+	return path.Join(m.baseFolder, pipelineID)
 }
 
 func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
@@ -118,6 +126,6 @@ func buildPath(folder, file string) string {
 	return folder + "/" + file
 }
 
-func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string, disableMultipart bool) *MinioObjectStore {
-	return &MinioObjectStore{minioClient: minioClient, bucketName: bucketName, disableMultipart: disableMultipart}
+func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string, baseFolder string, disableMultipart bool) *MinioObjectStore {
+	return &MinioObjectStore{minioClient: minioClient, bucketName: bucketName, baseFolder: baseFolder, disableMultipart: disableMultipart}
 }

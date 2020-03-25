@@ -8,8 +8,6 @@ swagger-codegen-cli.jar
 
 # testing
 /coverage
-backstop_data/html_report/
-backstop_data/bitmaps_test/
 
 # production
 /build

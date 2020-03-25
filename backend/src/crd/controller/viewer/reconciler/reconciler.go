@@ -177,12 +177,11 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 		"tensorboard",
 		fmt.Sprintf("--logdir=%s", view.Spec.TensorboardSpec.LogDir),
 		fmt.Sprintf("--path_prefix=/tensorboard/%s/", view.Name),
-		// This is needed for tf 2.0. We need to optionally add it
-		// when https://github.com/kubeflow/pipelines/issues/2514 is done
-		// "--bind_all",
 	}
 
-	if !strings.HasPrefix(view.Spec.TensorboardSpec.TensorflowImage, `tensorflow/tensorflow:1.`) {
+	tfImageVersion := strings.Split(view.Spec.TensorboardSpec.TensorflowImage, ":")[1]
+	// This is needed for tf 2.0
+	if !strings.HasPrefix(tfImageVersion, `1.`) {
 		c.Args = append(c.Args, "--bind_all")
 	}
 

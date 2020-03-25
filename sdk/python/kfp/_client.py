@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import string
+import random
 import time
 import logging
 import json
@@ -105,6 +106,7 @@ class Client(object):
     config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, other_token)
     api_client = kfp_server_api.api_client.ApiClient(config)
     _add_generated_apis(self, kfp_server_api, api_client)
+    self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
@@ -112,17 +114,24 @@ class Client(object):
 
   def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, other_token):
     config = kfp_server_api.configuration.Configuration()
+
+    host = host or ''
+    # Preprocess the host endpoint to prevent some common user mistakes.
+    host = host.lstrip(r'(https|http)://').rstrip('/')
+
     if host:
       config.host = host
 
     token = None
 
+    # Obtain the tokens if it is IAP or inverse proxy.
+    # client_id is only used for IAP, so when the value is provided, we assume it's IAP.
     if other_token:
       token = other_token
+    elif client_id:
+      token = get_auth_token(client_id, other_client_id, other_client_secret)
     elif self._is_inverse_proxy_host(host):
       token = get_gcp_access_token()
-    elif self._is_iap_host(host,client_id):
-      token = get_auth_token(client_id, other_client_id, other_client_secret)
 
     if token:
       config.api_key['authorization'] = token
@@ -155,16 +164,13 @@ class Client(object):
       config.host = config.host + '/' + Client.KUBE_PROXY_PATH.format(namespace)
     return config
 
-  def _is_iap_host(self, host, client_id):
-    if host and client_id:
-      if re.match(r'\S+.endpoints.\S+.cloud.goog/{0,1}$', host):
-        warnings.warn('Suffix /pipeline is not ignorable for IAP host.')
-      return re.match(r'\S+.endpoints.\S+.cloud.goog/pipeline', host)
-    return False
-
   def _is_inverse_proxy_host(self, host):
     if host:
       return re.match(r'\S+.googleusercontent.com/{0,1}$', host)
+    if re.match(r'\w+', host):
+      warnings.warn(
+          'The received host is %s, please include the full endpoint address '
+          '(with ".(pipelines/notebooks).googleusercontent.com")' % host)
     return False
 
   def _is_ipython(self):
@@ -190,25 +196,38 @@ class Client(object):
     # In-cluster pod. We could use relative URL.
     return '/pipeline'
 
-  def create_experiment(self, name, description=None):
+  def create_experiment(self, name, description=None, namespace=''):
     """Create a new experiment.
     Args:
       name: the name of the experiment.
-      description: description of the experiment
+      description: description of the experiment.
+      namespace: kubernetes namespace where the experiment should be created.
+        For single user deployment, leave it as empty;
+        For multi user, input a namespace where the user is authorized.
     Returns:
       An Experiment object. Most important field is id.
     """
 
     experiment = None
     try:
-      experiment = self.get_experiment(experiment_name=name)
+      experiment = self.get_experiment(experiment_name=name, namespace=namespace)
     except:
       # Ignore error if the experiment does not exist.
       pass
 
     if not experiment:
       logging.info('Creating experiment {}.'.format(name))
-      experiment = kfp_server_api.models.ApiExperiment(name=name, description=description)
+
+      resource_references = []
+      if namespace is not None:
+        key = kfp_server_api.models.ApiResourceKey(id=namespace, type=kfp_server_api.models.ApiResourceType.NAMESPACE)
+        reference = kfp_server_api.models.ApiResourceReference(key=key, relationship=kfp_server_api.models.ApiRelationship.OWNER)
+        resource_references.append(reference)
+
+      experiment = kfp_server_api.models.ApiExperiment(
+        name=name,
+        description=description,
+        resource_references=resource_references)
       experiment = self._experiment_api.create_experiment(body=experiment)
 
     if self._is_ipython():
@@ -219,25 +238,35 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return experiment
 
-  def list_experiments(self, page_token='', page_size=10, sort_by=''):
+  def list_experiments(self, page_token='', page_size=10, sort_by='', namespace=''):
     """List experiments.
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
       sort_by: can be '[field_name]', '[field_name] des'. For example, 'name des'.
+      namespace: kubernetes namespace where the experiment was created.
+        For single user deployment, leave it as empty;
+        For multi user, input a namespace where the user is authorized.
     Returns:
       A response object including a list of experiments and next page token.
     """
     response = self._experiment_api.list_experiment(
-        page_token=page_token, page_size=page_size, sort_by=sort_by)
+      page_token=page_token,
+      page_size=page_size,
+      sort_by=sort_by,
+      resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE,
+      resource_reference_key_id=namespace)
     return response
 
-  def get_experiment(self, experiment_id=None, experiment_name=None):
+  def get_experiment(self, experiment_id=None, experiment_name=None, namespace=''):
     """Get details of an experiment
     Either experiment_id or experiment_name is required
     Args:
       experiment_id: id of the experiment. (Optional)
       experiment_name: name of the experiment. (Optional)
+      namespace: kubernetes namespace where the experiment was created.
+        For single user deployment, leave it as empty;
+        For multi user, input the namespace where the user is authorized.
     Returns:
       A response object including details of a experiment.
     Throws:
@@ -249,7 +278,7 @@ class Client(object):
       return self._experiment_api.get_experiment(id=experiment_id)
     next_page_token = ''
     while next_page_token is not None:
-      list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token)
+      list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token, namespace=namespace)
       next_page_token = list_experiments_response.next_page_token
       for experiment in list_experiments_response.experiments:
         if experiment.name == experiment_name:
@@ -415,6 +444,72 @@ class Client(object):
     run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments, namespace=namespace)
     return RunPipelineResult(self, run_info)
 
+  def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None,
+    namespace=None, cron_schedule=None, description=None, max_concurrency=10, no_catchup=None):
+    """Schedule pipeline on kubeflow to run based upon a cron job
+
+    Arguments:
+        experiment_id {string} -- The expriment within which we would like kubeflow
+        job_name {string} -- The name of the scheduled job
+
+    Keyword Arguments:
+        pipeline_package_path {string} -- The path to the pipeline package (default: {None})
+        params {dict} -- The pipeline parameters (default: {{}})
+        pipeline_id {string} -- The id of the pipeline which should run on schedule (default: {None})
+        namespace {string} -- The name space with which the pipeline should run (default: {None})
+        max_concurrency {int} -- Max number of concurrent runs scheduled (default: {10})
+        no_catchup {boolean} -- Whether the recurring run should catch up if behind schedule.
+          For example, if the recurring run is paused for a while and re-enabled
+          afterwards. If no_catchup=False, the scheduler will catch up on (backfill) each
+          missed interval. Otherwise, it only schedules the latest interval if more than one interval
+          is ready to be scheduled.
+          Usually, if your pipeline handles backfill internally, you should turn catchup
+          off to avoid duplicate backfill. (default: {False})
+    """
+
+    pipeline_json_string = None
+    if pipeline_package_path:
+      pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
+      pipeline_json_string = json.dumps(pipeline_obj)
+    api_params = [kfp_server_api.ApiParameter(
+        name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
+        value=str(v)) for k,v in params.items()]
+    resource_references = []
+
+    key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
+                                        type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
+    reference = kfp_server_api.models.ApiResourceReference(key=key,
+                                                           relationship=kfp_server_api.models.ApiRelationship.OWNER)
+    resource_references.append(reference)
+    if namespace is not None:
+      key = kfp_server_api.models.ApiResourceKey(id=namespace,
+                                                 type=kfp_server_api.models.ApiResourceType.NAMESPACE)
+      reference = kfp_server_api.models.ApiResourceReference(key=key,
+                                                             name=namespace,
+                                                             relationship=kfp_server_api.models.ApiRelationship.OWNER)
+      resource_references.append(reference)
+    spec = kfp_server_api.models.ApiPipelineSpec(
+        pipeline_id=pipeline_id,
+        workflow_manifest=pipeline_json_string,
+        parameters=api_params)
+
+    trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(cron=cron_schedule) #Example:cron_schedule="0 0 9 ? * 2-6"
+    job_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+    schedule_body = kfp_server_api.models.ApiJob(
+        id=job_id,
+        name=job_name,
+        description=description,
+        pipeline_spec=spec,
+        resource_references=resource_references,
+        max_concurrency=max_concurrency,
+        no_catchup=no_catchup,
+        trigger=trigger,
+        enabled=True,
+        )
+    #[TODO] Add link to the scheduled job. 
+    response = self._job_api.create_job(body=schedule_body)
+
+
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
     """List runs.
     Args:
@@ -500,3 +595,15 @@ class Client(object):
       Exception if pipeline is not found.
     """
     return self._pipelines_api.get_pipeline(id=pipeline_id)
+
+  def delete_pipeline(self, pipeline_id):
+    """Delete pipeline.
+    Args:
+      id of the pipeline.
+    Returns:
+      Object. If the method is called asynchronously,
+      returns the request thread.
+    Throws:
+      Exception if pipeline is not found.
+    """
+    return self._pipelines_api.delete_pipeline(id=pipeline_id)

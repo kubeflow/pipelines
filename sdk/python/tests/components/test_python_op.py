@@ -19,8 +19,9 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable, NamedTuple, Sequence
 
-import kfp
 import kfp.components as comp
+from kfp.components import InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile
+from kfp.components.structures import InputSpec, OutputSpec
 from kfp.components._components import _resolve_command_line_and_paths
 
 def add_two_numbers(a: float, b: float) -> float:
@@ -286,7 +287,8 @@ class PythonOpTestCase(unittest.TestCase):
             bool_param : bool = True,
             none_param = None,
             custom_type_param: 'Custom type' = None,
-            ) -> NamedTuple('DummyName', [
+            custom_struct_type_param: {'CustomType': {'param1': 'value1', 'param2': 'value2'}} = None,
+        ) -> NamedTuple('DummyName', [
                 #('required_param',), # All typing.NamedTuple fields must have types
                 ('int_param', int),
                 ('float_param', float),
@@ -294,6 +296,7 @@ class PythonOpTestCase(unittest.TestCase):
                 ('bool_param', bool),
                 #('custom_type_param', 'Custom type'), #SyntaxError: Forward reference must be an expression -- got 'Custom type'
                 ('custom_type_param', 'CustomType'),
+                #('custom_struct_type_param', {'CustomType': {'param1': 'value1', 'param2': 'value2'}}), # TypeError: NamedTuple('Name', [(f0, t0), (f1, t1), ...]); each t must be a type Got {'CustomType': {'param1': 'value1', 'param2': 'value2'}}
             ]
         ):
             '''Function docstring'''
@@ -301,7 +304,6 @@ class PythonOpTestCase(unittest.TestCase):
 
         component_spec = comp._python_op._extract_component_interface(my_func)
 
-        from kfp.components.structures import InputSpec, OutputSpec
         self.assertEqual(
             component_spec.inputs,
             [
@@ -312,6 +314,7 @@ class PythonOpTestCase(unittest.TestCase):
                 InputSpec(name='bool_param', type='Boolean', default='True', optional=True),
                 InputSpec(name='none_param', optional=True), # No default='None'
                 InputSpec(name='custom_type_param', type='Custom type', optional=True),
+                InputSpec(name='custom_struct_type_param', type={'CustomType': {'param1': 'value1', 'param2': 'value2'}}, optional=True),
             ]
         )
         self.assertEqual(
@@ -323,6 +326,7 @@ class PythonOpTestCase(unittest.TestCase):
                 OutputSpec(name='bool_param', type='Boolean'),
                 #OutputSpec(name='custom_type_param', type='Custom type', default='None'),
                 OutputSpec(name='custom_type_param', type='CustomType'),
+                #OutputSpec(name='custom_struct_type_param', type={'CustomType': {'param1': 'value1', 'param2': 'value2'}}, optional=True),
             ]
         )
 
@@ -340,6 +344,7 @@ class PythonOpTestCase(unittest.TestCase):
                     {'name': 'bool_param', 'type': 'Boolean', 'default': 'True', 'optional': True},
                     {'name': 'none_param', 'optional': True}, # No default='None'
                     {'name': 'custom_type_param', 'type': 'Custom type', 'optional': True},
+                    {'name': 'custom_struct_type_param', 'type': {'CustomType': {'param1': 'value1', 'param2': 'value2'}}, 'optional': True},
                 ],
                 'outputs': [
                     {'name': 'int_param', 'type': 'Integer'},
@@ -347,6 +352,7 @@ class PythonOpTestCase(unittest.TestCase):
                     {'name': 'str_param', 'type': 'String'},
                     {'name': 'bool_param', 'type': 'Boolean'},
                     {'name': 'custom_type_param', 'type': 'CustomType'},
+                    #{'name': 'custom_struct_type_param', 'type': {'CustomType': {'param1': 'value1', 'param2': 'value2'}}, 'optional': True},
                 ]
             }
         )
@@ -406,36 +412,34 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
-    def test_python_component_decorator(self):
-        from kfp.dsl import python_component
-        import kfp.components._python_op as _python_op
+    def test_legacy_python_component_name_description_overrides(self):
+        # Deprecated feature
 
         expected_name = 'Sum component name'
         expected_description = 'Sum component description'
         expected_image = 'org/image'
 
-        @python_component(
-            name=expected_name,
-            description=expected_description,
-            base_image=expected_image
-        )
         def add_two_numbers_decorated(
             a: float,
             b: float,
         ) -> float:
             '''Returns sum of two arguments'''
             return a + b
+        
+        # Deprecated features
+        add_two_numbers_decorated._component_human_name = expected_name
+        add_two_numbers_decorated._component_description = expected_description
+        add_two_numbers_decorated._component_base_image = expected_image
 
-        component_spec = _python_op._func_to_component_spec(add_two_numbers_decorated)
+        func = add_two_numbers_decorated
+        op = comp.func_to_container_op(func)
+
+        component_spec = op.component_spec
 
         self.assertEqual(component_spec.name, expected_name)
         self.assertEqual(component_spec.description.strip(), expected_description.strip())
         self.assertEqual(component_spec.implementation.container.image, expected_image)
 
-        func = add_two_numbers_decorated
-        op = comp.func_to_container_op(func)
-
-        self.helper_test_component_against_func_using_local_call(func, op, arguments={'a': 3, 'b': 5.0})
 
     def test_saving_default_values(self):
         from typing import NamedTuple
@@ -508,22 +512,57 @@ class PythonOpTestCase(unittest.TestCase):
         ])
 
 
-    def test_handling_list_arguments_containing_pipelineparam(self):
-        '''Checks that lists containing PipelineParam can be properly serialized'''
-        def consume_list(list_param: list) -> int:
+    def test_fail_on_handling_list_arguments_containing_python_objects(self):
+        '''Checks that lists containing python objects not having .to_struct() raise error during serialization.'''
+
+        class MyClass:
             pass
 
-        import kfp
-        task_factory = comp.func_to_container_op(consume_list)
-        task = task_factory([1, 2, 3, kfp.dsl.PipelineParam("aaa"), 4, 5, 6])
-        resolved_cmd = _resolve_command_line_and_paths(
-            task.component_ref.spec,
-            task.arguments,
-        )
-        full_command_line = resolved_cmd.command + resolved_cmd.args
-        for arg in full_command_line:
-            self.assertNotIn('PipelineParam', arg)
+        def consume_list(
+            list_param: list,
+        ) -> int:
+            return 1
 
+        def consume_dict(
+            dict_param: dict,
+        ) -> int:
+            return 1
+
+        list_op = comp.create_component_from_func(consume_list)
+        dict_op = comp.create_component_from_func(consume_dict)
+
+        with self.assertRaises(Exception):
+            list_op([1, MyClass(), 3])
+
+        with self.assertRaises(Exception):
+            dict_op({'k1': MyClass()})
+
+    def test_handling_list_arguments_containing_serializable_python_objects(self):
+        '''Checks that lists containing python objects with .to_struct() can be properly serialized.'''
+
+        class MyClass:
+            def to_struct(self):
+                return {'foo': [7, 42]}
+
+        def assert_values_are_correct(
+            list_param: list,
+            dict_param: dict,
+        ) -> int:
+            import unittest
+            unittest.TestCase().assertEqual(list_param, [1, {'foo': [7, 42]}, 3])
+            unittest.TestCase().assertEqual(dict_param, {'k1': {'foo': [7, 42]}})
+            return 1
+
+        task_factory = comp.create_component_from_func(assert_values_are_correct)
+
+        self.helper_test_component_using_local_call(
+            task_factory,
+            arguments=dict(
+                list_param=[1, MyClass(), 3],
+                dict_param={'k1': MyClass()},
+            ),
+            expected_output_values={'Output': '1'},
+        )
 
     def test_handling_base64_pickle_arguments(self):
         def assert_values_are_same(
@@ -548,7 +587,7 @@ class PythonOpTestCase(unittest.TestCase):
 
     def test_handling_list_dict_output_values(self):
         def produce_list() -> list:
-            return (["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}], )
+            return ["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}]
         
         # ! JSON map keys are always strings. Python converts all keys to strings without warnings
         task_factory = comp.func_to_container_op(produce_list)
@@ -560,7 +599,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_input_path(self):
-        from kfp.components import InputPath
         def consume_file_path(number_file_path: InputPath(int)) -> int:
             with open(number_file_path) as f:
                 string_data = f.read()
@@ -574,7 +612,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_input_text_file(self):
-        from kfp.components import InputTextFile
         def consume_file_path(number_file: InputTextFile(int)) -> int:
             string_data = number_file.read()
             assert isinstance(string_data, str)
@@ -588,7 +625,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_input_binary_file(self):
-        from kfp.components import InputBinaryFile
         def consume_file_path(number_file: InputBinaryFile(int)) -> int:
             bytes_data = number_file.read()
             assert isinstance(bytes_data, bytes)
@@ -602,7 +638,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_output_path(self):
-        from kfp.components import OutputPath
         def write_to_file_path(number_file_path: OutputPath(int)):
             with open(number_file_path, 'w') as f:
                 f.write(str(42))
@@ -617,7 +652,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_output_text_file(self):
-        from kfp.components import OutputTextFile
         def write_to_file_path(number_file: OutputTextFile(int)):
             number_file.write(str(42))
 
@@ -631,7 +665,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_output_binary_file(self):
-        from kfp.components import OutputBinaryFile
         def write_to_file_path(number_file: OutputBinaryFile(int)):
             number_file.write(b'42')
 
@@ -645,7 +678,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_output_path_plus_return_value(self):
-        from kfp.components import OutputPath
         def write_to_file_path(number_file_path: OutputPath(int)) -> str:
             with open(number_file_path, 'w') as f:
                 f.write(str(42))
@@ -662,7 +694,6 @@ class PythonOpTestCase(unittest.TestCase):
 
 
     def test_all_data_passing_ways(self):
-        from kfp.components import InputTextFile, InputPath, OutputTextFile, OutputPath
         def write_to_file_path(
             file_input1_path: InputPath(str),
             file_input2_file: InputTextFile(str),
@@ -705,13 +736,32 @@ class PythonOpTestCase(unittest.TestCase):
             },
         )
 
+    def test_annotations_stripping(self):
+        import typing
+        import collections
+
+        MyFuncOutputs = typing.NamedTuple('Outputs', [('sum', int), ('product', int)])
+
+        class CustomType1:
+            pass
+
+        def my_func(
+            param1: CustomType1 = None,  # This caused failure previously
+            param2: collections.OrderedDict = None,  # This caused failure previously
+        ) -> MyFuncOutputs: # This caused failure previously
+            assert param1 == None
+            assert param2 == None
+            return (8, 15)
+
+        task_factory = comp.create_component_from_func(my_func)
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'sum': '8', 'product': '15'})
 
     def test_file_input_name_conversion(self):
         # Checking the input name conversion rules for file inputs:
         # For InputPath, the "_path" suffix is removed
         # For Input*, the "_file" suffix is removed
 
-        from kfp.components import InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile
         def consume_file_path(
             number: int,
 
@@ -814,9 +864,7 @@ class PythonOpTestCase(unittest.TestCase):
             self.helper_test_component_using_local_call(task_factory2, arguments={}, expected_output_values={})
 
 
-    def test_end_to_end_python_component_pipeline_compilation(self):
-        import kfp.components as comp
-
+    def test_end_to_end_python_component_pipeline(self):
         #Defining the Python function
         def add(a: float, b: float) -> float:
             '''Returns sum of two arguments'''
@@ -832,11 +880,6 @@ class PythonOpTestCase(unittest.TestCase):
             add_op2 = comp.load_component_from_file(add_component_file)
 
             #Building the pipeline
-            import kfp.dsl as dsl
-            @dsl.pipeline(
-                name='Calculation pipeline',
-                description='A pipeline that performs arithmetic calculations.'
-            )
             def calc_pipeline(
                 a1,
                 a2='7',
@@ -844,13 +887,11 @@ class PythonOpTestCase(unittest.TestCase):
             ):
                 task_1 = add_op(a1, a2)
                 task_2 = add_op2(a1, a2)
-                task_3 = add_op(task_1.output, task_2.output)
-                task_4 = add_op2(task_3.output, a3)
+                task_3 = add_op(task_1.outputs['Output'], task_2.outputs['Output'])
+                task_4 = add_op2(task_3.outputs['Output'], a3)
 
-            #Compiling the pipleine:
-            pipeline_filename = str(Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz'))
-            import kfp.compiler as compiler
-            compiler.Compiler().compile(calc_pipeline, pipeline_filename)
+            #Instantiating the pipleine:
+            calc_pipeline(42)
 
 
 if __name__ == '__main__':

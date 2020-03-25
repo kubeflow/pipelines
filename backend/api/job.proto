@@ -85,14 +85,14 @@ service JobService {
     };
   }
 
-  //Enable a job.
+  //Restarts a job that was previously stopped. All runs associated with the job will continue.
   rpc EnableJob(EnableJobRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/jobs/{id}/enable"
     };
   }
 
-  //Disable a job.
+  //Stops a job and all its associated runs. The job is not deleted.
   rpc DisableJob(DisableJobRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/jobs/{id}/disable"
@@ -243,4 +243,9 @@ message Job {
 
   // Input. Whether the job is enabled or not.
   bool enabled = 16;
+
+  // Optional input field. Whether the job should catch up if behind schedule.
+  // If true, the job will only schedule the latest interval if behind schedule.
+  // If false, the job will catch up on each past interval.
+  bool no_catchup = 17;
 }

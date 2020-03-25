@@ -44,16 +44,39 @@ func NewCronSchedule(cronSchedule *swfapi.CronSchedule) *CronSchedule {
 // scheduled.
 func (s *CronSchedule) GetNextScheduledEpoch(lastJobEpoch *int64,
 	defaultStartEpoch int64) int64 {
-	effectiveLastJobEpoch := defaultStartEpoch
-	if lastJobEpoch != nil {
-		effectiveLastJobEpoch = *lastJobEpoch
-	} else if s.StartTime != nil {
-		effectiveLastJobEpoch = s.StartTime.Unix()
-	}
+	effectiveLastJobEpoch := s.getEffectiveLastJobEpoch(lastJobEpoch, defaultStartEpoch)
 	return s.getNextScheduledEpoch(effectiveLastJobEpoch)
 }
 
+func (s *CronSchedule) GetNextScheduledEpochNoCatchup(lastJobEpoch *int64,
+	defaultStartEpoch int64, nowEpoch int64) int64 {
+
+	effectiveLastJobEpoch := s.getEffectiveLastJobEpoch(lastJobEpoch, defaultStartEpoch)
+	return s.getNextScheduledEpochImp(effectiveLastJobEpoch, false, nowEpoch)
+}
+
+func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobEpoch *int64,
+	defaultStartEpoch int64) int64 {
+
+	// Fallback to default start epoch, which will be passed the Job creation
+	// time.
+	effectiveLastJobEpoch := defaultStartEpoch
+	if lastJobEpoch != nil {
+		// Last job epoch takes first precedence.
+		effectiveLastJobEpoch = *lastJobEpoch
+	} else if s.StartTime != nil {
+		// Start time takes second precedence.
+		effectiveLastJobEpoch = s.StartTime.Unix()
+	}
+	return effectiveLastJobEpoch
+}
+
 func (s *CronSchedule) getNextScheduledEpoch(lastJobEpoch int64) int64 {
+	return s.getNextScheduledEpochImp(lastJobEpoch,
+		true, 0 /* nowEpoch doesn't matter when catchup=true */)
+}
+
+func (s *CronSchedule) getNextScheduledEpochImp(lastJobEpoch int64, catchup bool, nowEpoch int64) int64 {
 	schedule, err := cron.Parse(s.Cron)
 	if err != nil {
 		// This should never happen, validation should have caught this at resource creation.
@@ -68,10 +91,30 @@ func (s *CronSchedule) getNextScheduledEpoch(lastJobEpoch int64) int64 {
 	}
 	result := schedule.Next(time.Unix(startEpoch, 0).UTC()).Unix()
 
-	if s.EndTime != nil &&
-		s.EndTime.Unix() < result {
+	var endTime int64 = math.MaxInt64
+	if s.EndTime != nil {
+		endTime = s.EndTime.Unix()
+	}
+	if endTime < result {
 		return math.MaxInt64
 	}
 
-	return result
+	// When we need to catch up with schedule, just run schedules one by one.
+	if catchup == true {
+		return result
+	}
+
+	// When we don't need to catch up, find the last schedule we need to run
+	// now and skip others in between.
+	next := result
+	var nextNext int64
+	for {
+		nextNext = schedule.Next(time.Unix(next, 0).UTC()).Unix()
+		if nextNext <= nowEpoch && nextNext <= endTime {
+			next = nextNext
+		} else {
+			break
+		}
+	}
+	return next
 }

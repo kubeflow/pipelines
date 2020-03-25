@@ -26,7 +26,8 @@ import {
   deleteTensorboardHandler,
 } from './handlers/tensorboard';
 import { getPodLogsHandler } from './handlers/pod-logs';
-import { clusterNameHandler, projectIdHandler } from './handlers/gke-metadata';
+import { podInfoHandler, podEventsHandler } from './handlers/pod-info';
+import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata';
 import { getAllowCustomVisualizationsHandler } from './handlers/vis';
 import { getIndexHTMLHandler } from './handlers/index-html';
 
@@ -36,7 +37,7 @@ import { Server } from 'http';
 function getRegisterHandler(app: Application, basePath: string) {
   return (
     func: (name: string, handler: express.Handler) => express.Application,
-    route: string,
+    route: string | string[],
     handler: express.Handler,
   ) => {
     func.call(app, route, handler);
@@ -121,15 +122,18 @@ function createUIServer(options: UIConfigs) {
   registerHandler(
     app.post,
     '/apps/tensorboard',
-    getCreateTensorboardHandler(options.viewer.tensorboard.podTemplateSpec),
+    getCreateTensorboardHandler(options.viewer.tensorboard),
   );
 
   /** Pod logs */
   registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));
+  /** Pod info */
+  registerHandler(app.get, '/k8s/pod', podInfoHandler);
+  registerHandler(app.get, '/k8s/pod/events', podEventsHandler);
 
   /** Cluster metadata (GKE only) */
-  registerHandler(app.get, '/system/cluster-name', clusterNameHandler);
-  registerHandler(app.get, '/system/project-id', projectIdHandler);
+  registerHandler(app.get, '/system/cluster-name', getClusterNameHandler(options.gkeMetadata));
+  registerHandler(app.get, '/system/project-id', getProjectIdHandler(options.gkeMetadata));
 
   /** Visualization */
   registerHandler(
@@ -150,6 +154,19 @@ function createUIServer(options: UIConfigs) {
     }),
   );
 
+  registerHandler(
+    app.use,
+    [
+      // Original API endpoint is /runs/{run_id}:reportMetrics, but ':reportMetrics' means a url parameter, so we don't use : here.
+      `/${apiVersionPrefix}/runs/*reportMetrics`,
+      `/${apiVersionPrefix}/workflows`,
+      `/${apiVersionPrefix}/scheduledworkflows`,
+    ],
+    (req, res) => {
+      res.status(403).send(`${req.originalUrl} endpoint is not meant for external usage.`);
+    },
+  );
+
   // Order matters here, since both handlers can match any proxied request with a referer,
   // and we prioritize the basepath-friendly handler
   proxyMiddleware(app, `${basePath}/${apiVersionPrefix}`);
@@ -161,7 +178,7 @@ function createUIServer(options: UIConfigs) {
     proxy({
       changeOrigin: true,
       onProxyReq: proxyReq => {
-        console.log('Proxied request: ', (proxyReq as any).path);
+        console.log('Proxied request: ', proxyReq.path);
       },
       target: apiServerAddress,
     }),
@@ -171,7 +188,7 @@ function createUIServer(options: UIConfigs) {
     proxy({
       changeOrigin: true,
       onProxyReq: proxyReq => {
-        console.log('Proxied request: ', (proxyReq as any).path);
+        console.log('Proxied request: ', proxyReq.path);
       },
       pathRewrite: pathStr =>
         pathStr.startsWith(basePath) ? pathStr.substr(basePath.length, pathStr.length) : pathStr,
@@ -191,9 +208,6 @@ function createUIServer(options: UIConfigs) {
   /** Static resource (i.e. react app) */
   app.use(basePath, StaticHandler(options.server.staticDir));
   app.use(StaticHandler(options.server.staticDir));
-
-  /** Fallback to index.html */
-  app.get('*', indexHtmlHandler);
 
   return app;
 }

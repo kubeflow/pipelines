@@ -3,7 +3,7 @@ import { StoragePath, StorageService } from '../lib/WorkflowParser';
 import { S3Artifact } from '../../third_party/argo-ui/argo_template';
 
 const artifactApiUri = ({ source, bucket, key }: StoragePath) =>
-  'artifacts/get' + `?source=${source}&bucket=${bucket}&key=${encodeURIComponent(key)}`;
+  `artifacts/get?source=${source}&bucket=${bucket}&key=${encodeURIComponent(key)}`;
 
 /**
  * A component that renders an artifact link.
@@ -21,7 +21,7 @@ const MinioArtifactLink: React.FC<S3Artifact> = s3artifact => {
     <a
       href={artifactApiUri({ key, bucket, source })}
       target={'_blank'}
-      rel={'noreferrer noopener'}
+      rel='noreferrer noopener'
       title={linkText}
     >
       {linkText}
