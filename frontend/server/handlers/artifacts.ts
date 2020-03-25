@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019-2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,13 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { Handler, Request, Response } from 'express';
 import fetch from 'node-fetch';
+import { AWSConfigs, HttpConfigs, MinioConfigs } from '../configs';
 import { Client as MinioClient } from 'minio';
+import { PreviewStream } from '../utils';
+import { createMinioClient, getObjectStream } from '../minio-helper';
+import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
-
-import { getTarObjectAsString, getObjectStream, createMinioClient } from '../minio-helper';
-import { HttpConfigs, AWSConfigs, MinioConfigs } from '../configs';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -30,6 +30,8 @@ interface ArtifactsQueryStrings {
   bucket: string;
   /** artifact key/path that is uri encoded.  */
   key: string;
+  /** return only the first x characters or bytes. */
+  peek?: number;
 }
 
 /**
@@ -44,7 +46,9 @@ export function getArtifactsHandler(artifactsConfigs: {
 }): Handler {
   const { aws, http, minio } = artifactsConfigs;
   return async (req, res) => {
-    const { source, bucket, key: encodedKey } = req.query as Partial<ArtifactsQueryStrings>;
+    const { source, bucket, key: encodedKey, peek = 0 } = req.query as Partial<
+      ArtifactsQueryStrings
+    >;
     if (!source) {
       res.status(500).send('Storage source is missing from artifact request');
       return;
@@ -61,31 +65,38 @@ export function getArtifactsHandler(artifactsConfigs: {
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
     switch (source) {
       case 'gcs':
-        getGCSArtifactHandler({ bucket, key })(req, res);
+        getGCSArtifactHandler({ bucket, key }, peek)(req, res);
         break;
 
       case 'minio':
-        getMinioArtifactHandler({
-          bucket,
-          client: new MinioClient(minio),
-          key,
-        })(req, res);
+        getMinioArtifactHandler(
+          {
+            bucket,
+            client: new MinioClient(minio),
+            key,
+          },
+          peek,
+        )(req, res);
         break;
 
       case 's3':
-        getS3ArtifactHandler({
-          bucket,
-          client: await createMinioClient(aws),
-          key,
-        })(req, res);
+        getMinioArtifactHandler(
+          {
+            bucket,
+            client: await createMinioClient(aws),
+            key,
+          },
+          peek,
+        )(req, res);
         break;
 
       case 'http':
       case 'https':
-        getHttpArtifactsHandler(getHttpUrl(source, http.baseUrl || '', bucket, key), http.auth)(
-          req,
-          res,
-        );
+        getHttpArtifactsHandler(
+          getHttpUrl(source, http.baseUrl || '', bucket, key),
+          http.auth,
+          peek,
+        )(req, res);
         break;
 
       default:
@@ -114,6 +125,7 @@ function getHttpArtifactsHandler(
     key: string;
     defaultValue: string;
   } = { key: '', defaultValue: '' },
+  peek: number = 0,
 ) {
   return async (req: Request, res: Response) => {
     const headers = {};
@@ -125,32 +137,30 @@ function getHttpArtifactsHandler(
         req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
     }
     const response = await fetch(url, { headers });
-    const content = await response.buffer();
-    res.send(content);
+    response.body
+      .on('error', err => res.status(500).send(`Unable to retrieve artifact at ${url}: ${err}`))
+      .pipe(new PreviewStream({ peek }))
+      .pipe(res);
   };
 }
 
-function getS3ArtifactHandler(options: { bucket: string; key: string; client: MinioClient }) {
+function getMinioArtifactHandler(
+  options: { bucket: string; key: string; client: MinioClient },
+  peek: number = 0,
+) {
   return async (_: Request, res: Response) => {
     try {
       const stream = await getObjectStream(options);
-      stream.on('end', () => res.end());
-      stream.on('error', err =>
-        res
-          .status(500)
-          .send(`Failed to get object in bucket ${options.bucket} at path ${options.key}: ${err}`),
-      );
-      stream.pipe(res);
-    } catch (err) {
-      res.send(`Failed to get object in bucket ${options.bucket} at path ${options.key}: ${err}`);
-    }
-  };
-}
-
-function getMinioArtifactHandler(options: { bucket: string; key: string; client: MinioClient }) {
-  return async (_: Request, res: Response) => {
-    try {
-      res.send(await getTarObjectAsString(options));
+      stream
+        .on('error', err =>
+          res
+            .status(500)
+            .send(
+              `Failed to get object in bucket ${options.bucket} at path ${options.key}: ${err}`,
+            ),
+        )
+        .pipe(new PreviewStream({ peek }))
+        .pipe(res);
     } catch (err) {
       res
         .status(500)
@@ -159,7 +169,7 @@ function getMinioArtifactHandler(options: { bucket: string; key: string; client:
   };
 }
 
-function getGCSArtifactHandler(options: { key: string; bucket: string }) {
+function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: number = 0) {
   const { key, bucket } = options;
   return async (_: Request, res: Response) => {
     try {
@@ -197,6 +207,16 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }) {
         matchingFiles.map(file => file.name).join(','),
       );
       let contents = '';
+      // TODO: support peek for concatenated matching files
+      if (peek) {
+        matchingFiles[0]
+          .createReadStream()
+          .pipe(new PreviewStream({ peek }))
+          .pipe(res);
+        return;
+      }
+
+      // if not peeking, iterate and append all the files
       matchingFiles.forEach((f, i) => {
         const buffer: Buffer[] = [];
         f.createReadStream()

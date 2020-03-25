@@ -16,7 +16,7 @@
 
 
 # Test before submit:
-# test/deploy-pipline-mkp-cli.sh 0.2 $(git rev-parse HEAD)
+# test/deploy-pipline-mkp-cli.sh 0.3 $(git rev-parse HEAD) $(pwd)/test
 
 set -ex
 

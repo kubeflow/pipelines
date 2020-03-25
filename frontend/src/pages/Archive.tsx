@@ -17,17 +17,18 @@
 import * as React from 'react';
 import Buttons, { ButtonKeys } from '../lib/Buttons';
 import RunList from './RunList';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import { RunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface ArchiveState {
   selectedIds: string[];
 }
 
-export default class Archive extends Page<{}, ArchiveState> {
+export class Archive extends Page<{ namespace?: string }, ArchiveState> {
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
@@ -60,6 +61,7 @@ export default class Archive extends Page<{}, ArchiveState> {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <RunList
+          namespaceMask={this.props.namespace}
           onError={this.showPageError.bind(this)}
           selectedIds={this.state.selectedIds}
           onSelectionChange={this._selectionChanged.bind(this)}
@@ -90,3 +92,10 @@ export default class Archive extends Page<{}, ArchiveState> {
     this.setState({ selectedIds });
   }
 }
+
+const EnhancedArchive = (props: PageProps) => {
+  const namespace = React.useContext(NamespaceContext);
+  return <Archive key={namespace} {...props} namespace={namespace} />;
+};
+
+export default EnhancedArchive;
