@@ -17,17 +17,18 @@
 import * as React from 'react';
 import Buttons, { ButtonKeys } from '../lib/Buttons';
 import RunList from './RunList';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import { RunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface AllRunsListState {
   selectedIds: string[];
 }
 
-class AllRunsList extends Page<{}, AllRunsListState> {
+export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> {
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
@@ -68,6 +69,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
           ref={this._runlistRef}
           storageState={RunStorageState.AVAILABLE}
           hideMetricMetadata={true}
+          namespaceMask={this.props.namespace}
           {...this.props}
         />
       </div>
@@ -96,4 +98,9 @@ class AllRunsList extends Page<{}, AllRunsListState> {
   }
 }
 
-export default AllRunsList;
+const EnhancedAllRunsList = (props: PageProps) => {
+  const namespace = React.useContext(NamespaceContext);
+  return <AllRunsList key={namespace} {...props} namespace={namespace} />;
+};
+
+export default EnhancedAllRunsList;
