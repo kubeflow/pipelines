@@ -135,20 +135,27 @@ func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) 
 func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) {
 	var experiments []*model.Experiment
 	for rows.Next() {
-		var uuid, name, description, namespace, storageState string
+		var uuid, name, description, namespace string
+		var storageState sql.NullString
 		var createdAtInSec int64
 		err := rows.Scan(&uuid, &name, &description, &createdAtInSec, &namespace, &storageState)
 		if err != nil {
 			return experiments, err
 		}
-		experiments = append(experiments, &model.Experiment{
+		experiment := &model.Experiment{
 			UUID:           uuid,
 			Name:           name,
 			Description:    description,
 			CreatedAtInSec: createdAtInSec,
 			Namespace:      namespace,
-			StorageState:   storageState,
-		})
+		}
+		// Since storage state is a field added after initial KFP release, it is possible that existing experiments don't have this field and thus set a default.
+		if storageState.Valid && (storageState.String == api.Experiment_STORAGESTATE_AVAILABLE.String() || storageState.String == api.Experiment_STORAGESTATE_ARCHIVED.String()) {
+			experiment.StorageState = storageState.String
+		} else {
+			experiment.StorageState = api.Experiment_STORAGESTATE_AVAILABLE.String()
+		}
+		experiments = append(experiments, experiment)
 	}
 	return experiments, nil
 }
@@ -320,12 +327,14 @@ func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
 
 	_, err = tx.Exec(sql, args...)
 	if err != nil {
+		tx.Rollback()
 		return util.NewInternalServerError(err,
 			"Failed to unarchive experiment %s. error: '%v'", expId, err.Error())
 	}
 
 	_, err = tx.Exec(updateRunsSql, updateRunsArgs...)
 	if err != nil {
+		tx.Rollback()
 		return util.NewInternalServerError(err,
 			"Failed to unarchive the runs in an experiment %s. error: '%v'", expId, err.Error())
 	}

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
