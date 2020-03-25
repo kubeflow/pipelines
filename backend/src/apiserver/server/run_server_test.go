@@ -128,7 +128,7 @@ func TestCreateRun_Unauthorized(t *testing.T) {
 	defer clients.Close()
 	server := NewRunServer(manager)
 	run := &api.Run{
-		Name:               "123",
+		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
@@ -328,7 +328,7 @@ func TestValidateCreateRunRequest(t *testing.T) {
 	defer clients.Close()
 	server := NewRunServer(manager)
 	run := &api.Run{
-		Name:               "123",
+		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
@@ -344,7 +344,7 @@ func TestValidateCreateRunRequest_WithPipelineVersionReference(t *testing.T) {
 	defer clients.Close()
 	server := NewRunServer(manager)
 	run := &api.Run{
-		Name:               "123",
+		Name:               "run1",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
 	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
@@ -372,7 +372,7 @@ func TestValidateCreateRunRequest_NoExperiment(t *testing.T) {
 	defer clients.Close()
 	server := NewRunServer(manager)
 	run := &api.Run{
-		Name:               "123",
+		Name:               "run1",
 		ResourceReferences: nil,
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
@@ -388,7 +388,7 @@ func TestValidateCreateRunRequest_EmptyPipelineSpecAndEmptyPipelineVersion(t *te
 	defer clients.Close()
 	server := NewRunServer(manager)
 	run := &api.Run{
-		Name:               "123",
+		Name:               "run1",
 		ResourceReferences: validReference,
 	}
 	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
@@ -407,7 +407,7 @@ func TestValidateCreateRunRequest_TooMuchParameters(t *testing.T) {
 		params = append(params, &api.Parameter{Name: "param2", Value: "world"})
 	}
 	run := &api.Run{
-		Name:               "123",
+		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
