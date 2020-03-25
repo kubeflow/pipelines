@@ -51,6 +51,7 @@ export const css = stylesheet({
 
 export interface TensorboardViewerConfig extends ViewerConfig {
   url: string;
+  namespace: string;
 }
 
 interface TensorboardViewerProps {
@@ -250,6 +251,11 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     this.setState({ deleteDialogOpen: false });
   };
 
+  private _getNamespace(): string {
+    // TODO: We should probably check if all configs have the same namespace.
+    return this.props.configs[0]?.namespace || '';
+  }
+
   private _buildUrl(): string {
     const urls = this.props.configs.map(c => c.url).sort();
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
@@ -269,7 +275,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
-      const { podAddress, tfVersion } = await Apis.getTensorboardApp(this._buildUrl(), 'yuan');
+      const { podAddress, tfVersion } = await Apis.getTensorboardApp(
+        this._buildUrl(),
+        this._getNamespace(),
+      );
       if (podAddress) {
         this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
       } else {
@@ -282,9 +291,9 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   private _startTensorboard = async () => {
     this.setState({ busy: true }, async () => {
       await Apis.startTensorboardApp(
-        encodeURIComponent(this._buildUrl()),
-        encodeURIComponent(this.state.tensorflowVersion),
-        encodeURIComponent('yuan'),
+        this._buildUrl(),
+        this.state.tensorflowVersion,
+        this._getNamespace(),
       );
       this.setState({ busy: false, tensorboardReady: false }, () => {
         this._checkTensorboardApp();
@@ -296,10 +305,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // delete the already opened Tensorboard, clear the podAddress recorded in frontend,
     // and return to the select & start tensorboard page
     this.setState({ busy: true }, async () => {
-      await Apis.deleteTensorboardApp(
-        encodeURIComponent(this._buildUrl()),
-        encodeURIComponent('yuan'),
-      );
+      await Apis.deleteTensorboardApp(this._buildUrl(), this._getNamespace());
       this.setState({
         busy: false,
         deleteDialogOpen: false,

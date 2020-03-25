@@ -252,7 +252,9 @@ export class Apis {
    */
   public static deleteTensorboardApp(logdir: string, namespace: string): Promise<string> {
     return this._fetch(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&namespace=${namespace}`,
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&namespace=${encodeURIComponent(
+        namespace,
+      )}`,
       undefined,
       undefined,
       { method: 'DELETE' },
