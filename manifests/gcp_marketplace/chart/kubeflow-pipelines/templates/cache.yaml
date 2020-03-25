@@ -1,13 +1,17 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
-  name: cache-deployer-job
+  name: cache-deployer-statefulset
   labels:
     app: cache-deployer
     app.kubernetes.io/name: {{ .Release.Name }}
-  annotations:
-    "helm.sh/hook-delete-policy": hook-succeeded, hook-failed
 spec:
+  replicas: 1
+  serviceName: cache-deployer
+  selector:
+    matchLabels:
+      app: cache-deployer
+      app.kubernetes.io/name: {{ .Release.Name }}
   template:
     metadata:
       labels:
@@ -19,10 +23,11 @@ spec:
         image: {{ .Values.images.cachedeployer }}
         imagePullPolicy: Always
         env:
-          - name: NAMESPACE_TO_WATCH
-            value: {{ .Release.Namespace }}
+        - name: NAMESPACE_TO_WATCH
+          value: {{ .Release.Namespace }}
       serviceAccountName: kubeflow-pipelines-cache-deployer-sa
-      restartPolicy: OnFailure
+      restartPolicy: Always
+  volumeClaimTemplates: []
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
