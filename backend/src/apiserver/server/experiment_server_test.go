@@ -433,7 +433,6 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	// Create experiment and runs under it.
 	clients, manager, experiment := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	experimentServer := NewExperimentServer(manager)
 	runServer := NewRunServer(manager)
 	run1 := &api.Run{
 		Name:               "123",
@@ -441,30 +440,38 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	}
 	err := runServer.validateCreateRunRequest(&api.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
+	_, err = runServer.CreateRun(nil, &api.CreateRunRequest{Run: run1})
+	assert.Nil(t, err)
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.FakeUUIDOne, nil))
+	manager = resource.NewResourceManager(clients)
+	runServer = NewRunServer(manager)
 	run2 := &api.Run{
 		Name:               "456",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
 	err = runServer.validateCreateRunRequest(&api.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
+	_, err = runServer.CreateRun(nil, &api.CreateRunRequest{Run: run2})
+	assert.Nil(t, err)
 
 	// Archive the experiment and thus all runs under it.
+	experimentServer := NewExperimentServer(manager)
 	_, err = experimentServer.ArchiveExperiment(nil, &api.ArchiveExperimentRequest{Id: experiment.UUID})
 	assert.Nil(t, err)
 	result, err := experimentServer.GetExperiment(nil, &api.GetExperimentRequest{Id: experiment.UUID})
 	assert.Equal(t, result.StorageState, api.Experiment_STORAGESTATE_ARCHIVED)
-	runs, err := runServer.ListRuns(nil, &api.ListRunsRequest{})
+	runs, err := runServer.ListRuns(nil, &api.ListRunsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
 	assert.Equal(t, 2, len(runs.Runs))
-	assert.Equal(t, runs.Runs[0], api.Run_STORAGESTATE_ARCHIVED)
-	assert.Equal(t, runs.Runs[1], api.Run_STORAGESTATE_ARCHIVED)
+	assert.Equal(t, runs.Runs[0].StorageState, api.Run_STORAGESTATE_ARCHIVED)
+	assert.Equal(t, runs.Runs[1].StorageState, api.Run_STORAGESTATE_ARCHIVED)
 
 	// Unarchive the experiment and thus all runs under it.
 	_, err = experimentServer.UnarchiveExperiment(nil, &api.UnarchiveExperimentRequest{Id: experiment.UUID})
 	assert.Nil(t, err)
 	result, err = experimentServer.GetExperiment(nil, &api.GetExperimentRequest{Id: experiment.UUID})
 	assert.Equal(t, result.StorageState, api.Experiment_STORAGESTATE_AVAILABLE)
-	runs, err = runServer.ListRuns(nil, &api.ListRunsRequest{})
+	runs, err = runServer.ListRuns(nil, &api.ListRunsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
 	assert.Equal(t, 2, len(runs.Runs))
-	assert.Equal(t, runs.Runs[0], api.Run_STORAGESTATE_AVAILABLE)
-	assert.Equal(t, runs.Runs[1], api.Run_STORAGESTATE_AVAILABLE)
+	assert.Equal(t, runs.Runs[0].StorageState, api.Run_STORAGESTATE_AVAILABLE)
+	assert.Equal(t, runs.Runs[1].StorageState, api.Run_STORAGESTATE_AVAILABLE)
 }
