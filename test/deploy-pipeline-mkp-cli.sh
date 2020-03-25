@@ -22,6 +22,7 @@ set -ex
 
 VERSION=$1
 COMMIT_SHA=$2
+TEST_FOLDER=$3
 
 # sync trigger to avoid wait
-gcloud builds submit --config=test/cloudbuild/mkp_verify.yaml --substitutions=_DEPLOYER_VERSION="$VERSION",COMMIT_SHA="$COMMIT_SHA" --project=ml-pipeline-test
+gcloud builds submit --config=$TEST_FOLDER/cloudbuild/mkp_verify.yaml --substitutions=_DEPLOYER_VERSION="$VERSION",COMMIT_SHA="$COMMIT_SHA" --project=ml-pipeline-test
