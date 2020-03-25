@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cache-deployer-statefulset
+  labels:
+    app: cache-deployer
+spec:
+  replicas: 1
+  serviceName: cache-deployer
+  selector:
+    matchLabels:
+      app: cache-deployer
+  template:
+    metadata:
+      labels:
+        app: cache-deployer
+    spec:
+      containers:
+      - name: main
+        image: gcr.io/ml-pipeline/cache-deployer:latest
+        imagePullPolicy: Always
+        env:
+        - name: NAMESPACE_TO_WATCH
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      serviceAccountName: kubeflow-pipelines-cache-deployer-sa
+      restartPolicy: Always
+  volumeClaimTemplates: []
