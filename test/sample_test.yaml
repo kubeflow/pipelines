@@ -66,22 +66,22 @@ spec:
                 - name: test-name
                   value: "{{item}}"
             withItems:
-              - lightweight_component
-              - dsl_static_type_checking
-              - pipeline_transformers
-              - secret
-              - sidecar
-              - execution_order
-              - imagepullsecrets
+#              - lightweight_component
+#              - dsl_static_type_checking
+#              - pipeline_transformers
+#              - secret
+#              - sidecar
+#              - execution_order
+#              - imagepullsecrets
               - retry
-              - artifact_location
-              - preemptible_tpu_gpu
-              - volume_snapshot_ops
-              - loop_output
-              - loop_parameter
-              - loop_static
-              - resource_ops
-              - multiple_outputs
+#              - artifact_location
+#              - preemptible_tpu_gpu
+#              - volume_snapshot_ops
+#              - loop_output
+#              - loop_parameter
+#              - loop_static
+#              - resource_ops
+#              - multiple_outputs
           - name: run-integration-tests-loop
             template: run-sample-tests
             arguments:
@@ -145,6 +145,8 @@ spec:
           mirrorVolumeMounts: true
 
     - name: run-sample-tests
+      retryStrategy:
+        limit: 10
       inputs:
         parameters:
           - name: test-results-gcs-dir
