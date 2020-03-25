@@ -120,9 +120,7 @@ describe('Tensorboard', () => {
     await TestUtils.flushPromises();
     await flushPromisesAndTimers();
     expect(Apis.isTensorboardPodReady).toHaveBeenCalledTimes(1);
-    expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith(
-      'apis/v1beta1/_proxy/' + encodeURIComponent('test/address'),
-    );
+    expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apis/v1beta1/_proxy/test/address');
     expect(tree).toMatchSnapshot();
   });
 
