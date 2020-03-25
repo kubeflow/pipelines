@@ -154,6 +154,6 @@ if [ ${KFP_DEPLOYMENT} == standalone ]; then
   echo "test workflow completed"
 else
   SEM_VERSION="$(cat ${DIR}/../VERSION)"
-  source "${DIR}/deploy-pipeline-mkp-cli.sh" $SEM_VERSION $COMMIT_SHA
+  source "${DIR}/deploy-pipeline-mkp-cli.sh" $SEM_VERSION $COMMIT_SHA ${DIR}
   exit $?
 fi
