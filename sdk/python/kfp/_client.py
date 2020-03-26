@@ -422,7 +422,7 @@ class Client(object):
         self.run_id = run_info.id
 
       def wait_for_run_completion(self, timeout=None):
-        timeout = timeout or datetime.max - datetime.min
+        timeout = timeout or (datetime.max - datetime.min).seconds
         return self._client.wait_for_run_completion(self.run_id, timeout)
 
       def __repr__(self):
