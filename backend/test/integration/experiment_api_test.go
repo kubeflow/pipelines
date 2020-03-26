@@ -75,7 +75,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Nil(t, err)
 	expectedTrainingExperiment := &experiment_model.APIExperiment{
 		ID: trainingExperiment.ID, Name: experiment.Name,
-		Description: experiment.Description, CreatedAt: trainingExperiment.CreatedAt, StorageState: "STORAGESTATE_AVAILABLE"}
+		Description: experiment.Description, CreatedAt: trainingExperiment.CreatedAt}
 	assert.Equal(t, expectedTrainingExperiment, trainingExperiment)
 
 	/* ---------- Create an experiment with same name. Should fail due to name uniqueness ---------- */
