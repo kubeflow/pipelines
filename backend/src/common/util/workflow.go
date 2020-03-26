@@ -209,7 +209,9 @@ func (w *Workflow) SetLabelsToAllTemplates(key string, value string) {
 		if w.Spec.Templates[index].Metadata.Labels == nil {
 			w.Spec.Templates[index].Metadata.Labels = make(map[string]string)
 		}
-		w.Spec.Templates[index].Metadata.Labels[key] = value
+		if w.Spec.Templates[index].Metadata.Labels[key] != value {
+			w.Spec.Templates[index].Metadata.Labels[key] = value
+		}
 	}
 }
 
