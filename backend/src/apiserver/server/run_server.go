@@ -85,7 +85,7 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 				return nil, util.Wrap(err, "Failed to authorize with namespace resource reference.")
 			}
 		} else if refKey.Type == common.Experiment || refKey.Type == "ExperimentUUID" {
-			// "ExperimentUUID" is introduced for perf optimization, we accpet both refKey.Type for backward-compatible reason.
+			// "ExperimentUUID" was introduced for perf optimization. We accept both refKey.Type for backward-compatible reason.
 			experimentID := refKey.ID
 			if len(experimentID) == 0 {
 				return nil, util.NewInvalidInputError("Invalid resource references for run. Experiment ID is empty.")
