@@ -51,9 +51,9 @@ const (
 	AnnotationValueIstioSidecarInjectEnabled  = "true"
 	AnnotationValueIstioSidecarInjectDisabled = "false"
 
-	// AnnotationKeyCacheEnabled is a workflow annotation key.
+	// LabelKeyCacheEnabled is a workflow annotation key.
 	// It captures whether this run will be selected by cache service.
-	AnnotationKeyCacheEnabled    = "pipelines.kubeflow.org/cache_enabled"
-	AnnotationValueCacheEnabled  = "true"
-	AnnotationValueCacheDisabled = "false"
+	LabelKeyCacheEnabled    = "pipelines.kubeflow.org/cache_enabled"
+	LabelValueCacheEnabled  = "true"
+	LabelValueCacheDisabled = "false"
 )
