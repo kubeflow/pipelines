@@ -140,6 +140,59 @@ func TestCreateRun_Unauthorized(t *testing.T) {
 	assert.Contains(t, err.Error(), "Unauthorized access")
 }
 
+func TestCreateRun_Multiuser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager)
+	run := &api.Run{
+		Name:               "run1",
+		ResourceReferences: validReference,
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}
+	runDetail, err := server.CreateRun(ctx, &api.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = "default-editor" // In multi-user mode, we use default service account.
+	expectedRunDetail := api.RunDetail{
+		Run: &api.Run{
+			Id:           "123e4567-e89b-12d3-a456-426655440000",
+			Name:         "run1",
+			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
+			ScheduledAt:  &timestamp.Timestamp{},
+			FinishedAt:   &timestamp.Timestamp{},
+			PipelineSpec: &api.PipelineSpec{
+				WorkflowManifest: testWorkflow.ToStringForStore(),
+				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			},
+			ResourceReferences: []*api.ResourceReference{
+				{
+					Key:  &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+					Name: "exp1", Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		PipelineRuntime: &api.PipelineRuntime{
+			WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
+		},
+	}
+	assert.Equal(t, expectedRunDetail, *runDetail)
+}
+
 func TestListRun(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
