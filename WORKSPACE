@@ -37,15 +37,6 @@ load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 gazelle_dependencies()
 
 http_archive(
-    name = "org_tensorflow",
-    sha256 = "24570d860d87dcfb936f53fb8dd30302452d0aa6b8b8537e4555c1bf839121a6",
-    strip_prefix = "tensorflow-1.13.0-rc0",
-    urls = [
-        "https://github.com/tensorflow/tensorflow/archive/v1.13.0-rc0.tar.gz",
-    ],
-)
-
-http_archive(
     name = "io_bazel_rules_closure",
     sha256 = "43c9b882fa921923bcba764453f4058d102bece35a37c9f6383c713004aacff1",
     strip_prefix = "rules_closure-9889e2348259a5aad7e805547c1a0cf311cfcd91",
@@ -54,10 +45,6 @@ http_archive(
         "https://github.com/bazelbuild/rules_closure/archive/9889e2348259a5aad7e805547c1a0cf311cfcd91.tar.gz",  # 2018-12-21
     ],
 )
-
-load("@org_tensorflow//tensorflow:workspace.bzl", "tf_workspace")
-
-tf_workspace()
 
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 
@@ -151,8 +138,8 @@ http_archive(
 
 go_repository(
     name = "co_honnef_go_tools",
+    commit = "ea95bdfd59fc",
     importpath = "honnef.co/go/tools",
-    tag = "v0.0.1-2019.2.2",
 )
 
 go_repository(
@@ -468,12 +455,6 @@ go_repository(
 )
 
 go_repository(
-    name = "com_github_kataras_iris",
-    importpath = "github.com/kataras/iris",
-    tag = "v10.6.7",
-)
-
-go_repository(
     name = "com_github_kisielk_gotool",
     importpath = "github.com/kisielk/gotool",
     tag = "v1.0.0",
@@ -524,7 +505,7 @@ go_repository(
 go_repository(
     name = "com_github_minio_minio_go",
     importpath = "github.com/minio/minio-go",
-    tag = "v6.0.5",
+    tag = "v6.0.14",
 )
 
 go_repository(
@@ -668,7 +649,7 @@ go_repository(
 go_repository(
     name = "com_github_stretchr_testify",
     importpath = "github.com/stretchr/testify",
-    tag = "v1.2.2",
+    tag = "v1.3.0",
 )
 
 go_repository(
@@ -782,7 +763,7 @@ go_repository(
 
 go_repository(
     name = "org_golang_x_crypto",
-    commit = "4def268fd1a4",
+    commit = "9756ffdc2472",
     importpath = "golang.org/x/crypto",
 )
 
@@ -795,7 +776,7 @@ go_repository(
 go_repository(
     name = "org_golang_x_net",
     build_file_proto_mode = "disable_global",
-    commit = "74dc4d7220e7",
+    commit = "ba9fcec4b297",
     importpath = "golang.org/x/net",
 )
 
@@ -813,7 +794,7 @@ go_repository(
 
 go_repository(
     name = "org_golang_x_sys",
-    commit = "fde4db37ae7a",
+    commit = "c7b8b68b1456",
     importpath = "golang.org/x/sys",
 )
 
@@ -831,7 +812,7 @@ go_repository(
 
 go_repository(
     name = "org_golang_x_tools",
-    commit = "922a4ee32d1a",
+    commit = "6cdbf07be9d0",
     importpath = "golang.org/x/tools",
 )
 
@@ -915,7 +896,7 @@ go_repository(
 
 go_repository(
     name = "com_github_google_pprof",
-    commit = "34ac40c74b70",
+    commit = "54271f7e092f",
     importpath = "github.com/google/pprof",
 )
 
@@ -1006,7 +987,7 @@ go_repository(
 go_repository(
     name = "com_github_kr_pty",
     importpath = "github.com/kr/pty",
-    tag = "v1.1.8",
+    tag = "v1.1.1",
 )
 
 go_repository(
@@ -1048,24 +1029,24 @@ go_repository(
 go_repository(
     name = "org_golang_google_api",
     importpath = "google.golang.org/api",
-    tag = "v0.8.0",
+    tag = "v0.9.0",
 )
 
 go_repository(
     name = "org_golang_x_exp",
-    commit = "ec7cb31e5a56",
+    commit = "efd6b22b2522",
     importpath = "golang.org/x/exp",
 )
 
 go_repository(
     name = "org_golang_x_image",
-    commit = "cff245a6509b",
+    commit = "0694c2d4d067",
     importpath = "golang.org/x/image",
 )
 
 go_repository(
     name = "org_golang_x_mobile",
-    commit = "e8b3e6111d02",
+    commit = "d3739f865fa6",
     importpath = "golang.org/x/mobile",
 )
 
@@ -1079,4 +1060,16 @@ go_repository(
     name = "org_golang_x_xerrors",
     commit = "a985d3407aa7",
     importpath = "golang.org/x/xerrors",
+)
+
+go_repository(
+    name = "com_github_stretchr_objx",
+    importpath = "github.com/stretchr/objx",
+    tag = "v0.1.0",
+)
+
+go_repository(
+    name = "io_k8s_sigs_testing_frameworks",
+    importpath = "sigs.k8s.io/testing_frameworks",
+    tag = "v0.1.1",
 )

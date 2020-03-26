@@ -19,6 +19,7 @@ import { Template, Workflow } from '../../third_party/argo-ui/argo_template';
 import { color } from '../Css';
 import { Constants } from './Constants';
 import { logger } from './Utils';
+import { parseTaskDisplayName } from './ParserUtils';
 
 export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
 
@@ -61,9 +62,9 @@ export function _populateInfoFromTemplate(
 
   if (template.container) {
     info.nodeType = 'container';
-    (info.args = template.container.args || []),
-      (info.command = template.container.command || []),
-      (info.image = template.container.image || '');
+    info.args = template.container.args || [];
+    info.command = template.container.command || [];
+    info.image = template.container.image || '';
     info.volumeMounts = (template.container.volumeMounts || []).map(v => [v.mountPath, v.name]);
   } else {
     info.nodeType = 'resource';
@@ -177,13 +178,7 @@ function buildDag(
         if (child.nodeType === 'dag') {
           buildDag(graph, task.template, templates, alreadyVisited, nodeId);
         } else if (child.nodeType === 'container' || child.nodeType === 'resource') {
-          const metadata = child.template.metadata;
-          if (metadata && metadata.annotations) {
-            const displayName = metadata.annotations['pipelines.kubeflow.org/task_display_name'];
-            if (displayName) {
-              nodeLabel = displayName;
-            }
-          }
+          nodeLabel = parseTaskDisplayName(child.template.metadata) || nodeLabel;
           _populateInfoFromTemplate(info, child.template);
         } else {
           throw new Error(

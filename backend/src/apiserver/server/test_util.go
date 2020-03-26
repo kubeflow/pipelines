@@ -42,6 +42,12 @@ var testWorkflow2 = util.NewWorkflow(&v1alpha1.Workflow{
 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
 })
 
+var testWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
+	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2"},
+	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}, {Name: "param2"}}}},
+})
+
 var validReference = []*api.ResourceReference{
 	{
 		Key: &api.ResourceKey{
@@ -76,8 +82,19 @@ func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.Re
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
-	experiment := &model.Experiment{Name: "123"}
-	experiment, err := resourceManager.CreateExperiment(experiment)
+	apiExperiment := &api.Experiment{Name: "123"}
+	if common.IsMultiUserMode() {
+		apiExperiment = &api.Experiment{
+			Name: "123",
+			ResourceReferences: []*api.ResourceReference{
+				{
+					Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns1"},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		}
+	}
+	experiment, err := resourceManager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
 	return clientManager, resourceManager, experiment
 }
@@ -87,8 +104,19 @@ func initWithExperiment_KFAM_Unauthorized(t *testing.T) (*resource.FakeClientMan
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	clientManager.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
 	resourceManager := resource.NewResourceManager(clientManager)
-	experiment := &model.Experiment{Name: "123"}
-	experiment, err := resourceManager.CreateExperiment(experiment)
+	apiExperiment := &api.Experiment{Name: "123"}
+	if common.IsMultiUserMode() {
+		apiExperiment = &api.Experiment{
+			Name: "123",
+			ResourceReferences: []*api.ResourceReference{
+				{
+					Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns1"},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		}
+	}
+	experiment, err := resourceManager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
 	return clientManager, resourceManager, experiment
 }
@@ -99,8 +127,8 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	// Create an experiment.
-	experiment := &model.Experiment{Name: "123"}
-	experiment, err := resourceManager.CreateExperiment(experiment)
+	apiExperiment := &api.Experiment{Name: "123"}
+	experiment, err := resourceManager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
 
 	// Create a pipeline and then a pipeline version.

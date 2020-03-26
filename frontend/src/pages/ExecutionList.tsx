@@ -155,7 +155,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
       // Code === 5 means no record found in backend. This is a temporary workaround.
       // TODO: remove err.code !== 5 check when backend is fixed.
       if (err.code !== 5) {
-        this.showPageError(serviceErrorToString(err));
+        err.message = 'Failed getting executions: ' + err.message;
+        throw err;
       }
     }
     return [];
@@ -218,7 +219,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
               getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
                 getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
                 getResourceProperty(execution, ExecutionCustomProperties.RUN_ID, true),
-              getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
+              getResourceProperty(execution, ExecutionProperties.NAME) ||
+                getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
                 getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true),
               getResourceProperty(execution, ExecutionProperties.STATE),
               execution.getId(),

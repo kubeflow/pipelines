@@ -14,38 +14,12 @@
 
 matrix:
   include:
-    - language: generic
-      env:
-        - BAZEL_URL="https://github.com/bazelbuild/bazel/releases/download/0.23.0/bazel-0.23.0-installer-linux-x86_64.sh"
-      before_install:
-        # Install Bazel
-        - |
-          wget --no-verbose -O install.sh "${BAZEL_URL}"
-          chmod +x install.sh
-          ./install.sh --user
-          rm -f install.sh
-
-      script:
-        # Backend unit tests
-        - cd $TRAVIS_BUILD_DIR/backend/src
-        - gimme -f 1.11.4
-        - |
-          bazel --host_jvm_args=-Xmx500m --host_jvm_args=-Xms500m \
-           build --noshow_progress --noshow_loading_progress --define=grpc_no_ares=true //backend/...
-        - |
-          bazel --host_jvm_args=-Xmx500m --host_jvm_args=-Xms500m \
-           test --noshow_progress --noshow_loading_progress --define=grpc_no_ares=true //backend/...
-        - source ~/.gimme/envs/go1.11.4.env
-        - go vet -all -shadow ./agent/...
-        - go vet -all -shadow ./common/...
-        - go vet -all -shadow ./crd/...
-        - go test ./agent/...
-        - go test ./common/...
-        - go test ./crd/...
     - language: python
       python: "2.7"
       env: TOXENV=py27
       script:
+        - python -m pip
+        - pip install six==1.12.0
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
         - ./run_test.sh
@@ -57,7 +31,7 @@ matrix:
       install: &0
         - python3 -m pip install -r $TRAVIS_BUILD_DIR/sdk/python/requirements.txt
         # Additional dependencies
-        - pip3 install coverage==4.5.4 coveralls==1.9.2
+        - pip3 install coverage==4.5.4 coveralls==1.9.2 six==1.12.0
         # Sample test infra dependencies
         - pip3 install minio
         - pip3 install junit_xml
@@ -85,7 +59,6 @@ matrix:
         - git clone https://github.com/tensorflow/tfx.git
         - cd $TRAVIS_BUILD_DIR/tfx
         - pip3 install --upgrade pip
-        - python3 -m pip install "tensorflow>=1.14,<2"
         - set -x
         - set -e
         - python3 setup.py bdist_wheel
@@ -93,7 +66,7 @@ matrix:
         - python3 -m pip install "${WHEEL_PATH}" --upgrade
         - set +e
         - set +x
-        # Two KFP-related unittests
+        # Three KFP-related unittests
         - cd $TRAVIS_BUILD_DIR/tfx/tfx/orchestration/kubeflow
         - python3 kubeflow_dag_runner_test.py
         - cd $TRAVIS_BUILD_DIR/tfx/tfx/examples/chicago_taxi_pipeline

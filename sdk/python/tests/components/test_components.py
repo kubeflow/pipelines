@@ -19,29 +19,13 @@ from contextlib import contextmanager
 from pathlib import Path
 
 
-import kfp
 import kfp.components as comp
+from kfp.components._components import _resolve_command_line_and_paths
 from kfp.components._yaml_utils import load_yaml
-from kfp.dsl.types import InconsistentTypeException
+from kfp.components.structures import ComponentSpec
 
-
-@contextmanager
-def no_task_resolving_context():
-    old_handler = kfp.components._components._container_task_constructor
-    try:
-        kfp.components._components._container_task_constructor = kfp.components._components._create_task_spec_from_component_and_arguments
-        yield None
-    finally:
-        kfp.components._components._container_task_constructor = old_handler
 
 class LoadComponentTestCase(unittest.TestCase):
-    def setUp(self):
-        self.old_container_task_constructor = kfp.components._components._container_task_constructor
-        kfp.components._components._container_task_constructor = kfp.components._dsl_bridge._create_container_op_from_component_and_arguments
-
-    def tearDown(self):
-        kfp.components._components._container_task_constructor = self.old_container_task_constructor
-
     def _test_load_component_from_file(self, component_path: str):
         task_factory1 = comp.load_component_from_file(component_path)
 
@@ -49,11 +33,14 @@ class LoadComponentTestCase(unittest.TestCase):
         arg2 = 5
         task1 = task_factory1(arg1, arg2)
 
-        self.assertEqual(task1.human_name, 'Add')
+        self.assertEqual(task_factory1.__name__, 'Add')
         self.assertEqual(task_factory1.__doc__.strip(), 'Add\nReturns sum of two arguments')
-        self.assertEqual(task1.container.image, 'python:3.5')
-        self.assertEqual(task1.container.args[0], str(arg1))
-        self.assertEqual(task1.container.args[1], str(arg2))
+
+        self.assertEqual(task1.component_ref.spec.implementation.container.image, 'python:3.5')
+
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+        self.assertEqual(resolved_cmd.args[0], str(arg1))
+        self.assertEqual(resolved_cmd.args[1], str(arg2))
 
     def test_load_component_from_yaml_file(self):
         _this_file = Path(__file__).resolve()
@@ -82,11 +69,11 @@ class LoadComponentTestCase(unittest.TestCase):
         arg1 = 3
         arg2 = 5
         task1 = task_factory1(arg1, arg2)
-        self.assertEqual(task1.human_name, component_dict['name'])
-        self.assertEqual(task1.container.image, component_dict['implementation']['container']['image'])
+        self.assertEqual(task1.component_ref.spec.implementation.container.image, component_dict['implementation']['container']['image'])
 
-        self.assertEqual(task1.arguments[0], str(arg1))
-        self.assertEqual(task1.arguments[1], str(arg2))
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+        self.assertEqual(resolved_cmd.args[0], str(arg1))
+        self.assertEqual(resolved_cmd.args[1], str(arg2))
 
     def test_loading_minimal_component(self):
         component_text = '''\
@@ -97,8 +84,7 @@ implementation:
         component_dict = load_yaml(component_text)
         task_factory1 = comp.load_component(text=component_text)
 
-        task1 = task_factory1()
-        self.assertEqual(task1.container.image, component_dict['implementation']['container']['image'])
+        self.assertEqual(task_factory1.component_spec.implementation.container.image, component_dict['implementation']['container']['image'])
 
     def test_accessing_component_spec_from_task_factory(self):
         component_text = '''\
@@ -111,7 +97,7 @@ implementation:
         actual_component_spec = task_factory1.component_spec
         actual_component_spec_dict = actual_component_spec.to_dict()
         expected_component_spec_dict = load_yaml(component_text)
-        expected_component_spec = kfp.components.structures.ComponentSpec.from_dict(expected_component_spec_dict)
+        expected_component_spec = ComponentSpec.from_dict(expected_component_spec_dict)
         self.assertEqual(expected_component_spec_dict, actual_component_spec_dict)
         self.assertEqual(expected_component_spec, task_factory1.component_spec)
 
@@ -280,8 +266,9 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
         task1 = task_factory1('some-data')
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
 
-        self.assertEqual(task1.arguments, ['--data', 'some-data'])
+        self.assertEqual(resolved_cmd.args, ['--data', 'some-data'])
 
     def test_automatic_output_resolving(self):
         component_text = '''\
@@ -296,10 +283,11 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
         task1 = task_factory1()
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
 
-        self.assertEqual(len(task1.arguments), 2)
-        self.assertEqual(task1.arguments[0], '--output-data')
-        self.assertTrue(task1.arguments[1].startswith('/'))
+        self.assertEqual(len(resolved_cmd.args), 2)
+        self.assertEqual(resolved_cmd.args[0], '--output-data')
+        self.assertTrue(resolved_cmd.args[1].startswith('/'))
 
     def test_input_path_placeholder_with_constant_argument(self):
         component_text = '''\
@@ -314,9 +302,10 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
         task1 = task_factory1('Text')
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
 
-        self.assertEqual(task1.command, ['--input-data', task1.input_artifact_paths['input 1']])
-        self.assertEqual(task1.artifact_arguments, {'input 1': 'Text'})
+        self.assertEqual(resolved_cmd.command, ['--input-data', resolved_cmd.input_paths['input 1']])
+        self.assertEqual(task1.arguments, {'input 1': 'Text'})
 
     def test_optional_inputs_reordering(self):
         '''Tests optional input reordering.
@@ -395,8 +384,9 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
         task1 = task_factory1()
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
 
-        self.assertEqual(task1.command, ['a', 'z'])
+        self.assertEqual(resolved_cmd.command, ['a', 'z'])
 
     def test_missing_optional_input_file_argument(self):
         '''Missing optional inputs should resolve to nothing'''
@@ -413,8 +403,9 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
         task1 = task_factory1()
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
 
-        self.assertEqual(task1.command, ['a', 'z'])
+        self.assertEqual(resolved_cmd.command, ['a', 'z'])
 
     def test_command_concat(self):
         component_text = '''\
@@ -429,8 +420,9 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
         task1 = task_factory1('some', 'data')
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
 
-        self.assertEqual(task1.arguments, ['somedata'])
+        self.assertEqual(resolved_cmd.args, ['somedata'])
 
     def test_command_if_boolean_true_then_else(self):
         component_text = '''\
@@ -445,7 +437,8 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
         task = task_factory1()
-        self.assertEqual(task.arguments, ['--true-arg']) 
+        resolved_cmd = _resolve_command_line_and_paths(task.component_ref.spec, task.arguments)
+        self.assertEqual(resolved_cmd.args, ['--true-arg']) 
 
     def test_command_if_boolean_false_then_else(self):
         component_text = '''\
@@ -460,7 +453,8 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
         task = task_factory1()
-        self.assertEqual(task.arguments, ['--false-arg']) 
+        resolved_cmd = _resolve_command_line_and_paths(task.component_ref.spec, task.arguments)
+        self.assertEqual(resolved_cmd.args, ['--false-arg']) 
 
     def test_command_if_true_string_then_else(self):
         component_text = '''\
@@ -475,7 +469,8 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
         task = task_factory1()
-        self.assertEqual(task.arguments, ['--true-arg']) 
+        resolved_cmd = _resolve_command_line_and_paths(task.component_ref.spec, task.arguments)
+        self.assertEqual(resolved_cmd.args, ['--true-arg']) 
 
     def test_command_if_false_string_then_else(self):
         component_text = '''\
@@ -491,7 +486,8 @@ implementation:
         task_factory1 = comp.load_component(text=component_text)
 
         task = task_factory1()
-        self.assertEqual(task.arguments, ['--false-arg']) 
+        resolved_cmd = _resolve_command_line_and_paths(task.component_ref.spec, task.arguments)
+        self.assertEqual(resolved_cmd.args, ['--false-arg']) 
 
     def test_command_if_is_present_then(self):
         component_text = '''\
@@ -509,10 +505,12 @@ implementation:
         task_factory1 = comp.load_component(text=component_text)
 
         task_then = task_factory1('data')
-        self.assertEqual(task_then.arguments, ['--in', 'data']) 
+        resolved_cmd_then = _resolve_command_line_and_paths(task_then.component_ref.spec, task_then.arguments)
+        self.assertEqual(resolved_cmd_then.args, ['--in', 'data']) 
         
         task_else = task_factory1()
-        self.assertEqual(task_else.arguments, [])
+        resolved_cmd_else = _resolve_command_line_and_paths(task_else.component_ref.spec, task_else.arguments)
+        self.assertEqual(resolved_cmd_else.args, [])
 
     def test_command_if_is_present_then_else(self):
         component_text = '''\
@@ -530,10 +528,12 @@ implementation:
         task_factory1 = comp.load_component(text=component_text)
 
         task_then = task_factory1('data')
-        self.assertEqual(task_then.arguments, ['--in', 'data']) 
+        resolved_cmd_then = _resolve_command_line_and_paths(task_then.component_ref.spec, task_then.arguments)
+        self.assertEqual(resolved_cmd_then.args, ['--in', 'data']) 
         
         task_else = task_factory1()
-        self.assertEqual(task_else.arguments, ['--no-in'])
+        resolved_cmd_else = _resolve_command_line_and_paths(task_else.component_ref.spec, task_else.arguments)
+        self.assertEqual(resolved_cmd_else.args, ['--no-in'])
 
 
     def test_command_if_input_value_then(self):
@@ -553,26 +553,12 @@ implementation:
         task_factory1 = comp.load_component(text=component_text)
 
         task_then = task_factory1(True, 'test_data.txt', '42')
-        self.assertEqual(task_then.arguments, ['--test-data', 'test_data.txt', '--test-param1', '42'])
+        resolved_cmd_then = _resolve_command_line_and_paths(task_then.component_ref.spec, task_then.arguments)
+        self.assertEqual(resolved_cmd_then.args, ['--test-data', 'test_data.txt', '--test-param1', '42'])
         
         task_else = task_factory1()
-        self.assertEqual(task_else.arguments, [])
-
-    def test_handling_env(self):
-        component_text = '''\
-implementation:
-  container:
-    image: busybox
-    env:
-      key1: value 1
-      key2: value 2
-'''
-        task_factory1 = comp.load_component_from_text(component_text)
-        
-        task1 = task_factory1()
-        actual_env = {env_var.name: env_var.value for env_var in task1.container.env}
-        expected_env = {'key1': 'value 1', 'key2': 'value 2'}
-        self.assertDictEqual(expected_env, actual_env)
+        resolved_cmd_else = _resolve_command_line_and_paths(task_else.component_ref.spec, task_else.arguments)
+        self.assertEqual(resolved_cmd_else.args, [])
 
     def test_handle_default_values_in_task_factory(self):
         component_text = '''\
@@ -587,27 +573,13 @@ implementation:
         task_factory1 = comp.load_component_from_text(text=component_text)
 
         task1 = task_factory1()
-        self.assertEqual(task1.arguments, ['123'])
+        resolved_cmd1 = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+        self.assertEqual(resolved_cmd1.args, ['123'])
 
         task2 = task_factory1('456')
-        self.assertEqual(task2.arguments, ['456'])
+        resolved_cmd2 = _resolve_command_line_and_paths(task2.component_ref.spec, task2.arguments)
+        self.assertEqual(resolved_cmd2.args, ['456'])
 
-    def test_passing_component_metadata_to_container_op(self):
-        component_text = '''\
-metadata:
-  annotations:
-    key1: value1
-  labels:
-    key1: value1
-implementation:
-  container:
-    image: busybox
-'''
-        task_factory1 = comp.load_component_from_text(text=component_text)
-
-        task1 = task_factory1()
-        self.assertEqual(task1.pod_annotations['key1'], 'value1')
-        self.assertEqual(task1.pod_labels['key1'], 'value1')
 
     def test_check_task_spec_outputs_dictionary(self):
         component_text = '''\
@@ -620,8 +592,8 @@ implementation:
     command: [touch, {outputPath: out 1}, {outputPath: out 2}]
 '''
         op = comp.load_component_from_text(component_text)
-        with no_task_resolving_context():
-          task = op()
+
+        task = op()
 
         self.assertEqual(list(task.outputs.keys()), ['out 1', 'out 2'])
 
@@ -645,14 +617,14 @@ implementation:
 '''
         producer_op = comp.load_component_from_text(producer_component_text)
         consumer_op = comp.load_component_from_text(consumer_component_text)
-        with no_task_resolving_context():
-          producer_task = producer_op()
 
-          consumer_op(producer_task.outputs['out1'])
-          consumer_op(producer_task.outputs['out2'].without_type())
-          consumer_op(producer_task.outputs['out2'].with_type('Integer'))
-          with self.assertRaises(TypeError):
-            consumer_op(producer_task.outputs['out2'])
+        producer_task = producer_op()
+
+        consumer_op(producer_task.outputs['out1'])
+        consumer_op(producer_task.outputs['out2'].without_type())
+        consumer_op(producer_task.outputs['out2'].with_type('Integer'))
+        with self.assertRaises(TypeError):
+          consumer_op(producer_task.outputs['out2'])
 
     def test_type_compatibility_check_for_simple_types(self):
         component_a = '''\
@@ -671,7 +643,6 @@ implementation:
     image: busybox
     command: [echo, {inputValue: in1}]
 '''
-        kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
@@ -694,7 +665,6 @@ implementation:
     image: busybox
     command: [echo, {inputValue: in1}]
 '''
-        kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
@@ -718,7 +688,6 @@ implementation:
     image: busybox
     command: [echo, {inputValue: in1}]
 '''
-        kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
@@ -741,7 +710,6 @@ implementation:
     image: busybox
     command: [echo, {inputValue: in1}]
 '''
-        kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
@@ -764,7 +732,6 @@ implementation:
     image: busybox
     command: [echo, {inputValue: in1}]
 '''
-        kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
@@ -787,11 +754,10 @@ implementation:
     image: busybox
     command: [echo, {inputValue: in1}]
 '''
-        kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
-        with self.assertRaises(InconsistentTypeException):
+        with self.assertRaises(TypeError):
             b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     def test_fail_type_compatibility_check_when_parametrized_type_name_is_different(self):
@@ -811,11 +777,10 @@ implementation:
     image: busybox
     command: [echo, {inputValue: in1}]
 '''
-        kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
-        with self.assertRaises(InconsistentTypeException):
+        with self.assertRaises(TypeError):
             b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     def test_fail_type_compatibility_check_when_type_property_value_is_different(self):
@@ -835,11 +800,10 @@ implementation:
     image: busybox
     command: [echo, {inputValue: in1}]
 '''
-        kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
-        with self.assertRaises(InconsistentTypeException):
+        with self.assertRaises(TypeError):
             b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     @unittest.skip('Type compatibility check currently works the opposite way')
@@ -860,7 +824,6 @@ implementation:
     image: busybox
     command: [echo, {inputValue: in1}]
 '''
-        kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
@@ -884,36 +847,11 @@ implementation:
     image: busybox
     command: [echo, {inputValue: in1}]
 '''
-        kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
-        with self.assertRaises(InconsistentTypeException):
+        with self.assertRaises(TypeError):
             b_task = task_factory_b(in1=a_task.outputs['out1'])
-
-    def test_type_compatibility_check_not_failing_when_disabled(self):
-        component_a = '''\
-outputs:
-  - {name: out1, type: type_A}
-implementation:
-  container:
-    image: busybox
-    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
-'''
-        component_b = '''\
-inputs:
-  - {name: in1, type: type_Z}
-implementation:
-  container:
-    image: busybox
-    command: [echo, {inputValue: in1}]
-'''
-        kfp.TYPE_CHECK = False
-        task_factory_a = comp.load_component_from_text(component_a)
-        task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        b_task = task_factory_b(in1=a_task.outputs['out1'])
-        kfp.TYPE_CHECK = True
 
     def test_type_compatibility_check_not_failing_when_type_is_ignored(self):
         component_a = '''\
@@ -932,11 +870,10 @@ implementation:
     image: busybox
     command: [echo, {inputValue: in1}]
 '''
-        kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
-        b_task = task_factory_b(in1=a_task.outputs['out1'].ignore_type())
+        b_task = task_factory_b(in1=a_task.outputs['out1'].without_type())
 
     def test_type_compatibility_check_for_types_with_schema(self):
         component_a = '''\
@@ -955,7 +892,6 @@ implementation:
     image: busybox
     command: [echo, {inputValue: in1}]
 '''
-        kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
@@ -978,12 +914,11 @@ implementation:
     image: busybox
     command: [echo, {inputValue: in1}]
 '''
-        kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
 
-        with self.assertRaises(InconsistentTypeException):
+        with self.assertRaises(TypeError):
             b_task = task_factory_b(in1=a_task.outputs['out1'])
 
 

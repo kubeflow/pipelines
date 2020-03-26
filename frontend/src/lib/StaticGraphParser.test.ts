@@ -143,6 +143,28 @@ describe('StaticGraphParser', () => {
       expect(g.node('/task-1').label).toEqual('TaskDisplayName');
     });
 
+    it("uses task's annotation component_name as node label when present", () => {
+      const workflow = newWorkflow();
+      workflow.spec.templates[1].metadata = {
+        annotations: {
+          'pipelines.kubeflow.org/component_spec': '{"name":"Component Display Name"}',
+        },
+      };
+      const g = createGraph(workflow);
+      expect(g.node('/task-1').label).toEqual('Component Display Name');
+    });
+
+    it("uses task's default node label when component_name is malformed", () => {
+      const workflow = newWorkflow();
+      workflow.spec.templates[1].metadata = {
+        annotations: {
+          'pipelines.kubeflow.org/component_spec': '"name":"Component Display Name"}',
+        },
+      };
+      const g = createGraph(workflow);
+      expect(g.node('/task-1').label).not.toEqual('Component Display Name');
+    });
+
     it('adds an unconnected node for the onExit template, if onExit is specified', () => {
       const workflow = newWorkflow();
       workflow.spec.onExit = 'on-exit';
@@ -593,13 +615,19 @@ describe('StaticGraphParser', () => {
         container: {},
         dag: [],
         inputs: {
-          parameters: [{ name: 'param1', value: 'val1' }, { name: 'param2', value: 'val2' }],
+          parameters: [
+            { name: 'param1', value: 'val1' },
+            { name: 'param2', value: 'val2' },
+          ],
         },
         name: 'template-1',
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('container');
-      expect(nodeInfo.inputs).toEqual([['param1', 'val1'], ['param2', 'val2']]);
+      expect(nodeInfo.inputs).toEqual([
+        ['param1', 'val1'],
+        ['param2', 'val2'],
+      ]);
     });
 
     it('returns nodeInfo of a container with empty strings for inputs with no specified value', () => {
@@ -613,7 +641,10 @@ describe('StaticGraphParser', () => {
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('container');
-      expect(nodeInfo.inputs).toEqual([['param1', ''], ['param2', '']]);
+      expect(nodeInfo.inputs).toEqual([
+        ['param1', ''],
+        ['param2', ''],
+      ]);
     });
 
     it('returns nodeInfo containing container outputs as list of name/value tuples, pulling from valueFrom if necessary', () => {
@@ -651,7 +682,10 @@ describe('StaticGraphParser', () => {
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('container');
-      expect(nodeInfo.outputs).toEqual([['param1', ''], ['param2', '']]);
+      expect(nodeInfo.outputs).toEqual([
+        ['param1', ''],
+        ['param2', ''],
+      ]);
     });
 
     it('returns nodeInfo of a resource with empty values if template does not have inputs and/or outputs', () => {
@@ -672,14 +706,20 @@ describe('StaticGraphParser', () => {
       const template = {
         dag: [],
         inputs: {
-          parameters: [{ name: 'param1', value: 'val1' }, { name: 'param2', value: 'val2' }],
+          parameters: [
+            { name: 'param1', value: 'val1' },
+            { name: 'param2', value: 'val2' },
+          ],
         },
         name: 'template-1',
         resource: {},
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('resource');
-      expect(nodeInfo.inputs).toEqual([['param1', 'val1'], ['param2', 'val2']]);
+      expect(nodeInfo.inputs).toEqual([
+        ['param1', 'val1'],
+        ['param2', 'val2'],
+      ]);
     });
 
     it('returns nodeInfo of a resource with empty strings for inputs with no specified value', () => {
@@ -693,7 +733,10 @@ describe('StaticGraphParser', () => {
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('resource');
-      expect(nodeInfo.inputs).toEqual([['param1', ''], ['param2', '']]);
+      expect(nodeInfo.inputs).toEqual([
+        ['param1', ''],
+        ['param2', ''],
+      ]);
     });
 
     it('returns nodeInfo containing resource outputs as list of name/value tuples, pulling from valueFrom if necessary', () => {
@@ -731,7 +774,10 @@ describe('StaticGraphParser', () => {
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('resource');
-      expect(nodeInfo.outputs).toEqual([['param1', ''], ['param2', '']]);
+      expect(nodeInfo.outputs).toEqual([
+        ['param1', ''],
+        ['param2', ''],
+      ]);
     });
   });
 });

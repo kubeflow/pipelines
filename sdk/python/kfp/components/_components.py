@@ -26,7 +26,7 @@ from typing import Any, List, Mapping, NamedTuple, Sequence, Union
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from .structures import *
-from ._data_passing import serialize_value, type_name_to_type
+from ._data_passing import serialize_value, get_canonical_type_for_type_struct
 
 
 _default_component_name = 'Component'
@@ -313,7 +313,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     input_parameters = [
         _dynamic.KwParameter(
             input_name_to_pythonic[port.name],
-            annotation=(type_name_to_type.get(str(port.type), str(port.type)) if port.type else inspect.Parameter.empty),
+            annotation=(get_canonical_type_for_type_struct(str(port.type)) or str(port.type) if port.type else inspect.Parameter.empty),
             default=component_default_to_func_default(port.default, port.optional),
         )
         for port in reordered_input_list

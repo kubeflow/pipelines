@@ -16,8 +16,9 @@
 from . import _container_op
 from . import _resource_op
 from . import _ops_group
+from ._component_bridge import _create_container_op_from_component_and_arguments
+from ..components import _components
 from ..components._naming import _make_name_unique_by_adding_index
-from ..components import _dsl_bridge, _components
 import sys
 
 
@@ -191,7 +192,7 @@ class Pipeline():
 
     Pipeline._default_pipeline = self
     self._old_container_task_constructor = _components._container_task_constructor
-    _components._container_task_constructor = _dsl_bridge._create_container_op_from_component_and_arguments
+    _components._container_task_constructor = _create_container_op_from_component_and_arguments
 
     def register_op_and_generate_id(op):
       return self.add_op(op, op.is_exit_handler)

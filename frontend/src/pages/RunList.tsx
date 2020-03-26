@@ -56,20 +56,26 @@ interface DisplayMetric {
   metric?: ApiRunMetric;
 }
 
-export interface RunListProps extends RouteComponentProps {
-  disablePaging?: boolean;
-  disableSelection?: boolean;
-  disableSorting?: boolean;
-  experimentIdMask?: string;
-  hideExperimentColumn?: boolean;
-  hideMetricMetadata?: boolean;
-  noFilterBox?: boolean;
-  onError: (message: string, error: Error) => void;
-  onSelectionChange?: (selectedRunIds: string[]) => void;
-  runIdListMask?: string[];
-  selectedIds?: string[];
-  storageState?: RunStorageState;
-}
+// Both masks cannot be provided together.
+type MaskProps = Exclude<
+  { experimentIdMask?: string; namespaceMask?: string },
+  { experimentIdMask: string; namespaceMask: string }
+>;
+
+export type RunListProps = MaskProps &
+  RouteComponentProps & {
+    disablePaging?: boolean;
+    disableSelection?: boolean;
+    disableSorting?: boolean;
+    hideExperimentColumn?: boolean;
+    hideMetricMetadata?: boolean;
+    noFilterBox?: boolean;
+    onError: (message: string, error: Error) => void;
+    onSelectionChange?: (selectedRunIds: string[]) => void;
+    runIdListMask?: string[];
+    selectedIds?: string[];
+    storageState?: RunStorageState;
+  };
 
 interface RunListState {
   metrics: MetricMetadata[];
@@ -185,7 +191,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
             `No` +
             `${this.props.storageState === RunStorageState.ARCHIVED ? ' archived' : ' available'}` +
             ` runs found` +
-            `${this.props.experimentIdMask ? ' for this experiment' : ''}.`
+            `${
+              this.props.experimentIdMask
+                ? ' for this experiment'
+                : this.props.namespaceMask
+                ? ' for this namespace'
+                : ''
+            }.`
           }
         />
       </div>
@@ -333,12 +345,27 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       }
 
       try {
+        let resourceReference: {
+          keyType?: 'EXPERIMENT' | 'NAMESPACE';
+          keyId?: string;
+        } = {};
+        if (this.props.experimentIdMask) {
+          resourceReference = {
+            keyType: 'EXPERIMENT',
+            keyId: this.props.experimentIdMask,
+          };
+        } else if (this.props.namespaceMask) {
+          resourceReference = {
+            keyType: 'NAMESPACE',
+            keyId: this.props.namespaceMask,
+          };
+        }
         const response = await Apis.runServiceApi.listRuns(
           request.pageToken,
           request.pageSize,
           request.sortBy,
-          this.props.experimentIdMask ? 'EXPERIMENT' : undefined,
-          this.props.experimentIdMask,
+          resourceReference.keyType,
+          resourceReference.keyId,
           request.filter,
         );
 

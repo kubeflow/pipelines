@@ -59,10 +59,11 @@ The accepted file formats are:
 `model_uri` can also be an [Estimator export base directory, ](https://www.tensorflow.org/guide/saved_model#perform_the_export)which contains a list of subdirectories named by timestamp. The directory with the latest timestamp is used to load the trained model file.
 
 ## Output
-| Name    | Description                 | Type      |
-|:------- |:----                        | :---      |
-| job_id  | The ID of the created job.  |  String   |
-| job_dir | The Cloud Storage path that contains the trained model output files. |  GCSPath  |
+Name | Description | Type
+:--- | :---------- | :---
+| model_uri | The Cloud Storage URI of the trained model.  |  GCSPath |
+| model_name | The name of the deployed model. |  String  |
+| version_name | The name of the deployed version. |  String  |
 
 
 ## Cautions & requirements
@@ -103,7 +104,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 mlengine_deploy_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/gcp/ml_engine/deploy/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/2df775a28045bda15372d6dd4644f71dcfe41bfe/components/gcp/ml_engine/deploy/component.yaml')
 help(mlengine_deploy_op)
 ```
 
