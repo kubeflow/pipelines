@@ -200,7 +200,7 @@ export function waitForTensorboardInstance(
       const tensorboardAddress = tensorboardInstance.podAddress;
       if (tensorboardAddress) {
         clearInterval(handle);
-        resolve(encodeURIComponent(tensorboardAddress));
+        resolve(tensorboardAddress);
       }
     }, 1000);
   });

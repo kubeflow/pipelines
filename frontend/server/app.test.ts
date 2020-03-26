@@ -776,9 +776,7 @@ describe('UIServer apis', () => {
           )
           .expect(
             200,
-            encodeURIComponent(
-              'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
-            ),
+            'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
             err => {
               expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
                 Array [
@@ -883,9 +881,7 @@ describe('UIServer apis', () => {
           )
           .expect(
             200,
-            encodeURIComponent(
-              'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
-            ),
+            'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
             done,
           );
       });
