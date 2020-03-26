@@ -300,13 +300,6 @@ func TestListRuns_Multiuser(t *testing.T) {
 		expectedRuns []*api.Run
 	}{
 		{
-			"Valid - no filter",
-			&api.ListRunsRequest{},
-			false,
-			"",
-			expectedRuns,
-		},
-		{
 			"Valid - filter by experiment",
 			&api.ListRunsRequest{
 				ResourceReferenceKey: &api.ResourceKey{
@@ -341,6 +334,13 @@ func TestListRuns_Multiuser(t *testing.T) {
 			false,
 			"",
 			expectedRunsEmpty,
+		},
+		{
+			"Invalid - no filter",
+			&api.ListRunsRequest{},
+			true,
+			"ListRuns must filter by resource reference",
+			nil,
 		},
 		{
 			"Inalid - invalid filter type",

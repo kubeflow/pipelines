@@ -386,7 +386,7 @@ func TestCanAccessNamespaceInResourceReferences_Authorized(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestCanAccessNamespaceFromOwningExperiment_Unauthorized(t *testing.T) {
+func TestCanAccessExperimentInResourceReferences_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
@@ -402,12 +402,12 @@ func TestCanAccessNamespaceFromOwningExperiment_Unauthorized(t *testing.T) {
 			Relationship: api.Relationship_OWNER,
 		},
 	}
-	err := CanAccessNamespaceFromOwningExpeirment(manager, ctx, references)
+	err := CanAccessExperimentInResourceReferences(manager, ctx, references)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Unauthorized access")
 }
 
-func TestCanAccessNamespaceFromOwningExperiemnt_Authorized(t *testing.T) {
+func TestCanAccessExperiemntInResourceReferences_Authorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
@@ -423,6 +423,6 @@ func TestCanAccessNamespaceFromOwningExperiemnt_Authorized(t *testing.T) {
 			Relationship: api.Relationship_OWNER,
 		},
 	}
-	err := CanAccessNamespaceFromOwningExpeirment(manager, ctx, references)
+	err := CanAccessExperimentInResourceReferences(manager, ctx, references)
 	assert.Nil(t, err)
 }

@@ -35,7 +35,7 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
-	err = CanAccessNamespaceFromOwningExpeirment(s.resourceManager, ctx, request.Run.ResourceReferences)
+	err = CanAccessExperimentInResourceReferences(s.resourceManager, ctx, request.Run.ResourceReferences)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request.")
 	}
@@ -72,15 +72,30 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 
 	if common.IsMultiUserMode() {
 		refKey := filterContext.ReferenceKey
-		if refKey != nil && refKey.Type == common.Namespace {
+		if refKey == nil {
+			return nil, util.NewInvalidInputError("ListRuns must filter by resource reference in multi-user mode.")
+		}
+		if refKey.Type == common.Namespace {
 			namespace := refKey.ID
 			if len(namespace) == 0 {
-				return nil, util.NewInvalidInputError("Invalid resource references for run. Namespace is empty.")
+				return nil, util.NewInvalidInputError("Invalid resource references for ListRuns. Namespace is empty.")
 			}
 			err = isAuthorized(s.resourceManager, ctx, namespace)
 			if err != nil {
-				return nil, util.Wrap(err, "Failed to authorize with API resource references")
+				return nil, util.Wrap(err, "Failed to authorize with namespace resource reference.")
 			}
+		} else if refKey.Type == common.Experiment || refKey.Type == "ExperimentUUID" {
+			// "ExperimentUUID" is introduced for perf optimization, we accpet both refKey.Type for backward-compatible reason.
+			experimentID := refKey.ID
+			if len(experimentID) == 0 {
+				return nil, util.NewInvalidInputError("Invalid resource references for run. Experiment ID is empty.")
+			}
+			err = CanAccessExperiment(s.resourceManager, ctx, experimentID)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to authorize with experiment resource reference.")
+			}
+		} else {
+			return nil, util.NewInvalidInputError("Invalid resource references for ListRuns. Got %+v", request.ResourceReferenceKey)
 		}
 	}
 
