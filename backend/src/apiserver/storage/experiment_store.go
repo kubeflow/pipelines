@@ -135,8 +135,7 @@ func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) 
 func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) {
 	var experiments []*model.Experiment
 	for rows.Next() {
-		var uuid, name, description, namespace string
-		var storageState sql.NullString
+		var uuid, name, description, namespace, storageState string
 		var createdAtInSec int64
 		err := rows.Scan(&uuid, &name, &description, &createdAtInSec, &namespace, &storageState)
 		if err != nil {
@@ -148,11 +147,10 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) 
 			Description:    description,
 			CreatedAtInSec: createdAtInSec,
 			Namespace:      namespace,
+			StorageState:   storageState,
 		}
-		// Since storage state is a field added after initial KFP release, it is possible that existing experiments don't have this field and thus set a default.
-		if storageState.Valid && (storageState.String == api.Experiment_STORAGESTATE_AVAILABLE.String() || storageState.String == api.Experiment_STORAGESTATE_ARCHIVED.String()) {
-			experiment.StorageState = storageState.String
-		} else {
+		// Since storage state is a field added after initial KFP release, it is possible that existing experiments don't have this field and we use AVAILABLE in that case.
+		if experiment.StorageState == "" {
 			experiment.StorageState = api.Experiment_STORAGESTATE_AVAILABLE.String()
 		}
 		experiments = append(experiments, experiment)

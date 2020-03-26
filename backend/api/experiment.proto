@@ -166,9 +166,8 @@ message Experiment {
   repeated ResourceReference resource_references = 5;
 
   enum StorageState {
-    RESERVED = 0; // Just a place holder to make sure no valid item will take the value 0
+    STORAGESTATE_AVAILABLE = 0;
     STORAGESTATE_ARCHIVED = 1;
-    STORAGESTATE_AVAILABLE = 2;
   }
 
   StorageState storage_state = 6;

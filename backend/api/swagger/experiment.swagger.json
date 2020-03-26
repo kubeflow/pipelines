@@ -251,11 +251,10 @@
     "ExperimentStorageState": {
       "type": "string",
       "enum": [
-        "RESERVED",
-        "STORAGESTATE_ARCHIVED",
-        "STORAGESTATE_AVAILABLE"
+        "STORAGESTATE_AVAILABLE",
+        "STORAGESTATE_ARCHIVED"
       ],
-      "default": "RESERVED"
+      "default": "STORAGESTATE_AVAILABLE"
     },
     "apiExperiment": {
       "type": "object",
