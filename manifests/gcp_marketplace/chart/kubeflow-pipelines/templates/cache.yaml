@@ -38,83 +38,30 @@ metadata:
   name: kubeflow-pipelines-cache-deployer-clusterrole
 rules:
 - apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - get
-  - list
-  - watch
-  - update
-  - patch
-- apiGroups:
-  - "*"
-  resources:
-  - configmaps
-  verbs:
-  - get
-  - create
-- apiGroups:
-  - extensions
-  - apps
-  resources:
-  - deployments
-  verbs:
-  - get
-  - create
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - ""
-  resources:
-  - services
-  verbs:
-  - get
-  - create
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-- apiGroups:
   - certificates.k8s.io
   resources:
   - certificatesigningrequests
   - certificatesigningrequests/approval
   verbs:
   - create
+  - delete
   - get
   - update
-  - watch
-  - delete
-  - patch
 - apiGroups:
   - admissionregistration.k8s.io
   resources:
   - mutatingwebhookconfigurations
   verbs:
-  - get
-  - list
-  - watch
   - create
-  - update
-  - patch
-  - delete
+  - get
 - apiGroups:
   - ""
   resources:
   - secrets
   verbs:
-  - get
-  - list
-  - watch
   - create
-  - update
+  - get
   - patch
-  - delete
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -187,7 +134,7 @@ spec:
                "--db_host=$(DBCONFIG_HOST_NAME)",
                "--db_port=$(DBCONFIG_PORT)",
                "--namespace_to_watch=$(NAMESPACE_TO_WATCH)",
-              ]
+               ]
         imagePullPolicy: Always
         ports:
         - containerPort: 8443
