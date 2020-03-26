@@ -44,24 +44,24 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type Experiment_StorageState int32
 
 const (
-	Experiment_STORAGESTATE_AVAILABLE Experiment_StorageState = 0
-	Experiment_STORAGESTATE_ARCHIVED  Experiment_StorageState = 1
+	Experiment_STORAGESTATE_ARCHIVED  Experiment_StorageState = 0
+	Experiment_STORAGESTATE_AVAILABLE Experiment_StorageState = 1
 )
 
 var Experiment_StorageState_name = map[int32]string{
-	0: "STORAGESTATE_AVAILABLE",
-	1: "STORAGESTATE_ARCHIVED",
+	0: "STORAGESTATE_ARCHIVED",
+	1: "STORAGESTATE_AVAILABLE",
 }
 var Experiment_StorageState_value = map[string]int32{
-	"STORAGESTATE_AVAILABLE": 0,
-	"STORAGESTATE_ARCHIVED":  1,
+	"STORAGESTATE_ARCHIVED":  0,
+	"STORAGESTATE_AVAILABLE": 1,
 }
 
 func (x Experiment_StorageState) String() string {
 	return proto.EnumName(Experiment_StorageState_name, int32(x))
 }
 func (Experiment_StorageState) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_experiment_7df6066cf3732b73, []int{5, 0}
+	return fileDescriptor_experiment_cdbe8b450c5f1d27, []int{5, 0}
 }
 
 type CreateExperimentRequest struct {
@@ -75,7 +75,7 @@ func (m *CreateExperimentRequest) Reset()         { *m = CreateExperimentRequest
 func (m *CreateExperimentRequest) String() string { return proto.CompactTextString(m) }
 func (*CreateExperimentRequest) ProtoMessage()    {}
 func (*CreateExperimentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_experiment_7df6066cf3732b73, []int{0}
+	return fileDescriptor_experiment_cdbe8b450c5f1d27, []int{0}
 }
 func (m *CreateExperimentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateExperimentRequest.Unmarshal(m, b)
@@ -113,7 +113,7 @@ func (m *GetExperimentRequest) Reset()         { *m = GetExperimentRequest{} }
 func (m *GetExperimentRequest) String() string { return proto.CompactTextString(m) }
 func (*GetExperimentRequest) ProtoMessage()    {}
 func (*GetExperimentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_experiment_7df6066cf3732b73, []int{1}
+	return fileDescriptor_experiment_cdbe8b450c5f1d27, []int{1}
 }
 func (m *GetExperimentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetExperimentRequest.Unmarshal(m, b)
@@ -155,7 +155,7 @@ func (m *ListExperimentsRequest) Reset()         { *m = ListExperimentsRequest{}
 func (m *ListExperimentsRequest) String() string { return proto.CompactTextString(m) }
 func (*ListExperimentsRequest) ProtoMessage()    {}
 func (*ListExperimentsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_experiment_7df6066cf3732b73, []int{2}
+	return fileDescriptor_experiment_cdbe8b450c5f1d27, []int{2}
 }
 func (m *ListExperimentsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListExperimentsRequest.Unmarshal(m, b)
@@ -223,7 +223,7 @@ func (m *ListExperimentsResponse) Reset()         { *m = ListExperimentsResponse
 func (m *ListExperimentsResponse) String() string { return proto.CompactTextString(m) }
 func (*ListExperimentsResponse) ProtoMessage()    {}
 func (*ListExperimentsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_experiment_7df6066cf3732b73, []int{3}
+	return fileDescriptor_experiment_cdbe8b450c5f1d27, []int{3}
 }
 func (m *ListExperimentsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListExperimentsResponse.Unmarshal(m, b)
@@ -275,7 +275,7 @@ func (m *DeleteExperimentRequest) Reset()         { *m = DeleteExperimentRequest
 func (m *DeleteExperimentRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteExperimentRequest) ProtoMessage()    {}
 func (*DeleteExperimentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_experiment_7df6066cf3732b73, []int{4}
+	return fileDescriptor_experiment_cdbe8b450c5f1d27, []int{4}
 }
 func (m *DeleteExperimentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteExperimentRequest.Unmarshal(m, b)
@@ -318,7 +318,7 @@ func (m *Experiment) Reset()         { *m = Experiment{} }
 func (m *Experiment) String() string { return proto.CompactTextString(m) }
 func (*Experiment) ProtoMessage()    {}
 func (*Experiment) Descriptor() ([]byte, []int) {
-	return fileDescriptor_experiment_7df6066cf3732b73, []int{5}
+	return fileDescriptor_experiment_cdbe8b450c5f1d27, []int{5}
 }
 func (m *Experiment) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Experiment.Unmarshal(m, b)
@@ -377,7 +377,7 @@ func (m *Experiment) GetStorageState() Experiment_StorageState {
 	if m != nil {
 		return m.StorageState
 	}
-	return Experiment_STORAGESTATE_AVAILABLE
+	return Experiment_STORAGESTATE_ARCHIVED
 }
 
 type ArchiveExperimentRequest struct {
@@ -391,7 +391,7 @@ func (m *ArchiveExperimentRequest) Reset()         { *m = ArchiveExperimentReque
 func (m *ArchiveExperimentRequest) String() string { return proto.CompactTextString(m) }
 func (*ArchiveExperimentRequest) ProtoMessage()    {}
 func (*ArchiveExperimentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_experiment_7df6066cf3732b73, []int{6}
+	return fileDescriptor_experiment_cdbe8b450c5f1d27, []int{6}
 }
 func (m *ArchiveExperimentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ArchiveExperimentRequest.Unmarshal(m, b)
@@ -429,7 +429,7 @@ func (m *UnarchiveExperimentRequest) Reset()         { *m = UnarchiveExperimentR
 func (m *UnarchiveExperimentRequest) String() string { return proto.CompactTextString(m) }
 func (*UnarchiveExperimentRequest) ProtoMessage()    {}
 func (*UnarchiveExperimentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_experiment_7df6066cf3732b73, []int{7}
+	return fileDescriptor_experiment_cdbe8b450c5f1d27, []int{7}
 }
 func (m *UnarchiveExperimentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UnarchiveExperimentRequest.Unmarshal(m, b)
@@ -706,10 +706,10 @@ var _ExperimentService_serviceDesc = grpc.ServiceDesc{
 }
 
 func init() {
-	proto.RegisterFile("backend/api/experiment.proto", fileDescriptor_experiment_7df6066cf3732b73)
+	proto.RegisterFile("backend/api/experiment.proto", fileDescriptor_experiment_cdbe8b450c5f1d27)
 }
 
-var fileDescriptor_experiment_7df6066cf3732b73 = []byte{
+var fileDescriptor_experiment_cdbe8b450c5f1d27 = []byte{
 	// 872 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x55, 0xcd, 0x6e, 0xdb, 0x46,
 	0x10, 0x0e, 0xe5, 0x58, 0x89, 0x47, 0x96, 0x7f, 0xd6, 0xa9, 0x24, 0xd3, 0x72, 0xad, 0x12, 0x85,
@@ -744,9 +744,9 @@ var fileDescriptor_experiment_7df6066cf3732b73 = []byte{
 	0x1f, 0x8c, 0xac, 0xad, 0x6a, 0xf1, 0x2a, 0x33, 0x53, 0xb9, 0x1d, 0x84, 0x47, 0x72, 0xb3, 0x91,
 	0xc4, 0x85, 0xb2, 0x54, 0x5c, 0x68, 0xcb, 0x28, 0xaa, 0xb0, 0x56, 0x6c, 0x18, 0xcd, 0x8d, 0xd3,
 	0xfa, 0x9c, 0xfe, 0x76, 0x7b, 0x02, 0x6a, 0x27, 0x18, 0x6f, 0x5d, 0x66, 0x4e, 0x56, 0x0b, 0xd6,
-	0xb3, 0x59, 0x62, 0x42, 0xa5, 0xdd, 0xf9, 0xc1, 0x73, 0xcf, 0x5b, 0xed, 0x8e, 0xdb, 0x69, 0xf9,
-	0xee, 0x2b, 0xf7, 0xc5, 0x85, 0x7b, 0x76, 0xd1, 0xda, 0xba, 0x47, 0x76, 0xe1, 0x93, 0xd9, 0x9c,
-	0xf7, 0xec, 0xdb, 0x17, 0xaf, 0x5a, 0xcf, 0xb7, 0x0c, 0xeb, 0x08, 0x6a, 0xae, 0x08, 0x2e, 0xd9,
+	0xb3, 0x59, 0xb2, 0x0b, 0x9f, 0xb4, 0x3b, 0x3f, 0x78, 0xee, 0x79, 0xab, 0xdd, 0x71, 0x3b, 0x2d,
+	0xdf, 0xf5, 0x9e, 0x7d, 0xfb, 0xe2, 0x55, 0xeb, 0xf9, 0xd6, 0x3d, 0x62, 0x42, 0x65, 0x36, 0xf5,
+	0xca, 0x7d, 0x71, 0xe1, 0x9e, 0x5d, 0xb4, 0xb6, 0x0c, 0xeb, 0x08, 0x6a, 0xae, 0x08, 0x2e, 0xd9,
 	0xf5, 0x47, 0x8c, 0xe3, 0x31, 0x98, 0x3f, 0x85, 0xf4, 0x23, 0xd1, 0xa7, 0x7f, 0xad, 0xc2, 0xf6,
 	0x1d, 0xaa, 0x8d, 0xe2, 0x9a, 0x05, 0x48, 0x22, 0xd8, 0x9a, 0xdf, 0x6b, 0x32, 0xa1, 0xbd, 0x64,
 	0xdd, 0xcd, 0x79, 0x53, 0x5a, 0xc7, 0xbf, 0xff, 0xf3, 0xdf, 0xbb, 0xc2, 0x17, 0xd6, 0x6e, 0xf2,
@@ -765,5 +765,5 @@ var fileDescriptor_experiment_7df6066cf3732b73 = []byte{
 	0x5b, 0xc0, 0xbd, 0xd7, 0x4f, 0x06, 0x4c, 0x5d, 0xc6, 0x5d, 0x3b, 0xe0, 0x23, 0xe7, 0x2a, 0xee,
 	0x62, 0x7f, 0xc8, 0xdf, 0x38, 0x11, 0x8b, 0x70, 0xc8, 0x42, 0x94, 0x4e, 0xf6, 0x83, 0x3d, 0xe0,
 	0x7e, 0x30, 0x64, 0x18, 0xaa, 0x6e, 0x51, 0x33, 0x79, 0xf2, 0x7f, 0x00, 0x00, 0x00, 0xff, 0xff,
-	0x0e, 0xe2, 0x73, 0x34, 0x0c, 0x08, 0x00, 0x00,
+	0x47, 0xf5, 0xe2, 0x9f, 0x0c, 0x08, 0x00, 0x00,
 }
