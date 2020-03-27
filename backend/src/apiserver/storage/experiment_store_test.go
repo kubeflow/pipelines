@@ -502,25 +502,25 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	exp, err := experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
-	assert.Equal(t, exp.StorageState, api.Experiment_STORAGESTATE_ARCHIVED.String())
+	assert.Equal(t, api.Experiment_STORAGESTATE_ARCHIVED.String(), exp.StorageState)
 	opts, err := list.NewOptions(&model.Run{}, 10, "id", nil)
 	runs, total_run_size, _, err := runStore.ListRuns(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, total_run_size, 2)
-	assert.Equal(t, runs[0].StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
-	assert.Equal(t, runs[1].StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
+	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[0].StorageState)
+	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[1].StorageState)
 
 	// Unarchive the experiment and verify the experiment and two runs in it are all unarchived.
 	err = experimentStore.UnarchiveExperiment(fakeID)
 	assert.Nil(t, err)
 	exp, err = experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
-	assert.Equal(t, exp.StorageState, api.Experiment_STORAGESTATE_AVAILABLE.String())
+	assert.Equal(t, api.Experiment_STORAGESTATE_AVAILABLE.String(), exp.StorageState)
 	runs, total_run_size, _, err = runStore.ListRuns(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, total_run_size, 2)
-	assert.Equal(t, runs[0].StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
-	assert.Equal(t, runs[1].StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
+	assert.Equal(t, api.Run_STORAGESTATE_AVAILABLE.String(), runs[0].StorageState)
+	assert.Equal(t, api.Run_STORAGESTATE_AVAILABLE.String(), runs[1].StorageState)
 }
 
 func TestUnarchiveExperiment_InternalError(t *testing.T) {

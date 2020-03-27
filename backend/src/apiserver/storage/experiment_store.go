@@ -252,12 +252,25 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			"Failed to create query to archive experiment %s. error: '%v'", expId, err.Error())
 	}
 
+	// TODO(jingzhang36): use inner join to replace nested query for better performance.
+	resourceReferenceFilter, resourceReferenceFilterArgs, err := sq.Select("ResourceUUID").
+		From("resource_references as rf").
+		Where(sq.And{
+			sq.Eq{"rf.ResourceType": common.Run},
+			sq.Eq{"rf.ReferenceUUID": expId},
+			sq.Eq{"rf.ReferenceType": common.Experiment}}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to filter the runs in an experiment %s. error: '%v'", expId, err.Error())
+	}
+
 	updateRunsSql, updateRunsArgs, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
 			"StorageState": api.Run_STORAGESTATE_ARCHIVED.String(),
 		}).
-		Where(sq.Eq{"ExperimentUUID": expId}).ToSql()
+		Where(fmt.Sprintf("UUID in (%s)", resourceReferenceFilter), resourceReferenceFilterArgs...).
+		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to create query to archive the runs in an experiment %s. error: '%v'", expId, err.Error())
@@ -307,12 +320,24 @@ func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
 			"Failed to create query to unarchive experiment %s. error: '%v'", expId, err.Error())
 	}
 
+	// TODO(jingzhang36): use inner join to replace nested query for better performance.
+	resourceReferenceFilter, resourceReferenceFilterArgs, err := sq.Select("ResourceUUID").
+		From("resource_references as rf").
+		Where(sq.And{
+			sq.Eq{"rf.ResourceType": common.Run},
+			sq.Eq{"rf.ReferenceUUID": expId},
+			sq.Eq{"rf.ReferenceType": common.Experiment}}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to filter the runs in an experiment %s. error: '%v'", expId, err.Error())
+	}
 	updateRunsSql, updateRunsArgs, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
 			"StorageState": api.Run_STORAGESTATE_AVAILABLE.String(),
 		}).
-		Where(sq.Eq{"ExperimentUUID": expId}).ToSql()
+		Where(fmt.Sprintf("UUID in (%s)", resourceReferenceFilter), resourceReferenceFilterArgs...).
+		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to create query to unarchive the runs in an experiment %s. error: '%v'", expId, err.Error())
