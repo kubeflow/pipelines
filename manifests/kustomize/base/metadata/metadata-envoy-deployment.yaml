@@ -1,7 +1,7 @@
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
-  name: metadata-envoy
+  name: metadata-envoy-deployment
   labels:
     component: metadata-envoy
 spec:
