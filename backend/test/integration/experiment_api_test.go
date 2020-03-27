@@ -22,6 +22,7 @@ type ExperimentApiTest struct {
 	suite.Suite
 	namespace            string
 	experimentClient     *api_server.ExperimentClient
+	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient *api_server.PipelineUploadClient
 	runClient            *api_server.RunClient
 }
@@ -49,6 +50,10 @@ func (s *ExperimentApiTest) SetupTest() {
 	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
+	}
+	s.pipelineClient, err = api_server.NewPipelineClient(clientConfig, false)
+	if err != nil {
+		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
 	}
 	s.runClient, err = api_server.NewRunClient(clientConfig, false)
 	if err != nil {
