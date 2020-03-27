@@ -54,6 +54,9 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
   }
 
   public clearBanner(): void {
+    if (!this._isMounted) {
+      return;
+    }
     this.props.updateBanner({});
   }
 
@@ -63,6 +66,9 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
     mode?: 'error' | 'warning',
   ): Promise<void> {
     const errorMessage = await errorToMessage(error);
+    if (!this._isMounted) {
+      return;
+    }
     this.props.updateBanner({
       additionalInfo: errorMessage ? errorMessage : undefined,
       message: message + (errorMessage ? ' Click Details for more information.' : ''),
@@ -72,6 +78,9 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
   }
 
   public showErrorDialog(title: string, content: string): void {
+    if (!this._isMounted) {
+      return;
+    }
     this.props.updateDialog({
       buttons: [{ text: 'Dismiss' }],
       content,

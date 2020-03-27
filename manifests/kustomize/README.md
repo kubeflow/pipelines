@@ -11,7 +11,8 @@ Deploy latest version of Kubeflow Pipelines
 ```
 export PIPELINE_VERSION=0.3.0
 kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/crd.yaml
-kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
+kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
 ```
 
 Then get the Pipeline URL
@@ -44,13 +45,9 @@ To deploy Kubeflow Pipelines in namespace FOO,
 
 ```
 kubectl kustomize base/crds | kubectl apply -f -
-
 # then
-
 kubectl kustomize env/dev | kubectl apply -f -
-
 # or
-
 kubectl kustomize env/gcp | kubectl apply -f -
 ```
 
@@ -68,8 +65,13 @@ public URL. If you want to skip installing it:
 kubectl kustomize . | kubectl apply -f -
 ```
 
-The UI is still accessible by port-forwarding `kubectl port-forward -n kubeflow
-svc/ml-pipeline-ui 8080:80` and open http://localhost:8080/
+The UI is still accessible by port-forwarding
+
+```
+kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
+```
+
+and open http://localhost:8080/
 
 ### Deploy on AWS (with S3 buckets as artifact store)
 
@@ -92,13 +94,9 @@ Or if you deploy through kustomize
 
 ```
 kubectl kustomize env/dev | kubectl delete -f -
-
 # or
-
 kubectl kustomize env/gcp | kubectl delete -f -
-
 # then
-
 kubectl kustomize base/crds | kubectl delete -f -
 ```
 
@@ -109,8 +107,7 @@ kubectl kustomize base/crds | kubectl delete -f -
 Run
 
 ```
-kubectl create clusterrolebinding your-binding --clusterrole=cluster-admin
---user=[your-user-name]
+kubectl create clusterrolebinding your-binding --clusterrole=cluster-admin --user=[your-user-name]
 ```
 
 ### Samples requires "user-gcp-sa" secret
@@ -122,13 +119,11 @@ If sample code requires a "user-gcp-sa" secret, you could create one by
 
 ```
 gcloud iam service-accounts keys create application_default_credentials.json \
---iam-account [SA-NAME]@[PROJECT-ID].iam.gserviceaccount.com
+  --iam-account [SA-NAME]@[PROJECT-ID].iam.gserviceaccount.com
 ```
 
 -   Run
 
 ```
-kubectl
-create secret -n [your-namespace] generic user-gcp-sa
---from-file=user-gcp-sa.json=application_default_credentials.json`
+kubectl create secret -n [your-namespace] generic user-gcp-sa --from-file=user-gcp-sa.json=application_default_credentials.json`
 ```
