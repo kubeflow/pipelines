@@ -144,9 +144,11 @@ class Client(object):
     #
     if existing_token:
       token = existing_token
+    elif client_id:
+      token = get_auth_token(client_id, other_client_id, other_client_secret)
     elif self._is_inverse_proxy_host(host):
       token = get_gcp_access_token()
-
+    
     if token:
       config.api_key['authorization'] = token
       config.api_key_prefix['authorization'] = 'Bearer'
