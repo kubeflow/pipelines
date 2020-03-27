@@ -626,23 +626,310 @@ describe('UIServer apis', () => {
     });
   });
 
+  describe('/apps/tensorboard', () => {
+    let request: requests.SuperTest<requests.Test>;
+    let k8sGetCustomObjectSpy: jest.SpyInstance;
+    let k8sDeleteCustomObjectSpy: jest.SpyInstance;
+    let k8sCreateCustomObjectSpy: jest.SpyInstance;
+    function newGetTensorboardResponse({
+      name = 'viewer-example',
+      logDir = 'log-dir-example',
+      tensorflowImage = 'tensorflow:2.0.0',
+      type = 'tensorboard',
+    }: {
+      name?: string;
+      logDir?: string;
+      tensorflowImage?: string;
+      type?: string;
+    } = {}) {
+      return {
+        response: undefined as any, // unused
+        body: {
+          metadata: {
+            name,
+          },
+          spec: {
+            tensorboardSpec: { logDir, tensorflowImage },
+            type,
+          },
+        },
+      };
+    }
+    beforeEach(() => {
+      app = new UIServer(loadConfigs(argv, {}));
+      request = requests(app.start());
+      k8sGetCustomObjectSpy = jest.spyOn(
+        K8S_TEST_EXPORT.k8sV1CustomObjectClient,
+        'getNamespacedCustomObject',
+      );
+      k8sDeleteCustomObjectSpy = jest.spyOn(
+        K8S_TEST_EXPORT.k8sV1CustomObjectClient,
+        'deleteNamespacedCustomObject',
+      );
+      k8sCreateCustomObjectSpy = jest.spyOn(
+        K8S_TEST_EXPORT.k8sV1CustomObjectClient,
+        'createNamespacedCustomObject',
+      );
+    });
+
+    describe('get', () => {
+      it('requires logdir for get tensorboard', done => {
+        request.get('/apps/tensorboard').expect(404, 'logdir argument is required', done);
+      });
+
+      it('requires namespace for get tensorboard', done => {
+        request
+          .get('/apps/tensorboard?logdir=some-log-dir')
+          .expect(404, 'namespace argument is required', done);
+      });
+
+      it('does not crash with a weird query', done => {
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(newGetTensorboardResponse()),
+        );
+        // The special case is that, decodeURIComponent('%2') throws an
+        // exception, so this can verify handler doesn't do extra
+        // decodeURIComponent on queries.
+        const weirdLogDir = encodeURIComponent('%2');
+        request.get(`/apps/tensorboard?logdir=${weirdLogDir}&namespace=test-ns`).expect(200, done);
+      });
+
+      it('gets tensorboard url and version', done => {
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(
+            newGetTensorboardResponse({
+              name: 'viewer-abcdefg',
+              logDir: 'log-dir-1',
+              tensorflowImage: 'tensorflow:2.0.0',
+            }),
+          ),
+        );
+
+        request
+          .get(`/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns`)
+          .expect(
+            200,
+            JSON.stringify({
+              podAddress:
+                'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
+              tfVersion: '2.0.0',
+            }),
+            err => {
+              expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
+                              Array [
+                                "kubeflow.org",
+                                "v1beta1",
+                                "test-ns",
+                                "viewers",
+                                "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                              ]
+                          `);
+              done(err);
+            },
+          );
+      });
+    });
+
+    describe('post (create)', () => {
+      it('requires logdir', done => {
+        request.post('/apps/tensorboard').expect(404, 'logdir argument is required', done);
+      });
+
+      it('requires namespace', done => {
+        request
+          .post('/apps/tensorboard?logdir=some-log-dir')
+          .expect(404, 'namespace argument is required', done);
+      });
+
+      it('requires tfversion', done => {
+        request
+          .post('/apps/tensorboard?logdir=some-log-dir&namespace=test-ns')
+          .expect(404, 'tfversion (tensorflow version) argument is required', done);
+      });
+
+      it('creates tensorboard viewer custom object and waits for it', done => {
+        let getRequestCount = 0;
+        k8sGetCustomObjectSpy.mockImplementation(() => {
+          ++getRequestCount;
+          switch (getRequestCount) {
+            case 1:
+              return Promise.reject('Not found');
+            case 2:
+              return Promise.resolve(
+                newGetTensorboardResponse({
+                  name: 'viewer-abcdefg',
+                  logDir: 'log-dir-1',
+                  tensorflowImage: 'tensorflow:2.0.0',
+                }),
+              );
+            default:
+              throw new Error('only expected to be called twice in this test');
+          }
+        });
+        k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+        request
+          .post(
+            `/apps/tensorboard?logdir=${encodeURIComponent(
+              'log-dir-1',
+            )}&namespace=test-ns&tfversion=2.0.0`,
+          )
+          .expect(
+            200,
+            'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
+            err => {
+              expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
+                Array [
+                  "kubeflow.org",
+                  "v1beta1",
+                  "test-ns",
+                  "viewers",
+                  "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                ]
+              `);
+              expect(k8sCreateCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
+                Array [
+                  "kubeflow.org",
+                  "v1beta1",
+                  "test-ns",
+                  "viewers",
+                  Object {
+                    "apiVersion": "kubeflow.org/v1beta1",
+                    "kind": "Viewer",
+                    "metadata": Object {
+                      "name": "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                      "namespace": "test-ns",
+                    },
+                    "spec": Object {
+                      "podTemplateSpec": Object {
+                        "spec": Object {
+                          "containers": Array [
+                            Object {},
+                          ],
+                        },
+                      },
+                      "tensorboardSpec": Object {
+                        "logDir": "log-dir-1",
+                        "tensorflowImage": "tensorflow/tensorflow:2.0.0",
+                      },
+                      "type": "tensorboard",
+                    },
+                  },
+                ]
+              `);
+              expect(k8sGetCustomObjectSpy.mock.calls[1]).toMatchInlineSnapshot(`
+                Array [
+                  "kubeflow.org",
+                  "v1beta1",
+                  "test-ns",
+                  "viewers",
+                  "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                ]
+              `);
+              done(err);
+            },
+          );
+      });
+
+      it('returns error when there is an existing tensorboard with different version', done => {
+        const errorSpy = jest.spyOn(console, 'error');
+        errorSpy.mockImplementation();
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(
+            newGetTensorboardResponse({
+              name: 'viewer-abcdefg',
+              logDir: 'log-dir-1',
+              tensorflowImage: 'tensorflow:2.1.0',
+            }),
+          ),
+        );
+        k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+        request
+          .post(
+            `/apps/tensorboard?logdir=${encodeURIComponent(
+              'log-dir-1',
+            )}&namespace=test-ns&tfversion=2.0.0`,
+          )
+          .expect(
+            500,
+            `Failed to start Tensorboard app: Error: There's already an existing tensorboard instance with a different version 2.1.0`,
+            err => {
+              expect(errorSpy).toHaveBeenCalledTimes(1);
+              done(err);
+            },
+          );
+      });
+
+      it('returns existing pod address if there is an existing tensorboard with the same version', done => {
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(
+            newGetTensorboardResponse({
+              name: 'viewer-abcdefg',
+              logDir: 'log-dir-1',
+              tensorflowImage: 'tensorflow:2.0.0',
+            }),
+          ),
+        );
+        k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+        request
+          .post(
+            `/apps/tensorboard?logdir=${encodeURIComponent(
+              'log-dir-1',
+            )}&namespace=test-ns&tfversion=2.0.0`,
+          )
+          .expect(
+            200,
+            'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
+            done,
+          );
+      });
+    });
+
+    describe('delete', () => {
+      it('requires logdir', done => {
+        request.delete('/apps/tensorboard').expect(404, 'logdir argument is required', done);
+      });
+
+      it('requires namespace', done => {
+        request
+          .delete('/apps/tensorboard?logdir=some-log-dir')
+          .expect(404, 'namespace argument is required', done);
+      });
+
+      it('deletes tensorboard viewer custom object', done => {
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(
+            newGetTensorboardResponse({
+              name: 'viewer-abcdefg',
+              logDir: 'log-dir-1',
+              tensorflowImage: 'tensorflow:2.0.0',
+            }),
+          ),
+        );
+        k8sDeleteCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+        request
+          .delete(`/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns`)
+          .expect(200, 'Tensorboard deleted.', err => {
+            expect(k8sDeleteCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
+              Array [
+                "kubeflow.org",
+                "v1beta1",
+                "test-ns",
+                "viewers",
+                "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                V1DeleteOptions {},
+              ]
+            `);
+            done(err);
+          });
+      });
+    });
+  });
+
   // TODO: Add integration tests for k8s helper related endpoints
-
-  // describe('/apps/tensorboard', () => {
-
-  //   it('get a tensorboard url', done => {
-  //     const tensorboardUrl = 'http://tensorboard.view/abc';
-  //     const mockedGetTensorboardInstance: jest.Mock = getTensorboardInstance as any;
-  //     mockedGetTensorboardInstance.mockResolvedValueOnce(tensorboardUrl);
-  //     const configs = loadConfigs(argv, {});
-  //     app = new UIServer(configs);
-
-  //     const request = requests(app.start());
-  //     request.get('/apps/tensorboard?logdir=hello%2Fworld').expect(200, tensorboardUrl, done);
-  //   });
-
-  // });
-
   // describe('/k8s/pod/logs', () => {});
 
   describe('/apis/v1beta1/', () => {
