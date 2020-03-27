@@ -249,6 +249,8 @@ spec:
       ]
 
   - name: run-basic-e2e-tests
+    retryStrategy:
+      limit: 2
     inputs:
       parameters:
       - name: test-results-gcs-dir
