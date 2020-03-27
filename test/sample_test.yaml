@@ -31,6 +31,8 @@ spec:
         value: kubeflow
       - name: is-integration-test
         value: "false"
+      - name: test-retry-limit
+        value: 2
   templates:
     - name: sample-test
       inputs:
@@ -40,6 +42,7 @@ spec:
           - name: sample-tests-image-suffix
           - name: namespace
           - name: is-integration-test
+          - name: test-retry-limit
       steps:
         - - name: build-sample-tests-image
             template: build-image-by-dockerfile
@@ -65,6 +68,8 @@ spec:
                   value: "{{inputs.parameters.test-results-gcs-dir}}"
                 - name: test-name
                   value: "{{item}}"
+                - name: test-retry-limit
+                  value: {{inputs.parameters.test-retry-limit}}
             withItems:
               - lightweight_component
               - dsl_static_type_checking
@@ -96,6 +101,8 @@ spec:
                   value: "{{inputs.parameters.test-results-gcs-dir}}"
                 - name: test-name
                   value: "{{item}}"
+                - name: test-retry-limit
+                  value: {{inputs.parameters.test-retry-limit}}
             withItems:
               - xgboost_training_cm
               - dataflow
@@ -146,7 +153,7 @@ spec:
 
     - name: run-sample-tests
       retryStrategy:
-        limit: 10
+        limit: {{inputs.parameters.test-retry-limit}}
       inputs:
         parameters:
           - name: test-results-gcs-dir
@@ -154,6 +161,7 @@ spec:
           - name: sample-tests-image
           - name: namespace
           - name: test-name
+          - name: test-retry-limit
       container:
         image: "{{inputs.parameters.sample-tests-image}}"
         args: [
