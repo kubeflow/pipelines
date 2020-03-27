@@ -477,7 +477,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 			Name:             "run2",
 			DisplayName:      "run2",
 			StorageState:     api.Run_STORAGESTATE_ARCHIVED.String(),
-			Namespace:        "n2",
+			Namespace:        "n1",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
