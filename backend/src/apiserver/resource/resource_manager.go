@@ -314,10 +314,30 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		}
 	}
 
-	namespace := common.GetNamespaceFromAPIResourceReferences(apiRun.ResourceReferences)
+	resourceReferences := apiRun.GetResourceReferences()
+	experimentID := common.GetExperimentIDFromAPIResourceReferences(resourceReferences)
+	if len(experimentID) == 0 {
+		if multiuserMode {
+			return nil, util.NewInternalServerError(errors.New("Missing experiment"), "Experiment is required for CreateRun/CreateJob.")
+		} else {
+			// Add a reference to the default experiment
+			ref, err := r.getDefaultExperimentResourceReference(resourceReferences)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to create run.")
+			}
+			apiRun.ResourceReferences = append(apiRun.ResourceReferences, ref)
+			experimentID = ref.GetKey().GetId()
+		}
+	}
+	experiment, err := r.GetExperiment(experimentID)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get experiment.")
+	}
+
+	namespace := experiment.Namespace
 	if len(namespace) == 0 {
 		if multiuserMode {
-			return nil, util.NewInvalidInputError("Run should specify namespace")
+			return nil, util.NewInternalServerError(errors.New("Missing namespace"), "Experiment %v doesn't have a namespace.", experiment.Name)
 		} else {
 			namespace = common.GetPodNamespace()
 		}
@@ -326,15 +346,6 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	newWorkflow, err := r.getWorkflowClient(namespace).Create(workflow.Get())
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
-	}
-
-	// Add a reference to the default experiment if run does not already have a containing experiment
-	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
-	if err != nil {
-		return nil, err
-	}
-	if ref != nil {
-		apiRun.ResourceReferences = append(apiRun.ResourceReferences, ref)
 	}
 
 	// Store run metadata into database
@@ -778,7 +789,6 @@ func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, 
 		if err != nil {
 			return nil, util.Wrap(err, "Get pipeline YAML failed.")
 		}
-
 		return []byte(workflow.ToStringForStore()), nil
 	} else if spec.GetWorkflowManifest() != "" {
 		return []byte(spec.GetWorkflowManifest()), nil
@@ -847,7 +857,10 @@ func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*api.R
 			return nil, nil
 		}
 	}
+	return r.getDefaultExperimentResourceReference(references)
+}
 
+func (r *ResourceManager) getDefaultExperimentResourceReference(references []*api.ResourceReference) (*api.ResourceReference, error) {
 	// Create reference to the default experiment
 	defaultExperimentId, err := r.GetDefaultExperimentId()
 	if err != nil {
@@ -1032,11 +1045,11 @@ func (r *ResourceManager) GetNamespaceFromRunID(runId string) (string, error) {
 	if err != nil {
 		return "", util.Wrap(err, "Failed to get namespace from run id.")
 	}
-	namespace := model.GetNamespaceFromModelResourceReferences(runDetail.ResourceReferences)
+	namespace := runDetail.Namespace
 	if len(namespace) == 0 {
 		if common.IsMultiUserMode() {
 			// All runs should have namespace in multi user mode.
-			return "", errors.New("Invalid db data: run doesn't have a namespace resource reference")
+			return "", errors.New("Invalid db data: run_details doesn't have a namespace")
 		} else {
 			// When db model doesn't have namespace stored (e.g. legacy runs), use
 			// pod namespace as default.
