@@ -32,7 +32,7 @@ import (
 
 var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1"},
+	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
 })
 
@@ -75,17 +75,17 @@ var validReferencesOfExperimentAndPipelineVersion = []*api.ResourceReference{
 
 // This automatically runs before all the tests.
 func initEnvVars() {
-	viper.Set(common.PodNamespace, "test-ns")
+	viper.Set(common.PodNamespace, "ns1")
 }
 
 func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
-	apiExperiment := &api.Experiment{Name: "123"}
+	apiExperiment := &api.Experiment{Name: "exp1"}
 	if common.IsMultiUserMode() {
 		apiExperiment = &api.Experiment{
-			Name: "123",
+			Name: "exp1",
 			ResourceReferences: []*api.ResourceReference{
 				{
 					Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns1"},
@@ -104,10 +104,10 @@ func initWithExperiment_KFAM_Unauthorized(t *testing.T) (*resource.FakeClientMan
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	clientManager.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
 	resourceManager := resource.NewResourceManager(clientManager)
-	apiExperiment := &api.Experiment{Name: "123"}
+	apiExperiment := &api.Experiment{Name: "exp1"}
 	if common.IsMultiUserMode() {
 		apiExperiment = &api.Experiment{
-			Name: "123",
+			Name: "exp1",
 			ResourceReferences: []*api.ResourceReference{
 				{
 					Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns1"},
@@ -127,7 +127,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	// Create an experiment.
-	apiExperiment := &api.Experiment{Name: "123"}
+	apiExperiment := &api.Experiment{Name: "exp1"}
 	experiment, err := resourceManager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
 
