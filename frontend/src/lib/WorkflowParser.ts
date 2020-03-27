@@ -292,7 +292,7 @@ export default class WorkflowParser {
           outputPaths.push({
             bucket: a.s3!.bucket,
             key: a.s3!.key,
-            source: StorageService.MINIO,
+            source: a.s3!.endpoint === 's3.amazonaws.com' ? StorageService.S3 : StorageService.MINIO,
           }),
         );
     }
