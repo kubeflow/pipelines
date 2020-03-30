@@ -43,6 +43,16 @@ gcloud builds submit --config=test/cloudbuild/mkp_verify.yaml --substitutions=CO
 
 4. Manual-test (Install with advanced parameters and don't uninstall)
 
+Make sure your kubectl can connect to a target test cluster.
+
+```shell
+APP_INSTANCE_NAME=manualinstall
+NAMESPACE=kfp
+MANAGEDSTORAGE=true
+CLOUDSQL=renming-mlpipeline:us-central1:kfpinstance
+mpdev install  --deployer=gcr.io/ml-pipeline-test/hosted/$(git rev-parse HEAD)/deployer:$MM_VER \
+    --parameters='{"name": "'$APP_INSTANCE_NAME'", "namespace": "'$NAMESPACE'", '$managedstorage.enabled': "'$MANAGEDSTORAGE'", "managedstorage.cloudsqlInstanceConnectionName": "'$CLOUDSQL'"}'
 ```
 
-```
+mpdev install  --deployer=gcr.io/ml-pipeline-test/hosted/$(git rev-parse HEAD)/deployer:$MM_VER \
+    --parameters='{"name": "manualinstall", "namespace": "kfp", "managedstorage.enabled": true, "managedstorage.cloudsqlInstanceConnectionName": "'$CLOUDSQL'"}'

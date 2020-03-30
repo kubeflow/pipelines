@@ -36,3 +36,4 @@ managedstorage:
   databaseNamePrefix: null
   dbUsername: 'root'
   dbPassword: ''
+  gcsProjectId: ''

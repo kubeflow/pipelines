@@ -38,6 +38,7 @@ spec:
         - args:
             - gateway
             - gcs
+            - {{ .Values.managedstorage.gcsProjectId }}
           env:
             - name: MINIO_ACCESS_KEY
               value: minio
