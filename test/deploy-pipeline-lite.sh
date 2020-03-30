@@ -46,6 +46,10 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
 
+  pushd ${KFP_MANIFEST_DIR}/cluster
+  kustomize build . | kubectl apply -f -
+  popd
+
   pushd ${KFP_MANIFEST_DIR}/dev
 
   # This is the recommended approach to do this.
@@ -78,6 +82,7 @@ else
 
   pushd ${KFP_MANIFEST_DIR}/dev
   kustomize build . | kubectl apply -f -
+  # TODO: remove line below after the release next to 0.3.0
   kubectl delete deployment cache-server -n ${NAMESPACE}
   popd
 
