@@ -56,12 +56,12 @@ rules:
   - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   labels:
-    app: kubeflow-pipelines-cache-deployer-role
+    app: kubeflow-pipelines-cache-deployer-secret-clusterrole
     app.kubernetes.io/name: {{ .Release.Name }}
-  name: kubeflow-pipelines-cache-deployer-role
+  name: kubeflow-pipelines-cache-deployer-secret-clusterrole
 rules:
 - apiGroups:
   - ""
@@ -102,8 +102,8 @@ metadata:
     app.kubernetes.io/name: {{ .Release.Name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: kubeflow-pipelines-cache-deployer-role
+  kind: ClusterRole
+  name: kubeflow-pipelines-cache-deployer-secret-clusterrole
 subjects:
 - kind: ServiceAccount
   name: kubeflow-pipelines-cache-deployer-sa
