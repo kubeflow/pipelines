@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import Archive from './Archive';
+import { Archive } from './Archive';
 import TestUtils from '../TestUtils';
 import { PageProps } from './Page';
 import { RunStorageState } from '../apis/run';
@@ -59,6 +59,11 @@ describe('Archive', () => {
   it('renders archived runs', () => {
     tree = shallow(<Archive {...generateProps()} />);
     expect(tree).toMatchSnapshot();
+  });
+
+  it('lists archived runs in namespace', () => {
+    tree = shallow(<Archive {...generateProps()} namespace='test-ns' />);
+    expect(tree.find('RunList').prop('namespaceMask')).toEqual('test-ns');
   });
 
   it('removes error banner on unmount', () => {

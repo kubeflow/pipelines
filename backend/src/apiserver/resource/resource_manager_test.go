@@ -38,7 +38,7 @@ import (
 )
 
 func initEnvVars() {
-	viper.Set(common.PodNamespace, "test-ns")
+	viper.Set(common.PodNamespace, "ns1")
 }
 
 type FakeBadObjectStore struct{}
@@ -69,7 +69,7 @@ func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, filePath string) err
 
 var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "test-ns"},
+	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
 	Status:     v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 })
@@ -341,7 +341,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			ExperimentUUID: experiment.UUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
-			Namespace:      "test-ns",
+			Namespace:      "ns1",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 3,
 			Conditions:     "Running",
@@ -388,7 +388,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			ExperimentUUID: expectedExperimentUUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
-			Namespace:      "test-ns",
+			Namespace:      "ns1",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 2,
 			Conditions:     "Running",
@@ -436,7 +436,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 			ExperimentUUID: expectedExperimentUUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
-			Namespace:      "test-ns",
+			Namespace:      "ns1",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 2,
 			Conditions:     "Running",
@@ -521,7 +521,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 			ExperimentUUID: experiment.UUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
-			Namespace:      "test-ns",
+			Namespace:      "ns1",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 4,
 			Conditions:     "Running",
@@ -561,7 +561,12 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 
 func TestCreateRun_NoExperiment(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
 	manager := NewResourceManager(store)
+	experimentID, err := manager.CreateDefaultExperiment()
+	experiment, err := manager.GetExperiment(experimentID)
+	assert.Equal(t, experiment.Name, "Default")
+
 	apiRun := &api.Run{
 		Name: "No experiment",
 		PipelineSpec: &api.PipelineSpec{
@@ -1201,7 +1206,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
-			Namespace: "test-ns",
+			Namespace: "ns1",
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 	})
@@ -1214,7 +1219,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		ExperimentUUID: expectedExperimentUUID,
 		DisplayName:    "run1",
 		Name:           "workflow-name",
-		Namespace:      "test-ns",
+		Namespace:      "ns1",
 		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 		CreatedAtInSec: 2,
 		Conditions:     "Running",
@@ -1402,7 +1407,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      run.Name,
-			Namespace: "test-ns",
+			Namespace: "ns1",
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
@@ -1420,7 +1425,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFail
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      run.Name,
-			Namespace: "test-ns",
+			Namespace: "ns1",
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},

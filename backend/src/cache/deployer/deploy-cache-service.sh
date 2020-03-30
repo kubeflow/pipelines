@@ -23,6 +23,7 @@ set -ex
 echo "Start deploying cache service to existing cluster:"
 
 NAMESPACE=${NAMESPACE_TO_WATCH:-default}
+mutatingWebhookConfigName="cache-webhook"
 export CA_FILE="ca_cert"
 rm -f ${CA_FILE}
 touch ${CA_FILE}
@@ -35,6 +36,16 @@ echo "Signed certificate generated for cache server"
 NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh --cert_input_path "${CA_FILE}" <./cache-configmap.yaml.template >./cache-configmap-ca-bundle.yaml
 echo "CA_BUNDLE patched successfully"
 
+checkWebhookConfig() {
+    webhookconfig=$(kubectl get mutatingwebhookconfigurations -n ${NAMESPACE} ${mutatingWebhookConfigName})
+}
+
 # Create MutatingWebhookConfiguration
 cat ./cache-configmap-ca-bundle.yaml
-kubectl apply -f ./cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
+
+while true; do 
+    if ! checkWebhookConfig; then
+        kubectl apply -f ./cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
+    fi
+    sleep 10
+done

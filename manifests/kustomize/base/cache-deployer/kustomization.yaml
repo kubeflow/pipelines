@@ -5,5 +5,5 @@ resources:
   - cache-deployer-clusterrole.yaml
   - cache-deployer-clusterrolebinding.yaml
   - cache-deployer-sa.yaml
-  - cache-deployer-job.yaml
+  - cache-deployer-statefulset.yaml
   
