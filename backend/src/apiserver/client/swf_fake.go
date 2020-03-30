@@ -34,18 +34,6 @@ func (c *FakeSwfClient) ScheduledWorkflow(namespace string) v1beta1.ScheduledWor
 	return c.scheduledWorkflowClientFake
 }
 
-// func (c *FakeSwfClient) GetWorkflowCount() int {
-// 	return len(c.scheduledWorkflowClientFake.scheduledWorkflows)
-// }
-
-// func (c *FakeSwfClient) GetWorkflowKeys() map[string]bool {
-// 	result := map[string]bool{}
-// 	for key := range c.scheduledWorkflowClientFake.scheduledWorkflows {
-// 		result[key] = true
-// 	}
-// 	return result
-// }
-
 type FakeSwfClientWithBadWorkflow struct {
 	scheduledWorkflowClientFake *FakeBadScheduledWorkflowClient
 }

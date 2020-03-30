@@ -19,14 +19,9 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	swfclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"k8s.io/client-go/rest"
-)
-
-const (
-	PodNamespace = "POD_NAMESPACE"
 )
 
 type SwfClientInterface interface {
@@ -38,9 +33,6 @@ type SwfClient struct {
 }
 
 func (swfClient *SwfClient) ScheduledWorkflow(namespace string) v1beta1.ScheduledWorkflowInterface {
-	if len(namespace) == 0 {
-		namespace = common.GetStringConfig(PodNamespace)
-	}
 	return swfClient.swfV1beta1Client.ScheduledWorkflows(namespace)
 }
 
