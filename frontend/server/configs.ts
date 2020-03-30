@@ -104,6 +104,7 @@ export function loadConfigs(
         accessKey: AWS_ACCESS_KEY_ID || '',
         endPoint: 's3.amazonaws.com',
         secretKey: AWS_SECRET_ACCESS_KEY || '',
+        useSSL: true, // shld always use TLS for AWS s3 endpoint
       },
       http: {
         auth: {
@@ -171,6 +172,7 @@ export interface AWSConfigs {
   endPoint: string;
   accessKey: string;
   secretKey: string;
+  useSSL: boolean;
 }
 export interface HttpConfigs {
   baseUrl: string;

@@ -249,6 +249,7 @@ describe('UIServer apis', () => {
             accessKey: 'aws123',
             endPoint: 's3.amazonaws.com',
             secretKey: 'awsSecret123',
+            useSSL: true,
           });
           done(err);
         });
@@ -281,6 +282,7 @@ describe('UIServer apis', () => {
             accessKey: 'aws123',
             endPoint: 's3.amazonaws.com',
             secretKey: 'awsSecret123',
+            useSSL: true,
           });
           done(err);
         });
