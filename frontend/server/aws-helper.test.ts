@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import fetch from 'node-fetch';
-import { awsInstanceProfileCredentials } from './aws-helper';
+import { awsInstanceProfileCredentials, isS3Endpoint } from './aws-helper';
 
 // mock node-fetch module
 jest.mock('node-fetch');
@@ -102,5 +102,27 @@ describe('awsInstanceProfileCredentials', () => {
       expect(awsInstanceProfileCredentials.getCredentials).not.toThrow();
       expect(await awsInstanceProfileCredentials.getCredentials()).toBeUndefined();
     });
+  });
+});
+
+describe('isS3Endpoint', () => {
+  it('checks a valid s3 endpoint', () => {
+    expect(isS3Endpoint('s3.amazonaws.com')).toBe(true);
+  });
+
+  it('checks a valid s3 regional endpoint', () => {
+    expect(isS3Endpoint('s3.dualstack.us-east-1.amazonaws.com')).toBe(true);
+  });
+
+  it('checks a valid s3 cn endpoint', () => {
+    expect(isS3Endpoint('s3.cn-north-1.amazonaws.com.cn')).toBe(true);
+  });
+
+  it('checks an invalid s3 endpoint', () => {
+    expect(isS3Endpoint('amazonaws.com')).toBe(false);
+  });
+
+  it('checks non-s3 endpoint', () => {
+    expect(isS3Endpoint('minio.kubeflow')).toBe(false);
   });
 });
