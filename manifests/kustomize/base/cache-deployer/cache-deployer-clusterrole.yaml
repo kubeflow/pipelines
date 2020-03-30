@@ -22,11 +22,3 @@ rules:
   verbs:
   - create
   - get
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
-  - get
-  - patch
