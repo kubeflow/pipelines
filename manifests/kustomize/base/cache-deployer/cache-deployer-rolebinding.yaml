@@ -8,4 +8,4 @@ roleRef:
   name: kubeflow-pipelines-cache-deployer-role
 subjects:
 - kind: ServiceAccount
-  name: kubeflow-pipelines-cache-deployer-sas
+  name: kubeflow-pipelines-cache-deployer-sa

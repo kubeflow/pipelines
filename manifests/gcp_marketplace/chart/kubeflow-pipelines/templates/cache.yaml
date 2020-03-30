@@ -54,6 +54,15 @@ rules:
   verbs:
   - create
   - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: kubeflow-pipelines-cache-deployer-role
+    app.kubernetes.io/name: {{ .Release.Name }}
+  name: kubeflow-pipelines-cache-deployer-role
+rules:
 - apiGroups:
   - ""
   resources:
@@ -80,6 +89,21 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: kubeflow-pipelines-cache-deployer-clusterrole
+subjects:
+- kind: ServiceAccount
+  name: kubeflow-pipelines-cache-deployer-sa
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubeflow-pipelines-cache-deployer-rolebinding
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubeflow-pipelines-cache-deployer-role
 subjects:
 - kind: ServiceAccount
   name: kubeflow-pipelines-cache-deployer-sa
