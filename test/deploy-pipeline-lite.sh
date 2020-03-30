@@ -77,8 +77,8 @@ else
   popd
 
   pushd ${KFP_MANIFEST_DIR}/dev
-  # kubectl delete deployment cache-server -n ${NAMESPACE}
   kustomize build . | kubectl apply -f -
+  kubectl delete deployment cache-server -n ${NAMESPACE}
   popd
 
   # go back to previous commit
