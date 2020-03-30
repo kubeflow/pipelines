@@ -41,13 +41,9 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   echo "Deploying KFP in working directory..."
   KFP_MANIFEST_DIR=${DIR}/manifests
 
-  pushd ${KFP_MANIFEST_DIR}/crd
-  kustomize build . | kubectl apply -f -
-  kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
-  popd
-
   pushd ${KFP_MANIFEST_DIR}/cluster
   kustomize build . | kubectl apply -f -
+  kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
 
   pushd ${KFP_MANIFEST_DIR}/dev
@@ -75,7 +71,7 @@ else
   # temporarily checkout last release tag
   git checkout $KFP_LATEST_RELEASE
 
-  pushd ${KFP_MANIFEST_DIR}/crd
+  pushd ${KFP_MANIFEST_DIR}/cluster
   kustomize build . | kubectl apply -f -
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
