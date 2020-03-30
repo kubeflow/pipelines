@@ -8,17 +8,16 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
+# limitations under the License. 
 
 
-FROM ubuntu:16.04
+FROM amazonlinux:2
 
-RUN apt-get update -y && apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget unzip
-
-RUN easy_install pip
+RUN yum update -y && yum install -y -q ca-certificates python-devel python-setuptools python-pip wget unzip
 
 RUN pip install boto3 sagemaker pathlib2 pyyaml==3.12
 
+COPY LICENSE.txt .
 COPY hyperparameter_tuning/src/hyperparameter_tuning.py .
 COPY train/src/train.py .
 COPY deploy/src/deploy.py .
