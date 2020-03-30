@@ -30,7 +30,19 @@ This section details how to test your changes before submit codes.
 gcloud builds submit --config=.cloudbuild.yaml --substitutions=COMMIT_SHA="$(git rev-parse HEAD)" --project=ml-pipeline-test
 ```
 
-3. Test (Install & Uninstall)
+`gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/` contains the binaries.
+
+3. Auto-test (Install & Uninstall)
+
+MM_VER is major minor version parsed from VERSION file which is on major.minor.patch version format.
 
 ```
+MM_VER=$(cat VERSION | sed -e "s#[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)#\1.\2#")
+gcloud builds submit --config=test/cloudbuild/mkp_verify.yaml --substitutions=COMMIT_SHA="$(git rev-parse HEAD)",_DEPLOYER_VERSION=$MM_VER --project=ml-pipeline-test
+```
+
+4. Manual-test (Install with advanced parameters and don't uninstall)
+
+```
+
 ```

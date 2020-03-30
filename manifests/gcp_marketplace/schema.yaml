@@ -138,7 +138,7 @@ properties:
     type: string
     title: Database password (Managed storage only)
     x-google-marketplace:
-      type: MASKED_FIELD	
+      type: MASKED_FIELD
     description: |-
       The database password to use when connecting to the Cloud SQL instance.
       If you leave this field empty, the deployment will try to connect to the instance without providing a password.
@@ -150,7 +150,7 @@ properties:
       The prefix of the database name. Kubeflow Pipelines will create two databases,
       [prefix]_pipeline and [prefix]_metadata.
       Use lowercase letters, numbers, and hyphens. Start with a letter.
-      If the prefix specified is same as an old deployment in the past,	
+      If the prefix specified is same as an old deployment in the past,
       the deployment will recover from an old deployment.
       If this not specified, the app instance name will be used.
 
