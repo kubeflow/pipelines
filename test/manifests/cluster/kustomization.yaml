@@ -3,4 +3,3 @@ kind: Kustomization
 
 resources:
 - ../../../manifests/kustomize/cluster
-- ../../../manifests/kustomize/base/crds
