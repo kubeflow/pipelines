@@ -46,13 +46,11 @@ gcloud builds submit --config=test/cloudbuild/mkp_verify.yaml --substitutions=CO
 Make sure your kubectl can connect to a target test cluster.
 
 ```shell
-APP_INSTANCE_NAME=manualinstall
-NAMESPACE=kfp
-MANAGEDSTORAGE=true
-CLOUDSQL=renming-mlpipeline:us-central1:kfpinstance
+APP_INSTANCE_NAME=<yours>
+NAMESPACE=<yours> # Make sure you already created the namespace
+MANAGEDSTORAGE=true # True means use CloudSQL + Minio-GCS; False means use in-cluster PVC + MySQL.
+CLOUDSQL=<yours> # Format like project_id:zone:cloudsql_instance_name
+PROJECTID=<yours> # This field will be removed after Marketplace can pass in the project ID
 mpdev install  --deployer=gcr.io/ml-pipeline-test/hosted/$(git rev-parse HEAD)/deployer:$MM_VER \
-    --parameters='{"name": "'$APP_INSTANCE_NAME'", "namespace": "'$NAMESPACE'", '$managedstorage.enabled': "'$MANAGEDSTORAGE'", "managedstorage.cloudsqlInstanceConnectionName": "'$CLOUDSQL'"}'
+    --parameters='{"name": "'$APP_INSTANCE_NAME'", "namespace": "'$NAMESPACE'", "managedstorage.enabled": "'$MANAGEDSTORAGE'", "managedstorage.cloudsqlInstanceConnectionName": "'$CLOUDSQL'", "managedstorage.gcsProjectId": "'$PROJECTID'"}'
 ```
-
-mpdev install  --deployer=gcr.io/ml-pipeline-test/hosted/$(git rev-parse HEAD)/deployer:$MM_VER \
-    --parameters='{"name": "manualinstall", "namespace": "kfp", "managedstorage.enabled": true, "managedstorage.cloudsqlInstanceConnectionName": "'$CLOUDSQL'"}'
