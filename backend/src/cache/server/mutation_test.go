@@ -40,8 +40,7 @@ var (
 				ArgoWorkflowTemplate: `{"name": "test_template"}`,
 			},
 			Labels: map[string]string{
-				ArgoCompleteLabelKey:         "true",
-				KFPAnnotationKeyCacheEnabled: KFPAnnotationValueCacheEnabled,
+				ArgoCompleteLabelKey: "true",
 			},
 		},
 		Spec: corev1.PodSpec{
