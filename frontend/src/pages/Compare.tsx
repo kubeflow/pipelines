@@ -264,7 +264,10 @@ class Compare extends Page<{}, CompareState> {
     await Promise.all(
       outputPathsList.map(async (pathList, i) => {
         for (const path of pathList) {
-          const configs = await OutputArtifactLoader.load(path);
+          const configs = await OutputArtifactLoader.load(
+            path,
+            workflowObjects[0]?.metadata?.namespace,
+          );
           configs.forEach(config => {
             const currentList: TaggedViewerConfig[] = viewersMap.get(config.type) || [];
             currentList.push({

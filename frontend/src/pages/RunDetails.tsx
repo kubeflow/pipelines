@@ -316,6 +316,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                             ]
                                           : undefined
                                       }
+                                      namespace={this.state.workflow?.metadata?.namespace}
                                       visualizationCreatorConfig={visualizationCreatorConfig}
                                       generatedVisualizations={this.state.generatedVisualizations.filter(
                                         visualization =>
@@ -716,7 +717,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
     const configLists = await Promise.all(
       outputPathsList.map(({ stepName, path }) =>
-        OutputArtifactLoader.load(path).then(configs =>
+        OutputArtifactLoader.load(path, workflow?.metadata?.namespace).then(configs =>
           configs.map(config => ({ config, stepName })),
         ),
       ),
@@ -916,8 +917,16 @@ const ArtifactsTabContent: React.FC<{
   nodeId: string;
   nodeStatus?: NodeStatus;
   generatedVisualizations: GeneratedVisualization[];
+  namespace: string | undefined;
   onError: (error: Error) => void;
-}> = ({ visualizationCreatorConfig, generatedVisualizations, nodeId, nodeStatus, onError }) => {
+}> = ({
+  visualizationCreatorConfig,
+  generatedVisualizations,
+  nodeId,
+  nodeStatus,
+  namespace,
+  onError,
+}) => {
   const [loaded, setLoaded] = React.useState(false);
   // Progress component expects onLoad function identity to stay the same
   const onLoad = React.useCallback(() => setLoaded(true), [setLoaded]);
@@ -959,7 +968,7 @@ const ArtifactsTabContent: React.FC<{
             reportErrorAndReturnEmpty,
           ),
           ...outputPaths.map(path =>
-            OutputArtifactLoader.load(path).catch(reportErrorAndReturnEmpty),
+            OutputArtifactLoader.load(path, namespace).catch(reportErrorAndReturnEmpty),
           ),
         ])
       ).flatMap(configs => configs);
@@ -983,7 +992,7 @@ const ArtifactsTabContent: React.FC<{
     // nodeStatus object instance will keep changing after new requests to get
     // workflow status.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeId, nodeCompleted, onError]);
+  }, [nodeId, nodeCompleted, onError, namespace]);
 
   return (
     <div className={commonCss.page}>

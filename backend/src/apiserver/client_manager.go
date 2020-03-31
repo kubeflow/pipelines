@@ -346,6 +346,9 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
 	// Check to see if we already own this bucket.
 	exists, err := minioClient.BucketExists(bucketName)
+	if err != nil {
+		glog.Fatalf("Failed to check if Minio bucket exists. Error: %v", err)
+	}
 	if exists {
 		glog.Infof("We already own %s\n", bucketName)
 		return
