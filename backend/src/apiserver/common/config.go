@@ -25,6 +25,7 @@ import (
 const (
 	MultiUserMode string = "MULTIUSER"
 	PodNamespace  string = "POD_NAMESPACE"
+	CacheEnabled  string = "CacheEnabled"
 )
 
 func GetStringConfig(configName string) string {
@@ -81,4 +82,8 @@ func GetBoolFromStringWithDefault(value string, defaultValue bool) bool {
 		return defaultValue
 	}
 	return boolVal
+}
+
+func IsCacheEnabled() string {
+	return GetStringConfigWithDefault(CacheEnabled, "true")
 }
