@@ -97,6 +97,11 @@ do
   kubectl rollout status $deployment -n ${NAMESPACE}
 done
 
+for statefulset in $(kubectl get statefulset -n ${NAMESPACE} -o name)
+do
+  kubectl rollout status $statefulset -n ${NAMESPACE}
+done
+
 echo "Status of pods after rollouts are successful"
 kubectl get pods -n ${NAMESPACE}
 
