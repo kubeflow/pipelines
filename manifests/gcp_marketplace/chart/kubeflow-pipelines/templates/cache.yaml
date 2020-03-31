@@ -132,6 +132,23 @@ spec:
       - name: server
         image: {{ .Values.images.cacheserver }}
         env:
+          {{ if .Values.managedstorage.enabled }}
+          - name: DBCONFIG_USER
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credential
+                key: username
+          - name: DBCONFIG_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credential
+                key: password
+          {{ else }}
+          - name: DBCONFIG_USER
+            value: 'root'
+          - name: DBCONFIG_PASSWORD
+            value: ''
+          {{ end }}
           - name: DBCONFIG_DRIVER
             valueFrom:
               configMapKeyRef:
@@ -157,6 +174,9 @@ spec:
         args: ["--db_driver=$(DBCONFIG_DRIVER)",
                "--db_host=$(DBCONFIG_HOST_NAME)",
                "--db_port=$(DBCONFIG_PORT)",
+               "--db_name=$(DBCONFIG_DB_NAME)"
+               "--db_user=$(DBCONFIG_USER)",
+               "--db_password=$(DBCONFIG_PASSWORD)",
                "--namespace_to_watch=$(NAMESPACE_TO_WATCH)",
                ]
         imagePullPolicy: Always
@@ -195,8 +215,12 @@ metadata:
   labels:
     component: cache-server
 data:
+  {{ if .Values.managedstorage.databaseNamePrefix }}
+  mysql_database: '{{ .Values.managedstorage.databaseNamePrefix }}_cachedb'
+  {{ else }}
+  mysql_database: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_cachedb'
+  {{ end }}
   mysql_driver: "mysql"
-  mysql_database: "cachedb"
   mysql_host: "mysql"
   mysql_port: "3306"
 ---
