@@ -35,9 +35,9 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
-	err = CanAccessNamespaceInResourceReferences(s.resourceManager, ctx, request.Run.ResourceReferences)
+	err = CanAccessExperimentInResourceReferences(s.resourceManager, ctx, request.Run.ResourceReferences)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
+		return nil, util.Wrap(err, "Failed to authorize the request.")
 	}
 
 	run, err := s.resourceManager.CreateRun(request.Run)
@@ -48,6 +48,10 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 }
 
 func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*api.RunDetail, error) {
+	err := s.canAccessRun(ctx, request.RunId)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request.")
+	}
 	run, err := s.resourceManager.GetRun(request.RunId)
 	if err != nil {
 		return nil, err
@@ -57,7 +61,6 @@ func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*ap
 
 func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) (*api.ListRunsResponse, error) {
 	opts, err := validatedListOptions(&model.Run{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
-
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
@@ -66,6 +69,36 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
+
+	if common.IsMultiUserMode() {
+		refKey := filterContext.ReferenceKey
+		if refKey == nil {
+			return nil, util.NewInvalidInputError("ListRuns must filter by resource reference in multi-user mode.")
+		}
+		if refKey.Type == common.Namespace {
+			namespace := refKey.ID
+			if len(namespace) == 0 {
+				return nil, util.NewInvalidInputError("Invalid resource references for ListRuns. Namespace is empty.")
+			}
+			err = isAuthorized(s.resourceManager, ctx, namespace)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to authorize with namespace resource reference.")
+			}
+		} else if refKey.Type == common.Experiment || refKey.Type == "ExperimentUUID" {
+			// "ExperimentUUID" was introduced for perf optimization. We accept both refKey.Type for backward-compatible reason.
+			experimentID := refKey.ID
+			if len(experimentID) == 0 {
+				return nil, util.NewInvalidInputError("Invalid resource references for run. Experiment ID is empty.")
+			}
+			err = CanAccessExperiment(s.resourceManager, ctx, experimentID)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to authorize with experiment resource reference.")
+			}
+		} else {
+			return nil, util.NewInvalidInputError("Invalid resource references for ListRuns. Got %+v", request.ResourceReferenceKey)
+		}
+	}
+
 	runs, total_size, nextPageToken, err := s.resourceManager.ListRuns(filterContext, opts)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list runs.")
@@ -76,7 +109,7 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunRequest) (*empty.Empty, error) {
 	err := s.canAccessRun(ctx, request.Id)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
+		return nil, util.Wrap(err, "Failed to authorize the request.")
 	}
 	err = s.resourceManager.ArchiveRun(request.Id)
 	if err != nil {
@@ -88,7 +121,7 @@ func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunReque
 func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunRequest) (*empty.Empty, error) {
 	err := s.canAccessRun(ctx, request.Id)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
+		return nil, util.Wrap(err, "Failed to authorize the request.")
 	}
 	err = s.resourceManager.UnarchiveRun(request.Id)
 	if err != nil {
@@ -100,7 +133,7 @@ func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunR
 func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest) (*empty.Empty, error) {
 	err := s.canAccessRun(ctx, request.Id)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
+		return nil, util.Wrap(err, "Failed to authorize the request.")
 	}
 	err = s.resourceManager.DeleteRun(request.Id)
 	if err != nil {
@@ -159,7 +192,7 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunRequest) (*empty.Empty, error) {
 	err := s.canAccessRun(ctx, request.RunId)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
+		return nil, util.Wrap(err, "Failed to authorize the request.")
 	}
 	err = s.resourceManager.TerminateRun(request.RunId)
 	if err != nil {
@@ -171,7 +204,7 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunR
 func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) (*empty.Empty, error) {
 	err := s.canAccessRun(ctx, request.RunId)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
+		return nil, util.Wrap(err, "Failed to authorize the request.")
 	}
 	err = s.resourceManager.RetryRun(request.RunId)
 	if err != nil {
