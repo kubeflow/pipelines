@@ -286,6 +286,11 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 
 	// Disable istio sidecar injection
 	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+	// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
+	// receive targeting pods. Since cache server only receives pods in step level, the resource manager here will set this global label flag
+	// on every single step/pod so the cache server can understand.
+	// TODO: Add run_level flag with similar logic by reading flag value from create_run api.
+	workflow.SetLabelsToAllTemplates(util.LabelKeyCacheEnabled, common.IsCacheEnabled())
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
 
