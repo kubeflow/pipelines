@@ -76,8 +76,8 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	}
 
 	// Pod filtering to only cache KFP argo pods except TFX pods
-	if !isValidPod(&pod) {
-		log.Printf("This pod %s is not a valid pod.", pod.ObjectMeta.Name)
+	if isTFXPod(&pod) {
+		log.Printf("This pod %s is created by tfx pipelines.", pod.ObjectMeta.Name)
 		return nil, nil
 	}
 
@@ -195,41 +195,14 @@ func getValueFromSerializedMap(serializedMap string, key string) string {
 	return value
 }
 
-func isValidPod(pod *corev1.Pod) bool {
-	annotations := pod.ObjectMeta.Annotations
-	if annotations == nil || len(annotations) == 0 {
-		log.Printf("The annotation of this pod %s is empty.", pod.ObjectMeta.Name)
-		return false
-	}
-	if !isKFPArgoPod(&annotations, pod.ObjectMeta.Name) {
-		log.Printf("This pod %s is not created by KFP.", pod.ObjectMeta.Name)
-		return false
-	}
+func isTFXPod(pod *corev1.Pod) bool {
 	containers := pod.Spec.Containers
-	if containers != nil && len(containers) != 0 && isTFXPod(&containers) {
-		log.Printf("This pod %s is created by TFX pipelines.", pod.ObjectMeta.Name)
-		return false
-	}
-	return true
-}
-
-func isKFPArgoPod(annotations *map[string]string, podName string) bool {
-	// is argo pod or not
-	if _, exists := (*annotations)[ArgoWorkflowNodeName]; !exists {
-		log.Printf("This pod %s is not created by Argo.", podName)
-		return false
-	}
-	// is KFP pod or not
-	if v, exists := (*annotations)[KFPAnnotationKeyCacheEnabled]; exists && v == KFPAnnotationValueCacheEnabled {
+	if containers == nil || len(containers) == 0 {
+		log.Printf("This pod container does not exist.")
 		return true
 	}
-
-	return false
-}
-
-func isTFXPod(containers *[]corev1.Container) bool {
 	var mainContainers []corev1.Container
-	for _, c := range *containers {
+	for _, c := range containers {
 		if c.Name != "" && c.Name == "main" {
 			mainContainers = append(mainContainers, c)
 		}

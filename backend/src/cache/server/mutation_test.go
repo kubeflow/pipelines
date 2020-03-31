@@ -36,12 +36,12 @@ var (
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				ArgoWorkflowNodeName:         "test_node",
-				ArgoWorkflowTemplate:         `{"name": "test_template"}`,
-				KFPAnnotationKeyCacheEnabled: KFPAnnotationValueCacheEnabled,
+				ArgoWorkflowNodeName: "test_node",
+				ArgoWorkflowTemplate: `{"name": "test_template"}`,
 			},
 			Labels: map[string]string{
-				ArgoCompleteLabelKey: "true",
+				ArgoCompleteLabelKey:         "true",
+				KFPAnnotationKeyCacheEnabled: KFPAnnotationValueCacheEnabled,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -105,22 +105,6 @@ func TestMutatePodIfCachedWithDecodeError(t *testing.T) {
 	patchOperation, err := MutatePodIfCached(&invalidAdmissionRequest, fakeClientManager)
 	assert.Nil(t, patchOperation)
 	assert.Contains(t, err.Error(), "could not deserialize pod object")
-}
-
-func TestMutatePodIfCachedWithNonKFPPod(t *testing.T) {
-	nonKFPPod := *fakePod
-	delete(nonKFPPod.Annotations, KFPAnnotationKeyCacheEnabled)
-	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&nonKFPPod), fakeClientManager)
-	assert.Nil(t, patchOperation)
-	assert.Nil(t, err)
-}
-
-func TestMutatePodIfCachedWithNonArgoPod(t *testing.T) {
-	nonArgoPod := *fakePod
-	delete(nonArgoPod.Annotations, ArgoWorkflowNodeName)
-	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&nonArgoPod), fakeClientManager)
-	assert.Nil(t, patchOperation)
-	assert.Nil(t, err)
 }
 
 func TestMutatePodIfCachedWithTFXPod(t *testing.T) {
