@@ -71,7 +71,7 @@ else
   # temporarily checkout last release tag
   git checkout $KFP_LATEST_RELEASE
 
-  pushd ${KFP_MANIFEST_DIR}/crds
+  pushd ${KFP_MANIFEST_DIR}/crd
   kustomize build . | kubectl apply -f -
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
