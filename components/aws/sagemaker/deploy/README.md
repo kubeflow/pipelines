@@ -54,5 +54,9 @@ endpoint_name | HTTPS Endpoint URL where client applications can send requests u
 MNIST Classification pipeline: [Pipeline](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py) | [Steps](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/README.md)
 
 # Resources
-* [More information on Endpoint Configuration parameters](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateEndpointConfig.html)
-* [More information on Create Endpoint parameters](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateEndpoint.html)
+* Create Endpoint Configuration
+  * [Create Endpoint Configuration API documentation](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateEndpointConfig.html)
+  * [Boto3 API reference](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint_config)
+* Create Endpoint
+  * [Create Endpoint API documentation](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateEndpoint.html)
+  * [Boto3 API reference](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint)

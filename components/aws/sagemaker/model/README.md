@@ -31,7 +31,7 @@ The docker image containing inference code, associated artifacts, and environmen
 Argument        | Description                 | Optional (in pipeline definition) | Optional (in UI) | Data type  | Accepted values | Default    |
 :---            | :----------                 | :----------                       | :----------      | :----------| :----------     | :----------|
 container_host_name | When a ContainerDefinition is part of an [inference pipeline](https://docs.aws.amazon.com/sagemaker/latest/dg/inference-pipelines.html), the value of the parameter uniquely identifies the container for the purposes of [logging and metrics](https://docs.aws.amazon.com/sagemaker/latest/dg/inference-pipeline-logs-metrics.html) | Yes | Yes | String | Length Constraints: Maximum length of 63. Pattern: `^[a-zA-Z0-9](-*[a-zA-Z0-9])*` | |
-environment | The environment variables to set in the Docker container | Yes | Yes | String | Maximum length of 1024. Key Pattern: `[a-zA-Z_][a-zA-Z0-9_]*`. Value Pattern: `[\S\s]*` | |
+environment | The environment variables to set in the Docker container | Yes | Yes | Dict | Maximum length of 1024. Key Pattern: `[a-zA-Z_][a-zA-Z0-9_]*`. Value Pattern: `[\S\s]*` | {} |
 image | The Amazon EC2 Container Registry (Amazon ECR) path where inference code is stored | Yes | Yes | String | | |
 model_artifact_url | The S3 path where the model artifacts are stored. This path must point to a single gzip compressed tar archive (.tar.gz suffix) | Yes | Yes | String | | |
 model_package | The name or Amazon Resource Name (ARN) of the model package to use to create the model | Yes | Yes | String | | |
@@ -73,4 +73,5 @@ model_name | The name of the model created in Amazon SageMaker
 MNIST Classification pipeline: [Pipeline](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py) | [Steps](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/README.md)
 
 # Resources
-* [More information on CreateModel parameters](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateModel.html)
+* [Create Model API documentation](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateModel.html)
+* [Boto3 API reference](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_model)
