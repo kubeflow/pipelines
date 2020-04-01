@@ -58,7 +58,7 @@ do
     # Download license is moved to part of `./license-download.sh`.
     # wget -O $2/$col1.LICENSE $col2
     # We check existence of the license file instead.
-    if [[ -f "${col1}.LICENSE" ]]; then
+    if [[ -f "$2/${col1}.LICENSE" ]]; then
       echo "OK: ${col1}'s license exists."
     else
       echo "Error: ${col1} package's license is missing."
