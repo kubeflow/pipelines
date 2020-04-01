@@ -73,7 +73,7 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache,
 		}
 		log.Println("Get id: " + strconv.FormatInt(id, 10))
 		log.Println("Get template: " + executionTemplate)
-		if startedAtInSec+maxCacheStaleness >= s.time.Now().UTC().Unix() {
+		if maxCacheStaleness == -1 || startedAtInSec+maxCacheStaleness >= s.time.Now().UTC().Unix() {
 			executionCaches = append(executionCaches, &model.ExecutionCache{
 				ID:                id,
 				ExecutionCacheKey: executionCacheKey,
