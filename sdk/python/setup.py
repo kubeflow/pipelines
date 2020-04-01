@@ -20,18 +20,12 @@ NAME = 'kfp'
 #VERSION = .... Change the version in kfp/__init__.py
 
 REQUIRES = [
-    'urllib3>=1.15,<1.25',  #Fixing the version conflict with the "requests" package
-    'six >= 1.10',
-    'certifi',
-    'python-dateutil',
     'PyYAML',
     'google-cloud-storage>=1.13.0',
     'kubernetes>=8.0.0, <12.0.0',
-    'PyJWT>=1.6.4',
-    'cryptography>=2.4.2',
     'google-auth>=1.6.1',
     'requests_toolbelt>=0.8.0',
-    'cloudpickle==1.1.1',
+    'cloudpickle',
     # Update the upper version whenever a new major version of the
     # kfp-server-api package is released. Update the lower version when there is
     # a breaking change in kfp-server-api, or kfp sdk depends on new api changes
@@ -39,8 +33,8 @@ REQUIRES = [
     'kfp-server-api>=0.2.5, <0.4.0',
     'argo-models == 2.2.1a',  #2.2.1a is equivalent to argo 2.2.1
     'jsonschema >= 3.0.1',
-    'tabulate == 0.8.3',
-    'click == 7.0',
+    'tabulate',
+    'click',
     'Deprecated',
     'strip-hints',
 ]
