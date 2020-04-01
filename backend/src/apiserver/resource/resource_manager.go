@@ -278,15 +278,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 
-	multiuserMode := common.IsMultiUserMode()
-	if multiuserMode == true {
-		if len(workflow.Spec.ServiceAccountName) == 0 || workflow.Spec.ServiceAccountName == defaultPipelineRunnerServiceAccount {
-			// To reserve SDK backward compatibility, the backend currently replaces the serviceaccount in multi-user mode.
-			workflow.SetServiceAccount(defaultServiceAccount)
-		}
-	} else {
-		workflow.SetServiceAccount(r.getDefaultSA())
-	}
+	r.setWorkflowServiceAccount(&workflow)
 
 	// Disable istio sidecar injection
 	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
@@ -318,34 +310,20 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		}
 	}
 
-	resourceReferences := apiRun.GetResourceReferences()
-	experimentID := common.GetExperimentIDFromAPIResourceReferences(resourceReferences)
-	if len(experimentID) == 0 {
-		if multiuserMode {
-			return nil, util.NewInternalServerError(errors.New("Missing experiment"), "Experiment is required for CreateRun/CreateJob.")
-		} else {
-			// Add a reference to the default experiment
-			ref, err := r.getDefaultExperimentResourceReference(resourceReferences)
-			if err != nil {
-				return nil, util.Wrap(err, "Failed to create run.")
-			}
-			apiRun.ResourceReferences = append(apiRun.ResourceReferences, ref)
-			experimentID = ref.GetKey().GetId()
-		}
-	}
-	experiment, err := r.GetExperiment(experimentID)
+	// Add a reference to the default experiment if run does not already have a containing experiment
+	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get experiment.")
+		return nil, err
+	}
+	if ref != nil {
+		apiRun.ResourceReferences = append(apiRun.GetResourceReferences(), ref)
 	}
 
-	namespace := experiment.Namespace
-	if len(namespace) == 0 {
-		if multiuserMode {
-			return nil, util.NewInternalServerError(errors.New("Missing namespace"), "Experiment %v doesn't have a namespace.", experiment.Name)
-		} else {
-			namespace = common.GetPodNamespace()
-		}
+	namespace, err := r.getNamespaceFromExperiment(apiRun.GetResourceReferences())
+	if err != nil {
+		return nil, err
 	}
+
 	// Create argo workflow CRD resource
 	newWorkflow, err := r.getWorkflowClient(namespace).Create(workflow.Get())
 	if err != nil {
@@ -540,26 +518,16 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
+
+	r.setWorkflowServiceAccount(&workflow)
+
+	// Disable istio sidecar injection
+	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+
 	swfGeneratedName, err := toSWFCRDResourceGeneratedName(apiJob.Name)
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
-
-	multiuserMode := common.IsMultiUserMode()
-	if multiuserMode == true {
-		if len(workflow.Spec.ServiceAccountName) == 0 || workflow.Spec.ServiceAccountName == defaultPipelineRunnerServiceAccount {
-			// To reserve SDK backward compatibility, the backend currently replaces the serviceaccount in multi-user mode.
-			workflow.SetServiceAccount(defaultServiceAccount)
-		}
-	} else {
-		workflow.SetServiceAccount(r.getDefaultSA())
-	}
-
-	// Disable istio sidecar injection
-	if multiuserMode == true {
-		workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	}
-
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: v1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
@@ -584,40 +552,6 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 		}
 	}
 
-	resourceReferences := apiJob.GetResourceReferences()
-	experimentID := common.GetExperimentIDFromAPIResourceReferences(resourceReferences)
-	if len(experimentID) == 0 {
-		if multiuserMode {
-			return nil, util.NewInternalServerError(errors.New("Missing experiment"), "Experiment is required for CreateRun/CreateJob.")
-		} else {
-			// Add a reference to the default experiment
-			ref, err := r.getDefaultExperimentResourceReference(resourceReferences)
-			if err != nil {
-				return nil, util.Wrap(err, "Failed to create job.")
-			}
-			apiJob.ResourceReferences = append(apiJob.ResourceReferences, ref)
-			experimentID = ref.GetKey().GetId()
-		}
-	}
-	experiment, err := r.GetExperiment(experimentID)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get experiment.")
-	}
-
-	namespace := experiment.Namespace
-	if len(namespace) == 0 {
-		if multiuserMode {
-			return nil, util.NewInternalServerError(errors.New("Missing namespace"), "Experiment %v doesn't have a namespace.", experiment.Name)
-		} else {
-			namespace = common.GetPodNamespace()
-		}
-	}
-
-	newScheduledWorkflow, err := r.getScheduledWorkflowClient(namespace).Create(scheduledWorkflow)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
-	}
-
 	// Add a reference to the default experiment if run does not already have a containing experiment
 	ref, err := r.getDefaultExperimentIfNoExperiment(apiJob.GetResourceReferences())
 	if err != nil {
@@ -625,6 +559,16 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	}
 	if ref != nil {
 		apiJob.ResourceReferences = append(apiJob.GetResourceReferences(), ref)
+	}
+
+	namespace, err := r.getNamespaceFromExperiment(apiJob.GetResourceReferences())
+	if err != nil {
+		return nil, err
+	}
+
+	newScheduledWorkflow, err := r.getScheduledWorkflowClient(namespace).Create(scheduledWorkflow)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
 	}
 
 	job, err := r.ToModelJob(apiJob, util.NewScheduledWorkflow(newScheduledWorkflow), string(workflowSpecManifestBytes))
@@ -905,6 +849,9 @@ func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*api.R
 			return nil, nil
 		}
 	}
+	if common.IsMultiUserMode() {
+		return nil, util.NewInvalidInputError("Experiment is required in resource references.")
+	}
 	return r.getDefaultExperimentResourceReference(references)
 }
 
@@ -1093,18 +1040,7 @@ func (r *ResourceManager) GetNamespaceFromRunID(runId string) (string, error) {
 	if err != nil {
 		return "", util.Wrap(err, "Failed to get namespace from run id.")
 	}
-	namespace := runDetail.Namespace
-	if len(namespace) == 0 {
-		if common.IsMultiUserMode() {
-			// All runs should have namespace in multi user mode.
-			return "", errors.New("Invalid db data: run_details doesn't have a namespace")
-		} else {
-			// When db model doesn't have namespace stored (e.g. legacy runs), use
-			// pod namespace as default.
-			return common.GetPodNamespace(), nil
-		}
-	}
-	return namespace, nil
+	return runDetail.Namespace, nil
 }
 
 func (r *ResourceManager) GetNamespaceFromJobID(jobId string) (string, error) {
@@ -1112,15 +1048,33 @@ func (r *ResourceManager) GetNamespaceFromJobID(jobId string) (string, error) {
 	if err != nil {
 		return "", util.Wrap(err, "Failed to get namespace from Job ID.")
 	}
-	namespace := job.Namespace
+	return job.Namespace, nil
+}
+
+func (r *ResourceManager) setWorkflowServiceAccount(workflow *util.Workflow) {
+	if common.IsMultiUserMode() {
+		if len(workflow.Spec.ServiceAccountName) == 0 || workflow.Spec.ServiceAccountName == defaultPipelineRunnerServiceAccount {
+			// To reserve SDK backward compatibility, the backend currently replaces the serviceaccount in multi-user mode.
+			workflow.SetServiceAccount(defaultServiceAccount)
+		}
+	} else {
+		workflow.SetServiceAccount(r.getDefaultSA())
+	}
+}
+
+func (r *ResourceManager) getNamespaceFromExperiment(references []*api.ResourceReference) (string, error) {
+	experimentID := common.GetExperimentIDFromAPIResourceReferences(references)
+	experiment, err := r.GetExperiment(experimentID)
+	if err != nil {
+		return "", util.NewInternalServerError(err, "Failed to get experiment.")
+	}
+
+	namespace := experiment.Namespace
 	if len(namespace) == 0 {
 		if common.IsMultiUserMode() {
-			// All jobss should have namespace in multi user mode.
-			return "", errors.New("Invalid db data: jobs doesn't have a namespace")
+			return "", util.NewInternalServerError(errors.New("Missing namespace"), "Experiment %v doesn't have a namespace.", experiment.Name)
 		} else {
-			// When db model doesn't have namespace stored (e.g. legacy jobs), use
-			// pod namespace as default.
-			return common.GetPodNamespace(), nil
+			namespace = common.GetPodNamespace()
 		}
 	}
 	return namespace, nil
