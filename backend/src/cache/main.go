@@ -47,6 +47,7 @@ type WhSvrDBParameters struct {
 	dbDriver            string
 	dbHost              string
 	dbPort              string
+	dbName              string
 	dbUser              string
 	dbPwd               string
 	dbGroupConcatMaxLen string
@@ -58,6 +59,7 @@ func main() {
 	flag.StringVar(&params.dbDriver, "db_driver", mysqlDBDriverDefault, "Database driver name, mysql is the default value")
 	flag.StringVar(&params.dbHost, "db_host", mysqlDBHostDefault, "Database host name.")
 	flag.StringVar(&params.dbPort, "db_port", mysqlDBPortDefault, "Database port number.")
+	flag.StringVar(&params.dbName, "db_name", "cachedb", "Database name.")
 	flag.StringVar(&params.dbUser, "db_user", "root", "Database user name.")
 	flag.StringVar(&params.dbPwd, "db_password", "", "Database password.")
 	flag.StringVar(&params.dbGroupConcatMaxLen, "db_group_concat_max_len", mysqlDBGroupConcatMaxLenDefault, "Database group concat max length.")
