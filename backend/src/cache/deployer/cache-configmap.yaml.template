@@ -10,6 +10,9 @@ webhooks:
         namespace: ${NAMESPACE}
         path: "/mutate"
       caBundle: ${CA_BUNDLE}
+    objectSelector:
+      matchLabels:
+        pipelines.kubeflow.org/cache_enabled: true
     rules:
       - operations: [ "CREATE" ]
         apiGroups: [""]

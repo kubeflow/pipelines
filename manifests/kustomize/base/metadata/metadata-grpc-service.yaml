@@ -3,10 +3,10 @@ apiVersion: v1
 metadata:
   labels:
     app: metadata
-  name: metadata-service
+  name: metadata-grpc-service
 spec:
   selector:
-    component: metadata-server
+    component: metadata-grpc-server
   type: ClusterIP
   ports:
   - port: 8080

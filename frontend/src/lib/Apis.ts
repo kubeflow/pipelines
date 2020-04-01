@@ -212,20 +212,27 @@ export class Apis {
    */
   public static getTensorboardApp(
     logdir: string,
+    namespace: string,
   ): Promise<{ podAddress: string; tfVersion: string }> {
     return this._fetchAndParse<{ podAddress: string; tfVersion: string }>(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&namespace=${encodeURIComponent(
+        namespace,
+      )}`,
     );
   }
 
   /**
    * Starts a deployment and service for Tensorboard given the logdir
    */
-  public static startTensorboardApp(logdir: string, tfversion: string): Promise<string> {
+  public static startTensorboardApp(
+    logdir: string,
+    tfversion: string,
+    namespace: string,
+  ): Promise<string> {
     return this._fetch(
       `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(
         tfversion,
-      )}`,
+      )}&namespace=${encodeURIComponent(namespace)}`,
       undefined,
       undefined,
       { headers: { 'content-type': 'application/json' }, method: 'POST' },
@@ -243,9 +250,11 @@ export class Apis {
   /**
    * Delete a deployment and its service of the Tensorboard given the URL
    */
-  public static deleteTensorboardApp(logdir: string): Promise<string> {
+  public static deleteTensorboardApp(logdir: string, namespace: string): Promise<string> {
     return this._fetch(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&namespace=${encodeURIComponent(
+        namespace,
+      )}`,
       undefined,
       undefined,
       { method: 'DELETE' },

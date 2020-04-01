@@ -250,20 +250,39 @@ func FilterOnResourceReference(tableName string, columns []string, resourceType 
 
 // FilterOnExperiment filters the given table by rows based on provided experiment ID,
 // and returns the rebuilt SelectBuilder
-func FilterRunOnExperiment(
+func FilterOnExperiment(
 	tableName string,
 	columns []string,
 	selectCount bool,
 	experimentID string,
 ) (sq.SelectBuilder, error) {
+	return filterByColumnValue(tableName, columns, selectCount, "ExperimentUUID", experimentID), nil
+}
+
+func FilterOnNamespace(
+	tableName string,
+	columns []string,
+	selectCount bool,
+	namespace string,
+) (sq.SelectBuilder, error) {
+	return filterByColumnValue(tableName, columns, selectCount, "Namespace", namespace), nil
+}
+
+func filterByColumnValue(
+	tableName string,
+	columns []string,
+	selectCount bool,
+	columnName string,
+	filterValue interface{},
+) sq.SelectBuilder {
 	selectBuilder := sq.Select(columns...)
 	if selectCount {
 		selectBuilder = sq.Select("count(*)")
 	}
 	selectBuilder = selectBuilder.From(tableName).Where(
-		sq.Eq{"ExperimentUUID": experimentID},
+		sq.Eq{columnName: filterValue},
 	)
-	return selectBuilder, nil
+	return selectBuilder
 }
 
 // Scans the one given row into a number, and returns the number
