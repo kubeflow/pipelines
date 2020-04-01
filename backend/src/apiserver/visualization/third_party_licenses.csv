@@ -12,7 +12,6 @@ absl-py,https://raw.githubusercontent.com/abseil/abseil-py/master/LICENSE,Apache
 apache-beam,https://raw.githubusercontent.com/apache/beam/master/LICENSE,Apache 2.0
 astor,https://raw.githubusercontent.com/berkerpeksag/astor/master/LICENSE,BSD-3
 attrs,https://raw.githubusercontent.com/python-attrs/attrs/master/LICENSE,MIT
-avro,https://raw.githubusercontent.com/apache/avro/master/LICENSE.txt,Apache 2.0
 avro-python3,https://raw.githubusercontent.com/apache/avro/master/LICENSE.txt,Apache 2.0
 backcall,https://raw.githubusercontent.com/takluyver/backcall/master/LICENSE,BSD-3
 bleach,https://raw.githubusercontent.com/mozilla/bleach/master/LICENSE,Apache 2.0

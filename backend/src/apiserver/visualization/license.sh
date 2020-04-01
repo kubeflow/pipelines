@@ -52,6 +52,7 @@ fi
 
 # Gather license files for each package. For packages with GPL license we mirror the source code.
 mkdir -p $2/source
+EXTRANEOUS=()
 while IFS=, read -r col1 col2 col3
 do
   if [[ " ${INSTALLED_PACKAGES[@]} " =~ " ${col1} " ]]; then
@@ -59,7 +60,13 @@ do
     # wget -O $2/$col1.LICENSE $col2
     # We check existence of the license file instead.
     if [[ -f "$2/${col1}.LICENSE" ]]; then
-      echo "OK: ${col1}'s license exists."
+      # Verifies the LICENSE file is not empty.
+      if [[ -s "$2/${col1}.LICENSE" ]]; then
+        echo "OK: ${col1}'s license exists."
+      else
+        echo "Error: ${col1}'s license file exists, but is empty."
+        exit 1
+      fi
     else
       echo "Error: ${col1} package's license is missing."
       echo "Please rerun ./license-download.sh locally and commit into licenses folder."
@@ -69,8 +76,13 @@ do
       pip install -t "$2/source/${col1}" ${col1}
     fi
   else
-    echo "${col1} is part of third_party_licenses.csv, but not installed"
-    echo "Please remove ${col1} from third_party_licenses.csv"
-    exit 1
+    EXTRANEOUS+=("$col1")
   fi
 done < $1
+
+if [ -n "${EXTRANEOUS}" ]; then
+  echo "Some libraries are part of third_party_licenses.csv, but not installed."
+  echo "Please remove them from third_party_licenses.csv:"
+  echo "${EXTRANEOUS[@]}"
+  exit 1
+fi
