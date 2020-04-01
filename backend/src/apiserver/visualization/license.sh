@@ -55,9 +55,22 @@ mkdir -p $2/source
 while IFS=, read -r col1 col2 col3
 do
   if [[ " ${INSTALLED_PACKAGES[@]} " =~ " ${col1} " ]]; then
-    wget -O $2/$col1.LICENSE $col2
+    # Download license is moved to part of `./license-download.sh`.
+    # wget -O $2/$col1.LICENSE $col2
+    # We check existence of the license file instead.
+    if [[ -f "${col1}.LICENSE" ]]; then
+      echo "OK: ${col1}'s license exists."
+    else
+      echo "Error: ${col1} package's license is missing."
+      echo "Please rerun ./license-download.sh locally and commit into licenses folder."
+      exit 1
+    fi
     if [[ "${col3}" == *GPL* ]] || [[ "${col3}" =~ ^MPL ]]; then
       pip install -t "$2/source/${col1}" ${col1}
     fi
+  else
+    echo "${col1} is part of third_party_licenses.csv, but not installed"
+    echo "Please remove ${col1} from third_party_licenses.csv"
+    exit 1
   fi
 done < $1

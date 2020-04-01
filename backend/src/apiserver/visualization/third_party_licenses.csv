@@ -5,7 +5,7 @@ Markdown,https://github.com/Python-Markdown/markdown/blob/master/LICENSE.md,BSD-
 MarkupSafe,https://github.com/pallets/markupsafe/blob/master/LICENSE.rst,BSD-3
 Pillow,https://github.com/python-pillow/Pillow/blob/master/LICENSE,PIL
 PyYAML,https://github.com/yaml/pyyaml/blob/master/LICENSE,MIT
-Pygments,https://bitbucket.org/birkenfeld/pygments-main/src/default/LICENSE,BSD-2
+Pygments,https://raw.githubusercontent.com/pygments/pygments/master/LICENSE,BSD-2
 Send2Trash,https://github.com/hsoft/send2trash/blob/master/LICENSE,BSD-3
 Werkzeug,https://github.com/pallets/werkzeug/blob/master/LICENSE.rst,BSD-3
 absl-py,https://github.com/abseil/abseil-py/blob/master/LICENSE,Apache 2.0
