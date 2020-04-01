@@ -18,6 +18,8 @@ RUN yum update -y && yum install -y -q ca-certificates python-devel python-setup
 RUN pip install boto3 sagemaker pathlib2 pyyaml==3.12
 
 COPY LICENSE.txt .
+COPY NOTICE.txt .
+COPY THIRD-PARTY-LICENSES.txt .
 COPY hyperparameter_tuning/src/hyperparameter_tuning.py .
 COPY train/src/train.py .
 COPY deploy/src/deploy.py .
