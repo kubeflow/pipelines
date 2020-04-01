@@ -340,7 +340,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
 	// UnarchiveExperiment results in
 	// 1. The experiment getting unarchived
-	// 2. All the runs in the experiment getting unarchived
+	// 2. All the archived runs and disabled jobs will stay archived
 	sql, args, err := sq.
 		Update("experiments").
 		SetMap(sq.Eq{
@@ -353,85 +353,10 @@ func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
 			"Failed to create query to unarchive experiment %s. error: '%v'", expId, err.Error())
 	}
 
-	// TODO(jingzhang36): use inner join to replace nested query for better performance.
-	filteredRunsSql, filteredRunsArgs, err := sq.Select("ResourceUUID").
-		From("resource_references as rf").
-		Where(sq.And{
-			sq.Eq{"rf.ResourceType": common.Run},
-			sq.Eq{"rf.ReferenceUUID": expId},
-			sq.Eq{"rf.ReferenceType": common.Experiment}}).ToSql()
+	_, err = s.db.Exec(sql, args...)
 	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to filter the runs in an experiment %s. error: '%v'", expId, err.Error())
-	}
-	updateRunsSql, updateRunsArgs, err := sq.
-		Update("run_details").
-		SetMap(sq.Eq{
-			"StorageState": api.Run_STORAGESTATE_AVAILABLE.String(),
-		}).
-		Where(fmt.Sprintf("UUID in (%s)", filteredRunsSql), filteredRunsArgs...).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to unarchive the runs in an experiment %s. error: '%v'", expId, err.Error())
-	}
-
-	// TODO(jingzhang36): use inner join to replace nested query for better performance.
-	filteredJobsSql, filteredJobsArgs, err := sq.Select("ResourceUUID").
-		From("resource_references as rf").
-		Where(sq.And{
-			sq.Eq{"rf.ResourceType": common.Job},
-			sq.Eq{"rf.ReferenceUUID": expId},
-			sq.Eq{"rf.ReferenceType": common.Experiment}}).ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to filter the jobs in an experiment %s. error: '%v'", expId, err.Error())
-	}
-	now := s.time.Now().Unix()
-	updateJobsSql, updateJobsArgs, err := sq.
-		Update("jobs").
-		SetMap(sq.Eq{
-			"Enabled":        true,
-			"UpdatedAtInSec": now}).
-		Where(sq.Eq{"Enabled": false}).
-		Where(fmt.Sprintf("UUID in (%s)", filteredJobsSql), filteredJobsArgs...).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to unarchive the jobs in an experiment %s. error: '%v'", expId, err.Error())
-	}
-
-	// In a single transaction to update experiments, run_details and jobs tables.
-	tx, err := s.db.Begin()
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create a new transaction to unarchive an experiment.")
-	}
-
-	_, err = tx.Exec(sql, args...)
-	if err != nil {
-		tx.Rollback()
 		return util.NewInternalServerError(err,
 			"Failed to unarchive experiment %s. error: '%v'", expId, err.Error())
-	}
-
-	_, err = tx.Exec(updateRunsSql, updateRunsArgs...)
-	if err != nil {
-		tx.Rollback()
-		return util.NewInternalServerError(err,
-			"Failed to unarchive the runs in an experiment %s. error: '%v'", expId, err.Error())
-	}
-
-	_, err = tx.Exec(updateJobsSql, updateJobsArgs...)
-	if err != nil {
-		tx.Rollback()
-		return util.NewInternalServerError(err,
-			"Failed to disable all jobs in an experiment %s. error: '%v'", expId, err.Error())
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to unarchive an experiment %s and its runs", expId)
 	}
 
 	return nil
