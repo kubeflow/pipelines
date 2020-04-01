@@ -444,7 +444,9 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
 
-	// Initial state: 1 experiment and 2 runs in it. The experiment is unarchived. One run is archived and the other is not.
+	// Initial state: 1 experiment and 2 runs in it.
+	// The experiment is unarchived.
+	// One run is archived and the other is not.
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
@@ -496,6 +498,58 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	}
 	runStore.CreateRun(run1)
 	runStore.CreateRun(run2)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	job1 := &model.Job{
+		UUID:        "1",
+		DisplayName: "pp 1",
+		Name:        "pp1",
+		Namespace:   "n1",
+		Enabled:     true,
+		Conditions:  "ready",
+		Trigger: model.Trigger{
+			PeriodicSchedule: model.PeriodicSchedule{
+				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+				PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+				IntervalSecond:                 util.Int64Pointer(3),
+			},
+		},
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID: "1", ResourceType: common.Job, ReferenceUUID: fakeID,
+				ReferenceName: "experiment1", ReferenceType: common.Experiment,
+				Relationship: common.Owner,
+			},
+		},
+	}
+	job2 := &model.Job{
+		UUID:        "2",
+		DisplayName: "pp 2",
+		Name:        "pp2",
+		Namespace:   "n1",
+		Conditions:  "ready",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: util.Int64Pointer(1),
+				CronScheduleEndTimeInSec:   util.Int64Pointer(2),
+				Cron:                       util.StringPointer("1 * *"),
+			},
+		},
+		NoCatchup:      true,
+		Enabled:        false,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID: "2", ResourceType: common.Job,
+				ReferenceUUID: fakeID, ReferenceName: "experiment2", ReferenceType: common.Experiment,
+				Relationship: common.Owner,
+			},
+		},
+	}
+	jobStore.CreateJob(job1)
+	jobStore.CreateJob(job2)
 
 	// Archive experiment and verify the experiment and two runs in it are all archived.
 	err := experimentStore.ArchiveExperiment(fakeID)
@@ -509,6 +563,11 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Equal(t, total_run_size, 2)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[0].StorageState)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[1].StorageState)
+	jobs, total_job_size, _, err := jobStore.ListJobs(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, total_job_size, 2)
+	assert.Equal(t, false, jobs[0].Enabled)
+	assert.Equal(t, false, jobs[1].Enabled)
 
 	// Unarchive the experiment, and verify the experiment is unarchived while two runs in it stay archived.
 	err = experimentStore.UnarchiveExperiment(fakeID)
@@ -521,6 +580,11 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Equal(t, total_run_size, 2)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[0].StorageState)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[1].StorageState)
+	jobs, total_job_size, _, err = jobStore.ListJobs(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, total_job_size, 2)
+	assert.Equal(t, false, jobs[0].Enabled)
+	assert.Equal(t, false, jobs[1].Enabled)
 }
 
 func TestUnarchiveExperiment_InternalError(t *testing.T) {
