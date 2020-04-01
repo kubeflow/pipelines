@@ -56,6 +56,8 @@ while IFS=, read -r col1 col2 col3
 do
   if [[ " ${INSTALLED_PACKAGES[@]} " =~ " ${col1} " ]]; then
     wget -O $2/$col1.LICENSE $col2
+    # self throtting
+    sleep 10
     if [[ "${col3}" == *GPL* ]] || [[ "${col3}" =~ ^MPL ]]; then
       pip install -t "$2/source/${col1}" ${col1}
     fi
