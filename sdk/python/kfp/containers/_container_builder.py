@@ -12,16 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+__all__ = [
+    'ContainerBuilder',
+    'Deployment',
+]
+
 import logging
 import tarfile
 import tempfile
 import os
 import uuid
+from enum import Enum
 
 SERVICEACCOUNT_NAMESPACE = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
 GCS_STAGING_BLOB_DEFAULT_PREFIX = 'kfp_container_build_staging'
 GCR_DEFAULT_IMAGE_SUFFIX = 'kfp_container'
 
+class Deployment(Enum):
+  STANDALONE = 'STANDALONE'
+  KUBEFLOW = 'KUBEFLOW'
+  AI_PLATFORM = 'AI_PLATFORM'
 
 def _get_project_id():
   import requests
@@ -51,20 +61,33 @@ class ContainerBuilder(object):
   """
   ContainerBuilder helps build a container image
   """
-  def __init__(self, gcs_staging=None, default_image_name=None, namespace=None):
+  def __init__(self, gcs_staging=None, default_image_name=None, namespace=None,
+               service_account=None, deployment=Deployment.STANDALONE):
     """
     Args:
       gcs_staging (str): GCS bucket/blob that can store temporary build files,
-          default is gs://PROJECT_ID/kfp_container_build_staging.
+          default is gs://PROJECT_ID/kfp_container_build_staging. You have to
+          specify this when it doesn't run in cluster.
       default_image_name (str): Target container image name that will be used by the build method if the target_image argument is not specified.
-      namespace (str): kubernetes namespace where the pod is launched,
+      namespace (str): Kubernetes namespace where the pod is launched,
           default is the same namespace as the notebook service account in cluster
-              or 'kubeflow' if not in cluster
+          or 'kubeflow' if not in cluster. If using the full Kubeflow
+          deployment and not in cluster, you should specify your user namespace.
+
+      service_account (str): Kubernetes service account the pod uses,
+          default works with the specified deployment type
+      deployment (Deployment): How Kubeflow Pipelines was installed? This is used
+          to infer default values that can work with different deployments.
+          There are three options: Deployment.KUBEFLOW, Deployment.STANDALONE and
+          Deployment.AI_PLATFORM. You may refer to https://www.kubeflow.org/docs/pipelines/installation/overview/
+          for more details.
     """
     self._gcs_staging = gcs_staging
     self._gcs_staging_checked = False
     self._default_image_name = default_image_name
     self._namespace = namespace
+    self._service_account = service_account
+    self._deployment = deployment
 
   def _get_namespace(self):
     if self._namespace is None:
@@ -75,6 +98,14 @@ class ContainerBuilder(object):
       else:
         self._namespace = 'kubeflow'
     return self._namespace
+
+  def _get_service_account(self):
+    if self._service_account is None:
+      if self._deployment is Deployment.KUBEFLOW:
+        return 'default-editor'
+      else:
+        return 'kubeflow-pipelines-container-builder'
+    return self._service_account
 
   def _get_staging_location(self):
     if self._gcs_staging_checked:
@@ -134,7 +165,7 @@ class ContainerBuilder(object):
                 ],
                 'image': 'gcr.io/kaniko-project/executor@sha256:78d44ec4e9cb5545d7f85c1924695c89503ded86a59f92c7ae658afa3cff5400',
             }],
-            'serviceAccountName': 'default'}
+            'serviceAccountName': this._get_service_account()}
     }
     return content
 
