@@ -2,9 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - cache-deployer-clusterrole.yaml
-  - cache-deployer-clusterrolebinding.yaml
-  - cache-deployer-secret-clusterrole.yaml
+  - cache-deployer-secret-role.yaml
   - cache-deployer-rolebinding.yaml
   - cache-deployer-sa.yaml
   - cache-deployer-statefulset.yaml

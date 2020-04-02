@@ -10,7 +10,7 @@ Deploy latest version of Kubeflow Pipelines
 
 ```
 export PIPELINE_VERSION=0.3.0
-kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/crd.yaml
+kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/cluster-scoped-resources.yaml
 kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
 kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
 ```
@@ -44,7 +44,7 @@ To deploy Kubeflow Pipelines in namespace FOO,
 -   Then run
 
 ```
-kubectl kustomize base/crds | kubectl apply -f -
+kubectl kustomize cluster-scoped-resources | kubectl apply -f -
 # then
 kubectl kustomize env/dev | kubectl apply -f -
 # or
@@ -87,7 +87,7 @@ You can uninstall Kubeflow Pipelines by running
 ```
 export PIPELINE_VERSION=0.1.38
 kubectl delete -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
-kubectl delete -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/crd.yaml
+kubectl delete -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/cluster-scoped-resources.yaml
 ```
 
 Or if you deploy through kustomize
@@ -97,7 +97,7 @@ kubectl kustomize env/dev | kubectl delete -f -
 # or
 kubectl kustomize env/gcp | kubectl delete -f -
 # then
-kubectl kustomize base/crds | kubectl delete -f -
+kubectl kustomize cluster-scoped-resources | kubectl delete -f -
 ```
 
 ## Upgrade

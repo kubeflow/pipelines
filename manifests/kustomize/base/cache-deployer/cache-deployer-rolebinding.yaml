@@ -4,8 +4,8 @@ metadata:
   name: kubeflow-pipelines-cache-deployer-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kubeflow-pipelines-cache-deployer-secret-clusterrole
+  kind: Role
+  name: kubeflow-pipelines-cache-deployer-secret-role
 subjects:
 - kind: ServiceAccount
   name: kubeflow-pipelines-cache-deployer-sa
