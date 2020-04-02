@@ -1941,10 +1941,11 @@
     "ExperimentStorageState": {
       "type": "string",
       "enum": [
+        "STORAGESTATE_UNSPECIFIED",
         "STORAGESTATE_AVAILABLE",
         "STORAGESTATE_ARCHIVED"
       ],
-      "default": "STORAGESTATE_AVAILABLE"
+      "default": "STORAGESTATE_UNSPECIFIED"
     },
     "apiExperiment": {
       "type": "object",

@@ -34,6 +34,9 @@ type ExperimentStorageState string
 
 const (
 
+	// ExperimentStorageStateSTORAGESTATEUNSPECIFIED captures enum value "STORAGESTATE_UNSPECIFIED"
+	ExperimentStorageStateSTORAGESTATEUNSPECIFIED ExperimentStorageState = "STORAGESTATE_UNSPECIFIED"
+
 	// ExperimentStorageStateSTORAGESTATEAVAILABLE captures enum value "STORAGESTATE_AVAILABLE"
 	ExperimentStorageStateSTORAGESTATEAVAILABLE ExperimentStorageState = "STORAGESTATE_AVAILABLE"
 
@@ -46,7 +49,7 @@ var experimentStorageStateEnum []interface{}
 
 func init() {
 	var res []ExperimentStorageState
-	if err := json.Unmarshal([]byte(`["STORAGESTATE_AVAILABLE","STORAGESTATE_ARCHIVED"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["STORAGESTATE_UNSPECIFIED","STORAGESTATE_AVAILABLE","STORAGESTATE_ARCHIVED"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
