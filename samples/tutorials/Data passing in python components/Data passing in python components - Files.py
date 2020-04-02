@@ -65,7 +65,9 @@ from kfp.components import func_to_container_op, InputPath, OutputPath
 
 # %%
 # Writing bigger data
-@func_to_container_op
+@func_to_container_op(
+    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
+)
 def repeat_line(line: str, output_text_path: OutputPath(str), count: int = 10):
     '''Repeat the line specified number of times'''
     with open(output_text_path, 'w') as writer:
@@ -74,7 +76,9 @@ def repeat_line(line: str, output_text_path: OutputPath(str), count: int = 10):
 
 
 # Reading bigger data
-@func_to_container_op
+@func_to_container_op(
+    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
+)
 def print_text(text_path: InputPath()): # The "text" input is untyped so that any data can be printed
     '''Print text'''
     with open(text_path, 'r') as reader:
@@ -92,7 +96,9 @@ def print_repeating_lines_pipeline():
 # ### Processing bigger data
 
 # %%
-@func_to_container_op
+@func_to_container_op(
+    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
+)
 def split_text_lines(source_path: InputPath(str), odd_lines_path: OutputPath(str), even_lines_path: OutputPath(str)):
     with open(source_path, 'r') as reader:
         with open(odd_lines_path, 'w') as odd_writer:
@@ -122,7 +128,9 @@ def text_splitting_pipeline():
 
 # %%
 # Writing many numbers
-@func_to_container_op
+@func_to_container_op(
+    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
+)
 def write_numbers(numbers_path: OutputPath(str), start: int = 0, count: int = 10):
     with open(numbers_path, 'w') as writer:
         for i in range(start, count):
@@ -130,7 +138,9 @@ def write_numbers(numbers_path: OutputPath(str), start: int = 0, count: int = 10
 
 
 # Reading and summing many numbers
-@func_to_container_op
+@func_to_container_op(
+    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
+)
 def sum_numbers(numbers_path: InputPath(str)) -> int:
     sum = 0
     with open(numbers_path, 'r') as reader:

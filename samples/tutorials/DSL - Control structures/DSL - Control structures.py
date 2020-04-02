@@ -31,7 +31,9 @@ from kfp.components import func_to_container_op, InputPath, OutputPath
 
 # %%
 
-@func_to_container_op
+@func_to_container_op(
+    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
+)
 def get_random_int_op(minimum: int, maximum: int) -> int:
     """Generate a random number between minimum and maximum (inclusive)."""
     import random
@@ -40,7 +42,9 @@ def get_random_int_op(minimum: int, maximum: int) -> int:
     return result
 
 
-@func_to_container_op
+@func_to_container_op(
+    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
+)
 def flip_coin_op() -> str:
     """Flip a coin and output heads or tails randomly."""
     import random
@@ -49,7 +53,9 @@ def flip_coin_op() -> str:
     return result
 
 
-@func_to_container_op
+@func_to_container_op(
+    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
+)
 def print_op(message: str):
     """Print a message."""
     print(message)
@@ -84,7 +90,9 @@ def flipcoin_pipeline():
 # You can use `with dsl.ExitHandler(exit_task):` context to execute a task when the rest of the pipeline finishes (succeeds or fails)
 
 # %%
-@func_to_container_op
+@func_to_container_op(
+    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
+)
 def fail_op(message):
     """Fails."""
     import sys
