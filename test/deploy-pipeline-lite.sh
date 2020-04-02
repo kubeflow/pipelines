@@ -41,7 +41,7 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   echo "Deploying KFP in working directory..."
   KFP_MANIFEST_DIR=${DIR}/manifests
 
-  pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resource
+  pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
   kustomize build . | kubectl apply -f -
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
@@ -71,7 +71,7 @@ else
   # temporarily checkout last release tag
   git checkout $KFP_LATEST_RELEASE
 
-  # TODO: rename crd to cluster-scoped-resource after the release next to 0.3.0
+  # TODO: rename crd to cluster-scoped-resources after the release next to 0.3.0
   pushd ${KFP_MANIFEST_DIR}/crd
   kustomize build . | kubectl apply -f -
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
@@ -92,7 +92,7 @@ echo "Status of pods after kubectl apply"
 kubectl get pods -n ${NAMESPACE}
 
 # wait for all deployments to be successful
-# note, after we introduce statefulsets or daemonsets, we need to wait their rollout status here too
+# note, after we introduce daemonsets, we need to wait their rollout status here too
 for deployment in $(kubectl get deployments -n ${NAMESPACE} -o name)
 do
   kubectl rollout status $deployment -n ${NAMESPACE}
