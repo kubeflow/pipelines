@@ -875,10 +875,10 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 	store, _, job := initWithJob(t)
 	defer store.Close()
 	expectedJob := &model.Job{
-		UUID:           "123",
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
 		Name:           "j1",
-		Namespace:      "default",
+		Namespace:      "ns1",
 		Enabled:        true,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
@@ -888,7 +888,7 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID:  "123",
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Job,
 				ReferenceUUID: DefaultFakeUUID,
 				ReferenceName: "e1",
@@ -923,10 +923,10 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 	}
 	newJob, err := manager.CreateJob(job)
 	expectedJob := &model.Job{
-		UUID:           "123",
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
 		Name:           "j1",
-		Namespace:      "default",
+		Namespace:      "ns1",
 		Enabled:        true,
 		CreatedAtInSec: 3,
 		UpdatedAtInSec: 3,
@@ -939,7 +939,7 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID:  "123",
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Job,
 				ReferenceUUID: experiment.UUID,
 				ReferenceName: "e1",
@@ -994,10 +994,10 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 	}
 	newJob, err := manager.CreateJob(job)
 	expectedJob := &model.Job{
-		UUID:           "123",
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
 		Name:           "j1",
-		Namespace:      "default",
+		Namespace:      "ns1",
 		Enabled:        true,
 		CreatedAtInSec: 4,
 		UpdatedAtInSec: 4,
@@ -1008,7 +1008,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID:  "123",
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Job,
 				ReferenceUUID: experiment.UUID,
 				ReferenceName: "e1",
@@ -1016,7 +1016,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 				Relationship:  common.Owner,
 			},
 			{
-				ResourceUUID:  "123",
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Job,
 				ReferenceUUID: version.UUID,
 				ReferenceName: "version_for_job",
@@ -1087,7 +1087,7 @@ func TestCreateJob_ExtraInputParameterError(t *testing.T) {
 func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 	store, manager, p := initWithPipeline(t)
 	defer store.Close()
-	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
+	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
 	job := &api.Job{
 		Name:         "pp1",
 		Enabled:      true,
@@ -1104,10 +1104,10 @@ func TestEnableJob(t *testing.T) {
 	err := manager.EnableJob(job.UUID, false)
 	job, err = manager.GetJob(job.UUID)
 	expectedJob := &model.Job{
-		UUID:           "123",
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
 		Name:           "j1",
-		Namespace:      "default",
+		Namespace:      "ns1",
 		Enabled:        false,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 3,
@@ -1117,7 +1117,7 @@ func TestEnableJob(t *testing.T) {
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID:  "123",
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Job,
 				ReferenceUUID: DefaultFakeUUID,
 				ReferenceName: "e1",
@@ -1142,7 +1142,7 @@ func TestEnableJob_JobNotExist(t *testing.T) {
 func TestEnableJob_CrdFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
+	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
 	err := manager.EnableJob(job.UUID, false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
@@ -1165,7 +1165,7 @@ func TestDeleteJob(t *testing.T) {
 
 	_, err = manager.GetJob(job.UUID)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Job 123 not found")
+	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
 }
 
 func TestDeleteJob_JobNotExist(t *testing.T) {
@@ -1181,7 +1181,7 @@ func TestDeleteJob_CrdFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
 
-	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
+	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
 	err := manager.DeleteJob(job.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
