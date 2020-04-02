@@ -174,7 +174,7 @@ spec:
         args: ["--db_driver=$(DBCONFIG_DRIVER)",
                "--db_host=$(DBCONFIG_HOST_NAME)",
                "--db_port=$(DBCONFIG_PORT)",
-               "--db_name=$(DBCONFIG_DB_NAME)"
+               "--db_name=$(DBCONFIG_DB_NAME)",
                "--db_user=$(DBCONFIG_USER)",
                "--db_password=$(DBCONFIG_PASSWORD)",
                "--namespace_to_watch=$(NAMESPACE_TO_WATCH)",
