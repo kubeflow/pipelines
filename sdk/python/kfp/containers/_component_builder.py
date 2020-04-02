@@ -27,7 +27,7 @@ from deprecated.sphinx import deprecated
 
 from ..components._components import _create_task_factory_from_component_spec
 from ..components._python_op import _func_to_component_spec
-from ._container_builder import ContainerBuilder
+from ._container_builder import ContainerBuilder, Deployment
 
 class VersionedDependency(object):
   """ DependencyVersion specifies the versions """
