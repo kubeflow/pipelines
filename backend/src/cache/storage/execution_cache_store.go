@@ -25,7 +25,7 @@ import (
 )
 
 type ExecutionCacheStoreInterface interface {
-	GetExecutionCache(executionCacheKey string) (*model.ExecutionCache, error)
+	GetExecutionCache(executionCacheKey string, maxCacheStaleness int64) (*model.ExecutionCache, error)
 	CreateExecutionCache(*model.ExecutionCache) (*model.ExecutionCache, error)
 	DeleteExecutionCache(executionCacheKey string) error
 }
@@ -115,7 +115,6 @@ func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.Executi
 	newExecutionCache.StartedAtInSec = now
 	// TODO: ended time need to be modified after demo version.
 	newExecutionCache.EndedAtInSec = now
-	newExecutionCache.MaxCacheStaleness = -1
 
 	ok := s.db.NewRecord(newExecutionCache)
 	if !ok {
