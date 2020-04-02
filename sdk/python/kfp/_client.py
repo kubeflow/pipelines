@@ -201,10 +201,9 @@ class Client(object):
 
   def set_user_namespace(self, namespace):
     """Set user namespace into local context setting file.
+       This function should only be used when Kubeflow Pipelines is in the multi-user mode.
     Args:
       namespace: kubernetes namespace the user has access to.
-        For single user deployment, leave it as empty;
-        For multi user, input a namespace where the user is authorized.
     """
     self.context_setting['namespace'] = namespace
     with open(LOCAL_KFP_CONTEXT, 'w') as f:
