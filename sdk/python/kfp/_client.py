@@ -118,7 +118,7 @@ class Client(object):
 
     host = host or ''
     # Preprocess the host endpoint to prevent some common user mistakes.
-    host = host.lstrip(r'(https|http)://').rstrip('/')
+    host = re.sub(r'^(http|https)://', '', host).rstrip('/')
 
     if host:
       config.host = host
@@ -522,7 +522,7 @@ class Client(object):
         trigger=trigger,
         enabled=True,
         )
-    #[TODO] Add link to the scheduled job. 
+    #[TODO] Add link to the scheduled job.
     response = self._job_api.create_job(body=schedule_body)
 
 

@@ -41,4 +41,4 @@ static_resources:
       type: logical_dns
       http2_protocol_options: {}
       lb_policy: round_robin
-      hosts: [{ socket_address: { address: "metadata-service", port_value: 8080 }}]
+      hosts: [{ socket_address: { address: "metadata-grpc-service", port_value: 8080 }}]
