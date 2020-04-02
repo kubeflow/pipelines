@@ -29,7 +29,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/minio/minio-go"
 )
 
@@ -68,7 +67,7 @@ type ClientManager struct {
 	defaultExperimentStore storage.DefaultExperimentStoreInterface
 	objectStore            storage.ObjectStoreInterface
 	argoClient             client.ArgoClientInterface
-	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
+	swfClient              client.SwfClientInterface
 	k8sCoreClient          client.KubernetesCoreInterface
 	kfamClient             client.KFAMClientInterface
 	time                   util.TimeInterface
@@ -111,7 +110,7 @@ func (c *ClientManager) ArgoClient() client.ArgoClientInterface {
 	return c.argoClient
 }
 
-func (c *ClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
+func (c *ClientManager) SwfClient() client.SwfClientInterface {
 	return c.swfClient
 }
 
@@ -152,8 +151,7 @@ func (c *ClientManager) init() {
 
 	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
-	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
-		common.GetPodNamespace(), common.GetDurationConfig(initConnectionTimeout))
+	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout))
 

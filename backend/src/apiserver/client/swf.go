@@ -24,16 +24,28 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+type SwfClientInterface interface {
+	ScheduledWorkflow(namespace string) v1beta1.ScheduledWorkflowInterface
+}
+
+type SwfClient struct {
+	swfV1beta1Client v1beta1.ScheduledworkflowV1beta1Interface
+}
+
+func (swfClient *SwfClient) ScheduledWorkflow(namespace string) v1beta1.ScheduledWorkflowInterface {
+	return swfClient.swfV1beta1Client.ScheduledWorkflows(namespace)
+}
+
 // creates a new client for the Kubernetes ScheduledWorkflow CRD.
-func CreateScheduledWorkflowClientOrFatal(namespace string, initConnectionTimeout time.Duration) v1beta1.ScheduledWorkflowInterface {
-	var swfClient v1beta1.ScheduledWorkflowInterface
+func NewScheduledWorkflowClientOrFatal(initConnectionTimeout time.Duration) *SwfClient {
+	var swfClient v1beta1.ScheduledworkflowV1beta1Interface
 	var operation = func() error {
 		restConfig, err := rest.InClusterConfig()
 		if err != nil {
 			return err
 		}
 		swfClientSet := swfclient.NewForConfigOrDie(restConfig)
-		swfClient = swfClientSet.ScheduledworkflowV1beta1().ScheduledWorkflows(namespace)
+		swfClient = swfClientSet.ScheduledworkflowV1beta1()
 		return nil
 	}
 
@@ -43,5 +55,5 @@ func CreateScheduledWorkflowClientOrFatal(namespace string, initConnectionTimeou
 		glog.Fatalf("Failed to create scheduled workflow client. Error: %v", err)
 	}
 
-	return swfClient
+	return &SwfClient{swfClient}
 }
