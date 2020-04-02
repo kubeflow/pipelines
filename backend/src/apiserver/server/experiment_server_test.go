@@ -503,7 +503,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	defer clients.Close()
 	runServer := NewRunServer(manager)
 	run1 := &api.Run{
-		Name:               "123",
+		Name:               "run1",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
 	err := runServer.validateCreateRunRequest(&api.CreateRunRequest{Run: run1})
@@ -514,7 +514,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	manager = resource.NewResourceManager(clients)
 	runServer = NewRunServer(manager)
 	run2 := &api.Run{
-		Name:               "456",
+		Name:               "run2",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
 	err = runServer.validateCreateRunRequest(&api.CreateRunRequest{Run: run2})
