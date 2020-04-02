@@ -252,18 +252,6 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			"Failed to create query to archive experiment %s. error: '%v'", expId, err.Error())
 	}
 
-	updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs, err := sq.
-		Update("run_details").
-		SetMap(sq.Eq{
-			"StorageState": api.Run_STORAGESTATE_ARCHIVED.String(),
-		}).
-		Where(sq.Eq{"ExperimentUUID": expId}).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to archive the runs in an experiment %s. error: '%v'", expId, err.Error())
-	}
-
 	// TODO(jingzhang36): use inner join to replace nested query for better performance.
 	filteredRunsSql, filteredRunsArgs, err := sq.Select("ResourceUUID").
 		From("resource_references as rf").
@@ -281,6 +269,19 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			"StorageState": api.Run_STORAGESTATE_ARCHIVED.String(),
 		}).
 		Where(fmt.Sprintf("UUID in (%s)", filteredRunsSql), filteredRunsArgs...).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to archive the runs in an experiment %s. error: '%v'", expId, err.Error())
+	}
+
+	updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"StorageState": api.Run_STORAGESTATE_ARCHIVED.String(),
+		}).
+		Where(sq.Eq{"ExperimentUUID": expId}).
+		Where(sq.NotEq{"StorageState": api.Run_STORAGESTATE_ARCHIVED.String()}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
@@ -325,18 +326,18 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			"Failed to archive experiment %s. error: '%v'", expId, err.Error())
 	}
 
-	_, err = tx.Exec(updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs)
-	if err != nil {
-		tx.Rollback()
-		return util.NewInternalServerError(err,
-			"Failed to archive runs with ExperimentUUID being %s. error: '%v'", expId, err.Error())
-	}
-
 	_, err = tx.Exec(updateRunsSql, updateRunsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err,
 			"Failed to archive runs with experiment reference being %s. error: '%v'", expId, err.Error())
+	}
+
+	_, err = tx.Exec(updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err,
+			"Failed to archive runs with ExperimentUUID being %s. error: '%v'", expId, err.Error())
 	}
 
 	_, err = tx.Exec(updateJobsSql, updateJobsArgs...)

@@ -498,7 +498,7 @@ func TestValidateCreateExperimentRequest_Multiuser(t *testing.T) {
 }
 
 func TestArchiveAndUnarchiveExperiment(t *testing.T) {
-	// Create experiment and runs under it.
+	// Create experiment and runs/jobs under it.
 	clients, manager, experiment := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	runServer := NewRunServer(manager)
@@ -521,6 +521,24 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	_, err = runServer.CreateRun(nil, &api.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.DefaultFakeUUID, nil))
+	manager = resource.NewResourceManager(clients)
+	jobServer := NewJobServer(manager)
+	job1 := &api.Job{
+		Name:           "name1",
+		Enabled:        true,
+		MaxConcurrency: 1,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+	}
+	err = jobServer.validateCreateJobRequest(&api.CreateJobRequest{Job: job1})
+	assert.Nil(t, err)
+	_, err = jobServer.CreateJob(nil, &api.CreateJobRequest{Job: job1})
+	assert.Nil(t, err)
 
 	// Archive the experiment and thus all runs under it.
 	experimentServer := NewExperimentServer(manager)
@@ -532,6 +550,9 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Equal(t, 2, len(runs.Runs))
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
+	jobs, err := jobServer.ListJobs(nil, &api.ListJobsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
+	assert.Equal(t, 1, len(jobs.Jobs))
+	assert.Equal(t, false, jobs.Jobs[0].Enabled)
 
 	// Unarchive the experiment and thus all runs under it.
 	_, err = experimentServer.UnarchiveExperiment(nil, &api.UnarchiveExperimentRequest{Id: experiment.UUID})
@@ -542,4 +563,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Equal(t, 2, len(runs.Runs))
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
+	jobs, err = jobServer.ListJobs(nil, &api.ListJobsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
+	assert.Equal(t, 1, len(jobs.Jobs))
+	assert.Equal(t, false, jobs.Jobs[0].Enabled)
 }
