@@ -13,9 +13,3 @@ rules:
   - create
   - get
   - patch
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - delete

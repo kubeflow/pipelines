@@ -54,12 +54,6 @@ rules:
   - create
   - get
   - patch
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
