@@ -14,7 +14,7 @@ spec:
     component: metadata-grpc-server
     app.kubernetes.io/name: {{ .Release.Name }}
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -98,7 +98,7 @@ spec:
       protocol: TCP
       name: md-envoy
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: metadata-envoy

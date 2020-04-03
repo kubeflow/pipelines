@@ -14,7 +14,7 @@ spec:
     app.kubernetes.io/name: {{ .Release.Name }}
 ---
 {{ if .Values.managedstorage.enabled }}
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio
@@ -73,7 +73,7 @@ spec:
     requests:
       storage: 20Gi
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio
