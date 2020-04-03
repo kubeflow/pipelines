@@ -405,8 +405,8 @@ func TestConvertPipelineIdToDefaultPipelineVersion_NoOp(t *testing.T) {
 	// FakeUUID is the new default version's id.
 	assert.NotEqual(t, oldVersionId, FakeUUIDOne)
 
-	// Create a run of the latest pipeline version, but by specifying the pipeline
-	// id, i.e., the pipeline id will be ignored.
+	// Create a run by specifying both the old pipeline version and the pipeline.
+	// As a result, the old version will be used and the pipeline id will be ignored.
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
