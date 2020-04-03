@@ -84,9 +84,6 @@ class Client(object):
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
-  context_setting = {
-    'namespace': '',
-  }
 
   # TODO: Wrap the configurations for different authentication methods.
   def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None):
@@ -118,6 +115,7 @@ class Client(object):
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
+    self._load_context_setting_or_default()
 
   def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token):
     config = kfp_server_api.configuration.Configuration()
@@ -220,25 +218,31 @@ class Client(object):
     # In-cluster pod. We could use relative URL.
     return '/pipeline'
 
+  def _load_context_setting_or_default(self):
+    if os.path.exists(Client.LOCAL_KFP_CONTEXT):
+      with open(Client.LOCAL_KFP_CONTEXT, 'r') as f:
+        self._context_setting = json.load(f)
+    else:
+      self._context_setting = {
+        'namespace': '',
+      }
+
   def set_user_namespace(self, namespace):
     """Set user namespace into local context setting file.
        This function should only be used when Kubeflow Pipelines is in the multi-user mode.
     Args:
       namespace: kubernetes namespace the user has access to.
     """
-    self.context_setting['namespace'] = namespace
-    with open(self.LOCAL_KFP_CONTEXT, 'w') as f:
-      json.dump(self.context_setting, f)
+    self._context_setting['namespace'] = namespace
+    with open(Client.LOCAL_KFP_CONTEXT, 'w') as f:
+      json.dump(self._context_setting, f)
 
   def get_user_namespace(self):
     """Get user namespace in context config.
     Returns:
       namespace: kubernetes namespace from the local context file or empty if it wasn't set.
     """
-    if os.path.exists(self.LOCAL_KFP_CONTEXT):
-      with open(self.LOCAL_KFP_CONTEXT, 'r') as f:
-        self.context_setting = json.load(f)
-    return self.context_setting['namespace']
+    return self._context_setting['namespace']
 
   def create_experiment(self, name, description=None, namespace=None):
     """Create a new experiment.
