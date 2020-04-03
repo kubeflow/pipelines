@@ -77,13 +77,13 @@ x-google-marketplace:
       properties:
         images.metadatawriter:
           type: FULL
-    cacheserver:	
-      properties:	
-        images.cacheserver:	
-          type: FULL	
-    cachedeployer:	
-      properties:	
-        images.cachedeployer:	
+    cacheserver:
+      properties:
+        images.cacheserver:
+          type: FULL
+    cachedeployer:
+      properties:
+        images.cachedeployer:
           type: FULL
   deployerServiceAccount:
     roles:
