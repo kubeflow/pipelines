@@ -4,33 +4,33 @@ metadata:
   labels:
     app: metadata
     app.kubernetes.io/name: {{ .Release.Name }}
-  name: metadata-service
+  name: metadata-grpc-service
 spec:
   ports:
     - name: md-backendapi
       port: 8080
       protocol: TCP
   selector:
-    component: metadata-server
+    component: metadata-grpc-server
     app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
   labels:
-    component: metadata-server
+    component: metadata-grpc-server
     app.kubernetes.io/name: {{ .Release.Name }}
-  name: metadata-deployment
+  name: metadata-grpc-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      component: metadata-server
+      component: metadata-grpc-server
       app.kubernetes.io/name: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        component: metadata-server
+        component: metadata-grpc-server
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
@@ -163,9 +163,9 @@ kind: ConfigMap
 metadata:
   name: metadata-grpc-configmap
   labels:
-    component: metadata-server
+    component: metadata-grpc-server
 data:
-  METADATA_GRPC_SERVICE_HOST: "metadata-service"
+  METADATA_GRPC_SERVICE_HOST: "metadata-grpc-service"
   METADATA_GRPC_SERVICE_PORT: "8080"
 ---
 apiVersion: apps/v1

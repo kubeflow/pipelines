@@ -345,36 +345,84 @@ func TestGetUserIdentity(t *testing.T) {
 	assert.Equal(t, "user@google.com", userIdentity)
 }
 
-func TestCanAccessNamespaceInResourceReferencesUnauthorized(t *testing.T) {
+func TestCanAccessNamespaceInResourceReferences_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
-	viper.Set(common.MultiUserMode, "true")
+
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	references := []*api.ResourceReference{
 		{
 			Key: &api.ResourceKey{
-				Type: api.ResourceType_NAMESPACE, Id: "ns"},
+				Type: api.ResourceType_NAMESPACE, Id: "ns1"},
 			Relationship: api.Relationship_OWNER,
 		},
 	}
 	err := CanAccessNamespaceInResourceReferences(manager, ctx, references)
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized access")
 }
 
 func TestCanAccessNamespaceInResourceReferences_Authorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	viper.Set(common.MultiUserMode, "true")
+
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	references := []*api.ResourceReference{
 		{
 			Key: &api.ResourceKey{
-				Type: api.ResourceType_NAMESPACE, Id: "ns"},
+				Type: api.ResourceType_NAMESPACE, Id: "ns1"},
 			Relationship: api.Relationship_OWNER,
 		},
 	}
 	err := CanAccessNamespaceInResourceReferences(manager, ctx, references)
+	assert.Nil(t, err)
+}
+
+func TestCanAccessExperimentInResourceReferences_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	defer clients.Close()
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	references := []*api.ResourceReference{
+		{
+			Key: &api.ResourceKey{
+				Type: api.ResourceType_EXPERIMENT, Id: resource.DefaultFakeUUID},
+			Relationship: api.Relationship_OWNER,
+		},
+	}
+	err := CanAccessExperimentInResourceReferences(manager, ctx, references)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized access")
+}
+
+func TestCanAccessExperiemntInResourceReferences_Authorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	references := []*api.ResourceReference{
+		{
+			Key: &api.ResourceKey{
+				Type: api.ResourceType_EXPERIMENT, Id: resource.DefaultFakeUUID},
+			Relationship: api.Relationship_OWNER,
+		},
+	}
+	err := CanAccessExperimentInResourceReferences(manager, ctx, references)
 	assert.Nil(t, err)
 }

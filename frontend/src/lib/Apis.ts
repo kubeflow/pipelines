@@ -40,6 +40,12 @@ export interface BuildInfo {
   frontendCommitHash?: string;
 }
 
+// Hack types from https://github.com/microsoft/TypeScript/issues/1897#issuecomment-557057387
+export type JSONPrimitive = string | number | boolean | null;
+export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
+export type JSONObject = { [member: string]: JSONValue };
+export type JSONArray = JSONValue[];
+
 let customVisualizationsAllowed: boolean;
 
 // For cross browser support, fetch should use 'same-origin' as default. This fixes firefox auth issues.
@@ -91,6 +97,28 @@ export class Apis {
       query += `&podnamespace=${encodeURIComponent(podNamespace)}`;
     }
     return this._fetch(query);
+  }
+
+  /**
+   * Get pod info
+   */
+  public static async getPodInfo(podName: string, podNamespace: string): Promise<JSONObject> {
+    const query = `k8s/pod?podname=${encodeURIComponent(podName)}&podnamespace=${encodeURIComponent(
+      podNamespace,
+    )}`;
+    const podInfo = await this._fetch(query);
+    return JSON.parse(podInfo);
+  }
+
+  /**
+   * Get pod events
+   */
+  public static async getPodEvents(podName: string, podNamespace: string): Promise<JSONObject> {
+    const query = `k8s/pod/events?podname=${encodeURIComponent(
+      podName,
+    )}&podnamespace=${encodeURIComponent(podNamespace)}`;
+    const eventList = await this._fetch(query);
+    return JSON.parse(eventList);
   }
 
   public static get basePath(): string {
@@ -184,20 +212,27 @@ export class Apis {
    */
   public static getTensorboardApp(
     logdir: string,
+    namespace: string,
   ): Promise<{ podAddress: string; tfVersion: string }> {
     return this._fetchAndParse<{ podAddress: string; tfVersion: string }>(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&namespace=${encodeURIComponent(
+        namespace,
+      )}`,
     );
   }
 
   /**
    * Starts a deployment and service for Tensorboard given the logdir
    */
-  public static startTensorboardApp(logdir: string, tfversion: string): Promise<string> {
+  public static startTensorboardApp(
+    logdir: string,
+    tfversion: string,
+    namespace: string,
+  ): Promise<string> {
     return this._fetch(
       `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(
         tfversion,
-      )}`,
+      )}&namespace=${encodeURIComponent(namespace)}`,
       undefined,
       undefined,
       { headers: { 'content-type': 'application/json' }, method: 'POST' },
@@ -215,9 +250,11 @@ export class Apis {
   /**
    * Delete a deployment and its service of the Tensorboard given the URL
    */
-  public static deleteTensorboardApp(logdir: string): Promise<string> {
+  public static deleteTensorboardApp(logdir: string, namespace: string): Promise<string> {
     return this._fetch(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&namespace=${encodeURIComponent(
+        namespace,
+      )}`,
       undefined,
       undefined,
       { method: 'DELETE' },

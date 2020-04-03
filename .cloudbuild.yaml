@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Test before submit:
+# gcloud builds submit --config=.cloudbuild.yaml --substitutions=COMMIT_SHA="$(git rev-parse HEAD)" --project=ml-pipeline-test
+
 steps:
 
 # Build the Python SDK
@@ -194,6 +197,26 @@ steps:
          '/workspace/third_party/metadata_envoy/Dockerfile', '/workspace']
   id:   'buildMetadataEnvoy'
 
+# Pull third_party images
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.21.1']
+  id:   'pullMetadataServer'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance']
+  id:   'pullMinio'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/ml-pipeline/mysql:5.6']
+  id:   'pullMysql'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/cloudsql-docker/gce-proxy:1.14']
+  id:   'pullCloudsqlProxy'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/ml-pipeline/argoexec:v2.3.0-license-compliance']
+  id:   'pullArgoExecutor'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/ml-pipeline/workflow-controller:v2.3.0-license-compliance']
+  id:   'pullArgoWorkflowController'
+
 # Tag for Hosted - SemVersion to Major.Minor parsing
 - id: "parseMajorMinorVersion"
   waitFor: ["-"]
@@ -207,15 +230,17 @@ steps:
 
 # Tag for Hosted - Tag to hosted folder with MKP friendly name
 - id:   'tagForHosted'
-  waitFor: ['parseMajorMinorVersion', 'buildFrontend', 'buildApiServer', 'buildViewerCrdController',
-            'buildPersistenceAgent', 'buildInverseProxyAgent', 'buildVisualizationServer',
-            'buildMarketplaceDeployer']
+  waitFor: ['parseMajorMinorVersion', 'buildFrontend', 'buildApiServer', 'buildScheduledWorkflow',            
+            'buildViewerCrdController', 'buildPersistenceAgent', 'buildInverseProxyAgent', 'buildVisualizationServer',
+            'buildMetadataWriter', 'buildCacheServer', 'buildCacheDeployer', 'buildMetadataEnvoy',
+            'buildMarketplaceDeployer', 'pullMetadataServer', 'pullMinio', 'pullMysql', 'pullCloudsqlProxy',
+            'pullArgoExecutor', 'pullArgoWorkflowController']
   name: 'gcr.io/cloud-builders/docker'
   entrypoint: bash
   args:
   - -ceux
   - |
-    /workspace/release/tag_for_hosted.sh $PROJECT_ID $COMMIT_SHA $(cat /workspace/VERSION) $(cat /workspace/mm.ver)
+    /workspace/test/tag_for_hosted.sh $PROJECT_ID $COMMIT_SHA $(cat /workspace/VERSION) $(cat /workspace/mm.ver)
 
 images:
 # Images for the pipeline system itself

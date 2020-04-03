@@ -95,7 +95,7 @@
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.7.5",
     "webpack": "4.41.5",
-    "webpack-bundle-analyzer": "^3.6.0"
+    "webpack-bundle-analyzer": "^3.6.1"
   },
   "homepage": "./",
   "jest": {

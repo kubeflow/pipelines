@@ -19,6 +19,14 @@ exports[`Archive renders archived runs 1`] = `
     toolbarProps={
       Object {
         "actions": Object {
+          "deleteRun": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select at least one run to delete",
+            "id": "deleteBtn",
+            "title": "Delete",
+            "tooltip": "Delete",
+          },
           "refresh": Object {
             "action": [Function],
             "id": "refreshBtn",
@@ -39,8 +47,8 @@ exports[`Archive renders archived runs 1`] = `
       }
     }
     updateBanner={[MockFunction]}
-    updateDialog={null}
-    updateSnackbar={null}
+    updateDialog={[MockFunction]}
+    updateSnackbar={[MockFunction]}
     updateToolbar={[MockFunction]}
   />
 </div>

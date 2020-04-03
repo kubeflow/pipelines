@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from deprecated.sphinx import deprecated
 from ._pipeline_param import PipelineParam
 from .types import check_types, InconsistentTypeException
 from ._ops_group import Graph
 import kfp
 
+
+@deprecated(
+  version='0.2.6',
+  reason='This decorator does not seem to be used, so we deprecate it. If you need this decorator, please create an issue at https://github.com/kubeflow/pipelines/issues',
+)
 def python_component(name, description=None, base_image=None, target_component_file: str = None):
   """Decorator for Python component functions.
   This decorator adds the metadata to the function object itself.

@@ -83,7 +83,7 @@ class Client(object):
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
   # TODO: Wrap the configurations for different authentication methods.
-  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None):
     """Create a new instance of kfp client.
 
     Args:
@@ -97,12 +97,14 @@ class Client(object):
       client_id: The client ID used by Identity-Aware Proxy.
       namespace: the namespace where the kubeflow pipeline system is run.
       other_client_id: The client ID used to obtain the auth codes and refresh tokens.
-        Reference: https://cloud.google.com/iap/docs/authentication-howto#authenticating_from_a_desktop_app.
+          Reference: https://cloud.google.com/iap/docs/authentication-howto#authenticating_from_a_desktop_app.
       other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
+      existing_token: pass in token directly, it's used for cases better get token outside of SDK, e.x. GCP Cloud Functions
+          or caller already has a token
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
-    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token)
     api_client = kfp_server_api.api_client.ApiClient(config)
     _add_generated_apis(self, kfp_server_api, api_client)
     self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
@@ -111,16 +113,40 @@ class Client(object):
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
 
-  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token):
     config = kfp_server_api.configuration.Configuration()
+
+    host = host or ''
+    # Preprocess the host endpoint to prevent some common user mistakes.
+    # This should only be done for non-IAP cases (when client_id is None). IAP requires preserving the protocol.
+    if not client_id:
+      host = re.sub(r'^(http|https)://', '', host).rstrip('/')
+
     if host:
       config.host = host
 
     token = None
 
-    # Obtain the tokens if it is IAP or inverse proxy.
-    # client_id is only used for IAP, so when the value is provided, we assume it's IAP.
-    if client_id:
+    # "existing_token" is designed to accept token generated outside of SDK. Here is an example.
+    #
+    # https://cloud.google.com/functions/docs/securing/function-identity
+    # https://cloud.google.com/endpoints/docs/grpc/service-account-authentication
+    #
+    # import requests
+    # import kfp
+    #
+    # def get_access_token():
+    #     url = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token'
+    #     r = requests.get(url, headers={'Metadata-Flavor': 'Google'})
+    #     r.raise_for_status()
+    #     access_token = r.json()['access_token']
+    #     return access_token
+    #
+    # client = kfp.Client(host='<KFPHost>', existing_token=get_access_token())
+    #
+    if existing_token:
+      token = existing_token
+    elif client_id:
       token = get_auth_token(client_id, other_client_id, other_client_secret)
     elif self._is_inverse_proxy_host(host):
       token = get_gcp_access_token()
@@ -159,6 +185,10 @@ class Client(object):
   def _is_inverse_proxy_host(self, host):
     if host:
       return re.match(r'\S+.googleusercontent.com/{0,1}$', host)
+    if re.match(r'\w+', host):
+      warnings.warn(
+          'The received host is %s, please include the full endpoint address '
+          '(with ".(pipelines/notebooks).googleusercontent.com")' % host)
     return False
 
   def _is_ipython(self):
@@ -184,25 +214,38 @@ class Client(object):
     # In-cluster pod. We could use relative URL.
     return '/pipeline'
 
-  def create_experiment(self, name, description=None):
+  def create_experiment(self, name, description=None, namespace=''):
     """Create a new experiment.
     Args:
       name: the name of the experiment.
-      description: description of the experiment
+      description: description of the experiment.
+      namespace: kubernetes namespace where the experiment should be created.
+        For single user deployment, leave it as empty;
+        For multi user, input a namespace where the user is authorized.
     Returns:
       An Experiment object. Most important field is id.
     """
 
     experiment = None
     try:
-      experiment = self.get_experiment(experiment_name=name)
+      experiment = self.get_experiment(experiment_name=name, namespace=namespace)
     except:
       # Ignore error if the experiment does not exist.
       pass
 
     if not experiment:
       logging.info('Creating experiment {}.'.format(name))
-      experiment = kfp_server_api.models.ApiExperiment(name=name, description=description)
+
+      resource_references = []
+      if namespace is not None:
+        key = kfp_server_api.models.ApiResourceKey(id=namespace, type=kfp_server_api.models.ApiResourceType.NAMESPACE)
+        reference = kfp_server_api.models.ApiResourceReference(key=key, relationship=kfp_server_api.models.ApiRelationship.OWNER)
+        resource_references.append(reference)
+
+      experiment = kfp_server_api.models.ApiExperiment(
+        name=name,
+        description=description,
+        resource_references=resource_references)
       experiment = self._experiment_api.create_experiment(body=experiment)
 
     if self._is_ipython():
@@ -213,25 +256,35 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return experiment
 
-  def list_experiments(self, page_token='', page_size=10, sort_by=''):
+  def list_experiments(self, page_token='', page_size=10, sort_by='', namespace=''):
     """List experiments.
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
       sort_by: can be '[field_name]', '[field_name] des'. For example, 'name des'.
+      namespace: kubernetes namespace where the experiment was created.
+        For single user deployment, leave it as empty;
+        For multi user, input a namespace where the user is authorized.
     Returns:
       A response object including a list of experiments and next page token.
     """
     response = self._experiment_api.list_experiment(
-        page_token=page_token, page_size=page_size, sort_by=sort_by)
+      page_token=page_token,
+      page_size=page_size,
+      sort_by=sort_by,
+      resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE,
+      resource_reference_key_id=namespace)
     return response
 
-  def get_experiment(self, experiment_id=None, experiment_name=None):
+  def get_experiment(self, experiment_id=None, experiment_name=None, namespace=''):
     """Get details of an experiment
     Either experiment_id or experiment_name is required
     Args:
       experiment_id: id of the experiment. (Optional)
       experiment_name: name of the experiment. (Optional)
+      namespace: kubernetes namespace where the experiment was created.
+        For single user deployment, leave it as empty;
+        For multi user, input the namespace where the user is authorized.
     Returns:
       A response object including details of a experiment.
     Throws:
@@ -243,7 +296,7 @@ class Client(object):
       return self._experiment_api.get_experiment(id=experiment_id)
     next_page_token = ''
     while next_page_token is not None:
-      list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token)
+      list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token, namespace=namespace)
       next_page_token = list_experiments_response.next_page_token
       for experiment in list_experiments_response.experiments:
         if experiment.name == experiment_name:
@@ -409,14 +462,14 @@ class Client(object):
     run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments, namespace=namespace)
     return RunPipelineResult(self, run_info)
 
-  def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, 
+  def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None,
     namespace=None, cron_schedule=None, description=None, max_concurrency=10, no_catchup=None):
     """Schedule pipeline on kubeflow to run based upon a cron job
-    
+
     Arguments:
-        experiment_id {string} -- The expriment within which we would like kubeflow 
+        experiment_id {string} -- The expriment within which we would like kubeflow
         job_name {string} -- The name of the scheduled job
-    
+
     Keyword Arguments:
         pipeline_package_path {string} -- The path to the pipeline package (default: {None})
         params {dict} -- The pipeline parameters (default: {{}})
@@ -457,7 +510,7 @@ class Client(object):
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string,
         parameters=api_params)
-    
+
     trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(cron=cron_schedule) #Example:cron_schedule="0 0 9 ? * 2-6"
     job_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
     schedule_body = kfp_server_api.models.ApiJob(
@@ -471,7 +524,7 @@ class Client(object):
         trigger=trigger,
         enabled=True,
         )
-    #[TODO] Add link to the scheduled job. 
+    #[TODO] Add link to the scheduled job.
     response = self._job_api.create_job(body=schedule_body)
 
 
