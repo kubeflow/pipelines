@@ -14,8 +14,6 @@ images:
   visualizationserver: gcr.io/ml-pipeline/google/pipelines/visualizationserver:dummy
   metadataenvoy: gcr.io/ml-pipeline/google/pipelines/metadataenvoy:dummy
   metadatawriter: gcr.io/ml-pipeline/google/pipelines/metadatawriter:dummy
-  cacheserver: gcr.io/ml-pipeline/google/pipelines/cacheserver:dummy
-  cachedeployer: gcr.io/ml-pipeline/google/pipelines/cachedeployer:dummy
 
 gcpSecretName: "user-gcp-sa"
 serviceAccountCredential: ""

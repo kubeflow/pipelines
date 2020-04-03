@@ -41,7 +41,7 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   echo "Deploying KFP in working directory..."
   KFP_MANIFEST_DIR=${DIR}/manifests
 
-  pushd ${KFP_MANIFEST_DIR}/crd
+  pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
   kustomize build . | kubectl apply -f -
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
@@ -58,8 +58,8 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   kustomize edit set image gcr.io/ml-pipeline/visualization-server=${GCR_IMAGE_BASE_DIR}/visualization-server:${GCR_IMAGE_TAG}
   kustomize edit set image gcr.io/ml-pipeline/inverse-proxy-agent=${GCR_IMAGE_BASE_DIR}/inverse-proxy-agent:${GCR_IMAGE_TAG}
   kustomize edit set image gcr.io/ml-pipeline/metadata-writer=${GCR_IMAGE_BASE_DIR}/metadata-writer:${GCR_IMAGE_TAG}
-  kustomize edit set image gcr.io/ml-pipeline-test/cache-server=${GCR_IMAGE_BASE_DIR}/cache-server:${GCR_IMAGE_TAG}
-  kustomize edit set image gcr.io/ml-pipeline-test/cache-deployer=${GCR_IMAGE_BASE_DIR}/cache-deployer:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/cache-server=${GCR_IMAGE_BASE_DIR}/cache-server:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/cache-deployer=${GCR_IMAGE_BASE_DIR}/cache-deployer:${GCR_IMAGE_TAG}
   cat kustomization.yaml
 
   kustomize build . | kubectl apply -f -
@@ -71,6 +71,7 @@ else
   # temporarily checkout last release tag
   git checkout $KFP_LATEST_RELEASE
 
+  # TODO: rename crd to cluster-scoped-resources after the release next to 0.3.0
   pushd ${KFP_MANIFEST_DIR}/crd
   kustomize build . | kubectl apply -f -
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
@@ -78,6 +79,8 @@ else
 
   pushd ${KFP_MANIFEST_DIR}/dev
   kustomize build . | kubectl apply -f -
+  # TODO: remove line below after the release next to 0.3.0
+  kubectl delete deployment cache-server -n ${NAMESPACE}
   popd
 
   # go back to previous commit
@@ -89,10 +92,15 @@ echo "Status of pods after kubectl apply"
 kubectl get pods -n ${NAMESPACE}
 
 # wait for all deployments to be successful
-# note, after we introduce statefulsets or daemonsets, we need to wait their rollout status here too
+# note, after we introduce daemonsets, we need to wait their rollout status here too
 for deployment in $(kubectl get deployments -n ${NAMESPACE} -o name)
 do
   kubectl rollout status $deployment -n ${NAMESPACE}
+done
+
+for statefulset in $(kubectl get statefulset -n ${NAMESPACE} -o name)
+do
+  kubectl rollout status $statefulset -n ${NAMESPACE}
 done
 
 echo "Status of pods after rollouts are successful"
