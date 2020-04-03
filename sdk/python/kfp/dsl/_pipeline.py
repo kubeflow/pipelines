@@ -62,6 +62,7 @@ class PipelineConf():
     self.ttl_seconds_after_finished = -1
     self.op_transformers = []
     self.image_pull_policy = None
+    self.parallelism = None
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """Configures the pipeline level imagepullsecret
@@ -83,6 +84,15 @@ class PipelineConf():
     self.timeout = seconds
     return self
 
+  def set_parallelism(self, max_num_pods: int):
+    """Configures the max number of total parallel pods that can execute at the same time in a workflow.
+
+    Args:
+        max_num_pods (int): max number of total parallel pods.
+    """
+    self.parallelism = max_num_pods
+    return self
+
   def set_ttl_seconds_after_finished(self, seconds: int):
     """Configures the ttl after the pipeline has finished.
 
@@ -96,7 +106,7 @@ class PipelineConf():
     """Configures the default image pull policy
 
     Args:
-      policy: the pull policy, has to be one of: Always, Never, IfNotPresent. 
+      policy: the pull policy, has to be one of: Always, Never, IfNotPresent.
       For more info: https://github.com/kubernetes-client/python/blob/10a7f95435c0b94a6d949ba98375f8cc85a70e5a/kubernetes/docs/V1Container.md
     """
     self.image_pull_policy = policy
