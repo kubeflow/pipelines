@@ -1,7 +1,7 @@
 The `mnist-classification-pipeline.py` sample runs a pipeline to train a classficiation model using Kmeans with MNIST dataset on Sagemaker.  
 The `kmeans-hpo-pipeline.py` is a single component hyper parameter optimisation pipeline which has default values set to use Kmeans. 
 
-If you do not have `train_data`, `test_data`, and `valid_data` you can use the following code to get sampple data which  
+If you do not have `train_data`, `test_data`, and `valid_data` you can use the following code to get sample data which  
 (This data can be used for both of these pipelines)
 
 ## The sample dataset
@@ -11,7 +11,7 @@ This sample is based on the [Train a Model with a Built-in Algorithm and Deploy 
 The sample trains and deploy a model based on the [MNIST dataset](http://www.deeplearning.net/tutorial/gettingstarted.html).
 
 
-Create an s3 bucket and use the following python script to copy `train_data`, `test_data`, and `valid_data.csv` to your buckets.  
+Create an S3 bucket and use the following python script to copy `train_data`, `test_data`, and `valid_data.csv` to your buckets.  
 (create the bucket in `us-west-2` region if you are gonna use default values of the pipeline)
 https://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html
 
@@ -33,7 +33,7 @@ import boto3
 
 ###################################################################
 # This is the only thing that you need to change to run this code 
-# Give the name of your s3 bucket 
+# Give the name of your S3 bucket 
 bucket = 'bucket-name' 
 
 # If you are gonna use the default values of the pipeline then 
