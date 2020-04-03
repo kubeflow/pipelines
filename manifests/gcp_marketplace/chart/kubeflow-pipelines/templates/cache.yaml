@@ -54,6 +54,12 @@ rules:
   - create
   - get
   - patch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -135,20 +141,14 @@ subjects:
   name: kubeflow-pipelines-cache-deployer-sa
   namespace: {{ .Release.Namespace }}
 ---
-apiVersion: apps/v1
-kind: StatefulSet
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: cache-deployer-statefulset
+  name: cache-deployer-job
   labels:
     app: cache-deployer
     app.kubernetes.io/name: {{ .Release.Name }}
 spec:
-  replicas: 1
-  serviceName: cache-deployer
-  selector:
-    matchLabels:
-      app: cache-deployer
-      app.kubernetes.io/name: {{ .Release.Name }}
   template:
     metadata:
       labels:
@@ -163,8 +163,7 @@ spec:
         - name: NAMESPACE_TO_WATCH
           value: {{ .Release.Namespace }}
       serviceAccountName: kubeflow-pipelines-cache-deployer-sa
-      restartPolicy: Always
-  volumeClaimTemplates: []
+      restartPolicy: OnFailure
 ---
 apiVersion: v1
 kind: ConfigMap

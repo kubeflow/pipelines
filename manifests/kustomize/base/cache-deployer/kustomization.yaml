@@ -5,5 +5,5 @@ resources:
   - cache-deployer-secret-role.yaml
   - cache-deployer-rolebinding.yaml
   - cache-deployer-sa.yaml
-  - cache-deployer-statefulset.yaml
+  - cache-deployer-job.yaml
   
