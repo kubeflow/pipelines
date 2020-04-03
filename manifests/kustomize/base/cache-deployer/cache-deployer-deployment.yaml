@@ -1,10 +1,14 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: cache-deployer-job
+  name: cache-deployer-deployment
   labels:
     app: cache-deployer
 spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache-deployer
   template:
     metadata:
       labels:
@@ -20,4 +24,4 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
       serviceAccountName: kubeflow-pipelines-cache-deployer-sa
-      restartPolicy: OnFailure
+      restartPolicy: Always

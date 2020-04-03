@@ -141,14 +141,19 @@ subjects:
   name: kubeflow-pipelines-cache-deployer-sa
   namespace: {{ .Release.Namespace }}
 ---
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: cache-deployer-job
+  name: cache-deployer-deployment
   labels:
     app: cache-deployer
     app.kubernetes.io/name: {{ .Release.Name }}
 spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache-deployer
+      app.kubernetes.io/name: {{ .Release.Name }}
   template:
     metadata:
       labels:
@@ -163,7 +168,7 @@ spec:
         - name: NAMESPACE_TO_WATCH
           value: {{ .Release.Namespace }}
       serviceAccountName: kubeflow-pipelines-cache-deployer-sa
-      restartPolicy: OnFailure
+      restartPolicy: Always
 ---
 apiVersion: v1
 kind: ConfigMap

@@ -43,8 +43,9 @@ checkWebhookConfig() {
 # Create MutatingWebhookConfiguration
 cat ./cache-configmap-ca-bundle.yaml
 
-if ! checkWebhookConfig; then
-    kubectl apply -f ./cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
-fi
-
-kubectl delete job cache-deployer-job -n "${NAMESPACE}"
+while true; do 
+    if ! checkWebhookConfig; then
+        kubectl apply -f ./cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
+    fi
+    sleep 10
+done
