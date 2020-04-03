@@ -139,7 +139,7 @@ func TestGetExecutionCacheWithExpiredMaxCacheStaleness(t *testing.T) {
 	defer db.Close()
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
 	executionCacheToPersist := &model.ExecutionCache{
-		ExecutionCacheKey: "test",
+		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",
 		ExecutionOutput:   "testOutput",
 		MaxCacheStaleness: 0,
