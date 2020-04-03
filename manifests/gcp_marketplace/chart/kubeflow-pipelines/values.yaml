@@ -27,7 +27,12 @@ managedstorage:
   #
   # gcsBucketName is used in two places, so I wrote a template string here that
   # can be evaluated in each place.
-  gcsBucketName: '{{ if .Values.managedstorage.databaseNamePrefix }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Values.managedstorage.databaseNamePrefix | replace ":" "-" | trunc 50 }}{{ else }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Release.Name | replace ":" "-" | trunc 50 }}{{ end }}'
+  #
+  # Name pattern:
+  # If spedify databaseNamePrefix: %{cloudsqlInstanceConnectionName}-%{truncedDatabaseNamePrefix}
+  # else: %{cloudsqlInstanceConnectionName}-%{releaseName}
+  gcsBucketName: '{{ if .Values.managedstorage.databaseNamePrefix }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Values.managedstorage.databaseNamePrefix | replace ":" "-" | lower | trunc 60 }}{{ else }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Release.Name | replace ":" "-" | lower | trunc 60 }}{{ end }}'
   databaseNamePrefix: null
   dbUsername: 'root'
   dbPassword: ''
+  gcsProjectId: ''
