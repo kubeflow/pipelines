@@ -1,33 +1,16 @@
-apiVersion: apps/v1
-kind: StatefulSet
+apiVersion: v1
+kind: ServiceAccount
 metadata:
-  name: cache-deployer-statefulset
+  name: kubeflow-pipelines-cache-deployer-sa
   labels:
-    app: cache-deployer
     app.kubernetes.io/name: {{ .Release.Name }}
-spec:
-  replicas: 1
-  serviceName: cache-deployer
-  selector:
-    matchLabels:
-      app: cache-deployer
-      app.kubernetes.io/name: {{ .Release.Name }}
-  template:
-    metadata:
-      labels:
-        app: cache-deployer
-        app.kubernetes.io/name: {{ .Release.Name }}
-    spec:
-      containers:
-      - name: main
-        image: {{ .Values.images.cachedeployer }}
-        imagePullPolicy: Always
-        env:
-        - name: NAMESPACE_TO_WATCH
-          value: {{ .Release.Namespace }}
-      serviceAccountName: kubeflow-pipelines-cache-deployer-sa
-      restartPolicy: Always
-  volumeClaimTemplates: []
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubeflow-pipelines-cache
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -72,12 +55,55 @@ rules:
   - get
   - patch
 ---
-apiVersion: v1
-kind: ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
 metadata:
-  name: kubeflow-pipelines-cache-deployer-sa
+  labels:
+    app: kubeflow-pipelines-cache-role
+    app.kubernetes.io/name: {{ .Release.Name }}
+  name: kubeflow-pipelines-cache-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubeflow-pipelines-cache-binding
   labels:
     app.kubernetes.io/name: {{ .Release.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubeflow-pipelines-cache-role
+subjects:
+- kind: ServiceAccount
+  name: kubeflow-pipelines-cache
+  namespace: {{ .Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -108,6 +134,53 @@ subjects:
 - kind: ServiceAccount
   name: kubeflow-pipelines-cache-deployer-sa
   namespace: {{ .Release.Namespace }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cache-deployer-statefulset
+  labels:
+    app: cache-deployer
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  serviceName: cache-deployer
+  selector:
+    matchLabels:
+      app: cache-deployer
+      app.kubernetes.io/name: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: cache-deployer
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: main
+        image: {{ .Values.images.cachedeployer }}
+        imagePullPolicy: Always
+        env:
+        - name: NAMESPACE_TO_WATCH
+          value: {{ .Release.Namespace }}
+      serviceAccountName: kubeflow-pipelines-cache-deployer-sa
+      restartPolicy: Always
+  volumeClaimTemplates: []
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cache-configmap
+  labels:
+    component: cache-server
+data:
+  {{ if .Values.managedstorage.databaseNamePrefix }}
+  mysql_database: '{{ .Values.managedstorage.databaseNamePrefix }}_cachedb'
+  {{ else }}
+  mysql_database: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_cachedb'
+  {{ end }}
+  mysql_driver: "mysql"
+  mysql_host: "mysql"
+  mysql_port: "3306" 
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -207,77 +280,3 @@ spec:
   ports:
     - port: 443
       targetPort: webhook-api
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cache-configmap
-  labels:
-    component: cache-server
-data:
-  {{ if .Values.managedstorage.databaseNamePrefix }}
-  mysql_database: '{{ .Values.managedstorage.databaseNamePrefix }}_cachedb'
-  {{ else }}
-  mysql_database: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_cachedb'
-  {{ end }}
-  mysql_driver: "mysql"
-  mysql_host: "mysql"
-  mysql_port: "3306"
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  labels:
-    app: kubeflow-pipelines-cache-role
-    app.kubernetes.io/name: {{ .Release.Name }}
-  name: kubeflow-pipelines-cache-role
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - get
-  - list
-  - watch
-  - update
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - get
-- apiGroups:
-  - argoproj.io
-  resources:
-  - workflows
-  verbs:
-  - get
-  - list
-  - watch
-  - update
-  - patch
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kubeflow-pipelines-cache
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: kubeflow-pipelines-cache-binding
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: kubeflow-pipelines-cache-role
-subjects:
-- kind: ServiceAccount
-  name: kubeflow-pipelines-cache
-  namespace: {{ .Release.Namespace }}
- 
