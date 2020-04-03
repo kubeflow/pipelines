@@ -935,7 +935,6 @@ describe('WorkflowParser', () => {
         },
       ]);
     });
-
   });
 
   describe('loadAllOutputPaths', () => {
