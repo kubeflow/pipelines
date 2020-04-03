@@ -236,6 +236,12 @@ func ConvertPipelineIdToDefaultPipelineVersion(pipelineSpec *api.PipelineSpec, r
 	if pipelineSpec.GetPipelineId() == "" {
 		return nil
 	}
+	// If there is already a pipeline version in resource references, don't convert pipeline id.
+	for _, reference := range *resourceReferences {
+		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION && reference.Relationship == api.Relationship_CREATOR {
+			return nil
+		}
+	}
 	pipeline, err := r.pipelineStore.GetPipeline(pipelineSpec.GetPipelineId())
 	if err != nil {
 		return util.Wrap(err, "Failed to find the specified pipeline")

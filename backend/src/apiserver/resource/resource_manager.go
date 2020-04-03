@@ -252,6 +252,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// Get workflow from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
+	// And the latter takes priority over the former
 	var workflowSpecManifestBytes []byte
 	ConvertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
 	workflowSpecManifestBytes, err := r.getWorkflowSpecBytesFromPipelineVersion(apiRun.GetResourceReferences())
@@ -503,6 +504,7 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	// Get workflow from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
+	// And the latter takes priority over the former
 	var workflowSpecManifestBytes []byte
 	ConvertPipelineIdToDefaultPipelineVersion(apiJob.PipelineSpec, &apiJob.ResourceReferences, r)
 	workflowSpecManifestBytes, err := r.getWorkflowSpecBytesFromPipelineVersion(apiJob.GetResourceReferences())
