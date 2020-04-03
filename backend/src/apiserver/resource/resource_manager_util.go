@@ -29,8 +29,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func toCRDTrigger(apiTrigger *api.Trigger) *scheduledworkflow.Trigger {
@@ -226,5 +226,24 @@ func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run)
 			}
 		}
 	}
+	return nil
+}
+
+// Convert PipelineId in PipelineSpec to the pipeline's default pipeline version.
+// This is for legacy usage of pipeline id to create run. The standard way to
+// create run is by specifying the pipeline version.
+func ConvertPipelineIdToDefaultPipelineVersion(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) error {
+	if pipelineSpec.GetPipelineId() == "" {
+		return nil
+	}
+	pipeline, err := r.pipelineStore.GetPipeline(pipelineSpec.GetPipelineId())
+	if err != nil {
+		return util.Wrap(err, "Failed to find the specified pipeline")
+	}
+	// Add default pipeline version and remvoe pipeline id in pipeline spec
+	*resourceReferences = append(*resourceReferences, &api.ResourceReference{
+		Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: pipeline.DefaultVersionId},
+		Relationship: api.Relationship_CREATOR,
+	})
 	return nil
 }
