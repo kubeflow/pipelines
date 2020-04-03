@@ -485,7 +485,7 @@ spec:
     app: ml-pipeline
     app.kubernetes.io/name: {{ .Release.Name }}
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -512,7 +512,7 @@ spec:
           name: ml-pipeline-persistenceagent
       serviceAccountName: ml-pipeline-persistenceagent
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -539,7 +539,7 @@ spec:
           name: ml-pipeline-scheduledworkflow
       serviceAccountName: ml-pipeline-scheduledworkflow
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -572,7 +572,7 @@ spec:
             - containerPort: 3000
       serviceAccountName: ml-pipeline-ui
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -601,7 +601,7 @@ spec:
           name: ml-pipeline-viewer-crd
       serviceAccountName: ml-pipeline-viewer-crd-service-account
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -627,7 +627,7 @@ spec:
             - containerPort: 8888
       serviceAccountName: ml-pipeline-visualizationserver
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
