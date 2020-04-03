@@ -313,7 +313,9 @@ class Client(object):
       namespace: kubernetes namespace where the pipeline runs are created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized
-      version_id: the string ID of a pipeline version
+      version_id: the string ID of a pipeline version. 
+        If both pipeline_id and version_id are specified, pipeline_id will take precendence
+        This will change in a future version, so it is recommended to use version_id by itself
 
     Returns:
       A run object. Most important field is id.
@@ -345,7 +347,7 @@ class Client(object):
       key = kfp_server_api.models.ApiResourceKey(id=version_id,
                                                  type=kfp_server_api.models.ApiResourceType.PIPELINE_VERSION)
       reference = kfp_server_api.models.ApiResourceReference(key=key, 
-                                                             relationship=kfp_server_api.models.ApiRelationship.OWNER)
+                                                             relationship=kfp_server_api.models.ApiRelationship.CREATOR)
       resource_references.append(reference)
 
     spec = kfp_server_api.models.ApiPipelineSpec(
