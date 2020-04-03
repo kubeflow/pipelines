@@ -62,6 +62,7 @@ class PipelineConf():
     self.ttl_seconds_after_finished = -1
     self.artifact_location = None
     self.op_transformers = []
+    self.parallelism = None
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """Configures the pipeline level imagepullsecret
@@ -81,6 +82,15 @@ class PipelineConf():
       seconds: number of seconds for timeout
     """
     self.timeout = seconds
+    return self
+
+  def set_parallelism(self, max_num_pods: int):
+    """Configures the max number of total parallel pods that can execute at the same time in a workflow.
+
+    Args:
+        max_num_pods (int): max number of total parallel pods.
+    """
+    self.parallelism = max_num_pods
     return self
 
   def set_ttl_seconds_after_finished(self, seconds: int):
