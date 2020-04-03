@@ -26,6 +26,7 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	servercommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
@@ -242,11 +243,11 @@ func ConvertPipelineIdToDefaultPipelineVersion(pipelineSpec *api.PipelineSpec, r
 			return nil
 		}
 	}
-	pipeline, err := r.pipelineStore.GetPipeline(pipelineSpec.GetPipelineId())
+	pipeline, err := r.pipelineStore.GetPipelineWithStatus(pipelineSpec.GetPipelineId(), model.PipelineReady)
 	if err != nil {
 		return util.Wrap(err, "Failed to find the specified pipeline")
 	}
-	// Add default pipeline version and remvoe pipeline id in pipeline spec
+	// Add default pipeline version to resource references
 	*resourceReferences = append(*resourceReferences, &api.ResourceReference{
 		Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: pipeline.DefaultVersionId},
 		Relationship: api.Relationship_CREATOR,
