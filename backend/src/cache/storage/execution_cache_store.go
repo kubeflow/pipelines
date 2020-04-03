@@ -36,12 +36,15 @@ type ExecutionCacheStore struct {
 }
 
 func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, maxCacheStaleness int64) (*model.ExecutionCache, error) {
-	r, err := s.db.Table("execution_caches").Where("ExecutionCacheKey = ? AND MaxCacheStaleness = ?", executionCacheKey, maxCacheStaleness).Rows()
+	if maxCacheStaleness == 0 {
+		return nil, fmt.Errorf("MaxCacheStaleness=0, Cache is disabled.")
+	}
+	r, err := s.db.Table("execution_caches").Where("ExecutionCacheKey = ?", executionCacheKey, maxCacheStaleness).Rows()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
 	}
 	defer r.Close()
-	executionCaches, err := s.scanRows(r)
+	executionCaches, err := s.scanRows(r, maxCacheStaleness)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
 	}
@@ -55,7 +58,7 @@ func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, maxCac
 	return latestCache, nil
 }
 
-func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache, error) {
+func (s *ExecutionCacheStore) scanRows(rows *sql.Rows, podMaxCacheStaleness int64) ([]*model.ExecutionCache, error) {
 	var executionCaches []*model.ExecutionCache
 	for rows.Next() {
 		var executionCacheKey, executionTemplate, executionOutput string
@@ -73,7 +76,7 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache,
 		}
 		log.Println("Get id: " + strconv.FormatInt(id, 10))
 		log.Println("Get template: " + executionTemplate)
-		if maxCacheStaleness == -1 || startedAtInSec+maxCacheStaleness >= s.time.Now().UTC().Unix() {
+		if maxCacheStaleness == -1 || s.time.Now().UTC().Unix()-startedAtInSec <= podMaxCacheStaleness {
 			executionCaches = append(executionCaches, &model.ExecutionCache{
 				ID:                id,
 				ExecutionCacheKey: executionCacheKey,
