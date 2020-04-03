@@ -23,10 +23,10 @@ import (
 )
 
 const (
-	MultiUserMode                             string = "MULTIUSER"
-	PodNamespace                              string = "POD_NAMESPACE"
-	CacheEnabled                              string = "CacheEnabled"
-	DefaultPipelineRunnerServiceAccountEnvVar string = "DefaultPipelineRunnerServiceAccount"
+	MultiUserMode                       string = "MULTIUSER"
+	PodNamespace                        string = "POD_NAMESPACE"
+	CacheEnabled                        string = "CacheEnabled"
+	DefaultPipelineRunnerServiceAccount string = "DefaultPipelineRunnerServiceAccount"
 )
 
 func GetStringConfig(configName string) string {

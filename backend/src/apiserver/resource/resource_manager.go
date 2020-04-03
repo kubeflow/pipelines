@@ -926,7 +926,7 @@ func (r *ResourceManager) MarkSampleLoaded() error {
 }
 
 func (r *ResourceManager) getDefaultSA() string {
-	return common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountEnvVar, defaultPipelineRunnerServiceAccount)
+	return common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccount, defaultPipelineRunnerServiceAccount)
 }
 
 func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte) (*model.PipelineVersion, error) {
