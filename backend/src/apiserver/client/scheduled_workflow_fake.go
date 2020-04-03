@@ -12,38 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package resource
+package client
 
 import (
 	"errors"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 )
 
 type FakeScheduledWorkflowClient struct {
-	workflows map[string]*v1beta1.ScheduledWorkflow
+	scheduledWorkflows map[string]*v1beta1.ScheduledWorkflow
 }
 
 func NewScheduledWorkflowClientFake() *FakeScheduledWorkflowClient {
 	return &FakeScheduledWorkflowClient{
-		workflows: make(map[string]*v1beta1.ScheduledWorkflow),
+		scheduledWorkflows: make(map[string]*v1beta1.ScheduledWorkflow),
 	}
 }
 
-func (c *FakeScheduledWorkflowClient) Create(workflow *v1beta1.ScheduledWorkflow) (*v1beta1.ScheduledWorkflow, error) {
-	workflow.UID = "123"
-	workflow.Namespace = "default"
-	workflow.Name = workflow.GenerateName
-	c.workflows[workflow.Name] = workflow
-	return workflow, nil
+func (c *FakeScheduledWorkflowClient) Create(scheduledWorkflow *v1beta1.ScheduledWorkflow) (*v1beta1.ScheduledWorkflow, error) {
+	scheduledWorkflow.UID = "123e4567-e89b-12d3-a456-426655440000"
+	scheduledWorkflow.Namespace = "ns1"
+	scheduledWorkflow.Name = scheduledWorkflow.GenerateName
+	c.scheduledWorkflows[scheduledWorkflow.Name] = scheduledWorkflow
+	return scheduledWorkflow, nil
 }
 
 func (c *FakeScheduledWorkflowClient) Delete(name string, options *v1.DeleteOptions) error {
-	delete(c.workflows, name)
+	delete(c.scheduledWorkflows, name)
 	return nil
 }
 
@@ -52,9 +52,9 @@ func (c *FakeScheduledWorkflowClient) Patch(name string, pt types.PatchType, dat
 }
 
 func (c *FakeScheduledWorkflowClient) Get(name string, options v1.GetOptions) (*v1beta1.ScheduledWorkflow, error) {
-	workflow, ok := c.workflows[name]
+	scheduledWorkflow, ok := c.scheduledWorkflows[name]
 	if ok {
-		return workflow, nil
+		return scheduledWorkflow, nil
 	}
 	return nil, errors.New("not found")
 }
