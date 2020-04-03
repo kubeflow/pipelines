@@ -31,10 +31,10 @@ def print_op(msg):
     name='Pipeline service account',
     description='The pipeline shows how to set the max number of parallel pods in a pipeline.'
 )
-def pipeline_service_account():
+def pipeline_parallelism():
   op1 = print_op('hey, what are you up to?')
   op2 = print_op('train my model.')
   dsl.get_pipeline_conf().set_parallelism(1)
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(transform_pipeline, __file__ + '.yaml')
+  kfp.compiler.Compiler().compile(pipeline_parallelism, __file__ + '.yaml')
