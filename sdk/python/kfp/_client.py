@@ -74,6 +74,7 @@ KF_PIPELINES_UI_ENDPOINT_ENV = 'KF_PIPELINES_UI_ENDPOINT'
 KF_PIPELINES_DEFAULT_EXPERIMENT_NAME = 'KF_PIPELINES_DEFAULT_EXPERIMENT_NAME'
 KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME = 'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'
 
+
 class Client(object):
   """ API Client for KubeFlow Pipeline.
   """
@@ -81,6 +82,8 @@ class Client(object):
   # in-cluster DNS name of the pipeline service
   IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
+
+  LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
   # TODO: Wrap the configurations for different authentication methods.
   def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None):
@@ -112,6 +115,7 @@ class Client(object):
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
+    self._load_context_setting_or_default()
 
   def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token):
     config = kfp_server_api.configuration.Configuration()
@@ -214,18 +218,44 @@ class Client(object):
     # In-cluster pod. We could use relative URL.
     return '/pipeline'
 
-  def create_experiment(self, name, description=None, namespace=''):
+  def _load_context_setting_or_default(self):
+    if os.path.exists(Client.LOCAL_KFP_CONTEXT):
+      with open(Client.LOCAL_KFP_CONTEXT, 'r') as f:
+        self._context_setting = json.load(f)
+    else:
+      self._context_setting = {
+        'namespace': '',
+      }
+
+  def set_user_namespace(self, namespace):
+    """Set user namespace into local context setting file.
+       This function should only be used when Kubeflow Pipelines is in the multi-user mode.
+    Args:
+      namespace: kubernetes namespace the user has access to.
+    """
+    self._context_setting['namespace'] = namespace
+    with open(Client.LOCAL_KFP_CONTEXT, 'w') as f:
+      json.dump(self._context_setting, f)
+
+  def get_user_namespace(self):
+    """Get user namespace in context config.
+    Returns:
+      namespace: kubernetes namespace from the local context file or empty if it wasn't set.
+    """
+    return self._context_setting['namespace']
+
+  def create_experiment(self, name, description=None, namespace=None):
     """Create a new experiment.
     Args:
       name: the name of the experiment.
       description: description of the experiment.
       namespace: kubernetes namespace where the experiment should be created.
-        For single user deployment, leave it as empty;
+        For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized.
     Returns:
       An Experiment object. Most important field is id.
     """
-
+    namespace = namespace or self.get_user_namespace()
     experiment = None
     try:
       experiment = self.get_experiment(experiment_name=name, namespace=namespace)
@@ -237,7 +267,7 @@ class Client(object):
       logging.info('Creating experiment {}.'.format(name))
 
       resource_references = []
-      if namespace is not None:
+      if namespace:
         key = kfp_server_api.models.ApiResourceKey(id=namespace, type=kfp_server_api.models.ApiResourceType.NAMESPACE)
         reference = kfp_server_api.models.ApiResourceReference(key=key, relationship=kfp_server_api.models.ApiRelationship.OWNER)
         resource_references.append(reference)
@@ -256,18 +286,19 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return experiment
 
-  def list_experiments(self, page_token='', page_size=10, sort_by='', namespace=''):
+  def list_experiments(self, page_token='', page_size=10, sort_by='', namespace=None):
     """List experiments.
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
       sort_by: can be '[field_name]', '[field_name] des'. For example, 'name des'.
       namespace: kubernetes namespace where the experiment was created.
-        For single user deployment, leave it as empty;
+        For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized.
     Returns:
       A response object including a list of experiments and next page token.
     """
+    namespace = namespace or self.get_user_namespace()
     response = self._experiment_api.list_experiment(
       page_token=page_token,
       page_size=page_size,
@@ -276,20 +307,21 @@ class Client(object):
       resource_reference_key_id=namespace)
     return response
 
-  def get_experiment(self, experiment_id=None, experiment_name=None, namespace=''):
+  def get_experiment(self, experiment_id=None, experiment_name=None, namespace=None):
     """Get details of an experiment
     Either experiment_id or experiment_name is required
     Args:
       experiment_id: id of the experiment. (Optional)
       experiment_name: name of the experiment. (Optional)
       namespace: kubernetes namespace where the experiment was created.
-        For single user deployment, leave it as empty;
+        For single user deployment, leave it as None;
         For multi user, input the namespace where the user is authorized.
     Returns:
       A response object including details of a experiment.
     Throws:
       Exception if experiment is not found or None of the arguments is provided
     """
+    namespace = namespace or self.get_user_namespace()
     if experiment_id is None and experiment_name is None:
       raise ValueError('Either experiment_id or experiment_name is required')
     if experiment_id is not None:
@@ -345,7 +377,7 @@ class Client(object):
     return self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by)
 
   # TODO: provide default namespace, similar to kubectl default namespaces.
-  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, namespace=None):
+  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None):
     """Run a specified pipeline.
 
     Args:
@@ -354,9 +386,6 @@ class Client(object):
       pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: a dictionary with key (string) as param name and value (string) as as param value.
       pipeline_id: the string ID of a pipeline.
-      namespace: kubernetes namespace where the pipeline runs are created.
-        For single user deployment, leave it as None;
-        For multi user, input a namespace where the user is authorized
 
     Returns:
       A run object. Most important field is id.
@@ -369,26 +398,18 @@ class Client(object):
     api_params = [kfp_server_api.ApiParameter(
         name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
         value=str(v)) for k,v in params.items()]
-    resource_references = []
 
     key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
     reference = kfp_server_api.models.ApiResourceReference(key=key,
                                                            relationship=kfp_server_api.models.ApiRelationship.OWNER)
-    resource_references.append(reference)
-    if namespace is not None:
-      key = kfp_server_api.models.ApiResourceKey(id=namespace,
-                                                 type=kfp_server_api.models.ApiResourceType.NAMESPACE)
-      reference = kfp_server_api.models.ApiResourceReference(key=key,
-                                                             name=namespace,
-                                                             relationship=kfp_server_api.models.ApiRelationship.OWNER)
-      resource_references.append(reference)
+
     spec = kfp_server_api.models.ApiPipelineSpec(
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string,
         parameters=api_params)
     run_body = kfp_server_api.models.ApiRun(
-        pipeline_spec=spec, resource_references=resource_references, name=job_name)
+        pipeline_spec=spec, resource_references=[reference], name=job_name)
 
     response = self._run_api.create_run(body=run_body)
 
@@ -458,12 +479,12 @@ class Client(object):
       warnings.warn('Changing experiment name from "{}" to "{}".'.format(experiment_name, overridden_experiment_name))
     experiment_name = overridden_experiment_name or 'Default'
     run_name = run_name or pipeline_name + ' ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
-    experiment = self.create_experiment(name=experiment_name)
-    run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments, namespace=namespace)
+    experiment = self.create_experiment(name=experiment_name, namespace=namespace)
+    run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments)
     return RunPipelineResult(self, run_info)
 
   def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None,
-    namespace=None, cron_schedule=None, description=None, max_concurrency=10, no_catchup=None):
+    cron_schedule=None, description=None, max_concurrency=10, no_catchup=None):
     """Schedule pipeline on kubeflow to run based upon a cron job
 
     Arguments:
@@ -474,7 +495,6 @@ class Client(object):
         pipeline_package_path {string} -- The path to the pipeline package (default: {None})
         params {dict} -- The pipeline parameters (default: {{}})
         pipeline_id {string} -- The id of the pipeline which should run on schedule (default: {None})
-        namespace {string} -- The name space with which the pipeline should run (default: {None})
         max_concurrency {int} -- Max number of concurrent runs scheduled (default: {10})
         no_catchup {boolean} -- Whether the recurring run should catch up if behind schedule.
           For example, if the recurring run is paused for a while and re-enabled
@@ -492,20 +512,12 @@ class Client(object):
     api_params = [kfp_server_api.ApiParameter(
         name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
         value=str(v)) for k,v in params.items()]
-    resource_references = []
 
     key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
     reference = kfp_server_api.models.ApiResourceReference(key=key,
                                                            relationship=kfp_server_api.models.ApiRelationship.OWNER)
-    resource_references.append(reference)
-    if namespace is not None:
-      key = kfp_server_api.models.ApiResourceKey(id=namespace,
-                                                 type=kfp_server_api.models.ApiResourceType.NAMESPACE)
-      reference = kfp_server_api.models.ApiResourceReference(key=key,
-                                                             name=namespace,
-                                                             relationship=kfp_server_api.models.ApiRelationship.OWNER)
-      resource_references.append(reference)
+
     spec = kfp_server_api.models.ApiPipelineSpec(
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string,
@@ -518,7 +530,7 @@ class Client(object):
         name=job_name,
         description=description,
         pipeline_spec=spec,
-        resource_references=resource_references,
+        resource_references=[reference],
         max_concurrency=max_concurrency,
         no_catchup=no_catchup,
         trigger=trigger,
@@ -528,20 +540,24 @@ class Client(object):
     response = self._job_api.create_job(body=schedule_body)
 
 
-  def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
+  def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None, namespace=None):
     """List runs.
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
       sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
       experiment_id: experiment id to filter upon
+      namespace: kubernetes namespace to filter upon.
+        For single user deployment, leave it as None;
+        For multi user, input a namespace where the user is authorized.
     Returns:
       A response object including a list of experiments and next page token.
     """
+    namespace = namespace or self.get_user_namespace()
     if experiment_id is not None:
       response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
     else:
-      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE, resource_reference_key_id=namespace)
     return response
 
   def get_run(self, run_id):
