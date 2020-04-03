@@ -74,7 +74,6 @@ KF_PIPELINES_UI_ENDPOINT_ENV = 'KF_PIPELINES_UI_ENDPOINT'
 KF_PIPELINES_DEFAULT_EXPERIMENT_NAME = 'KF_PIPELINES_DEFAULT_EXPERIMENT_NAME'
 KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME = 'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'
 
-LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
 class Client(object):
   """ API Client for KubeFlow Pipeline.
@@ -84,6 +83,7 @@ class Client(object):
   IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
+  LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
   context_setting = {
     'namespace': '',
   }
@@ -227,7 +227,7 @@ class Client(object):
       namespace: kubernetes namespace the user has access to.
     """
     self.context_setting['namespace'] = namespace
-    with open(LOCAL_KFP_CONTEXT, 'w') as f:
+    with open(self.LOCAL_KFP_CONTEXT, 'w') as f:
       json.dump(self.context_setting, f)
 
   def get_user_namespace(self):
@@ -235,8 +235,8 @@ class Client(object):
     Returns:
       namespace: kubernetes namespace from the local context file or empty if it wasn't set.
     """
-    if os.path.exists(LOCAL_KFP_CONTEXT):
-      with open(LOCAL_KFP_CONTEXT, 'r') as f:
+    if os.path.exists(self.LOCAL_KFP_CONTEXT):
+      with open(self.LOCAL_KFP_CONTEXT, 'r') as f:
         self.context_setting = json.load(f)
     return self.context_setting['namespace']
 
