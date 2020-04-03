@@ -30,36 +30,40 @@ from kfp.components import func_to_container_op, InputPath, OutputPath
 # You can use the `with dsl.Condition(task1.outputs["output_name"] = "value"):` context to execute parts of the pipeline conditionally
 
 # %%
+BASE_IMAGE = 'gcr.io/google-appengine/python:2020-03-31-141326'
 
-@func_to_container_op(
-    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
-)
-def get_random_int_op(minimum: int, maximum: int) -> int:
+def get_random_int(minimum: int, maximum: int) -> int:
     """Generate a random number between minimum and maximum (inclusive)."""
     import random
     result = random.randint(minimum, maximum)
     print(result)
     return result
 
-
-@func_to_container_op(
-    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
+get_random_int_op = func_to_container_op(
+    func=get_random_int,
+    base_image=BASE_IMAGE
 )
-def flip_coin_op() -> str:
+
+def flip_coin() -> str:
     """Flip a coin and output heads or tails randomly."""
     import random
     result = random.choice(['heads', 'tails'])
     print(result)
     return result
 
-
-@func_to_container_op(
-    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
+flip_coin_op = func_to_container_op(
+    func=flip_coin,
+    base_image=BASE_IMAGE
 )
-def print_op(message: str):
+
+def print_func(message: str):
     """Print a message."""
     print(message)
-    
+
+print_op = func_to_container_op(
+    func=print_func,
+    base_image=BASE_IMAGE
+)
 
 @dsl.pipeline(
     name='Conditional execution pipeline',
@@ -90,15 +94,16 @@ def flipcoin_pipeline():
 # You can use `with dsl.ExitHandler(exit_task):` context to execute a task when the rest of the pipeline finishes (succeeds or fails)
 
 # %%
-@func_to_container_op(
-    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
-)
-def fail_op(message):
+def fail(message):
     """Fails."""
     import sys
     print(message)    
     sys.exit(1)
 
+fail_op = func_to_container_op(
+    func=fail,
+    base_image=BASE_IMAGE
+)
 
 @dsl.pipeline(
     name='Conditional execution pipeline with exit handler',
@@ -123,7 +128,8 @@ def flipcoin_exit_pipeline():
                 print_op('tails and %s <= 15!' % random_num_tail.output)
 
         with dsl.Condition(flip.output == 'tails'):
-            fail_op(message="Failing the run to demonstrate that exit handler still gets executed.")
+            fail_op(message='Failing the run to demonstrate that exit handler '
+                            'still gets executed.')
 
 
 if __name__ == '__main__':

@@ -62,32 +62,34 @@ from kfp.components import func_to_container_op, InputPath, OutputPath
 # %% [markdown]
 # 
 # ### Writing and reading bigger data
+BASE_IMAGE = 'gcr.io/google-appengine/python:2020-03-31-141326'
 
 # %%
 # Writing bigger data
-@func_to_container_op(
-    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
-)
 def repeat_line(line: str, output_text_path: OutputPath(str), count: int = 10):
     '''Repeat the line specified number of times'''
     with open(output_text_path, 'w') as writer:
         for i in range(count):
             writer.write(line + '\n')
 
+repeat_line_op = func_to_container_op(
+    func=repeat_line,
+    base_image=BASE_IMAGE)
 
 # Reading bigger data
-@func_to_container_op(
-    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
-)
 def print_text(text_path: InputPath()): # The "text" input is untyped so that any data can be printed
     '''Print text'''
     with open(text_path, 'r') as reader:
         for line in reader:
             print(line, end = '')
 
+print_text_op = func_to_container_op(
+    func=repeat_line,
+    base_image=BASE_IMAGE)
+
 def print_repeating_lines_pipeline():
-    repeat_lines_task = repeat_line(line='Hello', count=5000)
-    print_text(repeat_lines_task.output) # Don't forget .output !
+    repeat_lines_task = repeat_line_op(line='Hello', count=5000)
+    print_text_op(repeat_lines_task.output) # Don't forget .output !
 
 # Submit the pipeline for execution:
 #kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(print_repeating_lines_pipeline, arguments={})
@@ -96,10 +98,10 @@ def print_repeating_lines_pipeline():
 # ### Processing bigger data
 
 # %%
-@func_to_container_op(
-    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
-)
-def split_text_lines(source_path: InputPath(str), odd_lines_path: OutputPath(str), even_lines_path: OutputPath(str)):
+def split_text_lines(
+    source_path: InputPath(str),
+    odd_lines_path: OutputPath(str),
+    even_lines_path: OutputPath(str)):
     with open(source_path, 'r') as reader:
         with open(odd_lines_path, 'w') as odd_writer:
             with open(even_lines_path, 'w') as even_writer:
@@ -113,11 +115,17 @@ def split_text_lines(source_path: InputPath(str), odd_lines_path: OutputPath(str
                         break
                     even_writer.write(line)
 
+split_text_lines_op = func_to_container_op(
+    func=split_text_lines,
+    base_image=BASE_IMAGE
+)
+
 def text_splitting_pipeline():
-    text = '\n'.join(['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'])
-    split_text_task = split_text_lines(text)
-    print_text(split_text_task.outputs['odd_lines'])
-    print_text(split_text_task.outputs['even_lines'])
+    text = '\n'.join(['one', 'two', 'three', 'four', 'five', 'six',
+                      'seven', 'eight', 'nine', 'ten'])
+    split_text_task = split_text_lines_op(text)
+    print_text_op(split_text_task.outputs['odd_lines'])
+    print_text_op(split_text_task.outputs['even_lines'])
 
 # Submit the pipeline for execution:
 #kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(text_splitting_pipeline, arguments={})
@@ -128,19 +136,17 @@ def text_splitting_pipeline():
 
 # %%
 # Writing many numbers
-@func_to_container_op(
-    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
-)
 def write_numbers(numbers_path: OutputPath(str), start: int = 0, count: int = 10):
     with open(numbers_path, 'w') as writer:
         for i in range(start, count):
             writer.write(str(i) + '\n')
 
+write_numbers_op = func_to_container_op(
+    func=write_numbers,
+    base_image=BASE_IMAGE
+)
 
 # Reading and summing many numbers
-@func_to_container_op(
-    base_image='gcr.io/google-appengine/python:2020-03-31-141326'
-)
 def sum_numbers(numbers_path: InputPath(str)) -> int:
     sum = 0
     with open(numbers_path, 'r') as reader:
@@ -148,15 +154,18 @@ def sum_numbers(numbers_path: InputPath(str)) -> int:
             sum = sum + int(line)
     return sum
 
-
+sum_numbers_op = func_to_container_op(
+    func=sum_numbers,
+    base_image=BASE_IMAGE
+)
 
 # Pipeline to sum 100000 numbers
 def sum_pipeline(count: int = 100000):
-    numbers_task = write_numbers(count=count)
-    print_text(numbers_task.output)
+    numbers_task = write_numbers_op(count=count)
+    print_text_op(numbers_task.output)
 
-    sum_task = sum_numbers(numbers_task.outputs['numbers'])
-    print_text(sum_task.output)
+    sum_task = sum_numbers_op(numbers_task.outputs['numbers'])
+    print_text_op(sum_task.output)
 
 
 # Submit the pipeline for execution:
