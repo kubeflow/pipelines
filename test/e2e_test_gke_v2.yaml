@@ -131,7 +131,6 @@ spec:
           - exit_handler
           - sequential
           - parallel_join
-          - recursion
           - volume_ops
 
   - name: upgrade-test-preparation
