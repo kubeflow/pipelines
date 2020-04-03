@@ -170,6 +170,7 @@ func (s *UpgradeTests) VerifyExperiments() {
 	assert.NotEmpty(t, experiments[2].CreatedAt)
 }
 
+// TODO(jingzhang36): prepare pipeline versions.
 func (s *UpgradeTests) PreparePipelines() {
 	t := s.T()
 
@@ -329,6 +330,9 @@ func (s *UpgradeTests) VerifyJobs() {
 			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
 				Name: experiment.Name, Relationship: job_model.APIRelationshipOWNER,
 			},
+			{Key: &run_model.APIResourceKey{ID: pipeline.ID, Type: run_model.APIResourceTypePIPELINEVERSION},
+				Name: "hello-world.yaml", Relationship: run_model.APIRelationshipCREATOR,
+			},
 		},
 		MaxConcurrency: 10,
 		NoCatchup:      true,
@@ -362,7 +366,7 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: runDetail.Run.ResourceReferences[0].Key.ID},
 				Name: "hello world experiment", Relationship: run_model.APIRelationshipOWNER,
 			},
-			{Key: &run_model.APIResourceKey{ID: runDetail.Run.PipelineSpec.PipelineID, Type: run_model.APIResourceTypePIPELINEVERSION},
+			{Key: &run_model.APIResourceKey{ID: pipeline.ID, Type: run_model.APIResourceTypePIPELINEVERSION},
 				Name: "hello-world.yaml", Relationship: run_model.APIRelationshipCREATOR,
 			},
 		},
