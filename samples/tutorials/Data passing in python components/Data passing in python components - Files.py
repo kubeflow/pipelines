@@ -84,7 +84,7 @@ def print_text(text_path: InputPath()): # The "text" input is untyped so that an
             print(line, end = '')
 
 print_text_op = func_to_container_op(
-    func=repeat_line,
+    func=print_text,
     base_image=BASE_IMAGE)
 
 def print_repeating_lines_pipeline():
