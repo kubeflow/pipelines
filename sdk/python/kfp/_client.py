@@ -231,7 +231,7 @@ class Client(object):
       json.dump(self.context_setting, f)
 
   def get_user_namespace(self):
-    """Set user namespace in context config.
+    """Get user namespace in context config.
     Returns:
       namespace: kubernetes namespace from the local context file or empty if it wasn't set.
     """
