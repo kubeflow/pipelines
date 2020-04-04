@@ -25,7 +25,7 @@ import (
 )
 
 type ExecutionCacheStoreInterface interface {
-	GetExecutionCache(executionCacheKey string) (*model.ExecutionCache, error)
+	GetExecutionCache(executionCacheKey string, maxCacheStaleness int64) (*model.ExecutionCache, error)
 	CreateExecutionCache(*model.ExecutionCache) (*model.ExecutionCache, error)
 	DeleteExecutionCache(executionCacheKey string) error
 }
@@ -35,13 +35,16 @@ type ExecutionCacheStore struct {
 	time util.TimeInterface
 }
 
-func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string) (*model.ExecutionCache, error) {
+func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, maxCacheStaleness int64) (*model.ExecutionCache, error) {
+	if maxCacheStaleness == 0 {
+		return nil, fmt.Errorf("MaxCacheStaleness=0, Cache is disabled.")
+	}
 	r, err := s.db.Table("execution_caches").Where("ExecutionCacheKey = ?", executionCacheKey).Rows()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
 	}
 	defer r.Close()
-	executionCaches, err := s.scanRows(r)
+	executionCaches, err := s.scanRows(r, maxCacheStaleness)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
 	}
@@ -55,7 +58,7 @@ func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string) (*mode
 	return latestCache, nil
 }
 
-func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache, error) {
+func (s *ExecutionCacheStore) scanRows(rows *sql.Rows, podMaxCacheStaleness int64) ([]*model.ExecutionCache, error) {
 	var executionCaches []*model.ExecutionCache
 	for rows.Next() {
 		var executionCacheKey, executionTemplate, executionOutput string
@@ -73,15 +76,18 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache,
 		}
 		log.Println("Get id: " + strconv.FormatInt(id, 10))
 		log.Println("Get template: " + executionTemplate)
-		executionCaches = append(executionCaches, &model.ExecutionCache{
-			ID:                id,
-			ExecutionCacheKey: executionCacheKey,
-			ExecutionTemplate: executionTemplate,
-			ExecutionOutput:   executionOutput,
-			MaxCacheStaleness: maxCacheStaleness,
-			StartedAtInSec:    startedAtInSec,
-			EndedAtInSec:      endedAtInSec,
-		})
+		if maxCacheStaleness == -1 || s.time.Now().UTC().Unix()-startedAtInSec <= podMaxCacheStaleness {
+			executionCaches = append(executionCaches, &model.ExecutionCache{
+				ID:                id,
+				ExecutionCacheKey: executionCacheKey,
+				ExecutionTemplate: executionTemplate,
+				ExecutionOutput:   executionOutput,
+				MaxCacheStaleness: maxCacheStaleness,
+				StartedAtInSec:    startedAtInSec,
+				EndedAtInSec:      endedAtInSec,
+			})
+		}
+
 	}
 	return executionCaches, nil
 }
@@ -112,7 +118,6 @@ func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.Executi
 	newExecutionCache.StartedAtInSec = now
 	// TODO: ended time need to be modified after demo version.
 	newExecutionCache.EndedAtInSec = now
-	newExecutionCache.MaxCacheStaleness = -1
 
 	ok := s.db.NewRecord(newExecutionCache)
 	if !ok {

@@ -107,9 +107,14 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	annotations[ExecutionKey] = executionHashKey
 	labels[CacheIDLabelKey] = ""
+	var maxCacheStalenessInSeconds int64 = -1
+	maxCacheStaleness, exists := annotations[MaxCacheStalenessKey]
+	if exists {
+		maxCacheStalenessInSeconds = getMaxCacheStaleness(maxCacheStaleness)
+	}
 
 	var cachedExecution *model.ExecutionCache
-	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(executionHashKey)
+	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(executionHashKey, maxCacheStalenessInSeconds)
 	if err != nil {
 		log.Println(err.Error())
 	}
