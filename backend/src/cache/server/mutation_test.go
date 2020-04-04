@@ -138,6 +138,7 @@ func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 		ExecutionCacheKey: "f98b62e4625b9f96bac478ac72d88181a37e4f1d6bfd3bd5f53e29286b2ca034",
 		ExecutionOutput:   "testOutput",
 		ExecutionTemplate: `{"name": "test_template"}`,
+		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
 
