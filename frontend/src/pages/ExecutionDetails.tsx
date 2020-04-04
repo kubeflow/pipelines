@@ -31,6 +31,7 @@ import {
   getResourceProperty,
   logger,
   titleCase,
+  ExecutionType,
 } from '@kubeflow/frontend';
 import { CircularProgress } from '@material-ui/core';
 import React, { Component } from 'react';
@@ -42,11 +43,13 @@ import { RoutePage, RouteParams, RoutePageFactory } from '../components/Router';
 import { commonCss, padding } from '../Css';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { serviceErrorToString } from '../lib/Utils';
+import { GetExecutionTypesByIDRequest } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 
 type ArtifactIdList = number[];
 
 interface ExecutionDetailsState {
   execution?: Execution;
+  executionType?: ExecutionType;
   events?: Record<Event.Type, ArtifactIdList>;
   artifactTypeMap?: Map<number, ArtifactType>;
 }
@@ -59,16 +62,16 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
   }
 
   private get fullTypeName(): string {
-    return this.props.match.params[RouteParams.EXECUTION_TYPE] || '';
-  }
-
-  private get properTypeName(): string {
-    const parts = this.fullTypeName.split('/');
-    if (!parts.length) {
-      return '';
+    // This can be called during constructor, so this.state may not be initialized.
+    if (this.state) {
+      const { executionType } = this.state;
+      const name = executionType?.getName();
+      if (name) {
+        return name;
+      }
     }
-
-    return titleCase(parts[parts.length - 1]);
+    // TODO: remove type from url path
+    return this.props.match.params[RouteParams.EXECUTION_TYPE] || '';
   }
 
   private get id(): string {
@@ -89,7 +92,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
         {
           <ResourceInfo
             resourceType={ResourceType.EXECUTION}
-            typeName={this.properTypeName}
+            typeName={this.fullTypeName}
             resource={this.state.execution}
           />
         }
@@ -121,7 +124,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
     return {
       actions: {},
       breadcrumbs: [{ displayName: 'Executions', href: RoutePage.EXECUTIONS }],
-      pageTitle: `${this.properTypeName} ${this.id} details`,
+      pageTitle: `${this.fullTypeName} ${this.id} details`,
     };
   }
 
@@ -177,11 +180,25 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
         pageTitle: executionName ? executionName.toString() : '',
       });
 
+      const typeRequest = new GetExecutionTypesByIDRequest();
+      typeRequest.setTypeIdsList([execution.getTypeId()]);
+      const typeResponse = await metadataStoreServiceClient.getExecutionTypesByID(typeRequest);
+      const types = typeResponse.getExecutionTypesList();
+      let executionType: ExecutionType | undefined;
+      if (!types || types.length === 0) {
+        this.showPageError(`Cannot find execution type with id: ${execution.getTypeId()}`);
+      } else if (types.length > 1) {
+        this.showPageError(`More than one execution type found with id: ${execution.getTypeId()}`);
+      } else {
+        executionType = types[0];
+      }
+
       const events = parseEventsByType(eventResponse);
 
       this.setState({
         events,
         execution,
+        executionType,
       });
     } catch (err) {
       this.showPageError(serviceErrorToString(err));
@@ -332,7 +349,15 @@ const ArtifactRow: React.FC<{ id: number; name: string; type?: string; uri: stri
         id
       )}
     </td>
-    <td className={css.tableCell}>{name}</td>
+    <td className={css.tableCell}>
+      {type && id ? (
+        <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(type, id)}>
+          {name}
+        </Link>
+      ) : (
+        name
+      )}
+    </td>
     <td className={css.tableCell}>{type}</td>
     <td className={css.tableCell}>{uri}</td>
   </tr>
