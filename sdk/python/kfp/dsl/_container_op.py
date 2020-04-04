@@ -1002,7 +1002,7 @@ class ContainerOp(BaseOp):
               the value of a PipelineParam is saved to its corresponding local file. It's
               one way for outside world to receive outputs of the container.
           output_artifact_paths: Maps output artifact labels to local artifact file paths.
-              It has the following default artifact paths during compile time.
+              To get metrics to show up in the UI, add the following dict to `output_artifact_paths`
               {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json',
                'mlpipeline-metrics': '/mlpipeline-metrics.json'}
           artifact_location: Deprecated. Configures the default artifact location for artifacts
