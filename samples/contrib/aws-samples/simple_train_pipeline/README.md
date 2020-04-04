@@ -21,14 +21,13 @@ An example pipeline with only [train component](https://github.com/kubeflow/pipe
    import io
    import boto3
 
-   ###################################################################
-   # This is the only thing that you need to change to run this code 
+   ###########################################################################################
+   # This is the only thing that you need to change in this code 
    # Give the name of your S3 bucket 
+   # To use the example input below give a bucket name which is in us-east-1 region 
    bucket = '<bucket-name>' 
 
-   # If you are gonna use the default values of the pipeline then 
-   # give a bucket name which is in us-west-2 region 
-   ###################################################################
+   ###########################################################################################
    
    data_key = 'mnist_kmeans_example/data'
    data_location = 's3://{}/{}'.format(bucket, data_key)
@@ -102,7 +101,8 @@ instance_type : ml.p2.xlarge
 instance_count : 1
 volume_size : 50
 max_run_time : 3600
-model_artifact_path : <some_s3_bucket_where_output_will_be_stored>
+model_artifact_path : This is where the output model will be stored 
+                      s3://<your_bucket_name>/mnist_kmeans_example/output
 output_encryption_key : <leave this empty>
 network_isolation : True
 traffic_encryption : False
