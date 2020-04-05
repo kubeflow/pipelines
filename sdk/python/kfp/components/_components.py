@@ -180,18 +180,27 @@ def _react_to_incompatible_reference_type(
     raise TypeError(message)
 
 
-def _create_task_spec_from_component_and_arguments(
-    component_spec: ComponentSpec,
+def _create_task_spec_from_task_spec_and_arguments(
+    task_spec: TaskSpec,
     arguments: Mapping[str, Any],
-    component_ref: ComponentReference = None,
 ) -> TaskSpec:
-    """Constructs a TaskSpec object from component reference and arguments.
-    The function also checks the arguments types and serializes them."""
-    if component_ref is None:
-        component_ref = ComponentReference(spec=component_spec)
-    else:
-        component_ref = copy.copy(component_ref)
-        component_ref.spec = component_spec
+    """Constructs a task object from an argument-less TaskSpec and arguments.
+    
+    This function provides a reference implementation for the _default_container_task_constructor that returns TaskSpec objects.
+    The only reference-type arguments that TaskSpec can hold are TaskOutputArgument and GraphInputArgument.
+    When bridging with other frameworks, an alternative implementation should be provided that can process reference-type arguments that are native to that framework.
+    This function also checks the arguments types and serializes constant arguments.
+
+    Args:
+        task_spec: Argument-less TaskSpec object that holds component_spec and other options, but not arguments which are passed separately. Should have task_spec.component_ref.spec != None
+        arguments: Map with arguments passed to the component. Keys should correspond to the input names. For this implementation, the values can be constant values, TaskOutputArgument or GraphInputArgument
+
+    Returns:
+        TaskSpec object with populated arguments.
+    """
+    component_spec = task_spec.component_ref.spec
+    if not component_spec:
+        raise ValueError('task_spec.component_ref.spec should not be None')
 
     # Not checking for missing or extra arguments since the dynamic factory function checks that
     task_arguments = {}
@@ -216,16 +225,14 @@ def _create_task_spec_from_component_and_arguments(
             serialized_argument_value = serialize_value(argument_value, input_type)
             task_arguments[input_name] = serialized_argument_value
 
-    task = TaskSpec(
-        component_ref=component_ref,
-        arguments=task_arguments,
-    )
+    task = copy.copy(task_spec)
+    task.arguments = task_arguments
     task._init_outputs()
 
     return task
 
 
-_default_container_task_constructor = _create_task_spec_from_component_and_arguments
+_default_container_task_constructor = _create_task_spec_from_task_spec_and_arguments
 
 # Holds the function that constructs a task object based on ComponentSpec, arguments and ComponentReference.
 # Framework authors can override this constructor function to construct different framework-specific task-like objects.
@@ -274,6 +281,11 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
             if not isinstance(argument_value, _DefaultValue) # Skipping passing arguments for optional values that have not been overridden.
         }
 
+        task_spec = TaskSpec(
+            component_ref=component_ref,
+            # Not setting arguments.
+            # They can contain values not compatible with TaskSpec schema
+        )
         if (
             isinstance(component_spec.implementation, GraphImplementation)
             and (
@@ -284,15 +296,13 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
             )
         ):
             return _resolve_graph_task(
-                component_spec=component_spec,
+                task_spec=task_spec,
                 arguments=arguments,
-                component_ref=component_ref,
             )
 
         task = _container_task_constructor(
-            component_spec=component_spec,
+            task_spec=task_spec,
             arguments=arguments,
-            component_ref=component_ref,
         )
 
         return task
@@ -475,13 +485,14 @@ _ResolvedGraphTask = NamedTuple(
 
 
 def _resolve_graph_task(
-    component_spec: ComponentSpec,
+    task_spec: TaskSpec,
     arguments: Mapping[str, Any],
-    component_ref: ComponentReference = None,
 ) -> TaskSpec:
     from ..components import ComponentStore
     component_store = ComponentStore.default_store
 
+    component_ref = task_spec.component_ref
+    component_spec = component_ref.spec
     graph = component_spec.implementation.graph
 
     graph_input_arguments = {input.name: input.default for input in component_spec.inputs if input.default is not None}

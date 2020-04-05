@@ -14,17 +14,18 @@
 
 import copy
 from typing import Any, Mapping
-from ..components.structures import ComponentSpec, ComponentReference
+from ..components.structures import TaskSpec
 from ..components._components import _default_component_name, _resolve_command_line_and_paths
 from ..components._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
 from .. import dsl
 
 
 def _create_container_op_from_component_and_arguments(
-    component_spec: ComponentSpec,
+    task_spec: TaskSpec,
     arguments: Mapping[str, Any],
-    component_ref: ComponentReference = None,
 ) -> 'dsl.ContainerOp':
+    component_spec = task_spec.component_ref.spec
+
     # Check types of the reference arguments and serialize PipelineParams
     arguments = arguments.copy()
     for input_name, argument_value in arguments.items():

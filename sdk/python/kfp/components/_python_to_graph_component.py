@@ -86,16 +86,14 @@ def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable, embe
 
     task_map = OrderedDict() #Preserving task order
 
-    from ._components import _create_task_spec_from_component_and_arguments
+    from ._components import _create_task_spec_from_task_spec_and_arguments
     def task_construction_handler(
-        component_spec,
+        task_spec,
         arguments,
-        component_ref,
     ):
-        task = _create_task_spec_from_component_and_arguments(
-            component_spec=component_spec,
-            arguments=arguments,
-            component_ref=component_ref,
+        task = _create_task_spec_from_task_spec_and_arguments(
+            task_spec,
+            arguments,
         )
 
         #Rewriting task ids so that they're same every time
