@@ -377,7 +377,7 @@ class Client(object):
     return self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by)
 
   # TODO: provide default namespace, similar to kubectl default namespaces.
-  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None):
+  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, version_id=None):
     """Run a specified pipeline.
 
     Args:
@@ -386,6 +386,9 @@ class Client(object):
       pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: a dictionary with key (string) as param name and value (string) as as param value.
       pipeline_id: the string ID of a pipeline.
+      version_id: the string ID of a pipeline version. 
+        If both pipeline_id and version_id are specified, pipeline_id will take precendence
+        This will change in a future version, so it is recommended to use version_id by itself
 
     Returns:
       A run object. Most important field is id.
@@ -398,18 +401,26 @@ class Client(object):
     api_params = [kfp_server_api.ApiParameter(
         name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
         value=str(v)) for k,v in params.items()]
-
+    resource_references = []
     key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
     reference = kfp_server_api.models.ApiResourceReference(key=key,
                                                            relationship=kfp_server_api.models.ApiRelationship.OWNER)
+    resource_references.append(reference)
+
+    if version_id:
+      key = kfp_server_api.models.ApiResourceKey(id=version_id,
+                                                 type=kfp_server_api.models.ApiResourceType.PIPELINE_VERSION)
+      reference = kfp_server_api.models.ApiResourceReference(key=key, 
+                                                             relationship=kfp_server_api.models.ApiRelationship.CREATOR)
+      resource_references.append(reference)
 
     spec = kfp_server_api.models.ApiPipelineSpec(
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string,
         parameters=api_params)
     run_body = kfp_server_api.models.ApiRun(
-        pipeline_spec=spec, resource_references=[reference], name=job_name)
+        pipeline_spec=spec, resource_references=resource_references, name=job_name)
 
     response = self._run_api.create_run(body=run_body)
 
