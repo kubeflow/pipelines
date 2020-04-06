@@ -40,7 +40,8 @@ var (
 				ArgoWorkflowTemplate: `{"name": "test_template"}`,
 			},
 			Labels: map[string]string{
-				ArgoCompleteLabelKey: "true",
+				ArgoCompleteLabelKey:    "true",
+				KFPCacheEnabledLabelKey: KFPCacheEnabledLabelValue,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -104,6 +105,14 @@ func TestMutatePodIfCachedWithDecodeError(t *testing.T) {
 	patchOperation, err := MutatePodIfCached(&invalidAdmissionRequest, fakeClientManager)
 	assert.Nil(t, patchOperation)
 	assert.Contains(t, err.Error(), "could not deserialize pod object")
+}
+
+func TestMutatePodIfCachedWithCacheDisabledPod(t *testing.T) {
+	cacheDisabledPod := *fakePod
+	cacheDisabledPod.ObjectMeta.Labels[KFPCacheEnabledLabelKey] = "false"
+	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&cacheDisabledPod), fakeClientManager)
+	assert.Nil(t, patchOperation)
+	assert.Nil(t, err)
 }
 
 func TestMutatePodIfCachedWithTFXPod(t *testing.T) {

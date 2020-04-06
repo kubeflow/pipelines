@@ -38,13 +38,17 @@ spec:
         - args:
             - gateway
             - gcs
+            - {{ .Values.managedstorage.gcsProjectId }}
           env:
             - name: MINIO_ACCESS_KEY
               value: minio
             - name: MINIO_SECRET_KEY
               value: minio123
-            - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: "/etc/credentials/application_default_credentials.json"
+            # Minio is KFP system workload and we use GCE's default service account
+            # or later Workload Identity's corresponding service account.
+            # So here no need to setup GOOGLE_APPLICATION_CREDENTIALS.            
+            # - name: GOOGLE_APPLICATION_CREDENTIALS
+            #  value: "/etc/credentials/application_default_credentials.json"
           image: {{ .Values.images.minio }}
           name: minio
           ports:

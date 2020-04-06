@@ -65,6 +65,8 @@ func main() {
 	flag.StringVar(&params.dbGroupConcatMaxLen, "db_group_concat_max_len", mysqlDBGroupConcatMaxLenDefault, "Database group concat max length.")
 	flag.StringVar(&params.namespaceToWatch, "namespace_to_watch", "kubeflow", "Namespace to watch.")
 
+	flag.Parse()
+
 	log.Println("Initing client manager....")
 	clientManager := NewClientManager(params)
 
