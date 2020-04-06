@@ -1073,3 +1073,9 @@ go_repository(
     importpath = "sigs.k8s.io/testing_frameworks",
     tag = "v0.1.1",
 )
+
+go_repository(
+    name = "com_github_peterhellberg_duration",
+    commit = "ec6baeebcd10",
+    importpath = "github.com/peterhellberg/duration",
+)
