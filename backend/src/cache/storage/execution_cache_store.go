@@ -44,21 +44,22 @@ func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, maxCac
 		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
 	}
 	defer r.Close()
-	executionCaches, err := s.scanRows(r, maxCacheStaleness)
+	executionCaches, err := s.scanRows(r)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
 	}
 	if len(executionCaches) == 0 {
 		return nil, fmt.Errorf("Execution cache not found with cache key: %q", executionCacheKey)
 	}
-	latestCache, err := getLatestCacheEntry(executionCaches)
+	latestCache, err := s.getValidCacheEntry(executionCaches, maxCacheStaleness)
 	if err != nil {
 		return nil, err
 	}
 	return latestCache, nil
 }
 
-func (s *ExecutionCacheStore) scanRows(rows *sql.Rows, podMaxCacheStaleness int64) ([]*model.ExecutionCache, error) {
+// scanRows will return all valid cache entry which has target cacheKey and unexpired maxCacheStaleness.
+func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache, error) {
 	var executionCaches []*model.ExecutionCache
 	for rows.Next() {
 		var executionCacheKey, executionTemplate, executionOutput string
@@ -76,7 +77,7 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows, podMaxCacheStaleness int6
 		}
 		log.Println("Get id: " + strconv.FormatInt(id, 10))
 		log.Println("Get template: " + executionTemplate)
-		if maxCacheStaleness == -1 || s.time.Now().UTC().Unix()-startedAtInSec <= podMaxCacheStaleness {
+		if maxCacheStaleness == -1 || s.time.Now().UTC().Unix()-startedAtInSec <= maxCacheStaleness {
 			executionCaches = append(executionCaches, &model.ExecutionCache{
 				ID:                id,
 				ExecutionCacheKey: executionCacheKey,
@@ -94,17 +95,28 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows, podMaxCacheStaleness int6
 
 // Demo version will return the latest cache entry within same cache key. MaxCacheStaleness will
 // be taken into consideration in the future.
-func getLatestCacheEntry(executionCaches []*model.ExecutionCache) (*model.ExecutionCache, error) {
-	var latestCacheEntry *model.ExecutionCache
-	var maxStartedAtInSec int64
+func (s *ExecutionCacheStore) getValidCacheEntry(executionCaches []*model.ExecutionCache, podMaxCacheStaleness int64) (*model.ExecutionCache, error) {
+	var latestCacheEntry, latestCacheEntryWithSameStaleness *model.ExecutionCache
+	var maxStartedAtInSec, maxStartedAtInSecWithSameStaleness int64
 	for _, cache := range executionCaches {
+		// Not a valid entry for target pod
+		if podMaxCacheStaleness != -1 && s.time.Now().UTC().Unix()-cache.StartedAtInSec >= podMaxCacheStaleness {
+			continue
+		}
 		if cache.StartedAtInSec >= maxStartedAtInSec {
 			latestCacheEntry = cache
 			maxStartedAtInSec = cache.StartedAtInSec
 		}
+		if cache.MaxCacheStaleness == podMaxCacheStaleness && cache.StartedAtInSec >= maxStartedAtInSecWithSameStaleness {
+			latestCacheEntryWithSameStaleness = cache
+			maxStartedAtInSecWithSameStaleness = cache.StartedAtInSec
+		}
 	}
 	if latestCacheEntry == nil {
 		return nil, fmt.Errorf("No cache entry found.")
+	}
+	if podMaxCacheStaleness != -1 && latestCacheEntryWithSameStaleness != nil {
+		return latestCacheEntryWithSameStaleness, nil
 	}
 	return latestCacheEntry, nil
 }
