@@ -92,15 +92,10 @@ echo "Status of pods after kubectl apply"
 kubectl get pods -n ${NAMESPACE}
 
 # wait for all deployments to be successful
-# note, after we introduce daemonsets, we need to wait their rollout status here too
+# note, after we introduce statefulset and daemonsets, we need to wait their rollout status here too
 for deployment in $(kubectl get deployments -n ${NAMESPACE} -o name)
 do
   kubectl rollout status $deployment -n ${NAMESPACE}
-done
-
-for statefulset in $(kubectl get statefulset -n ${NAMESPACE} -o name)
-do
-  kubectl rollout status $statefulset -n ${NAMESPACE}
 done
 
 echo "Status of pods after rollouts are successful"
