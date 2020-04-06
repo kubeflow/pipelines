@@ -93,8 +93,8 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows) ([]*model.ExecutionCache,
 	return executionCaches, nil
 }
 
-// Demo version will return the latest cache entry within same cache key. MaxCacheStaleness will
-// be taken into consideration in the future.
+// getValidCacheEntry will return latest unexpired cache entry. If pod.maxCacheStaleness != -1,
+// it will return latest cache entry with same maxCacheStaleness. Otherwise, it will return overall latest entry.
 func (s *ExecutionCacheStore) getValidCacheEntry(executionCaches []*model.ExecutionCache, podMaxCacheStaleness int64) (*model.ExecutionCache, error) {
 	var latestCacheEntry, latestCacheEntryWithSameStaleness *model.ExecutionCache
 	var maxStartedAtInSec, maxStartedAtInSecWithSameStaleness int64
