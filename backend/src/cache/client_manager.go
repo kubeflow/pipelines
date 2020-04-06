@@ -30,7 +30,6 @@ import (
 )
 
 const (
-	DBName                   = "cachedb"
 	DefaultConnectionTimeout = "6m"
 )
 
@@ -131,7 +130,7 @@ func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) st
 	util.TerminateIfError(err)
 
 	// Create database if not exist
-	dbName := DBName
+	dbName := params.dbName
 	operation = func() error {
 		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
 		if err != nil {

@@ -131,7 +131,6 @@ spec:
           - exit_handler
           - sequential
           - parallel_join
-          - recursion
           - volume_ops
 
   - name: upgrade-test-preparation
@@ -249,6 +248,8 @@ spec:
       ]
 
   - name: run-basic-e2e-tests
+    retryStrategy:
+      limit: 2
     inputs:
       parameters:
       - name: test-results-gcs-dir

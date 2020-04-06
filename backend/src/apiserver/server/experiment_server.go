@@ -67,8 +67,13 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 		if refKey == nil || refKey.Type != common.Namespace {
 			return nil, util.NewInvalidInputError("Invalid resource references for experiment. ListExperiment requires filtering by namespace.")
 		}
-		if len(refKey.ID) == 0 {
+		namespace := refKey.ID
+		if len(namespace) == 0 {
 			return nil, util.NewInvalidInputError("Invalid resource references for experiment. Namespace is empty.")
+		}
+		err = isAuthorized(s.resourceManager, ctx, namespace)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize with API resource references")
 		}
 	} else {
 		// In single user mode, apply filter with empty namespace for backward compatibile.
