@@ -13,9 +13,22 @@
 
 FROM amazonlinux:2
 
-RUN yum update -y && yum install -y -q ca-certificates python-devel python-setuptools python-pip wget unzip
+ENV PYTHONPATH /app
 
-RUN pip install boto3 sagemaker pathlib2 pyyaml==3.12
+RUN yum update -y \
+ && yum install -y -q \
+    ca-certificates \
+    python-devel \
+    python-setuptools \
+    python-pip \
+    wget \
+    unzip
+
+RUN pip install \
+    boto3==1.12.33 \
+    sagemaker==1.54.0 \
+    pathlib2==2.3.5 \
+    pyyaml==3.12
 
 COPY LICENSE.txt .
 COPY NOTICE.txt .
@@ -29,7 +42,5 @@ COPY workteam/src/workteam.py .
 COPY ground_truth/src/ground_truth.py .
 
 COPY common /app/common/
-
-ENV PYTHONPATH /app
 
 ENTRYPOINT [ "bash" ]
