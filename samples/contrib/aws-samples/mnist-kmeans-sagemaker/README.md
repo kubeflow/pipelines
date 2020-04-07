@@ -1,14 +1,21 @@
-The `mnist-classification-pipeline.py` sample runs a pipeline to train a classficiation model using Kmeans with MNIST dataset on Sagemaker.
+The `mnist-classification-pipeline.py` sample runs a pipeline to train a classficiation model using Kmeans with MNIST dataset on Sagemaker.  
+The `kmeans-hpo-pipeline.py` is a single component hyper parameter optimisation pipeline which has default values set to use Kmeans. 
 
-## The dataset
+If you do not have `train_data`, `test_data`, and `valid_data` you can use the following code to get sample data which  
+(This data can be used for both of these pipelines)
+
+## The sample dataset
 
 This sample is based on the [Train a Model with a Built-in Algorithm and Deploy it](https://docs.aws.amazon.com/sagemaker/latest/dg/ex1.html).
 
 The sample trains and deploy a model based on the [MNIST dataset](http://www.deeplearning.net/tutorial/gettingstarted.html).
 
 
-Create a s3 bucket and use the following python script to copy `train_data`, `test_data`, and `valid_data.csv` to your buckets.
+Create an S3 bucket and use the following python script to copy `train_data`, `test_data`, and `valid_data.csv` to your buckets.  
+(create the bucket in `us-west-2` region if you are gonna use default values of the pipeline)
+https://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html
 
+Create a new file named `s3_sample_data_creator.py` with following content :
 ```python
 import pickle, gzip, numpy, urllib.request, json
 from urllib.parse import urlparse
@@ -24,7 +31,15 @@ from sagemaker.amazon.common import write_numpy_to_dense_tensor
 import io
 import boto3
 
-bucket = 'bucket-name' # Use the name of your s3 bucket here
+###################################################################
+# This is the only thing that you need to change to run this code 
+# Give the name of your S3 bucket 
+bucket = 'bucket-name' 
+
+# If you are gonna use the default values of the pipeline then 
+# give a bucket name which is in us-west-2 region 
+###################################################################
+
 train_data_key = 'mnist_kmeans_example/train_data'
 test_data_key = 'mnist_kmeans_example/test_data'
 train_data_location = 's3://{}/{}'.format(bucket, train_data_key)
@@ -53,6 +68,7 @@ s3_client.upload_file('valid-data.csv', bucket, input_key)
 
 ```
 
+Run this file `python s3_sample_data_creator.py`
 ## SageMaker permission
 
 In order to run this pipeline, we need to prepare an IAM Role to run Sagemaker jobs. You need this `role_arn` to run a pipeline. Check [here](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-roles.html) for details.
