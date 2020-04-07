@@ -59,6 +59,8 @@ def flip_component(flip_result):
 )
 def flipcoin():
     first_flip = flip_coin_op()
+    # set max_cache_staleness to 0 to prevent infinite loop due to caching
+    first_flip.execution_options.caching_strategy.max_cache_staleness = "P0D"
     flip_loop = flip_component(first_flip.output)
     # flip_loop is a graph_component with the outputs field
     # filled with the returned dictionary.
