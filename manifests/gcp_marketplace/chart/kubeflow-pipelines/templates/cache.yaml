@@ -148,6 +148,8 @@ spec:
     matchLabels:
       app: cache-deployer
       app.kubernetes.io/name: {{ .Release.Name }}
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
