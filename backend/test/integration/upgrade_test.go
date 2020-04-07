@@ -330,7 +330,7 @@ func (s *UpgradeTests) VerifyJobs() {
 			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
 				Name: experiment.Name, Relationship: job_model.APIRelationshipOWNER,
 			},
-			{Key: &run_model.APIResourceKey{ID: pipeline.ID, Type: job_model.APIResourceTypePIPELINEVERSION},
+			{Key: &job_model.APIResourceKey{ID: pipeline.ID, Type: job_model.APIResourceTypePIPELINEVERSION},
 				Name: "hello-world.yaml", Relationship: job_model.APIRelationshipCREATOR,
 			},
 		},
