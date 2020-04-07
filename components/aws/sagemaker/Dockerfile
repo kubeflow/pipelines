@@ -8,17 +8,31 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
+# limitations under the License. 
 
 
-FROM ubuntu:16.04
+FROM amazonlinux:2
 
-RUN apt-get update -y && apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget unzip
+ENV PYTHONPATH /app
 
-RUN easy_install pip
+RUN yum update -y \
+ && yum install -y -q \
+    ca-certificates \
+    python-devel \
+    python-setuptools \
+    python-pip \
+    wget \
+    unzip
 
-RUN pip install boto3 sagemaker pathlib2 pyyaml==3.12
+RUN pip install \
+    boto3==1.12.33 \
+    sagemaker==1.54.0 \
+    pathlib2==2.3.5 \
+    pyyaml==3.12
 
+COPY LICENSE.txt .
+COPY NOTICE.txt .
+COPY THIRD-PARTY-LICENSES.txt .
 COPY hyperparameter_tuning/src/hyperparameter_tuning.py .
 COPY train/src/train.py .
 COPY deploy/src/deploy.py .
@@ -28,7 +42,5 @@ COPY workteam/src/workteam.py .
 COPY ground_truth/src/ground_truth.py .
 
 COPY common /app/common/
-
-ENV PYTHONPATH /app
 
 ENTRYPOINT [ "bash" ]
