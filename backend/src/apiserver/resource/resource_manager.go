@@ -252,8 +252,11 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// (2) pipeline version in resource_references
 	// And the latter takes priority over the former
 	var workflowSpecManifestBytes []byte
-	ConvertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
-	workflowSpecManifestBytes, err := r.getWorkflowSpecBytesFromPipelineVersion(apiRun.GetResourceReferences())
+	err := ConvertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to find default version to create run with pipeline id.")
+	}
+	workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiRun.GetResourceReferences())
 	if err != nil {
 		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineSpec(apiRun.GetPipelineSpec())
 		if err != nil {
@@ -504,8 +507,11 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	// (2) pipeline version in resource_references
 	// And the latter takes priority over the former
 	var workflowSpecManifestBytes []byte
-	ConvertPipelineIdToDefaultPipelineVersion(apiJob.PipelineSpec, &apiJob.ResourceReferences, r)
-	workflowSpecManifestBytes, err := r.getWorkflowSpecBytesFromPipelineVersion(apiJob.GetResourceReferences())
+	err := ConvertPipelineIdToDefaultPipelineVersion(apiJob.PipelineSpec, &apiJob.ResourceReferences, r)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to find default version to create job with pipeline id.")
+	}
+	workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiJob.GetResourceReferences())
 	if err != nil {
 		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineSpec(apiJob.GetPipelineSpec())
 		if err != nil {
