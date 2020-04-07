@@ -1,15 +1,16 @@
 # SageMaker Hosting Services - Create Endpoint Kubeflow Pipeline component
-## Summary
-Component to deploy a model in Sagemaker Hosting Service from a Kubeflow Pipelines workflow.
 
-# Details
+## Summary
+Component to deploy a model in SageMaker Hosting Service from a Kubeflow Pipelines workflow.
+
+## Details
 Deploying a model using Amazon SageMaker hosting services is a three-step process:
 
 1. **Create a model in Amazon SageMaker** - Specify the S3 path where model artifacts are stored and Docker registry path for the image that contains the inference code 
 2. **Create an endpoint configuration for an HTTPS endpoint** - Specify the name of model in production variants and the type of instance that you want Amazon SageMaker to launch to host the model.
 3. **Create an HTTPS endpoint** - Launch the ML compute instances and deploy the model as specified in the endpoint configuration
 
-This component handles Step 2 and 3.
+This component handles Step 2 and 3. Step 1 can be done using the [create model component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/model) for AWS SageMaker.
 
 ## Intended Use
 Create an endpoint in AWS SageMaker Hosting Service for model deployment.
@@ -24,7 +25,7 @@ endpoint_config_tags | Key-value pairs to tag endpoint configurations in AWS | Y
 endpoint_tags | Key-value pairs to tag the Hosting endpoint in AWS | Yes | Yes | Dict | | {} |
 endpoint_name | The name of the endpoint. The name must be unique within an AWS Region in your AWS account | Yes | Yes | String | | |
 
-In SageMaker, you can create an endpoint that can host multiple models. The set of parameters below represent a production variant. A production variant identifies a model that you want to host and the resources (e.g. instance type, initial traffic distribution etc.) to deploy for hosting it. You must specify atleast one production variant to create an endpoint.
+In SageMaker, you can create an endpoint that can host multiple models. The set of parameters below represent a production variant. A production variant identifies a model that you want to host and the resources (e.g. instance type, initial traffic distribution etc.) to deploy for hosting it. You must specify at least one production variant to create an endpoint.
 
 Argument        | Description                 | Optional (in pipeline definition) | Optional (in UI) | Data type  | Accepted values | Default    |
 :---            | :----------                 | :----------                       | :----------      | :----------| :----------     | :----------|
@@ -36,24 +37,23 @@ initial_variant_weight_[1, 3] | Determines initial traffic distribution among al
 accelerator_type_[1, 3] | The size of the Elastic Inference (EI) instance to use for the production variant | Yes | Yes | String| ml.eia1.medium, ml.eia1.large, ml.eia1.xlarge | |
 
 Notes:
-* Please use the links in the [Resources section](#Resources) for detailed information on each input parameter and Sagemaker APIs used in this component
-* The parameters, model_name_1 through 3, is intended to be output of Create model component from previous steps in the pipeline. model_name_[1, 3] and other parameters for a production variant can be specified directly as well if the component is being used on its own.
+* Please use the links in the [Resources section](#Resources) for detailed information on each input parameter and SageMaker APIs used in this component
+* The parameters, `model_name_1` through `3`, is intended to be output of [create model component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/model) from previous steps in the pipeline. `model_name_[1, 3]` and other parameters for a production variant can be specified directly as well if the component is being used on its own.
 
 ## Outputs
 Name | Description
 :--- | :----------
 endpoint_name | HTTPS Endpoint URL where client applications can send requests using [InvokeEndpoint](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_InvokeEndpoint.html) API
 
-# Requirements
+## Requirements
 * [Kubeflow pipelines SDK](https://www.kubeflow.org/docs/pipelines/sdk/install-sdk/)
 * [Kubeflow set-up](https://www.kubeflow.org/docs/aws/deploy/install-kubeflow/)
 
-# Samples
-
-## Integrated into a pipeline
+## Samples
+### Integrated into a pipeline
 MNIST Classification pipeline: [Pipeline](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py) | [Steps](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/README.md)
 
-# Resources
+## Resources
 * Create Endpoint Configuration
   * [Create Endpoint Configuration API documentation](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateEndpointConfig.html)
   * [Boto3 API reference](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint_config)
