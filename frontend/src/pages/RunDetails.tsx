@@ -74,6 +74,7 @@ import {
   ExecutionHelpers,
 } from 'src/lib/MlmdUtils';
 import { Context, Execution, getResourceProperty } from '@kubeflow/frontend';
+import { ExecutionDetailsContent } from './ExecutionDetails';
 
 enum SidePaneTab {
   ARTIFACTS,
@@ -235,7 +236,6 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       selectedNodeDetails,
       sidepanelSelectedTab,
       workflow,
-      mlmdRunContext,
       mlmdExecutions,
     } = this.state;
     const { projectId, clusterName } = this.props.gkeMetadata;
@@ -371,16 +371,30 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   <div className={padding(20)}>
                                     {selectedExecution && (
                                       <>
-                                        This step corresponds to execution{' '}
-                                        <Link
-                                          className={commonCss.link}
-                                          to={RoutePageFactory.executionDetails(
-                                            selectedExecution.getTypeId() + '',
-                                            selectedExecution.getId(),
-                                          )}
-                                        >
-                                          "{ExecutionHelpers.getName(selectedExecution)}".
-                                        </Link>
+                                        <div>
+                                          This step corresponds to execution{' '}
+                                          <Link
+                                            className={commonCss.link}
+                                            to={RoutePageFactory.executionDetails(
+                                              selectedExecution.getTypeId() + '',
+                                              selectedExecution.getId(),
+                                            )}
+                                          >
+                                            "{ExecutionHelpers.getName(selectedExecution)}".
+                                          </Link>
+                                        </div>
+                                        <ExecutionDetailsContent
+                                          key={selectedExecution.getId()}
+                                          id={selectedExecution.getId()}
+                                          onError={
+                                            ((msg: string, ...args: any[]) => {
+                                              // TODO: show a proper error banner and retry button
+                                              console.warn(msg);
+                                            }) as any
+                                          }
+                                          // No title here
+                                          onTitleUpdate={() => null}
+                                        />
                                       </>
                                     )}
                                     {!selectedExecution && (

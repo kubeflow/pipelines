@@ -11,8 +11,25 @@ import {
   GetExecutionsByContextRequest,
 } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 
+async function getContext({ type, name }: { type: string; name: string }): Promise<Context> {
+  const request = new GetContextByTypeAndNameRequest();
+  request.setTypeName(type);
+  request.setContextName(name);
+  try {
+    const res = await Api.getInstance().metadataStoreService.getContextByTypeAndName(request);
+    const context = res.getContext();
+    if (context == null) {
+      throw new Error('Cannot find specified context');
+    }
+    return context;
+  } catch (err) {
+    err.message = `Cannot find context with ${JSON.stringify(request.toObject())}: ` + err.message;
+    throw err;
+  }
+}
+
 /**
- * @throws error when network error
+ * @throws error when network error, or not found
  */
 export async function getTfxRunContext(argoWorkflowName: string): Promise<Context> {
   // argoPodName has the general form "pipelineName-workflowId-executionId".
@@ -25,21 +42,14 @@ export async function getTfxRunContext(argoWorkflowName: string): Promise<Contex
   const runID = argoWorkflowName;
   // An example run context name is parameterized_tfx_oss.parameterized-tfx-oss-4rq5v.
   const tfxRunContextName = `${pipelineName}.${runID}`;
+  return await getContext({ name: tfxRunContextName, type: 'run' });
+}
 
-  const request = new GetContextByTypeAndNameRequest();
-  request.setTypeName('run');
-  request.setContextName(tfxRunContextName);
-  try {
-    const res = await Api.getInstance().metadataStoreService.getContextByTypeAndName(request);
-    const context = res.getContext();
-    if (context == null) {
-      throw new Error('response.getContext() is empty');
-    }
-    return context;
-  } catch (err) {
-    err.message = `Cannot find run context with name "${tfxRunContextName}": ` + err.message;
-    throw err;
-  }
+/**
+ * @throws error when network error, or not found
+ */
+export async function getKfpRunContext(argoWorkflowName: string): Promise<Context> {
+  return await getContext({ name: argoWorkflowName, type: 'KfpRun' });
 }
 
 /**
