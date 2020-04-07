@@ -37,8 +37,17 @@ rules:
   verbs:
   - create
   - get
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - get
+  - patch
 ---
-apiVersion: rbac.authorization.k8s.io/v1
+{{- /*
+ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
@@ -53,7 +62,8 @@ rules:
   verbs:
   - create
   - get
-  - patch
+  - patch 
+*/ -}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -120,7 +130,8 @@ subjects:
   name: kubeflow-pipelines-cache-deployer-sa
   namespace: {{ .Release.Namespace }}
 ---
-apiVersion: rbac.authorization.k8s.io/v1
+{{- /*
+ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: kubeflow-pipelines-cache-deployer-rolebinding
@@ -133,7 +144,8 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kubeflow-pipelines-cache-deployer-sa
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Release.Namespace }} 
+*/ -}}
 ---
 apiVersion: apps/v1
 kind: Deployment
