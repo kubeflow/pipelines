@@ -39,12 +39,10 @@ import (
 )
 
 const (
-	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
-	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
-	defaultServiceAccount                     = "default-editor"
-	HasDefaultBucketEnvVar                    = "HAS_DEFAULT_BUCKET"
-	ProjectIDEnvVar                           = "PROJECT_ID"
-	DefaultBucketNameEnvVar                   = "BUCKET_NAME"
+	defaultPipelineRunnerServiceAccount = "pipeline-runner"
+	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar                     = "PROJECT_ID"
+	DefaultBucketNameEnvVar             = "BUCKET_NAME"
 )
 
 type ClientManagerInterface interface {
@@ -278,7 +276,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 
-	r.setWorkflowServiceAccount(&workflow)
+	r.setDefaultServiceAccount(&workflow)
 
 	// Disable istio sidecar injection
 	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
@@ -524,7 +522,7 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 		return nil, util.Wrap(err, "Create job failed")
 	}
 
-	r.setWorkflowServiceAccount(&workflow)
+	r.setDefaultServiceAccount(&workflow)
 
 	// Disable istio sidecar injection
 	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
@@ -928,7 +926,7 @@ func (r *ResourceManager) MarkSampleLoaded() error {
 }
 
 func (r *ResourceManager) getDefaultSA() string {
-	return common.GetStringConfigWithDefault(defaultPipelineRunnerServiceAccountEnvVar, defaultPipelineRunnerServiceAccount)
+	return common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccount, defaultPipelineRunnerServiceAccount)
 }
 
 func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte) (*model.PipelineVersion, error) {
@@ -1056,13 +1054,11 @@ func (r *ResourceManager) GetNamespaceFromJobID(jobId string) (string, error) {
 	return job.Namespace, nil
 }
 
-func (r *ResourceManager) setWorkflowServiceAccount(workflow *util.Workflow) {
-	if common.IsMultiUserMode() {
-		if len(workflow.Spec.ServiceAccountName) == 0 || workflow.Spec.ServiceAccountName == defaultPipelineRunnerServiceAccount {
-			// To reserve SDK backward compatibility, the backend currently replaces the serviceaccount in multi-user mode.
-			workflow.SetServiceAccount(defaultServiceAccount)
-		}
-	} else {
+func (r *ResourceManager) setDefaultServiceAccount(workflow *util.Workflow) {
+	workflowServiceAccount := workflow.Spec.ServiceAccountName
+	if len(workflowServiceAccount) == 0 || workflowServiceAccount == defaultPipelineRunnerServiceAccount {
+		// To reserve SDK backward compatibility, the backend only replaces
+		// serviceaccount when it is empty or equal to default value set by SDK.
 		workflow.SetServiceAccount(r.getDefaultSA())
 	}
 }
