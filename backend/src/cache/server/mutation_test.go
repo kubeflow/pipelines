@@ -38,10 +38,10 @@ var (
 			Annotations: map[string]string{
 				ArgoWorkflowNodeName: "test_node",
 				ArgoWorkflowTemplate: `{"name": "test_template"}`,
-				KFPAnnotation:        "test_kfp",
 			},
 			Labels: map[string]string{
-				ArgoCompleteLabelKey: "true",
+				ArgoCompleteLabelKey:    "true",
+				KFPCacheEnabledLabelKey: KFPCacheEnabledLabelValue,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -107,18 +107,10 @@ func TestMutatePodIfCachedWithDecodeError(t *testing.T) {
 	assert.Contains(t, err.Error(), "could not deserialize pod object")
 }
 
-func TestMutatePodIfCachedWithNonKFPPod(t *testing.T) {
-	nonKFPPod := *fakePod
-	delete(nonKFPPod.Annotations, KFPAnnotation)
-	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&nonKFPPod), fakeClientManager)
-	assert.Nil(t, patchOperation)
-	assert.Nil(t, err)
-}
-
-func TestMutatePodIfCachedWithNonArgoPod(t *testing.T) {
-	nonArgoPod := *fakePod
-	delete(nonArgoPod.Annotations, ArgoWorkflowNodeName)
-	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&nonArgoPod), fakeClientManager)
+func TestMutatePodIfCachedWithCacheDisabledPod(t *testing.T) {
+	cacheDisabledPod := *fakePod
+	cacheDisabledPod.ObjectMeta.Labels[KFPCacheEnabledLabelKey] = "false"
+	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&cacheDisabledPod), fakeClientManager)
 	assert.Nil(t, patchOperation)
 	assert.Nil(t, err)
 }
@@ -146,6 +138,7 @@ func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 		ExecutionCacheKey: "f98b62e4625b9f96bac478ac72d88181a37e4f1d6bfd3bd5f53e29286b2ca034",
 		ExecutionOutput:   "testOutput",
 		ExecutionTemplate: `{"name": "test_template"}`,
+		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
 

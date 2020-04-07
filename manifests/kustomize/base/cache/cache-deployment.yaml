@@ -45,6 +45,7 @@ spec:
         args: ["--db_driver=$(DBCONFIG_DRIVER)",
                "--db_host=$(DBCONFIG_HOST_NAME)",
                "--db_port=$(DBCONFIG_PORT)",
+               "--db_name=$(DBCONFIG_DB_NAME)",
                "--namespace_to_watch=$(NAMESPACE_TO_WATCH)",
               ]
         imagePullPolicy: Always
