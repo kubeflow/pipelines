@@ -38,6 +38,7 @@ spec:
         image: {{ .Values.images.metadataserver }}
         imagePullPolicy: 'Always'
         env:
+        # TODO: merge all into mysql-credential
         {{ if .Values.managedstorage.enabled }}
         - name: DBCONFIG_USER
           valueFrom:
@@ -127,23 +128,6 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: metadata-configmap
-  labels:
-    component: metadata-server
-data:
-  {{ if .Values.managedstorage.databaseNamePrefix }}
-  mysql_database: '{{ .Values.managedstorage.databaseNamePrefix }}_metadata'
-  {{ else }}
-  mysql_database: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_metadata'
-  {{ end }}
-  mysql_host: "mysql"
-  mysql_port: "3306"
-  username: "root"
-  password: ""
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
   name: metadata-mysql-configmap
   labels:
     component: metadata-server
@@ -155,8 +139,6 @@ data:
   {{ end }}
   MYSQL_HOST: "mysql"
   MYSQL_PORT: "3306"
-  username: "root"
-  password: ""
 ---
 apiVersion: v1
 kind: ConfigMap

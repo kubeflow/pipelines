@@ -14,7 +14,7 @@ vars:
   - name: NAMESPACE
     objref:
       kind: Deployment
-      apiVersion: apps/v1beta2
+      apiVersion: apps/v1
       name:  workflow-controller
     fieldref:
       fieldpath: metadata.namespace

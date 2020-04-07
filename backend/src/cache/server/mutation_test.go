@@ -40,7 +40,8 @@ var (
 				ArgoWorkflowTemplate: `{"name": "test_template"}`,
 			},
 			Labels: map[string]string{
-				ArgoCompleteLabelKey: "true",
+				ArgoCompleteLabelKey:    "true",
+				KFPCacheEnabledLabelKey: KFPCacheEnabledLabelValue,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -106,6 +107,14 @@ func TestMutatePodIfCachedWithDecodeError(t *testing.T) {
 	assert.Contains(t, err.Error(), "could not deserialize pod object")
 }
 
+func TestMutatePodIfCachedWithCacheDisabledPod(t *testing.T) {
+	cacheDisabledPod := *fakePod
+	cacheDisabledPod.ObjectMeta.Labels[KFPCacheEnabledLabelKey] = "false"
+	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&cacheDisabledPod), fakeClientManager)
+	assert.Nil(t, patchOperation)
+	assert.Nil(t, err)
+}
+
 func TestMutatePodIfCachedWithTFXPod(t *testing.T) {
 	tfxPod := *fakePod
 	mainContainerCommand := append(tfxPod.Spec.Containers[0].Command, "/tfx-src/"+TFXPodSuffix)
@@ -129,6 +138,7 @@ func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 		ExecutionCacheKey: "f98b62e4625b9f96bac478ac72d88181a37e4f1d6bfd3bd5f53e29286b2ca034",
 		ExecutionOutput:   "testOutput",
 		ExecutionTemplate: `{"name": "test_template"}`,
+		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
 
