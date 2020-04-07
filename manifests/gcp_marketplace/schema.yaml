@@ -161,12 +161,6 @@ properties:
       If the prefix specified is same as an old deployment in the past,
       the deployment will recover from an old deployment.
       If this not specified, the app instance name will be used.
-  managedstorage.gcsProjectId:
-    type: string
-    title: GCS Bucket's project ID (Managed storage only)
-    description: |-
-      Normally it's the same project which installs Kubeflow Pipelines.
-      It's required if enabled managed storage.
 
 required:
   - name
