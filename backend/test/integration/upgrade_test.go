@@ -60,8 +60,12 @@ func (s *UpgradeTests) TestPrepare() {
 func (s *UpgradeTests) TestVerify() {
 	s.VerifyExperiments()
 	s.VerifyPipelines()
-	s.VerifyRuns()
-	s.VerifyJobs()
+	// TODO(jingzhang36): temporarily comment out the verification of runs and
+	// jobs since this PR changes the API response and hence a diff between the
+	// response from previous release and that from this PR is expected.
+	// Will put them back after the next release is cut.
+	// s.VerifyRuns()
+	// s.VerifyJobs()
 }
 
 // Check the namespace have ML job installed and ready
