@@ -18,6 +18,11 @@ set -ex
 
 echo "Presubmit test with Hosted/MKP. It's also runable before sending out PR"
 
+if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+  # activating the service account
+  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
+
 # Build all required images used for Hosted (sync style)
 echo "Building, it may take ~30 minutes"
 echo "Images can be found in gcr.io/ml-pipeline-test/hosted/$(git rev-parse HEAD)/"
