@@ -80,7 +80,7 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:be497983cda7a1d17f3883c67e39a969cf0868a9
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:eb69a6b8ae2d82cd8574ed11f04af4607756061c
     args: [
       --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.dataproc, submit_hadoop_job,
