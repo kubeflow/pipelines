@@ -808,7 +808,7 @@ def get_labeling_job_outputs(client, labeling_job_name, auto_labeling):
     if auto_labeling:
         active_learning_model_arn = info['LabelingJobOutput']['FinalActiveLearningModelArn']
     else:
-        active_learning_model_arn = ''
+        active_learning_model_arn = ' '
     return output_manifest, active_learning_model_arn
 
 def enable_spot_instance_support(training_job_config, args):
