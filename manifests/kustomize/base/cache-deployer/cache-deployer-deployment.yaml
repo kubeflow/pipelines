@@ -9,6 +9,8 @@ spec:
   selector:
     matchLabels:
       app: cache-deployer
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
