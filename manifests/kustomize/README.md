@@ -9,7 +9,7 @@ existing cluster.
 Deploy latest version of Kubeflow Pipelines
 
 ```
-export PIPELINE_VERSION=0.3.0
+export PIPELINE_VERSION=0.4.0
 kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/cluster-scoped-resources.yaml
 kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
 kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
