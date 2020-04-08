@@ -91,6 +91,6 @@ output_location | The Amazon S3 path where you want Amazon SageMaker to store th
 MNIST Classification pipeline: [Pipeline](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py) | [Steps](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/README.md)
 
 ## Resources
-* [Batch Transform on Sagemaker](https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works-batch.html)
+* [Batch Transform on SageMaker](https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works-batch.html)
 * [Create Transform Job API documentation](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateTransformJob.html)
 * [Boto3 API reference](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_transform_job)
