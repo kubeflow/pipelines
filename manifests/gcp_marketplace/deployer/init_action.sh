@@ -20,8 +20,7 @@ function set_bucket_and_configmap() {
   # config map.
   #
   # Usage:
-  # set_bucket_and_configmap NUM_RETRIES
-  NUM_RETRIES=$1
+  # set_bucket_and_configmap
   CONFIG_NAME="gcp-default-config"
 
   # Detect GCP project
@@ -33,15 +32,13 @@ function set_bucket_and_configmap() {
     return 0
   fi
 
-  for i in $(seq 1 ${NUM_RETRIES})
-  do
+  bucket_name="${GCP_PROJECT_ID}-kubeflowpipelines-default"
+  bucket_is_set=true
+  gsutil ls ${bucket_name} || bucket_is_set=false
+  if [ "$bucket_is_set" = false ]; then
     bucket_is_set=true
-    bucket_name="hostedkfp-default-$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 10 | head -n 1)"
-    gsutil mb -p ${GCP_PROJECT_ID} "gs://${bucket_name}/" || bucket_is_set=false
-    if [ "$bucket_is_set" = true ]; then
-      break
-    fi
-  done
+    gsutil mb -p ${GCP_PROJECT_ID} "gs://${bucket_name}/" || bucket_is_set=false  
+  fi
   
   # Populate configmap, with name gcp-default-config
   if [ "${bucket_is_set}" = true ]; then
@@ -50,7 +47,7 @@ function set_bucket_and_configmap() {
       --from-literal has_default_bucket="true" \
       --from-literal project_id="${GCP_PROJECT_ID}"
   else
-    echo "Cannot successfully create bucket after ${NUM_RETRIES} attempts. Fall back to not specifying default bucket."
+    echo "Cannot successfully create bucket. Fall back to not specifying default bucket."
     kubectl create configmap -n "${NAMESPACE}" "${CONFIG_NAME}" \
       --from-literal bucket_name="<your-bucket>" \
       --from-literal has_default_bucket="false" \
@@ -68,6 +65,6 @@ NAMESPACE="$(/bin/print_config.py \
 export NAME
 export NAMESPACE
 
-set_bucket_and_configmap 10
+set_bucket_and_configmap
 
 echo "init_action done"
