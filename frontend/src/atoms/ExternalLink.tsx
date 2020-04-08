@@ -2,7 +2,7 @@ import React, { DetailedHTMLProps, AnchorHTMLAttributes } from 'react';
 import { stylesheet } from 'typestyle';
 import { color } from '../Css';
 
-export const linkStyles = stylesheet({
+const css = stylesheet({
   link: {
     $nest: {
       '&:hover': {
@@ -19,7 +19,7 @@ export const ExternalLink: React.FC<DetailedHTMLProps<
   HTMLAnchorElement
 >> = props => (
   // eslint-disable-next-line jsx-a11y/anchor-has-content
-  <a {...props} className={linkStyles.link} target='_blank' rel='noopener' />
+  <a {...props} className={css.link} target='_blank' rel='noopener' />
 );
 
 export const AutoLink: React.FC<DetailedHTMLProps<
@@ -28,7 +28,7 @@ export const AutoLink: React.FC<DetailedHTMLProps<
 >> = props =>
   props.href && props.href.startsWith('#') ? (
     // eslint-disable-next-line jsx-a11y/anchor-has-content
-    <a {...props} className={linkStyles.link} />
+    <a {...props} className={css.link} />
   ) : (
     <ExternalLink {...props} />
   );
