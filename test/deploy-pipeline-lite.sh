@@ -78,8 +78,6 @@ else
 
   pushd ${KFP_MANIFEST_DIR}/dev
   kustomize build . | kubectl apply -f -
-  # TODO: remove line below after the release next to 0.3.0
-  kubectl delete deployment cache-server -n ${NAMESPACE}
   popd
 
   # go back to previous commit
