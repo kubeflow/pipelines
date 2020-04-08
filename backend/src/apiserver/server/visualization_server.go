@@ -4,28 +4,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 type VisualizationServer struct {
-	resourceManager    *resource.ResourceManager
-	serviceURL         string
+	resourceManager *resource.ResourceManager
+	serviceURL      string
 }
 
 func (s *VisualizationServer) CreateVisualization(ctx context.Context, request *go_client.CreateVisualizationRequest) (*go_client.Visualization, error) {
-	if common.IsMultiUserMode() == true {
-		return nil, util.NewBadRequestError(errors.New("Visualization APIs are temporarily disabled in the multi-user mode until it is fully ready."), "Visualization APIs are temporarily disabled in the multi-user mode until it is fully ready.")
-	}
 	if err := s.validateCreateVisualizationRequest(request); err != nil {
 		return nil, err
 	}
@@ -75,8 +70,8 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 	visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
 	urlValues := url.Values{
 		"arguments": {request.Visualization.Arguments},
-		"source": {request.Visualization.Source},
-		"type": {visualizationType},
+		"source":    {request.Visualization.Source},
+		"type":      {visualizationType},
 	}
 	resp, err := http.PostForm(s.serviceURL, urlValues)
 	if err != nil {
@@ -105,7 +100,7 @@ func isVisualizationServiceAlive(serviceURL string) bool {
 func NewVisualizationServer(resourceManager *resource.ResourceManager, serviceHost string, servicePort string) *VisualizationServer {
 	serviceURL := fmt.Sprintf("http://%s:%s", serviceHost, servicePort)
 	return &VisualizationServer{
-		resourceManager:    resourceManager,
-		serviceURL:         serviceURL,
+		resourceManager: resourceManager,
+		serviceURL:      serviceURL,
 	}
 }
