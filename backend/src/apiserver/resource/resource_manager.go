@@ -155,7 +155,7 @@ func (r *ResourceManager) ArchiveExperiment(experimentId string) error {
 				"Failed to list jobs of to-be-archived experiment. expID: %v", experimentId)
 		}
 		for _, job := range jobs {
-			_, err = r.scheduledWorkflowClient.Patch(
+			_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
 				job.Name,
 				types.MergePatchType,
 				[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(false))))
