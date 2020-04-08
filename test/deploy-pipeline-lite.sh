@@ -73,7 +73,7 @@ else
 
   pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
   kustomize build . | kubectl apply -f -
-  kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+  kubectl wait --for condition=established --timeout=60s cluster-scoped-resources/applications.app.k8s.io
   popd
 
   pushd ${KFP_MANIFEST_DIR}/dev
