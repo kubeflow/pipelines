@@ -784,7 +784,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     try {
       const logs = await Apis.getPodLogs(
         selectedNodeDetails.id,
-        this.state.workflow?.metadata?.namespace || '',
+        this.state.workflow?.metadata?.namespace,
       );
       selectedNodeDetails.logs = logs;
       this.setStateSafe({
