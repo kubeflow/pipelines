@@ -71,16 +71,13 @@ else
   # temporarily checkout last release tag
   git checkout $KFP_LATEST_RELEASE
 
-  # TODO: rename crd to cluster-scoped-resources after the release next to 0.3.0
-  pushd ${KFP_MANIFEST_DIR}/crd
+  pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
   kustomize build . | kubectl apply -f -
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
 
   pushd ${KFP_MANIFEST_DIR}/dev
   kustomize build . | kubectl apply -f -
-  # TODO: remove line below after the release next to 0.3.0
-  kubectl delete deployment cache-server -n ${NAMESPACE}
   popd
 
   # go back to previous commit
