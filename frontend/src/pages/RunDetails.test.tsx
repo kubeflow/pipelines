@@ -1021,14 +1021,9 @@ describe('RunDetails', () => {
 
     it("loads logs in run's namespace", async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        metadata: { namespace: 'username' },
         status: { nodes: { node1: { id: 'node1' } } },
       });
-      testRun.run!.resource_references = [
-        {
-          key: { type: ApiResourceType.NAMESPACE, id: 'username' },
-          relationship: ApiRelationship.OWNER,
-        },
-      ];
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
