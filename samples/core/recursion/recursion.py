@@ -45,6 +45,8 @@ def print_op(msg):
 def flip_component(flip_result):
     print_flip = print_op(flip_result)
     flipA = flip_coin_op().after(print_flip)
+    # set max_cache_staleness to 0 to prevent infinite loop due to caching
+    flipA.execution_options.caching_strategy.max_cache_staleness = "P0D"
     with dsl.Condition(flipA.output == 'heads'):
         # When the flip_component is called recursively, the flipA.output
         # from inside the graph component will be passed to the next flip_component
