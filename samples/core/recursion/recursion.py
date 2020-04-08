@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Notice: caching is tricky when recursion is involved. Please be careful and 
+# set proper max_cache_staleness in case of infinite loop.
 
 import kfp
 from kfp import dsl
