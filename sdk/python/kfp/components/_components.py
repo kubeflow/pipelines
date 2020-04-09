@@ -484,7 +484,7 @@ def _resolve_graph_task(
 
     graph = component_spec.implementation.graph
 
-    graph_input_arguments = {input.name: input.default for input in component_spec.inputs if input.default is not None}
+    graph_input_arguments = {input.name: input.default for input in component_spec.inputs or [] if input.default is not None}
     graph_input_arguments.update(arguments)
 
     outputs_of_tasks = {}

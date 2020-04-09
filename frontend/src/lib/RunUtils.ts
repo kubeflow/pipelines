@@ -28,6 +28,7 @@ import {
 } from '../apis/run';
 import { logger } from './Utils';
 import WorkflowParser from './WorkflowParser';
+import { ApiExperiment } from 'src/apis/experiment';
 
 export interface MetricMetadata {
   count: number;
@@ -117,7 +118,7 @@ function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference
   );
 }
 
-function getNamespaceReferenceName(run?: ApiRun | ApiJob): string | undefined {
+function getNamespaceReferenceName(run?: ApiExperiment): string | undefined {
   // There should be only one namespace reference.
   const namespaceRef =
     run &&
