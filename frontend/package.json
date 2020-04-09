@@ -86,7 +86,7 @@
     "enzyme-to-json": "^3.3.4",
     "prettier": "1.19.1",
     "react-router-test-context": "^0.1.0",
-    "react-scripts": "^3.4.0",
+    "react-scripts": "^3.4.1",
     "react-test-renderer": "^16.5.2",
     "snapshot-diff": "^0.6.1",
     "swagger-ts-client": "^0.9.6",
