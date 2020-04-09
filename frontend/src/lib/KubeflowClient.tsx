@@ -47,3 +47,10 @@ export class NamespaceContextProvider extends React.Component {
     return <NamespaceContext.Provider value={this.state.namespace} {...this.props} />;
   }
 }
+
+export function useNamespaceChanged(): boolean {
+  const namespace = React.useContext(NamespaceContext);
+  const [initialNamespace] = React.useState(namespace);
+
+  return namespace !== initialNamespace;
+}
