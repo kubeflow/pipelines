@@ -24,7 +24,7 @@ def automl_create_dataset_for_tables(
     retry=None, #=google.api_core.gapic_v1.method.DEFAULT,
     timeout: float = None, #=google.api_core.gapic_v1.method.DEFAULT,
     metadata: dict = None,
-) -> NamedTuple('Outputs', [('dataset_path', str), ('create_time', str), ('dataset_id', str)]):
+) -> NamedTuple('Outputs', [('dataset_path', str), ('create_time', str), ('dataset_id', str), ('dataset_url', 'URI')]):
     '''automl_create_dataset_for_tables creates an empty Dataset for AutoML tables
     '''
     import google
@@ -46,7 +46,12 @@ def automl_create_dataset_for_tables(
     )
     print(dataset)
     dataset_id = dataset.name.rsplit('/', 1)[-1]
-    return (dataset.name, dataset.create_time, dataset_id)
+    dataset_url = 'https://console.cloud.google.com/automl-tables/locations/{region}/datasets/{dataset_id}/schemav2?project={project_id}'.format(
+        project_id=gcp_project_id,
+        region=gcp_region,
+        dataset_id=dataset_id,
+    )
+    return (dataset.name, dataset.create_time, dataset_id, dataset_url)
 
 
 if __name__ == '__main__':
