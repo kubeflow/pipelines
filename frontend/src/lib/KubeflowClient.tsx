@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useContext, useRef } from 'react';
 import { logger } from './Utils';
 
 declare global {
@@ -48,9 +48,22 @@ export class NamespaceContextProvider extends React.Component {
   }
 }
 
-export function useNamespaceChanged(): boolean {
-  const namespace = React.useContext(NamespaceContext);
-  const [initialNamespace] = React.useState(namespace);
+function usePrevious<T>(value: T) {
+  const ref = useRef(value);
+  useLayoutEffect(() => {
+    ref.current = value;
+  });
+  return ref.current;
+}
 
-  return namespace !== initialNamespace;
+export function useNamespaceChangeEvent(): boolean {
+  const currentNamespace = useContext(NamespaceContext);
+  const previousNamespace = usePrevious(currentNamespace);
+
+  if (!previousNamespace) {
+    // Previous namespace hasn't been initialized, this does not count as a change.
+    return false;
+  }
+
+  return previousNamespace !== currentNamespace;
 }

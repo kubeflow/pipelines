@@ -21,7 +21,7 @@ import { flatten } from 'lodash';
 import * as React from 'react';
 import { Link, Redirect } from 'react-router-dom';
 import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
-import { useNamespaceChanged } from 'src/lib/KubeflowClient';
+import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import {
   ExecutionHelpers,
   getExecutionsFromContext,
@@ -1101,7 +1101,7 @@ const ArtifactsTabContent: React.FC<{
 };
 
 const EnhancedRunDetails: React.FC<RunDetailsProps> = props => {
-  const namespaceChanged = useNamespaceChanged();
+  const namespaceChanged = useNamespaceChangeEvent();
   const gkeMetadata = React.useContext(GkeMetadataContext);
   if (namespaceChanged) {
     // Run details page shows info about a run, when namespace changes, the run

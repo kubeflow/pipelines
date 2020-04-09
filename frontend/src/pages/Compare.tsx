@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { Redirect } from 'react-router-dom';
-import { useNamespaceChanged } from 'src/lib/KubeflowClient';
+import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { classes, stylesheet } from 'typestyle';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { ApiRunDetail } from '../apis/run';
@@ -331,7 +331,7 @@ class Compare extends Page<{}, CompareState> {
 }
 
 const EnhancedCompare: React.FC<PageProps> = props => {
-  const namespaceChanged = useNamespaceChanged();
+  const namespaceChanged = useNamespaceChangeEvent();
   if (namespaceChanged) {
     // Compare page compares two runs, when namespace changes, the runs don't
     // exist in the new namespace, so we should redirect to experiment list page.
