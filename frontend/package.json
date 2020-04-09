@@ -86,7 +86,7 @@
     "enzyme-to-json": "^3.3.4",
     "prettier": "1.19.1",
     "react-router-test-context": "^0.1.0",
-    "react-scripts": "^3.4.0",
+    "react-scripts": "^3.4.1",
     "react-test-renderer": "^16.5.2",
     "snapshot-diff": "^0.6.1",
     "swagger-ts-client": "^0.9.6",
@@ -94,7 +94,7 @@
     "ts-node-dev": "^1.0.0-pre.30",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.7.5",
-    "webpack": "4.41.5",
+    "webpack": "4.42.0",
     "webpack-bundle-analyzer": "^3.6.1"
   },
   "homepage": "./",
