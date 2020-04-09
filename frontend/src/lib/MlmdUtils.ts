@@ -78,11 +78,11 @@ export enum KfpExecutionProperties {
 }
 
 export const ExecutionHelpers = {
-  getPipeline(execution: Execution): string | number | undefined {
+  getWorkspace(execution: Execution): string | number | undefined {
     return (
-      getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
+      getResourceProperty(execution, ExecutionCustomProperties.RUN_ID) ||
       getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
-      getResourceProperty(execution, ExecutionCustomProperties.RUN_ID, true) ||
+      getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
       undefined
     );
   },
