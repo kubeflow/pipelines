@@ -27,10 +27,6 @@ def automl_create_dataset_for_tables(
 ) -> NamedTuple('Outputs', [('dataset_path', str), ('create_time', str), ('dataset_id', str)]):
     '''automl_create_dataset_for_tables creates an empty Dataset for AutoML tables
     '''
-    import sys
-    import subprocess
-    subprocess.run([sys.executable, '-m', 'pip', 'install', 'google-cloud-automl==0.4.0', '--quiet', '--no-warn-script-location'], env={'PIP_DISABLE_PIP_VERSION_CHECK': '1'}, check=True)
-
     import google
     from google.cloud import automl
     client = automl.AutoMlClient()
@@ -55,4 +51,9 @@ def automl_create_dataset_for_tables(
 
 if __name__ == '__main__':
     import kfp
-    kfp.components.func_to_container_op(automl_create_dataset_for_tables, output_component_file='component.yaml', base_image='python:3.7')
+    kfp.components.func_to_container_op(
+        automl_create_dataset_for_tables,
+        output_component_file='component.yaml',
+        base_image='python:3.7',
+        packages_to_install=['google-cloud-automl==0.4.0']
+    )

@@ -25,10 +25,6 @@ def automl_create_model_for_tables(
     optimization_objective: str = 'MAXIMIZE_AU_PRC',
     train_budget_milli_node_hours: int = 1000,
 ) -> NamedTuple('Outputs', [('model_path', str), ('model_id', str)]):
-    import sys
-    import subprocess
-    subprocess.run([sys.executable, '-m', 'pip', 'install', 'google-cloud-automl==0.4.0', '--quiet', '--no-warn-script-location'], env={'PIP_DISABLE_PIP_VERSION_CHECK': '1'}, check=True)
-
     from google.cloud import automl
     client = automl.AutoMlClient()
 
@@ -55,4 +51,9 @@ def automl_create_model_for_tables(
 
 if __name__ == '__main__':
     import kfp
-    kfp.components.func_to_container_op(automl_create_model_for_tables, output_component_file='component.yaml', base_image='python:3.7')
+    kfp.components.func_to_container_op(
+        automl_create_model_for_tables,
+        output_component_file='component.yaml',
+        base_image='python:3.7',
+        packages_to_install=['google-cloud-automl==0.4.0']
+    )
