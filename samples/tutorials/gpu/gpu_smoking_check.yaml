@@ -1,0 +1,70 @@
+"apiVersion": |-
+  argoproj.io/v1alpha1
+"kind": |-
+  Workflow
+"metadata":
+  "annotations":
+    "pipelines.kubeflow.org/pipeline_spec": |-
+      {"description": "Smoking check whether GPU env is ready.", "name": "GPU smoking check"}
+  "generateName": |-
+    gpu-smoking-check-
+"spec":
+  "arguments":
+    "parameters": []
+  "entrypoint": |-
+    gpu-smoking-check
+  "serviceAccountName": |-
+    pipeline-runner
+  "templates":
+  - "container":
+      "args":
+      - |-
+        nvidia-smi
+      "command":
+      - |-
+        sh
+      - |-
+        -c
+      "image": |-
+        tensorflow/tensorflow:latest-gpu
+      "resources":
+        "limits":
+          "nvidia.com/gpu": !!int |-
+            1
+    "name": |-
+      check-p100
+    "nodeSelector":
+      "cloud.google.com/gke-accelerator": |-
+        nvidia-tesla-p100
+  - "container":
+      "args":
+      - |-
+        nvidia-smi
+      "command":
+      - |-
+        sh
+      - |-
+        -c
+      "image": |-
+        tensorflow/tensorflow:latest-gpu
+      "resources":
+        "limits":
+          "nvidia.com/gpu": !!int |-
+            1
+    "name": |-
+      check-v100
+    "nodeSelector":
+      "cloud.google.com/gke-accelerator": |-
+        nvidia-tesla-v100
+  - "dag":
+      "tasks":
+      - "name": |-
+          check-p100
+        "template": |-
+          check-p100
+      - "name": |-
+          check-v100
+        "template": |-
+          check-v100
+    "name": |-
+      gpu-smoking-check
