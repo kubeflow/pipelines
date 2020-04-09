@@ -376,6 +376,7 @@ class Client(object):
     """
     return self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by)
 
+  # TODO: provide default namespace, similar to kubectl default namespaces.
   def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, version_id=None):
     """Run a specified pipeline.
 
@@ -448,11 +449,15 @@ class Client(object):
     if (interval_second is None) ^ (cron_expression is None):
       raise ValueError('Either interval_second or cron_expression is required')
     if interval_second is not None:
-      trigger = kfp_server_api.models.api_periodic_schedule.ApiPeriodicSchedule(
+      trigger = kfp_server_api.models.ApiTrigger(
+        periodic_schedule=kfp_server_api.models.ApiPeriodicSchedule(
           start_time=start_time, end_time=end_time, interval_second=interval_second)
+      )
     if cron_expression is not None:
-      trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(
+      trigger = kfp_server_api.models.ApiTrigger(
+        cron_schedule=kfp_server_api.models.ApiCronSchedule(
         start_time=start_time, end_time=end_time, cron=cron_expression)
+      )
 
     job_body = kfp_server_api.models.ApiJob(
         enabled=enabled,
@@ -501,7 +506,7 @@ class Client(object):
     if version_id:
       key = kfp_server_api.models.ApiResourceKey(id=version_id,
                                                  type=kfp_server_api.models.ApiResourceType.PIPELINE_VERSION)
-      reference = kfp_server_api.models.ApiResourceReference(key=key, 
+      reference = kfp_server_api.models.ApiResourceReference(key=key,
                                                              relationship=kfp_server_api.models.ApiRelationship.CREATOR)
       resource_references.append(reference)
 
