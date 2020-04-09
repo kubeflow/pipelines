@@ -112,7 +112,6 @@ class Client(object):
     _add_generated_apis(self, kfp_server_api, api_client)
     self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
-    self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
@@ -386,9 +385,9 @@ class Client(object):
       pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: a dictionary with key (string) as param name and value (string) as as param value.
       pipeline_id: the string ID of a pipeline.
-      version_id: The string ID of a pipeline version. 
+      version_id: the string ID of a pipeline version.
         If both pipeline_id and version_id are specified, pipeline_id will take precendence
-        This will change in a future version, so it is recommended to use version_id by itself.
+        This will change in a future version, so it is recommended to use version_id by itself
     Returns:
       A run object. Most important field is id.
     """
@@ -448,11 +447,15 @@ class Client(object):
     if (interval_second is None) ^ (cron_expression is None):
       raise ValueError('Either interval_second or cron_expression is required')
     if interval_second is not None:
-      trigger = kfp_server_api.models.api_periodic_schedule.ApiPeriodicSchedule(
+      trigger = kfp_server_api.models.ApiTrigger(
+        periodic_schedule=kfp_server_api.models.ApiPeriodicSchedule(
           start_time=start_time, end_time=end_time, interval_second=interval_second)
+      )
     if cron_expression is not None:
-      trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(
+      trigger = kfp_server_api.models.ApiTrigger(
+        cron_schedule=kfp_server_api.models.ApiCronSchedule(
         start_time=start_time, end_time=end_time, cron=cron_expression)
+      )
 
     job_body = kfp_server_api.models.ApiJob(
         enabled=enabled,
