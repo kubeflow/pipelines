@@ -494,14 +494,21 @@ class Client(object):
     run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments)
     return RunPipelineResult(self, run_info)
 
-  def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None,
-    cron_schedule=None, description=None, max_concurrency=10, no_catchup=None):
-    """Schedule pipeline on kubeflow to run based upon a cron job
+  def try_parsing_date_time(self, text):
+    for fmt in ('%Y-%m-%dT%H:%M:%S.%f%z', '%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M', '%Y-%m-%dT%H', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            pass
+    raise ValueError('no valid date format found, got: %s' % text)
 
+  def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None,
+    cron_schedule=None, description=None, max_concurrency=10, no_catchup=None, 
+    start_date_time=None, end_date_time=None, version_id=None):
+    """Schedule pipeline on kubeflow to run based upon a cron job
     Arguments:
         experiment_id {string} -- The expriment within which we would like kubeflow
         job_name {string} -- The name of the scheduled job
-
     Keyword Arguments:
         pipeline_package_path {string} -- The path to the pipeline package (default: {None})
         params {dict} -- The pipeline parameters (default: {{}})
@@ -514,41 +521,70 @@ class Client(object):
           is ready to be scheduled.
           Usually, if your pipeline handles backfill internally, you should turn catchup
           off to avoid duplicate backfill. (default: {False})
+        start_date_time {string} -- Start date/time for the schedule. This will be considered the starting point for backfill. 
+          Format: one of ['%Y-%m-%dT%H:%M:%S.%f%z', '%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M', '%Y-%m-%dT%H', '%Y-%m-%d']
+        end_date_time {string} -- End date/time for the schedule.
+          Format: one of ['%Y-%m-%dT%H:%M:%S.%f%z', '%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M', '%Y-%m-%dT%H', '%Y-%m-%d']
+        version_id {string} -- Pipeline version to schedule (if specified, `pipeline_package_path` is ignored)
     """
 
     pipeline_json_string = None
     if pipeline_package_path:
       pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
       pipeline_json_string = json.dumps(pipeline_obj)
+
     api_params = [kfp_server_api.ApiParameter(
         name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
         value=str(v)) for k,v in params.items()]
 
+
     key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
-    reference = kfp_server_api.models.ApiResourceReference(key=key,
-                                                           relationship=kfp_server_api.models.ApiRelationship.OWNER)
+    reference = kfp_server_api.models.ApiResourceReference(key=key, relationship=kfp_server_api.models.ApiRelationship.OWNER)
 
-    spec = kfp_server_api.models.ApiPipelineSpec(
-        pipeline_id=pipeline_id,
-        workflow_manifest=pipeline_json_string,
-        parameters=api_params)
+    if version_id:
+        version_ref = kfp_server_api.models.ApiResourceReference(
+            key=kfp_server_api.models.ApiResourceKey(
+                type=kfp_server_api.models.ApiResourceType.PIPELINE_VERSION,
+                id=version_id,
+            ),
+            relationship=kfp_server_api.models.ApiRelationship.CREATOR,
+        )
+        spec = kfp_server_api.models.ApiPipelineSpec(
+                pipeline_id=None,
+                workflow_manifest=None,
+                parameters=api_params)
 
-    trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(cron=cron_schedule) #Example:cron_schedule="0 0 9 ? * 2-6"
+    else:
+        spec = kfp_server_api.models.ApiPipelineSpec(
+                pipeline_id=pipeline_id,
+                workflow_manifest=pipeline_json_string,
+                parameters=api_params)
+
+
+
+    sdt = self.try_parsing_date_time(start_date_time).strftime('%Y-%m-%dT%H:%M:%S.%fZ') if start_date_time else None
+    edt = self.try_parsing_date_time(end_date_time).strftime('%Y-%m-%dT%H:%M:%S.%fZ') if end_date_time else None
+
+    api_cron = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(cron=cron_schedule, start_time=sdt, end_time=edt)
+    trigger = kfp_server_api.models.api_trigger.ApiTrigger(cron_schedule=api_cron)
     job_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+    
+    refs = [reference, version_ref] if version_ref else [reference]
+
     schedule_body = kfp_server_api.models.ApiJob(
         id=job_id,
         name=job_name,
         description=description,
         pipeline_spec=spec,
-        resource_references=[reference],
+        resource_references=refs,
         max_concurrency=max_concurrency,
         no_catchup=no_catchup,
         trigger=trigger,
         enabled=True,
         )
-    #[TODO] Add link to the scheduled job.
-    response = self._job_api.create_job(body=schedule_body)
+
+    return self._job_api.create_job(body=schedule_body)
 
 
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None, namespace=None):
