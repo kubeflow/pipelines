@@ -447,11 +447,15 @@ class Client(object):
     if (interval_second is None) ^ (cron_expression is None):
       raise ValueError('Either interval_second or cron_expression is required')
     if interval_second is not None:
-      trigger = kfp_server_api.models.api_periodic_schedule.ApiPeriodicSchedule(
+      trigger = kfp_server_api.models.ApiTrigger(
+        periodic_schedule=kfp_server_api.models.ApiPeriodicSchedule(
           start_time=start_time, end_time=end_time, interval_second=interval_second)
+      )
     if cron_expression is not None:
-      trigger = kfp_server_api.models.api_cron_schedule.ApiCronSchedule(
+      trigger = kfp_server_api.models.ApiTrigger(
+        cron_schedule=kfp_server_api.models.ApiCronSchedule(
         start_time=start_time, end_time=end_time, cron=cron_expression)
+      )
 
     job_body = kfp_server_api.models.ApiJob(
         enabled=enabled,
