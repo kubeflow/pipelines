@@ -11,6 +11,7 @@ inputs:
 outputs:
 - {name: model_path, type: String}
 - {name: model_id, type: String}
+- {name: model_page_url, type: URI}
 implementation:
   container:
     image: python:3.7
@@ -34,7 +35,7 @@ implementation:
           input_feature_column_paths  = None,
           optimization_objective  = 'MAXIMIZE_AU_PRC',
           train_budget_milli_node_hours  = 1000,
-      )      :
+      )        :
           from google.cloud import automl
           client = automl.AutoMlClient()
 
@@ -56,7 +57,14 @@ implementation:
           print(result)
           model_name = result.name
           model_id = model_name.rsplit('/', 1)[-1]
-          return (model_name, model_id)
+          model_url = 'https://console.cloud.google.com/automl-tables/locations/{region}/datasets/{dataset_id};modelId={model_id};task=basic/train?project={project_id}'.format(
+              project_id=gcp_project_id,
+              region=gcp_region,
+              dataset_id=dataset_id,
+              model_id=model_id,
+          )
+
+          return (model_name, model_id, model_url)
 
       def _serialize_str(str_value: str) -> str:
           if not isinstance(str_value, str):
@@ -74,7 +82,7 @@ implementation:
       _parser.add_argument("--input-feature-column-paths", dest="input_feature_column_paths", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--optimization-objective", dest="optimization_objective", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--train-budget-milli-node-hours", dest="train_budget_milli_node_hours", type=int, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=3)
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
 
@@ -83,6 +91,7 @@ implementation:
       _output_serializers = [
           _serialize_str,
           _serialize_str,
+          str,
 
       ]
 
@@ -126,3 +135,4 @@ implementation:
     - '----output-paths'
     - {outputPath: model_path}
     - {outputPath: model_id}
+    - {outputPath: model_page_url}
