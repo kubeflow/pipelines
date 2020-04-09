@@ -18,12 +18,9 @@ import {
   Api,
   Execution,
   ExecutionType,
-  ExecutionProperties,
-  ExecutionCustomProperties,
   GetExecutionsRequest,
   GetExecutionTypesRequest,
   ListRequest,
-  getResourceProperty,
 } from '@kubeflow/frontend';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
@@ -46,6 +43,7 @@ import {
   serviceErrorToString,
 } from '../lib/Utils';
 import { RoutePage, RouteParams } from '../components/Router';
+import { ExecutionHelpers } from 'src/lib/MlmdUtils';
 
 interface ExecutionListState {
   executions: Execution[];
@@ -216,13 +214,9 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           return {
             id: `${type}:${execution.getId()}`, // Join with colon so we can build the link
             otherFields: [
-              getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
-                getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
-                getResourceProperty(execution, ExecutionCustomProperties.RUN_ID, true),
-              getResourceProperty(execution, ExecutionProperties.NAME) ||
-                getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
-                getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true),
-              getResourceProperty(execution, ExecutionProperties.STATE),
+              ExecutionHelpers.getPipeline(execution),
+              ExecutionHelpers.getName(execution),
+              ExecutionHelpers.getState(execution),
               execution.getId(),
               type,
             ],
