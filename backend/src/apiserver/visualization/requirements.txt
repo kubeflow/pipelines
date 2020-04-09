@@ -9,6 +9,7 @@ nbconvert==5.5.0
 nbformat==4.4.0
 pandas==0.24.2
 pyarrow==0.15.1
+s3fs==0.4.2
 scikit_learn==0.21.2
 tensorflow-metadata==0.21.1
 tensorflow-model-analysis==0.21.5
