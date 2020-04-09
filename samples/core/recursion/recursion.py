@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Notice: caching is tricky when recursion is involved. Please be careful and 
+# set proper max_cache_staleness in case of infinite loop.
 
 import kfp
 from kfp import dsl
@@ -45,6 +47,8 @@ def print_op(msg):
 def flip_component(flip_result):
     print_flip = print_op(flip_result)
     flipA = flip_coin_op().after(print_flip)
+    # set max_cache_staleness to 0 to prevent infinite loop due to caching
+    flipA.execution_options.caching_strategy.max_cache_staleness = "P0D"
     with dsl.Condition(flipA.output == 'heads'):
         # When the flip_component is called recursively, the flipA.output
         # from inside the graph component will be passed to the next flip_component
@@ -59,6 +63,8 @@ def flip_component(flip_result):
 )
 def flipcoin():
     first_flip = flip_coin_op()
+    # set max_cache_staleness to 0 to prevent infinite loop due to caching
+    first_flip.execution_options.caching_strategy.max_cache_staleness = "P0D"
     flip_loop = flip_component(first_flip.output)
     # flip_loop is a graph_component with the outputs field
     # filled with the returned dictionary.
