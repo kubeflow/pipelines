@@ -1,4 +1,8 @@
 steps:
+  - id: "api-server"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      [ 'build', '-t', '$_GCR_BASE/api-server', '-f', 'backend/Dockerfile', '.' ]
   - id: "persistenceagent"
     name: "gcr.io/cloud-builders/docker"
     args:
@@ -44,6 +48,7 @@ steps:
 options:
   machineType: N1_HIGHCPU_8 # use a fast machine to build because there a lot of work
 images:
+  - '$_GCR_BASE/api-server'
   - "$_GCR_BASE/persistenceagent"
   - "$_GCR_BASE/scheduledworkflow"
   - "$_GCR_BASE/frontend"

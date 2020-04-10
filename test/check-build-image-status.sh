@@ -16,9 +16,11 @@
 
 set -ex
 
-if [ "$IMAGES_BUILDING" == true ]; then
+# Usage: wait_for_builds "${BUILD_IDS[@]}"
+# returns true if success, otherwise false.
+function wait_for_builds {
   MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20)
-  PENDING_BUILD_IDS=("${BUILD_IDS[@]}") # copy pending build ids
+  PENDING_BUILD_IDS=("$1") # copy pending build ids
   for i in $(seq 1 ${MAX_ATTEMPT})
   do
     NEW_PENDING_BUILD_IDS=()
@@ -42,16 +44,28 @@ if [ "$IMAGES_BUILDING" == true ]; then
           # Intentionally placed this status echo at the end, because when a
           # developer is looking at logs, sth at the end is most discoverable.
           echo "Cloud build with build id ${id} failed with status ${status}"
-          exit 1
+          return 1
         ;;
       esac
     done
     PENDING_BUILD_IDS=("${NEW_PENDING_BUILD_IDS[@]}")
     if [ 0 == "${#PENDING_BUILD_IDS[@]}" ]; then
       echo "All cloud builds succeeded."
-      break
+      return 0
     fi
     echo "Cloud build in progress, waiting for 20 seconds..."
     sleep 20
   done
+  # time out
+  return 2
+}
+
+if [ "$IMAGES_BUILDING" == true ]; then
+  if wait_for_builds "${BUILD_IDS[@]}"; then
+    echo "Images built"
+  else
+    # retry again when failure
+    source "${DIR}/build-images.sh"
+    wait_for_builds "${BUILD_IDS[@]}"
+  fi
 fi
