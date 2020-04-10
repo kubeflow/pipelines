@@ -50,9 +50,9 @@ else
   # The object name is inited as ${TEST_RESULTS_GCS_DIR} below, so it always has ${COMMIT_SHA} in it.
   ongoing_build_ids=($(gcloud builds list --filter='source.storageSource.object~'${COMMIT_SHA}' AND (status=QUEUED OR status=WORKING)' --format='value(id)'))
   if [ "${#ongoing_build_ids[@]}" -gt "0" ]; then
-    echo "There is an existing cloud build job, wait for it: id=${ongoing_build_ids[1]}"
+    echo "There is an existing cloud build job, wait for it: id=${ongoing_build_ids[0]}"
     IMAGES_BUILDING=true
-    BUILD_IDS=(${ongoing_build_ids[1]})
+    BUILD_IDS=(${ongoing_build_ids[0]})
   else
     echo "submitting cloud build to build docker images for commit ${COMMIT_SHA}..."
     IMAGES_BUILDING=true
@@ -61,10 +61,10 @@ else
       --async \
       --format='value(id)' \
       --substitutions=_GCR_BASE=${GCR_IMAGE_BASE_DIR} \
-      --gcs-source-staging-dir ${TEST_RESULTS_GCS_DIR}/cloudbuild \
     )
     BUILD_ID_BATCH=$(gcloud builds submit ${CLOUD_BUILD_COMMON_ARGS[@]} \
-      --config ${DIR}/cloudbuild/batch_build.yaml)
+      --config ${DIR}/cloudbuild/batch_build.yaml) \
+      --gcs-source-staging-dir ${TEST_RESULTS_GCS_DIR}/cloudbuild
 
     BUILD_IDS=("${BUILD_ID_BATCH}")
     echo "Submitted the following cloud build jobs: ${BUILD_IDS[@]}"
