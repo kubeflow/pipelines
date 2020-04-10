@@ -63,8 +63,8 @@ else
       --substitutions=_GCR_BASE=${GCR_IMAGE_BASE_DIR} \
     )
     BUILD_ID_BATCH=$(gcloud builds submit ${CLOUD_BUILD_COMMON_ARGS[@]} \
-      --config ${DIR}/cloudbuild/batch_build.yaml) \
-      --gcs-source-staging-dir ${TEST_RESULTS_GCS_DIR}/cloudbuild
+      --config ${DIR}/cloudbuild/batch_build.yaml \
+      --gcs-source-staging-dir ${TEST_RESULTS_GCS_DIR}/cloudbuild)
 
     BUILD_IDS=("${BUILD_ID_BATCH}")
     echo "Submitted the following cloud build jobs: ${BUILD_IDS[@]}"
