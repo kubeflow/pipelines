@@ -111,8 +111,11 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   # not add retry there. Also unless for testing scenario like this, it won't
   # meet the concurrent change issue.
   sleep $((RANDOM%30))
-  yes | PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
-    ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
+  function setup_workload_identity {
+    yes | PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
+      ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
+  }
+  retry setup_workload_identity
 
   source "${DIR}/scripts/retry.sh"
   retry gcloud projects add-iam-policy-binding $PROJECT \
