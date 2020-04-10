@@ -1,0 +1,1100 @@
+"apiVersion": |-
+  argoproj.io/v1alpha1
+"kind": |-
+  Workflow
+"metadata":
+  "annotations":
+    "pipelines.kubeflow.org/pipeline_spec": |-
+      {"description": "Generates a pipeline with randomly connected component graph.", "name": "Generated pipeline"}
+  "generateName": |-
+    generated-pipeline-
+"spec":
+  "arguments":
+    "parameters": []
+  "entrypoint": |-
+    generated-pipeline
+  "serviceAccountName": |-
+    pipeline-runner
+  "templates":
+  - "container":
+      "args":
+      - |-
+        --a
+      - |-
+        3
+      - |-
+        --b
+      - |-
+        5
+      - |-
+        ----output-paths
+      - |-
+        /tmp/outputs/Output/data
+      "command":
+      - |-
+        python3
+      - |-
+        -u
+      - |-
+        -c
+      - |
+        def add_op(a , b )  :
+            return a + b
+
+        def _serialize_float(float_value: float) -> str:
+            if isinstance(float_value, str):
+                return float_value
+            if not isinstance(float_value, (float, int)):
+                raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+            return str(float_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Add op', description='')
+        _parser.add_argument("--a", dest="a", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--b", dest="b", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = add_op(**_parsed_args)
+
+        if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+            _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_float,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      "image": |-
+        tensorflow/tensorflow:1.13.2-py3
+    "metadata":
+      "annotations":
+        "pipelines.kubeflow.org/component_spec": |-
+          {"inputs": [{"name": "a", "type": "Float"}, {"name": "b", "type": "Float"}], "name": "Add op", "outputs": [{"name": "Output", "type": "Float"}]}
+    "name": |-
+      add-op
+    "outputs":
+      "artifacts":
+      - "name": |-
+          add-op-output
+        "path": |-
+          /tmp/outputs/Output/data
+      "parameters":
+      - "name": |-
+          add-op-output
+        "valueFrom":
+          "path": |-
+            /tmp/outputs/Output/data
+  - "container":
+      "args":
+      - |-
+        --a
+      - |-
+        {{inputs.parameters.add-op-9-output}}
+      - |-
+        --b
+      - |-
+        {{inputs.parameters.add-op-8-output}}
+      - |-
+        ----output-paths
+      - |-
+        /tmp/outputs/Output/data
+      "command":
+      - |-
+        python3
+      - |-
+        -u
+      - |-
+        -c
+      - |
+        def add_op(a , b )  :
+            return a + b
+
+        def _serialize_float(float_value: float) -> str:
+            if isinstance(float_value, str):
+                return float_value
+            if not isinstance(float_value, (float, int)):
+                raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+            return str(float_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Add op', description='')
+        _parser.add_argument("--a", dest="a", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--b", dest="b", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = add_op(**_parsed_args)
+
+        if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+            _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_float,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      "image": |-
+        tensorflow/tensorflow:1.13.2-py3
+    "inputs":
+      "parameters":
+      - "name": |-
+          add-op-8-output
+      - "name": |-
+          add-op-9-output
+    "metadata":
+      "annotations":
+        "pipelines.kubeflow.org/component_spec": |-
+          {"inputs": [{"name": "a", "type": "Float"}, {"name": "b", "type": "Float"}], "name": "Add op", "outputs": [{"name": "Output", "type": "Float"}]}
+    "name": |-
+      add-op-10
+    "outputs":
+      "artifacts":
+      - "name": |-
+          add-op-10-output
+        "path": |-
+          /tmp/outputs/Output/data
+      "parameters":
+      - "name": |-
+          add-op-10-output
+        "valueFrom":
+          "path": |-
+            /tmp/outputs/Output/data
+  - "container":
+      "args":
+      - |-
+        --a
+      - |-
+        {{inputs.parameters.add-op-10-output}}
+      - |-
+        --b
+      - |-
+        {{inputs.parameters.add-op-8-output}}
+      - |-
+        ----output-paths
+      - |-
+        /tmp/outputs/Output/data
+      "command":
+      - |-
+        python3
+      - |-
+        -u
+      - |-
+        -c
+      - |
+        def add_op(a , b )  :
+            return a + b
+
+        def _serialize_float(float_value: float) -> str:
+            if isinstance(float_value, str):
+                return float_value
+            if not isinstance(float_value, (float, int)):
+                raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+            return str(float_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Add op', description='')
+        _parser.add_argument("--a", dest="a", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--b", dest="b", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = add_op(**_parsed_args)
+
+        if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+            _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_float,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      "image": |-
+        tensorflow/tensorflow:1.13.2-py3
+    "inputs":
+      "parameters":
+      - "name": |-
+          add-op-10-output
+      - "name": |-
+          add-op-8-output
+    "metadata":
+      "annotations":
+        "pipelines.kubeflow.org/component_spec": |-
+          {"inputs": [{"name": "a", "type": "Float"}, {"name": "b", "type": "Float"}], "name": "Add op", "outputs": [{"name": "Output", "type": "Float"}]}
+    "name": |-
+      add-op-11
+    "outputs":
+      "artifacts":
+      - "name": |-
+          add-op-11-output
+        "path": |-
+          /tmp/outputs/Output/data
+  - "container":
+      "args":
+      - |-
+        --a
+      - |-
+        {{inputs.parameters.add-op-output}}
+      - |-
+        --b
+      - |-
+        {{inputs.parameters.add-op-output}}
+      - |-
+        ----output-paths
+      - |-
+        /tmp/outputs/Output/data
+      "command":
+      - |-
+        python3
+      - |-
+        -u
+      - |-
+        -c
+      - |
+        def add_op(a , b )  :
+            return a + b
+
+        def _serialize_float(float_value: float) -> str:
+            if isinstance(float_value, str):
+                return float_value
+            if not isinstance(float_value, (float, int)):
+                raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+            return str(float_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Add op', description='')
+        _parser.add_argument("--a", dest="a", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--b", dest="b", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = add_op(**_parsed_args)
+
+        if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+            _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_float,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      "image": |-
+        tensorflow/tensorflow:1.13.2-py3
+    "inputs":
+      "parameters":
+      - "name": |-
+          add-op-output
+    "metadata":
+      "annotations":
+        "pipelines.kubeflow.org/component_spec": |-
+          {"inputs": [{"name": "a", "type": "Float"}, {"name": "b", "type": "Float"}], "name": "Add op", "outputs": [{"name": "Output", "type": "Float"}]}
+    "name": |-
+      add-op-2
+    "outputs":
+      "artifacts":
+      - "name": |-
+          add-op-2-output
+        "path": |-
+          /tmp/outputs/Output/data
+      "parameters":
+      - "name": |-
+          add-op-2-output
+        "valueFrom":
+          "path": |-
+            /tmp/outputs/Output/data
+  - "container":
+      "args":
+      - |-
+        --a
+      - |-
+        {{inputs.parameters.add-op-2-output}}
+      - |-
+        --b
+      - |-
+        {{inputs.parameters.add-op-output}}
+      - |-
+        ----output-paths
+      - |-
+        /tmp/outputs/Output/data
+      "command":
+      - |-
+        python3
+      - |-
+        -u
+      - |-
+        -c
+      - |
+        def add_op(a , b )  :
+            return a + b
+
+        def _serialize_float(float_value: float) -> str:
+            if isinstance(float_value, str):
+                return float_value
+            if not isinstance(float_value, (float, int)):
+                raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+            return str(float_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Add op', description='')
+        _parser.add_argument("--a", dest="a", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--b", dest="b", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = add_op(**_parsed_args)
+
+        if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+            _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_float,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      "image": |-
+        tensorflow/tensorflow:1.13.2-py3
+    "inputs":
+      "parameters":
+      - "name": |-
+          add-op-2-output
+      - "name": |-
+          add-op-output
+    "metadata":
+      "annotations":
+        "pipelines.kubeflow.org/component_spec": |-
+          {"inputs": [{"name": "a", "type": "Float"}, {"name": "b", "type": "Float"}], "name": "Add op", "outputs": [{"name": "Output", "type": "Float"}]}
+    "name": |-
+      add-op-3
+    "outputs":
+      "artifacts":
+      - "name": |-
+          add-op-3-output
+        "path": |-
+          /tmp/outputs/Output/data
+      "parameters":
+      - "name": |-
+          add-op-3-output
+        "valueFrom":
+          "path": |-
+            /tmp/outputs/Output/data
+  - "container":
+      "args":
+      - |-
+        --a
+      - |-
+        {{inputs.parameters.add-op-output}}
+      - |-
+        --b
+      - |-
+        {{inputs.parameters.add-op-2-output}}
+      - |-
+        ----output-paths
+      - |-
+        /tmp/outputs/Output/data
+      "command":
+      - |-
+        python3
+      - |-
+        -u
+      - |-
+        -c
+      - |
+        def add_op(a , b )  :
+            return a + b
+
+        def _serialize_float(float_value: float) -> str:
+            if isinstance(float_value, str):
+                return float_value
+            if not isinstance(float_value, (float, int)):
+                raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+            return str(float_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Add op', description='')
+        _parser.add_argument("--a", dest="a", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--b", dest="b", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = add_op(**_parsed_args)
+
+        if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+            _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_float,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      "image": |-
+        tensorflow/tensorflow:1.13.2-py3
+    "inputs":
+      "parameters":
+      - "name": |-
+          add-op-2-output
+      - "name": |-
+          add-op-output
+    "metadata":
+      "annotations":
+        "pipelines.kubeflow.org/component_spec": |-
+          {"inputs": [{"name": "a", "type": "Float"}, {"name": "b", "type": "Float"}], "name": "Add op", "outputs": [{"name": "Output", "type": "Float"}]}
+    "name": |-
+      add-op-4
+    "outputs":
+      "artifacts":
+      - "name": |-
+          add-op-4-output
+        "path": |-
+          /tmp/outputs/Output/data
+  - "container":
+      "args":
+      - |-
+        --a
+      - |-
+        {{inputs.parameters.add-op-2-output}}
+      - |-
+        --b
+      - |-
+        {{inputs.parameters.add-op-2-output}}
+      - |-
+        ----output-paths
+      - |-
+        /tmp/outputs/Output/data
+      "command":
+      - |-
+        python3
+      - |-
+        -u
+      - |-
+        -c
+      - |
+        def add_op(a , b )  :
+            return a + b
+
+        def _serialize_float(float_value: float) -> str:
+            if isinstance(float_value, str):
+                return float_value
+            if not isinstance(float_value, (float, int)):
+                raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+            return str(float_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Add op', description='')
+        _parser.add_argument("--a", dest="a", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--b", dest="b", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = add_op(**_parsed_args)
+
+        if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+            _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_float,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      "image": |-
+        tensorflow/tensorflow:1.13.2-py3
+    "inputs":
+      "parameters":
+      - "name": |-
+          add-op-2-output
+    "metadata":
+      "annotations":
+        "pipelines.kubeflow.org/component_spec": |-
+          {"inputs": [{"name": "a", "type": "Float"}, {"name": "b", "type": "Float"}], "name": "Add op", "outputs": [{"name": "Output", "type": "Float"}]}
+    "name": |-
+      add-op-5
+    "outputs":
+      "artifacts":
+      - "name": |-
+          add-op-5-output
+        "path": |-
+          /tmp/outputs/Output/data
+  - "container":
+      "args":
+      - |-
+        --a
+      - |-
+        {{inputs.parameters.add-op-2-output}}
+      - |-
+        --b
+      - |-
+        {{inputs.parameters.add-op-3-output}}
+      - |-
+        ----output-paths
+      - |-
+        /tmp/outputs/Output/data
+      "command":
+      - |-
+        python3
+      - |-
+        -u
+      - |-
+        -c
+      - |
+        def add_op(a , b )  :
+            return a + b
+
+        def _serialize_float(float_value: float) -> str:
+            if isinstance(float_value, str):
+                return float_value
+            if not isinstance(float_value, (float, int)):
+                raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+            return str(float_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Add op', description='')
+        _parser.add_argument("--a", dest="a", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--b", dest="b", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = add_op(**_parsed_args)
+
+        if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+            _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_float,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      "image": |-
+        tensorflow/tensorflow:1.13.2-py3
+    "inputs":
+      "parameters":
+      - "name": |-
+          add-op-2-output
+      - "name": |-
+          add-op-3-output
+    "metadata":
+      "annotations":
+        "pipelines.kubeflow.org/component_spec": |-
+          {"inputs": [{"name": "a", "type": "Float"}, {"name": "b", "type": "Float"}], "name": "Add op", "outputs": [{"name": "Output", "type": "Float"}]}
+    "name": |-
+      add-op-6
+    "outputs":
+      "artifacts":
+      - "name": |-
+          add-op-6-output
+        "path": |-
+          /tmp/outputs/Output/data
+      "parameters":
+      - "name": |-
+          add-op-6-output
+        "valueFrom":
+          "path": |-
+            /tmp/outputs/Output/data
+  - "container":
+      "args":
+      - |-
+        --a
+      - |-
+        {{inputs.parameters.add-op-3-output}}
+      - |-
+        --b
+      - |-
+        {{inputs.parameters.add-op-output}}
+      - |-
+        ----output-paths
+      - |-
+        /tmp/outputs/Output/data
+      "command":
+      - |-
+        python3
+      - |-
+        -u
+      - |-
+        -c
+      - |
+        def add_op(a , b )  :
+            return a + b
+
+        def _serialize_float(float_value: float) -> str:
+            if isinstance(float_value, str):
+                return float_value
+            if not isinstance(float_value, (float, int)):
+                raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+            return str(float_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Add op', description='')
+        _parser.add_argument("--a", dest="a", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--b", dest="b", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = add_op(**_parsed_args)
+
+        if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+            _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_float,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      "image": |-
+        tensorflow/tensorflow:1.13.2-py3
+    "inputs":
+      "parameters":
+      - "name": |-
+          add-op-3-output
+      - "name": |-
+          add-op-output
+    "metadata":
+      "annotations":
+        "pipelines.kubeflow.org/component_spec": |-
+          {"inputs": [{"name": "a", "type": "Float"}, {"name": "b", "type": "Float"}], "name": "Add op", "outputs": [{"name": "Output", "type": "Float"}]}
+    "name": |-
+      add-op-7
+    "outputs":
+      "artifacts":
+      - "name": |-
+          add-op-7-output
+        "path": |-
+          /tmp/outputs/Output/data
+      "parameters":
+      - "name": |-
+          add-op-7-output
+        "valueFrom":
+          "path": |-
+            /tmp/outputs/Output/data
+  - "container":
+      "args":
+      - |-
+        --a
+      - |-
+        {{inputs.parameters.add-op-7-output}}
+      - |-
+        --b
+      - |-
+        {{inputs.parameters.add-op-3-output}}
+      - |-
+        ----output-paths
+      - |-
+        /tmp/outputs/Output/data
+      "command":
+      - |-
+        python3
+      - |-
+        -u
+      - |-
+        -c
+      - |
+        def add_op(a , b )  :
+            return a + b
+
+        def _serialize_float(float_value: float) -> str:
+            if isinstance(float_value, str):
+                return float_value
+            if not isinstance(float_value, (float, int)):
+                raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+            return str(float_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Add op', description='')
+        _parser.add_argument("--a", dest="a", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--b", dest="b", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = add_op(**_parsed_args)
+
+        if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+            _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_float,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      "image": |-
+        tensorflow/tensorflow:1.13.2-py3
+    "inputs":
+      "parameters":
+      - "name": |-
+          add-op-3-output
+      - "name": |-
+          add-op-7-output
+    "metadata":
+      "annotations":
+        "pipelines.kubeflow.org/component_spec": |-
+          {"inputs": [{"name": "a", "type": "Float"}, {"name": "b", "type": "Float"}], "name": "Add op", "outputs": [{"name": "Output", "type": "Float"}]}
+    "name": |-
+      add-op-8
+    "outputs":
+      "artifacts":
+      - "name": |-
+          add-op-8-output
+        "path": |-
+          /tmp/outputs/Output/data
+      "parameters":
+      - "name": |-
+          add-op-8-output
+        "valueFrom":
+          "path": |-
+            /tmp/outputs/Output/data
+  - "container":
+      "args":
+      - |-
+        --a
+      - |-
+        {{inputs.parameters.add-op-6-output}}
+      - |-
+        --b
+      - |-
+        {{inputs.parameters.add-op-output}}
+      - |-
+        ----output-paths
+      - |-
+        /tmp/outputs/Output/data
+      "command":
+      - |-
+        python3
+      - |-
+        -u
+      - |-
+        -c
+      - |
+        def add_op(a , b )  :
+            return a + b
+
+        def _serialize_float(float_value: float) -> str:
+            if isinstance(float_value, str):
+                return float_value
+            if not isinstance(float_value, (float, int)):
+                raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+            return str(float_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Add op', description='')
+        _parser.add_argument("--a", dest="a", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--b", dest="b", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = add_op(**_parsed_args)
+
+        if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+            _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_float,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      "image": |-
+        tensorflow/tensorflow:1.13.2-py3
+    "inputs":
+      "parameters":
+      - "name": |-
+          add-op-6-output
+      - "name": |-
+          add-op-output
+    "metadata":
+      "annotations":
+        "pipelines.kubeflow.org/component_spec": |-
+          {"inputs": [{"name": "a", "type": "Float"}, {"name": "b", "type": "Float"}], "name": "Add op", "outputs": [{"name": "Output", "type": "Float"}]}
+    "name": |-
+      add-op-9
+    "outputs":
+      "artifacts":
+      - "name": |-
+          add-op-9-output
+        "path": |-
+          /tmp/outputs/Output/data
+      "parameters":
+      - "name": |-
+          add-op-9-output
+        "valueFrom":
+          "path": |-
+            /tmp/outputs/Output/data
+  - "dag":
+      "tasks":
+      - "name": |-
+          add-op
+        "template": |-
+          add-op
+      - "arguments":
+          "parameters":
+          - "name": |-
+              add-op-8-output
+            "value": |-
+              {{tasks.add-op-8.outputs.parameters.add-op-8-output}}
+          - "name": |-
+              add-op-9-output
+            "value": |-
+              {{tasks.add-op-9.outputs.parameters.add-op-9-output}}
+        "dependencies":
+        - |-
+          add-op-8
+        - |-
+          add-op-9
+        "name": |-
+          add-op-10
+        "template": |-
+          add-op-10
+      - "arguments":
+          "parameters":
+          - "name": |-
+              add-op-10-output
+            "value": |-
+              {{tasks.add-op-10.outputs.parameters.add-op-10-output}}
+          - "name": |-
+              add-op-8-output
+            "value": |-
+              {{tasks.add-op-8.outputs.parameters.add-op-8-output}}
+        "dependencies":
+        - |-
+          add-op-10
+        - |-
+          add-op-8
+        "name": |-
+          add-op-11
+        "template": |-
+          add-op-11
+      - "arguments":
+          "parameters":
+          - "name": |-
+              add-op-output
+            "value": |-
+              {{tasks.add-op.outputs.parameters.add-op-output}}
+        "dependencies":
+        - |-
+          add-op
+        "name": |-
+          add-op-2
+        "template": |-
+          add-op-2
+      - "arguments":
+          "parameters":
+          - "name": |-
+              add-op-2-output
+            "value": |-
+              {{tasks.add-op-2.outputs.parameters.add-op-2-output}}
+          - "name": |-
+              add-op-output
+            "value": |-
+              {{tasks.add-op.outputs.parameters.add-op-output}}
+        "dependencies":
+        - |-
+          add-op
+        - |-
+          add-op-2
+        "name": |-
+          add-op-3
+        "template": |-
+          add-op-3
+      - "arguments":
+          "parameters":
+          - "name": |-
+              add-op-2-output
+            "value": |-
+              {{tasks.add-op-2.outputs.parameters.add-op-2-output}}
+          - "name": |-
+              add-op-output
+            "value": |-
+              {{tasks.add-op.outputs.parameters.add-op-output}}
+        "dependencies":
+        - |-
+          add-op
+        - |-
+          add-op-2
+        "name": |-
+          add-op-4
+        "template": |-
+          add-op-4
+      - "arguments":
+          "parameters":
+          - "name": |-
+              add-op-2-output
+            "value": |-
+              {{tasks.add-op-2.outputs.parameters.add-op-2-output}}
+        "dependencies":
+        - |-
+          add-op-2
+        "name": |-
+          add-op-5
+        "template": |-
+          add-op-5
+      - "arguments":
+          "parameters":
+          - "name": |-
+              add-op-2-output
+            "value": |-
+              {{tasks.add-op-2.outputs.parameters.add-op-2-output}}
+          - "name": |-
+              add-op-3-output
+            "value": |-
+              {{tasks.add-op-3.outputs.parameters.add-op-3-output}}
+        "dependencies":
+        - |-
+          add-op-2
+        - |-
+          add-op-3
+        "name": |-
+          add-op-6
+        "template": |-
+          add-op-6
+      - "arguments":
+          "parameters":
+          - "name": |-
+              add-op-3-output
+            "value": |-
+              {{tasks.add-op-3.outputs.parameters.add-op-3-output}}
+          - "name": |-
+              add-op-output
+            "value": |-
+              {{tasks.add-op.outputs.parameters.add-op-output}}
+        "dependencies":
+        - |-
+          add-op
+        - |-
+          add-op-3
+        "name": |-
+          add-op-7
+        "template": |-
+          add-op-7
+      - "arguments":
+          "parameters":
+          - "name": |-
+              add-op-3-output
+            "value": |-
+              {{tasks.add-op-3.outputs.parameters.add-op-3-output}}
+          - "name": |-
+              add-op-7-output
+            "value": |-
+              {{tasks.add-op-7.outputs.parameters.add-op-7-output}}
+        "dependencies":
+        - |-
+          add-op-3
+        - |-
+          add-op-7
+        "name": |-
+          add-op-8
+        "template": |-
+          add-op-8
+      - "arguments":
+          "parameters":
+          - "name": |-
+              add-op-6-output
+            "value": |-
+              {{tasks.add-op-6.outputs.parameters.add-op-6-output}}
+          - "name": |-
+              add-op-output
+            "value": |-
+              {{tasks.add-op.outputs.parameters.add-op-output}}
+        "dependencies":
+        - |-
+          add-op
+        - |-
+          add-op-6
+        "name": |-
+          add-op-9
+        "template": |-
+          add-op-9
+    "name": |-
+      generated-pipeline
