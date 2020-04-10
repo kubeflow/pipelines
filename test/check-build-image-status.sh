@@ -19,12 +19,12 @@ set -ex
 # Usage: wait_for_builds "${BUILD_IDS[@]}"
 # returns true if success, otherwise false.
 function wait_for_builds {
-  MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20)
-  PENDING_BUILD_IDS=("$1") # copy pending build ids
-  for i in $(seq 1 ${MAX_ATTEMPT})
+  local pending_ids=("$1") # copy pending build ids
+  local max_attempts=$(expr $TIMEOUT_SECONDS / 20)
+  for i in $(seq 1 ${max_attempts})
   do
-    NEW_PENDING_BUILD_IDS=()
-    for id in "${PENDING_BUILD_IDS[@]}"
+    local new_pending_ids=()
+    for id in "${pending_ids[@]}"
     do
       status=$(gcloud builds describe $id --format='value(status)') || status="FETCH_ERROR"
       case "$status" in
@@ -32,11 +32,11 @@ function wait_for_builds {
           echo "Build with id ${id} has succeeded."
         ;;
         "WORKING" | "QUEUED")
-          NEW_PENDING_BUILD_IDS+=( "$id" )
+          new_pending_ids+=( "$id" )
         ;;
         "FETCH_ERROR")
           echo "Fetching cloud build status failed, retrying..."
-          NEW_PENDING_BUILD_IDS+=( "$id" )
+          new_pending_ids+=( "$id" )
         ;;
         *)
           echo "Fetching build log for build $id"
@@ -48,8 +48,8 @@ function wait_for_builds {
         ;;
       esac
     done
-    PENDING_BUILD_IDS=("${NEW_PENDING_BUILD_IDS[@]}")
-    if [ 0 == "${#PENDING_BUILD_IDS[@]}" ]; then
+    pending_ids=("${new_pending_ids[@]}")
+    if [ 0 == "${#pending_ids[@]}" ]; then
       echo "All cloud builds succeeded."
       return 0
     fi
@@ -60,14 +60,26 @@ function wait_for_builds {
   return 2
 }
 
-if [ "$IMAGES_BUILDING" == true ]; then
-  if wait_for_builds "${BUILD_IDS[@]}"; then
-    echo "Images built"
-  else
-    # retry again when failure
-    source "${DIR}/build-images.sh"
-    if [ "$IMAGES_BUILDING" == true ]; then
-      wait_for_builds "${BUILD_IDS[@]}"
+function wait_and_retry {
+  local max_attempts=3
+  local i
+  for i in $(seq 1 ${max_attempts})
+  do
+    if [ $i != 1 ]; then
+      echo "Retry #${i}, build images again..."
+      source "${DIR}/build-images.sh"
     fi
-  fi
-fi
+    if [ "$IMAGES_BUILDING" != true ]; then
+      echo "Images already built"
+      return 0
+    fi
+    if wait_for_builds "${BUILD_IDS[@]}"; then
+      echo "Images built successfully"
+      return 0
+    fi
+  done
+  echo "Images failed to build"
+  return 1
+}
+
+wait_and_retry
