@@ -66,6 +66,8 @@ if [ "$IMAGES_BUILDING" == true ]; then
   else
     # retry again when failure
     source "${DIR}/build-images.sh"
-    wait_for_builds "${BUILD_IDS[@]}"
+    if [ "$IMAGES_BUILDING" == true ]; then
+      wait_for_builds "${BUILD_IDS[@]}"
+    fi
   fi
 fi
