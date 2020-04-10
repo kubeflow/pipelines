@@ -42,7 +42,7 @@ function has_api_server_image_been_built {
 
 BUILD_IDS=()
 function build_image {
-  local build_target = $1
+  local build_target=$1
   # sleep randomly to reduce chance of submitting two cloudbuild jobs at the same time
   sleep $((RANDOM%10))
 
