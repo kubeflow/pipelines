@@ -62,6 +62,8 @@ export function useNamespaceChangeEvent(): boolean {
 
   if (!previousNamespace) {
     // Previous namespace hasn't been initialized, this does not count as a change.
+    // When the webapp inits, the first render will have namespace=undefined, so
+    // this situation happens often.
     return false;
   }
 
