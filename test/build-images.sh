@@ -48,7 +48,7 @@ else
   sleep $((RANDOM%30))
 
   # The object name is inited as ${TEST_RESULTS_GCS_DIR} below, so it always has ${COMMIT_SHA} in it.
-  ongoing_build_ids=$(gcloud builds list --filter='source.storageSource.object~'${COMMIT_SHA}' AND (status=QUEUED OR status=WORKING)' --format='value(id)')
+  ongoing_build_ids=($(gcloud builds list --filter='source.storageSource.object~'${COMMIT_SHA}' AND (status=QUEUED OR status=WORKING)' --format='value(id)'))
   if [ "${#ongoing_build_ids[@]}" -gt "0" ]; then
     echo "There is an existing cloud build job, wait for it: id=${ongoing_build_ids[1]}"
     IMAGES_BUILDING=true
