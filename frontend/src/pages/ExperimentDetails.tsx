@@ -34,7 +34,7 @@ import { RunStorageState } from '../apis/run';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
-import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 
 const css = stylesheet({
@@ -346,12 +346,10 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 }
 
 const EnhancedExperimentDetails: React.FC<PageProps> = props => {
-  const namespace = React.useContext(NamespaceContext);
-  const [initialNamespace] = React.useState(namespace);
-
   // When namespace changes, this experiment no longer belongs to new namespace.
   // So we redirect to experiment list page instead.
-  if (namespace !== initialNamespace) {
+  const namespaceChanged = useNamespaceChangeEvent();
+  if (namespaceChanged) {
     return <Redirect to={RoutePage.EXPERIMENTS} />;
   }
 
