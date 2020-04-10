@@ -44,12 +44,12 @@ BUILD_IDS=()
 function build_image {
   local build_target=$1
   # sleep randomly to reduce chance of submitting two cloudbuild jobs at the same time
-  sleep $((RANDOM%10))
+  sleep $((RANDOM%30))
 
   # The object name is inited as ${TEST_RESULTS_GCS_DIR} below, so it always has ${COMMIT_SHA} in it.
   local ongoing_build_ids=($(gcloud builds list \
-    --filter='source.storageSource.object~'${COMMIT_SHA}.*/${build_target}' \
-    AND (status=QUEUED OR status=WORKING)' --format='value(id)'))
+    --filter='source.storageSource.object~'${COMMIT_SHA}.*/${build_target}' AND (status=QUEUED OR status=WORKING)' \
+    --format='value(id)'))
   if [ "${#ongoing_build_ids[@]}" -gt "0" ]; then
     echo "There is an existing cloud build job, wait for it: id=${ongoing_build_ids[0]}"
     BUILD_IDS+=("${ongoing_build_ids[0]}")
