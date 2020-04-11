@@ -107,8 +107,7 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   # When two tests add iam policy bindings at the same time, one will fail because
   # there could be two concurrent changes.
   # Wait here randomly to reduce chance both scripts are run at the same time
-  # between tests. gcp-workload-identity-setup.sh is user facing, we'd better
-  # not add retry there. Also unless for testing scenario like this, it won't
+  # between tests. Unless for testing scenario like this, it won't
   # meet the concurrent change issue.
   sleep $((RANDOM%30))
   function setup_workload_identity {
