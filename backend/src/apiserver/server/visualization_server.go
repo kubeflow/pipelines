@@ -103,7 +103,7 @@ func (s *VisualizationServer) getVisualizationServiceURL(request *go_client.Crea
 	if common.IsMultiUserMode() {
 		if len(request.Namespace) == 0 {
 			return "", util.NewBadRequestError(
-				errors.New("Missing namespace in CreateVisualizationRequest."), "Namespace is request in multi-user mode.")
+				errors.New("Missing namespace in CreateVisualizationRequest."), "Namespace is required in multi-user mode.")
 		}
 		return fmt.Sprintf("http://%s.%s:%s",
 			common.GetStringConfig(visualizationServiceName),
