@@ -56,7 +56,7 @@ function wait_for_builds {
     echo "Cloud build in progress, waiting for 20 seconds..."
     sleep 20
   done
-  # time out
+  echo "Waiting for cloud build ids ${pending_ids[@]} timed out."
   return 2
 }
 
