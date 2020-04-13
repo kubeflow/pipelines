@@ -3,5 +3,6 @@ kind: Kustomization
 
 bases:
 - ../base/application/cluster-scoped
+- ../base/argo/cluster-scoped
 - ../base/pipeline/cluster-scoped
 - ../base/cache-deployer/cluster-scoped
