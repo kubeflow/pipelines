@@ -51,7 +51,7 @@ function build_image {
     --filter='source.storageSource.object~'${COMMIT_SHA}.*/${build_target}' AND (status=QUEUED OR status=WORKING)' \
     --format='value(id)'))
   if [ "${#ongoing_build_ids[@]}" -gt "0" ]; then
-    echo "There is an existing cloud build job, wait for it: id=${ongoing_build_ids[0]}"
+    echo "There is an existing cloud build job for ${build_target}, wait for it: id=${ongoing_build_ids[0]}"
     BUILD_IDS+=("${ongoing_build_ids[0]}")
   else
     echo "submitting cloud build to build docker images for commit ${COMMIT_SHA} and target ${build_target}..."
@@ -66,7 +66,7 @@ function build_image {
       --gcs-source-staging-dir "${TEST_RESULTS_GCS_DIR}/cloudbuild/${build_target}")
 
     BUILD_IDS+=("${build_id}")
-    echo "Submitted the following cloud build job: ${build_id}"
+    echo "Submitted ${build_target} cloud build job: ${build_id}"
   fi
 }
 
