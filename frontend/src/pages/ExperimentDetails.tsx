@@ -144,7 +144,13 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: buttons.refresh(this.refresh.bind(this)).getToolbarActionMap(),
+      actions: buttons
+      .refresh(this.refresh.bind(this))
+      .archive(
+        () => [this.state.experiment!.id!],
+        true,
+        ids => this._selectionChanged(ids),
+      ).getToolbarActionMap(),
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       // TODO: determine what to show if no props.
       pageTitle: this.props ? this.props.match.params[RouteParams.experimentId] : '',

@@ -64,12 +64,15 @@ export default class Buttons {
   }
 
   public archive(
+    resourceName: 'run' | 'experiment',
     getSelectedIds: () => string[],
     useCurrentResource: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
   ): Buttons {
     this._map[ButtonKeys.ARCHIVE] = {
-      action: () => this._archive(getSelectedIds(), useCurrentResource, callback),
+      action: () => resourceName === 'run'
+        ? this._archive(getSelectedIds(), useCurrentResource, callback)
+        : this._archive(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to archive',
       id: 'archiveBtn',
@@ -839,5 +842,27 @@ export default class Buttons {
 
   private _deepCountDictionary(dict: { [pipelineId: string]: string[] }): number {
     return Object.keys(dict).reduce((count, pipelineId) => count + dict[pipelineId].length, 0);
+  }
+
+  private _archiveExperiment(
+    selectedIds: string[],
+    useCurrent: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): void {
+
+    this._dialogActionHandler(
+      selectedIds,
+      `Experiment${s(selectedIds)} will be moved to the Archive section, where you can still view ` +
+        `${
+          selectedIds.length === 1 ? 'its' : 'their'
+        } details. All runs in ` +
+        `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
+        `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
+      useCurrent,
+      id => Apis.runServiceApi.archiveRun(id),
+      callback,
+      'Archive',
+      'run',
+    );
   }
 }
