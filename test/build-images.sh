@@ -73,6 +73,8 @@ function build_image {
 # Image caching can be turned off by setting $DISABLE_IMAGE_CACHING env flag.
 # Note that GCR_IMAGE_BASE_DIR contains commit hash, so whenever there's a code
 # change, we won't use caches for sure.
+#
+# Split into two tasks because api_server builds slowly, use a separate task to speed up.
 if
   test -z "$DISABLE_IMAGE_CACHING" && has_batch_images_been_built
 then
