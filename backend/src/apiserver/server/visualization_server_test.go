@@ -1,14 +1,19 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestValidateCreateVisualizationRequest(t *testing.T) {
@@ -185,34 +190,57 @@ func TestGenerateVisualization_ServerError(t *testing.T) {
 }
 
 func TestGetVisualizationServiceURL(t *testing.T) {
-	expectedServiceURL := "http://host:port"
 	server := &VisualizationServer{
 		resourceManager: nil,
-		serviceURL:      expectedServiceURL,
-	}
-	visualization := &go_client.Visualization{
-		Type:      go_client.Visualization_ROC_CURVE,
-		Source:    "gs://ml-pipeline/roc/data.csv",
-		Arguments: "{}",
+		serviceURL:      "http://host:port",
 	}
 	request := &go_client.CreateVisualizationRequest{
-		Visualization: visualization,
+		Visualization: nil,
 	}
-	url, err := server.getVisualizationServiceURL(request)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedServiceURL, url)
+	url := server.getVisualizationServiceURL(request)
+	assert.Equal(t, "http://host:port", url)
 }
 
 func TestGetVisualizationServiceURL_Multiuser(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
-	viper.Set("VisualizationServiceName", "ml-pipeline-visualizationserver")
-	viper.Set("VisualizationServicePort", "8888")
+	viper.Set("VisualizationService.Name", "ml-pipeline-visualizationserver")
+	viper.Set("VisualizationService.Port", "8888")
 
-	expectedServiceURL := "http://host:port"
 	server := &VisualizationServer{
 		resourceManager: nil,
-		serviceURL:      expectedServiceURL,
+		serviceURL:      "http://host:port",
+	}
+
+	request := &go_client.CreateVisualizationRequest{
+		Visualization: nil,
+		Namespace:     "ns1",
+	}
+	url := server.getVisualizationServiceURL(request)
+	assert.Equal(t, "http://ml-pipeline-visualizationserver.ns1:8888", url)
+
+	// when namespace is not provided, we fall back to the default visuliaztion service
+	request = &go_client.CreateVisualizationRequest{
+		Visualization: nil,
+	}
+	url = server.getVisualizationServiceURL(request)
+	assert.Equal(t, "http://host:port", url)
+}
+
+func TestCreateVisualization_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
+	resourceManager := resource.NewResourceManager(clientManager)
+	defer clientManager.Close()
+
+	server := &VisualizationServer{
+		resourceManager: resourceManager,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
@@ -220,20 +248,11 @@ func TestGetVisualizationServiceURL_Multiuser(t *testing.T) {
 		Arguments: "{}",
 	}
 
-	// Invalid request, missing namespace
 	request := &go_client.CreateVisualizationRequest{
-		Visualization: visualization,
-	}
-	_, err := server.generateVisualizationFromRequest(request)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing namespace in CreateVisualizationRequest")
-
-	// Valid reqeust
-	request = &go_client.CreateVisualizationRequest{
 		Visualization: visualization,
 		Namespace:     "ns1",
 	}
-	url, err := server.getVisualizationServiceURL(request)
-	assert.Nil(t, err)
-	assert.Equal(t, "http://ml-pipeline-visualizationserver.ns1:8888", url)
+	_, err := server.CreateVisualization(ctx, request)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized access")
 }

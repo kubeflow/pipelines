@@ -14,12 +14,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/pkg/errors"
 )
 
 const (
-	visualizationServiceName = "VisualizationServiceName"
-	visualizationServicePort = "VisualizationServicePort"
+	visualizationServiceName = "VisualizationService.Name"
+	visualizationServicePort = "VisualizationService.Port"
 )
 
 type VisualizationServer struct {
@@ -31,6 +30,16 @@ func (s *VisualizationServer) CreateVisualization(ctx context.Context, request *
 	if err := s.validateCreateVisualizationRequest(request); err != nil {
 		return nil, err
 	}
+
+	// In multi-user mode, we allow empty namespace in which case we fall back to use the visualization service in system namespace.
+	// See getVisualizationServiceURL() for details.
+	if common.IsMultiUserMode() && len(request.Namespace) > 0 {
+		err := isAuthorized(s.resourceManager, ctx, request.Namespace)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize on namespace.")
+		}
+	}
+
 	body, err := s.generateVisualizationFromRequest(request)
 	if err != nil {
 		return nil, err
@@ -68,10 +77,7 @@ func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_cli
 // service to generate HTML visualizations from a request.
 // It returns the generated HTML as a string and any error that is encountered.
 func (s *VisualizationServer) generateVisualizationFromRequest(request *go_client.CreateVisualizationRequest) ([]byte, error) {
-	serviceURL, err := s.getVisualizationServiceURL(request)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to get visualization service URL.")
-	}
+	serviceURL := s.getVisualizationServiceURL(request)
 	if !isVisualizationServiceAlive(serviceURL) {
 		return nil, util.NewInternalServerError(
 			fmt.Errorf("service not available"),
@@ -99,18 +105,14 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 	return body, nil
 }
 
-func (s *VisualizationServer) getVisualizationServiceURL(request *go_client.CreateVisualizationRequest) (string, error) {
-	if common.IsMultiUserMode() {
-		if len(request.Namespace) == 0 {
-			return "", util.NewBadRequestError(
-				errors.New("Missing namespace in CreateVisualizationRequest."), "Namespace is required in multi-user mode.")
-		}
+func (s *VisualizationServer) getVisualizationServiceURL(request *go_client.CreateVisualizationRequest) string {
+	if common.IsMultiUserMode() && len(request.Namespace) > 0 {
 		return fmt.Sprintf("http://%s.%s:%s",
 			common.GetStringConfig(visualizationServiceName),
 			request.Namespace,
-			common.GetStringConfig(visualizationServicePort)), nil
+			common.GetStringConfig(visualizationServicePort))
 	}
-	return s.serviceURL, nil
+	return s.serviceURL
 }
 
 func isVisualizationServiceAlive(serviceURL string) bool {
