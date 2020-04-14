@@ -7,7 +7,6 @@ go_library(
         "model_converter.go",
         "resource_manager.go",
         "resource_manager_util.go",
-        "scheduled_workflow_fake.go",
     ],
     importpath = "github.com/kubeflow/pipelines/backend/src/apiserver/resource",
     visibility = ["//visibility:public"],
@@ -30,7 +29,6 @@ go_library(
         "@io_k8s_apimachinery//pkg/api/errors:go_default_library",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:go_default_library",
         "@io_k8s_apimachinery//pkg/types:go_default_library",
-        "@io_k8s_apimachinery//pkg/watch:go_default_library",
     ],
 )
 

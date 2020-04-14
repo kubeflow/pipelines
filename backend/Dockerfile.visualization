@@ -3,7 +3,7 @@
 # visualization. More details about this process can be found in the server.py
 # and exporter.py files in the directory specified above.
 
-# Copyright 2019 Google LLC
+# Copyright 2019-2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ RUN pip3 install -r requirements.txt
 
 COPY backend/src/apiserver/visualization/license.sh /src
 COPY backend/src/apiserver/visualization/third_party_licenses.csv /src
+COPY backend/src/apiserver/visualization/third_party_licenses /usr/licenses
 
 RUN ./license.sh third_party_licenses.csv /usr/licenses
 

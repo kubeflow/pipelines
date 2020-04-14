@@ -137,7 +137,10 @@ def _create_pipeline(
               name='baseline', label_key='variety', is_baseline=True
           )
       ],
-      slicing_specs=[tfma.SlicingSpec()],
+      slicing_specs=[
+          tfma.SlicingSpec(),
+          # Data can be sliced along a feature column. Required by TFMA visualization.
+          tfma.SlicingSpec(feature_keys=['sepal_length'])],
       metrics_specs=[
           tfma.MetricsSpec(
               metrics=[
@@ -198,7 +201,7 @@ if __name__ == '__main__':
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
-      tfx_image='tensorflow/tfx:0.21.2',
+      tfx_image='gcr.io/tfx-oss-public/tfx:0.21.2',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
       output_filename=__file__ + '.yaml', config=config

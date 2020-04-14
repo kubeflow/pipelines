@@ -112,8 +112,18 @@ func (s *JobStore) ListJobs(
 
 func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	filterContext *common.FilterContext) (string, []interface{}, error) {
-	filteredSelectBuilder, err := list.FilterOnResourceReference("jobs", jobColumns,
-		common.Job, selectCount, filterContext)
+
+	var filteredSelectBuilder sq.SelectBuilder
+	var err error
+
+	refKey := filterContext.ReferenceKey
+	if refKey != nil && refKey.Type == common.Namespace {
+		filteredSelectBuilder, err = list.FilterOnNamespace("jobs", jobColumns,
+			selectCount, refKey.ID)
+	} else {
+		filteredSelectBuilder, err = list.FilterOnResourceReference("jobs", jobColumns,
+			common.Job, selectCount, filterContext)
+	}
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}

@@ -22,28 +22,83 @@ import (
 )
 
 func TestGetNamespaceFromResourceReferences(t *testing.T) {
-	references := []*api.ResourceReference{
+	tests := []struct {
+		name              string
+		references        []*api.ResourceReference
+		expectedNamespace string
+	}{
 		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: "123"},
-			Relationship: api.Relationship_CREATOR,
+			"resource reference with namespace and experiment",
+			[]*api.ResourceReference{
+				{
+					Key: &api.ResourceKey{
+						Type: api.ResourceType_EXPERIMENT, Id: "123"},
+					Relationship: api.Relationship_CREATOR,
+				},
+				{
+					Key: &api.ResourceKey{
+						Type: api.ResourceType_NAMESPACE, Id: "ns"},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+			"ns",
 		},
 		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_NAMESPACE, Id: "ns"},
-			Relationship: api.Relationship_OWNER,
+			"resource reference with experiment only",
+			[]*api.ResourceReference{
+				{
+					Key: &api.ResourceKey{
+						Type: api.ResourceType_EXPERIMENT, Id: "123"},
+					Relationship: api.Relationship_CREATOR,
+				},
+			},
+			"",
 		},
 	}
-	namespace := GetNamespaceFromAPIResourceReferences(references)
-	assert.Equal(t, "ns", namespace)
+	for _, tc := range tests {
+		namespace := GetNamespaceFromAPIResourceReferences(tc.references)
+		assert.Equal(t, tc.expectedNamespace, namespace,
+			"TestGetNamespaceFromResourceReferences(%v) has unexpected result.", tc.name)
+	}
+}
 
-	references = []*api.ResourceReference{
+func TestGetExperimentIDFromResourceReferences(t *testing.T) {
+	tests := []struct {
+		name                 string
+		references           []*api.ResourceReference
+		expectedExperimentID string
+	}{
 		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: "123"},
-			Relationship: api.Relationship_CREATOR,
+			"resource reference with namespace and experiment",
+			[]*api.ResourceReference{
+				{
+					Key: &api.ResourceKey{
+						Type: api.ResourceType_EXPERIMENT, Id: "123"},
+					Relationship: api.Relationship_CREATOR,
+				},
+				{
+					Key: &api.ResourceKey{
+						Type: api.ResourceType_NAMESPACE, Id: "ns"},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+			"123",
+		},
+		{
+			"resource reference with namespace only",
+			[]*api.ResourceReference{
+				{
+					Key: &api.ResourceKey{
+						Type: api.ResourceType_NAMESPACE, Id: "ns"},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+			"",
 		},
 	}
-	namespace = GetNamespaceFromAPIResourceReferences(references)
-	assert.Equal(t, "", namespace)
+	for _, tc := range tests {
+		experimentID := GetExperimentIDFromAPIResourceReferences(tc.references)
+		assert.Equal(t, tc.expectedExperimentID, experimentID,
+			"TestGetExperimentIDFromResourceReferences(%v) has unexpected result.", tc.name)
+	}
 }

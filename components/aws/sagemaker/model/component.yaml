@@ -45,7 +45,7 @@ outputs:
   - {name: model_name,          description: 'The model name Sagemaker created'}
 implementation:
   container:
-    image: redbackthomson/aws-kubeflow-sagemaker:20191003
+    image: redbackthomson/aws-kubeflow-sagemaker:20200402
     command: ['python']
     args: [
       create_model.py,

@@ -46,6 +46,9 @@ __all__ = [
     'AndPredicate',
     'OrPredicate',
 
+    'RetryStrategySpec',
+    'CachingStrategySpec',
+    'ExecutionOptionsSpec',
     'TaskSpec',
 
     'GraphSpec',
@@ -532,6 +535,17 @@ class RetryStrategySpec(ModelBase):
         super().__init__(locals())
 
 
+class CachingStrategySpec(ModelBase):
+    _serialized_names = {
+        'max_cache_staleness': 'maxCacheStaleness',
+    }
+
+    def __init__(self,
+        max_cache_staleness: Optional[str] = None,  # RFC3339 compliant duration: P30DT1H22M3S
+    ):
+        super().__init__(locals())
+
+
 class KubernetesExecutionOptionsSpec(ModelBase):
     _serialized_names = {
         'main_container': 'mainContainer',
@@ -549,11 +563,13 @@ class KubernetesExecutionOptionsSpec(ModelBase):
 class ExecutionOptionsSpec(ModelBase):
     _serialized_names = {
         'retry_strategy': 'retryStrategy',
+        'caching_strategy': 'cachingStrategy',
         'kubernetes_options': 'kubernetesOptions',
     }
 
     def __init__(self,
         retry_strategy: Optional[RetryStrategySpec] = None,
+        caching_strategy: Optional[CachingStrategySpec] = None,
         kubernetes_options: Optional[KubernetesExecutionOptionsSpec] = None,
     ):
         super().__init__(locals())

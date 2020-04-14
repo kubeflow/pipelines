@@ -28,12 +28,11 @@ implementation:
     image: docker.io/aipipeline/wml-deploy:latest
     command: ['python']
     args: [
-      /app/wml-deploy.py,
+      -u, /app/wml-deploy.py,
       --model-uid, {inputValue: model_uid},
       --model-name, {inputValue: model_name},
       --scoring-payload, {inputValue: scoring_payload},
-      --deployment-name, {inputValue: deployment_name}
+      --deployment-name, {inputValue: deployment_name},
+      --output-scoring-endpoint-path, {outputPath: scoring_endpoint},
+      --output-model-uid-path, {outputPath: model_uid}
     ]
-    fileOutputs:
-      scoring_endpoint: /tmp/scoring_endpoint
-      model_uid: /tmp/model_uid

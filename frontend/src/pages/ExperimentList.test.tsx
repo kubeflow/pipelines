@@ -29,7 +29,8 @@ import { RoutePage, QUERY_PARAMS } from '../components/Router';
 import { range } from 'lodash';
 import { ButtonKeys } from '../lib/Buttons';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { render } from '@testing-library/react';
+import { render, act } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 
 // Default arguments for Apis.experimentServiceApi.listExperiment.
 const LIST_EXPERIMENT_DEFAULTS = [
@@ -71,17 +72,22 @@ describe('ExperimentList', () => {
     );
   }
 
+  function mockListNExpperiments(n: number = 1) {
+    return () =>
+      Promise.resolve({
+        experiments: range(n).map(i => ({
+          id: 'test-experiment-id' + i,
+          name: 'test experiment name' + i,
+        })),
+      });
+  }
+
   async function mountWithNExperiments(
     n: number,
     nRuns: number,
     { namespace }: { namespace?: string } = {},
   ): Promise<void> {
-    listExperimentsSpy.mockImplementation(() => ({
-      experiments: range(n).map(i => ({
-        id: 'test-experiment-id' + i,
-        name: 'test experiment name' + i,
-      })),
-    }));
+    listExperimentsSpy.mockImplementation(mockListNExpperiments(n));
     listRunsSpy.mockImplementation(() => ({
       runs: range(nRuns).map(i => ({ id: 'test-run-id' + i, name: 'test run name' + i })),
     }));
@@ -471,6 +477,30 @@ describe('ExperimentList', () => {
         ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
         'NAMESPACE',
         'test-ns-2',
+      );
+    });
+
+    it("doesn't keep error message for request from previous namespace", async () => {
+      listExperimentsSpy.mockImplementation(() => Promise.reject('namespace cannot be empty'));
+      const { rerender } = render(
+        <MemoryRouter>
+          <NamespaceContext.Provider value={undefined}>
+            <EnhancedExperimentList {...generateProps()} />
+          </NamespaceContext.Provider>
+        </MemoryRouter>,
+      );
+
+      listExperimentsSpy.mockImplementation(mockListNExpperiments());
+      rerender(
+        <MemoryRouter>
+          <NamespaceContext.Provider value={'test-ns'}>
+            <EnhancedExperimentList {...generateProps()} />
+          </NamespaceContext.Provider>
+        </MemoryRouter>,
+      );
+      await act(TestUtils.flushPromises);
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        {}, // Empty object means banner has no error message
       );
     });
   });

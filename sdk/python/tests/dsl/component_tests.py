@@ -43,6 +43,34 @@ class TestPythonComponent(unittest.TestCase):
 
     self.assertEqual(containerOp._metadata, golden_meta)
 
+  def test_python_component_decorator(self):
+    # Deprecated
+    from kfp.dsl import python_component
+    from kfp.components import create_component_from_func
+
+    expected_name = 'Sum component name'
+    expected_description = 'Sum component description'
+    expected_image = 'org/image'
+
+    @python_component(
+        name=expected_name,
+        description=expected_description,
+        base_image=expected_image
+    )
+    def add_two_numbers_decorated(
+        a: float,
+        b: float,
+    ) -> float:
+        '''Returns sum of two arguments'''
+        return a + b
+
+    op = create_component_from_func(add_two_numbers_decorated)
+
+    component_spec = op.component_spec
+    self.assertEqual(component_spec.name, expected_name)
+    self.assertEqual(component_spec.description.strip(), expected_description.strip())
+    self.assertEqual(component_spec.implementation.container.image, expected_image)
+
   def test_type_check_with_same_representation(self):
     """Test type check at the decorator."""
     kfp.TYPE_CHECK = True

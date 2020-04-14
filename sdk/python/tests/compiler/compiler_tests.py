@@ -801,3 +801,12 @@ implementation:
     template_names = set(template['name'] for template in workflow_dict['spec']['templates'])
     self.assertGreater(len(template_names), 1)
     self.assertEqual(template_names, {'some-name', 'some-name-2'})
+
+  def test_set_execution_options_caching_strategy(self):
+    def some_pipeline():
+      task = some_op()
+      task.execution_options.caching_strategy.max_cache_staleness = "P30D"
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    template = workflow_dict['spec']['templates'][0]
+    self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/max_cache_staleness'], "P30D")

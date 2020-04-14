@@ -1256,39 +1256,6 @@ describe('NewRun', () => {
       });
     });
 
-    it('starts a run in provided namespace', async () => {
-      const props = generateProps();
-      props.location.search =
-        `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}` +
-        `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
-
-      tree = mount(<TestNewRun {...props} namespace='test-ns' />);
-      fillRequiredFields(tree.find(TestNewRun).instance() as TestNewRun);
-      await TestUtils.flushPromises();
-
-      tree
-        .find('#startNewRunBtn')
-        .hostNodes()
-        .simulate('click');
-      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
-      await TestUtils.flushPromises();
-
-      expect(startRunSpy).toHaveBeenCalledTimes(1);
-      expect(startRunSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          resource_references: expect.arrayContaining([
-            {
-              key: {
-                id: 'test-ns',
-                type: ApiResourceType.NAMESPACE,
-              },
-              relationship: ApiRelationship.OWNER,
-            },
-          ]),
-        }),
-      );
-    });
-
     it('updates the parameters in state on handleParamChange', async () => {
       const props = generateProps();
       const pipeline = newMockPipeline();

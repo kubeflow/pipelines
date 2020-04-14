@@ -71,7 +71,7 @@ else
   NODE_POOL_CONFIG_ARG="--num-nodes=2 --machine-type=n1-standard-8 \
     --enable-autoscaling --max-nodes=8 --min-nodes=2"
   # Use new kubernetes master to improve workload identity stability.
-  KUBERNETES_VERSION_ARG="--cluster-version=1.14.10-gke.17"
+  KUBERNETES_VERSION_ARG="--cluster-version=1.14.10-gke.27"
   if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
     WI_ARG="--identity-namespace=$PROJECT.svc.id.goog"
     SCOPE_ARG=

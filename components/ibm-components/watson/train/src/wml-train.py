@@ -22,6 +22,7 @@ def train(args):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
     from minio import Minio
     from urllib.parse import urlsplit
+    from pathlib import Path
     import os,time
 
     wml_train_code = args.train_code
@@ -82,6 +83,14 @@ def train(args):
         client.runtimes.LibraryMetaNames.FILEPATH: model_code,
         client.runtimes.LibraryMetaNames.PLATFORM: {"name": wml_framework_name, "versions": [wml_framework_version]}
     }
+    # check exisiting library
+    library_details = client.runtimes.get_library_details()
+    for library_detail in library_details['resources']:
+        if library_detail['entity']['name'] == wml_run_definition:
+            # Delete library if exist because we cannot update model_code
+            uid = client.runtimes.get_library_uid(library_detail)
+            client.repository.delete(uid)
+            break
     custom_library_details = client.runtimes.store_library(lib_meta)
     custom_library_uid = client.runtimes.get_library_uid(custom_library_details)
 
@@ -175,18 +184,16 @@ def train(args):
         status = client.training.get_status(run_uid)
     print(status)
 
-    with open("/tmp/run_uid", "w") as f:
-        f.write(run_uid)
-    f.close()
+    Path(args.output_run_uid_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.output_run_uid_path).write_text(run_uid)
 
     # Get training details
     training_details = client.training.get_details(run_uid)
     print("training_details", training_details)
  
-    with open("/tmp/training_uid", "w") as f:
-        training_uid = training_uid = training_details['entity']['results_reference']['location']['training']
-        f.write(training_uid)
-    f.close()
+    training_uid = training_details['entity']['results_reference']['location']['training']
+    Path(args.output_training_uid_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.output_training_uid_path).write_text(training_uid)
 
 if __name__ == "__main__":
     import argparse
@@ -203,6 +210,8 @@ if __name__ == "__main__":
     parser.add_argument('--config', type=str, default="secret_name")
     parser.add_argument('--compute-name', type=str)
     parser.add_argument('--compute-nodes', type=str)
+    parser.add_argument('--output-run-uid-path', type=str, default="/tmp/run_uid")
+    parser.add_argument('--output-training-uid-path', type=str, default="/tmp/training_uid")
     args = parser.parse_args()
     # Check secret name is not empty
     if (not args.config):

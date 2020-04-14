@@ -400,8 +400,9 @@ def _extract_component_interface(func) -> ComponentSpec:
         output_spec._passing_style = None
         outputs.append(output_spec)
 
-    #Component name and description are derived from the function's name and docstribng, but can be overridden by @python_component function decorator
-    #The decorator can set the _component_human_name and _component_description attributes. getattr is needed to prevent error when these attributes do not exist.
+    # Component name and description are derived from the function's name and docstring.
+    # The name can be overridden by setting setting func.__name__ attribute (of the legacy func._component_human_name attribute).
+    # The description can be overridden by setting the func.__doc__ attribute (or the legacy func._component_description attribute).
     component_name = getattr(func, '_component_human_name', None) or _python_function_name_to_component_name(func.__name__)
     description = getattr(func, '_component_description', None) or func.__doc__
     if description:

@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -42,6 +43,34 @@ func TestCreateExperiment_Failed(t *testing.T) {
 	_, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Create experiment failed.")
+}
+
+func TestCreateExperiment_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
+	resourceManager := resource.NewResourceManager(clientManager)
+	defer clientManager.Close()
+
+	server := ExperimentServer{resourceManager: resourceManager}
+	experiment := &api.Experiment{
+		Name:        "exp1",
+		Description: "first experiment",
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns1"},
+				Relationship: api.Relationship_OWNER,
+			},
+		}}
+
+	_, err := server.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: experiment})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized access")
 }
 
 func TestCreateExperiment_Multiuser(t *testing.T) {
@@ -109,6 +138,23 @@ func TestGetExperiment_Failed(t *testing.T) {
 	assert.Contains(t, err.Error(), "Get experiment failed.")
 }
 
+func TestGetExperiment_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	defer clients.Close()
+
+	server := ExperimentServer{manager}
+
+	_, err := server.GetExperiment(ctx, &api.GetExperimentRequest{Id: resource.DefaultFakeUUID})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized access")
+}
+
 func TestGetExperiment_Multiuser(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
@@ -173,6 +219,28 @@ func TestListExperiment_Failed(t *testing.T) {
 	_, err = server.ListExperiment(nil, &api.ListExperimentsRequest{})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "List experiments failed.")
+}
+
+func TestListExperiment_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	defer clients.Close()
+
+	server := ExperimentServer{manager}
+
+	_, err := server.ListExperiment(ctx, &api.ListExperimentsRequest{
+		ResourceReferenceKey: &api.ResourceKey{
+			Type: api.ResourceType_NAMESPACE,
+			Id:   "ns1",
+		},
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized access")
 }
 
 func TestListExperiment_Multiuser(t *testing.T) {

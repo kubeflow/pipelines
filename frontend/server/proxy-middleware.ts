@@ -70,7 +70,7 @@ export default (app: express.Application, apisPrefix: string) => {
     proxyPrefix + '*',
     proxy({
       changeOrigin: true,
-      logLevel: 'debug',
+      logLevel: process.env.NODE_ENV === 'test' ? 'warn' : 'debug',
       target: 'http://127.0.0.1',
 
       router: (req: any) => {

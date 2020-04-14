@@ -350,6 +350,23 @@ describe('RunList', () => {
     );
   });
 
+  it('loads runs for a given namespace', async () => {
+    mockNRuns(1, {});
+    const props = generateProps();
+    props.namespaceMask = 'namespace1';
+    tree = shallow(<RunList {...props} />);
+    await (tree.instance() as RunListTest)._loadRuns({});
+    expect(props.onError).not.toHaveBeenCalled();
+    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
+      undefined,
+      undefined,
+      undefined,
+      'NAMESPACE',
+      'namespace1',
+      undefined,
+    );
+  });
+
   it('loads given list of runs only', async () => {
     mockNRuns(5, {});
     const props = generateProps();

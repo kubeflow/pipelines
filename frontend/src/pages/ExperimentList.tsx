@@ -227,7 +227,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       }),
     );
 
-    this.setState({ displayExperiments });
+    this.setStateSafe({ displayExperiments });
     return response.next_page_token || '';
   }
 

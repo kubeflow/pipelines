@@ -14,64 +14,78 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import Banner, { Mode } from '../components/Banner';
-import Buttons, { ButtonKeys } from '../lib/Buttons';
+import { Context, Execution, getResourceProperty } from '@kubeflow/frontend';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import CompareTable from '../components/CompareTable';
-import CompareUtils from '../lib/CompareUtils';
-import DetailsTable from '../components/DetailsTable';
-import MinioArtifactLink from '../components/MinioArtifactLink';
-import Graph from '../components/Graph';
-import Hr from '../atoms/Hr';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
-import LogViewer from '../components/LogViewer';
-import MD2Tabs from '../atoms/MD2Tabs';
-import PlotCard from '../components/PlotCard';
-import RunUtils from '../lib/RunUtils';
-import Separator from '../atoms/Separator';
-import SidePanel from '../components/SidePanel';
-import WorkflowParser from '../lib/WorkflowParser';
+import { flatten } from 'lodash';
+import * as React from 'react';
+import { Link, Redirect } from 'react-router-dom';
+import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
+import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
+import {
+  ExecutionHelpers,
+  getExecutionsFromContext,
+  getTfxRunContext,
+  KfpExecutionProperties,
+} from 'src/lib/MlmdUtils';
+import { classes, stylesheet } from 'typestyle';
+import {
+  NodePhase as ArgoNodePhase,
+  NodeStatus,
+  Workflow,
+} from '../../third_party/argo-ui/argo_template';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiRun, RunStorageState } from '../apis/run';
-import { Apis } from '../lib/Apis';
-import { NodePhase, hasFinished } from '../lib/StatusUtils';
-import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
-import { KeyValue } from '../lib/StaticGraphParser';
-import { Page, PageProps } from './Page';
-import { RoutePage, RouteParams } from '../components/Router';
+import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
+import Hr from '../atoms/Hr';
+import MD2Tabs from '../atoms/MD2Tabs';
+import Separator from '../atoms/Separator';
+import Banner, { Mode } from '../components/Banner';
+import CompareTable from '../components/CompareTable';
+import DetailsTable from '../components/DetailsTable';
+import Graph from '../components/Graph';
+import LogViewer from '../components/LogViewer';
+import MinioArtifactLink from '../components/MinioArtifactLink';
+import PlotCard from '../components/PlotCard';
+import { PodEvents, PodInfo } from '../components/PodYaml';
+import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
+import SidePanel from '../components/SidePanel';
 import { ToolbarProps } from '../components/Toolbar';
-import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
-import {
-  Workflow,
-  NodeStatus,
-  NodePhase as ArgoNodePhase,
-} from '../../third_party/argo-ui/argo_template';
-import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding, color, fonts, fontsize } from '../Css';
+import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { componentMap } from '../components/viewers/ViewerContainer';
-import { flatten } from 'lodash';
-import {
-  formatDateString,
-  getRunDurationFromWorkflow,
-  logger,
-  errorToMessage,
-  serviceErrorToString,
-} from '../lib/Utils';
-import { statusToIcon } from './Status';
 import VisualizationCreator, {
   VisualizationCreatorConfig,
 } from '../components/viewers/VisualizationCreator';
-import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
-import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
-import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
+import { color, commonCss, fonts, fontsize, padding } from '../Css';
+import { Apis } from '../lib/Apis';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
+import CompareUtils from '../lib/CompareUtils';
+import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
+import RunUtils from '../lib/RunUtils';
+import { KeyValue } from '../lib/StaticGraphParser';
+import { hasFinished, NodePhase } from '../lib/StatusUtils';
+import {
+  errorToMessage,
+  formatDateString,
+  getRunDurationFromWorkflow,
+  logger,
+  serviceErrorToString,
+} from '../lib/Utils';
+import WorkflowParser from '../lib/WorkflowParser';
+import { ExecutionDetailsContent } from './ExecutionDetails';
+import { Page, PageProps } from './Page';
+import { statusToIcon } from './Status';
 
 enum SidePaneTab {
   ARTIFACTS,
   INPUT_OUTPUT,
+  ML_METADATA,
   VOLUMES,
   MANIFEST,
   LOGS,
+  POD,
+  EVENTS,
 }
 
 interface SelectedNodeDetails {
@@ -115,6 +129,8 @@ interface RunDetailsState {
   sidepanelBusy: boolean;
   sidepanelSelectedTab: SidePaneTab;
   workflow?: Workflow;
+  mlmdRunContext?: Context;
+  mlmdExecutions?: Execution[];
 }
 
 export const css = stylesheet({
@@ -147,7 +163,7 @@ export const css = stylesheet({
   },
 });
 
-export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
+class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   public state: RunDetailsState = {
     allArtifactConfigs: [],
     allowCustomVisualizations: false,
@@ -161,6 +177,8 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     selectedTab: 0,
     sidepanelBusy: false,
     sidepanelSelectedTab: SidePaneTab.ARTIFACTS,
+    mlmdRunContext: undefined,
+    mlmdExecutions: undefined,
   };
 
   private readonly AUTO_REFRESH_INTERVAL = 5000;
@@ -219,9 +237,11 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       selectedNodeDetails,
       sidepanelSelectedTab,
       workflow,
+      mlmdExecutions,
     } = this.state;
     const { projectId, clusterName } = this.props.gkeMetadata;
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
+    const namespace = workflow?.metadata?.namespace;
     let stackdriverK8sLogsUrl = '';
     if (projectId && clusterName && selectedNodeDetails && selectedNodeDetails.id) {
       stackdriverK8sLogsUrl = `https://console.cloud.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_name:"${selectedNodeDetails.id}"`;
@@ -236,6 +256,11 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       workflow,
       selectedNodeId,
     );
+    const selectedExecution = mlmdExecutions?.find(
+      execution =>
+        getResourceProperty(execution, KfpExecutionProperties.KFP_POD_NAME) === selectedNodeId,
+    );
+    // const selectedExecution = mlmdExecutions && mlmdExecutions.find(execution => execution.getPropertiesMap())
     const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
     const visualizationCreatorConfig: VisualizationCreatorConfig = {
       allowCustomVisualizations,
@@ -283,7 +308,16 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                             )}
                             <div className={commonCss.page}>
                               <MD2Tabs
-                                tabs={['Artifacts', 'Input/Output', 'Volumes', 'Manifest', 'Logs']}
+                                tabs={[
+                                  'Artifacts',
+                                  'Input/Output',
+                                  'ML Metadata',
+                                  'Volumes',
+                                  'Manifest',
+                                  'Logs',
+                                  'Pod',
+                                  'Events',
+                                ]}
                                 selectedTab={sidepanelSelectedTab}
                                 onSwitch={this._loadSidePaneTab.bind(this)}
                               />
@@ -304,6 +338,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                             ]
                                           : undefined
                                       }
+                                      namespace={this.state.workflow?.metadata?.namespace}
                                       visualizationCreatorConfig={visualizationCreatorConfig}
                                       generatedVisualizations={this.state.generatedVisualizations.filter(
                                         visualization =>
@@ -333,6 +368,42 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   </div>
                                 )}
 
+                                {sidepanelSelectedTab === SidePaneTab.ML_METADATA && (
+                                  <div className={padding(20)}>
+                                    {selectedExecution && (
+                                      <>
+                                        <div>
+                                          This step corresponds to execution{' '}
+                                          <Link
+                                            className={commonCss.link}
+                                            to={RoutePageFactory.executionDetails(
+                                              selectedExecution.getTypeId() + '',
+                                              selectedExecution.getId(),
+                                            )}
+                                          >
+                                            "{ExecutionHelpers.getName(selectedExecution)}".
+                                          </Link>
+                                        </div>
+                                        <ExecutionDetailsContent
+                                          key={selectedExecution.getId()}
+                                          id={selectedExecution.getId()}
+                                          onError={
+                                            ((msg: string, ...args: any[]) => {
+                                              // TODO: show a proper error banner and retry button
+                                              console.warn(msg);
+                                            }) as any
+                                          }
+                                          // No title here
+                                          onTitleUpdate={() => null}
+                                        />
+                                      </>
+                                    )}
+                                    {!selectedExecution && (
+                                      <div>Corresponding ML Metadata not found.</div>
+                                    )}
+                                  </div>
+                                )}
+
                                 {sidepanelSelectedTab === SidePaneTab.VOLUMES && (
                                   <div className={padding(20)}>
                                     <DetailsTable
@@ -354,6 +425,22 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                         selectedNodeId,
                                       )}
                                     />
+                                  </div>
+                                )}
+
+                                {sidepanelSelectedTab === SidePaneTab.POD && (
+                                  <div className={commonCss.page}>
+                                    {selectedNodeId && namespace && (
+                                      <PodInfo name={selectedNodeId} namespace={namespace} />
+                                    )}
+                                  </div>
+                                )}
+
+                                {sidepanelSelectedTab === SidePaneTab.EVENTS && (
+                                  <div className={commonCss.page}>
+                                    {selectedNodeId && namespace && (
+                                      <PodEvents name={selectedNodeId} namespace={namespace} />
+                                    )}
                                   </div>
                                 )}
 
@@ -572,6 +659,20 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         }
       }
 
+      let mlmdRunContext: Context | undefined;
+      let mlmdExecutions: Execution[] | undefined;
+      // Get data about this workflow from MLMD
+      if (workflow.metadata?.name) {
+        try {
+          mlmdRunContext = await getTfxRunContext(workflow.metadata.name);
+          mlmdExecutions = await getExecutionsFromContext(mlmdRunContext);
+        } catch (err) {
+          // Data in MLMD may not exist depending on this pipeline is a TFX pipeline.
+          // So we only log the error in console.
+          logger.warn(err);
+        }
+      }
+
       // Build runtime graph
       const graph =
         workflow && workflow.status && workflow.status.nodes
@@ -635,10 +736,12 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         runFinished,
         runMetadata,
         workflow,
+        mlmdRunContext,
+        mlmdExecutions,
       });
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
-      logger.error('Error loading run:', runId);
+      logger.error('Error loading run:', runId, err);
     }
 
     // Make sure logs and artifacts in the side panel are refreshed when
@@ -688,7 +791,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
     const configLists = await Promise.all(
       outputPathsList.map(({ stepName, path }) =>
-        OutputArtifactLoader.load(path).then(configs =>
+        OutputArtifactLoader.load(path, workflow?.metadata?.namespace).then(configs =>
           configs.map(config => ({ config, stepName })),
         ),
       ),
@@ -755,7 +858,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     try {
       const logs = await Apis.getPodLogs(
         selectedNodeDetails.id,
-        RunUtils.getNamespaceReferenceName(this.state.runMetadata),
+        this.state.workflow?.metadata?.namespace,
       );
       selectedNodeDetails.logs = logs;
       this.setStateSafe({
@@ -888,8 +991,16 @@ const ArtifactsTabContent: React.FC<{
   nodeId: string;
   nodeStatus?: NodeStatus;
   generatedVisualizations: GeneratedVisualization[];
+  namespace: string | undefined;
   onError: (error: Error) => void;
-}> = ({ visualizationCreatorConfig, generatedVisualizations, nodeId, nodeStatus, onError }) => {
+}> = ({
+  visualizationCreatorConfig,
+  generatedVisualizations,
+  nodeId,
+  nodeStatus,
+  namespace,
+  onError,
+}) => {
   const [loaded, setLoaded] = React.useState(false);
   // Progress component expects onLoad function identity to stay the same
   const onLoad = React.useCallback(() => setLoaded(true), [setLoaded]);
@@ -931,7 +1042,7 @@ const ArtifactsTabContent: React.FC<{
             reportErrorAndReturnEmpty,
           ),
           ...outputPaths.map(path =>
-            OutputArtifactLoader.load(path).catch(reportErrorAndReturnEmpty),
+            OutputArtifactLoader.load(path, namespace).catch(reportErrorAndReturnEmpty),
           ),
         ])
       ).flatMap(configs => configs);
@@ -955,7 +1066,7 @@ const ArtifactsTabContent: React.FC<{
     // nodeStatus object instance will keep changing after new requests to get
     // workflow status.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeId, nodeCompleted, onError]);
+  }, [nodeId, nodeCompleted, onError, namespace]);
 
   return (
     <div className={commonCss.page}>
@@ -990,8 +1101,17 @@ const ArtifactsTabContent: React.FC<{
 };
 
 const EnhancedRunDetails: React.FC<RunDetailsProps> = props => {
+  const namespaceChanged = useNamespaceChangeEvent();
   const gkeMetadata = React.useContext(GkeMetadataContext);
+  if (namespaceChanged) {
+    // Run details page shows info about a run, when namespace changes, the run
+    // doesn't exist in the new namespace, so we should redirect to experiment
+    // list page.
+    return <Redirect to={RoutePage.EXPERIMENTS} />;
+  }
   return <RunDetails {...props} gkeMetadata={gkeMetadata} />;
 };
 
 export default EnhancedRunDetails;
+
+export const TEST_ONLY = { RunDetails };

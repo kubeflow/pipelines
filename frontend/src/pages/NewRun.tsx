@@ -1012,20 +1012,6 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       });
     }
 
-    // namespace resource ref is only supported in create run for now
-    if (!this.state.isRecurringRun) {
-      const currentNamespace = this.props.namespace;
-      if (currentNamespace) {
-        references.push({
-          key: {
-            id: currentNamespace,
-            type: ApiResourceType.NAMESPACE,
-          },
-          relationship: ApiRelationship.OWNER,
-        });
-      }
-    }
-
     let newRun: ApiRun | ApiJob = {
       description: this.state.description,
       name: this.state.runName,

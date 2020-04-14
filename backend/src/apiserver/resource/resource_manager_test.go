@@ -15,7 +15,6 @@
 package resource
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -38,7 +37,7 @@ import (
 )
 
 func initEnvVars() {
-	viper.Set(common.PodNamespace, "test-ns")
+	viper.Set(common.PodNamespace, "ns1")
 }
 
 type FakeBadObjectStore struct{}
@@ -69,7 +68,7 @@ func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, filePath string) err
 
 var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "test-ns"},
+	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
 	Status:     v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 })
@@ -310,6 +309,27 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	apiExperiment := &api.Experiment{Name: "e1"}
 	experiment, err := manager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
+
+	// Create a new pipeline version with UUID being FakeUUID.
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
+		Name: "version_for_run",
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   p.UUID,
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}, []byte(testWorkflow.ToStringForStore()))
+	assert.Nil(t, err)
+
+	// The pipeline specified via pipeline id will be converted to this
+	// pipeline's default version, which will be used to create run.
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
@@ -341,9 +361,9 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			ExperimentUUID: experiment.UUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
-			Namespace:      "test-ns",
+			Namespace:      "ns1",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-			CreatedAtInSec: 3,
+			CreatedAtInSec: 4,
 			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           p.UUID,
@@ -359,6 +379,14 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
+				},
+				{
+					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+					ResourceType:  common.Run,
+					ReferenceUUID: version.UUID,
+					ReferenceName: version.Name,
+					ReferenceType: common.PipelineVersion,
+					Relationship:  common.Creator,
 				},
 			},
 		},
@@ -388,7 +416,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			ExperimentUUID: expectedExperimentUUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
-			Namespace:      "test-ns",
+			Namespace:      "ns1",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 2,
 			Conditions:     "Running",
@@ -436,7 +464,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 			ExperimentUUID: expectedExperimentUUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
-			Namespace:      "test-ns",
+			Namespace:      "ns1",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 2,
 			Conditions:     "Running",
@@ -521,7 +549,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 			ExperimentUUID: experiment.UUID,
 			DisplayName:    "run1",
 			Name:           "workflow-name",
-			Namespace:      "test-ns",
+			Namespace:      "ns1",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 4,
 			Conditions:     "Running",
@@ -561,7 +589,12 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 
 func TestCreateRun_NoExperiment(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
 	manager := NewResourceManager(store)
+	experimentID, err := manager.CreateDefaultExperiment()
+	experiment, err := manager.GetExperiment(experimentID)
+	assert.Equal(t, experiment.Name, "Default")
+
 	apiRun := &api.Run{
 		Name: "No experiment",
 		PipelineSpec: &api.PipelineSpec{
@@ -870,10 +903,10 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 	store, _, job := initWithJob(t)
 	defer store.Close()
 	expectedJob := &model.Job{
-		UUID:           "123",
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
 		Name:           "j1",
-		Namespace:      "default",
+		Namespace:      "ns1",
 		Enabled:        true,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
@@ -883,7 +916,7 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID:  "123",
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Job,
 				ReferenceUUID: DefaultFakeUUID,
 				ReferenceName: "e1",
@@ -916,15 +949,36 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 			},
 		},
 	}
+
+	// Create a new pipeline version with UUID being FakeUUID.
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
+		Name: "version_for_run",
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   pipeline.UUID,
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}, []byte(testWorkflow.ToStringForStore()))
+	assert.Nil(t, err)
+
+	// The pipeline specified via pipeline id will be converted to this
+	// pipeline's default version, which will be used to create run.
 	newJob, err := manager.CreateJob(job)
 	expectedJob := &model.Job{
-		UUID:           "123",
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
 		Name:           "j1",
-		Namespace:      "default",
+		Namespace:      "ns1",
 		Enabled:        true,
-		CreatedAtInSec: 3,
-		UpdatedAtInSec: 3,
+		CreatedAtInSec: 4,
+		UpdatedAtInSec: 4,
 		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipeline.UUID,
@@ -934,12 +988,20 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID:  "123",
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Job,
 				ReferenceUUID: experiment.UUID,
 				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
+			},
+			{
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+				ResourceType:  common.Job,
+				ReferenceUUID: version.UUID,
+				ReferenceName: version.Name,
+				ReferenceType: common.PipelineVersion,
+				Relationship:  common.Creator,
 			},
 		},
 	}
@@ -989,10 +1051,10 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 	}
 	newJob, err := manager.CreateJob(job)
 	expectedJob := &model.Job{
-		UUID:           "123",
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
 		Name:           "j1",
-		Namespace:      "default",
+		Namespace:      "ns1",
 		Enabled:        true,
 		CreatedAtInSec: 4,
 		UpdatedAtInSec: 4,
@@ -1003,7 +1065,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID:  "123",
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Job,
 				ReferenceUUID: experiment.UUID,
 				ReferenceName: "e1",
@@ -1011,7 +1073,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 				Relationship:  common.Owner,
 			},
 			{
-				ResourceUUID:  "123",
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Job,
 				ReferenceUUID: version.UUID,
 				ReferenceName: "version_for_job",
@@ -1082,7 +1144,7 @@ func TestCreateJob_ExtraInputParameterError(t *testing.T) {
 func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 	store, manager, p := initWithPipeline(t)
 	defer store.Close()
-	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
+	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
 	job := &api.Job{
 		Name:         "pp1",
 		Enabled:      true,
@@ -1099,10 +1161,10 @@ func TestEnableJob(t *testing.T) {
 	err := manager.EnableJob(job.UUID, false)
 	job, err = manager.GetJob(job.UUID)
 	expectedJob := &model.Job{
-		UUID:           "123",
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
 		Name:           "j1",
-		Namespace:      "default",
+		Namespace:      "ns1",
 		Enabled:        false,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 3,
@@ -1112,7 +1174,7 @@ func TestEnableJob(t *testing.T) {
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID:  "123",
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Job,
 				ReferenceUUID: DefaultFakeUUID,
 				ReferenceName: "e1",
@@ -1137,7 +1199,7 @@ func TestEnableJob_JobNotExist(t *testing.T) {
 func TestEnableJob_CrdFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
+	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
 	err := manager.EnableJob(job.UUID, false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
@@ -1160,7 +1222,7 @@ func TestDeleteJob(t *testing.T) {
 
 	_, err = manager.GetJob(job.UUID)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Job 123 not found")
+	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
 }
 
 func TestDeleteJob_JobNotExist(t *testing.T) {
@@ -1176,7 +1238,7 @@ func TestDeleteJob_CrdFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
 
-	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
+	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
 	err := manager.DeleteJob(job.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
@@ -1201,7 +1263,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
-			Namespace: "test-ns",
+			Namespace: "ns1",
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 	})
@@ -1214,7 +1276,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		ExperimentUUID: expectedExperimentUUID,
 		DisplayName:    "run1",
 		Name:           "workflow-name",
-		Namespace:      "test-ns",
+		Namespace:      "ns1",
 		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 		CreatedAtInSec: 2,
 		Conditions:     "Running",
@@ -1402,7 +1464,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      run.Name,
-			Namespace: "test-ns",
+			Namespace: "ns1",
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
@@ -1420,7 +1482,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFail
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      run.Name,
-			Namespace: "test-ns",
+			Namespace: "ns1",
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
@@ -1520,38 +1582,6 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	assert.Contains(t, err.(*util.UserError).String(), "database is closed")
 }
 
-func TestGetWorkflowSpecBytes_ByPipelineID(t *testing.T) {
-	store, manager, pipeline := initWithPipeline(t)
-	defer store.Close()
-	spec := &api.PipelineSpec{
-		PipelineId: pipeline.UUID,
-		Parameters: []*api.Parameter{
-			{Name: "param1", Value: "world"},
-		},
-	}
-	workflowBytes, err := manager.getWorkflowSpecBytes(spec)
-	assert.Nil(t, err)
-	var actualWorkflow v1alpha1.Workflow
-	json.Unmarshal(workflowBytes, &actualWorkflow)
-	assert.Equal(t, testWorkflow.Get(), &actualWorkflow)
-}
-
-func TestGetWorkflowSpecBytes_ByPipelineID_NotExist(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-
-	spec := &api.PipelineSpec{
-		PipelineId: "1",
-		Parameters: []*api.Parameter{
-			{Name: "param1", Value: "world"},
-		},
-	}
-	_, err := manager.getWorkflowSpecBytes(spec)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "not found")
-}
-
 func TestGetWorkflowSpecBytes_ByWorkflowManifest(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -1563,7 +1593,7 @@ func TestGetWorkflowSpecBytes_ByWorkflowManifest(t *testing.T) {
 			{Name: "param1", Value: "world"},
 		},
 	}
-	workflowBytes, err := manager.getWorkflowSpecBytes(spec)
+	workflowBytes, err := manager.getWorkflowSpecBytesFromPipelineSpec(spec)
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("some manifest"), workflowBytes)
 }
@@ -1578,7 +1608,7 @@ func TestGetWorkflowSpecBytes_MissingSpec(t *testing.T) {
 			{Name: "param1", Value: "world"},
 		},
 	}
-	_, err := manager.getWorkflowSpecBytes(spec)
+	_, err := manager.getWorkflowSpecBytesFromPipelineSpec(spec)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please provide a valid pipeline spec")
 }

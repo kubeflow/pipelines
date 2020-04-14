@@ -26,14 +26,14 @@ class Resource(object):
     which is used to represent the `resource` property in argo's workflow
     template (io.argoproj.workflow.v1alpha1.Template).
     """
-    """
-    Attributes:
-      swagger_types (dict): The key is attribute name
-                            and the value is attribute type.
-      attribute_map (dict): The key is attribute name
-                            and the value is json key in definition.
-    """
     swagger_types = {
+        "action": "str",
+        "merge_strategy": "str",
+        "success_condition": "str",
+        "failure_condition": "str",
+        "manifest": "str"
+    }
+    openapi_types = {
         "action": "str",
         "merge_strategy": "str",
         "success_condition": "str",

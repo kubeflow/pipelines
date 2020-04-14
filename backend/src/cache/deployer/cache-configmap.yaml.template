@@ -11,7 +11,7 @@ webhooks:
         path: "/mutate"
       caBundle: ${CA_BUNDLE}
     rules:
-      - operations: [ "CREATE" ]
-        apiGroups: [""]
-        apiVersions: ["v1"]
-        resources: ["pods"]
+    - operations: [ "CREATE" ]
+      apiGroups: [""]
+      apiVersions: ["v1"]
+      resources: ["pods"]

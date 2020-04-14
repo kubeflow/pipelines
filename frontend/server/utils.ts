@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018-2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { readFileSync } from 'fs';
+import { Transform, TransformOptions } from 'stream';
 
 /** get the server address from host, port, and schema (defaults to 'http'). */
 export function getAddress({
@@ -61,5 +62,37 @@ export function loadJSON<T>(filepath?: string, defaultValue?: T): T | undefined 
     console.error(`Failed reading json data from '${filepath}':`);
     console.error(error);
     return defaultValue;
+  }
+}
+
+export interface PreviewStreamOptions extends TransformOptions {
+  peek: number;
+}
+
+/**
+ * Transform stream that only stream the first X number of bytes.
+ */
+export class PreviewStream extends Transform {
+  _peek: number;
+
+  constructor({ peek, ...opts }: PreviewStreamOptions) {
+    // acts like passthrough
+    let transform: TransformOptions['transform'] = (chunk, _encoding, callback) =>
+      callback(undefined, chunk);
+    // implements preview - peek must be positive number
+    if (peek && peek > 0) {
+      let size = 0;
+      transform = (chunk, _encoding, callback) => {
+        const delta = peek - size;
+        size += chunk.length;
+        if (size >= peek) {
+          callback(undefined, chunk.slice(0, delta));
+          this.resume(); // do not handle any subsequent data
+          return;
+        }
+        callback(undefined, chunk);
+      };
+    }
+    super({ ...opts, transform });
   }
 }

@@ -42,7 +42,7 @@ exports[`ExperimentsAndRuns renders runs page 1`] = `
       ]
     }
   />
-  <AllRunsList
+  <EnhancedAllRunsList
     history={Object {}}
     location=""
     match=""

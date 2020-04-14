@@ -18,8 +18,9 @@ def getSecret(secret):
     f.close()
     return res
 
-def store(wml_model_name, run_uid, framework, framework_version, runtime_version):
+def store(wml_model_name, run_uid, framework, framework_version, runtime_version, output_model_uid_path):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
+    from pathlib import Path
 
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
@@ -42,7 +43,7 @@ def store(wml_model_name, run_uid, framework, framework_version, runtime_version
     # store the model
     meta_props_tf = {
      client.repository.ModelMetaNames.NAME: wml_model_name,
-     client.repository.ModelMetaNames.RUNTIME_UID : runtime_uid,
+     client.repository.ModelMetaNames.RUNTIME_UID: runtime_uid,
      client.repository.ModelMetaNames.TYPE: runtime_type
     }
 
@@ -51,9 +52,8 @@ def store(wml_model_name, run_uid, framework, framework_version, runtime_version
     model_uid = client.repository.get_model_uid(model_details)
     print("model_uid: ", model_uid)
 
-    with open("/tmp/model_uid", "w") as f:
-        f.write(model_uid)
-    f.close()
+    Path(output_model_uid_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(output_model_uid_path).write_text(model_uid)
 
     import time
     time.sleep(120)
@@ -66,5 +66,11 @@ if __name__ == "__main__":
     parser.add_argument('--framework', type=str, required=True)
     parser.add_argument('--framework-version', type=str, required=True)
     parser.add_argument('--runtime-version', type=str, required=True)
+    parser.add_argument('--output-model-uid-path', type=str, default='/tmp/model_uid')
     args = parser.parse_args()
-    store(args.model_name, args.run_uid, args.framework, args.framework_version, args.runtime_version)
+    store(args.model_name,
+          args.run_uid,
+          args.framework,
+          args.framework_version,
+          args.runtime_version,
+          args.output_model_uid_path)

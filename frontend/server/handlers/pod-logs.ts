@@ -61,11 +61,6 @@ export function getPodLogsHandler(
   );
 
   return async (req, res) => {
-    if (!k8sHelper.isInCluster) {
-      res.status(500).send('Cannot talk to Kubernetes master');
-      return;
-    }
-
     if (!req.query.podname) {
       res.status(404).send('podname argument is required');
       return;

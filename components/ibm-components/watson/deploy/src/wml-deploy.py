@@ -21,6 +21,7 @@ def getSecret(secret):
 def deploy(args):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
     from minio import Minio
+    from pathlib import Path
     import os
     import re
 
@@ -85,12 +86,10 @@ def deploy(args):
         result = 'Scoring payload is not provided'
 
     print(result)
-    with open("/tmp/scoring_endpoint", "w") as f:
-        print(scoring_endpoint, file=f)
-    f.close()
-    with open("/tmp/model_uid", "w") as f:
-        print(model_uid, file=f)
-    f.close()
+    Path(args.output_scoring_endpoint_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.output_scoring_endpoint_path).write_text(scoring_endpoint)
+    Path(args.output_model_uid_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.output_model_uid_path).write_text(model_uid)
 
 
 if __name__ == "__main__":
@@ -100,5 +99,7 @@ if __name__ == "__main__":
     parser.add_argument('--model-uid', type=str, required=True)
     parser.add_argument('--deployment-name', type=str)
     parser.add_argument('--scoring-payload', type=str)
+    parser.add_argument('--output-scoring-endpoint-path', type=str, default='/tmp/scoring_endpoint')
+    parser.add_argument('--output-model-uid-path', type=str, default='/tmp/model_uid')
     args = parser.parse_args()
     deploy(args)
