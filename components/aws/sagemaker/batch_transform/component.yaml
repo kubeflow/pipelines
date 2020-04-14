@@ -74,7 +74,7 @@ outputs:
   - {name: output_location,    description: 'S3 URI of the transform job results.'}
 implementation:
   container:
-    image: redbackthomson/aws-kubeflow-sagemaker:20191003
+    image: redbackthomson/aws-kubeflow-sagemaker:20200402
     command: ['python']
     args: [
       batch_transform.py,

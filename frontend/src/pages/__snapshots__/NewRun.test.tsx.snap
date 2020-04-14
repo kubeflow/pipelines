@@ -105,47 +105,10 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -247,47 +210,10 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -378,47 +304,10 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -439,7 +328,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
-    <Component
+    <Input
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -447,7 +336,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
@@ -457,7 +346,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
     <div>
       This run will be associated with the following experiment
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -565,7 +454,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
     >
       Run details
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -597,7 +486,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -711,51 +600,10 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -857,51 +705,10 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -992,51 +799,10 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -1057,7 +823,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
-    <Component
+    <Input
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -1065,7 +831,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
@@ -1075,7 +841,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
     <div>
       This run will be associated with the following experiment
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -1183,7 +949,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
     >
       Run details
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -1215,7 +981,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -1329,56 +1095,10 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "pageTitle": "Start a recurring run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -1480,56 +1200,10 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "pageTitle": "Start a recurring run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -1620,56 +1294,10 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "pageTitle": "Start a recurring run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -1690,7 +1318,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
-    <Component
+    <Input
       autoFocus={true}
       label="Recurring run config name"
       onChange={[Function]}
@@ -1698,7 +1326,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
@@ -1708,7 +1336,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
     <div>
       This run will be associated with the following experiment
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -1827,7 +1455,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
     >
       Run details
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -1859,7 +1487,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -1973,52 +1601,10 @@ exports[`NewRun changes title and form to default state if the new run is a one-
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a recurring run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -2120,52 +1706,10 @@ exports[`NewRun changes title and form to default state if the new run is a one-
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a recurring run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -2256,52 +1800,10 @@ exports[`NewRun changes title and form to default state if the new run is a one-
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a recurring run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -2322,7 +1824,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
-    <Component
+    <Input
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -2330,7 +1832,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
@@ -2340,7 +1842,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
     <div>
       This run will be associated with the following experiment
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -2448,7 +1950,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
     >
       Run details
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -2480,7 +1982,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       value="original mock pipeline name"
       variant="outlined"
     />
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -2594,47 +2096,10 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -2736,47 +2201,10 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -2867,47 +2295,10 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -2928,7 +2319,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
-    <Component
+    <Input
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -2936,7 +2327,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       value="Run of original mock pipeline version name (88888)"
       variant="outlined"
     />
-    <Component
+    <Input
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
@@ -2946,7 +2337,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
     <div>
       This run will be associated with the following experiment
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -3052,7 +2443,7 @@ exports[`NewRun renders the new run page 1`] = `
     >
       Run details
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -3084,7 +2475,7 @@ exports[`NewRun renders the new run page 1`] = `
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -3198,51 +2589,10 @@ exports[`NewRun renders the new run page 1`] = `
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -3344,51 +2694,10 @@ exports[`NewRun renders the new run page 1`] = `
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -3479,51 +2788,10 @@ exports[`NewRun renders the new run page 1`] = `
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -3544,7 +2812,7 @@ exports[`NewRun renders the new run page 1`] = `
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
-    <Component
+    <Input
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -3552,7 +2820,7 @@ exports[`NewRun renders the new run page 1`] = `
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
@@ -3562,7 +2830,7 @@ exports[`NewRun renders the new run page 1`] = `
     <div>
       This run will be associated with the following experiment
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -3670,7 +2938,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
     >
       Run details
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -3702,7 +2970,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -3816,47 +3084,10 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a recurring run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -3958,47 +3189,10 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a recurring run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -4089,47 +3283,10 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a recurring run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -4150,7 +3307,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
-    <Component
+    <Input
       autoFocus={true}
       label="Recurring run config name"
       onChange={[Function]}
@@ -4158,7 +3315,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
@@ -4168,7 +3325,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
     <div>
       This run will be associated with the following experiment
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -4287,7 +3444,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     >
       Run details
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -4319,7 +3476,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -4433,51 +3590,10 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -4579,51 +3695,10 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -4714,51 +3789,10 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -4779,7 +3813,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
-    <Component
+    <Input
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -4787,7 +3821,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
@@ -4797,7 +3831,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     <div>
       This run will be associated with the following experiment
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -4905,7 +3939,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     >
       Run details
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -4937,7 +3971,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       value="original mock pipeline name"
       variant="outlined"
     />
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -5051,51 +4085,10 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -5197,51 +4190,10 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -5332,51 +4284,10 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -5397,7 +4308,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
-    <Component
+    <Input
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -5405,7 +4316,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
@@ -5415,7 +4326,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     <div>
       This run will be associated with the following experiment
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -5534,7 +4445,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     >
       Run details
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -5566,7 +4477,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       value="original mock pipeline name"
       variant="outlined"
     />
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -5680,51 +4591,10 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -5826,51 +4696,10 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -5961,51 +4790,10 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -6026,7 +4814,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
-    <Component
+    <Input
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -6034,7 +4822,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
@@ -6044,7 +4832,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     <div>
       This run will be associated with the following experiment
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -6152,7 +4940,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
     >
       Run details
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -6184,7 +4972,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {
@@ -6298,51 +5086,10 @@ exports[`NewRun updates the run's state with the associated experiment if one is
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -6444,51 +5191,10 @@ exports[`NewRun updates the run's state with the associated experiment if one is
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -6579,51 +5285,10 @@ exports[`NewRun updates the run's state with the associated experiment if one is
               "pageTitle": "Start a new run",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {},
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                      Object {
-                        "displayName": "some mock experiment name",
-                        "href": "/experiments/details/some-mock-experiment-id",
-                      },
-                    ],
-                    "pageTitle": "Start a run",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -6644,7 +5309,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
-    <Component
+    <Input
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -6652,7 +5317,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
@@ -6662,7 +5327,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
     <div>
       This run will be associated with the following experiment
     </div>
-    <Component
+    <Input
       InputProps={
         Object {
           "classes": Object {

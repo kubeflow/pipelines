@@ -38,7 +38,7 @@ import (
 
 var viewer *Reconciler
 
-const tensorflowImage = "tensorflow/tensorflow:dummy"
+const tensorflowImage = "potentially_custom_tensorflow:dummy"
 
 func TestMain(m *testing.M) {
 	viewerV1beta1.AddToScheme(scheme.Scheme)

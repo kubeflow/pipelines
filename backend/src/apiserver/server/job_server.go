@@ -32,13 +32,15 @@ type JobServer struct {
 }
 
 func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest) (*api.Job, error) {
-	if common.IsMultiUserMode() == true {
-		return nil, util.NewBadRequestError(errors.New("Job APIs are temporarily disabled in the multi-user mode until it is fully ready."), "Job APIs are temporarily disabled in the multi-user mode until it is fully ready.")
-	}
 	err := s.validateCreateJobRequest(request)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Validate create job request failed.")
 	}
+	err = CanAccessExperimentInResourceReferences(s.resourceManager, ctx, request.Job.ResourceReferences)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request.")
+	}
+
 	newJob, err := s.resourceManager.CreateJob(request.Job)
 	if err != nil {
 		return nil, err
@@ -47,6 +49,11 @@ func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest
 }
 
 func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*api.Job, error) {
+	err := s.canAccessJob(ctx, request.Id)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request.")
+	}
+
 	job, err := s.resourceManager.GetJob(request.Id)
 	if err != nil {
 		return nil, err
@@ -65,6 +72,35 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
+
+	if common.IsMultiUserMode() {
+		refKey := filterContext.ReferenceKey
+		if refKey == nil {
+			return nil, util.NewInvalidInputError("ListJobs must filter by resource reference in multi-user mode.")
+		}
+		if refKey.Type == common.Namespace {
+			namespace := refKey.ID
+			if len(namespace) == 0 {
+				return nil, util.NewInvalidInputError("Invalid resource references for ListJobs. Namespace is empty.")
+			}
+			err = isAuthorized(s.resourceManager, ctx, namespace)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to authorize with namespace resource reference.")
+			}
+		} else if refKey.Type == common.Experiment {
+			experimentID := refKey.ID
+			if len(experimentID) == 0 {
+				return nil, util.NewInvalidInputError("Invalid resource references for job. Experiment ID is empty.")
+			}
+			err = CanAccessExperiment(s.resourceManager, ctx, experimentID)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to authorize with experiment resource reference.")
+			}
+		} else {
+			return nil, util.NewInvalidInputError("Invalid resource references for ListJobs. Got %+v", request.ResourceReferenceKey)
+		}
+	}
+
 	jobs, total_size, nextPageToken, err := s.resourceManager.ListJobs(filterContext, opts)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list jobs.")
@@ -73,18 +109,30 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 }
 
 func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest) (*empty.Empty, error) {
+	err := s.canAccessJob(ctx, request.Id)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request.")
+	}
+
 	return s.enableJob(request.Id, true)
 }
 
 func (s *JobServer) DisableJob(ctx context.Context, request *api.DisableJobRequest) (*empty.Empty, error) {
+	err := s.canAccessJob(ctx, request.Id)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request.")
+	}
+
 	return s.enableJob(request.Id, false)
 }
 
 func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest) (*empty.Empty, error) {
-	if common.IsMultiUserMode() == true {
-		return nil, util.NewBadRequestError(errors.New("Job APIs are temporarily disabled in the multi-user mode until it is fully ready."), "Job APIs are temporarily disabled in the multi-user mode until it is fully ready.")
+	err := s.canAccessJob(ctx, request.Id)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request.")
 	}
-	err := s.resourceManager.DeleteJob(request.Id)
+
+	err = s.resourceManager.DeleteJob(request.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +173,26 @@ func (s *JobServer) enableJob(id string, enabled bool) (*empty.Empty, error) {
 		return nil, err
 	}
 	return &empty.Empty{}, nil
+}
+
+func (s *JobServer) canAccessJob(ctx context.Context, jobID string) error {
+	if common.IsMultiUserMode() == false {
+		// Skip authorization if not multi-user mode.
+		return nil
+	}
+	namespace, err := s.resourceManager.GetNamespaceFromJobID(jobID)
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize with the job ID.")
+	}
+	if len(namespace) == 0 {
+		return util.NewInternalServerError(errors.New("Empty namespace"), "The job doesn't have a valid namespace.")
+	}
+
+	err = isAuthorized(s.resourceManager, ctx, namespace)
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize with API resource references")
+	}
+	return nil
 }
 
 func NewJobServer(resourceManager *resource.ResourceManager) *JobServer {

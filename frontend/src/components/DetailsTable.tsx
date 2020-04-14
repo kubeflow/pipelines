@@ -58,7 +58,7 @@ function isString(x: any): x is string {
   return typeof x === 'string';
 }
 
-export default (props: DetailsTableProps) => {
+const DetailsTable = (props: DetailsTableProps) => {
   return (
     <React.Fragment>
       {!!props.title && <div className={commonCss.header}>{props.title}</div>}
@@ -113,3 +113,5 @@ export default (props: DetailsTableProps) => {
     </React.Fragment>
   );
 };
+
+export default DetailsTable;

@@ -15,8 +15,8 @@
  */
 
 import { orderBy } from 'lodash';
-import { ApiParameter, ApiPipelineVersion } from 'src/apis/pipeline';
-import { Workflow } from 'third_party/argo-ui/argo_template';
+import { ApiParameter, ApiPipelineVersion } from '../apis/pipeline';
+import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { ApiJob } from '../apis/job';
 import {
   ApiPipelineRuntime,
@@ -28,6 +28,7 @@ import {
 } from '../apis/run';
 import { logger } from './Utils';
 import WorkflowParser from './WorkflowParser';
+import { ApiExperiment } from 'src/apis/experiment';
 
 export interface MetricMetadata {
   count: number;
@@ -117,7 +118,7 @@ function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference
   );
 }
 
-function getNamespaceReferenceName(run?: ApiRun | ApiJob): string | undefined {
+function getNamespaceReferenceName(run?: ApiExperiment): string | undefined {
   // There should be only one namespace reference.
   const namespaceRef =
     run &&

@@ -90,7 +90,7 @@ service PipelineService {
     };
   }
 
-  //Get a YAML template for the selected pipeline.
+  //Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
   rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/pipelines/{id}/templates"

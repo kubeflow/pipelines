@@ -26,7 +26,7 @@ kind: ConfigMap
 metadata:
   name: metadata-grpc-configmap
   labels:
-    component: metadata-server
+    component: metadata-grpc-server
 data:
-  METADATA_GRPC_SERVICE_HOST: "metadata-service"
+  METADATA_GRPC_SERVICE_HOST: "metadata-grpc-service"
   METADATA_GRPC_SERVICE_PORT: "8080"

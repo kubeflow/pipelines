@@ -131,19 +131,6 @@ func TestReadPipelineFile_YAML(t *testing.T) {
 	assert.Equal(t, expectedFileBytes, fileBytes)
 }
 
-func TestParameterPatch(t *testing.T) {
-  file, _ := os.Open("test/arguments-parameters.yaml")
-	fileBytes, err := ReadPipelineFile("arguments-parameters.yaml", file, MaxFileLength)
-	patchMap := map[string]string{
-  				"hello": "new-hello",
-  			}
-	fileBytes, err = PatchPipelineDefaultParameter(fileBytes, patchMap)
-	assert.Nil(t, err)
-
-	expectedFileBytes, _ := ioutil.ReadFile("test/patched-arguments-parameters.yaml")
-  assert.Equal(t, expectedFileBytes, fileBytes)
-}
-
 func TestReadPipelineFile_Zip(t *testing.T) {
 	file, _ := os.Open("test/arguments_zip/arguments-parameters.zip")
 	pipelineFile, err := ReadPipelineFile("arguments-parameters.zip", file, MaxFileLength)
@@ -358,36 +345,84 @@ func TestGetUserIdentity(t *testing.T) {
 	assert.Equal(t, "user@google.com", userIdentity)
 }
 
-func TestCanAccessNamespaceInResourceReferencesUnauthorized(t *testing.T) {
+func TestCanAccessNamespaceInResourceReferences_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
-	viper.Set(common.MultiUserMode, "true")
+
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	references := []*api.ResourceReference{
 		{
 			Key: &api.ResourceKey{
-				Type: api.ResourceType_NAMESPACE, Id: "ns"},
+				Type: api.ResourceType_NAMESPACE, Id: "ns1"},
 			Relationship: api.Relationship_OWNER,
 		},
 	}
 	err := CanAccessNamespaceInResourceReferences(manager, ctx, references)
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized access")
 }
 
 func TestCanAccessNamespaceInResourceReferences_Authorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	viper.Set(common.MultiUserMode, "true")
+
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	references := []*api.ResourceReference{
 		{
 			Key: &api.ResourceKey{
-				Type: api.ResourceType_NAMESPACE, Id: "ns"},
+				Type: api.ResourceType_NAMESPACE, Id: "ns1"},
 			Relationship: api.Relationship_OWNER,
 		},
 	}
 	err := CanAccessNamespaceInResourceReferences(manager, ctx, references)
+	assert.Nil(t, err)
+}
+
+func TestCanAccessExperimentInResourceReferences_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	defer clients.Close()
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	references := []*api.ResourceReference{
+		{
+			Key: &api.ResourceKey{
+				Type: api.ResourceType_EXPERIMENT, Id: resource.DefaultFakeUUID},
+			Relationship: api.Relationship_OWNER,
+		},
+	}
+	err := CanAccessExperimentInResourceReferences(manager, ctx, references)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized access")
+}
+
+func TestCanAccessExperiemntInResourceReferences_Authorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	references := []*api.ResourceReference{
+		{
+			Key: &api.ResourceKey{
+				Type: api.ResourceType_EXPERIMENT, Id: resource.DefaultFakeUUID},
+			Relationship: api.Relationship_OWNER,
+		},
+	}
+	err := CanAccessExperimentInResourceReferences(manager, ctx, references)
 	assert.Nil(t, err)
 }

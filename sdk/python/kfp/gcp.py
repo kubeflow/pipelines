@@ -112,9 +112,10 @@ def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(effect='NoS
       node_affinity = V1NodeAffinity(required_during_scheduling_ignored_during_execution=
                         V1NodeSelector(node_selector_terms=[node_selector_term]))
     else:
-      node_affinity = V1NodeAffinity(preferred_during_scheduling_ignored_during_execution=
+      node_affinity = V1NodeAffinity(preferred_during_scheduling_ignored_during_execution=[
                         V1PreferredSchedulingTerm(preference=node_selector_term,
-                                                  weight=50))
+                                                  weight=50)
+      ])
     affinity = V1Affinity(node_affinity=node_affinity)
     task.add_affinity(affinity=affinity)
     return task

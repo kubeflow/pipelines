@@ -19,6 +19,14 @@ exports[`Archive renders archived runs 1`] = `
     toolbarProps={
       Object {
         "actions": Object {
+          "deleteRun": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select at least one run to delete",
+            "id": "deleteBtn",
+            "title": "Delete",
+            "tooltip": "Delete",
+          },
           "refresh": Object {
             "action": [Function],
             "id": "refreshBtn",
@@ -38,45 +46,10 @@ exports[`Archive renders archived runs 1`] = `
         "pageTitle": "Archive",
       }
     }
-    updateBanner={
-      [MockFunction] {
-        "calls": Array [
-          Array [
-            Object {},
-          ],
-        ],
-      }
-    }
-    updateDialog={null}
-    updateSnackbar={null}
-    updateToolbar={
-      [MockFunction] {
-        "calls": Array [
-          Array [
-            Object {
-              "actions": Object {
-                "refresh": Object {
-                  "action": [Function],
-                  "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list",
-                },
-                "restore": Object {
-                  "action": [Function],
-                  "disabled": true,
-                  "disabledTitle": "Select at least one resource to restore",
-                  "id": "restoreBtn",
-                  "title": "Restore",
-                  "tooltip": "Restore",
-                },
-              },
-              "breadcrumbs": Array [],
-              "pageTitle": "Archive",
-            },
-          ],
-        ],
-      }
-    }
+    updateBanner={[MockFunction]}
+    updateDialog={[MockFunction]}
+    updateSnackbar={[MockFunction]}
+    updateToolbar={[MockFunction]}
   />
 </div>
 `;

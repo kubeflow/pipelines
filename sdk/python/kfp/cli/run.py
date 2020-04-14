@@ -46,9 +46,10 @@ def list(ctx, experiment_id, max_size):
 @click.option('-f', '--package-file', type=click.Path(exists=True, dir_okay=False), help='Path of the pipeline package file.')
 @click.option('-p', '--pipeline-id', help='ID of the pipeline template.')
 @click.option('-w', '--watch', is_flag=True, default=False, help='Watch the run status until it finishes.')
+@click.option('-v', '--version', help='ID of the pipeline version.')
 @click.argument('args', nargs=-1)
 @click.pass_context
-def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, args):
+def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, version, args):
     """submit a KFP run"""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
@@ -61,7 +62,7 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, arg
 
     arg_dict = dict(arg.split('=') for arg in args)
     experiment = client.create_experiment(experiment_name)
-    run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id)
+    run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id, version_id=version)
     print('Run {} is submitted'.format(run.id))
     _display_run(client, namespace, run.id, watch)
 

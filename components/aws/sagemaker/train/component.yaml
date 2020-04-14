@@ -103,7 +103,7 @@ outputs:
   - {name: training_image,        description: 'The registry path of the Docker image that contains the training algorithm'}
 implementation:
   container:
-    image: redbackthomson/aws-kubeflow-sagemaker:20191003
+    image: redbackthomson/aws-kubeflow-sagemaker:20200402
     command: ['python']
     args: [
       train.py,

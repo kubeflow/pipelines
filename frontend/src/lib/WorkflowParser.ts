@@ -28,6 +28,7 @@ import { statusToIcon } from '../pages/Status';
 import { Constants } from './Constants';
 import { KeyValue } from './StaticGraphParser';
 import { hasFinished, NodePhase, statusToBgColor } from './StatusUtils';
+import { parseTaskDisplayName } from './ParserUtils';
 
 export enum StorageService {
   GCS = 'gcs',
@@ -96,12 +97,7 @@ export default class WorkflowParser {
         const tmpl = workflow.spec.templates.find(
           t => !!t && !!t.name && t.name === node.templateName,
         );
-        if (tmpl && tmpl.metadata && tmpl.metadata.annotations) {
-          const displayName = tmpl.metadata.annotations['pipelines.kubeflow.org/task_display_name'];
-          if (displayName) {
-            nodeLabel = displayName;
-          }
-        }
+        nodeLabel = parseTaskDisplayName(tmpl?.metadata) || nodeLabel;
       }
 
       g.setNode(node.id, {

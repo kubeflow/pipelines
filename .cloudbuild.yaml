@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Test before submit:
+# gcloud builds submit --config=.cloudbuild.yaml --substitutions=COMMIT_SHA="$(git rev-parse HEAD)" --project=ml-pipeline-test
+
 steps:
 
 # Build the Python SDK
@@ -93,6 +96,18 @@ steps:
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA',
          '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
          '/workspace/backend/metadata_writer/Dockerfile', '/workspace']
+  waitFor: ["-"]
+- id: 'buildCacheServer'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/cache-server:$COMMIT_SHA',
+          '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
+          '/workspace/backend/Dockerfile.cacheserver', '/workspace']
+  waitFor: ["-"]
+- id: 'buildCacheDeployer'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/cache-deployer:$COMMIT_SHA',
+          '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
+          '/workspace/backend/src/cache/deployer/Dockerfile', '/workspace']
   waitFor: ["-"]
 
 # Build marketplace deployer
@@ -182,6 +197,51 @@ steps:
          '/workspace/third_party/metadata_envoy/Dockerfile', '/workspace']
   id:   'buildMetadataEnvoy'
 
+# Pull third_party images
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.21.1']
+  id:   'pullMetadataServer'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance']
+  id:   'pullMinio'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/ml-pipeline/mysql:5.6']
+  id:   'pullMysql'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/cloudsql-docker/gce-proxy:1.14']
+  id:   'pullCloudsqlProxy'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/ml-pipeline/argoexec:v2.3.0-license-compliance']
+  id:   'pullArgoExecutor'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/ml-pipeline/workflow-controller:v2.3.0-license-compliance']
+  id:   'pullArgoWorkflowController'
+
+# Tag for Hosted - SemVersion to Major.Minor parsing
+- id: "parseMajorMinorVersion"
+  waitFor: ["-"]
+  name: gcr.io/cloud-builders/docker
+  entrypoint: /bin/bash
+  args:
+    - -ceux
+    - |
+      # Parse major minor version and save to a file for reusing in other steps.
+      cat /workspace/VERSION | sed -e "s#[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)#\1.\2#" > /workspace/mm.ver
+
+# Tag for Hosted - Tag to hosted folder with MKP friendly name
+- id:   'tagForHosted'
+  waitFor: ['parseMajorMinorVersion', 'buildFrontend', 'buildApiServer', 'buildScheduledWorkflow',            
+            'buildViewerCrdController', 'buildPersistenceAgent', 'buildInverseProxyAgent', 'buildVisualizationServer',
+            'buildMetadataWriter', 'buildCacheServer', 'buildCacheDeployer', 'buildMetadataEnvoy',
+            'buildMarketplaceDeployer', 'pullMetadataServer', 'pullMinio', 'pullMysql', 'pullCloudsqlProxy',
+            'pullArgoExecutor', 'pullArgoWorkflowController']
+  name: 'gcr.io/cloud-builders/docker'
+  entrypoint: bash
+  args:
+  - -ceux
+  - |
+    /workspace/test/tag_for_hosted.sh $PROJECT_ID $COMMIT_SHA $(cat /workspace/VERSION) $(cat /workspace/mm.ver)
+
 images:
 # Images for the pipeline system itself
 - 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA'
@@ -192,6 +252,8 @@ images:
 - 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/cache-server:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/cache-deployer:$COMMIT_SHA'
 
 # Images for Marketplace
 - 'gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA'

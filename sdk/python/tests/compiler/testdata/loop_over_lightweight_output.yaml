@@ -36,13 +36,13 @@
           - |-
             echo
           - |-
-            {{inputs.parameters.produce-list-data_list}}
+            {{inputs.parameters.produce-list-data_list-loop-item}}
         "image": |-
           busybox
       "inputs":
         "parameters":
           - "name": |-
-              produce-list-data_list
+              produce-list-data_list-loop-item
       "metadata":
         "annotations":
           "pipelines.kubeflow.org/component_spec": |-
@@ -54,9 +54,9 @@
           - "arguments":
               "parameters":
                 - "name": |-
-                    produce-list-data_list
+                    produce-list-data_list-loop-item
                   "value": |-
-                    {{inputs.parameters.produce-list-data_list}}
+                    {{inputs.parameters.produce-list-data_list-loop-item}}
             "name": |-
               consume-data
             "template": |-
@@ -64,7 +64,7 @@
       "inputs":
         "parameters":
           - "name": |-
-              produce-list-data_list
+              produce-list-data_list-loop-item
       "name": |-
         for-loop-for-loop-00000001-1
     - "dag":
@@ -72,7 +72,7 @@
           - "arguments":
               "parameters":
                 - "name": |-
-                    produce-list-data_list
+                    produce-list-data_list-loop-item
                   "value": |-
                     {{item}}
             "dependencies":

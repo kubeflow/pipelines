@@ -750,7 +750,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     },
     /**
      *
-     * @summary Get a YAML template for the selected pipeline.
+     * @summary Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
      * @param {string} id
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1117,7 +1117,7 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Get a YAML template for the selected pipeline.
+     * @summary Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
      * @param {string} id
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1314,7 +1314,7 @@ export const PipelineServiceApiFactory = function(
     },
     /**
      *
-     * @summary Get a YAML template for the selected pipeline.
+     * @summary Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
      * @param {string} id
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1496,7 +1496,7 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Get a YAML template for the selected pipeline.
+   * @summary Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
    * @param {string} id
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}

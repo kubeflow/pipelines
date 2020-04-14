@@ -565,7 +565,7 @@
     },
     "/apis/v1beta1/jobs/{id}/disable": {
       "post": {
-        "summary": "Disable a job.",
+        "summary": "Stops a job and all its associated runs. The job is not deleted.",
         "operationId": "DisableJob",
         "responses": {
           "200": {
@@ -597,7 +597,7 @@
     },
     "/apis/v1beta1/jobs/{id}/enable": {
       "post": {
-        "summary": "Enable a job.",
+        "summary": "Restarts a job that was previously stopped. All runs associated with the job will continue.",
         "operationId": "EnableJob",
         "responses": {
           "200": {
@@ -965,7 +965,7 @@
     },
     "/apis/v1beta1/pipelines/{id}/templates": {
       "get": {
-        "summary": "Get a YAML template for the selected pipeline.",
+        "summary": "Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.",
         "operationId": "GetTemplate",
         "responses": {
           "200": {
@@ -1036,6 +1036,29 @@
           {
             "name": "filter",
             "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/\nblob/master/backend/api/filter.proto)).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "resource_reference_key.type",
+            "description": "The type of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "UNKNOWN_RESOURCE_TYPE",
+              "EXPERIMENT",
+              "JOB",
+              "PIPELINE",
+              "PIPELINE_VERSION",
+              "NAMESPACE"
+            ],
+            "default": "UNKNOWN_RESOURCE_TYPE"
+          },
+          {
+            "name": "resource_reference_key.id",
+            "description": "The ID of the resource that referred to.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -1216,6 +1239,12 @@
           },
           {
             "name": "name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pipelineid",
             "in": "query",
             "required": false,
             "type": "string"
@@ -1653,6 +1682,11 @@
           "type": "boolean",
           "format": "boolean",
           "description": "Input. Whether the job is enabled or not."
+        },
+        "no_catchup": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Optional input field. Whether the job should catch up if behind schedule.\nIf true, the job will only schedule the latest interval if behind schedule.\nIf false, the job will catch up on each past interval."
         }
       }
     },
@@ -1861,6 +1895,13 @@
           "type": "string",
           "format": "date-time",
           "description": "Output. The time that the experiment created."
+        },
+        "resource_references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceReference"
+          },
+          "description": "Optional input field. Specify which resource this run belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
         }
       }
     },

@@ -74,6 +74,17 @@ def get(ctx, pipeline_id):
     _display_pipeline(pipeline)
 
 
+@pipeline.command()
+@click.argument("pipeline-id")
+@click.pass_context
+def delete(ctx, pipeline_id):
+    """Delete an uploaded KFP pipeline"""
+    client = ctx.obj["client"]
+
+    client.delete_pipeline(pipeline_id)
+    print(f"{pipeline_id} is deleted")
+
+
 def _print_pipelines(pipelines):
     headers = ["Pipeline ID", "Name", "Uploaded at"]
     data = [[

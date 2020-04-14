@@ -111,6 +111,12 @@ export interface ApiExperiment {
    * @memberof ApiExperiment
    */
   created_at?: Date;
+  /**
+   * Optional input field. Specify which resource this run belongs to. For Experiment, the only valid resource reference is a single Namespace.
+   * @type {Array<ApiResourceReference>}
+   * @memberof ApiExperiment
+   */
+  resource_references?: Array<ApiResourceReference>;
 }
 
 /**
@@ -137,6 +143,77 @@ export interface ApiListExperimentsResponse {
    * @memberof ApiListExperimentsResponse
    */
   next_page_token?: string;
+}
+
+/**
+ *
+ * @export
+ * @enum {string}
+ */
+export enum ApiRelationship {
+  UNKNOWNRELATIONSHIP = <any>'UNKNOWN_RELATIONSHIP',
+  OWNER = <any>'OWNER',
+  CREATOR = <any>'CREATOR',
+}
+
+/**
+ *
+ * @export
+ * @interface ApiResourceKey
+ */
+export interface ApiResourceKey {
+  /**
+   * The type of the resource that referred to.
+   * @type {ApiResourceType}
+   * @memberof ApiResourceKey
+   */
+  type?: ApiResourceType;
+  /**
+   * The ID of the resource that referred to.
+   * @type {string}
+   * @memberof ApiResourceKey
+   */
+  id?: string;
+}
+
+/**
+ *
+ * @export
+ * @interface ApiResourceReference
+ */
+export interface ApiResourceReference {
+  /**
+   *
+   * @type {ApiResourceKey}
+   * @memberof ApiResourceReference
+   */
+  key?: ApiResourceKey;
+  /**
+   * The name of the resource that referred to.
+   * @type {string}
+   * @memberof ApiResourceReference
+   */
+  name?: string;
+  /**
+   * Required field. The relationship from referred resource to the object.
+   * @type {ApiRelationship}
+   * @memberof ApiResourceReference
+   */
+  relationship?: ApiRelationship;
+}
+
+/**
+ *
+ * @export
+ * @enum {string}
+ */
+export enum ApiResourceType {
+  UNKNOWNRESOURCETYPE = <any>'UNKNOWN_RESOURCE_TYPE',
+  EXPERIMENT = <any>'EXPERIMENT',
+  JOB = <any>'JOB',
+  PIPELINE = <any>'PIPELINE',
+  PIPELINEVERSION = <any>'PIPELINE_VERSION',
+  NAMESPACE = <any>'NAMESPACE',
 }
 
 /**
@@ -345,6 +422,8 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -353,6 +432,14 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
       page_size?: number,
       sort_by?: string,
       filter?: string,
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
+      resource_reference_key_id?: string,
       options: any = {},
     ): FetchArgs {
       const localVarPath = `/apis/v1beta1/experiments`;
@@ -384,6 +471,14 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
 
       if (filter !== undefined) {
         localVarQueryParameter['filter'] = filter;
+      }
+
+      if (resource_reference_key_type !== undefined) {
+        localVarQueryParameter['resource_reference_key.type'] = resource_reference_key_type;
+      }
+
+      if (resource_reference_key_id !== undefined) {
+        localVarQueryParameter['resource_reference_key.id'] = resource_reference_key_id;
       }
 
       localVarUrlObj.query = Object.assign(
@@ -490,6 +585,8 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -498,6 +595,14 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
       page_size?: number,
       sort_by?: string,
       filter?: string,
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
+      resource_reference_key_id?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListExperimentsResponse> {
       const localVarFetchArgs = ExperimentServiceApiFetchParamCreator(configuration).listExperiment(
@@ -505,6 +610,8 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
         page_size,
         sort_by,
         filter,
+        resource_reference_key_type,
+        resource_reference_key_id,
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
@@ -567,6 +674,8 @@ export const ExperimentServiceApiFactory = function(
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -575,6 +684,14 @@ export const ExperimentServiceApiFactory = function(
       page_size?: number,
       sort_by?: string,
       filter?: string,
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
+      resource_reference_key_id?: string,
       options?: any,
     ) {
       return ExperimentServiceApiFp(configuration).listExperiment(
@@ -582,6 +699,8 @@ export const ExperimentServiceApiFactory = function(
         page_size,
         sort_by,
         filter,
+        resource_reference_key_type,
+        resource_reference_key_id,
         options,
       )(fetch, basePath);
     },
@@ -647,6 +766,8 @@ export class ExperimentServiceApi extends BaseAPI {
    * @param {number} [page_size]
    * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
    * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+   * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+   * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof ExperimentServiceApi
@@ -656,6 +777,14 @@ export class ExperimentServiceApi extends BaseAPI {
     page_size?: number,
     sort_by?: string,
     filter?: string,
+    resource_reference_key_type?:
+      | 'UNKNOWN_RESOURCE_TYPE'
+      | 'EXPERIMENT'
+      | 'JOB'
+      | 'PIPELINE'
+      | 'PIPELINE_VERSION'
+      | 'NAMESPACE',
+    resource_reference_key_id?: string,
     options?: any,
   ) {
     return ExperimentServiceApiFp(this.configuration).listExperiment(
@@ -663,6 +792,8 @@ export class ExperimentServiceApi extends BaseAPI {
       page_size,
       sort_by,
       filter,
+      resource_reference_key_type,
+      resource_reference_key_id,
       options,
     )(this.fetch, this.basePath);
   }

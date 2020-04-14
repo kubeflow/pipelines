@@ -55,10 +55,6 @@ const css = stylesheet({
 });
 
 class NewRunParameters extends React.Component<NewRunParametersProps> {
-  constructor(props: any) {
-    super(props);
-  }
-
   public render(): JSX.Element | null {
     const { handleParamChange, initialParams, titleMessage } = this.props;
 

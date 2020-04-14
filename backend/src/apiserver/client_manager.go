@@ -29,13 +29,16 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/minio/minio-go"
 )
 
 const (
 	minioServiceHost       = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort       = "MINIO_SERVICE_SERVICE_PORT"
+	minioServiceRegion     = "MINIO_SERVICE_REGION"
+	minioServiceSecure     = "MINIO_SERVICE_SECURE"
+	pipelineBucketName     = "MINIO_PIPELINE_BUCKET_NAME"
+	pipelinePath           = "MINIO_PIPELINE_PATH"
 	mysqlServiceHost       = "DBConfig.Host"
 	mysqlServicePort       = "DBConfig.Port"
 	mysqlUser              = "DBConfig.User"
@@ -64,7 +67,7 @@ type ClientManager struct {
 	defaultExperimentStore storage.DefaultExperimentStoreInterface
 	objectStore            storage.ObjectStoreInterface
 	argoClient             client.ArgoClientInterface
-	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
+	swfClient              client.SwfClientInterface
 	k8sCoreClient          client.KubernetesCoreInterface
 	kfamClient             client.KFAMClientInterface
 	time                   util.TimeInterface
@@ -107,7 +110,7 @@ func (c *ClientManager) ArgoClient() client.ArgoClientInterface {
 	return c.argoClient
 }
 
-func (c *ClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
+func (c *ClientManager) SwfClient() client.SwfClientInterface {
 	return c.swfClient
 }
 
@@ -148,8 +151,7 @@ func (c *ClientManager) init() {
 
 	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
-	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
-		common.GetPodNamespace(), common.GetDurationConfig(initConnectionTimeout))
+	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
@@ -208,6 +210,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
+	}
+
+	response = db.Model(&model.Experiment{}).RemoveIndex("Name")
+	if response.Error != nil {
+		glog.Fatalf("Failed to drop unique key on experiment name. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext not null")
@@ -317,29 +324,37 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
 	minioServicePort := common.GetStringConfigWithDefault(
 		"ObjectStoreConfig.Port", os.Getenv(minioServicePort))
-	accessKey := common.GetStringConfig("ObjectStoreConfig.AccessKey")
-	secretKey := common.GetStringConfig("ObjectStoreConfig.SecretAccessKey")
-	bucketName := common.GetStringConfig("ObjectStoreConfig.BucketName")
+	minioServiceRegion := common.GetStringConfigWithDefault(
+		"ObjectStoreConfig.Region", os.Getenv(minioServiceRegion))
+	minioServiceSecure := common.GetBoolConfigWithDefault(
+		"ObjectStoreConfig.Secure", common.GetBoolFromStringWithDefault(os.Getenv(minioServiceSecure), false))
+	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
+	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
+	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", os.Getenv(pipelineBucketName))
+	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", os.Getenv(pipelinePath))
 	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
-		secretKey, initConnectionTimeout)
-	createMinioBucket(minioClient, bucketName)
+		secretKey, minioServiceSecure, minioServiceRegion, initConnectionTimeout)
+	createMinioBucket(minioClient, bucketName, minioServiceRegion)
 
-	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, disableMultipart)
+	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, pipelinePath, disableMultipart)
 }
 
-func createMinioBucket(minioClient *minio.Client, bucketName string) {
-	// Create bucket if it does not exist
-	err := minioClient.MakeBucket(bucketName, "")
+func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
+	// Check to see if we already own this bucket.
+	exists, err := minioClient.BucketExists(bucketName)
 	if err != nil {
-		// Check to see if we already own this bucket.
-		exists, err := minioClient.BucketExists(bucketName)
-		if err == nil && exists {
-			glog.Infof("We already own %s\n", bucketName)
-		} else {
-			glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
-		}
+		glog.Fatalf("Failed to check if Minio bucket exists. Error: %v", err)
+	}
+	if exists {
+		glog.Infof("We already own %s\n", bucketName)
+		return
+	}
+	// Create bucket if it does not exist
+	err = minioClient.MakeBucket(bucketName, region)
+	if err != nil {
+		glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
 	}
 	glog.Infof("Successfully created bucket %s\n", bucketName)
 }

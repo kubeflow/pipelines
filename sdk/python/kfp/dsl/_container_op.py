@@ -25,7 +25,7 @@ from kubernetes.client.models import (
 )
 
 from . import _pipeline_param
-from ..components.structures import ComponentSpec
+from ..components.structures import ComponentSpec, ExecutionOptionsSpec, CachingStrategySpec
 
 # generics
 T = TypeVar('T')
@@ -130,16 +130,21 @@ class Container(V1Container):
     """
     """
     Attributes:
-      swagger_types (dict): The key is attribute name
-                            and the value is attribute type.
       attribute_map (dict): The key is attribute name
                             and the value is json key in definition.
     """
-    # remove `name` from swagger_types so `name` is not generated in the JSON
-    swagger_types = {
-        key: value
-        for key, value in V1Container.swagger_types.items() if key != 'name'
-    }
+    # remove `name` from attribute_map, swagger_types and openapi_types so `name` is not generated in the JSON
+
+    if hasattr(V1Container, 'swagger_types'):
+        swagger_types = {
+            key: value
+            for key, value in V1Container.swagger_types.items() if key != 'name'
+        }
+    if hasattr(V1Container, 'openapi_types'):
+        openapi_types = {
+            key: value
+            for key, value in V1Container.openapi_types.items() if key != 'name'
+        }
     attribute_map = {
         key: value
         for key, value in V1Container.attribute_map.items() if key != 'name'
@@ -572,9 +577,12 @@ class UserContainer(Container):
     # adds `mirror_volume_mounts` to `UserContainer` swagger definition
     # NOTE inherits definition from `V1Container` rather than `Container`
     #      because `Container` has no `name` property.
-    swagger_types = dict(
-        **V1Container.swagger_types, mirror_volume_mounts='bool')
-
+    if hasattr(V1Container, 'swagger_types'):
+        swagger_types = dict(
+            **V1Container.swagger_types, mirror_volume_mounts='bool')
+    if hasattr(V1Container, 'openapi_types'):
+        openapi_types = dict(
+            **V1Container.openapi_types, mirror_volume_mounts='bool')
     attribute_map = dict(
         **V1Container.attribute_map, mirror_volume_mounts='mirrorVolumeMounts')
 
@@ -1088,6 +1096,10 @@ class ContainerOp(BaseOp):
             warnings.warn('Setting per-ContainerOp artifact_location is deprecated since SDK v0.1.32. Please configure the artifact location in the cluster configMap: https://github.com/argoproj/argo/blob/master/ARTIFACT_REPO.md#configure-the-default-artifact-repository . For short-term workaround use the pipeline-wide kfp.dsl.PipelineConf().set_artifact_location, but it can also be deprecated in future.', PendingDeprecationWarning)
 
         self._metadata = None
+
+        self.execution_options = ExecutionOptionsSpec(
+            caching_strategy=CachingStrategySpec(),
+        )
 
         self.outputs = {}
         if file_outputs:

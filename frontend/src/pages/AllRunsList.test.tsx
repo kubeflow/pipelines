@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import AllRunsList from './AllRunsList';
+import { AllRunsList } from './AllRunsList';
 import { PageProps } from './Page';
 import { RoutePage } from '../components/Router';
 import { RunStorageState } from '../apis/run';
@@ -39,8 +39,10 @@ describe('AllRunsList', () => {
   };
   let tree: ShallowWrapper;
 
-  function shallowMountComponent(): void {
-    tree = shallow(<AllRunsList {...props} />);
+  function shallowMountComponent(
+    propsPatch: Partial<PageProps & { namespace?: string }> = {},
+  ): void {
+    tree = shallow(<AllRunsList {...props} {...propsPatch} />);
     // Necessary since the component calls updateToolbar with the toolbar props,
     // then expects to get them back in props
     tree.setProps({ toolbarProps: _toolbarProps });
@@ -58,6 +60,11 @@ describe('AllRunsList', () => {
   it('renders all runs', () => {
     shallowMountComponent();
     expect(tree).toMatchSnapshot();
+  });
+
+  it('lists all runs in namespace', () => {
+    shallowMountComponent({ namespace: 'test-ns' });
+    expect(tree.find('RunList').prop('namespaceMask')).toEqual('test-ns');
   });
 
   it('removes error banner on unmount', () => {

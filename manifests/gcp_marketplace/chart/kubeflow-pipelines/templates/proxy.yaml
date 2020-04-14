@@ -54,6 +54,7 @@ spec:
         app: proxy-agent
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
+      hostNetwork: true
       containers:
         - image: {{ .Values.images.proxyagent }}
           imagePullPolicy: IfNotPresent

@@ -2,9 +2,10 @@ package model
 
 type Experiment struct {
 	UUID           string `gorm:"column:UUID; not null; primary_key"`
-	Name           string `gorm:"column:Name; not null; unique"`
+	Name           string `gorm:"column:Name; not null; unique_index:idx_name_namespace"`
 	Description    string `gorm:"column:Description; not null"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`
+	Namespace      string `gorm:"column:Namespace; not null; unique_index:idx_name_namespace"`
 }
 
 func (e Experiment) GetValueOfPrimaryKey() string {
@@ -30,6 +31,7 @@ var experimentAPIToModelFieldMap = map[string]string{
 	"name":        "Name",
 	"created_at":  "CreatedAtInSec",
 	"description": "Description",
+	"namespace":   "Namespace",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model

@@ -12,17 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO: refractor k8s helper module so that api that interact with k8s can be
-// mocked and tested. There is currently no way to mock k8s APIs as
-// `k8s-helper.isInCluster` is a constant that is generated when the module is
-// first loaded.
-
-// @ts-ignore
 import {
   Core_v1Api,
   Custom_objectsApi,
   KubeConfig,
   V1DeleteOptions,
+  V1Pod,
+  V1EventList,
 } from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
@@ -31,9 +27,7 @@ import { PartialArgoWorkflow } from './workflow-helper';
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
 const namespaceFilePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
-let namespace = '';
-let k8sV1Client: Core_v1Api | null = null;
-let k8sV1CustomObjectClient: Custom_objectsApi | null = null;
+let serverNamespace: string | undefined = undefined;
 
 // Constants for creating customer resource Viewer.
 const viewerGroup = 'kubeflow.org';
@@ -52,15 +46,15 @@ export const defaultPodTemplateSpec = {
   },
 };
 
-export const isInCluster = fs.existsSync(namespaceFilePath);
-
-if (isInCluster) {
-  namespace = fs.readFileSync(namespaceFilePath, 'utf-8');
-  const kc = new KubeConfig();
-  kc.loadFromDefault();
-  k8sV1Client = kc.makeApiClient(Core_v1Api);
-  k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
+// The file path contains pod namespace when in Kubernetes cluster.
+if (fs.existsSync(namespaceFilePath)) {
+  serverNamespace = fs.readFileSync(namespaceFilePath, 'utf-8');
 }
+const kc = new KubeConfig();
+// This loads kubectl config when not in cluster.
+kc.loadFromDefault();
+const k8sV1Client = kc.makeApiClient(Core_v1Api);
+const k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
 
 function getNameOfViewerResource(logdir: string): string {
   // TODO: find some hash function with shorter resulting message.
@@ -73,13 +67,12 @@ function getNameOfViewerResource(logdir: string): string {
  */
 export async function newTensorboardInstance(
   logdir: string,
+  namespace: string,
+  tfImageName: string,
   tfversion: string,
   podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<void> {
-  if (!k8sV1CustomObjectClient) {
-    throw new Error('Cannot access kubernetes Custom Object API');
-  }
-  const currentPod = await getTensorboardInstance(logdir);
+  const currentPod = await getTensorboardInstance(logdir, namespace);
   if (currentPod.podAddress) {
     if (tfversion === currentPod.tfVersion) {
       return;
@@ -101,7 +94,7 @@ export async function newTensorboardInstance(
       podTemplateSpec,
       tensorboardSpec: {
         logDir: logdir,
-        tensorflowImage: 'tensorflow/tensorflow:' + tfversion,
+        tensorflowImage: tfImageName + ':' + tfversion,
       },
       type: 'tensorboard',
     },
@@ -121,11 +114,8 @@ export async function newTensorboardInstance(
  */
 export async function getTensorboardInstance(
   logdir: string,
+  namespace: string,
 ): Promise<{ podAddress: string; tfVersion: string }> {
-  if (!k8sV1CustomObjectClient) {
-    throw new Error('Cannot access kubernetes Custom Object API');
-  }
-
   return await k8sV1CustomObjectClient
     .getNamespacedCustomObject(
       viewerGroup,
@@ -146,17 +136,21 @@ export async function getTensorboardInstance(
           viewer.body.spec.type === 'tensorboard'
         ) {
           const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
-          const version = viewer.body.spec.tensorboardSpec.tensorflowImage
-            ? viewer.body.spec.tensorboardSpec.tensorflowImage.replace('tensorflow/tensorflow:', '')
-            : '';
-          return { podAddress: address, tfVersion: version };
+          const tfImageParts = viewer.body.spec.tensorboardSpec.tensorflowImage.split(':', 2);
+          const tfVersion = tfImageParts.length == 2 ? tfImageParts[1] : '';
+          return { podAddress: address, tfVersion: tfVersion };
         } else {
           return { podAddress: '', tfVersion: '' };
         }
       },
       // No existing custom object with the given name, i.e., no existing
       // tensorboard instance.
-      (_: any) => {
+      err => {
+        // This is often expected, so only use debug level for logging.
+        console.debug(
+          `Failed getting viewer custom object for logdir=${logdir} in ${namespace} namespace, err: `,
+          err?.body || err,
+        );
         return { podAddress: '', tfVersion: '' };
       },
     );
@@ -167,11 +161,8 @@ export async function getTensorboardInstance(
  * and returns the deleted podAddress
  */
 
-export async function deleteTensorboardInstance(logdir: string): Promise<void> {
-  if (!k8sV1CustomObjectClient) {
-    throw new Error('Cannot access kubernetes Custom Object API');
-  }
-  const currentPod = await getTensorboardInstance(logdir);
+export async function deleteTensorboardInstance(logdir: string, namespace: string): Promise<void> {
+  const currentPod = await getTensorboardInstance(logdir, namespace);
   if (!currentPod.podAddress) {
     return;
   }
@@ -193,27 +184,36 @@ export async function deleteTensorboardInstance(logdir: string): Promise<void> {
  * Polls every second for a running Tensorboard instance with the given logdir,
  * and returns the address of one if found, or rejects if a timeout expires.
  */
-export function waitForTensorboardInstance(logdir: string, timeout: number): Promise<string> {
+export function waitForTensorboardInstance(
+  logdir: string,
+  namespace: string,
+  timeout: number,
+): Promise<string> {
   const start = Date.now();
   return new Promise((resolve, reject) => {
-    setInterval(async () => {
+    const handle = setInterval(async () => {
       if (Date.now() - start > timeout) {
+        clearInterval(handle);
         reject('Timed out waiting for tensorboard');
       }
-      const tensorboardInstance = await getTensorboardInstance(logdir);
+      const tensorboardInstance = await getTensorboardInstance(logdir, namespace);
       const tensorboardAddress = tensorboardInstance.podAddress;
       if (tensorboardAddress) {
-        resolve(encodeURIComponent(tensorboardAddress));
+        clearInterval(handle);
+        resolve(tensorboardAddress);
       }
     }, 1000);
   });
 }
 
 export function getPodLogs(podName: string, podNamespace?: string): Promise<string> {
-  if (!k8sV1Client) {
-    throw new Error('Cannot access kubernetes API');
+  podNamespace = podNamespace || serverNamespace;
+  if (!podNamespace) {
+    throw new Error(
+      `podNamespace is not specified and cannot get namespace from ${namespaceFilePath}.`,
+    );
   }
-  return (k8sV1Client.readNamespacedPodLog(podName, podNamespace || namespace, 'main') as any).then(
+  return (k8sV1Client.readNamespacedPodLog(podName, podNamespace, 'main') as any).then(
     (response: any) => (response && response.body ? response.body.toString() : ''),
     (error: any) => {
       throw new Error(JSON.stringify(error.body));
@@ -221,19 +221,62 @@ export function getPodLogs(podName: string, podNamespace?: string): Promise<stri
   );
 }
 
+export interface K8sError {
+  message: string;
+  additionalInfo: any;
+}
+export async function getPod(
+  podName: string,
+  podNamespace: string,
+): Promise<[V1Pod, undefined] | [undefined, K8sError]> {
+  try {
+    const { body } = await k8sV1Client.readNamespacedPod(podName, podNamespace);
+    return [body, undefined];
+  } catch (error) {
+    const { message, additionalInfo } = parseK8sError(error);
+    const userMessage = `Could not get pod ${podName} in namespace ${podNamespace}: ${message}`;
+    return [undefined, { message: userMessage, additionalInfo }];
+  }
+}
+
+// Golang style result type including an error.
+export type Result<T, E = K8sError> = [T, undefined] | [undefined, E];
+export async function listPodEvents(
+  podName: string,
+  podNamespace: string,
+): Promise<Result<V1EventList>> {
+  try {
+    const { body } = await k8sV1Client.listNamespacedEvent(
+      podNamespace,
+      undefined,
+      undefined,
+      undefined,
+      // The following fieldSelector can be found when running
+      // `kubectl describe <pod-name> -v 8`
+      // (-v 8) will verbosely print network requests sent by kubectl.
+      `involvedObject.namespace=${podNamespace},involvedObject.name=${podName},involvedObject.kind=Pod`,
+    );
+    return [body, undefined];
+  } catch (error) {
+    const { message, additionalInfo } = parseK8sError(error);
+    const userMessage = `Error when listing pod events for pod "${podName}" in "${podNamespace}" namespace: ${message}`;
+    return [undefined, { message: userMessage, additionalInfo }];
+  }
+}
+
 /**
  * Retrieves the argo workflow CRD.
  * @param workflowName name of the argo workflow
  */
 export async function getArgoWorkflow(workflowName: string): Promise<PartialArgoWorkflow> {
-  if (!k8sV1CustomObjectClient) {
-    throw new Error('Cannot access kubernetes Custom Object API');
+  if (!serverNamespace) {
+    throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
   }
 
   const res = await k8sV1CustomObjectClient.getNamespacedCustomObject(
     workflowGroup,
     workflowVersion,
-    namespace,
+    serverNamespace,
     workflowPlural,
     workflowName,
   );
@@ -254,12 +297,59 @@ export async function getArgoWorkflow(workflowName: string): Promise<PartialArgo
  * @param key key in the secret
  */
 export async function getK8sSecret(name: string, key: string) {
-  if (!k8sV1Client) {
-    throw new Error('Cannot access kubernetes API');
+  if (!serverNamespace) {
+    throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
   }
 
-  const k8sSecret = await k8sV1Client.readNamespacedSecret(name, namespace);
+  const k8sSecret = await k8sV1Client.readNamespacedSecret(name, serverNamespace);
   const secretb64 = k8sSecret.body.data[key];
   const buff = new Buffer(secretb64, 'base64');
   return buff.toString('ascii');
 }
+
+const UNKOWN_ERROR = {
+  message: 'Unknown error',
+  additionalInfo: 'Unknown error',
+};
+function parseK8sError(error: any): { message: string; additionalInfo: any } {
+  try {
+    if (!error) {
+      return UNKOWN_ERROR;
+    } else if (typeof error === 'string') {
+      return {
+        message: error,
+        additionalInfo: error,
+      };
+    } else if (error.body) {
+      // Kubernetes client http error has body with all the info.
+      // Example error.body
+      // {
+      //   kind: 'Status',
+      //   apiVersion: 'v1',
+      //   metadata: {},
+      //   status: 'Failure',
+      //   message: 'pods "test-pod" not found',
+      //   reason: 'NotFound',
+      //   details: { name: 'test-pod', kind: 'pods' },
+      //   code: 404
+      // }
+      return {
+        message: error.body.message || UNKOWN_ERROR.message,
+        additionalInfo: error.body,
+      };
+    } else {
+      return {
+        message: error.message || UNKOWN_ERROR.message,
+        additionalInfo: error,
+      };
+    }
+  } catch (parsingError) {
+    console.error('There was a parsing error: ', parsingError);
+    return UNKOWN_ERROR;
+  }
+}
+
+export const TEST_ONLY = {
+  k8sV1Client,
+  k8sV1CustomObjectClient,
+};

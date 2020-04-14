@@ -52,9 +52,16 @@ built_in_algos = {
 # Get current directory to open templates
 __cwd__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
+
+def nullable_string_argument(value):
+    value = value.strip()
+    if not value:
+        return None
+    return value
+
 def add_default_client_arguments(parser):
     parser.add_argument('--region', type=str.strip, required=True, help='The region where the training job launches.')
-    parser.add_argument('--endpoint_url', type=str.strip, required=False, help='The URL to use when communicating with the Sagemaker service.')
+    parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the Sagemaker service.')
 
 def get_sagemaker_client(region, endpoint_url=None):
     """Builds a client to the AWS SageMaker API."""

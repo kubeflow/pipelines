@@ -42,6 +42,7 @@ exports[`LogViewer linkifies standalone https urls 1`] = `
       <a
         class="a"
         href="https://path.com"
+        rel="noopener noreferrer"
         target="_blank"
       >
         https://path.com
@@ -77,6 +78,7 @@ exports[`LogViewer linkifies standalone urls 1`] = `
       <a
         class="a"
         href="http://path.com"
+        rel="noopener noreferrer"
         target="_blank"
       >
         http://path.com
@@ -112,6 +114,7 @@ exports[`LogViewer linkifies substring urls 1`] = `
       <a
         class="a"
         href="http://path.com"
+        rel="noopener noreferrer"
         target="_blank"
       >
         http://path.com

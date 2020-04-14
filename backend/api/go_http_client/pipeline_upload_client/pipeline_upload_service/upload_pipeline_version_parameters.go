@@ -77,6 +77,8 @@ type UploadPipelineVersionParams struct {
 
 	/*Name*/
 	Name *string
+	/*Pipelineid*/
+	Pipelineid *string
 	/*Uploadfile
 	  The pipeline to upload. Maximum size of 32MB is supported.
 
@@ -132,6 +134,17 @@ func (o *UploadPipelineVersionParams) SetName(name *string) {
 	o.Name = name
 }
 
+// WithPipelineid adds the pipelineid to the upload pipeline version params
+func (o *UploadPipelineVersionParams) WithPipelineid(pipelineid *string) *UploadPipelineVersionParams {
+	o.SetPipelineid(pipelineid)
+	return o
+}
+
+// SetPipelineid adds the pipelineid to the upload pipeline version params
+func (o *UploadPipelineVersionParams) SetPipelineid(pipelineid *string) {
+	o.Pipelineid = pipelineid
+}
+
 // WithUploadfile adds the uploadfile to the upload pipeline version params
 func (o *UploadPipelineVersionParams) WithUploadfile(uploadfile runtime.NamedReadCloser) *UploadPipelineVersionParams {
 	o.SetUploadfile(uploadfile)
@@ -161,6 +174,22 @@ func (o *UploadPipelineVersionParams) WriteToRequest(r runtime.ClientRequest, re
 		qName := qrName
 		if qName != "" {
 			if err := r.SetQueryParam("name", qName); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.Pipelineid != nil {
+
+		// query param pipelineid
+		var qrPipelineid string
+		if o.Pipelineid != nil {
+			qrPipelineid = *o.Pipelineid
+		}
+		qPipelineid := qrPipelineid
+		if qPipelineid != "" {
+			if err := r.SetQueryParam("pipelineid", qPipelineid); err != nil {
 				return err
 			}
 		}

@@ -182,18 +182,6 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) 
 	return processedFile, nil
 }
 
-// Mutate default values of specified pipeline file.
-// Args:
-//  file: pipeline file in bytes.
-//  toPatch: mapping from the old value to its new value.
-func PatchPipelineDefaultParameter(file []byte, toPatch map[string]string) ([]byte, error) {
-	pipelineRawString := string(file)
-	for key, value := range toPatch {
-		pipelineRawString = strings.Replace(pipelineRawString, key, value, -1)
-	}
-	return []byte(pipelineRawString), nil
-}
-
 func printParameters(params []*api.Parameter) string {
 	var s strings.Builder
 	for _, p := range params {
@@ -307,6 +295,39 @@ func getUserIdentity(ctx context.Context) (string, error) {
 		return userIdentityHeaderFields[1], nil
 	}
 	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."), "Request header error: there is no user identity header.")
+}
+
+func CanAccessExperiment(resourceManager *resource.ResourceManager, ctx context.Context, experimentID string) error {
+	if common.IsMultiUserMode() == false {
+		// Skip authz if not multi-user mode.
+		return nil
+	}
+
+	experiment, err := resourceManager.GetExperiment(experimentID)
+	if err != nil {
+		return util.NewBadRequestError(errors.New("Invalid experiment ID"), "Failed to get experiment.")
+	}
+	if len(experiment.Namespace) == 0 {
+		return util.NewInternalServerError(errors.New("Missing namespace"), "Experiment %v doesn't have a namespace.", experiment.Name)
+	}
+	err = isAuthorized(resourceManager, ctx, experiment.Namespace)
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize with API resource references")
+	}
+	return nil
+}
+
+func CanAccessExperimentInResourceReferences(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
+	if common.IsMultiUserMode() == false {
+		// Skip authz if not multi-user mode.
+		return nil
+	}
+
+	experimentID := common.GetExperimentIDFromAPIResourceReferences(resourceRefs)
+	if len(experimentID) == 0 {
+		return util.NewBadRequestError(errors.New("Missing experiment"), "Experiment is required for CreateRun/CreateJob.")
+	}
+	return CanAccessExperiment(resourceManager, ctx, experimentID)
 }
 
 func CanAccessNamespaceInResourceReferences(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {

@@ -116,18 +116,10 @@ def extract_pipelineparams_from_any(payload) -> List['PipelineParam']:
       pipeline_params += extract_pipelineparams_from_any(item)
     return list(set(pipeline_params))
 
-  # k8s swagger object
-  if hasattr(payload, 'swagger_types') and isinstance(payload.swagger_types, dict):
+  # k8s OpenAPI object
+  if hasattr(payload, 'attribute_map') and isinstance(payload.attribute_map, dict):
     pipeline_params = []
-    for key in payload.swagger_types.keys():
-      pipeline_params += extract_pipelineparams_from_any(getattr(payload, key))
-
-    return list(set(pipeline_params))
-
-  # k8s openapi object
-  if hasattr(payload, 'openapi_types') and isinstance(payload.openapi_types, dict):
-    pipeline_params = []
-    for key in payload.openapi_types.keys():
+    for key in payload.attribute_map:
       pipeline_params += extract_pipelineparams_from_any(getattr(payload, key))
 
     return list(set(pipeline_params))

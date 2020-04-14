@@ -128,6 +128,21 @@ implementation:
         struct = load_yaml(component_text)
         ComponentSpec.from_dict(struct)
 
+    def test_handle_parsing_task_execution_options_caching_strategy(self):
+        component_text = '''\
+implementation:
+  graph:
+    tasks:
+      task 1:
+        componentRef: {name: Comp 1}
+        executionOptions:
+          cachingStrategy:
+            maxCacheStaleness: P30D
+'''
+        struct = load_yaml(component_text)
+        component_spec = ComponentSpec.from_dict(struct)
+        self.assertEqual(component_spec.implementation.graph.tasks['task 1'].execution_options.caching_strategy.max_cache_staleness, 'P30D')
+
     def test_handle_parsing_task_container_spec_options(self):
         component_text = '''\
 implementation:

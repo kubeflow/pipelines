@@ -14,7 +14,7 @@ import (
 )
 
 type ExperimentStoreInterface interface {
-	ListExperiments(opts *list.Options) ([]*model.Experiment, int, string, error)
+	ListExperiments(filterContext *common.FilterContext, opts *list.Options) ([]*model.Experiment, int, string, error)
 	GetExperiment(uuid string) (*model.Experiment, error)
 	CreateExperiment(*model.Experiment) (*model.Experiment, error)
 	DeleteExperiment(uuid string) error
@@ -30,13 +30,18 @@ type ExperimentStore struct {
 
 // Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
 // total_size. The total_size does not reflect the page size.
-func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experiment, int, string, error) {
+func (s *ExperimentStore) ListExperiments(filterContext *common.FilterContext, opts *list.Options) ([]*model.Experiment, int, string, error) {
 	errorF := func(err error) ([]*model.Experiment, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
 
 	// SQL for getting the filtered and paginated rows
-	sqlBuilder := opts.AddFilterToSelect(sq.Select("*").From("experiments"))
+	sqlBuilder := sq.Select("*").From("experiments")
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == common.Namespace {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{"Namespace": filterContext.ReferenceKey.ID})
+	}
+	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
+
 	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
 		return errorF(err)
@@ -44,7 +49,11 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
-	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sq.Select("count(*)").From("experiments")).ToSql()
+	sqlBuilder = sq.Select("count(*)").From("experiments")
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == common.Namespace {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{"Namespace": filterContext.ReferenceKey.ID})
+	}
+	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -123,17 +132,18 @@ func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) 
 func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) {
 	var experiments []*model.Experiment
 	for rows.Next() {
-		var uuid, name, description string
+		var uuid, name, description, namespace string
 		var createdAtInSec int64
-		err := rows.Scan(&uuid, &name, &description, &createdAtInSec)
+		err := rows.Scan(&uuid, &name, &description, &createdAtInSec, &namespace)
 		if err != nil {
-			return experiments, nil
+			return experiments, err
 		}
 		experiments = append(experiments, &model.Experiment{
 			UUID:           uuid,
 			Name:           name,
 			Description:    description,
 			CreatedAtInSec: createdAtInSec,
+			Namespace:      namespace,
 		})
 	}
 	return experiments, nil
@@ -150,12 +160,13 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	newExperiment.UUID = id.String()
 	sql, args, err := sq.
 		Insert("experiments").
-		SetMap(
-			sq.Eq{
-				"UUID":           newExperiment.UUID,
-				"CreatedAtInSec": newExperiment.CreatedAtInSec,
-				"Name":           newExperiment.Name,
-				"Description":    newExperiment.Description}).
+		SetMap(sq.Eq{
+			"UUID":           newExperiment.UUID,
+			"CreatedAtInSec": newExperiment.CreatedAtInSec,
+			"Name":           newExperiment.Name,
+			"Description":    newExperiment.Description,
+			"Namespace":      newExperiment.Namespace,
+		}).
 		ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to insert experiment to experiment table: %v",
@@ -165,7 +176,7 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	if err != nil {
 		if s.db.IsDuplicateError(err) {
 			return nil, util.NewInvalidInputError(
-				"Failed to create a new experiment. The name %v already exist. Please specify a new name.", experiment.Name)
+				"Failed to create a new experiment. The name %v already exists. Please specify a new name.", experiment.Name)
 		}
 		return nil, util.NewInternalServerError(err, "Failed to add experiment to experiment table: %v",
 			err.Error())
@@ -209,9 +220,9 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 // factory function for experiment store
 func NewExperimentStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *ExperimentStore {
 	return &ExperimentStore{
-		db:   db,
-		time: time,
-		uuid: uuid,
+		db:                     db,
+		time:                   time,
+		uuid:                   uuid,
 		resourceReferenceStore: NewResourceReferenceStore(db),
 		defaultExperimentStore: NewDefaultExperimentStore(db),
 	}

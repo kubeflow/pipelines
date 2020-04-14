@@ -186,7 +186,7 @@
     },
     "/apis/v1beta1/jobs/{id}/disable": {
       "post": {
-        "summary": "Disable a job.",
+        "summary": "Stops a job and all its associated runs. The job is not deleted.",
         "operationId": "DisableJob",
         "responses": {
           "200": {
@@ -218,7 +218,7 @@
     },
     "/apis/v1beta1/jobs/{id}/enable": {
       "post": {
-        "summary": "Enable a job.",
+        "summary": "Restarts a job that was previously stopped. All runs associated with the job will continue.",
         "operationId": "EnableJob",
         "responses": {
           "200": {
@@ -340,6 +340,11 @@
           "type": "boolean",
           "format": "boolean",
           "description": "Input. Whether the job is enabled or not."
+        },
+        "no_catchup": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Optional input field. Whether the job should catch up if behind schedule.\nIf true, the job will only schedule the latest interval if behind schedule.\nIf false, the job will catch up on each past interval."
         }
       }
     },

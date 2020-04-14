@@ -69,3 +69,30 @@ class TestResourceOp(unittest.TestCase):
             self.assertEqual(res.dependent_names, [])
 
         kfp.compiler.Compiler()._compile(my_pipeline)
+
+    def test_delete(self):
+        """Test delete method."""
+        param = PipelineParam("param")
+        k8s_resource = {"apiVersion": "version",
+                        "kind": "CustomResource",
+                        "metadata": {"name": "my-resource"}}
+        res = ResourceOp(name="resource",
+                         k8s_resource=k8s_resource,
+                         success_condition=param,
+                         attribute_outputs={"test": "attr"})
+
+        delete_res = res.delete()
+
+        self.assertEqual(delete_res.resource.action, "delete")
+        self.assertEqual(delete_res.attribute_outputs, {})
+        self.assertEqual(delete_res.outputs, {})
+        self.assertEqual(delete_res.output, None)
+
+        expected_res_name = PipelineParam(name="name", op_name=res.name)
+        expected_res_resource = {"apiVersion": "version",
+                                 "kind": "CustomResource",
+                                 "metadata": {"name": expected_res_name}}
+        self.assertEqual(delete_res.k8s_resource, expected_res_resource)
+
+        with self.assertRaises(ValueError):
+            delete_res.delete()

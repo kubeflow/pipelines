@@ -21,7 +21,7 @@ from kfp import dsl
 def gcs_read_op(url):
   return dsl.ContainerOp(
       name='Access GCS using auth token',
-      image='google/cloud-sdk:272.0.0',
+      image='google/cloud-sdk:279.0.0',
       command=['sh', '-c'],
       arguments=[
         'gsutil ls "$0" && echo "$1"',
@@ -34,11 +34,11 @@ def gcs_read_op(url):
 def use_gcp_api_op():
     return dsl.ContainerOp(
         name='Using Google Cloud APIs with Auth',
-        image='google/cloud-sdk:272.0.0',
+        image='google/cloud-sdk:279.0.0',
         command=[
             'sh', '-c',
-            'pip install google-cloud-storage && "$0" "$*"',
-            'python', '-c', '''
+            'pip3 install google-cloud-storage && "$0" "$*"',
+            'python3', '-c', '''
 from google.cloud import storage
 storage_client = storage.Client()
 buckets = storage_client.list_buckets()

@@ -16,13 +16,25 @@ import os
 import kfp
 from kfp import components
 from kfp import dsl
-import ai_pipeline_params as params
 
 secret_name = 'kfp-creds'
 configuration_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/commons/config/component.yaml')
 train_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/train/component.yaml')
 store_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/store/component.yaml')
 deploy_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/deploy/component.yaml')
+
+# Helper function for secret mount and image pull policy
+def use_ai_pipeline_params(secret_name, secret_volume_mount_path='/app/secrets', image_pull_policy='IfNotPresent'):
+    def _use_ai_pipeline_params(task):
+        from kubernetes import client as k8s_client
+        task = task.add_volume(k8s_client.V1Volume(name=secret_name,  # secret_name as volume name
+                                                   secret=k8s_client.V1SecretVolumeSource(secret_name=secret_name)))
+        task.container.add_volume_mount(k8s_client.V1VolumeMount(mount_path=secret_volume_mount_path, 
+                                                                 name=secret_name))
+        task.container.set_image_pull_policy(image_pull_policy)
+        return task
+    return _use_ai_pipeline_params
+
 
 # create pipelines
 
@@ -35,14 +47,16 @@ def kfp_wml_pipeline(
     CONFIG_FILE_URL='https://raw.githubusercontent.com/user/repository/branch/creds.ini',
     train_code='tf-model.zip',
     execution_command='\'python3 convolutional_network.py --trainImagesFile ${DATA_DIR}/train-images-idx3-ubyte.gz --trainLabelsFile ${DATA_DIR}/train-labels-idx1-ubyte.gz --testImagesFile ${DATA_DIR}/t10k-images-idx3-ubyte.gz --testLabelsFile ${DATA_DIR}/t10k-labels-idx1-ubyte.gz --learningRate 0.001 --trainingIters 20000\'',
-    framework= 'tensorflow',
-    framework_version = '1.13',
+    framework='tensorflow',
+    framework_version='1.14',
     runtime = 'python',
-    runtime_version = '3.6',
+    runtime_version='3.6',
     run_definition = 'wml-tensorflow-definition',
     run_name = 'wml-tensorflow-run',
     model_name='wml-tensorflow-mnist',
-    scoring_payload='tf-mnist-test-payload.json'
+    scoring_payload='tf-mnist-test-payload.json',
+    compute_name='k80',
+    compute_nodes='1'
 ):
     # op1 - this operation will create the credentials as secrets to be used by other operations
     get_configuration = configuration_op(
@@ -61,21 +75,26 @@ def kfp_wml_pipeline(
                    runtime=runtime,
                    runtime_version=runtime_version,
                    run_definition=run_definition,
-                   run_name=run_name
-                   ).apply(params.use_ai_pipeline_params(secret_name))
+                   run_name=run_name,
+                   compute_name=compute_name,
+                   compute_nodes=compute_nodes
+                   ).apply(use_ai_pipeline_params(secret_name, image_pull_policy='Always'))
 
     # op3 - this operation stores the model trained above
     wml_store = store_op(
                    wml_train.outputs['run_uid'],
-                   model_name
-                  ).apply(params.use_ai_pipeline_params(secret_name))
+                   model_name,
+                   framework=framework,
+                   framework_version=framework_version,
+                   runtime_version=runtime_version
+                   ).apply(use_ai_pipeline_params(secret_name, image_pull_policy='Always'))
 
     # op4 - this operation deploys the model to a web service and run scoring with the payload in the cloud object store
     wml_deploy = deploy_op(
                   wml_store.output,
                   model_name,
                   scoring_payload
-                 ).apply(params.use_ai_pipeline_params(secret_name))
+                  ).apply(use_ai_pipeline_params(secret_name, image_pull_policy='Always'))
 
 if __name__ == '__main__':
     # compile the pipeline

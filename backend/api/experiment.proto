@@ -17,11 +17,12 @@ syntax = "proto3";
 option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
 package api;
 
+import "backend/api/error.proto";
+import "backend/api/resource_reference.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-swagger/options/annotations.proto";
-import "backend/api/error.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   responses: {
@@ -110,6 +111,11 @@ message ListExperimentsRequest {
   // [filter.proto](https://github.com/kubeflow/pipelines/
   // blob/master/backend/api/filter.proto)).
   string filter = 4;
+
+  // What resource reference to filter on.
+  // For Experiment, the only valid resource type is Namespace. An sample query string could be
+  // resource_reference_key.type=NAMESPACE&resource_reference_key.id=ns1
+  ResourceKey resource_reference_key = 5;
 }
 
 message ListExperimentsResponse {
@@ -140,4 +146,8 @@ message Experiment {
 
   // Output. The time that the experiment created.
   google.protobuf.Timestamp created_at = 4;
+
+  // Optional input field. Specify which resource this run belongs to.
+  // For Experiment, the only valid resource reference is a single Namespace.
+  repeated ResourceReference resource_references = 5;
 }

@@ -85,6 +85,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
         if (run.max_concurrency) {
           triggerDetails.push(['Max. concurrent runs', run.max_concurrency]);
         }
+        triggerDetails.push(['Catchup', `${!run.no_catchup}`]);
         if (run.trigger.cron_schedule && run.trigger.cron_schedule.start_time) {
           triggerDetails.push([
             'Start time',
@@ -158,7 +159,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
       } catch (err) {
         const errorMessage = await errorToMessage(err);
         await this.showPageError(
-          `Error: failed to retrieve this recurring run\'s experiment.`,
+          `Error: failed to retrieve this recurring run's experiment.`,
           new Error(errorMessage),
           'warning',
         );

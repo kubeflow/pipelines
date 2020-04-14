@@ -43,3 +43,11 @@ If a new external Go dependency is added, or an existing one has its version
 bumped in the `go.mod` file, ensure the BUILD files pick this up by updating the
 WORKSPACE go_repository rules using the following command: `bazel run
 //:gazelle -- update-repos --from_file=go.mod`
+
+## Updating python dependencies
+
+[pip-tools](https://github.com/jazzband/pip-tools) is used to manage python
+dependencies. To update dependencies, edit [requirements.in](requirements.in)
+and run `./update_requirements.sh` to update and pin the transitive
+dependencies.
+

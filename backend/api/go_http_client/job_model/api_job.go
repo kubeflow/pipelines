@@ -61,6 +61,11 @@ type APIJob struct {
 	// Required input field. Job name provided by user. Not unique.
 	Name string `json:"name,omitempty"`
 
+	// Optional input field. Whether the job should catch up if behind schedule.
+	// If true, the job will only schedule the latest interval if behind schedule.
+	// If false, the job will catch up on each past interval.
+	NoCatchup bool `json:"no_catchup,omitempty"`
+
 	// Required input field.
 	// Describing what the pipeline manifest and parameters to use
 	// for the scheduled job.

@@ -17,7 +17,7 @@ import * as express from 'express';
 import * as fs from 'fs';
 import RunUtils from '../src/lib/RunUtils';
 import helloWorldRuntime from './integration-test-runtime';
-import proxyMiddleware from '../server/proxy-middleware';
+import proxyMiddleware from './proxy-middleware';
 import { ApiFilter, PredicateOp } from '../src/apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
 import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
@@ -603,6 +603,20 @@ export default (app: express.Application) => {
 
   app.get('/visualizations/allowed', (req, res) => {
     res.send(true);
+  });
+
+  // Uncomment this instead to test 404 endpoints.
+  // app.get('/system/cluster-name', (_, res) => {
+  //   res.status(404).send('404 Not Found');
+  // });
+  // app.get('/system/project-id', (_, res) => {
+  //   res.status(404).send('404 Not Found');
+  // });
+  app.get('/system/cluster-name', (_, res) => {
+    res.send('mock-cluster-name');
+  });
+  app.get('/system/project-id', (_, res) => {
+    res.send('mock-project-id');
   });
 
   app.all(v1beta1Prefix + '*', (req, res) => {
