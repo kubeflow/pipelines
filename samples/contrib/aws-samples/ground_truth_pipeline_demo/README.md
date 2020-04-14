@@ -18,18 +18,21 @@ Create a s3 bucket and run [this python script](https://github.com/kubeflow/pipe
 
 ## Amazon Cognito user groups
 
-To use the workteam component, you must have an Amazon Cognito user group(s) set up with the workers you want for the workteam.
+From Cognito note down Pool ID, User Group Name and client ID  
+You need this information to fill arguments user_pool, user_groups and client_ID
 
-For this demo, please create a user group with only yourself in it.
+[Official doc for Amazon Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-getting-started.html)
 
-If this is your first time creating a private workteam in the region you are using, follow the steps below to set up a new user pool, user group, and app client ID on Amazon Cognito.
-If you already have private workteams in the region you are using, skip step 1 and do steps 2 and 3 in the user pool that is already being used.
+For this demo you can create a new user pool (if you don't have one already).   
 
-Steps:
-1. Create a user pool in Amazon Cognito. Configure the user pool as needed, and make sure to create an app client. The Pool ID will be found under General settings.
-2. After creating the user pool, go to the Users and Groups section and create a group. Create users for the team, and add those users to the group.
-3. Under App integration > Domain name, create an Amazon Cognito domain for the user pool.
+AWS console -> Amazon SageMaker -> Ground Truth, Labeling workforces -> Private -> Create Private Team -> Give it "KFP-ground-truth-demo-pool" name and use your email address -> Create Private team -> Click on the radio button and from summary note down the "Amazon Cognito user pool", "App client" and "Labeling portal sign-in URL" -> click on the team name that you created and note down "Amazon Cognito user group"
 
+Use the info that you noted down to fill arguments for the pipeline  
+user_pool = Amazon Cognito user pool  
+user_groups = Amazon Cognito user group  
+client_ID = App client  
+
+> Note : Once you start a run on the pipeline you will receive the ground_truth labeling jobs at "Labeling portal sign-in URL" link 
 
 ## SageMaker permission
 
@@ -56,6 +59,7 @@ data:
 
 Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
 
+
 ```bash
 dsl-compile --py mini-image-classification-pipeline.py --output mini-image-classification-pipeline.tar.gz
 ```
@@ -66,11 +70,14 @@ Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compi
 
 The pipeline requires several arguments - replace `role_arn`, Amazon Cognito information, and the S3 input paths with your settings, and run the pipeline.
 
+> Note : team_name, ground_truth_train_job_name and ground_truth_validation_job_name need to be unique or else pipeline will error out if the names already exist
+
 If you are a new worker, you will receive an email with a link to the labeling portal and login information after the create workteam component completes.
 During the execution of the two Ground Truth components (one for training data, one for validation data), the labeling jobs will appear in the portal and you will need to complete these jobs.  
 
 After the pipeline finished, you may delete the user pool/ user group and the S3 bucket.
 
+  
 
 ## Components source
 

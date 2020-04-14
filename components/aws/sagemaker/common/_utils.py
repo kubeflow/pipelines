@@ -59,14 +59,17 @@ def nullable_string_argument(value):
         return None
     return value
 
+
 def add_default_client_arguments(parser):
     parser.add_argument('--region', type=str.strip, required=True, help='The region where the training job launches.')
     parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the Sagemaker service.')
+
 
 def get_sagemaker_client(region, endpoint_url=None):
     """Builds a client to the AWS SageMaker API."""
     client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url)
     return client
+
 
 def create_training_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_training_job
@@ -808,7 +811,7 @@ def get_labeling_job_outputs(client, labeling_job_name, auto_labeling):
     if auto_labeling:
         active_learning_model_arn = info['LabelingJobOutput']['FinalActiveLearningModelArn']
     else:
-        active_learning_model_arn = ''
+        active_learning_model_arn = ' '
     return output_manifest, active_learning_model_arn
 
 def enable_spot_instance_support(training_job_config, args):
