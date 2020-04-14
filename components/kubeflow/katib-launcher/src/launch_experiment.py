@@ -19,6 +19,7 @@ import json
 import os
 import logging
 import yaml
+import uuid
 import launch_crd
 
 from kubernetes import client as k8s_client
@@ -103,7 +104,7 @@ def main(argv=None):
     "apiVersion": "%s/%s" % (ExperimentGroup, args.version),
     "kind": "Experiment",
     "metadata": {
-      "name": args.name,
+      "name": str(args.name)+'-'+str(uuid.uuid4().hex),
       "namespace": args.namespace,
     },
     "spec": {
