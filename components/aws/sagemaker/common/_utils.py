@@ -18,8 +18,10 @@ import string
 import random
 import json
 import yaml
+import re
 
 import boto3
+import botocore
 from botocore.exceptions import ClientError
 from sagemaker.amazon.amazon_estimator import get_image_uri
 
@@ -65,9 +67,25 @@ def add_default_client_arguments(parser):
     parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the Sagemaker service.')
 
 
+def get_component_version():
+    """Get component version from the first line of License file"""
+    component_version = 'NULL'
+
+    with open('/THIRD-PARTY-LICENSES.txt', 'r') as license_file:
+        version_match = re.search('Amazon SageMaker Components for Kubeflow Pipelines; version (([0-9]+[.])+[0-9]+)',
+                        license_file.readline())
+        if version_match is not None:
+            component_version = version_match.group(1)
+
+    return component_version
+
+
 def get_sagemaker_client(region, endpoint_url=None):
     """Builds a client to the AWS SageMaker API."""
-    client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url)
+    session_config = botocore.config.Config(
+        user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(get_component_version())
+    )
+    client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
     return client
 
 
