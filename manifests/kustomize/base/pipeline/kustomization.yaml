@@ -30,3 +30,4 @@ resources:
 - pipeline-runner-role.yaml
 - pipeline-runner-rolebinding.yaml
 - pipeline-runner-sa.yaml
+- container-builder-sa.yaml
