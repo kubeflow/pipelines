@@ -100,7 +100,7 @@ def main(argv=None):
   config.load_incluster_config()
   api_client = k8s_client.ApiClient()
   experiment = Experiment(version=args.version, client=api_client)
-  exp_name = str(args.name)+'-'+str(uuid.uuid4().hex)
+  exp_name = (args.name+'-'+uuid.uuid4().hex)[0:63]
   
   inst = {
     "apiVersion": "%s/%s" % (ExperimentGroup, args.version),
