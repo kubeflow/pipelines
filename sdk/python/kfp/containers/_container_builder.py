@@ -14,7 +14,6 @@
 
 __all__ = [
     'ContainerBuilder',
-    'Deployment',
 ]
 
 import logging
@@ -27,11 +26,6 @@ from enum import Enum
 SERVICEACCOUNT_NAMESPACE = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
 GCS_STAGING_BLOB_DEFAULT_PREFIX = 'kfp_container_build_staging'
 GCR_DEFAULT_IMAGE_SUFFIX = 'kfp_container'
-
-class Deployment(Enum):
-  STANDALONE = 'STANDALONE'
-  KUBEFLOW = 'KUBEFLOW'
-  AI_PLATFORM = 'AI_PLATFORM'
 
 def _get_project_id():
   import requests
@@ -62,7 +56,7 @@ class ContainerBuilder(object):
   ContainerBuilder helps build a container image
   """
   def __init__(self, gcs_staging=None, default_image_name=None, namespace=None,
-               service_account=None, deployment=Deployment.STANDALONE):
+               service_account='kubeflow-pipelines-container-builder'):
     """
     Args:
       gcs_staging (str): GCS bucket/blob that can store temporary build files,
@@ -72,22 +66,21 @@ class ContainerBuilder(object):
       namespace (str): Kubernetes namespace where the pod is launched,
           default is the same namespace as the notebook service account in cluster
           or 'kubeflow' if not in cluster. If using the full Kubeflow
-          deployment and not in cluster, you should specify your user namespace.
+          deployment and not in cluster, you should specify your own user namespace.
 
-      service_account (str): Kubernetes service account the pod uses,
-          default works with the specified deployment type
-      deployment (Deployment): How Kubeflow Pipelines was installed? This is used
-          to infer default values that can work with different deployments.
-          There are three options: Deployment.KUBEFLOW, Deployment.STANDALONE and
-          Deployment.AI_PLATFORM. You may refer to https://www.kubeflow.org/docs/pipelines/installation/overview/
-          for more details.
+      service_account (str): Kubernetes service account the pod uses for container building,
+          The default value is "kubeflow-pipelines-container-builder". It works with Kubeflow Pipelines clusters installed using Google Cloud Marketplace or Standalone with version > 0.4.0.
+          Depending on how you installed Kubeflow Pipelines, you may need to choose a different service account:
+          For clusters installed with Kubeflow >= 0.7, use the "default-editor" service account.
+          For clusters installed with Kubeflow < 0.7, use "default" service account.
+          For clusters installed using Google Cloud Marketplace or Standalone with version <= 0.4.0 specify the "default" value.
+          You may refer to https://www.kubeflow.org/docs/pipelines/installation/overview/ for more details about different installation options.
     """
     self._gcs_staging = gcs_staging
     self._gcs_staging_checked = False
     self._default_image_name = default_image_name
     self._namespace = namespace
     self._service_account = service_account
-    self._deployment = deployment
 
   def _get_namespace(self):
     if self._namespace is None:
@@ -100,11 +93,6 @@ class ContainerBuilder(object):
     return self._namespace
 
   def _get_service_account(self):
-    if self._service_account is None:
-      if self._deployment is Deployment.KUBEFLOW:
-        return 'default-editor'
-      else:
-        return 'kubeflow-pipelines-container-builder'
     return self._service_account
 
   def _get_staging_location(self):
@@ -165,7 +153,7 @@ class ContainerBuilder(object):
                 ],
                 'image': 'gcr.io/kaniko-project/executor@sha256:78d44ec4e9cb5545d7f85c1924695c89503ded86a59f92c7ae658afa3cff5400',
             }],
-            'serviceAccountName': this._get_service_account()}
+            'serviceAccountName': self._get_service_account()}
     }
     return content
 

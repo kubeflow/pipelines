@@ -18,7 +18,7 @@ import unittest
 import yaml
 import tempfile
 import mock
-from kfp.containers._component_builder import ContainerBuilder, Deployment
+from kfp.containers._component_builder import ContainerBuilder
 
 GCS_BASE = 'gs://kfp-testing/'
 DEFAULT_IMAGE_NAME = 'gcr.io/kfp-testing/image'
@@ -60,8 +60,7 @@ class TestContainerBuild(unittest.TestCase):
     # check
     builder = ContainerBuilder(gcs_staging=GCS_BASE,
                                default_image_name=DEFAULT_IMAGE_NAME,
-                               namespace='default',
-                               deployment=Deployment.STANDALONE)
+                               namespace='default')
     generated_yaml = builder._generate_kaniko_spec(docker_filename='dockerfile',
                                                    context='gs://mlpipeline/kaniko_build.tar.gz',
                                                    target_image='gcr.io/mlpipeline/kaniko_image:latest')
@@ -79,8 +78,8 @@ class TestContainerBuild(unittest.TestCase):
     # check
     builder = ContainerBuilder(gcs_staging=GCS_BASE,
                                default_image_name=DEFAULT_IMAGE_NAME,
-                               namespace='user',
-                               deployment=Deployment.KUBEFLOW)
+                               namespace='user'
+                               service_account='default-editor')
     generated_yaml = builder._generate_kaniko_spec(docker_filename='dockerfile',
                                                    context='gs://mlpipeline/kaniko_build.tar.gz',
                                                    target_image='gcr.io/mlpipeline/kaniko_image:latest')
