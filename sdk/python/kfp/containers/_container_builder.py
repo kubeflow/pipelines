@@ -63,18 +63,13 @@ class ContainerBuilder(object):
           default is gs://PROJECT_ID/kfp_container_build_staging. You have to
           specify this when it doesn't run in cluster.
       default_image_name (str): Target container image name that will be used by the build method if the target_image argument is not specified.
-      namespace (str): Kubernetes namespace where the pod is launched,
+      namespace (str): Kubernetes namespace where the container builder pod is launched,
           default is the same namespace as the notebook service account in cluster
           or 'kubeflow' if not in cluster. If using the full Kubeflow
           deployment and not in cluster, you should specify your own user namespace.
-
       service_account (str): Kubernetes service account the pod uses for container building,
           The default value is "kubeflow-pipelines-container-builder". It works with Kubeflow Pipelines clusters installed using Google Cloud Marketplace or Standalone with version > 0.4.0.
-          Depending on how you installed Kubeflow Pipelines, you may need to choose a different service account:
-          For clusters installed with Kubeflow >= 0.7, use the "default-editor" service account.
-          For clusters installed with Kubeflow < 0.7, use "default" service account.
-          For clusters installed using Google Cloud Marketplace or Standalone with version <= 0.4.0 specify the "default" value.
-          You may refer to https://www.kubeflow.org/docs/pipelines/installation/overview/ for more details about different installation options.
+          The service account should have permission to read and writing from staging gcs path and upload built images to gcr.io.
     """
     self._gcs_staging = gcs_staging
     self._gcs_staging_checked = False
