@@ -148,6 +148,30 @@ func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID
 	return nil
 }
 
+func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *api.ArchiveExperimentRequest) (*empty.Empty, error) {
+	err := s.canAccessExperiment(ctx, request.Id)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the requests.")
+	}
+	err = s.resourceManager.ArchiveExperiment(request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
+func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *api.UnarchiveExperimentRequest) (*empty.Empty, error) {
+	err := s.canAccessExperiment(ctx, request.Id)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the requests.")
+	}
+	err = s.resourceManager.UnarchiveExperiment(request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
 func NewExperimentServer(resourceManager *resource.ResourceManager) *ExperimentServer {
 	return &ExperimentServer{resourceManager: resourceManager}
 }
