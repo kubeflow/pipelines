@@ -698,3 +698,8 @@ spec:
             - containerPort: 8888
             - containerPort: 8887
       serviceAccountName: ml-pipeline
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubeflow-pipelines-container-builder
