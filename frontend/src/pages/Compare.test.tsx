@@ -15,7 +15,8 @@
  */
 
 import * as React from 'react';
-import Compare, { TaggedViewerConfig } from './Compare';
+import { createMemoryHistory } from 'history';
+import EnhancedCompare, { TEST_ONLY, TaggedViewerConfig } from './Compare';
 import TestUtils from '../TestUtils';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { Apis } from '../lib/Apis';
@@ -26,7 +27,11 @@ import { PlotType } from '../components/viewers/Viewer';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { ButtonKeys } from '../lib/Buttons';
+import { render } from '@testing-library/react';
+import { Router } from 'react-router-dom';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
+const Compare = TEST_ONLY.Compare;
 class TestCompare extends Compare {
   public _selectionChanged(selectedIds: string[]): void {
     return super._selectionChanged(selectedIds);
@@ -143,7 +148,9 @@ describe('Compare', () => {
   afterEach(async () => {
     // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
     // depends on mocks/spies
-    await tree.unmount();
+    if (tree && tree.exists()) {
+      await tree.unmount();
+    }
   });
 
   it('clears banner upon initial load', () => {
@@ -581,5 +588,73 @@ describe('Compare', () => {
     expect(tree.find('PlotCard').length).toBe(6);
 
     expect(tree).toMatchSnapshot();
+  });
+
+  describe('EnhancedCompare', () => {
+    it('redirects to experiments page when namespace changes', () => {
+      const history = createMemoryHistory({
+        initialEntries: ['/does-not-matter'],
+      });
+      const { rerender } = render(
+        <Router history={history}>
+          <NamespaceContext.Provider value='ns1'>
+            <EnhancedCompare {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).not.toEqual('/experiments');
+      rerender(
+        <Router history={history}>
+          <NamespaceContext.Provider value='ns2'>
+            <EnhancedCompare {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).toEqual('/experiments');
+    });
+
+    it('does not redirect when namespace stays the same', () => {
+      const history = createMemoryHistory({
+        initialEntries: ['/initial-path'],
+      });
+      const { rerender } = render(
+        <Router history={history}>
+          <NamespaceContext.Provider value='ns1'>
+            <EnhancedCompare {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).toEqual('/initial-path');
+      rerender(
+        <Router history={history}>
+          <NamespaceContext.Provider value='ns1'>
+            <EnhancedCompare {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).toEqual('/initial-path');
+    });
+
+    it('does not redirect when namespace initializes', () => {
+      const history = createMemoryHistory({
+        initialEntries: ['/initial-path'],
+      });
+      const { rerender } = render(
+        <Router history={history}>
+          <NamespaceContext.Provider value={undefined}>
+            <EnhancedCompare {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).toEqual('/initial-path');
+      rerender(
+        <Router history={history}>
+          <NamespaceContext.Provider value='ns1'>
+            <EnhancedCompare {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).toEqual('/initial-path');
+    });
   });
 });
