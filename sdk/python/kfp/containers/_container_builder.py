@@ -21,7 +21,6 @@ import tarfile
 import tempfile
 import os
 import uuid
-from enum import Enum
 
 SERVICEACCOUNT_NAMESPACE = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
 GCS_STAGING_BLOB_DEFAULT_PREFIX = 'kfp_container_build_staging'
@@ -69,7 +68,7 @@ class ContainerBuilder(object):
           deployment and not in cluster, you should specify your own user namespace.
       service_account (str): Kubernetes service account the pod uses for container building,
           The default value is "kubeflow-pipelines-container-builder". It works with Kubeflow Pipelines clusters installed using Google Cloud Marketplace or Standalone with version > 0.4.0.
-          The service account should have permission to read and writing from staging gcs path and upload built images to gcr.io.
+          The service account should have permission to read and write from staging gcs path and upload built images to gcr.io.
     """
     self._gcs_staging = gcs_staging
     self._gcs_staging_checked = False
@@ -86,9 +85,6 @@ class ContainerBuilder(object):
       else:
         self._namespace = 'kubeflow'
     return self._namespace
-
-  def _get_service_account(self):
-    return self._service_account
 
   def _get_staging_location(self):
     if self._gcs_staging_checked:
@@ -148,7 +144,7 @@ class ContainerBuilder(object):
                 ],
                 'image': 'gcr.io/kaniko-project/executor@sha256:78d44ec4e9cb5545d7f85c1924695c89503ded86a59f92c7ae658afa3cff5400',
             }],
-            'serviceAccountName': self._get_service_account()}
+            'serviceAccountName': self._service_account}
     }
     return content
 
