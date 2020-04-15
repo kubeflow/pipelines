@@ -137,7 +137,10 @@ def _create_pipeline(
               name='baseline', label_key='variety', is_baseline=True
           )
       ],
-      slicing_specs=[tfma.SlicingSpec()],
+      slicing_specs=[
+          tfma.SlicingSpec(),
+          # Data can be sliced along a feature column. Required by TFMA visualization.
+          tfma.SlicingSpec(feature_keys=['sepal_length'])],
       metrics_specs=[
           tfma.MetricsSpec(
               metrics=[

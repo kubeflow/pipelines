@@ -1,4 +1,4 @@
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ml-pipeline
@@ -15,7 +15,7 @@ spec:
             - name: DBCONFIG_PASSWORD
               value: ''
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cloudsqlproxy

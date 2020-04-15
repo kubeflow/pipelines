@@ -16,7 +16,7 @@ outputs:
   - {name: MLPipeline UI metadata, type: UI metadata}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:be497983cda7a1d17f3883c67e39a969cf0868a9
+    image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:eb69a6b8ae2d82cd8574ed11f04af4607756061c
     command: [python2, -m, trainer.task]
     args: [
       --transformed-data-dir, {inputValue: Transformed data dir},

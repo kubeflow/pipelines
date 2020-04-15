@@ -24,13 +24,9 @@ def automl_create_dataset_for_tables(
     retry=None, #=google.api_core.gapic_v1.method.DEFAULT,
     timeout: float = None, #=google.api_core.gapic_v1.method.DEFAULT,
     metadata: dict = None,
-) -> NamedTuple('Outputs', [('dataset_path', str), ('create_time', str), ('dataset_id', str)]):
+) -> NamedTuple('Outputs', [('dataset_path', str), ('create_time', str), ('dataset_id', str), ('dataset_url', 'URI')]):
     '''automl_create_dataset_for_tables creates an empty Dataset for AutoML tables
     '''
-    import sys
-    import subprocess
-    subprocess.run([sys.executable, '-m', 'pip', 'install', 'google-cloud-automl==0.4.0', '--quiet', '--no-warn-script-location'], env={'PIP_DISABLE_PIP_VERSION_CHECK': '1'}, check=True)
-
     import google
     from google.cloud import automl
     client = automl.AutoMlClient()
@@ -50,9 +46,19 @@ def automl_create_dataset_for_tables(
     )
     print(dataset)
     dataset_id = dataset.name.rsplit('/', 1)[-1]
-    return (dataset.name, dataset.create_time, dataset_id)
+    dataset_url = 'https://console.cloud.google.com/automl-tables/locations/{region}/datasets/{dataset_id}/schemav2?project={project_id}'.format(
+        project_id=gcp_project_id,
+        region=gcp_region,
+        dataset_id=dataset_id,
+    )
+    return (dataset.name, dataset.create_time, dataset_id, dataset_url)
 
 
 if __name__ == '__main__':
     import kfp
-    kfp.components.func_to_container_op(automl_create_dataset_for_tables, output_component_file='component.yaml', base_image='python:3.7')
+    kfp.components.func_to_container_op(
+        automl_create_dataset_for_tables,
+        output_component_file='component.yaml',
+        base_image='python:3.7',
+        packages_to_install=['google-cloud-automl==0.4.0']
+    )
