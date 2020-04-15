@@ -16,13 +16,15 @@
 
 set -ex
 
-if [ "$IMAGES_BUILDING" == true ]; then
-  MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20)
-  PENDING_BUILD_IDS=("${BUILD_IDS[@]}") # copy pending build ids
-  for i in $(seq 1 ${MAX_ATTEMPT})
+# Usage: wait_for_builds "${BUILD_IDS[@]}"
+# returns true if success, otherwise false.
+function wait_for_builds {
+  local pending_ids=("$1") # copy pending build ids
+  local max_attempts=$(expr $TIMEOUT_SECONDS / 20)
+  for i in $(seq 1 ${max_attempts})
   do
-    NEW_PENDING_BUILD_IDS=()
-    for id in "${PENDING_BUILD_IDS[@]}"
+    local new_pending_ids=()
+    for id in "${pending_ids[@]}"
     do
       status=$(gcloud builds describe $id --format='value(status)') || status="FETCH_ERROR"
       case "$status" in
@@ -30,11 +32,11 @@ if [ "$IMAGES_BUILDING" == true ]; then
           echo "Build with id ${id} has succeeded."
         ;;
         "WORKING" | "QUEUED")
-          NEW_PENDING_BUILD_IDS+=( "$id" )
+          new_pending_ids+=( "$id" )
         ;;
         "FETCH_ERROR")
           echo "Fetching cloud build status failed, retrying..."
-          NEW_PENDING_BUILD_IDS+=( "$id" )
+          new_pending_ids+=( "$id" )
         ;;
         *)
           echo "Fetching build log for build $id"
@@ -42,16 +44,42 @@ if [ "$IMAGES_BUILDING" == true ]; then
           # Intentionally placed this status echo at the end, because when a
           # developer is looking at logs, sth at the end is most discoverable.
           echo "Cloud build with build id ${id} failed with status ${status}"
-          exit 1
+          return 1
         ;;
       esac
     done
-    PENDING_BUILD_IDS=("${NEW_PENDING_BUILD_IDS[@]}")
-    if [ 0 == "${#PENDING_BUILD_IDS[@]}" ]; then
+    pending_ids=("${new_pending_ids[@]}")
+    if [ 0 == "${#pending_ids[@]}" ]; then
       echo "All cloud builds succeeded."
-      break
+      return 0
     fi
     echo "Cloud build in progress, waiting for 20 seconds..."
     sleep 20
   done
-fi
+  echo "Waiting for cloud build ids ${pending_ids[@]} timed out."
+  return 2
+}
+
+function wait_and_retry {
+  local max_attempts=3
+  local i
+  for i in $(seq 1 ${max_attempts})
+  do
+    if [ $i != 1 ]; then
+      echo "Retry #${i}, build images again..."
+      source "${DIR}/build-images.sh"
+    fi
+    if [ "$IMAGES_BUILDING" != true ]; then
+      echo "Images already built"
+      return 0
+    fi
+    if wait_for_builds "${BUILD_IDS[@]}"; then
+      echo "Images built successfully"
+      return 0
+    fi
+  done
+  echo "Images failed to build"
+  return 1
+}
+
+wait_and_retry

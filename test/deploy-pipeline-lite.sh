@@ -102,19 +102,21 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   # Use static GSAs for testing, so we don't need to GC them.
   export SYSTEM_GSA="test-kfp-system"
   export USER_GSA="test-kfp-user"
-
-  # Workaround for flakiness from gcp-workload-identity-setup.sh:
-  # When two tests add iam policy bindings at the same time, one will fail because
-  # there could be two concurrent changes.
-  # Wait here randomly to reduce chance both scripts are run at the same time
-  # between tests. gcp-workload-identity-setup.sh is user facing, we'd better
-  # not add retry there. Also unless for testing scenario like this, it won't
-  # meet the concurrent change issue.
-  sleep $((RANDOM%30))
-  yes | PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
-    ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
-
   source "${DIR}/scripts/retry.sh"
+
+  function setup_workload_identity {
+    # Workaround for flakiness from gcp-workload-identity-setup.sh:
+    # When two tests add iam policy bindings at the same time, one will fail because
+    # there could be two concurrent changes.
+    # Wait here randomly to reduce chance both scripts are run at the same time
+    # between tests. Unless for testing scenario like this, it won't
+    # meet the concurrent change issue.
+    sleep $((RANDOM%30))
+    yes | PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
+      ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
+  }
+  retry setup_workload_identity
+
   retry gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$SYSTEM_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor"

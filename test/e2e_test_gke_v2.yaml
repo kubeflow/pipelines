@@ -129,6 +129,7 @@ spec:
         withItems:
           - condition
           - exit_handler
+          - recursion
           - sequential
           - parallel_join
           - volume_ops
