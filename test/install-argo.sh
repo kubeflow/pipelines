@@ -54,11 +54,11 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   source "$DIR/../manifests/kustomize/wi-utils.sh"
   create_gsa_if_not_present $ARGO_GSA
 
-  gcloud projects add-iam-policy-binding $PROJECT \
+  source "${DIR}/scripts/retry.sh"
+  retry gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$ARGO_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor" \
     > /dev/null # hide verbose output
-  source "$DIR/scripts/retry.sh"
   retry bind_gsa_and_ksa $ARGO_GSA $ARGO_KSA $PROJECT $NAMESPACE
 
   verify_workload_identity_binding $ARGO_KSA $NAMESPACE

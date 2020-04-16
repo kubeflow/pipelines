@@ -102,6 +102,7 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   # Use static GSAs for testing, so we don't need to GC them.
   export SYSTEM_GSA="test-kfp-system"
   export USER_GSA="test-kfp-user"
+  source "${DIR}/scripts/retry.sh"
 
   function setup_workload_identity {
     # Workaround for flakiness from gcp-workload-identity-setup.sh:
@@ -116,7 +117,6 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   }
   retry setup_workload_identity
 
-  source "${DIR}/scripts/retry.sh"
   retry gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$SYSTEM_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor"
