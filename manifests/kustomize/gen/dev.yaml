@@ -764,6 +764,18 @@ metadata:
 ---
 apiVersion: v1
 data:
+  appName: pipeline
+  appVersion: 0.4.0
+  imageTag: 0.4.0
+kind: ConfigMap
+metadata:
+  labels:
+    application-crd-id: kubeflow-pipelines
+  name: pipeline-parameters-585btmt8dk
+  namespace: kubeflow
+---
+apiVersion: v1
+data:
   config: |
     {
     namespace: kubeflow,
