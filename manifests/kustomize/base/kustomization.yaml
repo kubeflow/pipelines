@@ -10,24 +10,43 @@ bases:
 - cache-deployer
 
 resources:
-  - pipeline-application.yaml
+  - namespace.yaml
+  - pipeline-application.yaml  
 
-images:
-- name: gcr.io/ml-pipeline/api-server
-  newTag: 0.4.0
-- name: gcr.io/ml-pipeline/persistenceagent
-  newTag: 0.4.0
-- name: gcr.io/ml-pipeline/scheduledworkflow
-  newTag: 0.4.0
-- name: gcr.io/ml-pipeline/frontend
-  newTag: 0.4.0
-- name: gcr.io/ml-pipeline/viewer-crd-controller
-  newTag: 0.4.0
-- name: gcr.io/ml-pipeline/visualization-server
-  newTag: 0.4.0
-- name: gcr.io/ml-pipeline/metadata-writer
-  newTag: 0.4.0
-- name: gcr.io/ml-pipeline/cache-server
-  newTag: 0.4.0
-- name: gcr.io/ml-pipeline/cache-deployer
-  newTag: 0.4.0
+# Used by Kustomize
+configMapGenerator:
+  - name: pipeline-parameters
+    env: params.env
+
+vars:
+  - name: NAMESPACE
+    objref:
+      kind: Deployment
+      apiVersion: apps/v1
+      name:  workflow-controller
+    fieldref:
+      fieldpath: metadata.namespace
+  - name: APP_NAME
+    objref:
+      kind: ConfigMap      
+      name:  pipeline-parameters
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.appName
+  - name: APP_VERSION
+    objref:
+      kind: ConfigMap      
+      name:  pipeline-parameters
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.appVersion
+  - name: IMAGE_TAG
+    objref:
+      kind: ConfigMap      
+      name:  pipeline-parameters
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.imageTag
+
+configurations:
+  - params.yaml

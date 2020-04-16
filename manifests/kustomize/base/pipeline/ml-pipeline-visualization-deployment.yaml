@@ -14,7 +14,7 @@ spec:
         app: ml-pipeline-visualizationserver
     spec:
       containers:
-      - image: gcr.io/ml-pipeline/visualization-server:0.1.27
+      - image: gcr.io/ml-pipeline/visualization-server:$(IMAGE_TAG)
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-visualizationserver
         ports:
