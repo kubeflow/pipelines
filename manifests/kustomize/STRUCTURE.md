@@ -29,7 +29,7 @@ kustomize
     ├── gcp
     │   ├── cluster-scoped-resources (set ../../cluster-scoped-resources as base)
     │   └── kustomization.yaml (set ../../namespaced as base)
-    ├── aws
+    ├── gcp-dev
     └── dev
 ```
 

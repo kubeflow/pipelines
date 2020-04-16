@@ -3,6 +3,7 @@ kind: Kustomization
 
 bases:
   - ../../namespaced
+  - ../gcp-dev/proxy
   - minio
   - mysql
 
