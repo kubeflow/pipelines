@@ -26,7 +26,6 @@ integer_parameters | The array of IntegerParameterRange objects that specify ran
 continuous_parameters | The array of ContinuousParameterRange objects that specify ranges of continuous hyperparameters that you want to search | Yes | Yes | List of Dicts | | [] |
 categorical_parameters | The array of CategoricalParameterRange objects that specify ranges of categorical hyperparameters that you want to search | Yes | Yes | List of Dicts | | [] |
 channels | A list of dicts specifying the input channels (at least one); refer to [documentation](https://github.com/awsdocs/amazon-sagemaker-developer-guide/blob/master/doc_source/API_Channel.md) for parameters | No | No | List of Dicts | | |
-data_location_[1, 8] | The S3 URI of the input data source for channel [1, 8] | Yes | Yes | | |
 output_location | The Amazon S3 path where you want Amazon SageMaker to store the results of the transform job | No | No | String | | |
 output_encryption_key | The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts | Yes | Yes | String | | |
 instance_type | The ML compute instance type | Yes | No | String | ml.m4.xlarge, ml.m4.2xlarge, ml.m4.4xlarge, ml.m4.10xlarge, ml.m4.16xlarge, ml.m5.large, ml.m5.xlarge, ml.m5.2xlarge, ml.m5.4xlarge, ml.m5.12xlarge, ml.m5.24xlarge, ml.c4.xlarge, ml.c4.2xlarge, ml.c4.4xlarge, ml.c4.8xlarge, ml.p2.xlarge, ml.p2.8xlarge, ml.p2.16xlarge, ml.p3.2xlarge, ml.p3.8xlarge, ml.p3.16xlarge, ml.c5.xlarge, ml.c5.2xlarge, ml.c5.4xlarge, ml.c5.9xlarge, ml.c5.18xlarge | ml.m4.xlarge |
@@ -52,7 +51,6 @@ Notes:
 * Specify training image OR algorithm name. Use the image parameter for Bring Your Own Container (BYOC) algorithms, and algorithm name for Amazon built-in algorithms, custom algorithm resources in SageMaker, and algorithms subscribed to from the AWS Marketplace.
 * Specify VPC security group IDs AND VPC subnets to specify the VPC that you want the training jobs to connect to.
 * Specify warm start type AND 1 to 5 parent HPO jobs to launch the hyperparameter tuning job with previous jobs as a starting point.
-* The parameters, data_location_1 through 8, is intended to be used for inputting the S3 URI outputs from previous steps in the pipeline, for example, from a Ground Truth labeling job. Otherwise, the S3 data location can be specified directly in the channels parameter.
 
 ## Outputs
 Name | Description

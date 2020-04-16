@@ -37,9 +37,6 @@ max_wait_time | The maximum time in seconds you are willing to wait for a manage
 checkpoint_config | Dictionary of information about the output location for managed spot training checkpoint data | Yes | Dict | | {} |
 tags | Key-value pairs to categorize AWS resources | Yes | Dict | | {} |
 
-Notes :
-* The parameters, data_location_1 through 8, is intended to be used for inputting the S3 URI outputs from previous steps in the pipeline, for example, from a Ground Truth labeling job. Otherwise, the S3 data location can be specified directly in the channels parameter.
-
 
 ## Output
 Stores the Model in the s3 bucket you specified 
