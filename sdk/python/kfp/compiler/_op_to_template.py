@@ -22,7 +22,7 @@ from typing import Union, List, Any, Callable, TypeVar, Dict
 from ._k8s_helper import convert_k8s_obj_to_json
 from .. import dsl
 from ..dsl._container_op import BaseOp
-from ..dsl._artifact_location import ArtifactLocation
+
 
 # generics
 T = TypeVar('T')
@@ -187,12 +187,7 @@ def _op_to_template(op: BaseOp):
         output_artifact_paths.update(sorted(((param.full_name, processed_op.file_outputs[param.name]) for param in processed_op.outputs.values()), key=lambda x: x[0]))
 
         output_artifacts = [
-             convert_k8s_obj_to_json(
-                 ArtifactLocation.create_artifact_for_s3(
-                     op.artifact_location, 
-                     name=name, 
-                     path=path, 
-                     key='runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz'))
+            {'name': name, 'path': path}
             for name, path in output_artifact_paths.items()
         ]
 
