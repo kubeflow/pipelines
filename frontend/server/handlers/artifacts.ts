@@ -237,3 +237,22 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
     }
   };
 }
+
+const authEmailHeader = 'x-goog-authenticated-user-email';
+const artifactFetcherServiceName = 'ml-pipeline-artifact';
+const artifactFetcherServicePort = 80;
+export function getArtifactFetcherService(namespace: string): string {
+  return `http://${artifactFetcherServiceName}.${namespace}:${artifactFetcherServicePort}`;
+}
+const namespaceRegex = /^\/namespaces\/([^/]+)\//;
+export function getNamespaceFromUrlOrError(url: string): string {
+  // Gets namespace from /namespaces/:namespace/ pattern.
+  const result = namespaceRegex.exec(url);
+  const namespace = result?.[1];
+  if (!namespace) {
+    throw new Error(
+      `Namespace is expected in ${url} by /namespaces/:namespace/ pattern, but not found.`,
+    );
+  }
+  return namespace;
+}

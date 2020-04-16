@@ -19,7 +19,11 @@ import * as proxy from 'http-proxy-middleware';
 import { UIConfigs } from './configs';
 import { getAddress } from './utils';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz';
-import { getArtifactsHandler } from './handlers/artifacts';
+import {
+  getArtifactsHandler,
+  getArtifactFetcherService,
+  getNamespaceFromUrlOrError,
+} from './handlers/artifacts';
 import {
   getCreateTensorboardHandler,
   getTensorboardHandler,
@@ -115,6 +119,26 @@ function createUIServer(options: UIConfigs) {
 
   /** Artifact */
   registerHandler(app.get, '/artifacts/get', getArtifactsHandler(options.artifacts));
+  /** Proxy to namespaced ml-pipeline-artifact servers */
+  app.all(
+    `/namespaces/:namespace/artifacts/get`,
+    proxy({
+      changeOrigin: true,
+      onProxyReq: proxyReq => {
+        console.log('Proxied request: ', proxyReq.path);
+      },
+      pathRewrite: (pathStr, req) => {
+        const url = req.url || '';
+        const namespace = getNamespaceFromUrlOrError(url);
+        return url.substring(`/namespaces/${namespace}`.length);
+      },
+      router: req => {
+        const namespace = getNamespaceFromUrlOrError(req.url || '');
+        return getArtifactFetcherService(namespace);
+      },
+      target: 'unused:always-overridden-by-router',
+    }),
+  );
 
   /** Tensorboard viewer */
   registerHandler(app.get, '/apps/tensorboard', getTensorboardHandler);
