@@ -8,6 +8,11 @@ import (
 	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
+	jobParams "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
+	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	runParams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
@@ -17,8 +22,12 @@ import (
 
 type ExperimentApiTest struct {
 	suite.Suite
-	namespace        string
-	experimentClient *api_server.ExperimentClient
+	namespace            string
+	experimentClient     *api_server.ExperimentClient
+	pipelineClient       *api_server.PipelineClient
+	pipelineUploadClient *api_server.PipelineUploadClient
+	runClient            *api_server.RunClient
+	jobClient            *api_server.JobClient
 }
 
 // Check the namespace have ML job installed and ready
@@ -41,6 +50,22 @@ func (s *ExperimentApiTest) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}
+	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
+	if err != nil {
+		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
+	}
+	s.pipelineClient, err = api_server.NewPipelineClient(clientConfig, false)
+	if err != nil {
+		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
+	}
+	s.runClient, err = api_server.NewRunClient(clientConfig, false)
+	if err != nil {
+		glog.Exitf("Failed to get run client. Error: %s", err.Error())
+	}
+	s.jobClient, err = api_server.NewJobClient(clientConfig, false)
+	if err != nil {
+		glog.Exitf("Failed to get job client. Error: %s", err.Error())
+	}
 
 	s.cleanUp()
 }
@@ -62,7 +87,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Nil(t, err)
 	expectedTrainingExperiment := &experiment_model.APIExperiment{
 		ID: trainingExperiment.ID, Name: experiment.Name,
-		Description: experiment.Description, CreatedAt: trainingExperiment.CreatedAt}
+		Description: experiment.Description, CreatedAt: trainingExperiment.CreatedAt, StorageState: "STORAGESTATE_AVAILABLE"}
 	assert.Equal(t, expectedTrainingExperiment, trainingExperiment)
 
 	/* ---------- Create an experiment with same name. Should fail due to name uniqueness ---------- */
@@ -159,6 +184,88 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTrainingExperiment, experiment)
+
+	/* ---------- Create a pipeline version and two runs and two jobs -------------- */
+	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
+	assert.Nil(t, err)
+	time.Sleep(1 * time.Second)
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
+		"../resources/hello-world.yaml", &uploadParams.UploadPipelineVersionParams{
+			Name:       util.StringPointer("hello-world-version"),
+			Pipelineid: util.StringPointer(pipeline.ID),
+		})
+	assert.Nil(t, err)
+	createRunRequest := &runParams.CreateRunParams{Body: &run_model.APIRun{
+		Name:        "hello world",
+		Description: "this is hello world",
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Name: experiment.Name, Relationship: run_model.APIRelationshipOWNER},
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR},
+		},
+	}}
+	run1, _, err := s.runClient.Create(createRunRequest)
+	assert.Nil(t, err)
+	run2, _, err := s.runClient.Create(createRunRequest)
+	assert.Nil(t, err)
+	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
+	createJobRequest := &jobParams.CreateJobParams{Body: &job_model.APIJob{
+		Name:        "hello world",
+		Description: "this is hello world",
+		ResourceReferences: []*job_model.APIResourceReference{
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Relationship: job_model.APIRelationshipOWNER},
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
+				Relationship: job_model.APIRelationshipCREATOR},
+		},
+		MaxConcurrency: 10,
+		Enabled:        true,
+	}}
+	job1, err := s.jobClient.Create(createJobRequest)
+	assert.Nil(t, err)
+	job2, err := s.jobClient.Create(createJobRequest)
+	assert.Nil(t, err)
+
+	/* ---------- Archive an experiment -----------------*/
+	err = s.experimentClient.Archive(&params.ArchiveExperimentParams{ID: trainingExperiment.ID})
+
+	/* ---------- Verify experiment and its runs ------- */
+	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, experiment_model.ExperimentStorageState("STORAGESTATE_ARCHIVED"), experiment.StorageState)
+	retrievedRun1, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: run1.Run.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, run_model.RunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun1.Run.StorageState)
+	retrievedRun2, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: run2.Run.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, run_model.RunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun2.Run.StorageState)
+	retrievedJob1, err := s.jobClient.Get(&jobParams.GetJobParams{ID: job1.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, false, retrievedJob1.Enabled)
+	retrievedJob2, err := s.jobClient.Get(&jobParams.GetJobParams{ID: job2.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, false, retrievedJob2.Enabled)
+
+	/* ---------- Unarchive an experiment -----------------*/
+	err = s.experimentClient.Unarchive(&params.UnarchiveExperimentParams{ID: trainingExperiment.ID})
+
+	/* ---------- Verify experiment and its runs and jobs --------- */
+	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, experiment_model.ExperimentStorageState("STORAGESTATE_AVAILABLE"), experiment.StorageState)
+	retrievedRun1, _, err = s.runClient.Get(&runParams.GetRunParams{RunID: run1.Run.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, run_model.RunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun1.Run.StorageState)
+	retrievedRun2, _, err = s.runClient.Get(&runParams.GetRunParams{RunID: run2.Run.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, run_model.RunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun2.Run.StorageState)
+	retrievedJob1, err = s.jobClient.Get(&jobParams.GetJobParams{ID: job1.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, false, retrievedJob1.Enabled)
+	retrievedJob2, err = s.jobClient.Get(&jobParams.GetJobParams{ID: job2.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, false, retrievedJob2.Enabled)
 }
 
 func TestExperimentAPI(t *testing.T) {
@@ -175,4 +282,7 @@ func (s *ExperimentApiTest) TearDownSuite() {
 
 func (s *ExperimentApiTest) cleanUp() {
 	test.DeleteAllExperiments(s.experimentClient, s.T())
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	test.DeleteAllRuns(s.runClient, s.T())
+	test.DeleteAllJobs(s.jobClient, s.T())
 }

@@ -183,9 +183,80 @@
           "ExperimentService"
         ]
       }
+    },
+    "/apis/v1beta1/experiments/{id}:archive": {
+      "post": {
+        "summary": "Archive an experiment.",
+        "operationId": "ArchiveExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      }
+    },
+    "/apis/v1beta1/experiments/{id}:unarchive": {
+      "post": {
+        "summary": "Restore an archived experiment.",
+        "operationId": "UnarchiveExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      }
     }
   },
   "definitions": {
+    "ExperimentStorageState": {
+      "type": "string",
+      "enum": [
+        "STORAGESTATE_UNSPECIFIED",
+        "STORAGESTATE_AVAILABLE",
+        "STORAGESTATE_ARCHIVED"
+      ],
+      "default": "STORAGESTATE_UNSPECIFIED"
+    },
     "apiExperiment": {
       "type": "object",
       "properties": {
@@ -212,6 +283,9 @@
             "$ref": "#/definitions/apiResourceReference"
           },
           "description": "Optional input field. Specify which resource this run belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
+        },
+        "storage_state": {
+          "$ref": "#/definitions/ExperimentStorageState"
         }
       }
     },
