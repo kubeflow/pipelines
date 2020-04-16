@@ -387,8 +387,8 @@ class Client(object):
       params: a dictionary with key (string) as param name and value (string) as as param value.
       pipeline_id: the string ID of a pipeline.
       version_id: the string ID of a pipeline version.
-        If both pipeline_id and version_id are specified, version_id will take precendence
-        If only pipeline_id is specified, the default version of this pipeline is used to create the run
+        If both pipeline_id and version_id are specified, version_id will take precendence.
+        If only pipeline_id is specified, the default version of this pipeline is used to create the run.
 
     Returns:
       A run object. Most important field is id.
