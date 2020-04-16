@@ -4,11 +4,11 @@ This folder contains Kubeflow Pipelines Kustomize manifests for a light weight
 deployment. You can follow the instruction and deploy Kubeflow Pipelines in an
 existing cluster.
 
-To install Kubeflow Pipelines, you have 2 options.
+To install Kubeflow Pipelines, you have several options.
 - Via [GCP AI Platform UI](http://console.cloud.google.com/ai-platform/pipelines).
 - Via an upcoming commandline tool.
 - Via Kubectl with Kustomize, it's detailed here.
-  - Community maintains a repo here for [AWS](https://github.com/e2fyi/kubeflow-aws/tree/master/pipelines).
+  - Community maintains a repo [here](https://github.com/e2fyi/kubeflow-aws/tree/master/pipelines) for AWS.
 
 ## Install via Kustomize
 
