@@ -314,3 +314,13 @@ export function generateMinioArtifactUrl(minioUri: string): string | undefined {
   }
   return generateArtifactUrl('minio', matches[1], matches[2]);
 }
+
+export function buildQuery(queriesMap: { [key: string]: string | undefined }): string {
+  const queryContent = Object.entries(queriesMap)
+    .map(([key, value]) => (value != null ? `${key}=${encodeURIComponent(value)}` : ''))
+    .join('&');
+  if (!queryContent) {
+    return '';
+  }
+  return `?${queryContent}`;
+}
