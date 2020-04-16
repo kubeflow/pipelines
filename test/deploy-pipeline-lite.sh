@@ -46,7 +46,7 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
 
-  pushd ${KFP_MANIFEST_DIR}/env/dev
+  pushd ${KFP_MANIFEST_DIR}/dev
 
   # This is the recommended approach to do this.
   # reference: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/eschewedFeatures.md#build-time-side-effects-from-cli-args-or-env-variables
@@ -76,7 +76,7 @@ else
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
 
-  pushd ${KFP_MANIFEST_DIR}/env/dev
+  pushd ${KFP_MANIFEST_DIR}/dev
   kustomize build . | kubectl apply -f -
   popd
 
