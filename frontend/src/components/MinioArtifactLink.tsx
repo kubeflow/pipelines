@@ -9,10 +9,10 @@ const artifactApiUri = ({ source, bucket, key }: StoragePath, namespace?: string
 /**
  * A component that renders an artifact link.
  */
-const MinioArtifactLink: React.FC<{ artifact: S3Artifact; namespace?: string }> = ({
-  artifact,
-  namespace,
-}) => {
+const MinioArtifactLink: React.FC<{
+  artifact: Partial<S3Artifact> | null | undefined;
+  namespace?: string;
+}> = ({ artifact, namespace }) => {
   if (!artifact || !artifact.key || !artifact.bucket) {
     return null;
   }
