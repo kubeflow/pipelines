@@ -4,8 +4,8 @@ kind: Kustomization
 bases:
   - ../../namespaced
   - ../gcp-dev/proxy
-  - minio
-  - mysql
+  - gcsgateway
+  - cloudsqlproxy
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected
@@ -24,10 +24,3 @@ images:
     newTag: "1.14"
   - name: gcr.io/ml-pipeline/minio
     newTag: RELEASE.2019-08-14T20-37-41Z-license-compliance
-
-secretGenerator:
-  - name: user-gcp-sa
-    files:
-      # Create a service account key and stored as application_default_credentials.json in the same folder.
-      # https://cloud.google.com/iam/docs/creating-managing-service-account-keys#creating_service_account_keys
-      - application_default_credentials.json

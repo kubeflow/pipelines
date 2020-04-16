@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mlpipeline-custom-configmap
+data:
+  appName: pipeline
+  projectId: 
