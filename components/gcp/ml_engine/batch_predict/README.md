@@ -87,7 +87,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 mlengine_batch_predict_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/0e794e8a0eff6f81ddc857946ee8311c7c431ec2/components/gcp/ml_engine/batch_predict/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/3dffdae0d4b6a60438360b0d380acb9857ff1f77/components/gcp/ml_engine/batch_predict/component.yaml')
 help(mlengine_batch_predict_op)
 ```
 
