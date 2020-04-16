@@ -17,13 +17,9 @@ spec:
       containers:
         - image: gcr.io/cloudsql-docker/gce-proxy:1.14
           name: cloudsqlproxy
-          env:
-            - name: CLOUD_SQL_INSTANCE_CONNECTION_NAME
-              # CloudSQL Connection Name which contains projectID and zone info.
-              value: ""
           command: ["/cloud_sql_proxy",
                     "-dir=/cloudsql",                    
-                    "-instances=$(CLOUD_SQL_INSTANCE_CONNECTION_NAME)=tcp:0.0.0.0:3306",
+                    "-instances=$(GCS_CLOUDSQL_INSTANCE_NAME)=tcp:0.0.0.0:3306",
                     "term_timeout=10s"]
           # set term_timeout if require graceful handling of shutdown
           # NOTE: proxy will stop accepting new connections; only wait on existing connections

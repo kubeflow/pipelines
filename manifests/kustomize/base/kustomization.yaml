@@ -47,6 +47,13 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.imageTag
+  - name: BUCKET_NAME
+    objref:
+      kind: ConfigMap      
+      name:  pipeline-parameters
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.bucketName
 
 configurations:
   - params.yaml

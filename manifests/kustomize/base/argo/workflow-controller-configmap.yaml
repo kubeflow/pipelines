@@ -10,7 +10,7 @@ data:
     artifactRepository:
     {
         s3: {
-            bucket: mlpipeline,
+            bucket: $(BUCKET_NAME),
             keyPrefix: artifacts,
             endpoint: minio-service.$(NAMESPACE):9000,
             insecure: true,
