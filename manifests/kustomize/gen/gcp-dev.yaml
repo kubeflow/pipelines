@@ -26,14 +26,6 @@ kind: ServiceAccount
 metadata:
   labels:
     application-crd-id: kubeflow-pipelines
-  name: kubeflow-pipelines-cache
-  namespace: kubeflow
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  labels:
-    application-crd-id: kubeflow-pipelines
   name: kubeflow-pipelines-cache-deployer-sa
   namespace: kubeflow
 ---
@@ -42,7 +34,7 @@ kind: ServiceAccount
 metadata:
   labels:
     application-crd-id: kubeflow-pipelines
-  name: kubeflow-pipelines-metadata-writer
+  name: kubeflow-pipelines-cache
   namespace: kubeflow
 ---
 apiVersion: v1
@@ -50,7 +42,7 @@ kind: ServiceAccount
 metadata:
   labels:
     application-crd-id: kubeflow-pipelines
-  name: ml-pipeline
+  name: kubeflow-pipelines-metadata-writer
   namespace: kubeflow
 ---
 apiVersion: v1
@@ -91,6 +83,14 @@ metadata:
   labels:
     application-crd-id: kubeflow-pipelines
   name: ml-pipeline-visualizationserver
+  namespace: kubeflow
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    application-crd-id: kubeflow-pipelines
+  name: ml-pipeline
   namespace: kubeflow
 ---
 apiVersion: v1
@@ -277,47 +277,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
-    app: ml-pipeline
-    application-crd-id: kubeflow-pipelines
-  name: ml-pipeline
-  namespace: kubeflow
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - get
-  - list
-  - delete
-- apiGroups:
-  - argoproj.io
-  resources:
-  - workflows
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - scheduledworkflows
-  verbs:
-  - create
-  - get
-  - list
-  - update
-  - patch
-  - delete
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  labels:
     application-crd-id: kubeflow-pipelines
   name: ml-pipeline-persistenceagent-role
   namespace: kubeflow
@@ -452,6 +411,47 @@ rules:
   - get
   - list
   - watch
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: ml-pipeline
+    application-crd-id: kubeflow-pipelines
+  name: ml-pipeline
+  namespace: kubeflow
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - delete
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - scheduledworkflows
+  verbs:
+  - create
+  - get
+  - list
   - update
   - patch
   - delete
@@ -640,23 +640,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
-    app: ml-pipeline
-    application-crd-id: kubeflow-pipelines
-  name: ml-pipeline
-  namespace: kubeflow
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: ml-pipeline
-subjects:
-- kind: ServiceAccount
-  name: ml-pipeline
-  namespace: kubeflow
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  labels:
     application-crd-id: kubeflow-pipelines
   name: ml-pipeline-persistenceagent-binding
   namespace: kubeflow
@@ -716,6 +699,23 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: ml-pipeline-viewer-crd-service-account
+  namespace: kubeflow
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app: ml-pipeline
+    application-crd-id: kubeflow-pipelines
+  name: ml-pipeline
+  namespace: kubeflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ml-pipeline
+subjects:
+- kind: ServiceAccount
+  name: ml-pipeline
   namespace: kubeflow
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -809,6 +809,18 @@ metadata:
     application-crd-id: kubeflow-pipelines
     component: metadata-server
   name: metadata-mysql-configmap
+  namespace: kubeflow
+---
+apiVersion: v1
+data:
+  appName: pipeline
+  appVersion: 0.4.0
+  imageTag: 0.4.0
+kind: ConfigMap
+metadata:
+  labels:
+    application-crd-id: kubeflow-pipelines
+  name: pipeline-parameters-585btmt8dk
   namespace: kubeflow
 ---
 apiVersion: v1
@@ -955,27 +967,6 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    application-crd-id: kubeflow-pipelines
-  name: ml-pipeline
-  namespace: kubeflow
-spec:
-  ports:
-  - name: http
-    port: 8888
-    protocol: TCP
-    targetPort: 8888
-  - name: grpc
-    port: 8887
-    protocol: TCP
-    targetPort: 8887
-  selector:
-    app: ml-pipeline
-    application-crd-id: kubeflow-pipelines
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
     app: ml-pipeline-ui
     application-crd-id: kubeflow-pipelines
   name: ml-pipeline-ui
@@ -1003,6 +994,27 @@ spec:
     targetPort: 8888
   selector:
     app: ml-pipeline-visualizationserver
+    application-crd-id: kubeflow-pipelines
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    application-crd-id: kubeflow-pipelines
+  name: ml-pipeline
+  namespace: kubeflow
+spec:
+  ports:
+  - name: http
+    port: 8888
+    protocol: TCP
+    targetPort: 8888
+  - name: grpc
+    port: 8887
+    protocol: TCP
+    targetPort: 8887
+  selector:
+    app: ml-pipeline
     application-crd-id: kubeflow-pipelines
 ---
 apiVersion: v1
@@ -1331,41 +1343,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: ml-pipeline
-    application-crd-id: kubeflow-pipelines
-  name: ml-pipeline
-  namespace: kubeflow
-spec:
-  selector:
-    matchLabels:
-      app: ml-pipeline
-      application-crd-id: kubeflow-pipelines
-  template:
-    metadata:
-      labels:
-        app: ml-pipeline
-        application-crd-id: kubeflow-pipelines
-    spec:
-      containers:
-      - env:
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: OBJECTSTORECONFIG_SECURE
-          value: "false"
-        image: gcr.io/ml-pipeline/api-server:0.4.0
-        imagePullPolicy: IfNotPresent
-        name: ml-pipeline-api-server
-        ports:
-        - containerPort: 8888
-        - containerPort: 8887
-      serviceAccountName: ml-pipeline
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
     app: ml-pipeline-persistenceagent
     application-crd-id: kubeflow-pipelines
   name: ml-pipeline-persistenceagent
@@ -1514,6 +1491,41 @@ spec:
         ports:
         - containerPort: 8888
       serviceAccountName: ml-pipeline-visualizationserver
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ml-pipeline
+    application-crd-id: kubeflow-pipelines
+  name: ml-pipeline
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline
+      application-crd-id: kubeflow-pipelines
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline
+        application-crd-id: kubeflow-pipelines
+    spec:
+      containers:
+      - env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: OBJECTSTORECONFIG_SECURE
+          value: "false"
+        image: gcr.io/ml-pipeline/api-server:0.4.0
+        imagePullPolicy: IfNotPresent
+        name: ml-pipeline-api-server
+        ports:
+        - containerPort: 8888
+        - containerPort: 8887
+      serviceAccountName: ml-pipeline
 ---
 apiVersion: apps/v1
 kind: Deployment
