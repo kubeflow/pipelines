@@ -63,11 +63,10 @@ export interface OutputMetadata {
   outputs: PlotMetadata[];
 }
 
+type SourceContentGetter = (source: string, storage?: PlotMetadata['storage']) => Promise<string>;
+
 export class OutputArtifactLoader {
-  public static async load(
-    outputPath: StoragePath,
-    namespace: string | undefined,
-  ): Promise<ViewerConfig[]> {
+  public static async load(outputPath: StoragePath, namespace?: string): Promise<ViewerConfig[]> {
     let plotMetadataList: PlotMetadata[] = [];
     try {
       const metadataFile = await Apis.readFile(outputPath, namespace);
@@ -88,21 +87,24 @@ export class OutputArtifactLoader {
       // TODO: error dialog
     }
 
+    const getSourceContent: SourceContentGetter = async (source, storage) =>
+      await readSourceContent(source, storage, namespace);
+
     const configs: Array<ViewerConfig | null> = await Promise.all(
       plotMetadataList.map(async metadata => {
         switch (metadata.type) {
           case PlotType.CONFUSION_MATRIX:
-            return await this.buildConfusionMatrixConfig(metadata, namespace);
+            return await this.buildConfusionMatrixConfig(metadata, getSourceContent);
           case PlotType.MARKDOWN:
-            return await this.buildMarkdownViewerConfig(metadata, namespace);
+            return await this.buildMarkdownViewerConfig(metadata, getSourceContent);
           case PlotType.TABLE:
-            return await this.buildPagedTableConfig(metadata, namespace);
+            return await this.buildPagedTableConfig(metadata, getSourceContent);
           case PlotType.TENSORBOARD:
             return await this.buildTensorboardConfig(metadata, namespace);
           case PlotType.WEB_APP:
-            return await this.buildHtmlViewerConfig(metadata, namespace);
+            return await this.buildHtmlViewerConfig(metadata, getSourceContent);
           case PlotType.ROC:
-            return await this.buildRocCurveConfig(metadata, namespace);
+            return await this.buildRocCurveConfig(metadata, getSourceContent);
           default:
             logger.error('Unknown plot type: ' + metadata.type);
             return null;
@@ -115,7 +117,7 @@ export class OutputArtifactLoader {
 
   public static async buildConfusionMatrixConfig(
     metadata: PlotMetadataContent,
-    namespace: string | undefined,
+    getSourceContent: SourceContentGetter,
   ): Promise<ConfusionMatrixConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -130,7 +132,7 @@ export class OutputArtifactLoader {
       throw new Error('"schema" must be an array of {"name": string, "type": string} objects');
     }
 
-    const content = await getSourceContent(metadata.source, metadata.storage, namespace);
+    const content = await getSourceContent(metadata.source, metadata.storage);
     const csvRows = csvParseRows(content.trim());
     const labels = metadata.labels;
     const labelIndex: { [label: string]: number } = {};
@@ -170,7 +172,7 @@ export class OutputArtifactLoader {
 
   public static async buildPagedTableConfig(
     metadata: PlotMetadataContent,
-    namespace: string | undefined,
+    getSourceContent: SourceContentGetter,
   ): Promise<PagedTableConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -183,7 +185,7 @@ export class OutputArtifactLoader {
     }
     let data: string[][] = [];
     const labels = metadata.header || [];
-    const content = await getSourceContent(metadata.source, metadata.storage, namespace);
+    const content = await getSourceContent(metadata.source, metadata.storage);
 
     switch (metadata.format) {
       case 'csv':
@@ -202,7 +204,7 @@ export class OutputArtifactLoader {
 
   public static async buildTensorboardConfig(
     metadata: PlotMetadataContent,
-    namespace: string | undefined,
+    namespace?: string,
   ): Promise<TensorboardViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -220,13 +222,13 @@ export class OutputArtifactLoader {
 
   public static async buildHtmlViewerConfig(
     metadata: PlotMetadataContent,
-    namespace: string | undefined,
+    getSourceContent: SourceContentGetter,
   ): Promise<HTMLViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
     return {
-      htmlContent: await getSourceContent(metadata.source, metadata.storage, namespace),
+      htmlContent: await getSourceContent(metadata.source, metadata.storage),
       type: PlotType.WEB_APP,
     };
   }
@@ -364,20 +366,20 @@ export class OutputArtifactLoader {
 
   public static async buildMarkdownViewerConfig(
     metadata: PlotMetadataContent,
-    namespace: string | undefined,
+    getSourceContent: SourceContentGetter,
   ): Promise<MarkdownViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
     return {
-      markdownContent: await getSourceContent(metadata.source, metadata.storage, namespace),
+      markdownContent: await getSourceContent(metadata.source, metadata.storage),
       type: PlotType.MARKDOWN,
     };
   }
 
   public static async buildRocCurveConfig(
     metadata: PlotMetadataContent,
-    namespace: string | undefined,
+    getSourceContent: SourceContentGetter,
   ): Promise<ROCCurveConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -389,7 +391,7 @@ export class OutputArtifactLoader {
       throw new Error('Malformed schema, must be an array of {"name": string, "type": string}');
     }
 
-    const content = await getSourceContent(metadata.source, metadata.storage, namespace);
+    const content = await getSourceContent(metadata.source, metadata.storage);
     const stringData = csvParseRows(content.trim());
 
     const fprIndex = metadata.schema.findIndex(field => field.name === 'fpr');
@@ -593,13 +595,17 @@ async function buildArtifactViewerTfdvStatistics(url: string): Promise<HTMLViewe
   };
 }
 
-async function getSourceContent(
+async function readSourceContent(
   source: PlotMetadata['source'],
-  storage?: PlotMetadata['storage'],
-  namespace?: string,
+  storage: PlotMetadata['storage'] | undefined,
+  namespace: string | undefined,
 ): Promise<string> {
   if (storage === 'inline') {
     return source;
   }
   return await Apis.readFile(WorkflowParser.parseStoragePath(source), namespace);
 }
+
+export const TEST_ONLY = {
+  readSourceContent,
+};
