@@ -49,6 +49,8 @@ def dump_yaml(data):
             if data.find('\n') >= 0: #Multiple lines
                 #print('Switching style for multiline text:' + data)
                 style = '|'
+            if data.lower() in ['y', 'n', 'yes', 'no', 'true', 'false', 'on', 'off']:
+                style = '"'
             return self.represent_scalar(u'tag:yaml.org,2002:str', data, style)
 
         OrderedDumper.add_representer(str, represent_str_or_text)
