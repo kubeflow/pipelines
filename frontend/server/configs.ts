@@ -42,10 +42,9 @@ function parseArgs(argv: string[]) {
   return { staticDir, port };
 }
 
-export function loadConfigs(
-  argv: string[],
-  env: NodeJS.ProcessEnv | { [key: string]: string },
-): UIConfigs {
+export type ProcessEnv = NodeJS.ProcessEnv | { [key: string]: string };
+
+export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
   const { staticDir, port } = parseArgs(argv);
   /** All configurable environment variables can be found here. */
   const {
@@ -123,7 +122,7 @@ export function loadConfigs(
         secretKey: MINIO_SECRET_KEY,
         useSSL: asBool(MINIO_SSL),
       },
-      proxy: loadArtifactsProxyConfig(),
+      proxy: loadArtifactsProxyConfig(env),
     },
     metadata: {
       envoyService: {

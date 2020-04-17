@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import fetch from 'node-fetch';
-import { AWSConfigs, HttpConfigs, MinioConfigs } from '../configs';
+import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv } from '../configs';
 import { Client as MinioClient } from 'minio';
 import { PreviewStream } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
@@ -249,16 +249,16 @@ export interface ArtifactsProxyConfig {
   servicePort: number;
   enabled: boolean;
 }
-export function loadArtifactsProxyConfig(): ArtifactsProxyConfig {
+export function loadArtifactsProxyConfig(env: ProcessEnv): ArtifactsProxyConfig {
   const {
     ARTIFACTS_SERVICE_PROXY_NAME = ARTIFACTS_PROXY_DEFAULTS.serviceName,
     ARTIFACTS_SERVICE_PROXY_PORT = ARTIFACTS_PROXY_DEFAULTS.servicePort,
     ARTIFACTS_SERVICE_PROXY_ENABLED = 'false',
-  } = process.env;
+  } = env;
   return {
     serviceName: ARTIFACTS_SERVICE_PROXY_NAME,
     servicePort: parseInt(ARTIFACTS_SERVICE_PROXY_PORT, 10),
-    enabled: ARTIFACTS_SERVICE_PROXY_ENABLED !== 'true',
+    enabled: ARTIFACTS_SERVICE_PROXY_ENABLED.toLowerCase() === 'true',
   };
 }
 
@@ -285,32 +285,36 @@ export function getArtifactsProxyHandler({
         console.log('Proxied artifact request: ', proxyReq.path);
       },
       pathRewrite: (pathStr, req) => {
-        const url = new URL(req.url || '');
+        const url = new URL(pathStr || '', DUMMY_BASE_PATH);
         url.searchParams.delete(QUERIES.NAMESPACE);
-        return url.href;
+        return url.pathname + url.search;
       },
       router: req => {
         const namespace = getNamespaceFromUrl(req.url || '');
         if (!namespace) {
           throw new Error(`namespace query param expected in ${req.url}.`);
         }
-        return getArtifactFetcherService({ serviceName, servicePort }, namespace);
+        // HACK: tests can spyOn TEST_ONLY to replace implementation.
+        return TEST_ONLY.getArtifactFetcherService({ serviceName, servicePort }, namespace);
       },
       target: '/artifacts/get',
     },
   );
 }
 
-function getNamespaceFromUrl(rawUrl: string): string | undefined {
+function getNamespaceFromUrl(path: string): string | undefined {
   // Gets namespace from query parameter "namespace"
-  const url = new URL(rawUrl);
-  return url.searchParams.get('namespace') || undefined;
+  const params = new URL(path, DUMMY_BASE_PATH).searchParams;
+  return params.get('namespace') || undefined;
 }
+
+const DUMMY_BASE_PATH = 'http://dummy-base-path';
 
 function getArtifactFetcherService(
   { serviceName, servicePort }: { serviceName: string; servicePort: number },
   namespace: string,
 ): string {
+  console.debug(serviceName, namespace, servicePort);
   return `http://${serviceName}.${namespace}:${servicePort}`;
 }
 
