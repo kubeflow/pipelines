@@ -386,9 +386,9 @@ class Client(object):
       pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: a dictionary with key (string) as param name and value (string) as as param value.
       pipeline_id: the string ID of a pipeline.
-      version_id: the string ID of a pipeline version. 
-        If both pipeline_id and version_id are specified, pipeline_id will take precendence
-        This will change in a future version, so it is recommended to use version_id by itself
+      version_id: the string ID of a pipeline version.
+        If both pipeline_id and version_id are specified, version_id will take precendence.
+        If only pipeline_id is specified, the default version of this pipeline is used to create the run.
 
     Returns:
       A run object. Most important field is id.
@@ -411,7 +411,7 @@ class Client(object):
     if version_id:
       key = kfp_server_api.models.ApiResourceKey(id=version_id,
                                                  type=kfp_server_api.models.ApiResourceType.PIPELINE_VERSION)
-      reference = kfp_server_api.models.ApiResourceReference(key=key, 
+      reference = kfp_server_api.models.ApiResourceReference(key=key,
                                                              relationship=kfp_server_api.models.ApiRelationship.CREATOR)
       resource_references.append(reference)
 
