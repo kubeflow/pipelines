@@ -2,6 +2,7 @@ package integration
 
 import (
 	"io/ioutil"
+	"reflect"
 	"testing"
 	"time"
 
@@ -263,7 +264,7 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
-	assert.Equal(t, expectedRun, runDetail.Run)
+	assert.True(t, reflect.DeepEqual(expectedRun, runDetail.Run))
 }
 
 func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
@@ -292,7 +293,7 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
-	assert.Equal(t, expectedRun, runDetail.Run)
+	assert.True(t, reflect.DeepEqual(expectedRun, runDetail.Run))
 }
 
 func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string) {
@@ -323,7 +324,7 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
-	assert.Equal(t, expectedRun, runDetail.Run)
+	assert.True(t, reflect.DeepEqual(expectedRun, runDetail.Run))
 }
 
 func TestRunApi(t *testing.T) {
