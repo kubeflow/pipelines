@@ -7,7 +7,7 @@ bases:
 
 # Used by Kustomize
 configMapGenerator:
-  - name: pipeline-parameters
+  - name: pipeline-install-config
     env: params.env
     behavior: merge
 

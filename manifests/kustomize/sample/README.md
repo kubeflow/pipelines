@@ -13,7 +13,7 @@ kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=6
 
 kubectl apply -k sample/
 # If upper one action got failed, e.x. you used wrong value, try delete, fix and apply again
-# kubectl delete -k sample/ # No surprise if saw msg says already deleted.
+# kubectl delete -k sample/
 
 kubectl wait applications/mypipeline -n mykubeflow --for condition=Ready --timeout=1800s
 
@@ -25,3 +25,5 @@ kubectl describe configmap inverse-proxy-config -n kubeflow | grep googleusercon
 It depends on how you create the cluster, 
 - if the cluster is created with **--scopes=cloud-platform**, no actions required
 - if the cluster is on Workload Identity, please run **gcp-workload-identity-setup.sh**
+  - make sure the Google Service Account (GSA) can access the CloudSQL instance and GCS bucket
+  - if your workload calls other GCP APIs, make sure the GSA can access them

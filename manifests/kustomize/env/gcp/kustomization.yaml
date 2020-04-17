@@ -22,7 +22,7 @@ patchesStrategicMerge:
 
 # Used by Kustomize
 configMapGenerator:
-  - name: pipeline-parameters
+  - name: pipeline-install-config
     env: params.env
     behavior: merge
 
@@ -30,23 +30,21 @@ vars:
   - name: GCP_PROJECT_ID
     objref:
       kind: ConfigMap      
-      name:  pipeline-parameters
+      name: pipeline-install-config
       apiVersion: v1
     fieldref:
       fieldpath: data.gcsProjectId
   - name: GCP_CLOUDSQL_INSTANCE_NAME
     objref:
       kind: ConfigMap      
-      name:  pipeline-parameters
+      name: pipeline-install-config
       apiVersion: v1
     fieldref:
       fieldpath: data.gcsCloudSqlInstanceName
   - name: GCP_CLOUDSQL_DBNAME
     objref:
       kind: ConfigMap      
-      name:  pipeline-parameters
+      name: pipeline-install-config
       apiVersion: v1
     fieldref:
       fieldpath: data.gcsCloudSqlDbName
-
-      

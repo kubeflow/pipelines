@@ -16,7 +16,7 @@ resources:
 
 # Used by Kustomize
 configMapGenerator:
-  - name: pipeline-parameters
+  - name: pipeline-install-config
     env: params.env
 
 vars:
@@ -24,34 +24,34 @@ vars:
     objref:
       kind: Deployment
       apiVersion: apps/v1
-      name:  workflow-controller
+      name: ml-pipeline
     fieldref:
       fieldpath: metadata.namespace
   - name: APP_NAME
     objref:
       kind: ConfigMap      
-      name:  pipeline-parameters
+      name: pipeline-install-config
       apiVersion: v1
     fieldref:
       fieldpath: data.appName
   - name: APP_VERSION
     objref:
       kind: ConfigMap      
-      name:  pipeline-parameters
+      name: pipeline-install-config
       apiVersion: v1
     fieldref:
       fieldpath: data.appVersion
   - name: IMAGE_TAG
     objref:
       kind: ConfigMap      
-      name:  pipeline-parameters
+      name: pipeline-install-config
       apiVersion: v1
     fieldref:
       fieldpath: data.imageTag
   - name: BUCKET_NAME
     objref:
       kind: ConfigMap      
-      name:  pipeline-parameters
+      name: pipeline-install-config
       apiVersion: v1
     fieldref:
       fieldpath: data.bucketName
