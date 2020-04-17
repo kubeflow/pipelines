@@ -102,8 +102,7 @@ def main(argv=None):
   experiment = Experiment(version=args.version, client=api_client)
   exp_name = (args.name+'-'+uuid.uuid4().hex)[0:63]
   
-
-  iinst = {
+  inst = {
     "apiVersion": "%s/%s" % (ExperimentGroup, args.version),
     "kind": "Experiment",
     "metadata": {
