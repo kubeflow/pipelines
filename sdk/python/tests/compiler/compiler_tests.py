@@ -682,6 +682,28 @@ implementation:
       container = template.get('container', None)
       if container:
         self.assertEqual(template['retryStrategy']['limit'], 5)
+  
+  def test_image_pull_policy(self):
+    def some_op():
+      return dsl.ContainerOp(
+          name='sleep',
+          image='busybox',
+          command=['sleep 1'],
+      )
+
+    @dsl.pipeline(name='some_pipeline')
+    def some_pipeline():
+      task1 = some_op()
+      task2 = some_op()
+      task3 = some_op()
+
+      dsl.get_pipeline_conf().set_image_pull_policy(policy="Allways")
+      workflow_dict = compiler.Compiler()._compile(some_pipeline)
+      for template in workflow_dict['spec']['templates']:
+        container = template.get('container', None)
+        if container:
+          self.assertEqual(template['container']['imagePullPolicy'], "Allways")
+
 
   def test_container_op_output_error_when_no_or_multiple_outputs(self):
 

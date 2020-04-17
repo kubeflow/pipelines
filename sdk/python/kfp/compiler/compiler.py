@@ -686,6 +686,12 @@ class Compiler(object):
 
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
+
+    if pipeline_conf.image_pull_policy != None and pipeline_conf.image_pull_policy in ["Always", "Never", "IfNotPresent"]:
+      for template in workflow["spec"]["templates"]:
+        if "container" in template:
+          template["container"]["imagePullPolicy"] = pipeline_conf.image_pull_policy
+    
     return workflow
 
   def _validate_exit_handler(self, pipeline):

@@ -62,6 +62,7 @@ class PipelineConf():
     self.ttl_seconds_after_finished = -1
     self.artifact_location = None
     self.op_transformers = []
+    self.image_pull_policy = None
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """Configures the pipeline level imagepullsecret
@@ -124,6 +125,16 @@ class PipelineConf():
       https://github.com/argoproj/argo/blob/release-2.2/api/openapi-spec/swagger.json
     """
     self.artifact_location = artifact_location
+    return self
+
+  def set_image_pull_policy(self, policy: str):
+    """Configures the default image pull policy
+
+    Args:
+      seconds: the pull policy, has to be one of: Always, Never, IfNotPresent. 
+      For more info: https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1Container.md
+    """
+    self.image_pull_policy = policy
     return self
 
   def add_op_transformer(self, transformer):
