@@ -17,8 +17,10 @@
 import { Api, GetArtifactTypesResponse } from '@kubeflow/frontend';
 import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
+import { render } from '@testing-library/react';
+import { createMemoryHistory } from 'history';
 import { Workflow } from 'third_party/argo-ui/argo_template';
-import { ApiRelationship, ApiResourceType, ApiRunDetail, RunStorageState } from '../apis/run';
+import { ApiResourceType, ApiRunDetail, RunStorageState } from '../apis/run';
 import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
 import { PlotType } from '../components/viewers/Viewer';
 import { Apis } from '../lib/Apis';
@@ -27,9 +29,13 @@ import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { NodePhase } from '../lib/StatusUtils';
 import * as Utils from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
-import TestUtils, { diff } from '../TestUtils';
+import TestUtils from '../TestUtils';
 import { PageProps } from './Page';
-import { RunDetails, RunDetailsInternalProps } from './RunDetails';
+import EnhancedRunDetails, { TEST_ONLY, RunDetailsInternalProps } from './RunDetails';
+import { Router } from 'react-router-dom';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
+
+const RunDetails = TEST_ONLY.RunDetails;
 
 const STEP_TABS = {
   ARTIFACTS: 0,
@@ -142,9 +148,11 @@ describe('RunDetails', () => {
   });
 
   afterEach(async () => {
-    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
-    // depends on mocks/spies
-    await tree.unmount();
+    if (tree && tree.exists()) {
+      // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+      // depends on mocks/spies
+      await tree.unmount();
+    }
     jest.resetAllMocks();
     jest.restoreAllMocks();
   });
@@ -1316,6 +1324,74 @@ describe('RunDetails', () => {
       await TestUtils.flushPromises();
 
       expect(setInterval).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe('EnhancedRunDetails', () => {
+    it('redirects to experiments page when namespace changes', () => {
+      const history = createMemoryHistory({
+        initialEntries: ['/does-not-matter'],
+      });
+      const { rerender } = render(
+        <Router history={history}>
+          <NamespaceContext.Provider value='ns1'>
+            <EnhancedRunDetails {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).not.toEqual('/experiments');
+      rerender(
+        <Router history={history}>
+          <NamespaceContext.Provider value='ns2'>
+            <EnhancedRunDetails {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).toEqual('/experiments');
+    });
+
+    it('does not redirect when namespace stays the same', () => {
+      const history = createMemoryHistory({
+        initialEntries: ['/initial-path'],
+      });
+      const { rerender } = render(
+        <Router history={history}>
+          <NamespaceContext.Provider value='ns1'>
+            <EnhancedRunDetails {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).toEqual('/initial-path');
+      rerender(
+        <Router history={history}>
+          <NamespaceContext.Provider value='ns1'>
+            <EnhancedRunDetails {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).toEqual('/initial-path');
+    });
+
+    it('does not redirect when namespace initializes', () => {
+      const history = createMemoryHistory({
+        initialEntries: ['/initial-path'],
+      });
+      const { rerender } = render(
+        <Router history={history}>
+          <NamespaceContext.Provider value={undefined}>
+            <EnhancedRunDetails {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).toEqual('/initial-path');
+      rerender(
+        <Router history={history}>
+          <NamespaceContext.Provider value='ns1'>
+            <EnhancedRunDetails {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).toEqual('/initial-path');
     });
   });
 });

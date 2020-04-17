@@ -20,7 +20,6 @@ import uuid
 import zipfile
 from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
-import yaml
 from kfp.dsl import _for_loop
 
 from .. import dsl
@@ -29,6 +28,7 @@ from ._op_to_template import _op_to_template
 from ._default_transformers import add_pod_env
 
 from ..components.structures import InputSpec
+from ..components._yaml_utils import dump_yaml
 from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
@@ -895,8 +895,7 @@ class Compiler(object):
       package_path: file path to be written. If not specified, a yaml_text string
         will be returned.
     """
-    yaml.Dumper.ignore_aliases = lambda *args : True
-    yaml_text = yaml.dump(workflow, default_flow_style=False, default_style='|')
+    yaml_text = dump_yaml(workflow)
 
     if package_path is None:
       return yaml_text
@@ -950,7 +949,7 @@ def _validate_workflow(workflow: dict):
     if 'value' not in argument:
       argument['value'] = ''
 
-  yaml_text = yaml.dump(workflow)
+  yaml_text = dump_yaml(workflow)
   if '{{pipelineparam' in yaml_text:
     raise RuntimeError(
         '''Internal compiler error: Found unresolved PipelineParam.
@@ -969,4 +968,3 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
 Error: {}'''.format(result.stderr.decode('utf-8'))
       )
-  

@@ -44,6 +44,7 @@ class VolumeOp(ResourceOp):
                  modes: List[str] = None,
                  annotations: Dict[str, str] = None,
                  data_source=None,
+                 volume_name=None,
                  **kwargs):
         """Create a new instance of VolumeOp.
 
@@ -58,6 +59,8 @@ class VolumeOp(ResourceOp):
                 used in the data_source field of the PVC as is. Can also be a
                 string/PipelineParam, and in that case it will be used as a
                 VolumeSnapshot name (Alpha feature)
+            volume_name: VolumeName is the binding reference to the PersistentVolume
+                backing this claim.
             kwargs: See ResourceOp definition
         Raises:
             ValueError: if k8s_resource is provided along with other arguments
@@ -115,7 +118,8 @@ class VolumeOp(ResourceOp):
             access_modes=modes or VOLUME_MODE_RWM,
             resources=requested_resources,
             storage_class_name=storage_class,
-            data_source=data_source
+            data_source=data_source,
+            volume_name=volume_name
         )
         k8s_resource = V1PersistentVolumeClaim(
             api_version="v1",

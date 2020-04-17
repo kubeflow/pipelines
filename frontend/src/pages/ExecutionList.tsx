@@ -64,8 +64,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
         {
           customRenderer: this.nameCustomRenderer,
           flex: 2,
-          label: 'Pipeline/Workspace',
-          sortKey: 'pipelineName',
+          label: 'Run ID/Workspace/Pipeline',
+          sortKey: 'workspace',
         },
         {
           customRenderer: this.nameCustomRenderer,
@@ -214,7 +214,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           return {
             id: `${type}:${execution.getId()}`, // Join with colon so we can build the link
             otherFields: [
-              ExecutionHelpers.getPipeline(execution),
+              ExecutionHelpers.getWorkspace(execution),
               ExecutionHelpers.getName(execution),
               ExecutionHelpers.getState(execution),
               execution.getId(),
