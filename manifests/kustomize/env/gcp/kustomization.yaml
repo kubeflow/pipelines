@@ -6,6 +6,7 @@ bases:
   - inverse-proxy
   - minio-gcs-gateway
   - cloudsql-proxy
+  - gcp-default-config
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected

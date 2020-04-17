@@ -8,6 +8,21 @@ spec:
       containers:
         - name: ml-pipeline-api-server
           env:
+            - name: HAS_DEFAULT_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: gcp-default-config
+                  key: "has_default_bucket"
+            - name: BUCKET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: gcp-default-config
+                  key: "bucket_name"
+            - name: PROJECT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: gcp-default-config
+                  key: "project_id"
             - name: OBJECTSTORECONFIG_BUCKETNAME
               # Don't add gs:// prefix.
               # If bucket doesn't exist, the deployment will try to create one.

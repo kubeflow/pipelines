@@ -2,6 +2,10 @@
 varReference:
 - path: data/config
   kind: ConfigMap
+- path: data/bucket_name
+  kind: ConfigMap
+- path: data/project_id
+  kind: ConfigMap
 - path: metadata/name
   kind: Namespace
 - path: metadata/name

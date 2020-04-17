@@ -13,7 +13,7 @@ kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=6
 
 kubectl apply -k sample/
 # If upper one action got failed, e.x. you used wrong value, try delete, fix and apply again
-# kubectl delete -k sample/
+# kubectl delete -k sample/ # No surprise if saw msg says already deleted.
 
 kubectl wait applications/mypipeline -n mykubeflow --for condition=Ready --timeout=1800s
 

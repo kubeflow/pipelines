@@ -19,6 +19,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        # - name: MINIO_SERVICE_SERVICE_HOST
+        #   value: "minio-service.$(NAMESPACE)"
+        # - name: MINIO_SERVICE_SERVICE_PORT
+        #   value: "9000"
         - name: OBJECTSTORECONFIG_SECURE
           value: "false"
         image: gcr.io/ml-pipeline/api-server:$(IMAGE_TAG)
