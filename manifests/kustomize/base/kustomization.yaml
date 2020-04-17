@@ -6,9 +6,9 @@ bases:
 - argo
 - pipeline
 - metadata
-- cache
-- cache-deployer
-# proxy is only for GCP and not listed here
+## Enable cache after better test
+# - cache
+# - cache-deployer
 
 resources:
   - namespace.yaml

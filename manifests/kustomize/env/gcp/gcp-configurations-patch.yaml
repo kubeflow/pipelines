@@ -11,6 +11,11 @@ spec:
             - name: OBJECTSTORECONFIG_BUCKETNAME
               # Don't add gs:// prefix.
               # If bucket doesn't exist, the deployment will try to create one.
-              value: $(GCS_BUCKET_NAME)
+              value: $(BUCKET_NAME)
+            - name: DBCONFIG_DBNAME
+              value: $(GCP_CLOUDSQL_DBNAME)
+            # TODO: move to secret
+            - name: DBCONFIG_USER
+              value: 'root'
             - name: DBCONFIG_PASSWORD
               value: ''

@@ -2,6 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 bases:
+  # Or github.com/kubeflow/pipelines/manifests/kustomize/env/gcp?ref=1.0.0
   - ../env/gcp
 
 # Used by Kustomize
@@ -12,5 +13,6 @@ configMapGenerator:
 
 #### Customization ###
 # 1. Replace with your namespace
-namespace: myKubeflow
+namespace: mykubeflow
 # 2. Change values in params.env file
+####

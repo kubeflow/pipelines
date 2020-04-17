@@ -21,7 +21,7 @@ spec:
           args:
             - gateway
             - gcs
-            - $(GCS_PROJECT_ID)
+            - $(GCP_PROJECT_ID)
           env:            
             - name: MINIO_ACCESS_KEY
               value: "minio"

@@ -26,17 +26,26 @@ configMapGenerator:
     behavior: merge
 
 vars:
-  - name: GCS_PROJECT_ID
+  - name: GCP_PROJECT_ID
     objref:
       kind: ConfigMap      
       name:  pipeline-parameters
       apiVersion: v1
     fieldref:
       fieldpath: data.gcsProjectId
-  - name: GCS_CLOUDSQL_INSTANCE_NAME
+  - name: GCP_CLOUDSQL_INSTANCE_NAME
     objref:
       kind: ConfigMap      
       name:  pipeline-parameters
       apiVersion: v1
     fieldref:
       fieldpath: data.gcsCloudSqlInstanceName
+  - name: GCP_CLOUDSQL_DBNAME
+    objref:
+      kind: ConfigMap      
+      name:  pipeline-parameters
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.gcsCloudSqlDbName
+
+      

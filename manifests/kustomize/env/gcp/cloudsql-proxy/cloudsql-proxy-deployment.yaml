@@ -19,7 +19,7 @@ spec:
           name: cloudsqlproxy
           command: ["/cloud_sql_proxy",
                     "-dir=/cloudsql",                    
-                    "-instances=$(GCS_CLOUDSQL_INSTANCE_NAME)=tcp:0.0.0.0:3306",
+                    "-instances=$(GCP_CLOUDSQL_INSTANCE_NAME)=tcp:0.0.0.0:3306",
                     "term_timeout=10s"]
           # set term_timeout if require graceful handling of shutdown
           # NOTE: proxy will stop accepting new connections; only wait on existing connections
