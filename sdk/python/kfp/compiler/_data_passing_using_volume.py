@@ -158,9 +158,7 @@ def rewrite_data_passing_to_use_volumes(
                     subpath_parameter_name = argument_artifact['name'] + subpath_parameter_name_suffix # TODO: Maybe handle clashing names.
                     argument_parameters.append({
                         'name': subpath_parameter_name,
-                        'valueFrom': {
-                            'parameter': convert_artifact_reference_to_parameter_reference(argument_artifact['from'])
-                        },
+                        'value': convert_artifact_reference_to_parameter_reference(argument_artifact['from']),
                     })
             task.get('arguments', {}).pop('artifacts', None)
 
