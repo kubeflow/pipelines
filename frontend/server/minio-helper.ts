@@ -13,8 +13,8 @@
 // limitations under the License.
 import { Transform, PassThrough } from 'stream';
 import * as tar from 'tar-stream';
-import * as peek from 'peek-stream';
-import * as gunzip from 'gunzip-maybe';
+import peek from 'peek-stream';
+import gunzip from 'gunzip-maybe';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
 import { awsInstanceProfileCredentials } from './aws-helper';
 
