@@ -140,4 +140,5 @@ spec:
   volumes:
   - name: data-storage
     persistentVolumeClaim:
-      apiVersion: data-volume
+      spec:
+        volumeName: data-volume
