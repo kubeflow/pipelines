@@ -20,8 +20,7 @@ spec:
           - name: processor-output_1
             value: '{{tasks.processor.outputs.parameters.processor-output_1}}'
           - name: processor-output_2-subpath
-            valueFrom:
-              parameter: '{{tasks.processor.outputs.parameters.processor-output_2-subpath}}'
+            value: '{{tasks.processor.outputs.parameters.processor-output_2-subpath}}'
         dependencies:
         - processor
       - name: processor
@@ -31,8 +30,7 @@ spec:
           - name: producer-output_1
             value: '{{tasks.producer.outputs.parameters.producer-output_1}}'
           - name: producer-output_2-subpath
-            valueFrom:
-              parameter: '{{tasks.producer.outputs.parameters.producer-output_2-subpath}}'
+            value: '{{tasks.producer.outputs.parameters.producer-output_2-subpath}}'
         dependencies:
         - producer
       - name: producer
