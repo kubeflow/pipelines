@@ -8,6 +8,7 @@ bases:
 - metadata
 - cache
 - cache-deployer
+# proxy is only for GCP and not listed here
 
 resources:
   - namespace.yaml

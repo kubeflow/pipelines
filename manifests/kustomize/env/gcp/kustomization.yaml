@@ -3,7 +3,7 @@ kind: Kustomization
 
 bases:
   - ../../base
-  - ../gcp-dev/proxy
+  - inverse-proxy
   - minio-gcs-gateway
   - cloudsql-proxy
 

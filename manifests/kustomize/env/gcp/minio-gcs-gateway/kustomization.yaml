@@ -3,4 +3,3 @@ kind: Kustomization
 
 resources:
 - minio-gcs-gateway-deployment.yaml
-- minio-gcs-gateway-service.yaml
