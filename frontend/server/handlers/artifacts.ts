@@ -18,6 +18,7 @@ import { PreviewStream } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
+import * as proxy from 'http-proxy-middleware';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -238,21 +239,81 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
   };
 }
 
-const authEmailHeader = 'x-goog-authenticated-user-email';
-const artifactFetcherServiceName = 'ml-pipeline-artifact';
-const artifactFetcherServicePort = 80;
-export function getArtifactFetcherService(namespace: string): string {
-  return `http://${artifactFetcherServiceName}.${namespace}:${artifactFetcherServicePort}`;
+const AUTH_EMAIL_HEADER = 'x-goog-authenticated-user-email';
+const ARTIFACTS_PROXY_DEFAULTS = {
+  serviceName: 'ml-pipeline-artifact',
+  servicePort: '80',
+};
+export interface ArtifactsProxyConfig {
+  serviceName: string;
+  servicePort: number;
+  enabled: boolean;
 }
-const namespaceRegex = /^\/namespaces\/([^/]+)\//;
-export function getNamespaceFromUrlOrError(url: string): string {
-  // Gets namespace from /namespaces/:namespace/ pattern.
-  const result = namespaceRegex.exec(url);
-  const namespace = result?.[1];
-  if (!namespace) {
-    throw new Error(
-      `Namespace is expected in ${url} by /namespaces/:namespace/ pattern, but not found.`,
-    );
+export function loadArtifactsProxyConfig(): ArtifactsProxyConfig {
+  const {
+    ARTIFACTS_SERVICE_PROXY_NAME = ARTIFACTS_PROXY_DEFAULTS.serviceName,
+    ARTIFACTS_SERVICE_PROXY_PORT = ARTIFACTS_PROXY_DEFAULTS.servicePort,
+    ARTIFACTS_SERVICE_PROXY_ENABLED = 'false',
+  } = process.env;
+  return {
+    serviceName: ARTIFACTS_SERVICE_PROXY_NAME,
+    servicePort: parseInt(ARTIFACTS_SERVICE_PROXY_PORT, 10),
+    enabled: ARTIFACTS_SERVICE_PROXY_ENABLED !== 'true',
+  };
+}
+
+const QUERIES = {
+  NAMESPACE: 'namespace',
+};
+
+export function getArtifactsProxyHandler({
+  serviceName,
+  servicePort,
+  enabled,
+}: ArtifactsProxyConfig): Handler {
+  if (!enabled) {
+    return (req, res, next) => next();
   }
-  return namespace;
+  return proxy(
+    (_pathname, req) => {
+      // only proxy requests with namespace query parameter
+      return !!getNamespaceFromUrl(req.url || '');
+    },
+    {
+      changeOrigin: true,
+      onProxyReq: proxyReq => {
+        console.log('Proxied artifact request: ', proxyReq.path);
+      },
+      pathRewrite: (pathStr, req) => {
+        const url = new URL(req.url || '');
+        url.searchParams.delete(QUERIES.NAMESPACE);
+        return url.href;
+      },
+      router: req => {
+        const namespace = getNamespaceFromUrl(req.url || '');
+        if (!namespace) {
+          throw new Error(`namespace query param expected in ${req.url}.`);
+        }
+        return getArtifactFetcherService({ serviceName, servicePort }, namespace);
+      },
+      target: '/artifacts/get',
+    },
+  );
 }
+
+function getNamespaceFromUrl(rawUrl: string): string | undefined {
+  // Gets namespace from query parameter "namespace"
+  const url = new URL(rawUrl);
+  return url.searchParams.get('namespace') || undefined;
+}
+
+function getArtifactFetcherService(
+  { serviceName, servicePort }: { serviceName: string; servicePort: number },
+  namespace: string,
+): string {
+  return `http://${serviceName}.${namespace}:${servicePort}`;
+}
+
+export const TEST_ONLY = {
+  getArtifactFetcherService,
+};

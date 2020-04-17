@@ -203,8 +203,7 @@ export class Apis {
    */
   public static readFile(path: StoragePath, namespace?: string): Promise<string> {
     const { source, bucket, key } = path;
-    const namespacePrefix = namespace ? `namespaces/${namespace}/` : '';
-    return this._fetch(`${namespacePrefix}artifacts/get${buildQuery({ source, bucket, key })}`);
+    return this._fetch(`artifacts/get${buildQuery({ source, bucket, key, namespace })}`);
   }
 
   /**

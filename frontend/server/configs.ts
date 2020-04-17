@@ -13,6 +13,7 @@
 // limitations under the License.
 import * as path from 'path';
 import { loadJSON } from './utils';
+import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artifacts';
 export const BASEPATH = '/pipeline';
 export const apiVersion = 'v1beta1';
 export const apiVersionPrefix = `apis/${apiVersion}`;
@@ -122,6 +123,7 @@ export function loadConfigs(
         secretKey: MINIO_SECRET_KEY,
         useSSL: asBool(MINIO_SSL),
       },
+      proxy: loadArtifactsProxyConfig(),
     },
     metadata: {
       envoyService: {
@@ -221,6 +223,7 @@ export interface UIConfigs {
     aws: AWSConfigs;
     minio: MinioConfigs;
     http: HttpConfigs;
+    proxy: ArtifactsProxyConfig;
   };
   argo: ArgoConfigs;
   metadata: MetadataConfigs;
