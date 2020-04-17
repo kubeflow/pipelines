@@ -3,6 +3,8 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
+        "archive_experiment_parameters.go",
+        "archive_experiment_responses.go",
         "create_experiment_parameters.go",
         "create_experiment_responses.go",
         "delete_experiment_parameters.go",
@@ -12,6 +14,8 @@ go_library(
         "get_experiment_responses.go",
         "list_experiment_parameters.go",
         "list_experiment_responses.go",
+        "unarchive_experiment_parameters.go",
+        "unarchive_experiment_responses.go",
     ],
     importpath = "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service",
     visibility = ["//visibility:public"],
