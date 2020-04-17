@@ -41,24 +41,7 @@ kubectl describe configmap inverse-proxy-config -n kubeflow | grep googleusercon
 ### Option-3 Install it to GCP with CloudSQL & GCS-Minio managed storage
 It's suggested for production usage as data always is not stored to the cluster but CloudSQL & GCS.
 
-It's to be fixed soon in another PR.
-
-### Change deploy namespace
-
-To deploy Kubeflow Pipelines in namespace FOO,
-
--   Edit [dev/kustomization.yaml](env/dev/kustomization.yaml) or
-    [gcp/kustomization.yaml](env/gcp/kustomization.yaml) namespace section to
-    FOO
--   Then run
-
-```
-kubectl kustomize cluster-scoped-resources | kubectl apply -f -
-# then
-kubectl kustomize env/dev | kubectl apply -f -
-# or
-kubectl kustomize env/gcp | kubectl apply -f -
-```
+Please following [sample](sample/README.md) for a customized installation.
 
 ## Upgrade
 Note - Do **NOT** follow these instructions if you are upgrading KFP in a
