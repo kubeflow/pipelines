@@ -65,6 +65,7 @@ google-api-python-client,https://raw.githubusercontent.com/google/google-api-pyt
 google-auth,https://raw.githubusercontent.com/GoogleCloudPlatform/google-auth-library-python/master/LICENSE,Apache 2.0
 jupyterlab,https://raw.githubusercontent.com/jupyterlab/jupyterlab/master/LICENSE,BSD-3-clause
 grpcio,https://raw.githubusercontent.com/grpc/grpc/master/LICENSE,Apache 2.0
+grpcio-gcp,https://raw.githubusercontent.com/GoogleCloudPlatform/grpc-gcp-python/master/LICENSE,Apache 2.0
 absl-py,https://raw.githubusercontent.com/abseil/abseil-py/master/LICENSE,Apache 2.0
 protobuf,https://raw.githubusercontent.com/protocolbuffers/protobuf/master/LICENSE,BSD-3-clause
 tensorflow,https://raw.githubusercontent.com/tensorflow/tensorflow/master/LICENSE,Apache 2.0
@@ -90,7 +91,12 @@ google-auth-library-python-httplib2,https://raw.githubusercontent.com/GoogleClou
 google-cloud-bigquery,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
 google-cloud-bigtable,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
 google-cloud-core,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
+google-cloud-dlp,https://raw.githubusercontent.com/googleapis/python-dlp/master/LICENSE,Apache 2.0
+google-cloud-language,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
 google-cloud-pubsub,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
+google-cloud-spanner,https://raw.githubusercontent.com/googleapis/python-spanner/master/LICENSE,Apache 2.0
+google-cloud-videointelligence,https://raw.githubusercontent.com/googleapis/python-videointelligence/master/LICENSE,Apache 2.0
+google-cloud-vision,https://raw.githubusercontent.com/googleapis/python-vision/master/LICENSE,Apache 2.0
 google-gax,https://raw.githubusercontent.com/googleapis/gax-python/master/LICENSE,Apache 2.0
 googleapis-common-protos,https://raw.githubusercontent.com/googleapis/api-common-protos/master/LICENSE,Apache 2.0
 googledatastore,https://raw.githubusercontent.com/GoogleCloudPlatform/google-cloud-datastore/master/LICENSE,Apache 2.0
