@@ -451,7 +451,7 @@ go_repository(
 go_repository(
     name = "com_github_jtolds_gls",
     importpath = "github.com/jtolds/gls",
-    tag = "v4.2.1",
+    tag = "v4.20.0",
 )
 
 go_repository(
@@ -504,14 +504,16 @@ go_repository(
 
 go_repository(
     name = "com_github_minio_minio_go",
-    importpath = "github.com/minio/minio-go",
-    tag = "v6.0.14",
+    importpath = "github.com/minio/minio-go/v6",
+    remote = "https://github.com/minio/minio-go",
+    tag = "v6.0.53",
+    vcs = "git",
 )
 
 go_repository(
     name = "com_github_mitchellh_go_homedir",
-    commit = "3864e76763d9",
     importpath = "github.com/mitchellh/go-homedir",
+    tag = "v1.1.0",
 )
 
 go_repository(
@@ -595,7 +597,7 @@ go_repository(
 go_repository(
     name = "com_github_sirupsen_logrus",
     importpath = "github.com/sirupsen/logrus",
-    tag = "v1.0.6",
+    tag = "v1.5.0",
 )
 
 go_repository(
@@ -606,7 +608,7 @@ go_repository(
 
 go_repository(
     name = "com_github_smartystreets_goconvey",
-    commit = "044398e4856c",
+    commit = "68dc04aab96a",
     importpath = "github.com/smartystreets/goconvey",
 )
 
@@ -721,7 +723,7 @@ go_repository(
 go_repository(
     name = "in_gopkg_ini_v1",
     importpath = "gopkg.in/ini.v1",
-    tag = "v1.39.3",
+    tag = "v1.42.0",
 )
 
 go_repository(
@@ -1078,4 +1080,22 @@ go_repository(
     name = "com_github_peterhellberg_duration",
     commit = "ec6baeebcd10",
     importpath = "github.com/peterhellberg/duration",
+)
+
+go_repository(
+    name = "com_github_dustin_go_humanize",
+    importpath = "github.com/dustin/go-humanize",
+    tag = "v1.0.0",
+)
+
+go_repository(
+    name = "com_github_konsorten_go_windows_terminal_sequences",
+    importpath = "github.com/konsorten/go-windows-terminal-sequences",
+    tag = "v1.0.1",
+)
+
+go_repository(
+    name = "com_github_minio_sha256_simd",
+    importpath = "github.com/minio/sha256-simd",
+    tag = "v0.1.1",
 )

@@ -42,13 +42,11 @@ require (
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/jinzhu/now v0.0.0-20181116074157-8ec929ed50c3 // indirect
 	github.com/json-iterator/go v0.0.0-20180701071628-ab8a2e0c74be // indirect
-	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lib/pq v1.0.0 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/mattn/go-sqlite3 v1.9.0
-	github.com/minio/minio-go v6.0.14+incompatible
-	github.com/mitchellh/go-homedir v0.0.0-20180523094522-3864e76763d9 // indirect
+	github.com/minio/minio-go/v6 v6.0.53
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/onsi/ginkgo v1.7.0 // indirect
@@ -58,9 +56,7 @@ require (
 	github.com/pkg/errors v0.8.0
 	github.com/prometheus/client_golang v0.9.2 // indirect
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
-	github.com/sirupsen/logrus v1.0.6
-	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
-	github.com/smartystreets/goconvey v0.0.0-20181108003508-044398e4856c // indirect
+	github.com/sirupsen/logrus v1.5.0
 	github.com/spf13/viper v1.3.0
 	github.com/stretchr/testify v1.3.0
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
@@ -78,7 +74,6 @@ require (
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/ini.v1 v1.39.3 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0-20180712090710-2d6f90ab1293
 	k8s.io/apiextensions-apiserver v0.0.0-20190103235604-e7617803aceb // indirect
