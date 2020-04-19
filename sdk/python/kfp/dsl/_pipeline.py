@@ -131,7 +131,7 @@ class PipelineConf():
     """Configures the default image pull policy
 
     Args:
-      seconds: the pull policy, has to be one of: Always, Never, IfNotPresent. 
+      policy: the pull policy, has to be one of: Always, Never, IfNotPresent. 
       For more info: https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1Container.md
     """
     self.image_pull_policy = policy
@@ -264,5 +264,4 @@ class Pipeline():
       metadata (ComponentMeta): component metadata
     '''
     self._metadata = metadata
-
 
