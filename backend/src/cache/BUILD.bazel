@@ -1,0 +1,27 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "client_manager.go",
+        "main.go",
+    ],
+    importpath = "github.com/kubeflow/pipelines/backend/src/cache",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//backend/src/cache/client:go_default_library",
+        "//backend/src/cache/model:go_default_library",
+        "//backend/src/cache/server:go_default_library",
+        "//backend/src/cache/storage:go_default_library",
+        "//backend/src/common/util:go_default_library",
+        "@com_github_cenkalti_backoff//:go_default_library",
+        "@com_github_golang_glog//:go_default_library",
+        "@com_github_jinzhu_gorm//:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "cache",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

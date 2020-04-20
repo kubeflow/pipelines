@@ -257,6 +257,7 @@ def create_new_execution_in_existing_run_context(
     pipeline_name: str = None,
     run_id: str = None,
     instance_id: str = None,
+    custom_properties = None,
 ) -> metadata_store_pb2.Execution:
     pipeline_name = pipeline_name or 'Context_' + str(context_id) + '_pipeline'
     run_id = run_id or 'Context_' + str(context_id) + '_run'
@@ -276,6 +277,7 @@ def create_new_execution_in_existing_run_context(
             EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
             EXECUTION_COMPONENT_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=instance_id), # should set to task ID, not component ID
         },
+        custom_properties=custom_properties,
     )
 
 

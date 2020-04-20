@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useContext, useRef } from 'react';
 import { logger } from './Utils';
 
 declare global {
@@ -46,4 +46,26 @@ export class NamespaceContextProvider extends React.Component {
   render() {
     return <NamespaceContext.Provider value={this.state.namespace} {...this.props} />;
   }
+}
+
+function usePrevious<T>(value: T) {
+  const ref = useRef(value);
+  useLayoutEffect(() => {
+    ref.current = value;
+  });
+  return ref.current;
+}
+
+export function useNamespaceChangeEvent(): boolean {
+  const currentNamespace = useContext(NamespaceContext);
+  const previousNamespace = usePrevious(currentNamespace);
+
+  if (!previousNamespace) {
+    // Previous namespace hasn't been initialized, this does not count as a change.
+    // When the webapp inits, the first render will have namespace=undefined, so
+    // this situation happens often.
+    return false;
+  }
+
+  return previousNamespace !== currentNamespace;
 }
