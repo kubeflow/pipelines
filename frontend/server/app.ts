@@ -19,12 +19,7 @@ import * as proxy from 'http-proxy-middleware';
 import { UIConfigs } from './configs';
 import { getAddress } from './utils';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz';
-import {
-  getArtifactsHandler,
-  getArtifactFetcherService,
-  getNamespaceFromUrlOrError,
-  getArtifactsProxyHandler,
-} from './handlers/artifacts';
+import { getArtifactsHandler, getArtifactsProxyHandler } from './handlers/artifacts';
 import {
   getCreateTensorboardHandler,
   getTensorboardHandler,
