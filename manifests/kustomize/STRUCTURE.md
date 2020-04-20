@@ -29,12 +29,12 @@ kustomize
 |   |   └── ... (namespace scoped)
 │   └── ...
 └── env
+    ├── platform-agnostic
+    │   └── kustomization.yaml (based on "base")
     ├── dev
-    │   └── kustomization.yaml (set base as base)
-    ├── gcp-dev
-    │   └── kustomization.yaml (set env/dev as base)
+    │   └── kustomization.yaml (based on "env/platform-agnostic")
     └── gcp
-        └── kustomization.yaml (set env/gcp-dev as base)
+        └── kustomization.yaml (based on "base")
 ```
 
 * User facing manifest entrypoint is `cluster-scoped-resources` package and `env/<env-name>` package.
