@@ -14,7 +14,7 @@ spec:
         app: ml-pipeline-ui
     spec:
       containers:
-      - image: gcr.io/ml-pipeline/frontend:0.1.27
+      - image: gcr.io/ml-pipeline/frontend:$(IMAGE_TAG)
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-ui
         ports:
@@ -26,4 +26,6 @@ spec:
                 fieldPath: metadata.namespace
           - name: ALLOW_CUSTOM_VISUALIZATIONS
             value: "true"
+          - name: DEPLOYMENT
+            value: MARKETPLACE
       serviceAccountName: ml-pipeline-ui

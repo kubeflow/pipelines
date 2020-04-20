@@ -21,20 +21,11 @@ spec:
           args:
             - gateway
             - gcs
-          env:
+            - $(GCP_PROJECT_ID)
+          env:            
             - name: MINIO_ACCESS_KEY
               value: "minio"
             - name: MINIO_SECRET_KEY
               value: "minio123"
-            - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: "/etc/credentials/application_default_credentials.json"
           ports:
             - containerPort: 9000
-          volumeMounts:
-            - name: gcp-sa-token
-              mountPath: "/etc/credentials"
-              readOnly: true
-      volumes:
-        - name: gcp-sa-token
-          secret:
-            secretName: user-gcp-sa

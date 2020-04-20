@@ -21,7 +21,36 @@ spec:
               fieldPath: metadata.namespace
         - name: OBJECTSTORECONFIG_SECURE
           value: "false"
-        image: gcr.io/ml-pipeline/api-server:0.1.27
+        - name: OBJECTSTORECONFIG_BUCKETNAME
+          value: $(BUCKET_NAME)
+        - name: DBCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: username
+        - name: DBCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+        - name: DBCONFIG_DBNAME
+          valueFrom:
+            configMapKeyRef:
+              name: mysql-configmap
+              key: pipeline_db
+        - name: DBCONFIG_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: mysql-configmap
+              key: host
+        - name: DBCONFIG_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: mysql-configmap
+              key: port
+
+
+        image: gcr.io/ml-pipeline/api-server:$(IMAGE_TAG)
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server
         ports:

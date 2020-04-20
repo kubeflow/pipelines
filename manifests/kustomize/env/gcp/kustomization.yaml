@@ -2,9 +2,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 bases:
-  - ../../namespaced
-  - minio
-  - mysql
+  - ../../base
+  - inverse-proxy
+  - minio-gcs-gateway
+  - cloudsql-proxy
+  - gcp-default-config
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected
@@ -18,15 +20,24 @@ namespace: kubeflow
 patchesStrategicMerge:
   - gcp-configurations-patch.yaml
 
-images:
-  - name: gcr.io/cloudsql-docker/gce-proxy
-    newTag: "1.14"
-  - name: gcr.io/ml-pipeline/minio
-    newTag: RELEASE.2019-08-14T20-37-41Z-license-compliance
+# Used by Kustomize
+configMapGenerator:
+  - name: pipeline-install-config
+    env: params.env
+    behavior: merge
 
-secretGenerator:
-  - name: user-gcp-sa
-    files:
-      # Create a service account key and stored as application_default_credentials.json in the same folder.
-      # https://cloud.google.com/iam/docs/creating-managing-service-account-keys#creating_service_account_keys
-      - application_default_credentials.json
+vars:
+  - name: GCP_PROJECT_ID
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.gcsProjectId
+  - name: GCP_CLOUDSQL_INSTANCE_NAME
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.gcsCloudSqlInstanceName
