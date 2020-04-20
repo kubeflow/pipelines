@@ -36,8 +36,9 @@ describe('OutputArtifactLoader', () => {
   const readFileSpy = jest
     .spyOn(Apis, 'readFile')
     .mockImplementation(() => Promise.resolve(fileToRead));
-  const getSourceContent = jest.fn(async (source, storage, namespace) =>
-    TEST_ONLY.readSourceContent(source, storage, namespace),
+  // Mocked in tests, because we test namespace separately.
+  const getSourceContent = jest.fn(async (source, storage) =>
+    TEST_ONLY.readSourceContent(source, storage, /* namespace */ undefined),
   );
 
   describe('loadOutputArtifacts', () => {
