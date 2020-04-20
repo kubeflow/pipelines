@@ -308,6 +308,9 @@ function getNamespaceFromUrl(path: string): string | undefined {
   return params.get('namespace') || undefined;
 }
 
+// `new URL('/path')` doesn't work, because URL only accepts full URL with scheme and hostname.
+// We use the DUMMY_BASE_PATH like `new URL('/path', DUMMY_BASE_PATH)`, so that URL can parse paths
+// properly.
 const DUMMY_BASE_PATH = 'http://dummy-base-path';
 
 function getArtifactFetcherService(
