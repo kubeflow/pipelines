@@ -59,7 +59,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     # dict
     if isinstance(obj, dict):
         return {
-            key: _process_obj(value, map_to_tmpl_var)
+            _process_obj(key, map_to_tmpl_var): _process_obj(value, map_to_tmpl_var)
             for key, value in obj.items()
         }
 
