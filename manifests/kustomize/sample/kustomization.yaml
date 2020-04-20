@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  # Or github.com/kubeflow/pipelines/manifests/kustomize/env/gcp?ref=1.0.0
+  - ../env/gcp
+
+# Used by Kustomize
+configMapGenerator:
+  - name: pipeline-install-config
+    env: params.env
+    behavior: merge
+
+secretGenerator:
+  - name: mysql-secret
+    env: params-db-secret.env
+    behavior: merge
+
+#### Customization ###
+# 1. Replace with your namespace
+namespace: mykubeflow
+# 2. Change values in params.env file
+# 3. Change values in params-db-secret.env file for CloudSQL username and password
+# 4. kubectl apply -k ./
+####

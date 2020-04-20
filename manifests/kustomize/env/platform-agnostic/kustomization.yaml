@@ -2,8 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 bases:
-  - ../platform-agnostic
-  - ../gcp/inverse-proxy
+  - ../../base
+  - minio
+  - mysql
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected
@@ -13,3 +14,9 @@ commonLabels:
 
 # Replace with your namespace
 namespace: kubeflow
+
+images:
+  - name: mysql
+    newTag: "5.6"
+  - name: minio/minio
+    newTag: RELEASE.2018-02-09T22-40-05Z
