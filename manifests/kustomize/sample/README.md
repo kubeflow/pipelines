@@ -65,9 +65,9 @@ kubectl apply -k sample/
 # kubectl delete -k sample/
 
 kubectl wait applications/mypipeline -n mykubeflow --for condition=Ready --timeout=1800s
-
-kubectl describe configmap inverse-proxy-config -n mykubeflow | grep googleusercontent.com
 ```
+
+Now you can find the installation in [Console](http://console.cloud.google.com/ai-platform/pipelines)
 
 6. Post-installation configures
 
