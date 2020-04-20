@@ -149,7 +149,7 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) 
 			Namespace:      namespace,
 			StorageState:   storageState,
 		}
-		glog.Infof("chesu-debug-scanRows-1 %v", newExperiment.StorageState)
+		glog.Infof("chesu-debug-scanRows-1 %v", experiment.StorageState)
 		// Since storage state is a field added after initial KFP release, it is possible that existing experiments don't have this field and we use AVAILABLE in that case.
 		if experiment.StorageState == "" {
 			experiment.StorageState = api.Experiment_STORAGESTATE_AVAILABLE.String()
