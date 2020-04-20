@@ -2,7 +2,7 @@ package integration
 
 import (
 	"io/ioutil"
-	"reflect"
+	"sort"
 	"testing"
 	"time"
 
@@ -30,6 +30,12 @@ type RunApiTestSuite struct {
 	pipelineUploadClient *api_server.PipelineUploadClient
 	runClient            *api_server.RunClient
 }
+
+type ResourceReferenceSorter []*run_model.APIResourceReference
+
+func (r ResourceReferenceSorter) Len() int           { return len(r) }
+func (r ResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
+func (r ResourceReferenceSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
 // Check the namespace have ML pipeline installed and ready
 func (s *RunApiTestSuite) SetupTest() {
@@ -264,7 +270,11 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
-	assert.True(t, reflect.DeepEqual(expectedRun, runDetail.Run))
+
+	// Need to sort resource references before equality check as the order is non-deterministic
+	sort.Sort(ResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	sort.Sort(ResourceReferenceSorter(expectedRun.ResourceReferences))
+	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
 func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
@@ -293,7 +303,11 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
-	assert.True(t, reflect.DeepEqual(expectedRun, runDetail.Run))
+
+	// Need to sort resource references before equality check as the order is non-deterministic
+	sort.Sort(ResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	sort.Sort(ResourceReferenceSorter(expectedRun.ResourceReferences))
+	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
 func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string) {
@@ -324,7 +338,8 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
-	assert.True(t, reflect.DeepEqual(expectedRun, runDetail.Run))
+
+	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
 func TestRunApi(t *testing.T) {
