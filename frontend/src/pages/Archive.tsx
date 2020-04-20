@@ -18,23 +18,41 @@ import * as React from 'react';
 import Buttons, { ButtonKeys } from '../lib/Buttons';
 import RunList from './RunList';
 import { Page, PageProps } from './Page';
+import { RoutePage } from '../components/Router';
 import { RunStorageState } from '../apis/run';
+import { ExperimentStorageState } from '../apis/experiment';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import {ArtifactCustomProperties} from '@kubeflow/frontend';
+import ExperimentListComponent from 'src/components/ExperimentListComponent';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Radio from '@material-ui/core/Radio';
+
+export enum ArchiveTab {
+  RUNS = 0,
+  EXPERIMENTS = 1,
+}
+
+export interface ArchiveProps extends PageProps {
+  namespace?: string;
+}
 
 interface ArchiveState {
+  selectedTab: ArchiveTab;
   selectedIds: string[];
 }
 
-export class Archive extends Page<{ namespace?: string }, ArchiveState> {
+export class Archive extends Page<ArchiveProps, ArchiveState> {
   private _runlistRef = React.createRef<RunList>();
+  // private _experimentlistRef = React.createRef<ExperimentListComponet>();
 
   constructor(props: any) {
     super(props);
 
     this.state = {
+      selectedTab: ArchiveTab.RUNS,
       selectedIds: [],
     };
   }
@@ -58,8 +76,48 @@ export class Archive extends Page<{ namespace?: string }, ArchiveState> {
   }
 
   public render(): JSX.Element {
+    // return (
+    //   <div className={classes(commonCss.page, padding(20, 'lr'))}>
+    //     <RunList
+    //       namespaceMask={this.props.namespace}
+    //       onError={this.showPageError.bind(this)}
+    //       selectedIds={this.state.selectedIds}
+    //       onSelectionChange={this._selectionChanged.bind(this)}
+    //       ref={this._runlistRef}
+    //       storageState={RunStorageState.ARCHIVED}
+    //       {...this.props}
+    //     />
+    //   </div>
+    // );
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div>
+      <div className={classes(commonCss.flex, padding(10, 'b'))}>
+        <FormControlLabel
+          id='viewArchivedRuns'
+          label='Runs'
+          checked={this.state.selectedTab === ArchiveTab.RUNS}
+          control={<Radio color='primary' />}
+          onChange={() =>
+            this.setState({
+              selectedTab: ArchiveTab.RUNS,
+            })
+          }
+        />
+        <FormControlLabel
+          id='viewArchivedExperiments'
+          label='Experiments'
+          checked={this.state.selectedTab === ArchiveTab.EXPERIMENTS}
+          control={<Radio color='primary' />}
+          onChange={() =>
+            this.setState({
+              selectedTab: ArchiveTab.EXPERIMENTS,
+            })
+          }
+        />
+      </div>
+
+      {this.state.selectedTab === ArchiveTab.RUNS &&
+      <div className={classes(commonCss.page, padding(20, 't'))}>
         <RunList
           namespaceMask={this.props.namespace}
           onError={this.showPageError.bind(this)}
@@ -69,6 +127,20 @@ export class Archive extends Page<{ namespace?: string }, ArchiveState> {
           storageState={RunStorageState.ARCHIVED}
           {...this.props}
         />
+      </div>}
+
+      {this.state.selectedTab === ArchiveTab.EXPERIMENTS &&
+      <div>
+        <ExperimentListComponent
+          // selectedIds={this.state.selectedIds}
+          // onSelectionChange={this._selectionChanged.bind(this)}
+          // ref={this._experimentlistRef}
+          onError={this.showPageError.bind(this)}
+          onSelectionChange={this._experimentSelectionChanged.bind(this)}
+          storageState={ExperimentStorageState.ARCHIVED}
+          {...this.props}
+        />
+      </div>}
       </div>
     );
   }
@@ -91,11 +163,22 @@ export class Archive extends Page<{ namespace?: string }, ArchiveState> {
     });
     this.setState({ selectedIds });
   }
+
+  private _experimentSelectionChanged(selectedIds: string[]): void {
+    const toolbarActions = this.props.toolbarProps.actions;
+    toolbarActions[ButtonKeys.RESTORE].disabled = !selectedIds.length;
+    toolbarActions[ButtonKeys.DELETE_RUN].disabled = !selectedIds.length;
+    this.props.updateToolbar({
+      actions: toolbarActions,
+      breadcrumbs: this.props.toolbarProps.breadcrumbs,
+    });
+    this.setState({ selectedIds });
+  }
 }
 
 const EnhancedArchive = (props: PageProps) => {
   const namespace = React.useContext(NamespaceContext);
-  return <Archive key={namespace} {...props} namespace={namespace} />;
+  return <Archive key={namespace} {...props} namespace={namespace} view={ArchiveTab.RUNS} />;
 };
 
 export default EnhancedArchive;

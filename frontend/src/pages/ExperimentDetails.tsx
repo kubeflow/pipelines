@@ -126,6 +126,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           .compareRuns(() => this.state.selectedIds)
           .cloneRun(() => this.state.selectedIds, false)
           .archive(
+            'experiment', // maybe 'run'
             () => this.state.selectedIds,
             false,
             ids => this._selectionChanged(ids),
@@ -145,12 +146,14 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-      .refresh(this.refresh.bind(this))
-      .archive(
-        () => [this.state.experiment!.id!],
-        true,
-        ids => this._selectionChanged(ids),
-      ).getToolbarActionMap(),
+        .refresh(this.refresh.bind(this))
+        .archive(
+          'experiment',
+          () => [this.state.experiment!.id!],
+          true,
+          ids => this._selectionChanged(ids),
+        )
+        .getToolbarActionMap(),
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       // TODO: determine what to show if no props.
       pageTitle: this.props ? this.props.match.params[RouteParams.experimentId] : '',

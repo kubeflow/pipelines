@@ -74,6 +74,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)
         .archive(
+          'run',
           () => this.state.selectedIds,
           false,
           ids => this._selectionChanged(ids),
