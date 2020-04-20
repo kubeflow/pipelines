@@ -149,6 +149,7 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) 
 			Namespace:      namespace,
 			StorageState:   storageState,
 		}
+		glog.Infof("chesu-debug-scanRows-1 %v", newExperiment.StorageState)
 		// Since storage state is a field added after initial KFP release, it is possible that existing experiments don't have this field and we use AVAILABLE in that case.
 		if experiment.StorageState == "" {
 			experiment.StorageState = api.Experiment_STORAGESTATE_AVAILABLE.String()
@@ -168,6 +169,7 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	}
 	newExperiment.UUID = id.String()
 
+	glog.Infof("chesu-debug-CreateExperiment-1 %v", newExperiment.StorageState)
 	if newExperiment.StorageState == "" {
 		// Default to available if not set.
 		newExperiment.StorageState = api.Experiment_STORAGESTATE_AVAILABLE.String()
@@ -175,6 +177,7 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 		newExperiment.StorageState != api.Experiment_STORAGESTATE_ARCHIVED.String() {
 		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q.", newExperiment.StorageState)
 	}
+	glog.Infof("chesu-debug-CreateExperiment-2 %v", newExperiment.StorageState)
 
 	sql, args, err := sq.
 		Insert("experiments").
