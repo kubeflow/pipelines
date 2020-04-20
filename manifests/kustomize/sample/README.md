@@ -50,7 +50,7 @@ gsutil mb -p myProjectId gs://myBucketName/
 ```
 
 4. Customize your values
-- Edit **params.env** to your values
+- Edit **params.env** and **params-db-secret.env**
 - Edit kustomization.yaml to set your namespace, e.x. "kubeflow"
 
 5. Install
