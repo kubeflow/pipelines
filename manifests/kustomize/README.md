@@ -25,7 +25,7 @@ It's based on in-cluster PersistentVolumeClaim storage.
 ```
 kubectl apply -k cluster-scoped-resources/
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
-kubectl apply -k env/dev/
+kubectl apply -k env/platform-agnostic/
 kubectl wait applications/pipeline -n kubeflow --for condition=Ready --timeout=1800s
 kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
 ```
@@ -39,7 +39,7 @@ Additionally, it introduced a proxy in GCP to allow user easily access KFP safel
 kubectl apply -k cluster-scoped-resources/
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
 
-kubectl apply -k env/gcp-dev/
+kubectl apply -k env/dev/
 kubectl wait applications/pipeline -n kubeflow --for condition=Ready --timeout=1800s
 
 # Or visit http://console.cloud.google.com/ai-platform/pipelines
@@ -59,9 +59,9 @@ reinstall a newer version can reuse the data.
 ```
 ### 1. namespace scoped
 # Depends on how you installed it:
-kubectl kustomize env/dev | kubectl delete -f -
+kubectl kustomize env/platform-agnostic | kubectl delete -f -
 # or
-kubectl kustomize env/gcp-dev | kubectl delete -f -
+kubectl kustomize env/dev | kubectl delete -f -
 # or
 kubectl kustomize env/gcp | kubectl delete -f -
 # or
