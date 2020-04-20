@@ -317,7 +317,8 @@ export function generateMinioArtifactUrl(minioUri: string): string | undefined {
 
 export function buildQuery(queriesMap: { [key: string]: string | undefined }): string {
   const queryContent = Object.entries(queriesMap)
-    .map(([key, value]) => (value != null ? `${key}=${encodeURIComponent(value)}` : ''))
+    .filter((entry): entry is [string, string] => entry[1] != null)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
     .join('&');
   if (!queryContent) {
     return '';
