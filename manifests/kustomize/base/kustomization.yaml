@@ -6,18 +6,23 @@ bases:
 - argo
 - pipeline
 - metadata
+- mysql
 ## Enable cache after better test
 # - cache
 # - cache-deployer
 
 resources:
   - namespace.yaml
-  - pipeline-application.yaml  
+  - pipeline-application.yaml
 
 # Used by Kustomize
 configMapGenerator:
   - name: pipeline-install-config
     env: params.env
+
+secretGenerator:
+  - name: mysql-secret
+    env: params-db-secret.env
 
 vars:
   - name: NAMESPACE
@@ -29,28 +34,63 @@ vars:
       fieldpath: metadata.namespace
   - name: APP_NAME
     objref:
-      kind: ConfigMap      
+      kind: ConfigMap
       name: pipeline-install-config
       apiVersion: v1
     fieldref:
       fieldpath: data.appName
   - name: APP_VERSION
     objref:
-      kind: ConfigMap      
+      kind: ConfigMap
       name: pipeline-install-config
       apiVersion: v1
     fieldref:
       fieldpath: data.appVersion
   - name: IMAGE_TAG
     objref:
-      kind: ConfigMap      
+      kind: ConfigMap
       name: pipeline-install-config
       apiVersion: v1
     fieldref:
       fieldpath: data.imageTag
+  - name: DBSERVICE_HOST
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.dbHost
+  - name: DBSERVICE_PORT
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.dbPort
+  - name: DBNAME_MLMD
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.mlmdDb
+  - name: DBNAME_CACHE
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.cacheDb
+  - name: DBNAME_PIPELINE
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.pipelineDb
   - name: BUCKET_NAME
     objref:
-      kind: ConfigMap      
+      kind: ConfigMap
       name: pipeline-install-config
       apiVersion: v1
     fieldref:

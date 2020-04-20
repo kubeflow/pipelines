@@ -8,7 +8,7 @@ You may consider create **zero-sized GPU node-pool with autoscaling**.
 Please reference [GPU Tutorial](/samples/tutorials/gpu/).
 - **Security** You may consider use **Workload Identity** in GCP cluster.
 
-Here for simplicity we create a small cluster with **--scopes=cloud-platform** 
+Here for simplicity we create a small cluster with **--scopes=cloud-platform**
 to save credentail configure efforts.
 
 ```
@@ -26,7 +26,8 @@ gcloud container clusters create mycluster \
 
 Create CloudSQL instance. [Console](https://console.cloud.google.com/sql/instances).
 
-Here is a sample for demo. You may use **Private IP** in certain VPC network.
+Here is a sample for demo.
+
 ```
 gcloud beta sql instances create mycloudsqlname \
   --database-version=MYSQL_5_7 \
@@ -34,6 +35,11 @@ gcloud beta sql instances create mycloudsqlname \
   --region=us-central1 \
   --root-password=password123
 ```
+
+You may use **Private IP** to well protect your CloudSQL.
+If you use **Private IP**, please go to [VPC network peering](https://console.cloud.google.com/networking/peering/list)
+to double check whether the "cloudsql-mysql-googleais-com" is created and the "Exchange custom routes" is enabled. You
+are expected to see "Peer VPC network is connected".
 
 3. Prepare GCS Bucket
 
@@ -60,12 +66,12 @@ kubectl apply -k sample/
 
 kubectl wait applications/mypipeline -n mykubeflow --for condition=Ready --timeout=1800s
 
-kubectl describe configmap inverse-proxy-config -n kubeflow | grep googleusercontent.com
+kubectl describe configmap inverse-proxy-config -n mykubeflow | grep googleusercontent.com
 ```
 
 6. Post-installation configures
 
-It depends on how you create the cluster, 
+It depends on how you create the cluster,
 - if the cluster is created with **--scopes=cloud-platform**, no actions required
 - if the cluster is on Workload Identity, please run **gcp-workload-identity-setup.sh**
   - make sure the Google Service Account (GSA) can access the CloudSQL instance and GCS bucket

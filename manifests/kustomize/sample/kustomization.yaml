@@ -11,8 +11,15 @@ configMapGenerator:
     env: params.env
     behavior: merge
 
+secretGenerator:
+  - name: mysql-secret
+    env: params-db-secret.env
+    behavior: merge
+
 #### Customization ###
 # 1. Replace with your namespace
 namespace: mykubeflow
 # 2. Change values in params.env file
+# 3. Change values in params-db-secret.env file for CloudSQL username and password
+# 4. kubectl apply -k ./
 ####

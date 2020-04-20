@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
   - metadata-configmap.yaml
-  - metadata-mysql-secret.yaml
   - metadata-grpc-deployment.yaml
   - metadata-grpc-service.yaml
   - metadata-envoy-deployment.yaml

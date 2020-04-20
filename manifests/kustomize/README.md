@@ -20,6 +20,8 @@ It uses following default settings.
 - application name: pipeline
 
 ### Option-1 Install it to any K8s cluster
+It's based on in-cluster PersistentVolumeClaim storage.
+
 ```
 kubectl apply -k cluster-scoped-resources/
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
@@ -30,38 +32,29 @@ kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
 Now you can access it via localhost:8080
 
 ### Option-2 Install it to GCP with in-cluster PersistentVolumeClaim storage
+It's based on in-cluster PersistentVolumeClaim storage.
+Additionally, it introduced a proxy in GCP to allow user easily access KFP safely.
+
 ```
 kubectl apply -k cluster-scoped-resources/
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
+
 kubectl apply -k env/gcp-dev/
 kubectl wait applications/pipeline -n kubeflow --for condition=Ready --timeout=1800s
+
+# Or visit http://console.cloud.google.com/ai-platform/pipelines
 kubectl describe configmap inverse-proxy-config -n kubeflow | grep googleusercontent.com
 ```
 
 ### Option-3 Install it to GCP with CloudSQL & GCS-Minio managed storage
-It's suggested for production usage as data always is not stored to the cluster but CloudSQL & GCS.
+Its storage is based on CloudSQL & GCS. It's better than others for production usage.
 
 Please following [sample](sample/README.md) for a customized installation.
 
-## Upgrade
-Note - Do **NOT** follow these instructions if you are upgrading KFP in a
-[proper Kubeflow installation](https://www.kubeflow.org/docs/started/getting-started/).
-
-If you have already deployed a standalone KFP installation of version prior to
-0.2.5 and you want to upgrade it, make sure the following resources do not
-exist: `metadata-deployment`, `metadata-service`.
-```
-kubectl -n <KFP_NAMESPACE> get deployments | grep metadata-deployment
-kubectl -n <KFP_NAMESPACE> get service | grep metadata-service
-```
-
-If they exist, you can delete them by running the following commands:
-```
-kubectl -n <KFP_NAMESPACE> delete deployment metadata-deployment
-kubectl -n <KFP_NAMESPACE> delete service metadata-service
-```
-
 ## Uninstall
+
+If the installation is based on CloudSQL/GCS, after the uninstall, the data is still there,
+reinstall a newer version can reuse the data.
 
 ```
 ### 1. namespace scoped
@@ -75,7 +68,7 @@ kubectl kustomize env/gcp | kubectl delete -f -
 kubectl delete applications/pipeline -n kubeflow
 
 ### 2. cluster scoped
-kubectl kustomize cluster-scoped-resources | kubectl delete -f -
+kubectl delete -k cluster-scoped-resources/
 ```
 
 ## Troubleshooting
