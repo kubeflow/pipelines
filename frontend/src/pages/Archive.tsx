@@ -178,7 +178,7 @@ export class Archive extends Page<ArchiveProps, ArchiveState> {
 
 const EnhancedArchive = (props: PageProps) => {
   const namespace = React.useContext(NamespaceContext);
-  return <Archive key={namespace} {...props} namespace={namespace} view={ArchiveTab.RUNS} />;
+  return <Archive key={namespace} {...props} namespace={namespace} />;
 };
 
 export default EnhancedArchive;
