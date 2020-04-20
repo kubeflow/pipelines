@@ -7,9 +7,8 @@ bases:
 - pipeline
 - metadata
 - mysql
-## Enable cache after better test
-# - cache
-# - cache-deployer
+- cache
+- cache-deployer
 
 resources:
   - namespace.yaml
