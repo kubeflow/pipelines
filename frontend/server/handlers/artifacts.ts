@@ -241,7 +241,7 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
 
 const AUTH_EMAIL_HEADER = 'x-goog-authenticated-user-email';
 const ARTIFACTS_PROXY_DEFAULTS = {
-  serviceName: 'ml-pipeline-artifact',
+  serviceName: 'ml-pipeline-ui-artifact',
   servicePort: '80',
 };
 export interface ArtifactsProxyConfig {
