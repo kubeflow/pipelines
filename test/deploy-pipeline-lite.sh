@@ -62,7 +62,7 @@ else
 
   pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
   # TODO: delete usage on kustomize after next release
-  if [ '0.4.0' -eq "$KFP_LATEST_RELEASE" ]; then
+  if [ "0.4.0" = "$KFP_LATEST_RELEASE" ]; then
     kustomize build . | kubectl apply -f -
   else
     kubectl apply -k .
