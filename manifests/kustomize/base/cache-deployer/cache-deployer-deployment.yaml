@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: main
-        image: gcr.io/ml-pipeline/cache-deployer:$(IMAGE_TAG)
+        image: gcr.io/ml-pipeline/cache-deployer:latest
         imagePullPolicy: Always
         env:
         - name: NAMESPACE_TO_WATCH

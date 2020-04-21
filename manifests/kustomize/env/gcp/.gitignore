@@ -1,0 +1,2 @@
+# Ignore the GCP service account ADC file
+application_default_credentials.json
