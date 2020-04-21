@@ -64,7 +64,7 @@ kubectl apply -k sample/
 # If upper one action got failed, e.x. you used wrong value, try delete, fix and apply again
 # kubectl delete -k sample/
 
-kubectl wait applications/mypipeline -n mykubeflow --for condition=Ready --timeout=1800s
+kubectl wait applications/mypipeline -n kubeflow --for condition=Ready --timeout=1800s
 ```
 
 Now you can find the installation in [Console](http://console.cloud.google.com/ai-platform/pipelines)
