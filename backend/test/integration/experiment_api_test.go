@@ -87,7 +87,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Nil(t, err)
 	expectedTrainingExperiment := &experiment_model.APIExperiment{
 		ID: trainingExperiment.ID, Name: experiment.Name,
-		Description: experiment.Description, CreatedAt: trainingExperiment.CreatedAt, StorageState: "STORAGESTATE_AVAILABLE-chesu-debug"}
+		Description: experiment.Description, CreatedAt: trainingExperiment.CreatedAt, StorageState: "STORAGESTATE_AVAILABLE"}
 
 	/* ---------- Verify get experiment works ---------- */
 	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
