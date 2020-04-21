@@ -83,7 +83,7 @@ func grpcCustomMatcher(key string) (string, bool) {
 }
 
 func startRpcServer(resourceManager *resource.ResourceManager) {
-	glog.Info("Starting RPC server")
+	glog.Info("chesu-debug-Starting RPC server")
 	listener, err := net.Listen("tcp", *rpcPortFlag)
 	if err != nil {
 		glog.Fatalf("Failed to start RPC server: %v", err)

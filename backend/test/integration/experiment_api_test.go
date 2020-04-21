@@ -88,6 +88,12 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	expectedTrainingExperiment := &experiment_model.APIExperiment{
 		ID: trainingExperiment.ID, Name: experiment.Name,
 		Description: experiment.Description, CreatedAt: trainingExperiment.CreatedAt, StorageState: "STORAGESTATE_AVAILABLE-chesu-debug"}
+
+	/* ---------- Verify get experiment works ---------- */
+	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
+	assert.Nil(t, err)
+	assert.Equal(t, expectedTrainingExperiment, experiment)
+
 	assert.Equal(t, expectedTrainingExperiment, trainingExperiment)
 
 	/* ---------- Create an experiment with same name. Should fail due to name uniqueness ---------- */

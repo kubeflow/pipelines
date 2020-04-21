@@ -107,6 +107,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *common.FilterContext, o
 }
 
 func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) {
+	glog.Info("chesu-debug-GetExperiment-0")
 	sql, args, err := sq.
 		Select("*").
 		From("experiments").
@@ -133,6 +134,7 @@ func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) 
 }
 
 func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) {
+	glog.Info("chesu-debug-scanRows-0")
 	var experiments []*model.Experiment
 	for rows.Next() {
 		var uuid, name, description, namespace, storageState string
@@ -160,6 +162,7 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) 
 }
 
 func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model.Experiment, error) {
+	glog.Info("chesu-debug-CreateExperiment-0")
 	newExperiment := *experiment
 	now := s.time.Now().Unix()
 	newExperiment.CreatedAtInSec = now
