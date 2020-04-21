@@ -26,7 +26,16 @@ ENABLE_WORKLOAD_IDENTITY=${ENABLE_WORKLOAD_IDENTITY:-false}
 
 KFP_MANIFEST_DIR="${DIR}/manifests"
 pushd ${KFP_MANIFEST_DIR}
-echo $(pwd)
+
+if ! which kustomize; then	
+  # Download kustomize cli tool	
+  TOOL_DIR=${DIR}/bin	
+  mkdir -p ${TOOL_DIR}	
+  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/v3.1.0/kustomize_3.1.0_linux_amd64 \	
+    -O ${TOOL_DIR}/kustomize --no-verbose	
+  chmod +x ${TOOL_DIR}/kustomize	
+  PATH=${PATH}:${TOOL_DIR}	
+fi
 
 if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   echo "Deploying KFP in working directory..."
@@ -52,12 +61,23 @@ else
   git checkout $KFP_LATEST_RELEASE
 
   pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
-  kubectl apply -k .
+  # TODO: delete usage on kustomize after next release
+  if [ '0.4.0' -eq "$KFP_LATEST_RELEASE" ]; then
+    kustomize build . | kubectl apply -f -
+  else
+    kubectl apply -k .
+  fi;
+  
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
 
   pushd ${KFP_MANIFEST_DIR}/dev
-  kubectl apply -k .
+  # TODO: delete usage on kustomize after next release
+  if [ '0.4.0' -eq "$KFP_LATEST_RELEASE" ]; then
+    kustomize build . | kubectl apply -f -
+  else
+    kubectl apply -k .
+  fi;
   popd
 
   # go back to previous commit
@@ -109,4 +129,3 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
 fi
 
 popd
-echo $(pwd)
