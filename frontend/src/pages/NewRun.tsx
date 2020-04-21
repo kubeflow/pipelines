@@ -30,7 +30,7 @@ import ResourceSelector from './ResourceSelector';
 import RunUtils from '../lib/RunUtils';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
-import { ApiExperiment } from '../apis/experiment';
+import { ApiExperiment, ExperimentStorageState } from '../apis/experiment';
 import { ApiPipeline, ApiParameter, ApiPipelineVersion } from '../apis/pipeline';
 import {
   ApiRun,
@@ -56,6 +56,7 @@ import { CustomRendererProps } from '../components/CustomTable';
 import { Description } from '../components/Description';
 import { NamespaceContext } from '../lib/KubeflowClient';
 import { NameWithTooltip } from '../components/CustomTableNameColumn';
+import { PredicateOp, ApiFilter } from '../apis/filter';
 
 interface NewRunState {
   description: string;
@@ -402,11 +403,24 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                   sort_by?: string,
                   filter?: string,
                 ) => {
+                  // A new run can only be created in an unarchived experiment.
+                  // Therefore, when listing experiments here for selection, we
+                  // only list unarchived experiments.
+                  const new_filter = JSON.parse(
+                    decodeURIComponent(filter || '{"predicates": []}'),
+                  ) as ApiFilter;
+                  new_filter.predicates = (new_filter.predicates || []).concat([
+                    {
+                      key: 'storage_state',
+                      op: PredicateOp.NOTEQUALS,
+                      string_value: ExperimentStorageState.ARCHIVED.toString(),
+                    },
+                  ]);
                   const response = await Apis.experimentServiceApi.listExperiment(
                     page_token,
                     page_size,
                     sort_by,
-                    filter,
+                    encodeURIComponent(JSON.stringify(new_filter)),
                     this.props.namespace ? 'NAMESPACE' : undefined,
                     this.props.namespace,
                   );

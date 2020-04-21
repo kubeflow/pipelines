@@ -26,7 +26,7 @@ import RecurringRunsManager from './RecurringRunsManager';
 import RunList from '../pages/RunList';
 import Toolbar, { ToolbarProps } from '../components/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
-import { ApiExperiment } from '../apis/experiment';
+import { ApiExperiment, ExperimentStorageState } from '../apis/experiment';
 import { Apis } from '../lib/Apis';
 import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -126,7 +126,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           .compareRuns(() => this.state.selectedIds)
           .cloneRun(() => this.state.selectedIds, false)
           .archive(
-            'experiment', // maybe 'run'
+            'run',
             () => this.state.selectedIds,
             false,
             ids => this._selectionChanged(ids),
@@ -147,12 +147,12 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     return {
       actions: buttons
         .refresh(this.refresh.bind(this))
-        .archive(
-          'experiment',
-          () => [this.state.experiment!.id!],
-          true,
-          ids => this._selectionChanged(ids),
-        )
+        // .archive(
+        //   'experiment',
+        //   () => [this.state.experiment!.id!],
+        //   true,
+        //   ids => this._selectionChanged(ids),
+        // )
         .getToolbarActionMap(),
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       // TODO: determine what to show if no props.
@@ -302,6 +302,22 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       });
 
       let activeRecurringRunsCount = -1;
+
+      // Update the Archive/Restore button based on the storage state of this experiment
+      const buttons = new Buttons(
+        this.props,
+        this.refresh.bind(this),
+        this.getInitialToolbarState().actions,
+      );
+      const idGetter = () => (experiment.id ? [experiment.id] : []);
+      experiment.storage_state === ExperimentStorageState.ARCHIVED
+        ? buttons.restore('experiment', idGetter, true, () => this.refresh())
+        : buttons.archive('experiment', idGetter, true, () => this.refresh());
+      const actions = buttons.getToolbarActionMap();
+      this.props.updateToolbar({
+        actions,
+        // breadcrumbs,
+      });
 
       // Fetch this experiment's jobs
       try {

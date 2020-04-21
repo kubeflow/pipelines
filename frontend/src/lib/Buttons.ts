@@ -318,12 +318,15 @@ export default class Buttons {
   }
 
   public restore(
+    resourceName: 'run' | 'experiment',
     getSelectedIds: () => string[],
     useCurrentResource: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
   ): Buttons {
     this._map[ButtonKeys.RESTORE] = {
-      action: () => this._restore(getSelectedIds(), useCurrentResource, callback),
+      action: () => resourceName === 'run'
+          ? this._restore(getSelectedIds(), useCurrentResource, callback)
+          : this._restoreExperiment(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to restore',
       id: 'restoreBtn',
@@ -431,6 +434,24 @@ export default class Buttons {
       callback,
       'Restore',
       'run',
+    );
+  }
+
+  private _restoreExperiment(
+    selectedIds: string[],
+    useCurrent: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): void {
+    this._dialogActionHandler(
+      selectedIds,
+      `Do you want to restore ${
+        selectedIds.length === 1 ? 'this experiment to its' : 'these experiments to their'
+      } original location?`,
+      useCurrent,
+      id => Apis.experimentServiceApi.unarchiveExperiment(id),
+      callback,
+      'Restore',
+      'experiment',
     );
   }
 

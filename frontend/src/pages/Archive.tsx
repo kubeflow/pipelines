@@ -61,7 +61,7 @@ export class Archive extends Page<ArchiveProps, ArchiveState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .restore(() => this.state.selectedIds, false, this._selectionChanged.bind(this))
+        .restore('run', () => this.state.selectedIds, false, this._selectionChanged.bind(this))
         .refresh(this.refresh.bind(this))
         .delete(
           () => this.state.selectedIds,
