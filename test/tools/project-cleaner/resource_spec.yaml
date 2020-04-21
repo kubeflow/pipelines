@@ -16,9 +16,10 @@ project-id: ml-pipeline-test
 resources:
   - resource: gke-cluster
     zones:
-      - us-east1-b
+      - us-east1-c
     name-prefixes:
       - e2e-
       - sample-
       - upgrade-
+      - multiuser-
     time-lapse-hours: 2

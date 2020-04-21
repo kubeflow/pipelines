@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,25 +19,30 @@ set -o pipefail
 
 usage()
 {
-    echo "usage: deploy.sh
+    echo "usage: multiuser-test.sh
+    [--project              the gcp project. Default is ml-pipeline-test. Only used when platform is gcp.]
     [--workflow_file        the file name of the argo workflow to run]
-    [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
-    [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
-    [--timeout              timeout of the tests in seconds. Default is 1800 seconds. ]
+    [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test]
+    [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[COMMIT_SHA]]
+    [--timeout              timeout of the tests in seconds. Default is 2700 seconds. ]
     [-h help]"
 }
 
+COMMIT_SHA=${PULL_BASE_SHA:-$(git rev-parse HEAD)}
+
+KFP_DEPLOYMENT=kubeflow
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
-CLOUDBUILD_PROJECT=ml-pipeline-test
-GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test
-TARGET_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_BASE_SHA}
+TEST_RESULT_FOLDER=test-result
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
-COMMIT_SHA="$PULL_BASE_SHA"
+ENABLE_WORKLOAD_IDENTITY=true
 
 while [ "$1" != "" ]; do
     case $1 in
+             --project )              shift
+                                      PROJECT=$1
+                                      ;;
              --workflow_file )        shift
                                       WORKFLOW_FILE=$1
                                       ;;
@@ -59,9 +64,10 @@ while [ "$1" != "" ]; do
     shift
 done
 
-# Variables
-# Refer to https://github.com/kubernetes/test-infra/blob/e357ffaaeceafe737bd6ab89d2feff132d92ea50/prow/jobs.md for the Prow job environment variables
-TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_BASE_SHA}/${TEST_RESULT_FOLDER}
+CLOUDBUILD_PROJECT=${PROJECT}
+GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${COMMIT_SHA}
+GCR_IMAGE_TAG=${GCR_IMAGE_TAG:-latest}
+TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${COMMIT_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 # Configure `time` command output format.
@@ -73,21 +79,72 @@ TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
 TEST_CLUSTER_DEFAULT=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${COMMIT_SHA:0:7}-${RANDOM}
 TEST_CLUSTER=${TEST_CLUSTER:-${TEST_CLUSTER_DEFAULT}}
 
-time source "${DIR}/subscripts/deploy-multi-user-kfp.sh"
+# We don't wait for image building here, because cluster can be deployed in
+# parallel so that we save a few minutes of test time.
+time source "${DIR}/build-images.sh"
+echo "KFP images cloudbuild jobs submitted"
+
+time source "${DIR}/check-build-image-status.sh"
+echo "KFP images built"
+
+time source "${DIR}/deploy-multiuser-kfp.sh"
 echo "multi user kfp deployed"
 
 time source "${DIR}/install-argo.sh"
 echo "argo installed"
 
+kubectl create ns argo --dry-run -o yaml | kubectl apply -f -
+kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
+
+if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
+  # Use static GSAs for testing, so we don't need to GC them.
+  export SYSTEM_GSA="test-kfp-system"
+  export USER_GSA="test-kfp-user"
+
+  PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
+    ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
+
+  echo "start add-iam-policy-binding"
+  gcloud projects add-iam-policy-binding $PROJECT \
+    --member="serviceAccount:$SYSTEM_GSA@$PROJECT.iam.gserviceaccount.com" \
+    --role="roles/editor"
+  gcloud projects add-iam-policy-binding $PROJECT \
+    --member="serviceAccount:$USER_GSA@$PROJECT.iam.gserviceaccount.com" \
+    --role="roles/editor"
+
+  echo "start verify_wi_binding"
+  source "$DIR/../manifests/kustomize/wi-utils.sh"
+  verify_workload_identity_binding "pipeline-runner" $NAMESPACE
+fi
+
+# Create test profiles in prepare for test scenarios
+kubectl create -f ${DIR}/multi-user-test/profile.yaml
+
+KFP_HOST="https://${TEST_CLUSTER}.endpoints.${PROJECT}.cloud.goog/pipeline"
+CLIENT_ID=${CLIENT_ID:-$(gsutil cat gs://ml-pipeline-test-keys/oauth_client_id)}
+OTHER_CLIENT_ID=${OTHER_CLIENT_ID:-$(gsutil cat gs://ml-pipeline-test-keys/other_client_id)}
+OTHER_CLIENT_SECRET=${OTHER_CLIENT_SECRET:-$(gsutil cat gs://ml-pipeline-test-keys/other_client_secret)}
+REFRESH_TOKEN_A=${REFRESH_TOKEN_A:-$(gsutil cat gs://ml-pipeline-test-keys/cerseistark_token)}
+USER_NAMESPACE_A=${USER_NAMESPACE_A:-"kubeflow-cerseistark"}
+REFRESH_TOKEN_B=${REFRESH_TOKEN_B:-$(gsutil cat gs://ml-pipeline-test-keys/briennebolton_token)}
+USER_NAMESPACE_B=${USER_NAMESPACE_B:-"kubeflow-briennebolton"}
+
 # Submit the argo job and check the results
-echo "submitting argo workflow for commit ${PULL_BASE_SHA}..."
+echo "submitting argo workflow for commit ${COMMIT_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
--p commit-sha="${PULL_BASE_SHA}" \
+-p commit-sha="${COMMIT_SHA}" \
 -p component-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
--p target-image-prefix="${TARGET_IMAGE_BASE_DIR}/" \
+-p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
--p cluster-type="${CLUSTER_TYPE}" \
+-p host="${KFP_HOST}" \
+-p client-id="${CLIENT_ID}" \
+-p other-client-id="${OTHER_CLIENT_ID}" \
+-p other-client-secret="${OTHER_CLIENT_SECRET}" \
+-p refresh-token-a="${REFRESH_TOKEN_A}" \
+-p user-namespace-a="${USER_NAMESPACE_A}" \
+-p refresh-token-b="${REFRESH_TOKEN_B}" \
+-p user-namespace-b="${USER_NAMESPACE_B}" \
 -n ${NAMESPACE} \
 --serviceaccount test-runner \
 -o name
@@ -95,3 +152,10 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 echo "argo workflow submitted successfully"
 source "${DIR}/check-argo-status.sh"
 echo "test workflow completed"
+
+echo "Cleaning up service accounts"
+for sa_suffix in 'admin' 'user' 'vm';
+do
+    gcloud iam service-accounts delete ${TEST_CLUSTER}-${sa_suffix}@${PROJECT}.iam.gserviceaccount.com --quiet
+done
+echo "Post-test cleanup completed"

@@ -16,7 +16,7 @@
 
 set -x
 
-ZONE=${ZONE:-us-east1-b}
+ZONE=${ZONE:-us-east1-c}
 if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   # activating the service account
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"

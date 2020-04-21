@@ -1,0 +1,181 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: multiuser-test-
+spec:
+  entrypoint: multiuser-test
+  arguments:
+    parameters:
+    - name: image-build-context-gcs-uri
+    - name: image-builder-image
+      value: gcr.io/ml-pipeline-test/image-builder:v20200208-0.1.25-771-g4c571961
+    - name: target-image-prefix
+    - name: test-results-gcs-dir
+    - name: multiuser-test-image-suffix
+      value: multiuser-tests
+  templates:
+  - name: multiuser-test
+    inputs:
+      parameters:
+      - name: target-image-prefix
+      - name: multiuser-test-image-suffix
+      - name: test-results-gcs-dir
+      - name: host
+      - name: client-id
+      - name: other-client-id
+      - name: other-client-secret
+      - name: refresh-token-a
+      - name: user-namespace-a
+      - name: refresh-token-b
+      - name: user-namespace-b
+    steps:
+    - - name: build-multiuser-test-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: docker-path
+            value: .
+          - name: docker-file
+            value: test/multi-user-test/Dockerfile
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.multiuser-test-image-suffix}}"
+    - - name: run-multiuser-tests-user-a
+        template: run-multiuser-tests
+        arguments:
+          parameters:
+          - name: test-name
+            value: "multiuser-test-user-a"
+          - name: multiuser-test-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.multiuser-test-image-suffix}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: host
+            value: "{{inputs.parameters.host}}"
+          - name: client-id
+            value: "{{inputs.parameters.client-id}}"
+          - name: other-client-id
+            value: "{{inputs.parameters.other-client-id}}"
+          - name: other-client-secret
+            value: "{{inputs.parameters.other-client-secret}}"
+          - name: refresh-token
+            value: "{{inputs.parameters.refresh-token-a}}"
+          - name: user-namespace
+            value: "{{inputs.parameters.user-namespace-a}}"
+          - name: other-namespace
+            value: ""
+    - - name: run-multiuser-tests-user-b
+        template: run-multiuser-tests
+        arguments:
+          parameters:
+          - name: test-name
+            value: "multiuser-test-user-b"            
+          - name: multiuser-test-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.multiuser-test-image-suffix}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: host
+            value: "{{inputs.parameters.host}}"
+          - name: client-id
+            value: "{{inputs.parameters.client-id}}"
+          - name: other-client-id
+            value: "{{inputs.parameters.other-client-id}}"
+          - name: other-client-secret
+            value: "{{inputs.parameters.other-client-secret}}"
+          - name: refresh-token
+            value: "{{inputs.parameters.refresh-token-b}}"
+          - name: user-namespace
+            value: "{{inputs.parameters.user-namespace-b}}"
+          - name: other-namespace
+            value: "{{inputs.parameters.user-namespace-a}}"
+
+  # Build and push image
+  - name: build-image
+    retryStrategy:
+      limit: 10
+    metadata:
+        annotations:
+          sidecar.istio.io/inject: "false"
+    inputs:
+      parameters:
+      # GCS URI prefix pointing to a .tar.gz archive of Docker build context
+      - name: image-build-context-gcs-uri
+        value: "{{workflow.parameters.image-build-context-gcs-uri}}"
+      # The relative code path to the Dockerfile
+      - name: docker-path
+      # Name of the Docker file to use. "Dockerfile" by default
+      - name: docker-file
+        value: Dockerfile
+      - name: image-name
+    outputs:
+      parameters:
+        - name: strict-image-name
+          valueFrom:
+            path: /outputs/strict-image-name/file
+    container:
+      image: "{{workflow.parameters.image-builder-image}}"
+      imagePullPolicy: 'Always'
+      readinessProbe:
+        httpGet:
+          path: /readiness
+          port: 8888
+        initialDelaySeconds: 300
+        periodSeconds: 30
+      args: [
+        "--image-build-context-gcs-uri", "{{inputs.parameters.image-build-context-gcs-uri}}",
+        "--docker_path", "{{inputs.parameters.docker-path}}",
+        "--docker_file", "{{inputs.parameters.docker-file}}",
+        "--image_name", "{{inputs.parameters.image-name}}",
+      ]
+      env:
+      - name: DOCKER_HOST
+        value: 127.0.0.1
+    sidecars:
+    - name: dind
+      image: docker:17.10-dind
+      securityContext:
+        privileged: true
+      mirrorVolumeMounts: true
+
+  - name: run-multiuser-tests
+    metadata:
+        annotations:
+          sidecar.istio.io/inject: "false"
+    inputs:
+      parameters:
+      - name: test-name
+      - name: multiuser-test-image
+      - name: test-results-gcs-dir
+      - name: host
+      - name: client-id
+      - name: other-client-id
+      - name: other-client-secret
+      - name: refresh-token
+      - name: user-namespace
+      - name: other-namespace
+    container:
+      image: "{{inputs.parameters.multiuser-test-image}}"
+      args: [
+        "--test-name", "{{inputs.parameters.test-name}}",
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+        "--host", "{{inputs.parameters.host}}",
+        "--client-id", "{{inputs.parameters.client-id}}",
+        "--other-client-id", "{{inputs.parameters.other-client-id}}",
+        "--other-client-secret", "{{inputs.parameters.other-client-secret}}",
+        "--refresh-token", "{{inputs.parameters.refresh-token}}",
+        "--user-namespace", "{{inputs.parameters.user-namespace}}",
+        "--other-namespace", "{{inputs.parameters.other-namespace}}",
+      ]

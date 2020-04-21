@@ -40,7 +40,7 @@ while [ "$1" != "" ]; do
              --docker_file )    shift
                                 DOCKER_FILE=$1
                                 ;;
-             --image_name )   shift
+             --image_name )     shift
                                 IMAGE_NAME=$1
                                 ;;
              --build_script )   shift

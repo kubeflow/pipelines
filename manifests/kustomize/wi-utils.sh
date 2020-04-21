@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -ex
 
 function create_gsa_if_not_present {
   local name=${1}
@@ -64,12 +65,12 @@ function verify_workload_identity_binding {
   for i in $(seq 1 ${max_attempts})
   do
     workload_identity_is_ready=true
-    kubectl run test-$RANDOM --rm -i --restart=Never \
+    kubectl run test-$RANDOM --rm -i \
         --image=google/cloud-sdk:slim \
         --serviceaccount $ksa \
         --namespace $namespace \
         -- gcloud auth list || workload_identity_is_ready=false
-    kubectl run test-$RANDOM --rm -i --restart=Never \
+    kubectl run test-$RANDOM --rm -i \
         --image=google/cloud-sdk:slim \
         --serviceaccount $ksa \
         --namespace $namespace \

@@ -84,6 +84,40 @@ export SA_KEY_FILE=PATH/TO/YOUR/GCP/PROJECT/SERVICE/ACCOUNT/KEY
   --project ${YOUR_GCS_PROJECT}
 ```
 
+### Run multiuser_tests.sh locally
+
+KFP internal team members can run the test in `ml-pipeline-test` project.
+OAuth client, test profiles, etc. have already been prepared in this project.
+You can run the following commands from root of kubeflow/pipelines repo.
+```
+export WORKSPACE=$(pwd) # root of kubeflow/pipelines git repo
+export SA_KEY_FILE=PATH/TO/YOUR/GCP/PROJECT/SERVICE/ACCOUNT/KEY
+
+./test/multiuser-tests.sh --workflow_file multiuser_test.yaml
+```
+
+For external users, or if you want to run the test in a different project, complete the pre-requisites first:
+1. Follow this [instruction](https://www.kubeflow.org/docs/gke/deploy/oauth-setup/) to set up OAuth for Cloud IAP.
+1. Modify the template [profile.yaml](./multi-user-test/profile.yaml) file with your choice of namespaces and user emails.
+1. Get the refresh tokens for the test user accounts using this [helper method](https://github.com/kubeflow/pipelines/blob/587292fbaedf0a51694770bc167f9f1e7a1e3e82/sdk/python/kfp/_auth.py#L168). An easier alternative is to initiate an SDK client, and then find the refresh token from the [file](https://github.com/kubeflow/pipelines/blob/587292fbaedf0a51694770bc167f9f1e7a1e3e82/sdk/python/kfp/_auth.py#L32).
+
+Once completing the above steps, you can run the following commands to trigger the test.
+```
+export WORKSPACE=$(pwd) # root of kubeflow/pipelines git repo
+export SA_KEY_FILE=PATH/TO/YOUR/GCP/PROJECT/SERVICE/ACCOUNT/KEY
+
+export CLIENT_ID=<OAuth client ID>
+export CLIENT_SECRET=<secret for the OAuth client>
+export OTHER_CLIENT_ID=<other client ID>
+export OTHER_CLIENT_SECRET=<secret for other client ID>
+export REFRESH_TOKEN_A=<refresh token for user A>
+export USER_NAMESPACE_A=<namespace for user A>
+export REFRESH_TOKEN_B=<refresh token for user B>
+export USER_NAMESPACE_B=<namespace for user B>
+
+./test/multiuser-tests.sh --workflow_file multiuser_test.yaml --project <your project> --test_result_bucket <your gcs bucket name>
+```
+
 ## Troubleshooting
 
 **Q: Why is my test taking so long on GKE?**
