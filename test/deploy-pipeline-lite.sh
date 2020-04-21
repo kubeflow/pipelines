@@ -27,14 +27,14 @@ ENABLE_WORKLOAD_IDENTITY=${ENABLE_WORKLOAD_IDENTITY:-false}
 KFP_MANIFEST_DIR="${DIR}/manifests"
 pushd ${KFP_MANIFEST_DIR}
 
-if ! which kustomize; then	
-  # Download kustomize cli tool	
-  TOOL_DIR=${DIR}/bin	
-  mkdir -p ${TOOL_DIR}	
-  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/v3.1.0/kustomize_3.1.0_linux_amd64 \	
-    -O ${TOOL_DIR}/kustomize --no-verbose	
-  chmod +x ${TOOL_DIR}/kustomize	
-  PATH=${PATH}:${TOOL_DIR}	
+if ! which kustomize; then
+  # Download kustomize cli tool
+  TOOL_DIR=${DIR}/bin
+  mkdir -p ${TOOL_DIR}
+  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/v3.1.0/kustomize_3.1.0_linux_amd64 \
+    -O ${TOOL_DIR}/kustomize --no-verbose
+  chmod +x ${TOOL_DIR}/kustomize
+  PATH=${PATH}:${TOOL_DIR}
 fi
 
 if [ -z "$KFP_DEPLOY_RELEASE" ]; then
