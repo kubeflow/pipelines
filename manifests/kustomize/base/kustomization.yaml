@@ -46,6 +46,22 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.appVersion
+  # IMAGE_PREFIX & IMAGE_TAG can't work together with "kustomize edit set image"
+  # If we change it to be native image tags and then use "kustomize edit set image",
+  # it will regenerate the "envs" while "kubectl apply -k" only accepts "env".
+  # To avoid install additional "kustomize" tool, we give "kubectl apply -k" priority.
+  # So to well customize images, we don't use "Kustomize edit set image" but via
+  # changing the value here.
+  # After the two following issues got solve, we revisit here.
+  # https://github.com/kubernetes-sigs/kustomize/issues/2205
+  # https://github.com/kubernetes-sigs/kustomize/issues/1342
+  - name: IMAGE_PREFIX
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.imagePrefix
   - name: IMAGE_TAG
     objref:
       kind: ConfigMap

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: main
-        image: gcr.io/ml-pipeline/metadata-writer:$(IMAGE_TAG)
+        image: $(IMAGE_PREFIX)/metadata-writer:$(IMAGE_TAG)
         env:
         - name: NAMESPACE_TO_WATCH
           valueFrom:
