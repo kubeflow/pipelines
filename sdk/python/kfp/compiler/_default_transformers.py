@@ -12,16 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import uuid
+from typing import Dict, Optional, Text
 from ..dsl._container_op import BaseOp, ContainerOp
+
+# Pod label indicating the SDK type from which the pipeline is
+# generated. By default it's set to kfp.
+_SDK_ENV_LABEL = 'pipelines.kubeflow.org/pipeline-sdk-type'
+_SDK_ENV_DEFAULT = 'kfp'
+
+# Pod label representing the random pipeline ID. If two pods have the same
+# pipeline ID then they belong to the same KFP pipeline.
+_PIPELINE_UUID_LABEL = 'pipelines.kubeflow.org/pipeline-uuid'
+
+def get_default_telemetry_labels() -> Dict[Text, Text]:
+    """Returns the default pod labels for telemetry purpose."""
+    result = {
+        _SDK_ENV_LABEL: _SDK_ENV_DEFAULT,
+        _PIPELINE_UUID_LABEL: str(uuid.uuid4())
+    }
+    return result
+
 
 def add_pod_env(op: BaseOp) -> BaseOp:
     """Adds pod environment info to ContainerOp.
     """
-    if isinstance(op, ContainerOp) and op.pod_labels and 'add-pod-env' in op.pod_labels and op.pod_labels['add-pod-env'] == 'true':
+    if isinstance(op, ContainerOp) and op.pod_labels and op.pod_labels.get('add-pod-env', None) == 'true':
         from kubernetes import client as k8s_client
         op.container.add_env_variable(
             k8s_client.V1EnvVar(
-                name='KFP_POD_NAME', 
+                name='KFP_POD_NAME',
                 value_from=k8s_client.V1EnvVarSource(
                     field_ref=k8s_client.V1ObjectFieldSelector(
                         field_path='metadata.name'
@@ -30,7 +50,7 @@ def add_pod_env(op: BaseOp) -> BaseOp:
             )
         ).add_env_variable(
             k8s_client.V1EnvVar(
-                name='KFP_NAMESPACE', 
+                name='KFP_NAMESPACE',
                 value_from=k8s_client.V1EnvVarSource(
                     field_ref=k8s_client.V1ObjectFieldSelector(
                         field_path='metadata.namespace'
@@ -39,3 +59,14 @@ def add_pod_env(op: BaseOp) -> BaseOp:
             )
         )
     return op
+
+
+def add_pod_labels(labels: Optional[Dict[Text, Text]] = None) -> BaseOp:
+    """Adds random pipeline uuid to each pod."""
+
+    def _add_pod_labels(task):
+        for k, v in labels.items():
+            task.add_pod_label(k, v)
+        return task
+
+    return _add_pod_labels
