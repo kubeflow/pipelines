@@ -16,10 +16,12 @@ secretGenerator:
     env: params-db-secret.env
     behavior: merge
 
+# !!! If you want to customize the namespace,
+# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
+namespace: kubeflow
+
 #### Customization ###
-# 1. Replace with your namespace
-namespace: mykubeflow
-# 2. Change values in params.env file
-# 3. Change values in params-db-secret.env file for CloudSQL username and password
-# 4. kubectl apply -k ./
+# 1. Change values in params.env file
+# 2. Change values in params-db-secret.env file for CloudSQL username and password
+# 3. kubectl apply -k ./
 ####
