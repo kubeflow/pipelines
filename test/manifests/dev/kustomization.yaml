@@ -1,6 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# namespace is required to change generated configmap to correct namespace
+namespace: kubeflow
 bases:
 - ../../../manifests/kustomize/env/dev
 
