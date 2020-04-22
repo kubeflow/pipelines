@@ -57,7 +57,7 @@ def add_pod_env(op: BaseOp) -> BaseOp:
 
 
 def add_pod_labels(labels: Optional[Dict[Text, Text]] = None) -> Callable:
-    """Adds random pipeline uuid to each pod."""
+    """Adds provided pod labels to each pod."""
 
     def _add_pod_labels(task):
         for k, v in labels.items():
