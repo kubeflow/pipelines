@@ -46,6 +46,27 @@ func TestCreateExperiment_Failed(t *testing.T) {
 	assert.Contains(t, err.Error(), "Create experiment failed.")
 }
 
+func TestCreateExperiment_SingleUser_NamespaceNotAllowed(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager}
+	resourceReferences := []*api.ResourceReference{
+		{
+			Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns1"},
+			Relationship: api.Relationship_OWNER,
+		},
+	}
+	experiment := &api.Experiment{
+		Name:               "exp1",
+		Description:        "first experiment",
+		ResourceReferences: resourceReferences,
+	}
+
+	_, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "In single-user mode, CreateExperimentRequest shouldn't contain resource references.")
+}
+
 func TestCreateExperiment_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
@@ -224,6 +245,24 @@ func TestListExperiment_Failed(t *testing.T) {
 	_, err = server.ListExperiment(nil, &api.ListExperimentsRequest{})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "List experiments failed.")
+}
+
+func TestListExperiment_SingleUser_NamespaceNotAllowed(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager}
+	experiment := &api.Experiment{Name: "ex1", Description: "first experiment"}
+
+	_, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+	_, err = server.ListExperiment(nil, &api.ListExperimentsRequest{
+		ResourceReferenceKey: &api.ResourceKey{
+			Type: api.ResourceType_NAMESPACE,
+			Id:   "ns1",
+		},
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "In single-user mode, ListExperiment cannot filter by namespace.")
 }
 
 func TestListExperiment_Unauthorized(t *testing.T) {
