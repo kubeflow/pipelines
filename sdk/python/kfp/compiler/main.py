@@ -57,12 +57,9 @@ def parse_arguments():
   parser.add_argument('--disable-type-check',
                       action='store_true',
                       help='disable the type check, default is enabled.')
-  parser.add_argument('--enable-telemetry',
-                      type=_str2bool,
-                      nargs='?',
-                      const=True,
-                      default=True,
-                      help='allow adding pod labels, default is enabled.')
+  parser.add_argument('--disable-telemetry',
+                      action='store_true',
+                      help='disable adding telemetry labels, default is enabled.')
 
   args = parser.parse_args()
   return args
@@ -148,7 +145,7 @@ def main():
         args.function,
         args.output,
         not args.disable_type_check,
-        args.enable_telemetry
+        not args.disable_telemetry
     )
   else:
     if args.namespace is None:
@@ -159,6 +156,6 @@ def main():
         args.function,
         args.output,
         not args.disable_type_check,
-        args.enable_telemetry
+        not args.disable_telemetry
     )
   
