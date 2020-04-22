@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import uuid
-from typing import Dict, Optional, Text
+from typing import Callable, Dict, Optional, Text
 from ..dsl._container_op import BaseOp, ContainerOp
 
 # Pod label indicating the SDK type from which the pipeline is
@@ -21,15 +20,11 @@ from ..dsl._container_op import BaseOp, ContainerOp
 _SDK_ENV_LABEL = 'pipelines.kubeflow.org/pipeline-sdk-type'
 _SDK_ENV_DEFAULT = 'kfp'
 
-# Pod label representing the random pipeline ID. If two pods have the same
-# pipeline ID then they belong to the same KFP pipeline.
-_PIPELINE_UUID_LABEL = 'pipelines.kubeflow.org/pipeline-uuid'
 
 def get_default_telemetry_labels() -> Dict[Text, Text]:
     """Returns the default pod labels for telemetry purpose."""
     result = {
         _SDK_ENV_LABEL: _SDK_ENV_DEFAULT,
-        _PIPELINE_UUID_LABEL: str(uuid.uuid4())
     }
     return result
 
@@ -61,7 +56,7 @@ def add_pod_env(op: BaseOp) -> BaseOp:
     return op
 
 
-def add_pod_labels(labels: Optional[Dict[Text, Text]] = None) -> BaseOp:
+def add_pod_labels(labels: Optional[Dict[Text, Text]] = None) -> Callable:
     """Adds random pipeline uuid to each pod."""
 
     def _add_pod_labels(task):
