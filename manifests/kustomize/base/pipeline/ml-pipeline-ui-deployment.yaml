@@ -26,6 +26,4 @@ spec:
                 fieldPath: metadata.namespace
           - name: ALLOW_CUSTOM_VISUALIZATIONS
             value: "true"
-          - name: DEPLOYMENT
-            value: MARKETPLACE
       serviceAccountName: ml-pipeline-ui
