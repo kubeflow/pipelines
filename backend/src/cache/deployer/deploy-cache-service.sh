@@ -22,7 +22,7 @@ set -ex
 
 echo "Start deploying cache service to existing cluster:"
 
-NAMESPACE=${NAMESPACE_TO_WATCH:-default}
+NAMESPACE=${NAMESPACE_TO_WATCH:-kubeflow}
 mutatingWebhookConfigName="cache-webhook"
 export CA_FILE="ca_cert"
 rm -f ${CA_FILE}
