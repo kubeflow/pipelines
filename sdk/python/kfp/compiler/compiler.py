@@ -663,7 +663,9 @@ class Compiler(object):
     workflow = {
       'apiVersion': 'argoproj.io/v1alpha1',
       'kind': 'Workflow',
-      'metadata': {'generateName': pipeline_template_name + '-'},
+      'metadata': {
+        'generateName': 'kfp-',
+      },
       'spec': {
         'entrypoint': pipeline_template_name,
         'templates': templates,
