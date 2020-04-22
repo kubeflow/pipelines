@@ -54,6 +54,9 @@ spec:
       - name: namespace
       - name: tag
     name: foo
+    metadata:
+      labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     outputs:
       artifacts:
       - name: out_art
