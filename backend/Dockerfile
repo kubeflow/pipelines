@@ -54,8 +54,8 @@ COPY ./samples .
 # The "for" loop breaks on all whitespace, so we either need to override IFS or
 # use the "read" command instead.
 RUN set -e; find core tutorials -maxdepth 2 -name '*.py' -type f | while read pipeline; do \
-    echo "import kfp; kfp.components.default_base_image_or_builder='gcr.io/google-appengine/python:2020-03-31-141326'" \
-    > "$pipeline.fixed" && mv -f "$pipeline.fixed" "$pipeline" && python3 "$pipeline"; \
+    {echo "import kfp; kfp.components.default_base_image_or_builder='gcr.io/google-appengine/python:2020-03-31-141326'" \
+    cat "pipeline"} > "$pipeline.fixed" && mv -f "$pipeline.fixed" "$pipeline" && python3 "$pipeline"; \
     done
 
 FROM debian:stretch
