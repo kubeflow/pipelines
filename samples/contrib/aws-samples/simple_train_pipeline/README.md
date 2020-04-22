@@ -41,9 +41,10 @@ An example pipeline with only [train component](https://github.com/kubeflow/pipe
    boto3.resource('s3').Bucket(bucket).Object(data_key).upload_fileobj(buf)
    ```
    Run this file `python s3_sample_data_creator.py`
-3. Prepare an IAM role with permissions to run SageMaker jobs and access to S3 buckets. 
-   ```buildoutcfg
-   # create a new file trust.json with following content 
+3. Prepare an IAM role with permissions to run SageMaker jobs and access to S3 buckets.   
+   
+   create a new file "trust.json" with following content
+   ```buildoutcfg 
    {
      "Version": "2012-10-17",
      "Statement": [
@@ -57,7 +58,9 @@ An example pipeline with only [train component](https://github.com/kubeflow/pipe
        }
      ]
    }
-   
+   ```
+   ```buildoutcfg
+
    # run these commands to create a role named "SageMakerExecutorKFP" with SageMaker and S3 access
    aws iam create-role --role-name SageMakerExecutorKFP --assume-role-policy-document file://trust.json
    aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess --role-name SageMakerExecutorKFP
