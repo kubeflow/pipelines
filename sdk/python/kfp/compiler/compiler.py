@@ -819,6 +819,7 @@ class Compiler(object):
     op_transformers = [add_pod_env]
     # By default adds telemetry instruments. Users can opt out toggling
     # allow_telemetry.
+    # Also, TFX pipelines will be bypassed for pipeline compiled by tfx>0.21.4.
     if allow_telemetry:
       pod_labels = get_default_telemetry_labels()
       op_transformers.append(add_pod_labels(pod_labels))

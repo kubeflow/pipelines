@@ -61,7 +61,10 @@ def add_pod_labels(labels: Optional[Dict[Text, Text]] = None) -> Callable:
 
     def _add_pod_labels(task):
         for k, v in labels.items():
-            task.add_pod_label(k, v)
+            # Only append but not update.
+            # This is needed to bypass TFX pipelines/components.
+            if k not in task.pod_labels:
+                task.add_pod_label(k, v)
         return task
 
     return _add_pod_labels
