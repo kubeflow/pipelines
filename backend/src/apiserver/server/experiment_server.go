@@ -62,8 +62,8 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
 
+	refKey := filterContext.ReferenceKey
 	if common.IsMultiUserMode() {
-		refKey := filterContext.ReferenceKey
 		if refKey == nil || refKey.Type != common.Namespace {
 			return nil, util.NewInvalidInputError("Invalid resource references for experiment. ListExperiment requires filtering by namespace.")
 		}
@@ -76,6 +76,9 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 			return nil, util.Wrap(err, "Failed to authorize with API resource references")
 		}
 	} else {
+		if refKey != nil && refKey.Type == common.Namespace && len(refKey.ID) > 0 {
+			return nil, util.NewInvalidInputError("In single-user mode, ListExperiment cannot filter by namespace.")
+		}
 		// In single user mode, apply filter with empty namespace for backward compatibile.
 		filterContext = &common.FilterContext{
 			ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: ""},
@@ -111,8 +114,8 @@ func ValidateCreateExperimentRequest(request *api.CreateExperimentRequest) error
 		return util.NewInvalidInputError("Experiment name is empty. Please specify a valid experiment name.")
 	}
 
+	resourceReferences := request.Experiment.GetResourceReferences()
 	if common.IsMultiUserMode() {
-		resourceReferences := request.Experiment.GetResourceReferences()
 		if len(resourceReferences) != 1 ||
 			resourceReferences[0].Key.Type != api.ResourceType_NAMESPACE ||
 			resourceReferences[0].Relationship != api.Relationship_OWNER {
@@ -123,6 +126,8 @@ func ValidateCreateExperimentRequest(request *api.CreateExperimentRequest) error
 		if len(namespace) == 0 {
 			return util.NewInvalidInputError("Invalid resource references for experiment. Namespace is empty.")
 		}
+	} else if len(resourceReferences) > 0 {
+		return util.NewInvalidInputError("In single-user mode, CreateExperimentRequest shouldn't contain resource references.")
 	}
 	return nil
 }
