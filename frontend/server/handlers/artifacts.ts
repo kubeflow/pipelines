@@ -244,6 +244,7 @@ const ARTIFACTS_PROXY_DEFAULTS = {
   serviceName: 'ml-pipeline-ui-artifact',
   servicePort: '80',
 };
+export type NamespacedServiceGetter = (namespace: string) => string;
 export interface ArtifactsProxyConfig {
   serviceName: string;
   servicePort: number;
@@ -267,10 +268,12 @@ const QUERIES = {
 };
 
 export function getArtifactsProxyHandler({
-  serviceName,
-  servicePort,
   enabled,
-}: ArtifactsProxyConfig): Handler {
+  namespacedServiceGetter,
+}: {
+  enabled: boolean;
+  namespacedServiceGetter: NamespacedServiceGetter;
+}): Handler {
   if (!enabled) {
     return (req, res, next) => next();
   }
@@ -294,8 +297,7 @@ export function getArtifactsProxyHandler({
         if (!namespace) {
           throw new Error(`namespace query param expected in ${req.url}.`);
         }
-        // HACK: tests can spyOn TEST_ONLY to replace implementation.
-        return TEST_ONLY.getArtifactFetcherService({ serviceName, servicePort }, namespace);
+        return namespacedServiceGetter(namespace);
       },
       target: '/artifacts/get',
     },
@@ -313,14 +315,6 @@ function getNamespaceFromUrl(path: string): string | undefined {
 // properly.
 const DUMMY_BASE_PATH = 'http://dummy-base-path';
 
-function getArtifactFetcherService(
-  { serviceName, servicePort }: { serviceName: string; servicePort: number },
-  namespace: string,
-): string {
-  console.debug(serviceName, namespace, servicePort);
-  return `http://${serviceName}.${namespace}:${servicePort}`;
+export function getArtifactServiceGetter({ serviceName, servicePort }: ArtifactsProxyConfig) {
+  return (namespace: string) => `http://${serviceName}.${namespace}:${servicePort}`;
 }
-
-export const TEST_ONLY = {
-  getArtifactFetcherService,
-};

@@ -6,7 +6,7 @@ import * as minioHelper from '../minio-helper';
 import { PassThrough } from 'stream';
 import * as express from 'express';
 import { Server } from 'http';
-import { TEST_ONLY } from '../handlers/artifacts';
+import * as artifactsHandler from '../handlers/artifacts';
 
 beforeEach(() => {
   jest.spyOn(global.console, 'info').mockImplementation();
@@ -53,10 +53,10 @@ describe('/artifacts/get namespaced proxy', () => {
       res.status(200).send(response);
     });
     artifactServerInUserNamespace = artifactService.listen(port);
-    const getArtifactFetcherServiceSpy = jest
-      .spyOn(TEST_ONLY, 'getArtifactFetcherService')
-      .mockImplementation(() => `http://localhost:${port}`);
-    return { receivedUrls, getArtifactFetcherServiceSpy, response };
+    const getArtifactServiceGetterSpy = jest
+      .spyOn(artifactsHandler, 'getArtifactServiceGetter')
+      .mockImplementation(() => () => `http://localhost:${port}`);
+    return { receivedUrls, getArtifactServiceGetterSpy, response };
   }
   afterEach(() => {
     if (artifactServerInUserNamespace) {
@@ -79,7 +79,7 @@ describe('/artifacts/get namespaced proxy', () => {
   });
 
   it('proxies a request to namespaced artifact service', done => {
-    const { receivedUrls, getArtifactFetcherServiceSpy } = setUpNamespacedArtifactService({
+    const { receivedUrls, getArtifactServiceGetterSpy } = setUpNamespacedArtifactService({
       namespace: 'ns2',
     });
     const configs = loadConfigs(argv, {
@@ -96,10 +96,11 @@ describe('/artifacts/get namespaced proxy', () => {
         })}`,
       )
       .expect(200, 'artifact service in ns2', err => {
-        expect(getArtifactFetcherServiceSpy).toHaveBeenCalledWith(
-          { serviceName: 'artifact-svc', servicePort: 80 },
-          'ns2', // namespace
-        );
+        expect(getArtifactServiceGetterSpy).toHaveBeenCalledWith({
+          serviceName: 'artifact-svc',
+          servicePort: 80,
+          enabled: true,
+        });
         expect(receivedUrls).toEqual(
           // url is the same, except namespace query is omitted
           ['/artifacts/get?source=minio&bucket=ml-pipeline&key=hello.txt'],
