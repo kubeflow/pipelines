@@ -1,18 +1,26 @@
 package server
 
 import (
-	"github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/stretchr/testify/assert"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestValidateCreateVisualizationRequest(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := &VisualizationServer{
-		resourceManager:    manager,
+		resourceManager: manager,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
@@ -30,7 +38,7 @@ func TestValidateCreateVisualizationRequest_ArgumentsAreEmpty(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := &VisualizationServer{
-		resourceManager:    manager,
+		resourceManager: manager,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
@@ -48,7 +56,7 @@ func TestValidateCreateVisualizationRequest_SourceIsEmpty(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := &VisualizationServer{
-		resourceManager:    manager,
+		resourceManager: manager,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
@@ -66,7 +74,7 @@ func TestValidateCreateVisualizationRequest_SourceIsEmptyAndTypeIsCustom(t *test
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := &VisualizationServer{
-		resourceManager:    manager,
+		resourceManager: manager,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_CUSTOM,
@@ -83,7 +91,7 @@ func TestValidateCreateVisualizationRequest_ArgumentsNotValidJSON(t *testing.T) 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := &VisualizationServer{
-		resourceManager:    manager,
+		resourceManager: manager,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
@@ -106,8 +114,8 @@ func TestGenerateVisualization(t *testing.T) {
 	}))
 	defer httpServer.Close()
 	server := &VisualizationServer{
-		resourceManager:    manager,
-		serviceURL:         httpServer.URL,
+		resourceManager: manager,
+		serviceURL:      httpServer.URL,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
@@ -134,8 +142,8 @@ func TestGenerateVisualization_ServiceNotAvailableError(t *testing.T) {
 		}
 	}))
 	server := &VisualizationServer{
-		resourceManager:    manager,
-		serviceURL:         httpServer.URL,
+		resourceManager: manager,
+		serviceURL:      httpServer.URL,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
@@ -165,8 +173,8 @@ func TestGenerateVisualization_ServerError(t *testing.T) {
 	}))
 	defer httpServer.Close()
 	server := &VisualizationServer{
-		resourceManager:    manager,
-		serviceURL:         httpServer.URL,
+		resourceManager: manager,
+		serviceURL:      httpServer.URL,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
@@ -179,4 +187,72 @@ func TestGenerateVisualization_ServerError(t *testing.T) {
 	body, err := server.generateVisualizationFromRequest(request)
 	assert.Nil(t, body)
 	assert.Equal(t, "500 Internal Server Error", err.Error())
+}
+
+func TestGetVisualizationServiceURL(t *testing.T) {
+	server := &VisualizationServer{
+		resourceManager: nil,
+		serviceURL:      "http://host:port",
+	}
+	request := &go_client.CreateVisualizationRequest{
+		Visualization: nil,
+	}
+	url := server.getVisualizationServiceURL(request)
+	assert.Equal(t, "http://host:port", url)
+}
+
+func TestGetVisualizationServiceURL_Multiuser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set("VisualizationService.Name", "ml-pipeline-visualizationserver")
+	viper.Set("VisualizationService.Port", "8888")
+
+	server := &VisualizationServer{
+		resourceManager: nil,
+		serviceURL:      "http://host:port",
+	}
+
+	request := &go_client.CreateVisualizationRequest{
+		Visualization: nil,
+		Namespace:     "ns1",
+	}
+	url := server.getVisualizationServiceURL(request)
+	assert.Equal(t, "http://ml-pipeline-visualizationserver.ns1:8888", url)
+
+	// when namespace is not provided, we fall back to the default visuliaztion service
+	request = &go_client.CreateVisualizationRequest{
+		Visualization: nil,
+	}
+	url = server.getVisualizationServiceURL(request)
+	assert.Equal(t, "http://host:port", url)
+}
+
+func TestCreateVisualization_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
+	resourceManager := resource.NewResourceManager(clientManager)
+	defer clientManager.Close()
+
+	server := &VisualizationServer{
+		resourceManager: resourceManager,
+	}
+	visualization := &go_client.Visualization{
+		Type:      go_client.Visualization_ROC_CURVE,
+		Source:    "gs://ml-pipeline/roc/data.csv",
+		Arguments: "{}",
+	}
+
+	request := &go_client.CreateVisualizationRequest{
+		Visualization: visualization,
+		Namespace:     "ns1",
+	}
+	_, err := server.CreateVisualization(ctx, request)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized access")
 }

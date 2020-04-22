@@ -52,5 +52,5 @@ MANAGEDSTORAGE=true # True means use CloudSQL + Minio-GCS; False means use in-cl
 CLOUDSQL=<yours> # Format like project_id:zone:cloudsql_instance_name
 PROJECTID=<yours> # This field will be removed after Marketplace can pass in the project ID
 mpdev install  --deployer=gcr.io/ml-pipeline-test/hosted/$(git rev-parse HEAD)/deployer:$MM_VER \
-    --parameters='{"name": "'$APP_INSTANCE_NAME'", "namespace": "'$NAMESPACE'", "managedstorage.enabled": '$MANAGEDSTORAGE', "managedstorage.cloudsqlInstanceConnectionName": "'$CLOUDSQL'", "managedstorage.gcsProjectId": "'$PROJECTID'"}'
+    --parameters='{"name": "'$APP_INSTANCE_NAME'", "namespace": "'$NAMESPACE'", "managedstorage.enabled": '$MANAGEDSTORAGE', "managedstorage.cloudsqlInstanceConnectionName": "'$CLOUDSQL'"}'
 ```

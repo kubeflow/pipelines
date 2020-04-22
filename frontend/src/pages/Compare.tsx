@@ -15,28 +15,30 @@
  */
 
 import * as React from 'react';
-import Buttons from '../lib/Buttons';
+import { Redirect } from 'react-router-dom';
+import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
+import { classes, stylesheet } from 'typestyle';
+import { Workflow } from '../../third_party/argo-ui/argo_template';
+import { ApiRunDetail } from '../apis/run';
+import Hr from '../atoms/Hr';
+import Separator from '../atoms/Separator';
 import CollapseButton from '../components/CollapseButton';
 import CompareTable, { CompareTableProps } from '../components/CompareTable';
-import CompareUtils from '../lib/CompareUtils';
-import Hr from '../atoms/Hr';
 import PlotCard, { PlotCardProps } from '../components/PlotCard';
-import RunList from './RunList';
-import Separator from '../atoms/Separator';
-import WorkflowParser from '../lib/WorkflowParser';
-import { ApiRunDetail } from '../apis/run';
-import { Apis } from '../lib/Apis';
-import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
-import { Page } from './Page';
-import { RoutePage, QUERY_PARAMS } from '../components/Router';
+import { QUERY_PARAMS, RoutePage } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
-import { URLParser } from '../lib/URLParser';
-import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
-import { Workflow } from '../../third_party/argo-ui/argo_template';
-import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding } from '../Css';
+import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { componentMap } from '../components/viewers/ViewerContainer';
+import { commonCss, padding } from '../Css';
+import { Apis } from '../lib/Apis';
+import Buttons from '../lib/Buttons';
+import CompareUtils from '../lib/CompareUtils';
+import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
+import { URLParser } from '../lib/URLParser';
 import { logger } from '../lib/Utils';
+import WorkflowParser from '../lib/WorkflowParser';
+import { Page, PageProps } from './Page';
+import RunList from './RunList';
 
 const css = stylesheet({
   outputsRow: {
@@ -328,4 +330,18 @@ class Compare extends Page<{}, CompareState> {
   }
 }
 
-export default Compare;
+const EnhancedCompare: React.FC<PageProps> = props => {
+  const namespaceChanged = useNamespaceChangeEvent();
+  if (namespaceChanged) {
+    // Compare page compares two runs, when namespace changes, the runs don't
+    // exist in the new namespace, so we should redirect to experiment list page.
+    return <Redirect to={RoutePage.EXPERIMENTS} />;
+  }
+  return <Compare {...props} />;
+};
+
+export default EnhancedCompare;
+
+export const TEST_ONLY = {
+  Compare,
+};
