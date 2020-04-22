@@ -76,8 +76,6 @@ ARGO_WORKFLOW_LABEL_KEY = 'workflows.argoproj.io/workflow'
 ARGO_COMPLETED_LABEL_KEY = 'workflows.argoproj.io/completed'
 METADATA_WRITTEN_LABEL_KEY = 'pipelines.kubeflow.org/metadata_written'
 
-KFP_POD_NAME_EXECUTION_PROPERTY_NAME = 'kfp_pod_name'
-
 
 def output_name_to_argo(name: str) -> str:
     import re
@@ -176,12 +174,10 @@ while True:
                     store=mlmd_store,
                     context_id=run_context.id,
                     execution_type_name=KFP_EXECUTION_TYPE_NAME_PREFIX + component_version,
+                    pod_name=pod_name,
                     pipeline_name=argo_workflow_name,
                     run_id=argo_workflow_name,
                     instance_id=component_name,
-                    custom_properties={
-                        KFP_POD_NAME_EXECUTION_PROPERTY_NAME: pod_name,
-                    }
                 )
 
                 argo_input_artifacts = argo_template.get('inputs', {}).get('artifacts', [])
