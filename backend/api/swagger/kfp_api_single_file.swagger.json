@@ -1261,6 +1261,12 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "description",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [

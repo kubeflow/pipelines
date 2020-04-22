@@ -387,8 +387,8 @@ class Client(object):
       params: a dictionary with key (string) as param name and value (string) as as param value.
       pipeline_id: the string ID of a pipeline.
       version_id: the string ID of a pipeline version.
-        If both pipeline_id and version_id are specified, pipeline_id will take precendence
-        This will change in a future version, so it is recommended to use version_id by itself
+        If both pipeline_id and version_id are specified, version_id will take precendence.
+        If only pipeline_id is specified, the default version of this pipeline is used to create the run.
 
     Returns:
       A run object. Most important field is id.
@@ -567,8 +567,10 @@ class Client(object):
     namespace = namespace or self.get_user_namespace()
     if experiment_id is not None:
       response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
-    else:
+    elif namespace:
       response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE, resource_reference_key_id=namespace)
+    else:
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
 
   def get_run(self, run_id):

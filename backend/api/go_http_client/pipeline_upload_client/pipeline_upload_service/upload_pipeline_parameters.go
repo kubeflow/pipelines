@@ -75,6 +75,8 @@ for the upload pipeline operation typically these are written to a http.Request
 */
 type UploadPipelineParams struct {
 
+	/*Description*/
+	Description *string
 	/*Name*/
 	Name *string
 	/*Uploadfile
@@ -121,6 +123,17 @@ func (o *UploadPipelineParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithDescription adds the description to the upload pipeline params
+func (o *UploadPipelineParams) WithDescription(description *string) *UploadPipelineParams {
+	o.SetDescription(description)
+	return o
+}
+
+// SetDescription adds the description to the upload pipeline params
+func (o *UploadPipelineParams) SetDescription(description *string) {
+	o.Description = description
+}
+
 // WithName adds the name to the upload pipeline params
 func (o *UploadPipelineParams) WithName(name *string) *UploadPipelineParams {
 	o.SetName(name)
@@ -150,6 +163,22 @@ func (o *UploadPipelineParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 		return err
 	}
 	var res []error
+
+	if o.Description != nil {
+
+		// query param description
+		var qrDescription string
+		if o.Description != nil {
+			qrDescription = *o.Description
+		}
+		qDescription := qrDescription
+		if qDescription != "" {
+			if err := r.SetQueryParam("description", qDescription); err != nil {
+				return err
+			}
+		}
+
+	}
 
 	if o.Name != nil {
 
