@@ -15,7 +15,7 @@
     "application/json"
   ],
   "paths": {
-    "/apis/v1beta1/{namespace}/visualizations": {
+    "/apis/v1beta1/visualizations/{namespace}": {
       "post": {
         "operationId": "CreateVisualization",
         "responses": {
