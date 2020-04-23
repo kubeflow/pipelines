@@ -1136,12 +1136,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   }
 
   private _areParametersMissing(): boolean {
-    const { pipeline } = this.state;
-    if (pipeline && Array.isArray(pipeline.parameters) && pipeline.parameters.length > 0) {
-      const missingParameters = pipeline.parameters.filter(parameter => !parameter.value);
-      return missingParameters.length !== 0;
-    }
-    return false;
+    const { parameters } = this.state;
+    return parameters.some(parameter => !parameter.value);
   }
 }
 
