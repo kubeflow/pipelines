@@ -40,7 +40,7 @@ import { Server } from 'http';
 
 function getRegisterHandler(app: Application, basePath: string) {
   return (
-    func: (name: string, handler: express.Handler) => express.Application,
+    func: (name: string | string[], handler: express.Handler) => express.Application,
     route: string | string[],
     handler: express.Handler,
   ) => {

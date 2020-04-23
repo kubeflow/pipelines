@@ -74,7 +74,7 @@ export function isTarball(buf: Buffer) {
 
   return (
     v1.reduce((res, curr, i) => res && curr === buf[offset + i], true) ||
-    v0.reduce((res, curr, i) => res && curr === buf[offset + i], true)
+    v0.reduce((res, curr, i) => res && curr === buf[offset + i], true as boolean)
   );
 }
 
@@ -99,7 +99,7 @@ export function maybeTarball(): Transform {
 function extractFirstTarRecordAsStream() {
   const extract = tar.extract();
   const transformStream = new Transform({
-    write: (chunk: any, encoding: string, callback: (error?: Error) => void) => {
+    write: (chunk: any, encoding: string, callback: (error?: Error | null) => void) => {
       extract.write(chunk, encoding, callback);
     },
   });
