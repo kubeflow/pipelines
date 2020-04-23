@@ -3,7 +3,6 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
-        "api_create_visualization_request.go",
         "api_status.go",
         "api_visualization.go",
         "api_visualization_type.go",
