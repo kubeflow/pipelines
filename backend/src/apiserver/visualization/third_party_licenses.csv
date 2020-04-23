@@ -38,13 +38,19 @@ google-auth-httplib2,https://raw.githubusercontent.com/GoogleCloudPlatform/googl
 google-auth-oauthlib,https://raw.githubusercontent.com/googleapis/google-auth-library-python-oauthlib/master/LICENSE,Apache 2.0
 google-cloud-bigquery,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
 google-cloud-bigtable,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
+google-cloud-dlp,https://raw.githubusercontent.com/googleapis/python-dlp/master/LICENSE,Apache 2.0
 google-cloud-core,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
 google-cloud-datastore,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
+google-cloud-language,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
 google-cloud-pubsub,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
+google-cloud-spanner,https://raw.githubusercontent.com/googleapis/python-spanner/master/LICENSE,Apache 2.0
+google-cloud-videointelligence,https://raw.githubusercontent.com/googleapis/python-videointelligence/master/LICENSE,Apache 2.0
+google-cloud-vision,https://raw.githubusercontent.com/googleapis/python-vision/master/LICENSE,Apache 2.0
 google-resumable-media,https://raw.githubusercontent.com/googleapis/google-resumable-media-python/master/LICENSE,Apache 2.0
 googleapis-common-protos,https://raw.githubusercontent.com/googleapis/api-common-protos/master/LICENSE,Apache 2.0
 grpc-google-iam-v1,https://raw.githubusercontent.com/googleapis/googleapis/master/LICENSE,Apache 2.0
 grpcio,https://raw.githubusercontent.com/grpc/grpc/master/LICENSE,Apache 2.0
+grpcio-gcp,https://raw.githubusercontent.com/GoogleCloudPlatform/grpc-gcp-python/master/LICENSE,Apache 2.0
 h5py,https://raw.githubusercontent.com/h5py/h5py/master/LICENSE,BSD-3
 hdfs,https://raw.githubusercontent.com/mtth/hdfs/master/LICENSE,MIT
 httplib2,https://raw.githubusercontent.com/httplib2/httplib2/master/LICENSE,MIT
@@ -132,6 +138,5 @@ pygobject,https://raw.githubusercontent.com/GNOME/pygobject/mainline/COPYING,LGP
 pyxdg,https://cgit.freedesktop.org/xdg/pyxdg/plain/COPYING,LGPL
 SecretStorage,https://raw.githubusercontent.com/mitya57/secretstorage/master/LICENSE,BSD-3
 Mako,https://raw.githubusercontent.com/sqlalchemy/mako/master/LICENSE,MIT
-typing,https://raw.githubusercontent.com/python/typing/master/typing_extensions/LICENSE,Python Software Foundation License
 typing-extensions,https://raw.githubusercontent.com/python/typing/master/typing_extensions/LICENSE,Python Software Foundation License
 QtPy,https://raw.githubusercontent.com/spyder-ide/qtpy/master/LICENSE.txt,MIT

@@ -49,6 +49,9 @@ type APIExperiment struct {
 	// Optional input field. Specify which resource this run belongs to.
 	// For Experiment, the only valid resource reference is a single Namespace.
 	ResourceReferences []*APIResourceReference `json:"resource_references"`
+
+	// storage state
+	StorageState ExperimentStorageState `json:"storage_state,omitempty"`
 }
 
 // Validate validates this api experiment
@@ -60,6 +63,10 @@ func (m *APIExperiment) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateResourceReferences(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStorageState(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -102,6 +109,22 @@ func (m *APIExperiment) validateResourceReferences(formats strfmt.Registry) erro
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *APIExperiment) validateStorageState(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StorageState) { // not required
+		return nil
+	}
+
+	if err := m.StorageState.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("storage_state")
+		}
+		return err
 	}
 
 	return nil

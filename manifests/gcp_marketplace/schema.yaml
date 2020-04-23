@@ -1,10 +1,10 @@
 x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
-  publishedVersion: '0.3.0'
+  publishedVersion: '0.5.0'
   publishedVersionMetadata:
     releaseNote: >-
-      Based on 0.3.0 version.
+      Based on 0.5.0 version.
     releaseTypes:
       - Feature
     recommended: false
@@ -161,12 +161,6 @@ properties:
       If the prefix specified is same as an old deployment in the past,
       the deployment will recover from an old deployment.
       If this not specified, the app instance name will be used.
-  managedstorage.gcsProjectId:
-    type: string
-    title: GCS Bucket's project ID (Managed storage only)
-    description: |-
-      Normally it's the same project which installs Kubeflow Pipelines.
-      It's required if enabled managed storage.
 
 required:
   - name

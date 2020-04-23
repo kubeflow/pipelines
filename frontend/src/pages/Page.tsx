@@ -30,6 +30,13 @@ export interface PageProps extends RouteComponentProps {
   updateToolbar: (toolbarProps: Partial<ToolbarProps>) => void;
 }
 
+export type PageErrorHandler = (
+  message: string,
+  error?: Error,
+  mode?: 'error' | 'warning',
+  refresh?: () => Promise<void>,
+) => Promise<void>;
+
 export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
   protected _isMounted = true;
 
@@ -60,11 +67,7 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
     this.props.updateBanner({});
   }
 
-  public async showPageError(
-    message: string,
-    error?: Error,
-    mode?: 'error' | 'warning',
-  ): Promise<void> {
+  public showPageError: PageErrorHandler = async (message, error, mode, refresh): Promise<void> => {
     const errorMessage = await errorToMessage(error);
     if (!this._isMounted) {
       return;
@@ -73,9 +76,9 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
       additionalInfo: errorMessage ? errorMessage : undefined,
       message: message + (errorMessage ? ' Click Details for more information.' : ''),
       mode: mode || 'error',
-      refresh: this.refresh.bind(this),
+      refresh: refresh || this.refresh.bind(this),
     });
-  }
+  };
 
   public showErrorDialog(title: string, content: string): void {
     if (!this._isMounted) {

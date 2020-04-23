@@ -69,6 +69,7 @@ service VisualizationService {
 // for determining output path.
 message CreateVisualizationRequest {
   Visualization visualization = 1;
+  string namespace = 2;
 }
 
 message Visualization {
