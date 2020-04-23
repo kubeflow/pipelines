@@ -58,7 +58,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 service VisualizationService {
   rpc CreateVisualization(CreateVisualizationRequest) returns (Visualization) {
     option (google.api.http) = {
-      post: "/apis/v1beta1/visualizations"
+      post: "/apis/v1beta1/visualizations/{namespace}"
       body: "visualization"
     };
   }
