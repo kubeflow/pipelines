@@ -355,7 +355,9 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     <DetailsTable
                                       title='Input artifacts'
                                       fields={inputArtifacts}
-                                      valueComponent={MinioArtifactLink}
+                                      valueComponent={({ value }) => (
+                                        <MinioArtifactLink artifact={value} namespace={namespace} />
+                                      )}
                                     />
 
                                     <DetailsTable title='Output parameters' fields={outputParams} />
@@ -363,7 +365,9 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     <DetailsTable
                                       title='Output artifacts'
                                       fields={outputArtifacts}
-                                      valueComponent={MinioArtifactLink}
+                                      valueComponent={({ value }) => (
+                                        <MinioArtifactLink artifact={value} namespace={namespace} />
+                                      )}
                                     />
                                   </div>
                                 )}
