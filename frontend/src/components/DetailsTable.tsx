@@ -51,7 +51,7 @@ export const css = stylesheet({
 interface DetailsTableProps {
   fields: Array<KeyValue<string | S3Artifact>>;
   title?: string;
-  valueComponent?: React.FC<S3Artifact>;
+  valueComponent?: React.FC<{ value: S3Artifact }>;
 }
 
 function isString(x: any): x is string {
@@ -102,9 +102,13 @@ const DetailsTable = (props: DetailsTableProps) => {
             <div key={i} className={css.row}>
               <span className={css.key}>{key}</span>
               <span className={css.valueText}>
-                {props.valueComponent && !!value && !isString(value)
-                  ? props.valueComponent(value)
-                  : value}
+                {(() => {
+                  const ValueComponent = props.valueComponent;
+                  if (ValueComponent && !!value && !isString(value)) {
+                    return <ValueComponent value={value} />;
+                  }
+                  return value;
+                })()}
               </span>
             </div>
           );

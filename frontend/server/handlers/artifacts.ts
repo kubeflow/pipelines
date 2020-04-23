@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import fetch from 'node-fetch';
-import { AWSConfigs, HttpConfigs, MinioConfigs } from '../configs';
+import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv } from '../configs';
 import { Client as MinioClient } from 'minio';
 import { PreviewStream } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
+import * as proxy from 'http-proxy-middleware';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -236,4 +237,84 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
       res.status(500).send('Failed to download GCS file(s). Error: ' + err);
     }
   };
+}
+
+const AUTH_EMAIL_HEADER = 'x-goog-authenticated-user-email';
+const ARTIFACTS_PROXY_DEFAULTS = {
+  serviceName: 'ml-pipeline-ui-artifact',
+  servicePort: '80',
+};
+export type NamespacedServiceGetter = (namespace: string) => string;
+export interface ArtifactsProxyConfig {
+  serviceName: string;
+  servicePort: number;
+  enabled: boolean;
+}
+export function loadArtifactsProxyConfig(env: ProcessEnv): ArtifactsProxyConfig {
+  const {
+    ARTIFACTS_SERVICE_PROXY_NAME = ARTIFACTS_PROXY_DEFAULTS.serviceName,
+    ARTIFACTS_SERVICE_PROXY_PORT = ARTIFACTS_PROXY_DEFAULTS.servicePort,
+    ARTIFACTS_SERVICE_PROXY_ENABLED = 'false',
+  } = env;
+  return {
+    serviceName: ARTIFACTS_SERVICE_PROXY_NAME,
+    servicePort: parseInt(ARTIFACTS_SERVICE_PROXY_PORT, 10),
+    enabled: ARTIFACTS_SERVICE_PROXY_ENABLED.toLowerCase() === 'true',
+  };
+}
+
+const QUERIES = {
+  NAMESPACE: 'namespace',
+};
+
+export function getArtifactsProxyHandler({
+  enabled,
+  namespacedServiceGetter,
+}: {
+  enabled: boolean;
+  namespacedServiceGetter: NamespacedServiceGetter;
+}): Handler {
+  if (!enabled) {
+    return (req, res, next) => next();
+  }
+  return proxy(
+    (_pathname, req) => {
+      // only proxy requests with namespace query parameter
+      return !!getNamespaceFromUrl(req.url || '');
+    },
+    {
+      changeOrigin: true,
+      onProxyReq: proxyReq => {
+        console.log('Proxied artifact request: ', proxyReq.path);
+      },
+      pathRewrite: (pathStr, req) => {
+        const url = new URL(pathStr || '', DUMMY_BASE_PATH);
+        url.searchParams.delete(QUERIES.NAMESPACE);
+        return url.pathname + url.search;
+      },
+      router: req => {
+        const namespace = getNamespaceFromUrl(req.url || '');
+        if (!namespace) {
+          throw new Error(`namespace query param expected in ${req.url}.`);
+        }
+        return namespacedServiceGetter(namespace);
+      },
+      target: '/artifacts/get',
+    },
+  );
+}
+
+function getNamespaceFromUrl(path: string): string | undefined {
+  // Gets namespace from query parameter "namespace"
+  const params = new URL(path, DUMMY_BASE_PATH).searchParams;
+  return params.get('namespace') || undefined;
+}
+
+// `new URL('/path')` doesn't work, because URL only accepts full URL with scheme and hostname.
+// We use the DUMMY_BASE_PATH like `new URL('/path', DUMMY_BASE_PATH)`, so that URL can parse paths
+// properly.
+const DUMMY_BASE_PATH = 'http://dummy-base-path';
+
+export function getArtifactServiceGetter({ serviceName, servicePort }: ArtifactsProxyConfig) {
+  return (namespace: string) => `http://${serviceName}.${namespace}:${servicePort}`;
 }
