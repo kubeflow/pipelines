@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Context, Execution, getResourceProperty } from '@kubeflow/frontend';
+import { Context, Execution } from '@kubeflow/frontend';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import { flatten } from 'lodash';
@@ -25,8 +25,8 @@ import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import {
   ExecutionHelpers,
   getExecutionsFromContext,
+  getKfpRunContext,
   getTfxRunContext,
-  KfpExecutionProperties,
 } from 'src/lib/MlmdUtils';
 import { classes, stylesheet } from 'typestyle';
 import {
@@ -257,8 +257,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       selectedNodeId,
     );
     const selectedExecution = mlmdExecutions?.find(
-      execution =>
-        getResourceProperty(execution, KfpExecutionProperties.KFP_POD_NAME) === selectedNodeId,
+      execution => ExecutionHelpers.getKfpPod(execution) === selectedNodeId,
     );
     // const selectedExecution = mlmdExecutions && mlmdExecutions.find(execution => execution.getPropertiesMap())
     const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
@@ -668,7 +667,12 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       // Get data about this workflow from MLMD
       if (workflow.metadata?.name) {
         try {
-          mlmdRunContext = await getTfxRunContext(workflow.metadata.name);
+          try {
+            mlmdRunContext = await getTfxRunContext(workflow.metadata.name);
+          } catch (err) {
+            logger.warn(`Cannot find tfx run context (this is expected for non tfx runs)`, err);
+            mlmdRunContext = await getKfpRunContext(workflow.metadata.name);
+          }
           mlmdExecutions = await getExecutionsFromContext(mlmdRunContext);
         } catch (err) {
           // Data in MLMD may not exist depending on this pipeline is a TFX pipeline.
