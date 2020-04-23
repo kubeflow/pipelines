@@ -18,7 +18,7 @@ import { PreviewStream } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
-import * as proxy from 'http-proxy-middleware';
+import proxy from 'http-proxy-middleware';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs

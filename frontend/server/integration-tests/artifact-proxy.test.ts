@@ -1,10 +1,10 @@
 import { UIServer } from '../app';
 import { commonSetup, buildQuery } from './test-helper';
-import * as requests from 'supertest';
+import requests from 'supertest';
 import { loadConfigs } from '../configs';
 import * as minioHelper from '../minio-helper';
 import { PassThrough } from 'stream';
-import * as express from 'express';
+import express from 'express';
 import { Server } from 'http';
 import * as artifactsHandler from '../handlers/artifacts';
 
