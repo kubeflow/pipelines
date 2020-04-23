@@ -15,10 +15,10 @@ import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PassThrough } from 'stream';
-import * as express from 'express';
+import express from 'express';
 
 import fetch from 'node-fetch';
-import * as requests from 'supertest';
+import requests from 'supertest';
 import { Client as MinioClient } from 'minio';
 import { Storage as GCSStorage } from '@google-cloud/storage';
 
