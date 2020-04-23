@@ -6,7 +6,6 @@ cloudpickle
 strip-hints>=0.1.8
 
 # kfp.dsl
-argo-models==2.2.1a  #2.2.1a is equivalent to argo 2.2.1
 jsonschema>=3.0.1
 kubernetes>=8.0.0, <12.0.0
 
