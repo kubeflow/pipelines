@@ -15,7 +15,7 @@
     "application/json"
   ],
   "paths": {
-    "/apis/v1beta1/visualizations/{namespace}": {
+    "/apis/v1beta1/visualizations": {
       "post": {
         "operationId": "CreateVisualization",
         "responses": {
@@ -34,17 +34,11 @@
         },
         "parameters": [
           {
-            "name": "namespace",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
             "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiVisualization"
+              "$ref": "#/definitions/apiCreateVisualizationRequest"
             }
           }
         ],
@@ -55,6 +49,18 @@
     }
   },
   "definitions": {
+    "apiCreateVisualizationRequest": {
+      "type": "object",
+      "properties": {
+        "visualization": {
+          "$ref": "#/definitions/apiVisualization"
+        },
+        "namespace": {
+          "type": "string"
+        }
+      },
+      "description": "Create visualization by providing the type of visualization that is desired\nand input data paths. Input dat paths are assumed to be unique and are used\nfor determining output path."
+    },
     "apiStatus": {
       "type": "object",
       "properties": {

@@ -78,9 +78,7 @@ for the create visualization operation typically these are written to a http.Req
 type CreateVisualizationParams struct {
 
 	/*Body*/
-	Body *visualization_model.APIVisualization
-	/*Namespace*/
-	Namespace string
+	Body *visualization_model.APICreateVisualizationRequest
 
 	timeout    time.Duration
 	Context    context.Context
@@ -121,25 +119,14 @@ func (o *CreateVisualizationParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the create visualization params
-func (o *CreateVisualizationParams) WithBody(body *visualization_model.APIVisualization) *CreateVisualizationParams {
+func (o *CreateVisualizationParams) WithBody(body *visualization_model.APICreateVisualizationRequest) *CreateVisualizationParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the create visualization params
-func (o *CreateVisualizationParams) SetBody(body *visualization_model.APIVisualization) {
+func (o *CreateVisualizationParams) SetBody(body *visualization_model.APICreateVisualizationRequest) {
 	o.Body = body
-}
-
-// WithNamespace adds the namespace to the create visualization params
-func (o *CreateVisualizationParams) WithNamespace(namespace string) *CreateVisualizationParams {
-	o.SetNamespace(namespace)
-	return o
-}
-
-// SetNamespace adds the namespace to the create visualization params
-func (o *CreateVisualizationParams) SetNamespace(namespace string) {
-	o.Namespace = namespace
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -154,11 +141,6 @@ func (o *CreateVisualizationParams) WriteToRequest(r runtime.ClientRequest, reg 
 		if err := r.SetBodyParam(o.Body); err != nil {
 			return err
 		}
-	}
-
-	// path param namespace
-	if err := r.SetPathParam("namespace", o.Namespace); err != nil {
-		return err
 	}
 
 	if len(res) > 0 {
