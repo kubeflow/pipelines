@@ -73,7 +73,7 @@ export default class Buttons {
       action: () =>
         resourceName === 'run'
           ? this._archiveRun(getSelectedIds(), useCurrentResource, callback)
-          : this._archiveExperiment(getSelectedIds(), useCurrentResource, callback),
+          : this._archiveExperiments(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to archive',
       id: 'archiveBtn',
@@ -326,7 +326,7 @@ export default class Buttons {
     this._map[ButtonKeys.RESTORE] = {
       action: () => resourceName === 'run'
           ? this._restore(getSelectedIds(), useCurrentResource, callback)
-          : this._restoreExperiment(getSelectedIds(), useCurrentResource, callback),
+          : this._restoreExperiments(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to restore',
       id: 'restoreBtn',
@@ -437,7 +437,7 @@ export default class Buttons {
     );
   }
 
-  private _restoreExperiment(
+  private _restoreExperiments(
     selectedIds: string[],
     useCurrent: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
@@ -446,7 +446,13 @@ export default class Buttons {
       selectedIds,
       `Do you want to restore ${
         selectedIds.length === 1 ? 'this experiment to its' : 'these experiments to their'
-      } original location?`,
+      } original location? All runs and jobs in ${
+        selectedIds.length === 1 ? 'this experiment' : 'these experiments'
+      } will stay at their current locations in spite that ${
+        selectedIds.length === 1 ? 'this experiment' : 'these experiments'
+      } will be moved to ${
+        selectedIds.length === 1 ? 'its' : 'their'
+      } original location${s(selectedIds)}.`,
       useCurrent,
       id => Apis.experimentServiceApi.unarchiveExperiment(id),
       callback,
@@ -866,7 +872,7 @@ export default class Buttons {
     return Object.keys(dict).reduce((count, pipelineId) => count + dict[pipelineId].length, 0);
   }
 
-  private _archiveExperiment(
+  private _archiveExperiments(
     selectedIds: string[],
     useCurrent: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
@@ -874,12 +880,11 @@ export default class Buttons {
     console.log('experiment selected: ' + selectedIds)
     this._dialogActionHandler(
       selectedIds,
-      `Experiment${s(
-        selectedIds,
-      )} will be moved to the Archive section, where you can still view ` +
-        `${selectedIds.length === 1 ? 'its' : 'their'} details. All runs in ` +
-        `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
-        `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
+      `Experiment${s(selectedIds)} will be moved to the Archive section, where you can still view${
+        selectedIds.length === 1 ? 'its' : 'their'
+      } details. All runs in this archived experiment will be archived. All jobs in this archived experiment will be disabled. Use the Restore action on the experiment details page to restore the experiment${s(selectedIds)} to ${
+        selectedIds.length === 1 ? 'its' : 'their'
+      } original location.`,
       useCurrent,
       id => Apis.experimentServiceApi.archiveExperiment(id),
       callback,

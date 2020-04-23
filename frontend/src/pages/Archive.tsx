@@ -46,7 +46,7 @@ interface ArchiveState {
 
 export class Archive extends Page<ArchiveProps, ArchiveState> {
   private _runlistRef = React.createRef<RunList>();
-  // private _experimentlistRef = React.createRef<ExperimentListComponet>();
+  private _experimentlistRef = React.createRef<ExperimentListComponent>();
 
   constructor(props: any) {
     super(props);
@@ -76,19 +76,6 @@ export class Archive extends Page<ArchiveProps, ArchiveState> {
   }
 
   public render(): JSX.Element {
-    // return (
-    //   <div className={classes(commonCss.page, padding(20, 'lr'))}>
-    //     <RunList
-    //       namespaceMask={this.props.namespace}
-    //       onError={this.showPageError.bind(this)}
-    //       selectedIds={this.state.selectedIds}
-    //       onSelectionChange={this._selectionChanged.bind(this)}
-    //       ref={this._runlistRef}
-    //       storageState={RunStorageState.ARCHIVED}
-    //       {...this.props}
-    //     />
-    //   </div>
-    // );
     return (
       <div>
       <div className={classes(commonCss.flex, padding(10, 'b'))}>
@@ -128,13 +115,10 @@ export class Archive extends Page<ArchiveProps, ArchiveState> {
           {...this.props}
         />
       </div>}
-
       {this.state.selectedTab === ArchiveTab.EXPERIMENTS &&
       <div>
         <ExperimentListComponent
-          // selectedIds={this.state.selectedIds}
-          // onSelectionChange={this._selectionChanged.bind(this)}
-          // ref={this._experimentlistRef}
+          ref={this._experimentlistRef}
           onError={this.showPageError.bind(this)}
           onSelectionChange={this._experimentSelectionChanged.bind(this)}
           storageState={ExperimentStorageState.ARCHIVED}

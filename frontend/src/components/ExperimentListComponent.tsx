@@ -184,6 +184,7 @@ private async _loadExperiments(request: ListRequest): Promise<string> {
         storageState={this.props.storageState === ExperimentStorageState.ARCHIVED ? RunStorageState.ARCHIVED : RunStorageState.AVAILABLE}
         onSelectionChange={this.props.onRunSelectionChange}
         disableSorting={true}
+        disableSelection={true}
       />
     );
   }

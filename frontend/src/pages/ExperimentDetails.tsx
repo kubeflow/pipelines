@@ -147,12 +147,6 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     return {
       actions: buttons
         .refresh(this.refresh.bind(this))
-        // .archive(
-        //   'experiment',
-        //   () => [this.state.experiment!.id!],
-        //   true,
-        //   ids => this._selectionChanged(ids),
-        // )
         .getToolbarActionMap(),
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       // TODO: determine what to show if no props.
@@ -303,7 +297,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
       let activeRecurringRunsCount = -1;
 
-      // Update the Archive/Restore button based on the storage state of this experiment
+      // Update the Archive/Restore button based on the storage state of this experiment.
       const buttons = new Buttons(
         this.props,
         this.refresh.bind(this),
