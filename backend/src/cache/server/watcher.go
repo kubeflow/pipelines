@@ -6,9 +6,11 @@ import (
 	"log"
 	"reflect"
 	"strconv"
+	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
+	"github.com/peterhellberg/duration"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -18,6 +20,7 @@ import (
 const (
 	ArgoCompleteLabelKey   string = "workflows.argoproj.io/completed"
 	MetadataExecutionIDKey string = "pipelines.kubeflow.org/metadata_execution_id"
+	MaxCacheStalenessKey   string = "pipelines.kubeflow.org/max_cache_staleness"
 )
 
 func WatchPods(namespaceToWatch string, clientManager ClientManagerInterface) {
@@ -61,12 +64,18 @@ func WatchPods(namespaceToWatch string, clientManager ClientManagerInterface) {
 			executionOutputMap[MetadataExecutionIDKey] = pod.ObjectMeta.Labels[MetadataExecutionIDKey]
 			executionOutputJSON, _ := json.Marshal(executionOutputMap)
 
+			executionMaxCacheStaleness, exists := pod.ObjectMeta.Annotations[MaxCacheStalenessKey]
+			var maxCacheStalenessInSeconds int64 = -1
+			if exists {
+				maxCacheStalenessInSeconds = getMaxCacheStaleness(executionMaxCacheStaleness)
+			}
+
 			executionTemplate := pod.ObjectMeta.Annotations[ArgoWorkflowTemplate]
 			executionToPersist := model.ExecutionCache{
 				ExecutionCacheKey: executionKey,
 				ExecutionTemplate: executionTemplate,
 				ExecutionOutput:   string(executionOutputJSON),
-				MaxCacheStaleness: -1,
+				MaxCacheStaleness: maxCacheStalenessInSeconds,
 			}
 
 			cacheEntryCreated, err := clientManager.CacheStore().CreateExecutionCache(&executionToPersist)
@@ -111,4 +120,13 @@ func patchCacheID(k8sCore client.KubernetesCoreInterface, podToPatch *corev1.Pod
 	}
 	log.Printf("Cache id patched.")
 	return nil
+}
+
+// Convert RFC3339 Duration(Eg. "P1DT30H4S") to int64 seconds.
+func getMaxCacheStaleness(maxCacheStaleness string) int64 {
+	var seconds int64 = -1
+	if d, err := duration.Parse(maxCacheStaleness); err == nil {
+		seconds = int64(d / time.Second)
+	}
+	return seconds
 }

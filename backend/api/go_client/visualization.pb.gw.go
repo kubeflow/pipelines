@@ -42,6 +42,10 @@ var _ status.Status
 var _ = runtime.String
 var _ = utilities.NewDoubleArray
 
+var (
+	filter_VisualizationService_CreateVisualization_0 = &utilities.DoubleArray{Encoding: map[string]int{"visualization": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
+)
+
 func request_VisualizationService_CreateVisualization_0(ctx context.Context, marshaler runtime.Marshaler, client VisualizationServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq CreateVisualizationRequest
 	var metadata runtime.ServerMetadata
@@ -51,6 +55,10 @@ func request_VisualizationService_CreateVisualization_0(ctx context.Context, mar
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
 	}
 	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq.Visualization); err != nil && err != io.EOF {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	if err := runtime.PopulateQueryParameters(&protoReq, req.URL.Query(), filter_VisualizationService_CreateVisualization_0); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 

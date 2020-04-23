@@ -39,12 +39,10 @@ import (
 )
 
 const (
-	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
-	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
-	defaultServiceAccount                     = "default-editor"
-	HasDefaultBucketEnvVar                    = "HAS_DEFAULT_BUCKET"
-	ProjectIDEnvVar                           = "PROJECT_ID"
-	DefaultBucketNameEnvVar                   = "BUCKET_NAME"
+	defaultPipelineRunnerServiceAccount = "pipeline-runner"
+	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar                     = "PROJECT_ID"
+	DefaultBucketNameEnvVar             = "BUCKET_NAME"
 )
 
 type ClientManagerInterface interface {
@@ -135,6 +133,52 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 		return util.Wrap(err, "Delete experiment failed")
 	}
 	return r.experimentStore.DeleteExperiment(experimentID)
+}
+
+func (r *ResourceManager) ArchiveExperiment(experimentId string) error {
+	// To archive an experiment
+	// (1) update our persistent agent to disable CRDs of jobs in experiment
+	// (2) update database to
+	// (2.1) archive experiemnts
+	// (2.2) archive runs
+	// (2.3) disable jobs
+	opts, err := list.NewOptions(&model.Job{}, 50, "name", nil)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create list jobs options when archiving experiment. ")
+	}
+	for {
+		jobs, _, newToken, err := r.jobStore.ListJobs(&common.FilterContext{
+			ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: experimentId}}, opts)
+		if err != nil {
+			return util.NewInternalServerError(err,
+				"Failed to list jobs of to-be-archived experiment. expID: %v", experimentId)
+		}
+		for _, job := range jobs {
+			_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
+				job.Name,
+				types.MergePatchType,
+				[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(false))))
+			if err != nil {
+				return util.NewInternalServerError(err,
+					"Failed to disable job CRD. jobID: %v", job.UUID)
+			}
+		}
+		if newToken == "" {
+			break
+		} else {
+			opts, err = list.NewOptionsFromToken(newToken, 50)
+			if err != nil {
+				return util.NewInternalServerError(err,
+					"Failed to create list jobs options from page token when archiving experiment. ")
+			}
+		}
+	}
+	return r.experimentStore.ArchiveExperiment(experimentId)
+}
+
+func (r *ResourceManager) UnarchiveExperiment(experimentId string) error {
+	return r.experimentStore.UnarchiveExperiment(experimentId)
 }
 
 func (r *ResourceManager) ListPipelines(opts *list.Options) (
@@ -252,10 +296,15 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// Get workflow from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
+	// And the latter takes priority over the former
 	var workflowSpecManifestBytes []byte
-	workflowSpecManifestBytes, err := r.getWorkflowSpecBytes(apiRun.GetPipelineSpec())
+	err := ConvertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
 	if err != nil {
-		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiRun.GetResourceReferences())
+		return nil, util.Wrap(err, "Failed to find default version to create run with pipeline id.")
+	}
+	workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiRun.GetResourceReferences())
+	if err != nil {
+		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineSpec(apiRun.GetPipelineSpec())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 		}
@@ -278,7 +327,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 
-	r.setWorkflowServiceAccount(&workflow)
+	r.setDefaultServiceAccount(&workflow)
 
 	// Disable istio sidecar injection
 	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
@@ -502,10 +551,15 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	// Get workflow from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
+	// And the latter takes priority over the former
 	var workflowSpecManifestBytes []byte
-	workflowSpecManifestBytes, err := r.getWorkflowSpecBytes(apiJob.GetPipelineSpec())
+	err := ConvertPipelineIdToDefaultPipelineVersion(apiJob.PipelineSpec, &apiJob.ResourceReferences, r)
 	if err != nil {
-		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiJob.GetResourceReferences())
+		return nil, util.Wrap(err, "Failed to find default version to create job with pipeline id.")
+	}
+	workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiJob.GetResourceReferences())
+	if err != nil {
+		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineSpec(apiJob.GetPipelineSpec())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 		}
@@ -524,7 +578,7 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 		return nil, util.Wrap(err, "Create job failed")
 	}
 
-	r.setWorkflowServiceAccount(&workflow)
+	r.setDefaultServiceAccount(&workflow)
 
 	// Disable istio sidecar injection
 	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
@@ -777,17 +831,8 @@ func (r *ResourceManager) checkRunExist(runID string) (*model.RunDetail, error) 
 	return runDetail, nil
 }
 
-func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, error) {
-	// TODO(jingzhang36): after FE is enabled to use pipeline version to create
-	// run, we'll only check for the raw manifest in pipeline_spec.
-	if spec.GetPipelineId() != "" {
-		var workflow util.Workflow
-		err := r.objectStore.GetFromYamlFile(&workflow, r.objectStore.GetPipelineKey(spec.GetPipelineId()))
-		if err != nil {
-			return nil, util.Wrap(err, "Get pipeline YAML failed.")
-		}
-		return []byte(workflow.ToStringForStore()), nil
-	} else if spec.GetWorkflowManifest() != "" {
+func (r *ResourceManager) getWorkflowSpecBytesFromPipelineSpec(spec *api.PipelineSpec) ([]byte, error) {
+	if spec.GetWorkflowManifest() != "" {
 		return []byte(spec.GetWorkflowManifest()), nil
 	}
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
@@ -928,7 +973,7 @@ func (r *ResourceManager) MarkSampleLoaded() error {
 }
 
 func (r *ResourceManager) getDefaultSA() string {
-	return common.GetStringConfigWithDefault(defaultPipelineRunnerServiceAccountEnvVar, defaultPipelineRunnerServiceAccount)
+	return common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccount, defaultPipelineRunnerServiceAccount)
 }
 
 func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte) (*model.PipelineVersion, error) {
@@ -1056,13 +1101,11 @@ func (r *ResourceManager) GetNamespaceFromJobID(jobId string) (string, error) {
 	return job.Namespace, nil
 }
 
-func (r *ResourceManager) setWorkflowServiceAccount(workflow *util.Workflow) {
-	if common.IsMultiUserMode() {
-		if len(workflow.Spec.ServiceAccountName) == 0 || workflow.Spec.ServiceAccountName == defaultPipelineRunnerServiceAccount {
-			// To reserve SDK backward compatibility, the backend currently replaces the serviceaccount in multi-user mode.
-			workflow.SetServiceAccount(defaultServiceAccount)
-		}
-	} else {
+func (r *ResourceManager) setDefaultServiceAccount(workflow *util.Workflow) {
+	workflowServiceAccount := workflow.Spec.ServiceAccountName
+	if len(workflowServiceAccount) == 0 || workflowServiceAccount == defaultPipelineRunnerServiceAccount {
+		// To reserve SDK backward compatibility, the backend only replaces
+		// serviceaccount when it is empty or equal to default value set by SDK.
 		workflow.SetServiceAccount(r.getDefaultSA())
 	}
 }

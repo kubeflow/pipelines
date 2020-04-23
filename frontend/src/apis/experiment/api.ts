@@ -117,6 +117,12 @@ export interface ApiExperiment {
    * @memberof ApiExperiment
    */
   resource_references?: Array<ApiResourceReference>;
+  /**
+   *
+   * @type {ExperimentStorageState}
+   * @memberof ApiExperiment
+   */
+  storage_state?: ExperimentStorageState;
 }
 
 /**
@@ -243,6 +249,16 @@ export interface ApiStatus {
 }
 
 /**
+ *
+ * @export
+ * @enum {string}
+ */
+export enum ExperimentStorageState {
+  AVAILABLE = <any>'STORAGESTATE_AVAILABLE',
+  ARCHIVED = <any>'STORAGESTATE_ARCHIVED',
+}
+
+/**
  * `Any` contains an arbitrary serialized protocol buffer message along with a URL that describes the type of the serialized message.  Protobuf library provides support to pack/unpack Any values in the form of utility functions or additional generated methods of the Any type.  Example 1: Pack and unpack a message in C++.      Foo foo = ...;     Any any;     any.PackFrom(foo);     ...     if (any.UnpackTo(&foo)) {       ...     }  Example 2: Pack and unpack a message in Java.      Foo foo = ...;     Any any = Any.pack(foo);     ...     if (any.is(Foo.class)) {       foo = any.unpack(Foo.class);     }   Example 3: Pack and unpack a message in Python.      foo = Foo(...)     any = Any()     any.Pack(foo)     ...     if any.Is(Foo.DESCRIPTOR):       any.Unpack(foo)       ...   Example 4: Pack and unpack a message in Go       foo := &pb.Foo{...}      any, err := ptypes.MarshalAny(foo)      ...      foo := &pb.Foo{}      if err := ptypes.UnmarshalAny(any, foo); err != nil {        ...      }  The pack methods provided by protobuf library will by default use 'type.googleapis.com/full.type.name' as the type URL and the unpack methods only use the fully qualified type name after the last '/' in the type URL, for example \"foo.bar.com/x/y.z\" will yield type name \"y.z\".   JSON ==== The JSON representation of an `Any` value uses the regular representation of the deserialized, embedded message, with an additional field `@type` which contains the type URL. Example:      package google.profile;     message Person {       string first_name = 1;       string last_name = 2;     }      {       \"@type\": \"type.googleapis.com/google.profile.Person\",       \"firstName\": <string>,       \"lastName\": <string>     }  If the embedded message type is well-known and has a custom JSON representation, that representation will be embedded adding a field `value` which holds the custom JSON in addition to the `@type` field. Example (for message [google.protobuf.Duration][]):      {       \"@type\": \"type.googleapis.com/google.protobuf.Duration\",       \"value\": \"1.212s\"     }
  * @export
  * @interface ProtobufAny
@@ -268,6 +284,54 @@ export interface ProtobufAny {
  */
 export const ExperimentServiceApiFetchParamCreator = function(configuration?: Configuration) {
   return {
+    /**
+     *
+     * @summary Archive an experiment.
+     * @param {string} id
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    archiveExperiment(id: string, options: any = {}): FetchArgs {
+      // verify required parameter 'id' is not null or undefined
+      if (id === null || id === undefined) {
+        throw new RequiredError(
+          'id',
+          'Required parameter id was null or undefined when calling archiveExperiment.',
+        );
+      }
+      const localVarPath = `/apis/v1beta1/experiments/{id}:archive`.replace(
+        `{${'id'}}`,
+        encodeURIComponent(String(id)),
+      );
+      const localVarUrlObj = url.parse(localVarPath, true);
+      const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      // authentication Bearer required
+      if (configuration && configuration.apiKey) {
+        const localVarApiKeyValue =
+          typeof configuration.apiKey === 'function'
+            ? configuration.apiKey('authorization')
+            : configuration.apiKey;
+        localVarHeaderParameter['authorization'] = localVarApiKeyValue;
+      }
+
+      localVarUrlObj.query = Object.assign(
+        {},
+        localVarUrlObj.query,
+        localVarQueryParameter,
+        options.query,
+      );
+      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+      delete localVarUrlObj.search;
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
     /**
      *
      * @summary Create a new experiment.
@@ -496,6 +560,54 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
         options: localVarRequestOptions,
       };
     },
+    /**
+     *
+     * @summary Restore an archived experiment.
+     * @param {string} id
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    unarchiveExperiment(id: string, options: any = {}): FetchArgs {
+      // verify required parameter 'id' is not null or undefined
+      if (id === null || id === undefined) {
+        throw new RequiredError(
+          'id',
+          'Required parameter id was null or undefined when calling unarchiveExperiment.',
+        );
+      }
+      const localVarPath = `/apis/v1beta1/experiments/{id}:unarchive`.replace(
+        `{${'id'}}`,
+        encodeURIComponent(String(id)),
+      );
+      const localVarUrlObj = url.parse(localVarPath, true);
+      const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      // authentication Bearer required
+      if (configuration && configuration.apiKey) {
+        const localVarApiKeyValue =
+          typeof configuration.apiKey === 'function'
+            ? configuration.apiKey('authorization')
+            : configuration.apiKey;
+        localVarHeaderParameter['authorization'] = localVarApiKeyValue;
+      }
+
+      localVarUrlObj.query = Object.assign(
+        {},
+        localVarUrlObj.query,
+        localVarQueryParameter,
+        options.query,
+      );
+      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+      delete localVarUrlObj.search;
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
   };
 };
 
@@ -505,6 +617,30 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
  */
 export const ExperimentServiceApiFp = function(configuration?: Configuration) {
   return {
+    /**
+     *
+     * @summary Archive an experiment.
+     * @param {string} id
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    archiveExperiment(
+      id: string,
+      options?: any,
+    ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
+      const localVarFetchArgs = ExperimentServiceApiFetchParamCreator(
+        configuration,
+      ).archiveExperiment(id, options);
+      return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
+      };
+    },
     /**
      *
      * @summary Create a new experiment.
@@ -624,6 +760,30 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
         });
       };
     },
+    /**
+     *
+     * @summary Restore an archived experiment.
+     * @param {string} id
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    unarchiveExperiment(
+      id: string,
+      options?: any,
+    ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
+      const localVarFetchArgs = ExperimentServiceApiFetchParamCreator(
+        configuration,
+      ).unarchiveExperiment(id, options);
+      return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
+      };
+    },
   };
 };
 
@@ -637,6 +797,16 @@ export const ExperimentServiceApiFactory = function(
   basePath?: string,
 ) {
   return {
+    /**
+     *
+     * @summary Archive an experiment.
+     * @param {string} id
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    archiveExperiment(id: string, options?: any) {
+      return ExperimentServiceApiFp(configuration).archiveExperiment(id, options)(fetch, basePath);
+    },
     /**
      *
      * @summary Create a new experiment.
@@ -704,6 +874,19 @@ export const ExperimentServiceApiFactory = function(
         options,
       )(fetch, basePath);
     },
+    /**
+     *
+     * @summary Restore an archived experiment.
+     * @param {string} id
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    unarchiveExperiment(id: string, options?: any) {
+      return ExperimentServiceApiFp(configuration).unarchiveExperiment(id, options)(
+        fetch,
+        basePath,
+      );
+    },
   };
 };
 
@@ -714,6 +897,21 @@ export const ExperimentServiceApiFactory = function(
  * @extends {BaseAPI}
  */
 export class ExperimentServiceApi extends BaseAPI {
+  /**
+   *
+   * @summary Archive an experiment.
+   * @param {string} id
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof ExperimentServiceApi
+   */
+  public archiveExperiment(id: string, options?: any) {
+    return ExperimentServiceApiFp(this.configuration).archiveExperiment(id, options)(
+      this.fetch,
+      this.basePath,
+    );
+  }
+
   /**
    *
    * @summary Create a new experiment.
@@ -796,5 +994,20 @@ export class ExperimentServiceApi extends BaseAPI {
       resource_reference_key_id,
       options,
     )(this.fetch, this.basePath);
+  }
+
+  /**
+   *
+   * @summary Restore an archived experiment.
+   * @param {string} id
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof ExperimentServiceApi
+   */
+  public unarchiveExperiment(id: string, options?: any) {
+    return ExperimentServiceApiFp(this.configuration).unarchiveExperiment(id, options)(
+      this.fetch,
+      this.basePath,
+    );
   }
 }

@@ -20,7 +20,6 @@ import uuid
 import zipfile
 from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
-import yaml
 from kfp.dsl import _for_loop
 
 from .. import dsl
@@ -29,6 +28,7 @@ from ._op_to_template import _op_to_template
 from ._default_transformers import add_pod_env
 
 from ..components.structures import InputSpec
+from ..components._yaml_utils import dump_yaml
 from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
@@ -724,16 +724,8 @@ class Compiler(object):
 
     # Sanitize operator names and param names
     sanitized_ops = {}
-    # pipeline level artifact location
-    artifact_location = pipeline_conf.artifact_location
 
     for op in pipeline.ops.values():
-      # inject pipeline level artifact location into if the op does not have
-      # an artifact location config already.
-      if hasattr(op, "artifact_location"):
-        if artifact_location and not op.artifact_location:
-          op.artifact_location = artifact_location
-
       sanitized_name = sanitize_k8s_name(op.name)
       op.name = sanitized_name
       for param in op.outputs.values():
@@ -906,8 +898,7 @@ class Compiler(object):
       package_path: file path to be written. If not specified, a yaml_text string
         will be returned.
     """
-    yaml.Dumper.ignore_aliases = lambda *args : True
-    yaml_text = yaml.dump(workflow, default_flow_style=False, default_style='|')
+    yaml_text = dump_yaml(workflow)
 
     if package_path is None:
       return yaml_text
@@ -961,7 +952,7 @@ def _validate_workflow(workflow: dict):
     if 'value' not in argument:
       argument['value'] = ''
 
-  yaml_text = yaml.dump(workflow)
+  yaml_text = dump_yaml(workflow)
   if '{{pipelineparam' in yaml_text:
     raise RuntimeError(
         '''Internal compiler error: Found unresolved PipelineParam.
@@ -980,4 +971,3 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
 Error: {}'''.format(result.stderr.decode('utf-8'))
       )
-  

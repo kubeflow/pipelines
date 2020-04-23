@@ -19,7 +19,11 @@ import * as proxy from 'http-proxy-middleware';
 import { UIConfigs } from './configs';
 import { getAddress } from './utils';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz';
-import { getArtifactsHandler } from './handlers/artifacts';
+import {
+  getArtifactsHandler,
+  getArtifactsProxyHandler,
+  getArtifactServiceGetter,
+} from './handlers/artifacts';
 import {
   getCreateTensorboardHandler,
   getTensorboardHandler,
@@ -114,6 +118,14 @@ function createUIServer(options: UIConfigs) {
   );
 
   /** Artifact */
+  registerHandler(
+    app.get,
+    '/artifacts/get',
+    getArtifactsProxyHandler({
+      enabled: options.artifacts.proxy.enabled,
+      namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
+    }),
+  );
   registerHandler(app.get, '/artifacts/get', getArtifactsHandler(options.artifacts));
 
   /** Tensorboard viewer */

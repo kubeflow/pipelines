@@ -63,14 +63,13 @@ export interface OutputMetadata {
   outputs: PlotMetadata[];
 }
 
+type SourceContentGetter = (source: string, storage?: PlotMetadata['storage']) => Promise<string>;
+
 export class OutputArtifactLoader {
-  public static async load(
-    outputPath: StoragePath,
-    namespace: string | undefined,
-  ): Promise<ViewerConfig[]> {
+  public static async load(outputPath: StoragePath, namespace?: string): Promise<ViewerConfig[]> {
     let plotMetadataList: PlotMetadata[] = [];
     try {
-      const metadataFile = await Apis.readFile(outputPath);
+      const metadataFile = await Apis.readFile(outputPath, namespace);
       if (metadataFile) {
         try {
           plotMetadataList = (JSON.parse(metadataFile) as OutputMetadata).outputs;
@@ -88,21 +87,24 @@ export class OutputArtifactLoader {
       // TODO: error dialog
     }
 
+    const getSourceContent: SourceContentGetter = async (source, storage) =>
+      await readSourceContent(source, storage, namespace);
+
     const configs: Array<ViewerConfig | null> = await Promise.all(
       plotMetadataList.map(async metadata => {
         switch (metadata.type) {
           case PlotType.CONFUSION_MATRIX:
-            return await this.buildConfusionMatrixConfig(metadata);
+            return await this.buildConfusionMatrixConfig(metadata, getSourceContent);
           case PlotType.MARKDOWN:
-            return await this.buildMarkdownViewerConfig(metadata);
+            return await this.buildMarkdownViewerConfig(metadata, getSourceContent);
           case PlotType.TABLE:
-            return await this.buildPagedTableConfig(metadata);
+            return await this.buildPagedTableConfig(metadata, getSourceContent);
           case PlotType.TENSORBOARD:
             return await this.buildTensorboardConfig(metadata, namespace);
           case PlotType.WEB_APP:
-            return await this.buildHtmlViewerConfig(metadata);
+            return await this.buildHtmlViewerConfig(metadata, getSourceContent);
           case PlotType.ROC:
-            return await this.buildRocCurveConfig(metadata);
+            return await this.buildRocCurveConfig(metadata, getSourceContent);
           default:
             logger.error('Unknown plot type: ' + metadata.type);
             return null;
@@ -115,6 +117,7 @@ export class OutputArtifactLoader {
 
   public static async buildConfusionMatrixConfig(
     metadata: PlotMetadataContent,
+    getSourceContent: SourceContentGetter,
   ): Promise<ConfusionMatrixConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -169,6 +172,7 @@ export class OutputArtifactLoader {
 
   public static async buildPagedTableConfig(
     metadata: PlotMetadataContent,
+    getSourceContent: SourceContentGetter,
   ): Promise<PagedTableConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -200,7 +204,7 @@ export class OutputArtifactLoader {
 
   public static async buildTensorboardConfig(
     metadata: PlotMetadataContent,
-    namespace: string | undefined,
+    namespace?: string,
   ): Promise<TensorboardViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -218,6 +222,7 @@ export class OutputArtifactLoader {
 
   public static async buildHtmlViewerConfig(
     metadata: PlotMetadataContent,
+    getSourceContent: SourceContentGetter,
   ): Promise<HTMLViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -361,6 +366,7 @@ export class OutputArtifactLoader {
 
   public static async buildMarkdownViewerConfig(
     metadata: PlotMetadataContent,
+    getSourceContent: SourceContentGetter,
   ): Promise<MarkdownViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -371,7 +377,10 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildRocCurveConfig(metadata: PlotMetadataContent): Promise<ROCCurveConfig> {
+  public static async buildRocCurveConfig(
+    metadata: PlotMetadataContent,
+    getSourceContent: SourceContentGetter,
+  ): Promise<ROCCurveConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -586,12 +595,17 @@ async function buildArtifactViewerTfdvStatistics(url: string): Promise<HTMLViewe
   };
 }
 
-async function getSourceContent(
+async function readSourceContent(
   source: PlotMetadata['source'],
-  storage?: PlotMetadata['storage'],
+  storage: PlotMetadata['storage'] | undefined,
+  namespace: string | undefined,
 ): Promise<string> {
   if (storage === 'inline') {
     return source;
   }
-  return await Apis.readFile(WorkflowParser.parseStoragePath(source));
+  return await Apis.readFile(WorkflowParser.parseStoragePath(source), namespace);
 }
+
+export const TEST_ONLY = {
+  readSourceContent,
+};

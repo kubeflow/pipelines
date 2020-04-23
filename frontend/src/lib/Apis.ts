@@ -22,6 +22,7 @@ import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization
 import { PlotType } from '../components/viewers/Viewer';
 import * as Utils from './Utils';
 import { StoragePath } from './WorkflowParser';
+import { buildQuery } from './Utils';
 
 const v1beta1Prefix = 'apis/v1beta1';
 
@@ -200,11 +201,9 @@ export class Apis {
   /**
    * Reads file from storage using server.
    */
-  public static readFile(path: StoragePath): Promise<string> {
-    return this._fetch(
-      'artifacts/get' +
-        `?source=${path.source}&bucket=${path.bucket}&key=${encodeURIComponent(path.key)}`,
-    );
+  public static readFile(path: StoragePath, namespace?: string): Promise<string> {
+    const { source, bucket, key } = path;
+    return this._fetch(`artifacts/get${buildQuery({ source, bucket, key, namespace })}`);
   }
 
   /**

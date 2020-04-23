@@ -5,13 +5,14 @@ metadata:
 data:
   config: |
     {
+    namespace: $(NAMESPACE),
     executorImage: gcr.io/ml-pipeline/argoexec:v2.3.0-license-compliance,
     artifactRepository:
     {
         s3: {
-            bucket: mlpipeline,
+            bucket: $(BUCKET_NAME),
             keyPrefix: artifacts,
-            endpoint: minio-service.default:9000,
+            endpoint: minio-service.$(NAMESPACE):9000,
             insecure: true,
             accessKeySecret: {
                 name: mlpipeline-minio-artifact,

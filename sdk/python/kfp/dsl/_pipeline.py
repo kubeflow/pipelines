@@ -60,7 +60,6 @@ class PipelineConf():
     self.image_pull_secrets = []
     self.timeout = 0
     self.ttl_seconds_after_finished = -1
-    self.artifact_location = None
     self.op_transformers = []
     self.image_pull_policy = None
 
