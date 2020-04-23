@@ -13,8 +13,8 @@
 // limitations under the License.
 import { Transform, PassThrough } from 'stream';
 import * as tar from 'tar-stream';
-import * as peek from 'peek-stream';
-import * as gunzip from 'gunzip-maybe';
+import peek from 'peek-stream';
+import gunzip from 'gunzip-maybe';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
 import { awsInstanceProfileCredentials } from './aws-helper';
 
@@ -74,7 +74,7 @@ export function isTarball(buf: Buffer) {
 
   return (
     v1.reduce((res, curr, i) => res && curr === buf[offset + i], true) ||
-    v0.reduce((res, curr, i) => res && curr === buf[offset + i], true)
+    v0.reduce((res, curr, i) => res && curr === buf[offset + i], true as boolean)
   );
 }
 
@@ -99,7 +99,7 @@ export function maybeTarball(): Transform {
 function extractFirstTarRecordAsStream() {
   const extract = tar.extract();
   const transformStream = new Transform({
-    write: (chunk: any, encoding: string, callback: (error?: Error) => void) => {
+    write: (chunk: any, encoding: string, callback: (error?: Error | null) => void) => {
       extract.write(chunk, encoding, callback);
     },
   });

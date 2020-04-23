@@ -16,6 +16,7 @@ import { PassThrough } from 'stream';
 import { Client as MinioClient } from 'minio';
 import { awsInstanceProfileCredentials } from './aws-helper';
 import { createMinioClient, isTarball, maybeTarball, getObjectStream } from './minio-helper';
+import { V1beta1JobTemplateSpec } from '@kubernetes/client-node';
 
 jest.mock('minio');
 jest.mock('./aws-helper');
@@ -141,16 +142,13 @@ describe('minio-helper', () => {
     let mockedMinioGetObject: jest.Mock;
 
     beforeEach(() => {
+      jest.clearAllMocks();
       minioClient = new MinioClient({
         endPoint: 's3.amazonaws.com',
         accessKey: '',
         secretKey: '',
       });
       mockedMinioGetObject = minioClient.getObject as any;
-    });
-
-    afterEach(() => {
-      mockedMinioGetObject.mockReset();
     });
 
     it('unpacks a gzipped tarball', async done => {
