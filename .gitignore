@@ -13,6 +13,9 @@ bower_components/
 # Build output
 dist
 
+# Web server
+frontend/server/dist
+
 # Python built package
 *.egg-info
 dist

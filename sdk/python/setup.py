@@ -30,7 +30,7 @@ REQUIRES = [
     # kfp-server-api package is released. Update the lower version when there is
     # a breaking change in kfp-server-api, or kfp sdk depends on new api changes
     # in kfp-server-api.
-    'kfp-server-api>=0.2.5, <0.4.0',
+    'kfp-server-api>=0.2.5, <0.6.0',
     'argo-models == 2.2.1a',  #2.2.1a is equivalent to argo 2.2.1
     'jsonschema >= 3.0.1',
     'tabulate',

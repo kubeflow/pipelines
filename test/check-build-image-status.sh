@@ -19,7 +19,7 @@ set -ex
 # Usage: wait_for_builds "${BUILD_IDS[@]}"
 # returns true if success, otherwise false.
 function wait_for_builds {
-  local pending_ids=("$1") # copy pending build ids
+  local pending_ids=("$@") # copy pending build ids
   local max_attempts=$(expr $TIMEOUT_SECONDS / 20)
   for i in $(seq 1 ${max_attempts})
   do

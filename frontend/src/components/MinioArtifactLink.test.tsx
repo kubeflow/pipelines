@@ -14,62 +14,93 @@
  * limitations under the License.
  */
 
+import React from 'react';
 import MinioArtifactLink from './MinioArtifactLink';
+import { render } from '@testing-library/react';
 
 describe('MinioArtifactLink', () => {
   it('handles undefined artifact', () => {
-    expect(MinioArtifactLink(undefined as any)).toMatchSnapshot();
+    const { container } = render(<MinioArtifactLink artifact={undefined} />);
+    expect(container).toMatchInlineSnapshot(`<div />`);
   });
 
   it('handles null artifact', () => {
-    expect(MinioArtifactLink(null as any)).toMatchSnapshot();
+    const { container } = render(<MinioArtifactLink artifact={null} />);
+    expect(container).toMatchInlineSnapshot(`<div />`);
   });
 
   it('handles empty artifact', () => {
-    expect(MinioArtifactLink({} as any)).toMatchSnapshot();
+    const { container } = render(<MinioArtifactLink artifact={{}} />);
+    expect(container).toMatchInlineSnapshot(`<div />`);
   });
 
   it('handles invalid artifact: no bucket', () => {
-    const s3artifact = {
+    const s3Artifact = {
       accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
       bucket: '',
       endpoint: 'minio.kubeflow',
       key: 'bar',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    expect(MinioArtifactLink(s3artifact)).toMatchSnapshot();
+    const { container } = render(<MinioArtifactLink artifact={s3Artifact} />);
+    expect(container).toMatchInlineSnapshot(`<div />`);
   });
 
   it('handles invalid artifact: no key', () => {
-    const s3artifact = {
+    const s3Artifact = {
       accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
       bucket: 'foo',
       endpoint: 'minio.kubeflow',
       key: '',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    expect(MinioArtifactLink(s3artifact)).toMatchSnapshot();
+    const { container } = render(<MinioArtifactLink artifact={s3Artifact} />);
+    expect(container).toMatchInlineSnapshot(`<div />`);
   });
 
   it('handles s3 artifact', () => {
-    const s3artifact = {
+    const s3Artifact = {
       accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
       bucket: 'foo',
       endpoint: 's3.amazonaws.com',
       key: 'bar',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    expect(MinioArtifactLink(s3artifact)).toMatchSnapshot();
+    const { container } = render(<MinioArtifactLink artifact={s3Artifact} />);
+    expect(container).toMatchInlineSnapshot(`
+      <div>
+        <a
+          href="namespaces/undefined/artifacts/get?source=s3&bucket=foo&key=bar"
+          rel="noreferrer noopener"
+          target="_blank"
+          title="s3://foo/bar"
+        >
+          s3://foo/bar
+        </a>
+      </div>
+    `);
   });
 
   it('handles minio artifact', () => {
-    const minioartifact = {
+    const minioArtifact = {
       accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
       bucket: 'foo',
       endpoint: 'minio.kubeflow',
       key: 'bar',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
     };
-    expect(MinioArtifactLink(minioartifact)).toMatchSnapshot();
+    const { container } = render(<MinioArtifactLink artifact={minioArtifact} />);
+    expect(container).toMatchInlineSnapshot(`
+      <div>
+        <a
+          href="namespaces/undefined/artifacts/get?source=minio&bucket=foo&key=bar"
+          rel="noreferrer noopener"
+          target="_blank"
+          title="minio://foo/bar"
+        >
+          minio://foo/bar
+        </a>
+      </div>
+    `);
   });
 });

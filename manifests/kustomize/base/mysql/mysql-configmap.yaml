@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-configmap
+data:
+  host: $(DBSERVICE_HOST)
+  port: "$(DBSERVICE_PORT)"
+  mlmd_db: $(DBNAME_MLMD)
+  cache_db: $(DBNAME_CACHE)
+  pipeline_db: $(DBNAME_PIPELINE)
