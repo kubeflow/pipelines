@@ -61,6 +61,7 @@ class PipelineConf():
     self.timeout = 0
     self.ttl_seconds_after_finished = -1
     self.op_transformers = []
+    self.image_pull_policy = None
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """Configures the pipeline level imagepullsecret
@@ -89,6 +90,16 @@ class PipelineConf():
       seconds: number of seconds for the workflow to be garbage collected after it is finished.
     """
     self.ttl_seconds_after_finished = seconds
+    return self
+
+  def set_image_pull_policy(self, policy: str):
+    """Configures the default image pull policy
+
+    Args:
+      policy: the pull policy, has to be one of: Always, Never, IfNotPresent. 
+      For more info: https://github.com/kubernetes-client/python/blob/10a7f95435c0b94a6d949ba98375f8cc85a70e5a/kubernetes/docs/V1Container.md
+    """
+    self.image_pull_policy = policy
     return self
 
   def add_op_transformer(self, transformer):
@@ -218,5 +229,3 @@ class Pipeline():
       metadata (ComponentMeta): component metadata
     '''
     self._metadata = metadata
-
-
