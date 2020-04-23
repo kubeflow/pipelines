@@ -34,7 +34,7 @@ inputs:
     default: '1'
   - name: volume_size
     description: 'The size of the ML storage volume that you want to provision.'
-    default: '1'
+    default: '30'
   - name: resource_encryption_key
     description: 'The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).'
     default: ''
