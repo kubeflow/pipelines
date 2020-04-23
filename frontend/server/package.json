@@ -19,6 +19,7 @@
     "@types/crypto-js": "^3.1.43",
     "@types/express": "^4.11.1",
     "@types/gunzip-maybe": "^1.4.0",
+    "@types/http-proxy-middleware": "^0.19.3",
     "@types/jest": "^24.9.1",
     "@types/minio": "^7.0.3",
     "@types/node": "^10.17.11",
@@ -33,7 +34,7 @@
     "typescript": "^3.6.4"
   },
   "scripts": {
-    "build": "tsc --project . --outDir ./dist",
+    "build": "tsc --project .",
     "format": "prettier --write './**/*.{ts,tsx}'",
     "format:check": "prettier --check './**/*.{ts,tsx}' || node ../scripts/check-format-error-info.js",
     "lint": "tslint -c tslint.json -p tsconfig.json",
