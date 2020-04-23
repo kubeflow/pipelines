@@ -34,10 +34,10 @@
   },
   "scripts": {
     "build": "tsc --project . --outDir ./dist",
-    "format": "npx prettier --write './**/*.{ts,tsx}'",
-    "format:check": "npx prettier --check './**/*.{ts,tsx}' || node ../scripts/check-format-error-info.js",
-    "lint": "npx tslint -c tslint.json -p tsconfig.json",
-    "test": "npx jest --runInBand",
+    "format": "prettier --write './**/*.{ts,tsx}'",
+    "format:check": "prettier --check './**/*.{ts,tsx}' || node ../scripts/check-format-error-info.js",
+    "lint": "tslint -c tslint.json -p tsconfig.json",
+    "test": "jest --runInBand",
     "test:coverage": "npm test -- --coverage",
     "test:ci": "npm run format:check && npm run lint && npm run test:coverage"
   },
