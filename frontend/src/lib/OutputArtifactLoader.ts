@@ -238,10 +238,15 @@ export class OutputArtifactLoader {
    * @throws error on exceptions
    * @returns config array, also returns empty array when expected erros happen
    */
-  public static async buildTFXArtifactViewerConfig(
-    argoPodName: string,
-    reportProgress: (progress: number) => void = () => null,
-  ): Promise<HTMLViewerConfig[]> {
+  public static async buildTFXArtifactViewerConfig({
+    argoPodName,
+    namespace,
+    reportProgress = () => null,
+  }: {
+    namespace: string;
+    argoPodName: string;
+    reportProgress: (progress: number) => void;
+  }): Promise<HTMLViewerConfig[]> {
     // Error handling assumptions:
     // * Context/execution/artifact nodes are not expected to be in MLMD. Thus, any
     // errors associated with the nodes not being found are expected.
@@ -295,7 +300,7 @@ export class OutputArtifactLoader {
       const trainUri = uri + '/train/stats_tfrecord';
       viewers = viewers.concat(
         [evalUri, trainUri].map(async specificUri => {
-          return buildArtifactViewerTfdvStatistics(specificUri);
+          return buildArtifactViewerTfdvStatistics(specificUri, namespace);
         }),
       );
     });
@@ -308,7 +313,7 @@ export class OutputArtifactLoader {
           `schema = tfdv.load_schema_text('${uri}')`,
           'tfdv.display_schema(schema)',
         ];
-        return buildArtifactViewer(script);
+        return buildArtifactViewer({ script, namespace });
       }),
     );
     const anomaliesArtifactUris = filterArtifactUrisByType(
@@ -324,7 +329,7 @@ export class OutputArtifactLoader {
           `anomalies = tfdv.load_anomalies_text('${uri}')`,
           'tfdv.display_anomalies(anomalies)',
         ];
-        return buildArtifactViewer(script);
+        return buildArtifactViewer({ script, namespace });
       }),
     );
     const EvaluatorArtifactUris = filterArtifactUrisByType(
@@ -356,7 +361,7 @@ export class OutputArtifactLoader {
           `embed_minimal_html(view, views=[slicing_metrics_view], title='Slicing Metrics')`,
           `display(HTML(view.getvalue()))`,
         ];
-        return buildArtifactViewer(script);
+        return buildArtifactViewer({ script, namespace });
       }),
     );
     // TODO(jingzhang36): maybe move the above built-in scripts to visualization server.
@@ -563,13 +568,19 @@ function filterArtifactUrisByType(
   return tfdvArtifactsPaths;
 }
 
-async function buildArtifactViewer(script: string[]): Promise<HTMLViewerConfig> {
+async function buildArtifactViewer({
+  script,
+  namespace,
+}: {
+  script: string[];
+  namespace: string;
+}): Promise<HTMLViewerConfig> {
   const visualizationData: ApiVisualization = {
     arguments: JSON.stringify({ code: script }),
     source: '',
     type: ApiVisualizationType.CUSTOM,
   };
-  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
+  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData, namespace);
   if (!visualization.htmlContent) {
     // TODO: Improve error message with details.
     throw new Error('Failed to build artifact viewer');
@@ -580,12 +591,15 @@ async function buildArtifactViewer(script: string[]): Promise<HTMLViewerConfig> 
   };
 }
 
-async function buildArtifactViewerTfdvStatistics(url: string): Promise<HTMLViewerConfig> {
+async function buildArtifactViewerTfdvStatistics(
+  url: string,
+  namespace: string,
+): Promise<HTMLViewerConfig> {
   const visualizationData: ApiVisualization = {
     source: url,
     type: ApiVisualizationType.TFDV,
   };
-  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
+  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData, namespace);
   if (!visualization.htmlContent) {
     throw new Error('Failed to build artifact viewer, no value in visualization.htmlContent');
   }
