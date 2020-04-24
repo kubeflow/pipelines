@@ -68,8 +68,12 @@ export class Apis {
 
   public static async buildPythonVisualizationConfig(
     visualizationData: ApiVisualization,
+    namespace?: string,
   ): Promise<HTMLViewerConfig> {
-    const visualization = await Apis.visualizationServiceApi.createVisualization(visualizationData);
+    const visualization = await Apis.visualizationServiceApi.createVisualization(
+      namespace || '',
+      visualizationData,
+    );
     if (visualization.html) {
       const htmlContent = visualization.html
         // Fixes issue with TFX components (and other iframe based
