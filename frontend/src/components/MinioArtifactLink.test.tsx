@@ -70,7 +70,7 @@ describe('MinioArtifactLink', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <a
-          href="namespaces/undefined/artifacts/get?source=s3&bucket=foo&key=bar"
+          href="artifacts/get?source=s3&bucket=foo&key=bar"
           rel="noreferrer noopener"
           target="_blank"
           title="s3://foo/bar"
@@ -93,7 +93,7 @@ describe('MinioArtifactLink', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <a
-          href="namespaces/undefined/artifacts/get?source=minio&bucket=foo&key=bar"
+          href="artifacts/get?source=minio&bucket=foo&key=bar"
           rel="noreferrer noopener"
           target="_blank"
           title="minio://foo/bar"
