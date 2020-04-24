@@ -265,7 +265,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       allowCustomVisualizations,
       isBusy: isGeneratingVisualization,
       onGenerate: (visualizationArguments: string, source: string, type: ApiVisualizationType) => {
-        this._onGenerate(visualizationArguments, source, type);
+        this._onGenerate(visualizationArguments, source, type, namespace || '');
       },
       type: PlotType.VISUALIZATION_CREATOR,
     };
@@ -890,6 +890,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     visualizationArguments: string,
     source: string,
     type: ApiVisualizationType,
+    namespace: string,
   ): Promise<void> {
     const nodeId = this.state.selectedNodeDetails ? this.state.selectedNodeDetails.id : '';
     if (nodeId.length === 0) {
@@ -913,7 +914,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       type,
     };
     try {
-      const config = await Apis.buildPythonVisualizationConfig(visualizationData);
+      const config = await Apis.buildPythonVisualizationConfig(visualizationData, namespace);
       const { generatedVisualizations } = this.state;
       const generatedVisualization: GeneratedVisualization = {
         config,
@@ -1046,9 +1047,11 @@ const ArtifactsTabContent: React.FC<{
       // Load the viewer configurations from the output paths
       const builtConfigs = (
         await Promise.all([
-          OutputArtifactLoader.buildTFXArtifactViewerConfig(nodeId, reportProgress).catch(
-            reportErrorAndReturnEmpty,
-          ),
+          OutputArtifactLoader.buildTFXArtifactViewerConfig({
+            argoPodName: nodeId,
+            reportProgress,
+            namespace: namespace || '',
+          }).catch(reportErrorAndReturnEmpty),
           ...outputPaths.map(path =>
             OutputArtifactLoader.load(path, namespace).catch(reportErrorAndReturnEmpty),
           ),
