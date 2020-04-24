@@ -30,6 +30,7 @@ describe('StatusUtils', () => {
       NodePhase.ERROR,
       NodePhase.FAILED,
       NodePhase.SUCCEEDED,
+      NodePhase.CACHED,
       NodePhase.SKIPPED,
       NodePhase.TERMINATED,
     ].forEach(status => {
@@ -96,8 +97,10 @@ describe('StatusUtils', () => {
       });
     });
 
-    it("returns color 'succeeded' if status is 'Succeeded'", () => {
-      expect(statusToBgColor(NodePhase.SUCCEEDED)).toEqual(statusBgColors.succeeded);
+    [NodePhase.SUCCEEDED, NodePhase.CACHED].forEach(status => {
+      it(`returns color 'succeeded' if status is '${status}'`, () => {
+        expect(statusToBgColor(status)).toEqual(statusBgColors.succeeded);
+      });
     });
   });
 
