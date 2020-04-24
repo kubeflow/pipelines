@@ -175,6 +175,7 @@ describe('StatusUtils', () => {
         parseNodePhase({
           ...DEFAULT_NODE_STATUS,
           id: 'file-passing-pipelines-55slt-2894085459',
+          phase: 'Succeeded', // Cached nodes have phase == 'Succeeded'
           outputs: {
             artifacts: [
               {
@@ -182,12 +183,12 @@ describe('StatusUtils', () => {
                   // HACK: A cached node's artifacts will refer to a path that doesn't match its own id.
                   key:
                     'artifacts/file-passing-pipelines-mjpph/file-passing-pipelines-mjpph-1802581193/sum-numbers-output.tgz',
-                } as unknown,
+                },
               } as Artifact,
             ],
           },
         }),
-      );
+      ).toEqual('Cached');
     });
   });
 });
