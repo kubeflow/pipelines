@@ -20,7 +20,9 @@ import {
   statusBgColors,
   statusToBgColor,
   checkIfTerminated,
+  parseNodePhase,
 } from './StatusUtils';
+import { NodeStatus, S3Artifact, Artifact } from 'third_party/argo-ui/argo_template';
 
 describe('StatusUtils', () => {
   describe('hasFinished', () => {
@@ -128,6 +130,61 @@ describe('StatusUtils', () => {
 
     it("returns 'failed' if status is 'failed' and arbitrary error message is provided", () => {
       expect(checkIfTerminated(NodePhase.FAILED, 'some random error')).toEqual(NodePhase.FAILED);
+    });
+  });
+
+  describe('parseNodePhase', () => {
+    const DEFAULT_NODE_STATUS = ({
+      phase: 'Succeeded',
+      id: 'file-passing-pipelines-55slt-2894085459',
+      outputs: {
+        artifacts: [
+          ({
+            s3: {
+              key:
+                'artifacts/file-passing-pipelines-55slt/file-passing-pipelines-55slt-2894085459/sum-numbers-output.tgz',
+            },
+          } as unknown) as Artifact,
+        ],
+      },
+    } as unknown) as NodeStatus;
+
+    it('returns node original phase if not successful', () => {
+      expect(
+        parseNodePhase({
+          ...DEFAULT_NODE_STATUS,
+          phase: 'Failed',
+        }),
+      ).toEqual('Failed');
+    });
+
+    it('returns succeeded phase for a normal node', () => {
+      expect(
+        parseNodePhase({
+          ...DEFAULT_NODE_STATUS,
+          phase: 'Succeeded',
+        }),
+      ).toEqual('Succeeded');
+    });
+
+    it('returns cached phase for a cached node', () => {
+      expect(
+        parseNodePhase({
+          ...DEFAULT_NODE_STATUS,
+          id: 'file-passing-pipelines-55slt-2894085459',
+          outputs: {
+            artifacts: [
+              {
+                s3: {
+                  // HACK: A cached node's artifacts will refer to a path that doesn't match its own id.
+                  key:
+                    'artifacts/file-passing-pipelines-mjpph/file-passing-pipelines-mjpph-1802581193/sum-numbers-output.tgz',
+                } as unknown,
+              } as Artifact,
+            ],
+          },
+        }),
+      );
     });
   });
 });
