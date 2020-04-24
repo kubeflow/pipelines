@@ -8,9 +8,12 @@ from datetime import datetime
 from batch_transform.src import batch_transform
 from common import _utils
 
+# TODO : Errors out if model_name doesn't contain '-'
+# fix model_name '-' bug
+
 required_args = [
   '--region', 'us-west-2',
-  '--model_name', 'test_model',
+  '--model_name', 'model-test',
   '--input_location', 's3://fake-bucket/data',
   '--output_location', 's3://fake-bucket/output',
   '--instance_type', 'ml.c5.18xlarge',
@@ -25,5 +28,5 @@ class BatchTransformTestCase(unittest.TestCase):
 
   def test_sample(self):
     args = self.parser.parse_args(required_args)
-    response = _utils.create_hyperparameter_tuning_job_request(vars(args))
-    self.assertEqual(response['TransformOutput']['S3OutputPath'], 's3://fake-uri/output')
+    response = _utils.create_transform_job_request(vars(args))
+    self.assertEqual(response['TransformOutput']['S3OutputPath'], 's3://fake-bucket/output')
