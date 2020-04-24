@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import kfp
+import json
+import copy
 from kfp import components
 from kfp import dsl
 from kfp.aws import use_aws_secret
@@ -8,6 +10,24 @@ from kfp.aws import use_aws_secret
 sagemaker_workteam_op = components.load_component_from_file('../../../../components/aws/sagemaker/workteam/component.yaml')
 sagemaker_gt_op = components.load_component_from_file('../../../../components/aws/sagemaker/ground_truth/component.yaml')
 sagemaker_train_op = components.load_component_from_file('../../../../components/aws/sagemaker/train/component.yaml')
+
+channelObjList = []
+
+channelObj = {
+    'ChannelName': '',
+    'DataSource': {
+        'S3DataSource': {
+            'S3Uri': '',
+            'S3DataType': 'AugmentedManifestFile',
+            'S3DataDistributionType': 'FullyReplicated',
+            'AttributeNames': ['source-ref', 'category']
+        }
+    },
+    'ContentType': 'application/x-recordio',
+    'CompressionType': 'None',
+    'RecordWrapperType': 'RecordIO'
+}
+
 
 @dsl.pipeline(
     name='Ground Truth image classification test pipeline',
@@ -38,30 +58,6 @@ def ground_truth_test(region='us-west-2',
     training_algorithm_name='image classification',
     training_input_mode='Pipe',
     training_hyperparameters='{"num_classes": "2", "num_training_samples": "14", "mini_batch_size": "2"}',
-    training_channels='[{"ChannelName": "train", \
-                "DataSource": { \
-                    "S3DataSource": { \
-                        "S3Uri": "",  \
-                        "S3DataType": "AugmentedManifestFile", \
-                        "S3DataDistributionType": "FullyReplicated", \
-                        "AttributeNames": ["source-ref", "category"] \
-                        } \
-                    }, \
-                "ContentType": "application/x-recordio", \
-                "CompressionType": "None", \
-                "RecordWrapperType": "RecordIO"}, \
-                {"ChannelName": "validation", \
-                    "DataSource": { \
-                        "S3DataSource": { \
-                            "S3Uri": "",  \
-                            "S3DataType": "AugmentedManifestFile", \
-                            "S3DataDistributionType": "FullyReplicated", \
-                            "AttributeNames": ["source-ref", "category"] \
-                            } \
-                        }, \
-                    "ContentType": "application/x-recordio", \
-                    "CompressionType": "None", \
-                    "RecordWrapperType": "RecordIO"}]',
     training_output_location='s3://your-bucket-name/mini-image-classification/training-output',
     training_instance_type='ml.p2.xlarge',
     training_instance_count='1',
@@ -119,14 +115,19 @@ def ground_truth_test(region='us-west-2',
         max_concurrent_tasks=ground_truth_max_concurrent_tasks
     ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
 
+    channelObj['ChannelName'] = 'train'
+    channelObj['DataSource']['S3DataSource']['S3Uri'] = str(ground_truth_train.outputs['output_manifest_location'])
+    channelObjList.append(copy.deepcopy(channelObj))
+    channelObj['ChannelName'] = 'validation'
+    channelObj['DataSource']['S3DataSource']['S3Uri'] = str(ground_truth_validation.outputs['output_manifest_location'])
+    channelObjList.append(copy.deepcopy(channelObj))
+
     training = sagemaker_train_op(
         region=region,
         algorithm_name=training_algorithm_name,
         training_input_mode=training_input_mode,
         hyperparameters=training_hyperparameters,
-        channels=training_channels,
-        data_location_1=ground_truth_train.outputs['output_manifest_location'],
-        data_location_2=ground_truth_validation.outputs['output_manifest_location'],
+        channels=json.dumps(channelObjList),
         instance_type=training_instance_type,
         instance_count=training_instance_count,
         volume_size=training_volume_size,
@@ -136,4 +137,4 @@ def ground_truth_test(region='us-west-2',
     ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(hpo_test, __file__ + '.zip')  # noqa: F821 TODO
+    kfp.compiler.Compiler().compile(ground_truth_test, __file__ + '.zip')

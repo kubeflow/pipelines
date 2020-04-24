@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import kfp
+import json
+import copy
 from kfp import components
 from kfp import dsl
 from kfp.aws import use_aws_secret
@@ -10,6 +12,34 @@ sagemaker_train_op = components.load_component_from_file('../../../../components
 sagemaker_model_op = components.load_component_from_file('../../../../components/aws/sagemaker/model/component.yaml')
 sagemaker_deploy_op = components.load_component_from_file('../../../../components/aws/sagemaker/deploy/component.yaml')
 sagemaker_batch_transform_op = components.load_component_from_file('../../../../components/aws/sagemaker/batch_transform/component.yaml')
+
+
+hpoChannels = []
+trainChannels = []
+
+channelObj = {
+    'ChannelName': '',
+    'DataSource': {
+        'S3DataSource': {
+            'S3Uri': '',
+            'S3DataType': 'S3Prefix',
+            'S3DataDistributionType': 'FullyReplicated'
+        }
+    },
+    'ContentType': '',
+    'CompressionType': 'None',
+    'RecordWrapperType': 'None',
+    'InputMode': 'File'
+}
+
+channelObj['ChannelName'] = 'train'
+channelObj['DataSource']['S3DataSource']['S3Uri'] = 's3://kubeflow-pipeline-data/mnist_kmeans_example/train_data'
+hpoChannels.append(copy.deepcopy(channelObj))
+trainChannels.append(copy.deepcopy(channelObj))
+channelObj['ChannelName'] = 'test'
+channelObj['DataSource']['S3DataSource']['S3Uri'] = 's3://kubeflow-pipeline-data/mnist_kmeans_example/test_data'
+hpoChannels.append(copy.deepcopy(channelObj))
+
 
 @dsl.pipeline(
     name='MNIST Classification pipeline',
@@ -26,30 +56,7 @@ def mnist_classification(region='us-west-2',
     hpo_integer_parameters='[{"Name": "mini_batch_size", "MinValue": "500", "MaxValue": "600"}, {"Name": "extra_center_factor", "MinValue": "10", "MaxValue": "20"}]',
     hpo_continuous_parameters='[]',
     hpo_categorical_parameters='[{"Name": "init_method", "Values": ["random", "kmeans++"]}]',
-    hpo_channels='[{"ChannelName": "train", \
-                "DataSource": { \
-                    "S3DataSource": { \
-                        "S3Uri": "s3://kubeflow-pipeline-data/mnist_kmeans_example/train_data",  \
-                        "S3DataType": "S3Prefix", \
-                        "S3DataDistributionType": "FullyReplicated" \
-                        } \
-                    }, \
-                "ContentType": "", \
-                "CompressionType": "None", \
-                "RecordWrapperType": "None", \
-                "InputMode": "File"}, \
-               {"ChannelName": "test", \
-                "DataSource": { \
-                    "S3DataSource": { \
-                        "S3Uri": "s3://kubeflow-pipeline-data/mnist_kmeans_example/test_data", \
-                        "S3DataType": "S3Prefix", \
-                        "S3DataDistributionType": "FullyReplicated" \
-                        } \
-                    }, \
-                "ContentType": "", \
-                "CompressionType": "None", \
-                "RecordWrapperType": "None", \
-                "InputMode": "File"}]',
+    hpo_channels=json.dumps(hpoChannels),
     hpo_spot_instance='False',
     hpo_max_wait_time='3600',
     hpo_checkpoint_config='{}',
@@ -64,18 +71,7 @@ def mnist_classification(region='us-west-2',
     endpoint_url='',
     network_isolation='True',
     traffic_encryption='False',
-    train_channels='[{"ChannelName": "train", \
-                "DataSource": { \
-                    "S3DataSource": { \
-                        "S3Uri": "s3://kubeflow-pipeline-data/mnist_kmeans_example/train_data",  \
-                        "S3DataType": "S3Prefix", \
-                        "S3DataDistributionType": "FullyReplicated" \
-                        } \
-                    }, \
-                "ContentType": "", \
-                "CompressionType": "None", \
-                "RecordWrapperType": "None", \
-                "InputMode": "File"}]',
+    train_channels=json.dumps(trainChannels),
     train_spot_instance='False',
     train_max_wait_time='3600',
     train_checkpoint_config='{}',

@@ -135,6 +135,52 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 	return r.experimentStore.DeleteExperiment(experimentID)
 }
 
+func (r *ResourceManager) ArchiveExperiment(experimentId string) error {
+	// To archive an experiment
+	// (1) update our persistent agent to disable CRDs of jobs in experiment
+	// (2) update database to
+	// (2.1) archive experiemnts
+	// (2.2) archive runs
+	// (2.3) disable jobs
+	opts, err := list.NewOptions(&model.Job{}, 50, "name", nil)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create list jobs options when archiving experiment. ")
+	}
+	for {
+		jobs, _, newToken, err := r.jobStore.ListJobs(&common.FilterContext{
+			ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: experimentId}}, opts)
+		if err != nil {
+			return util.NewInternalServerError(err,
+				"Failed to list jobs of to-be-archived experiment. expID: %v", experimentId)
+		}
+		for _, job := range jobs {
+			_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
+				job.Name,
+				types.MergePatchType,
+				[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(false))))
+			if err != nil {
+				return util.NewInternalServerError(err,
+					"Failed to disable job CRD. jobID: %v", job.UUID)
+			}
+		}
+		if newToken == "" {
+			break
+		} else {
+			opts, err = list.NewOptionsFromToken(newToken, 50)
+			if err != nil {
+				return util.NewInternalServerError(err,
+					"Failed to create list jobs options from page token when archiving experiment. ")
+			}
+		}
+	}
+	return r.experimentStore.ArchiveExperiment(experimentId)
+}
+
+func (r *ResourceManager) UnarchiveExperiment(experimentId string) error {
+	return r.experimentStore.UnarchiveExperiment(experimentId)
+}
+
 func (r *ResourceManager) ListPipelines(opts *list.Options) (
 	pipelines []*model.Pipeline, total_size int, nextPageToken string, err error) {
 	return r.pipelineStore.ListPipelines(opts)

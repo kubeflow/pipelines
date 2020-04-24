@@ -1,11 +1,11 @@
 import {
-  Context,
   Api,
+  Context,
   Execution,
-  getResourceProperty,
-  ExecutionProperties,
   ExecutionCustomProperties,
   getResourcePropertyViaFallBack,
+  ExecutionProperties,
+  getResourceProperty,
 } from '@kubeflow/frontend';
 import {
   GetContextByTypeAndNameRequest,
@@ -101,5 +101,12 @@ export const ExecutionHelpers = {
   },
   getState(execution: Execution): string | number | undefined {
     return getResourceProperty(execution, ExecutionProperties.STATE) || undefined;
+  },
+  getKfpPod(execution: Execution): string | number | undefined {
+    return (
+      getResourceProperty(execution, KfpExecutionProperties.KFP_POD_NAME) ||
+      getResourceProperty(execution, KfpExecutionProperties.KFP_POD_NAME, true) ||
+      undefined
+    );
   },
 };
