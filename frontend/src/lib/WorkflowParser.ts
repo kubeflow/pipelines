@@ -27,7 +27,7 @@ import { color } from '../Css';
 import { statusToIcon } from '../pages/Status';
 import { Constants } from './Constants';
 import { KeyValue } from './StaticGraphParser';
-import { hasFinished, NodePhase, statusToBgColor } from './StatusUtils';
+import { hasFinished, NodePhase, statusToBgColor, parseNodePhase } from './StatusUtils';
 import { parseTaskDisplayName } from './ParserUtils';
 
 export enum StorageService {
@@ -102,7 +102,7 @@ export default class WorkflowParser {
 
       g.setNode(node.id, {
         height: Constants.NODE_HEIGHT,
-        icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt, node.message),
+        icon: statusToIcon(parseNodePhase(node), node.startedAt, node.finishedAt, node.message),
         label: nodeLabel,
         statusColoring: statusToBgColor(node.phase as NodePhase, node.message),
         width: Constants.NODE_WIDTH,
