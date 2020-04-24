@@ -254,6 +254,7 @@ export interface ApiStatus {
  * @enum {string}
  */
 export enum ExperimentStorageState {
+  UNSPECIFIED = <any>'STORAGESTATE_UNSPECIFIED',
   AVAILABLE = <any>'STORAGESTATE_AVAILABLE',
   ARCHIVED = <any>'STORAGESTATE_ARCHIVED',
 }
