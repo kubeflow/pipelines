@@ -3,6 +3,7 @@ import {
   Context,
   Execution,
   ExecutionCustomProperties,
+  getResourcePropertyViaFallBack,
   ExecutionProperties,
   getResourceProperty,
 } from '@kubeflow/frontend';
@@ -77,10 +78,14 @@ export enum KfpExecutionProperties {
   KFP_POD_NAME = 'kfp_pod_name',
 }
 
+const EXECUTION_PROPERTY_REPOS = [ExecutionProperties, ExecutionCustomProperties];
+
 export const ExecutionHelpers = {
   getWorkspace(execution: Execution): string | number | undefined {
     return (
-      getResourceProperty(execution, ExecutionCustomProperties.RUN_ID) ||
+      getResourcePropertyViaFallBack(execution, EXECUTION_PROPERTY_REPOS, [
+        ExecutionProperties.RUN_ID,
+      ]) ||
       getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
       getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
       undefined
