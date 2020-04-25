@@ -178,6 +178,9 @@ class TestCompiler(unittest.TestCase):
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(package_path)
 
+      for workflow in golden, compiled:
+        del workflow['metadata']
+
       self.maxDiff = None
       # Comment next line for generating golden yaml.
       self.assertEqual(golden, compiled)
@@ -205,8 +208,7 @@ class TestCompiler(unittest.TestCase):
         golden = yaml.safe_load(f)
 
       for workflow in golden, compiled_workflow:
-        annotations = workflow['metadata']['annotations']
-        del annotations['pipelines.kubeflow.org/pipeline_spec']
+        del workflow['metadata']
 
       self.assertEqual(golden, compiled_workflow)
     finally:
@@ -232,8 +234,7 @@ class TestCompiler(unittest.TestCase):
       compiled = self._get_yaml_from_zip(compose_package_path)
 
       for workflow in golden, compiled:
-        annotations = workflow['metadata']['annotations']
-        del annotations['pipelines.kubeflow.org/pipeline_spec']
+        del workflow['metadata']
 
       self.maxDiff = None
       # Comment next line for generating golden yaml.
@@ -263,8 +264,7 @@ class TestCompiler(unittest.TestCase):
       compiled = self._get_yaml_from_zip(target_zip)
 
       for workflow in golden, compiled:
-        annotations = workflow['metadata']['annotations']
-        del annotations['pipelines.kubeflow.org/pipeline_spec']
+        del workflow['metadata']
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -285,8 +285,7 @@ class TestCompiler(unittest.TestCase):
       compiled = self._get_yaml_from_zip(target_zip)
 
       for workflow in golden, compiled:
-        annotations = workflow['metadata']['annotations']
-        del annotations['pipelines.kubeflow.org/pipeline_spec']
+        del workflow['metadata']
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -306,8 +305,7 @@ class TestCompiler(unittest.TestCase):
       compiled = self._get_yaml_from_tar(target_tar)
 
       for workflow in golden, compiled:
-        annotations = workflow['metadata']['annotations']
-        del annotations['pipelines.kubeflow.org/pipeline_spec']
+        del workflow['metadata']
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -329,8 +327,7 @@ class TestCompiler(unittest.TestCase):
         compiled = yaml.safe_load(f)
       
       for workflow in golden, compiled:
-        annotations = workflow['metadata']['annotations']
-        del annotations['pipelines.kubeflow.org/pipeline_spec']
+        del workflow['metadata']
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -353,6 +350,9 @@ class TestCompiler(unittest.TestCase):
 
       with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
         compiled = yaml.safe_load(f)
+
+      for workflow in golden, compiled:
+        del workflow['metadata']
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
