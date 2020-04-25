@@ -1,11 +1,39 @@
 #!/usr/bin/env python3
 
 import kfp
+import json
+import copy
 from kfp import components
 from kfp import dsl
 from kfp.aws import use_aws_secret
 
 sagemaker_hpo_op = components.load_component_from_file('../../../../components/aws/sagemaker/hyperparameter_tuning/component.yaml')
+
+
+channelObjList = []
+
+channelObj = {
+    'ChannelName': '',
+    'DataSource': {
+        'S3DataSource': {
+            'S3Uri': '',
+            'S3DataType': 'S3Prefix',
+            'S3DataDistributionType': 'FullyReplicated'
+        }
+    },
+    'ContentType': '',
+    'CompressionType': 'None',
+    'RecordWrapperType': 'None',
+    'InputMode': 'File'
+}
+
+channelObj['ChannelName'] = 'train'
+channelObj['DataSource']['S3DataSource']['S3Uri'] = 's3://kubeflow-pipeline-data/mnist_kmeans_example/train_data'
+channelObjList.append(copy.deepcopy(channelObj))
+channelObj['ChannelName'] = 'test'
+channelObj['DataSource']['S3DataSource']['S3Uri'] = 's3://kubeflow-pipeline-data/mnist_kmeans_example/test_data'
+channelObjList.append(copy.deepcopy(channelObj))
+
 
 @dsl.pipeline(
     name='MNIST HPO test pipeline',
@@ -26,30 +54,7 @@ def hpo_test(region='us-west-2',
                          {"Name": "extra_center_factor", "MinValue": "10", "MaxValue": "20"}]',
     continuous_parameters='[]',
     categorical_parameters='[{"Name": "init_method", "Values": ["random", "kmeans++"]}]',
-    channels='[{"ChannelName": "train", \
-                "DataSource": { \
-                    "S3DataSource": { \
-                        "S3Uri": "s3://kubeflow-pipeline-data/mnist_kmeans_example/data",  \
-                        "S3DataType": "S3Prefix", \
-                        "S3DataDistributionType": "FullyReplicated" \
-                        } \
-                    }, \
-                "ContentType": "", \
-                "CompressionType": "None", \
-                "RecordWrapperType": "None", \
-                "InputMode": "File"}, \
-               {"ChannelName": "test", \
-                "DataSource": { \
-                    "S3DataSource": { \
-                        "S3Uri": "s3://kubeflow-pipeline-data/mnist_kmeans_example/data", \
-                        "S3DataType": "S3Prefix", \
-                        "S3DataDistributionType": "FullyReplicated" \
-                        } \
-                    }, \
-                "ContentType": "", \
-                "CompressionType": "None", \
-                "RecordWrapperType": "None", \
-                "InputMode": "File"}]',
+    channels=json.dumps(channelObjList),
     output_location='s3://kubeflow-pipeline-data/mnist_kmeans_example/output',
     output_encryption_key='',
     instance_type='ml.p2.16xlarge',

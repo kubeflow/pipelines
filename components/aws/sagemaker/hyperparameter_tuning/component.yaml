@@ -45,30 +45,6 @@ inputs:
     default: '[]'
   - name: channels
     description: 'A list of dicts specifying the input channels. Must have at least one.'
-  - name: data_location_1
-    description: 'The S3 URI of the input data source for channel 1.'
-    default: ''
-  - name: data_location_2
-    description: 'The S3 URI of the input data source for channel 2.'
-    default: ''
-  - name: data_location_3
-    description: 'The S3 URI of the input data source for channel 3.'
-    default: ''
-  - name: data_location_4
-    description: 'The S3 URI of the input data source for channel 4.'
-    default: ''
-  - name: data_location_5
-    description: 'The S3 URI of the input data source for channel 5.'
-    default: ''
-  - name: data_location_6
-    description: 'The S3 URI of the input data source for channel 6.'
-    default: ''
-  - name: data_location_7
-    description: 'The S3 URI of the input data source for channel 7.'
-    default: ''
-  - name: data_location_8
-    description: 'The S3 URI of the input data source for channel 8.'
-    default: ''
   - name: output_location
     description: 'The Amazon S3 path where you want Amazon SageMaker to store the model artifacts is from the best training job.'
   - name: output_encryption_key
@@ -139,7 +115,7 @@ outputs:
     description: 'The registry path of the Docker image that contains the training algorithm'
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.2
+    image: amazon/aws-sagemaker-kfp-components:0.3.0
     command: ['python']
     args: [
       hyperparameter_tuning.py,
@@ -160,14 +136,6 @@ implementation:
       --continuous_parameters, {inputValue: continuous_parameters},
       --categorical_parameters, {inputValue: categorical_parameters},
       --channels, {inputValue: channels},
-      --data_location_1, {inputValue: data_location_1},
-      --data_location_2, {inputValue: data_location_2},
-      --data_location_3, {inputValue: data_location_3},
-      --data_location_4, {inputValue: data_location_4},
-      --data_location_5, {inputValue: data_location_5},
-      --data_location_6, {inputValue: data_location_6},
-      --data_location_7, {inputValue: data_location_7},
-      --data_location_8, {inputValue: data_location_8},
       --output_location, {inputValue: output_location},
       --output_encryption_key, {inputValue: output_encryption_key},
       --instance_type, {inputValue: instance_type},

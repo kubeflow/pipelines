@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as express from 'express';
-import * as proxy from 'http-proxy-middleware';
+import express from 'express';
+import proxy from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
 
 export function _extractUrlFromReferer(proxyPrefix: string, referer = ''): string {

@@ -26,30 +26,6 @@ inputs:
     default: '{}'
   - name: channels
     description: 'A list of dicts specifying the input channels. Must have at least one.'
-  - name: data_location_1
-    description: 'The S3 URI of the input data source for channel 1.'
-    default: ''
-  - name: data_location_2
-    description: 'The S3 URI of the input data source for channel 2.'
-    default: ''
-  - name: data_location_3
-    description: 'The S3 URI of the input data source for channel 3.'
-    default: ''
-  - name: data_location_4
-    description: 'The S3 URI of the input data source for channel 4.'
-    default: ''
-  - name: data_location_5
-    description: 'The S3 URI of the input data source for channel 5.'
-    default: ''
-  - name: data_location_6
-    description: 'The S3 URI of the input data source for channel 6.'
-    default: ''
-  - name: data_location_7
-    description: 'The S3 URI of the input data source for channel 7.'
-    default: ''
-  - name: data_location_8
-    description: 'The S3 URI of the input data source for channel 8.'
-    default: ''
   - name: instance_type
     description: 'The ML compute instance type.'
     default: 'ml.m4.xlarge'
@@ -103,7 +79,7 @@ outputs:
   - {name: training_image,        description: 'The registry path of the Docker image that contains the training algorithm'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.2
+    image: amazon/aws-sagemaker-kfp-components:0.3.0
     command: ['python']
     args: [
       train.py,
@@ -117,14 +93,6 @@ implementation:
       --training_input_mode, {inputValue: training_input_mode},
       --hyperparameters, {inputValue: hyperparameters},
       --channels, {inputValue: channels},
-      --data_location_1, {inputValue: data_location_1},
-      --data_location_2, {inputValue: data_location_2},
-      --data_location_3, {inputValue: data_location_3},
-      --data_location_4, {inputValue: data_location_4},
-      --data_location_5, {inputValue: data_location_5},
-      --data_location_6, {inputValue: data_location_6},
-      --data_location_7, {inputValue: data_location_7},
-      --data_location_8, {inputValue: data_location_8},
       --instance_type, {inputValue: instance_type},
       --instance_count, {inputValue: instance_count},
       --volume_size, {inputValue: volume_size},

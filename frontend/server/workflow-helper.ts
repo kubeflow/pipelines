@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import * as path from 'path';
+import path from 'path';
 import { PassThrough, Stream } from 'stream';
 import { ClientOptions as MinioClientOptions } from 'minio';
 import { getK8sSecret, getArgoWorkflow, getPodLogs } from './k8s-helper';

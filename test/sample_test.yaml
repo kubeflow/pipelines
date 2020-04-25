@@ -74,7 +74,6 @@ spec:
               - execution_order
               - imagepullsecrets
               - retry
-              - artifact_location
               - preemptible_tpu_gpu
               - volume_snapshot_ops
               - loop_output
