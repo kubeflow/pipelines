@@ -832,9 +832,7 @@ class Compiler(object):
 
     metadata = workflow.setdefault('metadata', {})
     annotations = metadata.setdefault('annotations', {})
-    annotations['pipelines.kubeflow.org/sdk_version'] = 'kfp==' + kfp.__version__
 
-    # Adding kfp_sdk_version since sdk_version may be ambiguous when multiple SDKs are used at the same time.
     annotations['pipelines.kubeflow.org/kfp_sdk_version'] = kfp.__version__
     annotations['pipelines.kubeflow.org/pipeline_compilation_time'] = datetime.datetime.now().isoformat()
     annotations['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
