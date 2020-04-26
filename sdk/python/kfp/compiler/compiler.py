@@ -686,6 +686,12 @@ class Compiler(object):
 
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
+
+    # This can be overwritten by the task specific 
+    # nodeselection, specified in the template.
+    if pipeline_conf.node_selector:
+      workflow['spec']['nodeSelector'] = pipeline_conf.node_selector
+
     return workflow
 
   def _validate_exit_handler(self, pipeline):
