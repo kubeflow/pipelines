@@ -3,17 +3,17 @@ import CustomTable, { Column, CustomRendererProps, Row, ExpandState } from '../c
 import * as React from 'react';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { ApiListExperimentsResponse, ApiExperiment, ExperimentStorageState } from '../apis/experiment';
-import { errorToMessage, logger, formatDateString } from '../lib/Utils';
+import { errorToMessage } from '../lib/Utils';
 import { RoutePage, RouteParams } from '../components/Router';
 import { commonCss } from '../Css';
-import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
+import { Apis, ExperimentSortKeys, ListRequest } from '../lib/Apis';
 import {RunStorageState} from 'src/apis/run';
 import RunList from '../pages/RunList';
 import { PredicateOp, ApiFilter } from '../apis/filter';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
 
-export interface ExperimentListComponentProp extends RouteComponentProps {
+export interface ExperimentListComponentProps extends RouteComponentProps {
   namespace?: string;
   storageState?: ExperimentStorageState;
   onError: (message: string, error: Error) => void;
@@ -32,7 +32,7 @@ interface ExperimentListComponentState {
   selectedIds: string[];
 }
 
-export class ExperimentListComponent extends React.PureComponent<ExperimentListComponentProp, ExperimentListComponentState> {
+export class ExperimentListComponent extends React.PureComponent<ExperimentListComponentProps, ExperimentListComponentState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -110,7 +110,7 @@ export class ExperimentListComponent extends React.PureComponent<ExperimentListC
     );
   };
 
-private async _loadExperiments(request: ListRequest): Promise<string> {
+protected async _loadExperiments(request: ListRequest): Promise<string> {
     let nextPageToken = '';
     let displayExperiments: DisplayExperiment[];
 
@@ -134,7 +134,9 @@ private async _loadExperiments(request: ListRequest): Promise<string> {
         ]);
         request.filter = encodeURIComponent(JSON.stringify(filter));
       } catch (err) {
-        logger.error('Could not parse request filter: ', request.filter);
+        const error = new Error(await errorToMessage(err));
+        this.props.onError('Error: failed to parse request filter: ', error);
+        return '';
       }
     }
 
@@ -153,7 +155,9 @@ private async _loadExperiments(request: ListRequest): Promise<string> {
       displayExperiments.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
       this.setState({ displayExperiments });
     } catch (err) {
-      logger.error('Could not list experiments: ', request.filter);
+      const error = new Error(await errorToMessage(err));
+      this.props.onError('Error: failed to list experiments: ', error);
+      return '';
     }
 
     return nextPageToken;
