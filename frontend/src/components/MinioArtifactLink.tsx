@@ -4,7 +4,7 @@ import { S3Artifact } from '../../third_party/argo-ui/argo_template';
 import { buildQuery } from 'src/lib/Utils';
 
 const artifactApiUri = ({ source, bucket, key }: StoragePath, namespace?: string) =>
-  `namespaces/${namespace}/artifacts/get${buildQuery({ source, bucket, key })}`;
+  `artifacts/get${buildQuery({ source, bucket, key, namespace })}`;
 
 /**
  * A component that renders an artifact link.
