@@ -11,15 +11,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import * as path from 'path';
-import * as express from 'express';
+import path from 'path';
+import express from 'express';
 import { Application, static as StaticHandler } from 'express';
-import * as proxy from 'http-proxy-middleware';
+import proxy from 'http-proxy-middleware';
 
 import { UIConfigs } from './configs';
 import { getAddress } from './utils';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz';
-import { getArtifactsHandler } from './handlers/artifacts';
+import {
+  getArtifactsHandler,
+  getArtifactsProxyHandler,
+  getArtifactServiceGetter,
+} from './handlers/artifacts';
 import {
   getCreateTensorboardHandler,
   getTensorboardHandler,
@@ -36,7 +40,7 @@ import { Server } from 'http';
 
 function getRegisterHandler(app: Application, basePath: string) {
   return (
-    func: (name: string, handler: express.Handler) => express.Application,
+    func: (name: string | string[], handler: express.Handler) => express.Application,
     route: string | string[],
     handler: express.Handler,
   ) => {
@@ -114,6 +118,14 @@ function createUIServer(options: UIConfigs) {
   );
 
   /** Artifact */
+  registerHandler(
+    app.get,
+    '/artifacts/get',
+    getArtifactsProxyHandler({
+      enabled: options.artifacts.proxy.enabled,
+      namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
+    }),
+  );
   registerHandler(app.get, '/artifacts/get', getArtifactsHandler(options.artifacts));
 
   /** Tensorboard viewer */

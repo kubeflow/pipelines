@@ -5,26 +5,111 @@ bases:
 - application
 - argo
 - pipeline
-- proxy
 - metadata
+- mysql
+- cache
+- cache-deployer
 
 resources:
+  - namespace.yaml
   - pipeline-application.yaml
 
-images:
-- name: gcr.io/ml-pipeline/api-server
-  newTag: 0.3.0
-- name: gcr.io/ml-pipeline/persistenceagent
-  newTag: 0.3.0
-- name: gcr.io/ml-pipeline/scheduledworkflow
-  newTag: 0.3.0
-- name: gcr.io/ml-pipeline/frontend
-  newTag: 0.3.0
-- name: gcr.io/ml-pipeline/viewer-crd-controller
-  newTag: 0.3.0
-- name: gcr.io/ml-pipeline/inverse-proxy-agent
-  newTag: 0.3.0
-- name: gcr.io/ml-pipeline/visualization-server
-  newTag: 0.3.0
-- name: gcr.io/ml-pipeline/metadata-writer
-  newTag: 0.3.0
+# Used by Kustomize
+configMapGenerator:
+  - name: pipeline-install-config
+    env: params.env
+
+secretGenerator:
+  - name: mysql-secret
+    env: params-db-secret.env
+
+vars:
+  - name: NAMESPACE
+    objref:
+      kind: Deployment
+      apiVersion: apps/v1
+      name: ml-pipeline
+    fieldref:
+      fieldpath: metadata.namespace
+  - name: APP_NAME
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.appName
+  - name: APP_VERSION
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.appVersion
+  # IMAGE_PREFIX & IMAGE_TAG can't work together with "kustomize edit set image"
+  # If we change it to be native image tags and then use "kustomize edit set image",
+  # it will regenerate the "envs" while "kubectl apply -k" only accepts "env".
+  # To avoid install additional "kustomize" tool, we give "kubectl apply -k" priority.
+  # So to well customize images, we don't use "Kustomize edit set image" but via
+  # changing the value here.
+  # After the two following issues got solve, we revisit here.
+  # https://github.com/kubernetes-sigs/kustomize/issues/2205
+  # https://github.com/kubernetes-sigs/kustomize/issues/1342
+  - name: IMAGE_PREFIX
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.imagePrefix
+  - name: IMAGE_TAG
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.imageTag
+  - name: DBSERVICE_HOST
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.dbHost
+  - name: DBSERVICE_PORT
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.dbPort
+  - name: DBNAME_MLMD
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.mlmdDb
+  - name: DBNAME_CACHE
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.cacheDb
+  - name: DBNAME_PIPELINE
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.pipelineDb
+  - name: BUCKET_NAME
+    objref:
+      kind: ConfigMap
+      name: pipeline-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.bucketName
+
+configurations:
+  - params.yaml

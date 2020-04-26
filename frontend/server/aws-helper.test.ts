@@ -23,7 +23,7 @@ function sleep(ms: number) {
 
 beforeEach(() => {
   awsInstanceProfileCredentials.reset();
-  jest.resetAllMocks();
+  jest.clearAllMocks();
 });
 
 describe('awsInstanceProfileCredentials', () => {

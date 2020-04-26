@@ -56,6 +56,7 @@ This requires you already have a real KFP cluster, you can proxy requests to it.
 Before you start, configure your `kubectl` to talk to your KFP cluster.
 
 Then it depends on what you want to develop:
+
 | What to develop?        | Script to run                                                  | Extra notes                                                        |
 | ----------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------ |
 | Client UI               | `NAMESPACE=kubeflow npm run start:proxy`            |                                                                    |
