@@ -75,54 +75,58 @@ export class Archive extends Page<ArchiveProps, ArchiveState> {
 
   public render(): JSX.Element {
     return (
+      // Two components in Archive page. One is a list of archived runs, and
+      // the other is a list of archived experiments.
       <div>
-      <div className={classes(commonCss.flex, padding(10, 'b'))}>
-        <FormControlLabel
-          id='viewArchivedRuns'
-          label='Runs'
-          checked={this.state.selectedTab === ArchiveTab.RUNS}
-          control={<Radio color='primary' />}
-          onChange={() =>
-            this.setState({
-              selectedTab: ArchiveTab.RUNS,
-            })
-          }
-        />
-        <FormControlLabel
-          id='viewArchivedExperiments'
-          label='Experiments'
-          checked={this.state.selectedTab === ArchiveTab.EXPERIMENTS}
-          control={<Radio color='primary' />}
-          onChange={() =>
-            this.setState({
-              selectedTab: ArchiveTab.EXPERIMENTS,
-            })
-          }
-        />
-      </div>
+        <div className={classes(commonCss.flex, padding(10, 'b'))}>
+          <FormControlLabel
+            id='viewArchivedRuns'
+            label='Runs'
+            checked={this.state.selectedTab === ArchiveTab.RUNS}
+            control={<Radio color='primary' />}
+            onChange={() =>
+              this.setState({
+                selectedTab: ArchiveTab.RUNS,
+              })
+            }
+          />
+          <FormControlLabel
+            id='viewArchivedExperiments'
+            label='Experiments'
+            checked={this.state.selectedTab === ArchiveTab.EXPERIMENTS}
+            control={<Radio color='primary' />}
+            onChange={() =>
+              this.setState({
+                selectedTab: ArchiveTab.EXPERIMENTS,
+              })
+            }
+          />
+        </div>
 
-      {this.state.selectedTab === ArchiveTab.RUNS &&
-      <div className={classes(commonCss.page, padding(20, 't'))}>
-        <RunList
-          namespaceMask={this.props.namespace}
-          onError={this.showPageError.bind(this)}
-          selectedIds={this.state.selectedIds}
-          onSelectionChange={this._selectionChanged.bind(this)}
-          ref={this._runlistRef}
-          storageState={RunStorageState.ARCHIVED}
-          {...this.props}
-        />
-      </div>}
-      {this.state.selectedTab === ArchiveTab.EXPERIMENTS &&
-      <div>
-        <ExperimentListComponent
-          ref={this._experimentlistRef}
-          onError={this.showPageError.bind(this)}
-          onSelectionChange={this._experimentSelectionChanged.bind(this)}
-          storageState={ExperimentStorageState.ARCHIVED}
-          {...this.props}
-        />
-      </div>}
+        {this.state.selectedTab === ArchiveTab.RUNS && (
+          <div className={classes(commonCss.page, padding(20, 't'))}>
+            <RunList
+              namespaceMask={this.props.namespace}
+              onError={this.showPageError.bind(this)}
+              selectedIds={this.state.selectedIds}
+              onSelectionChange={this._selectionChanged.bind(this)}
+              ref={this._runlistRef}
+              storageState={RunStorageState.ARCHIVED}
+              {...this.props}
+            />
+          </div>
+        )}
+        {this.state.selectedTab === ArchiveTab.EXPERIMENTS && (
+          <div>
+            <ExperimentListComponent
+              ref={this._experimentlistRef}
+              onError={this.showPageError.bind(this)}
+              onSelectionChange={this._experimentSelectionChanged.bind(this)}
+              storageState={ExperimentStorageState.ARCHIVED}
+              {...this.props}
+            />
+          </div>
+        )}
       </div>
     );
   }

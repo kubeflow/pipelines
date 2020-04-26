@@ -17,12 +17,12 @@
 import AddIcon from '@material-ui/icons/Add';
 import CollapseIcon from '@material-ui/icons/UnfoldLess';
 import ExpandIcon from '@material-ui/icons/UnfoldMore';
-import {QUERY_PARAMS, RoutePage} from '../components/Router';
-import {ToolbarActionMap} from '../components/Toolbar';
-import {PageProps} from '../pages/Page';
-import {Apis} from './Apis';
-import {URLParser} from './URLParser';
-import {errorToMessage, s} from './Utils';
+import { QUERY_PARAMS, RoutePage } from '../components/Router';
+import { ToolbarActionMap } from '../components/Toolbar';
+import { PageProps } from '../pages/Page';
+import { Apis } from './Apis';
+import { URLParser } from './URLParser';
+import { errorToMessage, s } from './Utils';
 
 export enum ButtonKeys {
   ARCHIVE = 'archive',
@@ -324,7 +324,8 @@ export default class Buttons {
     callback: (selectedIds: string[], success: boolean) => void,
   ): Buttons {
     this._map[ButtonKeys.RESTORE] = {
-      action: () => resourceName === 'run'
+      action: () =>
+        resourceName === 'run'
           ? this._restore(getSelectedIds(), useCurrentResource, callback)
           : this._restoreExperiments(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
@@ -450,9 +451,9 @@ export default class Buttons {
         selectedIds.length === 1 ? 'this experiment' : 'these experiments'
       } will stay at their current locations in spite that ${
         selectedIds.length === 1 ? 'this experiment' : 'these experiments'
-      } will be moved to ${
-        selectedIds.length === 1 ? 'its' : 'their'
-      } original location${s(selectedIds)}.`,
+      } will be moved to ${selectedIds.length === 1 ? 'its' : 'their'} original location${s(
+        selectedIds,
+      )}.`,
       useCurrent,
       id => Apis.experimentServiceApi.unarchiveExperiment(id),
       callback,
@@ -877,14 +878,14 @@ export default class Buttons {
     useCurrent: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
   ): void {
-    console.log('experiment selected: ' + selectedIds)
+    console.log('experiment selected: ' + selectedIds);
     this._dialogActionHandler(
       selectedIds,
       `Experiment${s(selectedIds)} will be moved to the Archive section, where you can still view${
         selectedIds.length === 1 ? 'its' : 'their'
-      } details. All runs in this archived experiment will be archived. All jobs in this archived experiment will be disabled. Use the Restore action on the experiment details page to restore the experiment${s(selectedIds)} to ${
-        selectedIds.length === 1 ? 'its' : 'their'
-      } original location.`,
+      } details. All runs in this archived experiment will be archived. All jobs in this archived experiment will be disabled. Use the Restore action on the experiment details page to restore the experiment${s(
+        selectedIds,
+      )} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
       useCurrent,
       id => Apis.experimentServiceApi.archiveExperiment(id),
       callback,

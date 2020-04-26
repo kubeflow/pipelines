@@ -1,34 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`ExperimentListComponent in archived state renders the empty experience 1`] = `
-<div>
-  <CustomTable
-    columns={
-      Array [
-        Object {
-          "customRenderer": [Function],
-          "flex": 1,
-          "label": "Experiment name",
-          "sortKey": "name",
-        },
-        Object {
-          "flex": 2,
-          "label": "Description",
-        },
-      ]
-    }
-    disableSelection={true}
-    emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
-    filterLabel="Filter experiments"
-    getExpandComponent={[Function]}
-    initialSortColumn="created_at"
-    reload={[Function]}
-    rows={Array []}
-    toggleExpansion={[Function]}
-  />
-</div>
-`;
-
 exports[`ExperimentListComponent loads multiple experiments 1`] = `
 <div>
   <CustomTable
@@ -3805,35 +3776,6 @@ exports[`ExperimentListComponent reloads the experiment when refresh is called 1
 `;
 
 exports[`ExperimentListComponent renders the empty experience 1`] = `
-<div>
-  <CustomTable
-    columns={
-      Array [
-        Object {
-          "customRenderer": [Function],
-          "flex": 1,
-          "label": "Experiment name",
-          "sortKey": "name",
-        },
-        Object {
-          "flex": 2,
-          "label": "Description",
-        },
-      ]
-    }
-    disableSelection={true}
-    emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
-    filterLabel="Filter experiments"
-    getExpandComponent={[Function]}
-    initialSortColumn="created_at"
-    reload={[Function]}
-    rows={Array []}
-    toggleExpansion={[Function]}
-  />
-</div>
-`;
-
-exports[`ExperimentListComponent renders the empty experience 2`] = `
 <div>
   <CustomTable
     columns={

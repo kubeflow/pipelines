@@ -16,28 +16,14 @@
 
 import * as React from 'react';
 import * as Utils from '../lib/Utils';
-import {ExperimentListComponent, ExperimentListComponentProps } from './ExperimentListComponent';
+import { ExperimentListComponent, ExperimentListComponentProps } from './ExperimentListComponent';
 import TestUtils from '../TestUtils';
-import produce from 'immer';
 import { ApiFilter, PredicateOp } from '../apis/filter';
-import {
-  ApiRun,
-//   ApiRunDetail,
-//   ApiResourceType,
-//   ApiRunMetric,
-//   RunMetricFormat,
-  RunStorageState,
-} from '../apis/run';
-import {
-    ApiExperiment,
-    // ApiResourceType,
-    ExperimentStorageState,
-} from '../apis/experiment';
+import { RunStorageState } from '../apis/run';
+import { ExperimentStorageState } from '../apis/experiment';
 import { ExpandState } from '../components/CustomTable';
 
 import { Apis, ExperimentSortKeys, ListRequest } from '../lib/Apis';
-import { MetricMetadata } from '../lib/RunUtils';
-import { NodePhase } from '../lib/StatusUtils';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
 
@@ -69,20 +55,18 @@ describe('ExperimentListComponent', () => {
 
   function mockNExperiments(n: number): void {
     getExperimentSpy.mockImplementation(id =>
-      Promise.resolve(
-        {
-          id: 'testexperiment' + id,
-          name: 'experiment with id: testexperiment' + id,
-        },
-      ),
+      Promise.resolve({
+        id: 'testexperiment' + id,
+        name: 'experiment with id: testexperiment' + id,
+      }),
     );
     listExperimentsSpy.mockImplementation(() =>
       Promise.resolve({
         experiments: range(1, n + 1).map(i => {
-            return {
-              id: 'testexperiment' + i,
-              name: 'experiment with id: testexperiment' + i,
-            };
+          return {
+            id: 'testexperiment' + i,
+            name: 'experiment with id: testexperiment' + i,
+          };
         }),
       }),
     );
@@ -275,7 +259,7 @@ describe('ExperimentListComponent', () => {
   });
 
   it('loads runs for a given experiment id when it is expanded', async () => {
-    listRunsSpy.mockImplementation(() => {})
+    listRunsSpy.mockImplementation(() => {});
     mockNExperiments(1);
     const props = generateProps();
     // tree = shallow(<ExperimentListComponent {...props} />);
@@ -291,7 +275,10 @@ describe('ExperimentListComponent', () => {
       },
     ]);
     // Expand the first experiment
-    tree.find('button[aria-label="Expand"]').at(0).simulate('click');
+    tree
+      .find('button[aria-label="Expand"]')
+      .at(0)
+      .simulate('click');
     await listRunsSpy;
     tree.update();
     expect(tree.state()).toHaveProperty('displayExperiments', [
@@ -303,9 +290,9 @@ describe('ExperimentListComponent', () => {
     ]);
     expect(Apis.runServiceApi.listRuns).toHaveBeenCalledTimes(1);
     expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
-      "",
+      '',
       10,
-      "created_at desc",
+      'created_at desc',
       'EXPERIMENT',
       'testexperiment1',
       encodeURIComponent(
@@ -323,7 +310,7 @@ describe('ExperimentListComponent', () => {
   });
 
   it('loads runs for a given experiment id with augumented storage state when it is expanded', async () => {
-    listRunsSpy.mockImplementation(() => {})
+    listRunsSpy.mockImplementation(() => {});
     mockNExperiments(1);
     const props = generateProps();
     props.storageState = ExperimentStorageState.ARCHIVED;
@@ -339,7 +326,10 @@ describe('ExperimentListComponent', () => {
       },
     ]);
     // Expand the first experiment
-    tree.find('button[aria-label="Expand"]').at(0).simulate('click');
+    tree
+      .find('button[aria-label="Expand"]')
+      .at(0)
+      .simulate('click');
     await listRunsSpy;
     tree.update();
     expect(tree.state()).toHaveProperty('displayExperiments', [
@@ -351,9 +341,9 @@ describe('ExperimentListComponent', () => {
     ]);
     expect(Apis.runServiceApi.listRuns).toHaveBeenCalledTimes(1);
     expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
-      "",
+      '',
       10,
-      "created_at desc",
+      'created_at desc',
       'EXPERIMENT',
       'testexperiment1',
       encodeURIComponent(
@@ -369,4 +359,4 @@ describe('ExperimentListComponent', () => {
       ),
     );
   });
-})
+});
