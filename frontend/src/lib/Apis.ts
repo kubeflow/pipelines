@@ -22,6 +22,7 @@ import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { PlotType } from '../components/viewers/Viewer';
 import * as Utils from './Utils';
 import { StoragePath } from './WorkflowParser';
+import { buildQuery } from './Utils';
 
 const v1beta1Prefix = 'apis/v1beta1';
 
@@ -67,8 +68,12 @@ export class Apis {
 
   public static async buildPythonVisualizationConfig(
     visualizationData: ApiVisualization,
+    namespace?: string,
   ): Promise<HTMLViewerConfig> {
-    const visualization = await Apis.visualizationServiceApi.createVisualization(visualizationData);
+    const visualization = await Apis.visualizationServiceApi.createVisualization(
+      namespace || '',
+      visualizationData,
+    );
     if (visualization.html) {
       const htmlContent = visualization.html
         // Fixes issue with TFX components (and other iframe based
@@ -200,11 +205,9 @@ export class Apis {
   /**
    * Reads file from storage using server.
    */
-  public static readFile(path: StoragePath): Promise<string> {
-    return this._fetch(
-      'artifacts/get' +
-        `?source=${path.source}&bucket=${path.bucket}&key=${encodeURIComponent(path.key)}`,
-    );
+  public static readFile(path: StoragePath, namespace?: string): Promise<string> {
+    const { source, bucket, key } = path;
+    return this._fetch(`artifacts/get${buildQuery({ source, bucket, key, namespace })}`);
   }
 
   /**
