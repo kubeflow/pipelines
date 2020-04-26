@@ -25,9 +25,6 @@ export interface ExperimentListComponentProps extends RouteComponentProps {
   namespace?: string;
   storageState?: ExperimentStorageState;
   onError: (message: string, error: Error) => void;
-  onSelectionChange?: (selectedIds: string[]) => void;
-  onRunSelectionChange?: (selectedIds: string[]) => void;
-  selectedIds?: string[];
 }
 
 interface DisplayExperiment extends ApiExperiment {
@@ -37,7 +34,6 @@ interface DisplayExperiment extends ApiExperiment {
 
 interface ExperimentListComponentState {
   displayExperiments: DisplayExperiment[];
-  selectedIds: string[];
 }
 
 export class ExperimentListComponent extends React.PureComponent<
@@ -51,7 +47,6 @@ export class ExperimentListComponent extends React.PureComponent<
 
     this.state = {
       displayExperiments: [],
-      selectedIds: [],
     };
   }
 
@@ -191,14 +186,12 @@ export class ExperimentListComponent extends React.PureComponent<
         onError={() => null}
         {...this.props}
         disablePaging={true}
-        selectedIds={this.state.selectedIds}
         noFilterBox={true}
         storageState={
           this.props.storageState === ExperimentStorageState.ARCHIVED
             ? RunStorageState.ARCHIVED
             : RunStorageState.AVAILABLE
         }
-        onSelectionChange={this.props.onRunSelectionChange}
         disableSorting={true}
         disableSelection={true}
       />

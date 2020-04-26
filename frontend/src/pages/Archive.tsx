@@ -121,7 +121,6 @@ export class Archive extends Page<ArchiveProps, ArchiveState> {
             <ExperimentListComponent
               ref={this._experimentlistRef}
               onError={this.showPageError.bind(this)}
-              onSelectionChange={this._experimentSelectionChanged.bind(this)}
               storageState={ExperimentStorageState.ARCHIVED}
               {...this.props}
             />
@@ -140,17 +139,6 @@ export class Archive extends Page<ArchiveProps, ArchiveState> {
   }
 
   private _selectionChanged(selectedIds: string[]): void {
-    const toolbarActions = this.props.toolbarProps.actions;
-    toolbarActions[ButtonKeys.RESTORE].disabled = !selectedIds.length;
-    toolbarActions[ButtonKeys.DELETE_RUN].disabled = !selectedIds.length;
-    this.props.updateToolbar({
-      actions: toolbarActions,
-      breadcrumbs: this.props.toolbarProps.breadcrumbs,
-    });
-    this.setState({ selectedIds });
-  }
-
-  private _experimentSelectionChanged(selectedIds: string[]): void {
     const toolbarActions = this.props.toolbarProps.actions;
     toolbarActions[ButtonKeys.RESTORE].disabled = !selectedIds.length;
     toolbarActions[ButtonKeys.DELETE_RUN].disabled = !selectedIds.length;

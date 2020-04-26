@@ -72,16 +72,6 @@ describe('ExperimentListComponent', () => {
     );
   }
 
-  function getMountedInstance(): ExperimentListComponent {
-    tree = TestUtils.mountWithRouter(<ExperimentListComponent {...generateProps()} />);
-    return tree.instance() as ExperimentListComponent;
-  }
-
-  function getShallowInstance(): ExperimentListComponent {
-    tree = shallow(<ExperimentListComponent {...generateProps()} />);
-    return tree.instance() as ExperimentListComponent;
-  }
-
   beforeEach(() => {
     formatDateStringSpy.mockImplementation((date?: Date) => {
       return date ? '1/2/2019, 12:34:56 PM' : '-';
