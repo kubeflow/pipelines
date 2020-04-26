@@ -96,6 +96,7 @@ def create_artifact_with_type(
     type_name: str,
     properties: dict = None,
     type_properties: dict = None,
+    custom_properties: dict = None,
 ) -> metadata_store_pb2.Artifact:
     artifact_type = get_or_create_artifact_type(
         store=store,
@@ -106,6 +107,7 @@ def create_artifact_with_type(
         uri=uri,
         type_id=artifact_type.id,
         properties=properties,
+        custom_properties=custom_properties,
     )
     artifact.id = store.put_artifacts([artifact])[0]
     return artifact
@@ -116,6 +118,7 @@ def create_execution_with_type(
     type_name: str,
     properties: dict = None,
     type_properties: dict = None,
+    custom_properties: dict = None,
 ) -> metadata_store_pb2.Execution:
     execution_type = get_or_create_execution_type(
         store=store,
@@ -125,6 +128,7 @@ def create_execution_with_type(
     execution = metadata_store_pb2.Execution(
         type_id=execution_type.id,
         properties=properties,
+        custom_properties=custom_properties,
     )
     execution.id = store.put_executions([execution])[0]
     return execution
@@ -136,6 +140,7 @@ def create_context_with_type(
     type_name: str,
     properties: dict = None,
     type_properties: dict = None,
+    custom_properties: dict = None,
 ) -> metadata_store_pb2.Context:
     # ! Context_name must be unique
     context_type = get_or_create_context_type(
@@ -147,6 +152,7 @@ def create_context_with_type(
         name=context_name,
         type_id=context_type.id,
         properties=properties,
+        custom_properties=custom_properties,
     )
     context.id = store.put_contexts([context])[0]
     return context
@@ -171,6 +177,7 @@ def get_or_create_context_with_type(
     type_name: str,
     properties: dict = None,
     type_properties: dict = None,
+    custom_properties: dict = None,
 ) -> metadata_store_pb2.Context:
     try:
         context = get_context_by_name(store, context_name)
@@ -181,6 +188,7 @@ def get_or_create_context_with_type(
             type_name=type_name,
             properties=properties,
             type_properties=type_properties,
+            custom_properties=custom_properties,
         )
         return context
 
@@ -198,10 +206,12 @@ def create_new_execution_in_existing_context(
     context_id: int,
     properties: dict = None,
     execution_type_properties: dict = None,
+    custom_properties: dict = None,
 ) -> metadata_store_pb2.Execution:
     execution = create_execution_with_type(
         store=store,
         properties=properties,
+        custom_properties=custom_properties,
         type_name=execution_type_name,
         type_properties=execution_type_properties,
     )
@@ -290,6 +300,7 @@ def create_new_artifact_event_and_attribution(
     event_type: metadata_store_pb2.Event.Type,
     properties: dict = None,
     artifact_type_properties: dict = None,
+    custom_properties: dict = None,
     artifact_name_path: metadata_store_pb2.Event.Path = None,
     milliseconds_since_epoch: int = None,
 ) -> metadata_store_pb2.Artifact:
@@ -299,6 +310,7 @@ def create_new_artifact_event_and_attribution(
         type_name=type_name,
         type_properties=artifact_type_properties,
         properties=properties,
+        custom_properties=custom_properties,
     )
     event = metadata_store_pb2.Event(
         execution_id=execution_id,

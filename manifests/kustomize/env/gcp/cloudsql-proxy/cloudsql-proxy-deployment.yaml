@@ -17,14 +17,9 @@ spec:
       containers:
         - image: gcr.io/cloudsql-docker/gce-proxy:1.14
           name: cloudsqlproxy
-          env:
-            - name: CLOUD_SQL_INSTANCE_CONNECTION_NAME
-              value: ""
           command: ["/cloud_sql_proxy",
-                    "-dir=/cloudsql",
-                    # Replace with your own CloudSQL instance ID
-                    "-instances=$(CLOUD_SQL_INSTANCE_CONNECTION_NAME)=tcp:0.0.0.0:3306",
-                    "-credential_file=/credentials/application_default_credentials.json",
+                    "-dir=/cloudsql",                    
+                    "-instances=$(GCP_CLOUDSQL_INSTANCE_NAME)=tcp:0.0.0.0:3306",
                     "term_timeout=10s"]
           # set term_timeout if require graceful handling of shutdown
           # NOTE: proxy will stop accepting new connections; only wait on existing connections
@@ -40,11 +35,6 @@ spec:
           volumeMounts:
             - mountPath: /cloudsql
               name: cloudsql
-            - mountPath: /credentials
-              name: gcp-sa-token
       volumes:
         - name: cloudsql
           emptyDir:
-        - name: gcp-sa-token
-          secret:
-            secretName: user-gcp-sa
