@@ -34,7 +34,7 @@ import (
 const (
 	KFPCacheEnabledLabelKey   string = "pipelines.kubeflow.org/cache_enabled"
 	KFPCacheEnabledLabelValue string = "true"
-	KFPCachedLabelKey         string = "pipelines.kubeflow.org/reused_from_cached"
+	KFPCachedLabelKey         string = "pipelines.kubeflow.org/reused_from_cache"
 	KFPCachedLabelValue       string = "true"
 	ArgoWorkflowNodeName      string = "workflows.argoproj.io/node-name"
 	ArgoWorkflowTemplate      string = "workflows.argoproj.io/template"
