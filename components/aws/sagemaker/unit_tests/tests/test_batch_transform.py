@@ -7,6 +7,8 @@ from datetime import datetime
 
 from batch_transform.src import batch_transform
 from common import _utils
+from . import testUtils
+
 
 # TODO : Errors out if model_name doesn't contain '-'
 # fix model_name '-' bug
@@ -30,3 +32,8 @@ class BatchTransformTestCase(unittest.TestCase):
     args = self.parser.parse_args(required_args)
     response = _utils.create_transform_job_request(vars(args))
     self.assertEqual(response['TransformOutput']['S3OutputPath'], 's3://fake-bucket/output')
+
+  def test_empty_string(self):
+    args = self.parser.parse_args(required_args)
+    response = _utils.create_transform_job_request(vars(args))
+    testUtils.check_empty_string_values(response)

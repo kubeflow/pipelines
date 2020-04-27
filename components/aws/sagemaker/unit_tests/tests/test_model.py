@@ -7,6 +7,8 @@ from datetime import datetime
 
 from model.src import create_model
 from common import _utils
+from . import testUtils
+
 
 required_args = [
   '--region', 'us-west-2',
@@ -26,3 +28,8 @@ class ModelTestCase(unittest.TestCase):
     args = self.parser.parse_args(required_args)
     response = _utils.create_model_request(vars(args))
     self.assertEqual(response['ModelName'], 'model_test')
+
+  def test_empty_string(self):
+    args = self.parser.parse_args(required_args)
+    response = _utils.create_model_request(vars(args))
+    testUtils.check_empty_string_values(response)

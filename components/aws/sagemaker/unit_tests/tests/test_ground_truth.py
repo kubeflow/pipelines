@@ -7,6 +7,8 @@ from datetime import datetime
 
 from ground_truth.src import ground_truth
 from common import _utils
+from . import testUtils
+
 
 required_args = [
   '--region', 'us-west-2',
@@ -33,3 +35,8 @@ class GroundTruthTestCase(unittest.TestCase):
     args = self.parser.parse_args(required_args)
     response = _utils.create_labeling_job_request(vars(args))
     self.assertEqual(response['LabelingJobName'], 'test_job')
+
+  def test_empty_string(self):
+    args = self.parser.parse_args(required_args)
+    response = _utils.create_labeling_job_request(vars(args))
+    testUtils.check_empty_string_values(response)
