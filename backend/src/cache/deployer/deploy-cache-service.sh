@@ -26,7 +26,8 @@ NAMESPACE=${NAMESPACE_TO_WATCH:-kubeflow}
 mutatingWebhookConfigName="cache-webhook"
 
 # Should fail if there are connectivity problems
-kubectl get mutatingwebhookconfigurations -n "${NAMESPACE}" >webhooks.txt
+# Gotcha: Listing all objects requires list permission, but when listing a single oblect kubecttl will fail if it's not found unless --ignore-not-found is specified.
+kubectl get mutatingwebhookconfigurations "${mutatingWebhookConfigName}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
 
 if grep "${mutatingWebhookConfigName}" --word-regexp <webhooks.txt; then
     echo "Webhook is already installed. Sleeping forever."
@@ -54,7 +55,7 @@ kubectl apply -f ./cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
 # Usually the Kubernetes objects appear immediately. 
 while true; do 
     # Should fail if there are connectivity problems
-    kubectl get mutatingwebhookconfigurations --namespace "${NAMESPACE}" >webhooks.txt
+    kubectl get mutatingwebhookconfigurations "${mutatingWebhookConfigName}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
 
     if grep "${mutatingWebhookConfigName}" --word-regexp <webhooks.txt; then
         echo "Webhook has been installed. Sleeping forever."
