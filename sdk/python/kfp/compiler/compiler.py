@@ -689,8 +689,8 @@ class Compiler(object):
 
     # This can be overwritten by the task specific 
     # nodeselection, specified in the template.
-    if pipeline_conf.node_selector:
-      workflow['spec']['nodeSelector'] = pipeline_conf.node_selector
+    if pipeline_conf.default_pod_node_selector:
+      workflow['spec']['nodeSelector'] = pipeline_conf.default_pod_node_selector
 
     return workflow
 
