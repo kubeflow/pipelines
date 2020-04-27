@@ -24,6 +24,16 @@ echo "Start deploying cache service to existing cluster:"
 
 NAMESPACE=${NAMESPACE_TO_WATCH:-kubeflow}
 mutatingWebhookConfigName="cache-webhook"
+
+# Should fail if there are connectivity problems
+kubectl get mutatingwebhookconfigurations -n "${NAMESPACE}" >webhooks.txt
+
+if grep "${mutatingWebhookConfigName}" --word-regexp <webhooks.txt; then
+    echo "Webhook is already installed. Sleeping forever."
+    sleep 99999d
+fi
+
+
 export CA_FILE="ca_cert"
 rm -f ${CA_FILE}
 touch ${CA_FILE}
@@ -36,16 +46,21 @@ echo "Signed certificate generated for cache server"
 NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh --cert_input_path "${CA_FILE}" <./cache-configmap.yaml.template >./cache-configmap-ca-bundle.yaml
 echo "CA_BUNDLE patched successfully"
 
-checkWebhookConfig() {
-    webhookconfig=$(kubectl get mutatingwebhookconfigurations -n ${NAMESPACE} ${mutatingWebhookConfigName})
-}
-
 # Create MutatingWebhookConfiguration
 cat ./cache-configmap-ca-bundle.yaml
+kubectl apply -f ./cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
 
+# TODO: Check whether we really need to check for the existence of the webhook
+# Usually the Kubernetes objects appear immediately. 
 while true; do 
-    if ! checkWebhookConfig; then
-        kubectl apply -f ./cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
-    fi
-    sleep 10
+    # Should fail if there are connectivity problems
+    kubectl get mutatingwebhookconfigurations --namespace "${NAMESPACE}" >webhooks.txt
+
+    if grep "${mutatingWebhookConfigName}" --word-regexp <webhooks.txt; then
+        echo "Webhook has been installed. Sleeping forever."
+        sleep 99999d
+    else
+        echo "Webhook is not visible yet. Waiting a bit."
+        sleep 10s
+    fi    
 done
