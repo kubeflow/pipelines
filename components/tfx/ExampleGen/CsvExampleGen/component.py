@@ -4,34 +4,29 @@ from kfp.components import InputPath, OutputPath
 
 def CsvExampleGen(
     # Inputs
-    input_base_path: InputPath('ExternalPath'),
-    #input_base_path: 'ExternalPath', # A Channel of 'ExternalPath' type, which includes one artifact whose uri is an external directory with csv files inside (required).
+    input_path: InputPath('ExternalArtifact'),
 
     # Outputs
-    example_artifacts_path: OutputPath('Examples'),
-    #example_artifacts_path: 'ExamplesPath',
+    examples_path: OutputPath('Examples'),
 
     # Execution properties
-    #input_config_splits: {'List' : {'item_type': 'ExampleGen.Input.Split'}},
-    input_config: 'ExampleGen.Input' = None, # = '{"splits": []}', # JSON-serialized example_gen_pb2.Input instance, providing input configuration. If unset, the files under input_base will be treated as a single split.
-    #output_config_splits: {'List' : {'item_type': 'ExampleGen.SplitConfig'}},
-    output_config: 'ExampleGen.Output' = None, # = '{"splitConfig": {"splits": []}}', # JSON-serialized example_gen_pb2.Output instance, providing output configuration. If unset, default splits will be 'train' and 'eval' with size 2:1.
-    #custom_config: 'ExampleGen.CustomConfig' = None,
+    input_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Input'}} = None, # = '{"splits": []}', # JSON-serialized example_gen_pb2.Input instance, providing input configuration. If unset, the files under input_base will be treated as a single split.
+    output_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Output'}} = None, # = '{"splitConfig": {"splits": []}}', # JSON-serialized example_gen_pb2.Output instance, providing output configuration. If unset, default splits will be 'train' and 'eval' with size 2:1.
+    custom_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.CustomConfig'}} = None,
 ):
     """Executes the CsvExampleGen component.
 
     Args:
-      input_base: A Channel of 'ExternalPath' type, which includes one artifact
+      input: A Channel of 'ExternalPath' type, which includes one artifact
         whose uri is an external directory with csv files inside (required).
       input_config: An example_gen_pb2.Input instance, providing input
-        configuration. If unset, the files under input_base will be treated as a
+        configuration. If unset, the files under input will be treated as a
         single split.
       output_config: An example_gen_pb2.Output instance, providing output
         configuration. If unset, default splits will be 'train' and 'eval' with
         size 2:1.
-      ??? input: Forwards compatibility alias for the 'input_base' argument.
     Returns:
-      example_artifacts: Artifact of type 'Examples' for output train and
+      examples: Artifact of type 'Examples' for output train and
         eval examples.
     """
     from tfx.components.example_gen.csv_example_gen.component import CsvExampleGen as component_class

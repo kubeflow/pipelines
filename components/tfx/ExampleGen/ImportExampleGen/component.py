@@ -7,7 +7,7 @@ def ImportExampleGen(
     input_base_path: InputPath('ExternalPath'),
     #input_path: InputPath('ExternalPath'),
 
-    example_artifacts_path: OutputPath('Examples'),
+    examples_path: OutputPath('Examples'),
 
     input_config: 'JsonObject: example_gen_pb2.Input' = None,
     output_config: 'JsonObject: example_gen_pb2.Output' = None,
@@ -21,10 +21,9 @@ def ImportExampleGen(
     shuffle the dataset for ML best practice.
 
     Args:
-        input_base: A Channel of 'ExternalPath' type, which includes one artifact
+        input: A Channel of 'ExternalPath' type, which includes one artifact
             whose uri is an external directory with TFRecord files inside
             (required).
-        #input: Forwards compatibility alias for the 'input_base' argument.
         input_config: An example_gen_pb2.Input instance, providing input
             configuration. If unset, the files under input_base will be treated as a
             single split.
@@ -32,7 +31,7 @@ def ImportExampleGen(
             configuration. If unset, default splits will be 'train' and 'eval' with
             size 2:1.
     Returns:
-        example_artifacts: Optional channel of 'ExamplesPath' for output train and
+        examples: Optional channel of 'ExamplesPath' for output train and
             eval examples.
 
     Raises:

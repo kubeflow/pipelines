@@ -4,13 +4,17 @@ from kfp.components import InputPath, OutputPath
 
 
 def Evaluator(
+    evaluation_path: OutputPath('ModelEvaluation'),
+    blessing_path: OutputPath('ModelBlessing'),
+
     examples_path: InputPath('Examples'),
-    model_exports_path: InputPath('Model'),
-    #model_path: InputPath('Model'),
+    model_path: InputPath('Model'),
+    baseline_model_path: InputPath('Model') = None,
+    schema_path: InputPath('Schema') = None,
 
-    output_path: OutputPath('ModelEval'),
-
-    feature_slicing_spec: 'JsonObject: evaluator_pb2.FeatureSlicingSpec' = None,
+    feature_slicing_spec: {'JsonObject': {'data_type': 'proto:tfx.components.evaluator.FeatureSlicingSpec'}} = None,  # TODO: Replace feature_slicing_spec with eval_config
+    eval_config: {'JsonObject': {'data_type': 'proto:tensorflow_model_analysis.EvalConfig'}} = None,
+    fairness_indicator_thresholds: list = None, # List[str]
 ):
     """
     A TFX component to evaluate models trained by a TFX Trainer component.
@@ -41,17 +45,15 @@ def Evaluator(
     Please see https://www.tensorflow.org/tfx/model_analysis for more details.
 
     Args:
-        examples: A Channel of 'ExamplesPath' type, usually produced by ExampleGen
+        examples: A Channel of 'Examples' type, usually produced by ExampleGen
             component. @Ark-kun: Must have the eval split. _required_
-        model_exports: A Channel of 'ModelExportPath' type, usually produced by
-            Trainer component.  Will be deprecated in the future for the `model`
-            parameter.
-        #model: Future replacement of the `model_exports` argument.
+        model: A Channel of 'Model' type, usually produced by
+            Trainer component.
         feature_slicing_spec:
             [evaluator_pb2.FeatureSlicingSpec](https://github.com/tensorflow/tfx/blob/master/tfx/proto/evaluator.proto)
             instance that describes how Evaluator should slice the data.
     Returns:
-        output: Channel of `ModelEvalPath` to store the evaluation results.
+        evaluation: Channel of `ModelEvaluation` to store the evaluation results.
 
     Either `model_exports` or `model` must be present in the input arguments.
 

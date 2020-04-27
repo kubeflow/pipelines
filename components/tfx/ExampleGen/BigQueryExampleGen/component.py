@@ -4,11 +4,12 @@ from kfp.components import InputPath, OutputPath
 
 
 def BigQueryExampleGen(
-    example_artifacts_path: OutputPath('Examples'),
+    examples_path: OutputPath('Examples'),
 
     query: str = None,
-    input_config: 'JsonObject: example_gen_pb2.Input' = None,
-    output_config: 'JsonObject: example_gen_pb2.Output' = None,
+    input_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Input'}} = None,
+    output_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Output'}} = None,
+    custom_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.CustomConfig'}} = None,
 ):
     """
     Official TFX BigQueryExampleGen component.
@@ -27,7 +28,7 @@ def BigQueryExampleGen(
             configuration. If unset, default splits will be 'train' and 'eval' with
             size 2:1.
     Returns:
-        example_artifacts: Optional channel of 'ExamplesPath' for output train and
+        examples: Optional channel of 'ExamplesPath' for output train and
             eval examples.
 
     Raises:

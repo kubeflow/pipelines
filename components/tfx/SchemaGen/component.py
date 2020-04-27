@@ -2,28 +2,20 @@ from kfp.components import InputPath, OutputPath
 
 
 def SchemaGen(
-    stats_path: InputPath('ExampleStatistics'),
-    #statistics_path: InputPath('ExampleStatistics'),
-    output_path: OutputPath('Schema'),
-    #schema_path: InputPath('Schema') = None,
-    infer_feature_shape: bool = False,
+    statistics_path: InputPath('ExampleStatistics'),
+    schema_path: OutputPath('Schema'),
+    infer_feature_shape: bool = None, # ? False
 ):
     """Constructs a SchemaGen component.
 
     Args:
-      stats: A Channel of `ExampleStatistics` type (required if spec is not
+      statistics: A Channel of `ExampleStatistics` type (required if spec is not
         passed). This should contain at least a `train` split. Other splits are
-        currently ignored.
-      #  Exactly one of 'stats'/'statistics' or 'schema' is required.
-      #schema: A Channel of `Schema` type that provides an instance of Schema.
-      #  If provided, pass through this schema artifact as the output. Exactly
-      #  one of 'stats'/'statistics' or 'schema' is required.
-      infer_feature_shape: Boolean value indicating whether or not to infer the
-        shape of features. If the feature shape is not inferred, downstream
-        Tensorflow Transform component using the schema will parse input
-        as tf.SparseTensor.
-      #statistics: Future replacement of the 'stats' argument.
-      #Either `statistics` or `stats` must be present in the input arguments.
+        currently ignored. _required_
+      infer_feature_shape: Boolean value indicating
+        whether or not to infer the shape of features. If the feature shape is
+        not inferred, downstream Tensorflow Transform component using the schema
+        will parse input as tf.SparseTensor.
     Returns:
       output: Output `Schema` channel for schema result.
     """
