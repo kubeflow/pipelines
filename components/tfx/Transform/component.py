@@ -4,16 +4,15 @@ from kfp.components import InputPath, OutputPath
 
 
 def Transform(
-    input_data_path: InputPath('Examples'),
-    #examples: InputPath('Examples'),
+    examples: InputPath('Examples'),
     schema_path: InputPath('Schema'),
 
-    transform_output_path: OutputPath('TransformGraph'),
-    #transform_graph_path: OutputPath('TransformGraph'),
+    transform_graph_path: OutputPath('TransformGraph'),
     transformed_examples_path: OutputPath('Examples'),
 
-    module_file: 'Uri' = None,
+    module_file: str = None,
     preprocessing_fn: str = None,
+    custom_config: dict = None,
 ):
     """A TFX component to transform the input examples.
 
@@ -33,9 +32,8 @@ def Transform(
     of the TFX Chicago Taxi pipeline example.
 
     Args:
-      input_data: A Channel of 'Examples' type (required). This should
+      examples: A Channel of 'Examples' type (required). This should
         contain the two splits 'train' and 'eval'.
-      #examples: Forwards compatibility alias for the 'input_data' argument.
       schema: A Channel of 'SchemaPath' type. This should contain a single
         schema artifact.
       module_file: The file path to a python module file, from which the
@@ -54,7 +52,7 @@ def Transform(
          be supplied.
 
     Returns:
-      transform_output: Optional output 'TransformPath' channel for output of
+      transform_graph: Optional output 'TransformPath' channel for output of
         'tf.Transform', which includes an exported Tensorflow graph suitable for
         both training and serving;
       transformed_examples: Optional output 'ExamplesPath' channel for

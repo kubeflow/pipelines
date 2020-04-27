@@ -5,18 +5,18 @@ from kfp.components import InputPath, OutputPath
 
 def Trainer(
     examples_path: InputPath('Examples'),
-    transform_output_path: InputPath('TransformGraph'), # ? = None
-    #transform_graph_path: InputPath('TransformGraph'),
     schema_path: InputPath('Schema'),
 
-    output_path: OutputPath('Model'),
+    model_path: OutputPath('Model'),
 
+    train_args: {'JsonObject': {'data_type': 'proto:tfx.components.trainer.TrainArgs'}},
+    eval_args: {'JsonObject': {'data_type': 'proto:tfx.components.trainer.EvalArgs'}},
     module_file: str = None,
     trainer_fn: str = None,
-    train_args: 'JsonObject: tfx.proto.trainer_pb2.TrainArgs' = None,
-    eval_args: 'JsonObject: tfx.proto.trainer_pb2.EvalArgs' = None,
-    #custom_config: dict = None,
-    #custom_executor_spec: Optional[executor_spec.ExecutorSpec] = None,
+    custom_config: dict = None,
+
+    transform_graph_path: InputPath('TransformGraph') = None,
+    base_model_path: InputPath('Model') = None,
 ):
     """
     A TFX component to train a TensorFlow model.
@@ -53,13 +53,11 @@ def Trainer(
 
 
     Args:
-      examples: A Channel of 'ExamplesPath' type, serving as the source of
+      examples: A Channel of 'Examples' type, serving as the source of
         examples that are used in training (required). May be raw or
         transformed.
-      transform_output: An optional Channel of 'TransformPath' type, serving as
+      transform_graph: An optional Channel of 'TransformGraph' type, serving as
         the input transform graph if present.
-      #transform_graph: Forwards compatibility alias for the 'transform_output'
-      #  argument.
       schema:  A Channel of 'SchemaPath' type, serving as the schema of training
         and eval data.
       module_file: A path to python module file containing UDF model definition.
@@ -84,20 +82,15 @@ def Trainer(
         training. Current only num_steps is available.
       eval_args: A trainer_pb2.EvalArgs instance, containing args used for eval.
         Current only num_steps is available.
-      #custom_config: A dict which contains the training job parameters to be
-      #  passed to Google Cloud ML Engine.  For the full set of parameters
-      #  supported by Google Cloud ML Engine, refer to
-      #  https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#Job
-      #custom_executor_spec: Optional custom executor spec.
+      custom_config: A dict which contains the training job parameters to be
+        passed to Google Cloud ML Engine.  For the full set of parameters
+        supported by Google Cloud ML Engine, refer to
+        https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#Job
     Returns:
-      output: Optional 'ModelExportPath' channel for result of exported models.
+      model: Optional 'Model' channel for result of exported models.
     Raises:
       ValueError:
         - When both or neither of 'module_file' and 'trainer_fn' is supplied.
-        - When both or neither of 'examples' and 'transformed_examples'
-            is supplied.
-        - When 'transformed_examples' is supplied but 'transform_output'
-            is not supplied.
     """
     from tfx.components.trainer.component import Trainer as component_class
 

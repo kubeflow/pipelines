@@ -2,11 +2,10 @@ from kfp.components import InputPath, OutputPath
 
 
 def ExampleValidator(
-    stats_path: InputPath('ExampleStatistics'),
-    #statistics_path: InputPath('ExampleStatistics'),
+    statistics_path: InputPath('ExampleStatistics'),
     schema_path: InputPath('Schema'),
 
-    output_path: OutputPath('ExampleValidation'),
+    anomalies_path: OutputPath('ExampleAnomalies'),
 ):
     """
     A TFX component to validate input examples.
@@ -33,13 +32,11 @@ def ExampleValidator(
     Please see https://www.tensorflow.org/tfx/data_validation for more details.
 
     Args:
-        stats: A Channel of 'ExampleStatisticsPath` type. This should contain at
-            least 'eval' split. Other splits are ignored currently.  Will be
-            deprecated in the future for the `statistics` parameter.
-        #statistics: Future replacement of the 'stats' argument.
-        schema: A Channel of "SchemaPath' type. _required_
+        statistics: A Channel of 'ExampleStatistics` type. This should contain at
+            least 'eval' split. Other splits are ignored currently.
+        schema: A Channel of "Schema' type. _required_
     Returns:
-        output: Output channel of 'ExampleValidationPath' type.
+        anomalies: Output channel of 'ExampleAnomalies' type.
 
     Either `stats` or `statistics` must be present in the arguments.
     """
