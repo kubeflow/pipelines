@@ -14,6 +14,7 @@
 
 import os
 import sys
+import textwrap
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
@@ -596,6 +597,53 @@ implementation:
         task = op()
 
         self.assertEqual(list(task.outputs.keys()), ['out 1', 'out 2'])
+
+    def test_check_task_object_no_output_attribute_when_0_outputs(self):
+        component_text = textwrap.dedent('''\
+            implementation:
+              container:
+                image: busybox
+                command: []
+            ''',
+        )
+
+        op = comp.load_component_from_text(component_text)
+        task = op()
+
+        self.assertFalse(hasattr(task, 'output'))
+
+    def test_check_task_object_has_output_attribute_when_1_output(self):
+        component_text = textwrap.dedent('''\
+            outputs:
+            - {name: out 1}
+            implementation:
+              container:
+                image: busybox
+                command: [touch, {outputPath: out 1}]
+            ''',
+        )
+
+        op = comp.load_component_from_text(component_text)
+        task = op()
+
+        self.assertEqual(task.output.task_output.output_name, 'out 1')
+
+    def test_check_task_object_no_output_attribute_when_multiple_outputs(self):
+        component_text = textwrap.dedent('''\
+            outputs:
+            - {name: out 1}
+            - {name: out 2}
+            implementation:
+              container:
+                image: busybox
+                command: [touch, {outputPath: out 1}, {outputPath: out 2}]
+            ''',
+        )
+
+        op = comp.load_component_from_text(component_text)
+        task = op()
+
+        self.assertFalse(hasattr(task, 'output'))
 
     def test_check_type_validation_of_task_spec_outputs(self):
         producer_component_text = '''\
