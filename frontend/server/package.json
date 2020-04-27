@@ -28,6 +28,7 @@
     "@types/tar": "^4.0.3",
     "@types/tar-stream": "^1.6.1",
     "jest": "^25.3.0",
+    "prettier": "1.19.1",
     "supertest": "^4.0.2",
     "ts-jest": "^25.2.1",
     "tslint": "^5.20.1",

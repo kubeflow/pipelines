@@ -36,6 +36,7 @@
     "apis:run": "java -jar swagger-codegen-cli.jar generate -i ../backend/api/swagger/run.swagger.json -l typescript-fetch -o ./src/apis/run -c ./swagger-config.json",
     "apis:filter": "java -jar swagger-codegen-cli.jar generate -i ../backend/api/swagger/filter.swagger.json -l typescript-fetch -o ./src/apis/filter -c ./swagger-config.json",
     "apis:visualization": "java -jar swagger-codegen-cli.jar generate -i ../backend/api/swagger/visualization.swagger.json -l typescript-fetch -o ./src/apis/visualization -c ./swagger-config.json",
+    "apis:auth": "java -jar swagger-codegen-cli.jar generate -i ../backend/api/swagger/auth.swagger.json -l typescript-fetch -o ./server/apis/auth -c ./swagger-config.json",
     "build": "npm run lint && EXTEND_ESLINT=true react-scripts build",
     "docker": "COMMIT_HASH=`git rev-parse HEAD`; docker build -q -t ml-pipelines-frontend:${COMMIT_HASH} --build-arg COMMIT_HASH=${COMMIT_HASH} --build-arg DATE=\"`date -u`\" -f Dockerfile ..",
     "eject": "react-scripts eject",
