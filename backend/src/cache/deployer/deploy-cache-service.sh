@@ -23,15 +23,17 @@ set -ex
 echo "Start deploying cache service to existing cluster:"
 
 NAMESPACE=${NAMESPACE_TO_WATCH:-kubeflow}
-mutatingWebhookConfigName="cache-webhook"
+MUTATING_WEBHOOK_CONFIGURATION_NAME="cache-webhook"
 
-# Should fail if there are connectivity problems
-# Gotcha: Listing all objects requires list permission, but when listing a single oblect kubecttl will fail if it's not found unless --ignore-not-found is specified.
-kubectl get mutatingwebhookconfigurations "${mutatingWebhookConfigName}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
+# This should fail if there are connectivity problems
+# Gotcha: Listing all objects requires list permission,
+# but when listing a single oblect kubecttl will fail if it's not found
+# unless --ignore-not-found is specified.
+kubectl get mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
 
-if grep "${mutatingWebhookConfigName}" --word-regexp <webhooks.txt; then
+if grep "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --word-regexp <webhooks.txt; then
     echo "Webhook is already installed. Sleeping forever."
-    sleep 99999d
+    sleep infinity
 fi
 
 
@@ -55,11 +57,11 @@ kubectl apply -f ./cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
 # Usually the Kubernetes objects appear immediately. 
 while true; do 
     # Should fail if there are connectivity problems
-    kubectl get mutatingwebhookconfigurations "${mutatingWebhookConfigName}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
+    kubectl get mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
 
-    if grep "${mutatingWebhookConfigName}" --word-regexp <webhooks.txt; then
+    if grep "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --word-regexp <webhooks.txt; then
         echo "Webhook has been installed. Sleeping forever."
-        sleep 99999d
+        sleep infinity
     else
         echo "Webhook is not visible yet. Waiting a bit."
         sleep 10s
