@@ -554,25 +554,6 @@ steps:
   id:   'copyPythonComponentSDKToLatest'
   waitFor: ['copyPythonComponentSDKLocal']
 
-# Generate and copy the pipeline-lite crd deployment YAML
-- name: 'google/cloud-sdk'
-  args: ['bash', '-c', 'kubectl kustomize /workspace/manifests/kustomize/base/crds > crd.yaml']
-  id:   'generateCrdDeploymentYaml'
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', 'crd.yaml', 'gs://ml-pipeline/pipeline-lite/$TAG_NAME/crd.yaml']
-  id:   'copyCrdDeploymentYaml'
-  waitFor: ['generateCrdDeploymentYaml']
-
-# Generate and copy the pipeline-lite deployment YAML
-- name: 'google/cloud-sdk'
-  args: ['bash', '-c', 'kubectl kustomize /workspace/manifests/kustomize/env/dev > namespaced-install.yaml']
-  id:   'generateDeploymentYaml'
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', 'namespaced-install.yaml', 'gs://ml-pipeline/pipeline-lite/$TAG_NAME/namespaced-install.yaml']
-  id:   'copyDeploymentYaml'
-  waitFor: ['generateDeploymentYaml']
-
-
 images:
 - 'gcr.io/ml-pipeline/scheduledworkflow:$TAG_NAME'
 - 'gcr.io/ml-pipeline/scheduledworkflow:$COMMIT_SHA'

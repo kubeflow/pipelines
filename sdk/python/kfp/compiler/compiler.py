@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import datetime
 import json
 from collections import defaultdict
 from deprecated import deprecated
@@ -20,6 +21,7 @@ import uuid
 import zipfile
 from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
+import kfp
 from kfp.dsl import _for_loop
 
 from .. import dsl
@@ -686,6 +688,17 @@ class Compiler(object):
 
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
+
+    if pipeline_conf.image_pull_policy != None:
+      if pipeline_conf.image_pull_policy in ["Always", "Never", "IfNotPresent"]:
+        for template in workflow["spec"]["templates"]:
+          container = template.get('container', None)
+          if container and "imagePullPolicy" not in container:
+            container["imagePullPolicy"] = pipeline_conf.image_pull_policy
+      else:
+        raise ValueError(
+                  'Invalid imagePullPolicy. Must be one of `Always`, `Never`, `IfNotPresent`.'
+              )
     return workflow
 
   def _validate_exit_handler(self, pipeline):
@@ -713,16 +726,8 @@ class Compiler(object):
 
     # Sanitize operator names and param names
     sanitized_ops = {}
-    # pipeline level artifact location
-    artifact_location = pipeline_conf.artifact_location
 
     for op in pipeline.ops.values():
-      # inject pipeline level artifact location into if the op does not have
-      # an artifact location config already.
-      if hasattr(op, "artifact_location"):
-        if artifact_location and not op.artifact_location:
-          op.artifact_location = artifact_location
-
       sanitized_name = sanitize_k8s_name(op.name)
       op.name = sanitized_name
       for param in op.outputs.values():
@@ -828,8 +833,16 @@ class Compiler(object):
     from ._data_passing_rewriter import fix_big_data_passing
     workflow = fix_big_data_passing(workflow)
 
-    import json
-    workflow.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
+    metadata = workflow.setdefault('metadata', {})
+    annotations = metadata.setdefault('annotations', {})
+
+    annotations['pipelines.kubeflow.org/kfp_sdk_version'] = kfp.__version__
+    annotations['pipelines.kubeflow.org/pipeline_compilation_time'] = datetime.datetime.now().isoformat()
+    annotations['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
+
+    # Labels might be logged better than annotations so adding some information here as well
+    labels = metadata.setdefault('labels', {})
+    labels['pipelines.kubeflow.org/kfp_sdk_version'] = kfp.__version__
 
     return workflow
 

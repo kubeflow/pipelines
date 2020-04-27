@@ -238,6 +238,8 @@ ARTIFACT_RUN_ID_PROPERTY_NAME = "run_id"
 EXECUTION_RUN_ID_PROPERTY_NAME = "run_id"
 CONTEXT_RUN_ID_PROPERTY_NAME = "run_id"
 
+KFP_POD_NAME_EXECUTION_PROPERTY_NAME = 'kfp_pod_name'
+
 
 def get_or_create_run_context(
     store,
@@ -263,6 +265,7 @@ def create_new_execution_in_existing_run_context(
     store,
     execution_type_name: str,
     context_id: int,
+    pod_name: str,
     # TODO: Remove when UX stops relying on thsese properties
     pipeline_name: str = None,
     run_id: str = None,
@@ -287,7 +290,9 @@ def create_new_execution_in_existing_run_context(
             EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
             EXECUTION_COMPONENT_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=instance_id), # should set to task ID, not component ID
         },
-        custom_properties=custom_properties,
+        custom_properties={
+            KFP_POD_NAME_EXECUTION_PROPERTY_NAME: metadata_store_pb2.Value(string_value=pod_name),
+        },
     )
 
 

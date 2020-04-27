@@ -33,7 +33,7 @@ spec:
           - name: DBCONFIG_PORT
             valueFrom:
               configMapKeyRef:
-                name: cache-configmap
+                name: mysql-configmap
                 key: port
           - name: DBCONFIG_USER
             valueFrom:
