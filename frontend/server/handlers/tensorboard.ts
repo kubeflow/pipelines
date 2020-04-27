@@ -15,13 +15,16 @@ import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper';
 import { ViewerTensorboardConfig } from '../configs';
 import { AuthServiceApi } from '../src/generated/apis/auth';
+import 'portable-fetch';
+import { parseError } from '../utils';
 
 export const getTensorboardHandlers = (
   tensorboardConfig: ViewerTensorboardConfig,
   otherConfig: { apiServerAddress: string; authzEnabled: boolean },
 ): { get: Handler; create: Handler; delete: Handler } => {
   const { apiServerAddress, authzEnabled } = otherConfig;
-  const authService = new AuthServiceApi({ basePath: apiServerAddress });
+  console.log('api server address ' + apiServerAddress);
+  const authService = new AuthServiceApi({ basePath: apiServerAddress }, undefined, fetch);
   /**
    * A handler which retrieve the endpoint for a tensorboard instance. The
    * handler expects a query string `logdir`.
@@ -39,12 +42,14 @@ export const getTensorboardHandlers = (
 
     try {
       if (authzEnabled) {
-        await authService.authorize(namespace, 'VIEWERS', 'GET');
+        await authService.authorize(namespace, 'VIEWERS', 'GET', { headers: req.headers });
+        console.debug(`Authorized to ${'GET'} ${'VIEWERS'} in namespace ${namespace}.`);
       }
       res.send(await k8sHelper.getTensorboardInstance(logdir, namespace));
     } catch (err) {
-      console.error('Failed to list Tensorboard pods: ', err?.body || err);
-      res.status(500).send(`Failed to list Tensorboard pods: ${err}`);
+      const details = await parseError(err);
+      console.error(`Failed to list Tensorboard pods: ${details.message}`, details.additionalInfo);
+      res.status(500).send(`Failed to list Tensorboard pods: ${details.message}`);
     }
   };
 
@@ -72,7 +77,8 @@ export const getTensorboardHandlers = (
 
     try {
       if (authzEnabled) {
-        await authService.authorize(namespace, 'VIEWERS', 'CREATE');
+        await authService.authorize(namespace, 'VIEWERS', 'CREATE', { headers: req.headers });
+        console.debug(`Authorized to ${'CREATE'} ${'VIEWERS'} in namespace ${namespace}.`);
       }
       await k8sHelper.newTensorboardInstance(
         logdir,
@@ -88,8 +94,9 @@ export const getTensorboardHandlers = (
       );
       res.send(tensorboardAddress);
     } catch (err) {
-      console.error('Failed to start Tensorboard app: ', err?.body || err);
-      res.status(500).send(`Failed to start Tensorboard app: ${err}`);
+      const details = await parseError(err);
+      console.error(`Failed to start Tensorboard app: ${details.message}`, details.additionalInfo);
+      res.status(500).send(`Failed to start Tensorboard app: ${details.message}`);
     }
   };
 
@@ -110,13 +117,15 @@ export const getTensorboardHandlers = (
 
     try {
       if (authzEnabled) {
-        await authService.authorize(namespace, 'VIEWERS', 'DELETE');
+        await authService.authorize(namespace, 'VIEWERS', 'DELETE', { headers: req.headers });
+        console.debug(`Authorized to ${'DELETE'} ${'VIEWERS'} in namespace ${namespace}.`);
       }
       await k8sHelper.deleteTensorboardInstance(logdir, namespace);
       res.send('Tensorboard deleted.');
     } catch (err) {
-      console.error('Failed to delete Tensorboard app: ', err?.body || err);
-      res.status(500).send(`Failed to delete Tensorboard app: ${err}`);
+      const details = await parseError(err);
+      console.error(`Failed to delete Tensorboard app: ${details.message}`, details.additionalInfo);
+      res.status(500).send(`Failed to delete Tensorboard app: ${details.message}`);
     }
   };
 

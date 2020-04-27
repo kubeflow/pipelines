@@ -94,3 +94,80 @@ export class PreviewStream extends Transform {
     super({ ...opts, transform });
   }
 }
+
+export interface ErrorDetails {
+  message: string;
+  additionalInfo: any;
+}
+export const UNKOWN_ERROR: ErrorDetails = {
+  message: 'Unknown error',
+  additionalInfo: 'Unknown error',
+};
+export async function parseError(error: any): Promise<ErrorDetails> {
+  return (
+    parseGenericError(error) ||
+    (await parseKfpApiError(error)) ||
+    parseK8sError(error) ||
+    UNKOWN_ERROR
+  );
+}
+
+function parseGenericError(error: any): ErrorDetails | undefined {
+  if (!error) {
+    return undefined;
+  } else if (typeof error === 'string') {
+    return {
+      message: error,
+      additionalInfo: error,
+    };
+  } else if (error instanceof Error) {
+    return { message: error.message, additionalInfo: error };
+  }
+  // Cannot understand error type
+  return undefined;
+}
+async function parseKfpApiError(error: any): Promise<ErrorDetails | undefined> {
+  if (!error || !error.json || typeof error.json !== 'function') {
+    return undefined;
+  }
+  try {
+    const json = await error.json();
+    const { error: message, details } = json;
+    if (message && details && typeof message === 'string' && typeof details === 'object') {
+      return {
+        message,
+        additionalInfo: details,
+      };
+    } else {
+      return undefined;
+    }
+  } catch (err) {
+    return undefined;
+  }
+}
+function parseK8sError(error: any): ErrorDetails | undefined {
+  if (!error || !error.body || typeof error.body !== 'object') {
+    return undefined;
+  }
+
+  if (typeof error.body.message !== 'string') {
+    return undefined;
+  }
+
+  // Kubernetes client http error has body with all the info.
+  // Example error.body
+  // {
+  //   kind: 'Status',
+  //   apiVersion: 'v1',
+  //   metadata: {},
+  //   status: 'Failure',
+  //   message: 'pods "test-pod" not found',
+  //   reason: 'NotFound',
+  //   details: { name: 'test-pod', kind: 'pods' },
+  //   code: 404
+  // }
+  return {
+    message: error.body.message,
+    additionalInfo: error.body,
+  };
+}
