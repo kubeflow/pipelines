@@ -252,6 +252,8 @@ func (r *ResourceManager) CreatePipeline(name string, description string, pipeli
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
 
+	newPipeline.DefaultVersion.
+
 	newPipeline.Status = model.PipelineReady
 	newPipeline.DefaultVersion.Status = model.PipelineVersionReady
 	err = r.pipelineStore.UpdatePipelineAndVersionsStatus(
