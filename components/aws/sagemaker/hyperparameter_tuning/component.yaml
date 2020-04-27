@@ -58,7 +58,7 @@ inputs:
     default: '1'
   - name: volume_size
     description: 'The size of the ML storage volume that you want to provision.'
-    default: '1'
+    default: '30'
   - name: max_num_jobs
     description: 'The maximum number of training jobs that a hyperparameter tuning job can launch.'
   - name: max_parallel_jobs
