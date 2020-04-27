@@ -4,6 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "api_converter.go",
+        "auth_server.go",
         "experiment_server.go",
         "job_server.go",
         "list_request_util.go",
@@ -46,6 +47,7 @@ go_test(
     name = "go_default_test",
     srcs = [
         "api_converter_test.go",
+        "auth_server_test.go",
         "experiment_server_test.go",
         "job_server_test.go",
         "list_request_util_test.go",

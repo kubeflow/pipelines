@@ -17,7 +17,7 @@ func (s *AuthServer) Authorize(ctx context.Context, request *api.AuthorizeReques
 	*empty.Empty, error) {
 	err := ValidateAuthorizeRequest(request)
 	if err != nil {
-		return nil, util.Wrap(err, "Validate authorize request failed.")
+		return nil, util.Wrap(err, "Authorize request is not valid")
 	}
 
 	// TODO: when KFP changes authorization implementation to have more
@@ -25,7 +25,7 @@ func (s *AuthServer) Authorize(ctx context.Context, request *api.AuthorizeReques
 	// request.
 	err = CanAccessNamespace(s.resourceManager, ctx, request.Namespace)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	return &empty.Empty{}, nil
