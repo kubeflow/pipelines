@@ -12,3 +12,4 @@
 # See the License for the speci
 
 from ._build_image_api import *
+from ._container_builder import *

@@ -14,6 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# It would slow down presubmit as build full set images take longer time.
-# We enable post-submit for Hosted and then back here.
-echo "Placeholder for presubmit test with Hosted/MKP"
+set -ex
+
+echo "Presubmit test with Hosted/MKP. It's also runable before sending out PR"
+
+if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+  # activating the service account
+  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
+
+# Build all required images used for Hosted (sync style)
+echo "Building, it may take ~30 minutes"
+echo "Images can be found in gcr.io/ml-pipeline-test/hosted/$(git rev-parse HEAD)/"
+gcloud builds submit --config=.cloudbuild.yaml --substitutions=COMMIT_SHA="$(git rev-parse HEAD)" --project=ml-pipeline-test
+
+# Install & uninstsall
+echo "Verify hosted images, it may take ~10 minutes"
+MM_VER=$(cat VERSION | sed -e "s#[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)#\1.\2#")
+gcloud builds submit --config=test/cloudbuild/mkp_verify.yaml --substitutions=COMMIT_SHA="$(git rev-parse HEAD)",_DEPLOYER_VERSION=$MM_VER --project=ml-pipeline-test
+
+echo "Well done!"

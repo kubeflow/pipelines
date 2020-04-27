@@ -119,6 +119,12 @@ export const RoutePageFactory = {
       artifactType,
     ).replace(`:${RouteParams.ID}`, '' + artifactId);
   },
+  executionDetails: (executionType: string, executionId: number) => {
+    return RoutePage.EXECUTION_DETAILS.replace(
+      `:${RouteParams.EXECUTION_TYPE}+`,
+      executionType,
+    ).replace(`:${RouteParams.ID}`, '' + executionId);
+  },
   pipelineDetails: (id: string) => {
     return RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(`:${RouteParams.pipelineId}`, id);
   },

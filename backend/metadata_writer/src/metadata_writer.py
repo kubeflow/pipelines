@@ -125,6 +125,8 @@ while True:
             if event['type'] == 'ERROR':
                 print(event)
 
+            pod_name = obj.metadata.name
+
             # Logging pod changes for debugging
             with open('/tmp/pod_' + obj.metadata.name + '_' + obj.metadata.resource_version, 'w') as f:
                 f.write(yaml.dump(obj.to_dict()))
@@ -172,6 +174,7 @@ while True:
                     store=mlmd_store,
                     context_id=run_context.id,
                     execution_type_name=KFP_EXECUTION_TYPE_NAME_PREFIX + component_version,
+                    pod_name=pod_name,
                     pipeline_name=argo_workflow_name,
                     run_id=argo_workflow_name,
                     instance_id=component_name,

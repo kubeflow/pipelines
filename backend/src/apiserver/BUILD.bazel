@@ -18,7 +18,6 @@ go_library(
         "//backend/src/apiserver/server:go_default_library",
         "//backend/src/apiserver/storage:go_default_library",
         "//backend/src/common/util:go_default_library",
-        "//backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1:go_default_library",
         "@com_github_cenkalti_backoff//:go_default_library",
         "@com_github_fsnotify_fsnotify//:go_default_library",
         "@com_github_golang_glog//:go_default_library",

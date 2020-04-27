@@ -18,8 +18,10 @@ import string
 import random
 import json
 import yaml
+import re
 
 import boto3
+import botocore
 from botocore.exceptions import ClientError
 from sagemaker.amazon.amazon_estimator import get_image_uri
 
@@ -52,14 +54,40 @@ built_in_algos = {
 # Get current directory to open templates
 __cwd__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
+
+def nullable_string_argument(value):
+    value = value.strip()
+    if not value:
+        return None
+    return value
+
+
 def add_default_client_arguments(parser):
     parser.add_argument('--region', type=str.strip, required=True, help='The region where the training job launches.')
-    parser.add_argument('--endpoint_url', type=str.strip, required=False, help='The URL to use when communicating with the Sagemaker service.')
+    parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the Sagemaker service.')
+
+
+def get_component_version():
+    """Get component version from the first line of License file"""
+    component_version = 'NULL'
+
+    with open('/THIRD-PARTY-LICENSES.txt', 'r') as license_file:
+        version_match = re.search('Amazon SageMaker Components for Kubeflow Pipelines; version (([0-9]+[.])+[0-9]+)',
+                        license_file.readline())
+        if version_match is not None:
+            component_version = version_match.group(1)
+
+    return component_version
+
 
 def get_sagemaker_client(region, endpoint_url=None):
     """Builds a client to the AWS SageMaker API."""
-    client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url)
+    session_config = botocore.config.Config(
+        user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(get_component_version())
+    )
+    client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
     return client
+
 
 def create_training_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_training_job
@@ -116,11 +144,6 @@ def create_training_job_request(args):
     ### Update input channels, must have at least one specified
     if len(args['channels']) > 0:
         request['InputDataConfig'] = args['channels']
-        # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
-        #   Source: Input data configuration description in the SageMaker create training job form
-        for i in range(1, len(args['channels']) + 1):
-            if args['data_location_' + str(i)]:
-                request['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
         logging.error("Must specify at least one input channel.")
         raise Exception('Could not create job request')
@@ -507,11 +530,6 @@ def create_hyperparameter_tuning_job_request(args):
     ### Update input channels, must have at least one specified
     if len(args['channels']) > 0:
         request['TrainingJobDefinition']['InputDataConfig'] = args['channels']
-        # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
-        #   Source: Input data configuration description in the SageMaker create hyperparameter tuning job form
-        for i in range(1, len(args['channels']) + 1):
-            if args['data_location_' + str(i)]:
-                request['TrainingJobDefinition']['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
         logging.error("Must specify at least one input channel.")
         raise Exception('Could not make job request')
@@ -801,7 +819,7 @@ def get_labeling_job_outputs(client, labeling_job_name, auto_labeling):
     if auto_labeling:
         active_learning_model_arn = info['LabelingJobOutput']['FinalActiveLearningModelArn']
     else:
-        active_learning_model_arn = ''
+        active_learning_model_arn = ' '
     return output_manifest, active_learning_model_arn
 
 def enable_spot_instance_support(training_job_config, args):

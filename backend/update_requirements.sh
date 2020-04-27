@@ -1,5 +1,11 @@
 #!/bin/bash
+
+# Usage: update_requirements.sh <requirements.in >requirements.txt
+
 set -euo pipefail
 IMAGE=${1:-"python:3.5"}
-exec docker run -v "$PWD:/src" -w /src --rm "$IMAGE" bash \
-  -c 'pip3 install pip setuptools --upgrade && pip3 install pip-tools==4.5.0 > /dev/null 2>&1 && pip-compile -v requirements.in'
+docker run --interactive --rm "$IMAGE" sh -c '
+  python3 -m pip install pip setuptools --upgrade --quiet
+  python3 -m pip install pip-tools==5.0.0 --quiet
+  pip-compile --verbose --output-file - -
+'

@@ -26,10 +26,11 @@ func TestCreateExperiment(t *testing.T) {
 	result, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	expectedExperiment := &api.Experiment{
-		Id:          resource.DefaultFakeUUID,
-		Name:        "ex1",
-		Description: "first experiment",
-		CreatedAt:   &timestamp.Timestamp{Seconds: 1},
+		Id:           resource.DefaultFakeUUID,
+		Name:         "ex1",
+		Description:  "first experiment",
+		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+		StorageState: api.Experiment_STORAGESTATE_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -43,6 +44,27 @@ func TestCreateExperiment_Failed(t *testing.T) {
 	_, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Create experiment failed.")
+}
+
+func TestCreateExperiment_SingleUser_NamespaceNotAllowed(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager}
+	resourceReferences := []*api.ResourceReference{
+		{
+			Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns1"},
+			Relationship: api.Relationship_OWNER,
+		},
+	}
+	experiment := &api.Experiment{
+		Name:               "exp1",
+		Description:        "first experiment",
+		ResourceReferences: resourceReferences,
+	}
+
+	_, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "In single-user mode, CreateExperimentRequest shouldn't contain resource references.")
 }
 
 func TestCreateExperiment_Unauthorized(t *testing.T) {
@@ -102,6 +124,7 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 		Description:        "first experiment",
 		CreatedAt:          &timestamp.Timestamp{Seconds: 1},
 		ResourceReferences: resourceReferences,
+		StorageState:       api.Experiment_STORAGESTATE_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -116,10 +139,11 @@ func TestGetExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	result, err := server.GetExperiment(nil, &api.GetExperimentRequest{Id: createResult.Id})
 	expectedExperiment := &api.Experiment{
-		Id:          createResult.Id,
-		Name:        "ex1",
-		Description: "first experiment",
-		CreatedAt:   &timestamp.Timestamp{Seconds: 1},
+		Id:           createResult.Id,
+		Name:         "ex1",
+		Description:  "first experiment",
+		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+		StorageState: api.Experiment_STORAGESTATE_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -185,6 +209,7 @@ func TestGetExperiment_Multiuser(t *testing.T) {
 		Description:        "first experiment",
 		CreatedAt:          &timestamp.Timestamp{Seconds: 1},
 		ResourceReferences: resourceReferences,
+		StorageState:       api.Experiment_STORAGESTATE_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -199,10 +224,11 @@ func TestListExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	result, err := server.ListExperiment(nil, &api.ListExperimentsRequest{})
 	expectedExperiment := []*api.Experiment{{
-		Id:          createResult.Id,
-		Name:        "ex1",
-		Description: "first experiment",
-		CreatedAt:   &timestamp.Timestamp{Seconds: 1},
+		Id:           createResult.Id,
+		Name:         "ex1",
+		Description:  "first experiment",
+		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+		StorageState: api.Experiment_STORAGESTATE_AVAILABLE,
 	}}
 	assert.Equal(t, expectedExperiment, result.Experiments)
 }
@@ -219,6 +245,24 @@ func TestListExperiment_Failed(t *testing.T) {
 	_, err = server.ListExperiment(nil, &api.ListExperimentsRequest{})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "List experiments failed.")
+}
+
+func TestListExperiment_SingleUser_NamespaceNotAllowed(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager}
+	experiment := &api.Experiment{Name: "ex1", Description: "first experiment"}
+
+	_, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+	_, err = server.ListExperiment(nil, &api.ListExperimentsRequest{
+		ResourceReferenceKey: &api.ResourceKey{
+			Type: api.ResourceType_NAMESPACE,
+			Id:   "ns1",
+		},
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "In single-user mode, ListExperiment cannot filter by namespace.")
 }
 
 func TestListExperiment_Unauthorized(t *testing.T) {
@@ -291,6 +335,7 @@ func TestListExperiment_Multiuser(t *testing.T) {
 				Description:        "first experiment",
 				CreatedAt:          &timestamp.Timestamp{Seconds: 1},
 				ResourceReferences: resourceReferences,
+				StorageState:       api.Experiment_STORAGESTATE_AVAILABLE,
 			}},
 		},
 		{
@@ -489,4 +534,75 @@ func TestValidateCreateExperimentRequest_Multiuser(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestArchiveAndUnarchiveExperiment(t *testing.T) {
+	// Create experiment and runs/jobs under it.
+	clients, manager, experiment := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	runServer := NewRunServer(manager)
+	run1 := &api.Run{
+		Name:               "run1",
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+	}
+	err := runServer.validateCreateRunRequest(&api.CreateRunRequest{Run: run1})
+	assert.Nil(t, err)
+	_, err = runServer.CreateRun(nil, &api.CreateRunRequest{Run: run1})
+	assert.Nil(t, err)
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.FakeUUIDOne, nil))
+	manager = resource.NewResourceManager(clients)
+	runServer = NewRunServer(manager)
+	run2 := &api.Run{
+		Name:               "run2",
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+	}
+	err = runServer.validateCreateRunRequest(&api.CreateRunRequest{Run: run2})
+	assert.Nil(t, err)
+	_, err = runServer.CreateRun(nil, &api.CreateRunRequest{Run: run2})
+	assert.Nil(t, err)
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.DefaultFakeUUID, nil))
+	manager = resource.NewResourceManager(clients)
+	jobServer := NewJobServer(manager)
+	job1 := &api.Job{
+		Name:           "name1",
+		Enabled:        true,
+		MaxConcurrency: 1,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+	}
+	err = jobServer.validateCreateJobRequest(&api.CreateJobRequest{Job: job1})
+	assert.Nil(t, err)
+	_, err = jobServer.CreateJob(nil, &api.CreateJobRequest{Job: job1})
+	assert.Nil(t, err)
+
+	// Archive the experiment and thus all runs under it.
+	experimentServer := NewExperimentServer(manager)
+	_, err = experimentServer.ArchiveExperiment(nil, &api.ArchiveExperimentRequest{Id: experiment.UUID})
+	assert.Nil(t, err)
+	result, err := experimentServer.GetExperiment(nil, &api.GetExperimentRequest{Id: experiment.UUID})
+	assert.Equal(t, api.Experiment_STORAGESTATE_ARCHIVED, result.StorageState)
+	runs, err := runServer.ListRuns(nil, &api.ListRunsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
+	assert.Equal(t, 2, len(runs.Runs))
+	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
+	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
+	jobs, err := jobServer.ListJobs(nil, &api.ListJobsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
+	assert.Equal(t, 1, len(jobs.Jobs))
+	assert.Equal(t, false, jobs.Jobs[0].Enabled)
+
+	// Unarchive the experiment and thus all runs under it.
+	_, err = experimentServer.UnarchiveExperiment(nil, &api.UnarchiveExperimentRequest{Id: experiment.UUID})
+	assert.Nil(t, err)
+	result, err = experimentServer.GetExperiment(nil, &api.GetExperimentRequest{Id: experiment.UUID})
+	assert.Equal(t, api.Experiment_STORAGESTATE_AVAILABLE, result.StorageState)
+	runs, err = runServer.ListRuns(nil, &api.ListRunsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
+	assert.Equal(t, 2, len(runs.Runs))
+	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
+	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
+	jobs, err = jobServer.ListJobs(nil, &api.ListJobsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
+	assert.Equal(t, 1, len(jobs.Jobs))
+	assert.Equal(t, false, jobs.Jobs[0].Enabled)
 }

@@ -38,9 +38,9 @@ const (
 func initializeDbAndStore() (*DB, *JobStore) {
 	db := NewFakeDbOrFatal()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
-	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1", Namespace: "n1"})
 	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
-	expStore.CreateExperiment(&model.Experiment{Name: "exp2"})
+	expStore.CreateExperiment(&model.Experiment{Name: "exp2", Namespace: "n1"})
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	job1 := &model.Job{
 		UUID:        "1",
@@ -419,6 +419,12 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
 	assert.Equal(t, jobsExpected, jobs)
+
+	jobs, total_size, nextPageToken, err = jobStore.ListJobs(
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: "n1"}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, 2, total_size) // both test jobs belong to namespace `n1`
 }
 
 func TestListJobsError(t *testing.T) {

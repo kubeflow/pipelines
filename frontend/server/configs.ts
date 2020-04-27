@@ -13,6 +13,7 @@
 // limitations under the License.
 import * as path from 'path';
 import { loadJSON } from './utils';
+import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artifacts';
 export const BASEPATH = '/pipeline';
 export const apiVersion = 'v1beta1';
 export const apiVersionPrefix = `apis/${apiVersion}`;
@@ -41,10 +42,9 @@ function parseArgs(argv: string[]) {
   return { staticDir, port };
 }
 
-export function loadConfigs(
-  argv: string[],
-  env: NodeJS.ProcessEnv | { [key: string]: string },
-): UIConfigs {
+export type ProcessEnv = NodeJS.ProcessEnv | { [key: string]: string };
+
+export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
   const { staticDir, port } = parseArgs(argv);
   /** All configurable environment variables can be found here. */
   const {
@@ -122,6 +122,7 @@ export function loadConfigs(
         secretKey: MINIO_SECRET_KEY,
         useSSL: asBool(MINIO_SSL),
       },
+      proxy: loadArtifactsProxyConfig(env),
     },
     metadata: {
       envoyService: {
@@ -221,6 +222,7 @@ export interface UIConfigs {
     aws: AWSConfigs;
     minio: MinioConfigs;
     http: HttpConfigs;
+    proxy: ArtifactsProxyConfig;
   };
   argo: ArgoConfigs;
   metadata: MetadataConfigs;

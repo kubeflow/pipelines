@@ -73,8 +73,6 @@ export interface PreviewStreamOptions extends TransformOptions {
  * Transform stream that only stream the first X number of bytes.
  */
 export class PreviewStream extends Transform {
-  _peek: number;
-
   constructor({ peek, ...opts }: PreviewStreamOptions) {
     // acts like passthrough
     let transform: TransformOptions['transform'] = (chunk, _encoding, callback) =>

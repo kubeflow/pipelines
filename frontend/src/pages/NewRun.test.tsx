@@ -463,7 +463,7 @@ describe('NewRun', () => {
     await TestUtils.flushPromises();
 
     const pipeline = newMockPipelineWithParameters();
-    tree.setState({ pipeline, pipelineName: pipeline.name });
+    tree.setState({ parameters: pipeline.parameters });
 
     // Ensure that at least one of the provided parameters has a missing value.
     expect((pipeline.parameters || []).some(parameter => !parameter.value)).toBe(true);
@@ -478,7 +478,7 @@ describe('NewRun', () => {
     (pipeline.parameters || []).forEach(parameter => {
       parameter.value = 'I am not set';
     });
-    tree.setState({ pipeline, pipelineName: pipeline.name });
+    tree.setState({ parameters: pipeline.parameters });
 
     // Ensure all provided parameters have valid values.
     expect((pipeline.parameters || []).every(parameter => !!parameter.value)).toBe(true);

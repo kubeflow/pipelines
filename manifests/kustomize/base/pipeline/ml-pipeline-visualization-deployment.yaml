@@ -1,4 +1,4 @@
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -14,7 +14,7 @@ spec:
         app: ml-pipeline-visualizationserver
     spec:
       containers:
-      - image: gcr.io/ml-pipeline/visualization-server:0.1.27
+      - image: $(IMAGE_PREFIX)/visualization-server:$(IMAGE_TAG)
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-visualizationserver
         ports:
