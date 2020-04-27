@@ -19,6 +19,7 @@ from .._client import Client
 from .run import run
 from .pipeline import pipeline
 from .diagnose_me_cli import diagnose_me
+from .install import install
 
 @click.group()
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
@@ -29,8 +30,8 @@ from .diagnose_me_cli import diagnose_me
 @click.pass_context
 def cli(ctx, endpoint, iap_client_id, namespace, other_client_id, other_client_secret):
     """kfp is the command line interface to KFP service."""
-    if ctx.invoked_subcommand == 'diagnose_me':
-          # Do not create a client for diagnose_me
+    if ctx.invoked_subcommand == 'diagnose_me' or ctx.invoked_subcommand == 'install':
+          # Do not create a client for diagnose_me or install
           return
     ctx.obj['client'] = Client(endpoint, iap_client_id, namespace, other_client_id, other_client_secret)
     ctx.obj['namespace']= namespace
@@ -40,6 +41,7 @@ def main():
     cli.add_command(run)
     cli.add_command(pipeline)
     cli.add_command(diagnose_me,'diagnose_me')
+    cli.add_command(install)
     try:
         cli(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:

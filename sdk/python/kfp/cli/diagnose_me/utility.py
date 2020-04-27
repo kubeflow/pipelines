@@ -88,3 +88,7 @@ class ExecutorResponse(object):
   @property
   def stderr(self):
     return self._stderr
+
+  @property
+  def stdout(self):
+    return self._stdout
