@@ -33,6 +33,9 @@ jest.mock('node-fetch');
 jest.mock('@google-cloud/storage');
 jest.mock('./minio-helper');
 
+// TODO: move sections of tests here to individual files in `frontend/server/integration-tests/`
+// for better organization and shorter/more focused tests.
+
 const mockedFetch: jest.Mock = fetch as any;
 
 beforeEach(() => {
@@ -627,10 +630,11 @@ describe('UIServer apis', () => {
   });
 
   describe('/apps/tensorboard', () => {
-    let request: requests.SuperTest<requests.Test>;
     let k8sGetCustomObjectSpy: jest.SpyInstance;
     let k8sDeleteCustomObjectSpy: jest.SpyInstance;
     let k8sCreateCustomObjectSpy: jest.SpyInstance;
+    let kfpApiServer: Server;
+
     function newGetTensorboardResponse({
       name = 'viewer-example',
       logDir = 'log-dir-example',
@@ -655,9 +659,8 @@ describe('UIServer apis', () => {
         },
       };
     }
+
     beforeEach(() => {
-      app = new UIServer(loadConfigs(argv, {}));
-      request = requests(app.start());
       k8sGetCustomObjectSpy = jest.spyOn(
         K8S_TEST_EXPORT.k8sV1CustomObjectClient,
         'getNamespacedCustomObject',
@@ -672,18 +675,29 @@ describe('UIServer apis', () => {
       );
     });
 
+    afterEach(() => {
+      if (kfpApiServer) {
+        kfpApiServer.close();
+      }
+    });
+
     describe('get', () => {
       it('requires logdir for get tensorboard', done => {
-        request.get('/apps/tensorboard').expect(404, 'logdir argument is required', done);
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .get('/apps/tensorboard')
+          .expect(400, 'logdir argument is required', done);
       });
 
       it('requires namespace for get tensorboard', done => {
-        request
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
           .get('/apps/tensorboard?logdir=some-log-dir')
-          .expect(404, 'namespace argument is required', done);
+          .expect(400, 'namespace argument is required', done);
       });
 
       it('does not crash with a weird query', done => {
+        app = new UIServer(loadConfigs(argv, {}));
         k8sGetCustomObjectSpy.mockImplementation(() =>
           Promise.resolve(newGetTensorboardResponse()),
         );
@@ -691,10 +705,79 @@ describe('UIServer apis', () => {
         // exception, so this can verify handler doesn't do extra
         // decodeURIComponent on queries.
         const weirdLogDir = encodeURIComponent('%2');
-        request.get(`/apps/tensorboard?logdir=${weirdLogDir}&namespace=test-ns`).expect(200, done);
+        requests(app.start())
+          .get(`/apps/tensorboard?logdir=${weirdLogDir}&namespace=test-ns`)
+          .expect(200, done);
+      });
+
+      it('authorizes user requests from KFP auth api', done => {
+        app = new UIServer(loadConfigs(argv, { ENABLE_AUTHZ: 'true' }));
+        const appKfpApi = express();
+        const receivedHeaders: any[] = [];
+        appKfpApi.get('/apis/v1beta1/auth', (req, res) => {
+          receivedHeaders.push(req.headers);
+          res.status(200).send('{}'); // Authorized
+        });
+        kfpApiServer = appKfpApi.listen(3001);
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(newGetTensorboardResponse()),
+        );
+        requests(app.start())
+          .get(`/apps/tensorboard?logdir=some-log-dir&namespace=test-ns`)
+          .set('x-goog-authenticated-user-email', 'accounts.google.com:user@google.com')
+          .expect(200, err => {
+            expect(receivedHeaders).toHaveLength(1);
+            expect(receivedHeaders[0]).toMatchInlineSnapshot(`
+              Object {
+                "accept": "*/*",
+                "accept-encoding": "gzip,deflate",
+                "connection": "close",
+                "host": "localhost:3001",
+                "user-agent": "node-fetch/1.0 (+https://github.com/bitinn/node-fetch)",
+                "x-goog-authenticated-user-email": "accounts.google.com:user@google.com",
+              }
+            `);
+            done(err);
+          });
+      });
+
+      it('rejects user requests when KFP auth api rejected', done => {
+        const errorSpy = jest.spyOn(console, 'error');
+        errorSpy.mockImplementation();
+        app = new UIServer(loadConfigs(argv, { ENABLE_AUTHZ: 'true' }));
+        const appKfpApi = express();
+        appKfpApi.get('/apis/v1beta1/auth', (_, res) => {
+          res.status(400).send(
+            JSON.stringify({
+              error: 'User xxx is not unauthorized to list viewers',
+              details: ['unauthorized', 'callstack'],
+            }),
+          );
+        });
+        kfpApiServer = appKfpApi.listen(3001);
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(newGetTensorboardResponse()),
+        );
+        requests(app.start())
+          .get(`/apps/tensorboard?logdir=some-log-dir&namespace=test-ns`)
+          .expect(
+            401,
+            'User is not authorized to GET VIEWERS in namespace test-ns: User xxx is not unauthorized to list viewers',
+            err => {
+              expect(errorSpy).toHaveBeenCalledTimes(1);
+              expect(
+                errorSpy,
+              ).toHaveBeenCalledWith(
+                'User is not authorized to GET VIEWERS in namespace test-ns: User xxx is not unauthorized to list viewers',
+                ['unauthorized', 'callstack'],
+              );
+              done(err);
+            },
+          );
       });
 
       it('gets tensorboard url and version', done => {
+        app = new UIServer(loadConfigs(argv, {}));
         k8sGetCustomObjectSpy.mockImplementation(() =>
           Promise.resolve(
             newGetTensorboardResponse({
@@ -705,7 +788,7 @@ describe('UIServer apis', () => {
           ),
         );
 
-        request
+        requests(app.start())
           .get(`/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns`)
           .expect(
             200,
@@ -732,19 +815,24 @@ describe('UIServer apis', () => {
 
     describe('post (create)', () => {
       it('requires logdir', done => {
-        request.post('/apps/tensorboard').expect(404, 'logdir argument is required', done);
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .post('/apps/tensorboard')
+          .expect(400, 'logdir argument is required', done);
       });
 
       it('requires namespace', done => {
-        request
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
           .post('/apps/tensorboard?logdir=some-log-dir')
-          .expect(404, 'namespace argument is required', done);
+          .expect(400, 'namespace argument is required', done);
       });
 
       it('requires tfversion', done => {
-        request
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
           .post('/apps/tensorboard?logdir=some-log-dir&namespace=test-ns')
-          .expect(404, 'tfversion (tensorflow version) argument is required', done);
+          .expect(400, 'tfversion (tensorflow version) argument is required', done);
       });
 
       it('creates tensorboard viewer custom object and waits for it', done => {
@@ -768,7 +856,8 @@ describe('UIServer apis', () => {
         });
         k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
 
-        request
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
           .post(
             `/apps/tensorboard?logdir=${encodeURIComponent(
               'log-dir-1',
@@ -845,7 +934,8 @@ describe('UIServer apis', () => {
         );
         k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
 
-        request
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
           .post(
             `/apps/tensorboard?logdir=${encodeURIComponent(
               'log-dir-1',
@@ -853,7 +943,7 @@ describe('UIServer apis', () => {
           )
           .expect(
             500,
-            `Failed to start Tensorboard app: Error: There's already an existing tensorboard instance with a different version 2.1.0`,
+            `Failed to start Tensorboard app: There's already an existing tensorboard instance with a different version 2.1.0`,
             err => {
               expect(errorSpy).toHaveBeenCalledTimes(1);
               done(err);
@@ -873,7 +963,8 @@ describe('UIServer apis', () => {
         );
         k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
 
-        request
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
           .post(
             `/apps/tensorboard?logdir=${encodeURIComponent(
               'log-dir-1',
@@ -889,13 +980,17 @@ describe('UIServer apis', () => {
 
     describe('delete', () => {
       it('requires logdir', done => {
-        request.delete('/apps/tensorboard').expect(404, 'logdir argument is required', done);
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .delete('/apps/tensorboard')
+          .expect(400, 'logdir argument is required', done);
       });
 
       it('requires namespace', done => {
-        request
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
           .delete('/apps/tensorboard?logdir=some-log-dir')
-          .expect(404, 'namespace argument is required', done);
+          .expect(400, 'namespace argument is required', done);
       });
 
       it('deletes tensorboard viewer custom object', done => {
@@ -910,7 +1005,8 @@ describe('UIServer apis', () => {
         );
         k8sDeleteCustomObjectSpy.mockImplementation(() => Promise.resolve());
 
-        request
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
           .delete(`/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns`)
           .expect(200, 'Tensorboard deleted.', err => {
             expect(k8sDeleteCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
