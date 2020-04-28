@@ -33,7 +33,14 @@ async function authorize(
   }: { resources: AuthorizeRequestResources; verb: AuthorizeRequestVerb; namespace: string },
 ): Promise<boolean> {
   try {
-    await authService.authorize(namespace, resources as any, verb as any, { headers: req.headers });
+    // Resources and verb are string enums, they are used as string here, that
+    // requires a force type conversion. If we generated client should accept
+    // enums instead.
+    await authService.authorize(namespace, resources as any, verb as any, {
+      // Pass authentication header.
+      // TODO: parameterize the header.
+      headers: { [AUTH_EMAIL_HEADER]: req.headers[AUTH_EMAIL_HEADER] },
+    });
     console.debug(`Authorized to ${verb} ${resources} in namespace ${namespace}.`);
     return true;
   } catch (err) {
@@ -186,3 +193,5 @@ export const getTensorboardHandlers = (
     delete: deleteHandler,
   };
 };
+
+const AUTH_EMAIL_HEADER = 'x-goog-authenticated-user-email';

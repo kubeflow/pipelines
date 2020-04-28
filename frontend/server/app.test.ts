@@ -713,7 +713,9 @@ describe('UIServer apis', () => {
       it('authorizes user requests from KFP auth api', done => {
         app = new UIServer(loadConfigs(argv, { ENABLE_AUTHZ: 'true' }));
         const appKfpApi = express();
-        appKfpApi.get('/apis/v1beta1/auth', (_, res) => {
+        const receivedHeaders: any[] = [];
+        appKfpApi.get('/apis/v1beta1/auth', (req, res) => {
+          receivedHeaders.push(req.headers);
           res.status(200).send('{}'); // Authorized
         });
         kfpApiServer = appKfpApi.listen(3001);
@@ -722,7 +724,21 @@ describe('UIServer apis', () => {
         );
         requests(app.start())
           .get(`/apps/tensorboard?logdir=some-log-dir&namespace=test-ns`)
-          .expect(200, done);
+          .set('x-goog-authenticated-user-email', 'accounts.google.com:user@google.com')
+          .expect(200, err => {
+            expect(receivedHeaders).toHaveLength(1);
+            expect(receivedHeaders[0]).toMatchInlineSnapshot(`
+              Object {
+                "accept": "*/*",
+                "accept-encoding": "gzip,deflate",
+                "connection": "close",
+                "host": "localhost:3001",
+                "user-agent": "node-fetch/1.0 (+https://github.com/bitinn/node-fetch)",
+                "x-goog-authenticated-user-email": "accounts.google.com:user@google.com",
+              }
+            `);
+            done(err);
+          });
       });
 
       it('rejects user requests when KFP auth api rejected', done => {
