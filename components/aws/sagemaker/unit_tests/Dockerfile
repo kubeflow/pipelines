@@ -20,9 +20,13 @@ RUN yum update -y \
     python3
 
 RUN pip3 install \
-    sagemaker==1.54.0 \
-    pyyaml==3.12
+    coverage==5.1 \
+    pytest==5.4.1 \
+    pyyaml==3.12 \
+    sagemaker==1.54.0
 
 copy ./sagemaker/ /app/
 
-ENTRYPOINT [ "python3", "/app/unit_tests/run_tests.py" ]
+WORKDIR /app/unit_tests/
+
+CMD [ "bash", "./run_all_tests.sh" ]
