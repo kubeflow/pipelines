@@ -1,4 +1,4 @@
-
+from ..common import utils
 
 
 def resolve_project_id(input_project_id) -> str:
@@ -6,10 +6,7 @@ def resolve_project_id(input_project_id) -> str:
 
   if input_project_id == None:
     print("Didn't specify --project-id.")
-    return resolve_project_id_core()
+    return utils.input_must_have('Input GCP Project ID: ')
   else:
     print("GCP Project ID: {0}".format(input_project_id))
     return input_project_id
-
-def resolve_project_id_core() -> str:
-  return input('Input GCP Project ID: ')

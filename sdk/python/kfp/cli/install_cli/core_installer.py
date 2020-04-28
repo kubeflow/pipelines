@@ -1,6 +1,6 @@
-from ..common import colored
+from ..common import utils
 
 def install():
   print("\n===== Installing Kubeflow Pipelines =====\n")
 
-  colored.print_success('Fake SUCCESS')
+  utils.print_success('Fake SUCCESS')

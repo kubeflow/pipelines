@@ -7,6 +7,7 @@ import click
 from .install_cli import prerequest
 from . install_cli import project_id_resolver
 from .install_cli import core_installer
+from .install_cli import cluster_resolver
 
 @click.group()
 def install():
@@ -15,16 +16,30 @@ def install():
 
 @install.command()
 @click.option(
-    '--project-id',
+    '--gcp-project-id',
     type=Text,
     help='Target project id. It will use environment default if not specified.')
+@click.option(
+    '--gcp-cluster-id',
+    type=Text,
+    help='Namespace to use for Kubernetes cluster.'
+)
+@click.option(
+    '--gcp-cluster-zone',
+    type=Text,
+    help='Namespace to use for Kubernetes cluster.'
+)
+@click.option(
+    '--gcp-create-cluster',
+    type=click.Choice(['true', 'false']),
+    help='Whether create cluster or use existing or ask interactive')
 @click.option(
     '--namespace',
     type=Text,
     help='Namespace to use for Kubernetes cluster.'
 )
 @click.pass_context
-def install(ctx, project_id, namespace):
+def install(ctx, gcp_project_id, gcp_cluster_id, gcp_cluster_zone, gcp_create_cluster, namespace):
   """Kubeflow Pipelines CLI Installer"""
 
   # Show welcome messages
@@ -37,9 +52,11 @@ def install(ctx, project_id, namespace):
   gcp_account = prerequest.check_gcp_account()
 
   # Resolve GCP Project ID
-  resolved_project_id = project_id_resolver.resolve_project_id(project_id)
+  gcp_project_id = project_id_resolver.resolve_project_id(gcp_project_id)
 
   # Resolve GCP Cluster
+  gcp_cluster_id, gcp_cluster_zone = cluster_resolver.resolve_cluster(
+      gcp_project_id, gcp_create_cluster, gcp_cluster_id, gcp_cluster_zone)
 
   # Resolve Namespace
 
@@ -49,4 +66,5 @@ def install(ctx, project_id, namespace):
 
   # Resolve GPU node pool
 
+  # Resolve KFP
   core_installer.install()

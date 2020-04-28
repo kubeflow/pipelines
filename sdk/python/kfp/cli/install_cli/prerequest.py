@@ -1,5 +1,5 @@
 
-from ..common import colored, executer
+from ..common import utils, executer
 
 def show_welcome_message():
   print("""
@@ -18,7 +18,7 @@ def request_tool(name):
   if has_tool:
     print('Prerequisite Check: {0} INSTALLED'.format(name))
   else:
-    colored.print_error('Prerequisite Check: {0} NOT-INSTALLED. Please install it.'.format(name))
+    utils.print_error('Prerequisite Check: {0} NOT-INSTALLED. Please install it.'.format(name))
 
   return has_tool
 
