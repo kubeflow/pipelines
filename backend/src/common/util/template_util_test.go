@@ -21,7 +21,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestGetParameters(t *testing.T) {
@@ -46,4 +46,8 @@ func TestGetParameters_ParametersTooLong(t *testing.T) {
 	templateBytes, _ := yaml.Marshal(template)
 	_, err := GetParameters(templateBytes)
 	assert.Equal(t, codes.InvalidArgument, err.(*UserError).ExternalStatusCode())
+}
+
+func TestValidateWorkflow(t *testing.T) {
+	assert.Equal(true, true)
 }
