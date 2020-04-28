@@ -51,7 +51,8 @@ export const getTensorboardHandlers = (
 ): { get: Handler; create: Handler; delete: Handler } => {
   const { apiServerAddress, authzEnabled } = otherConfig;
   console.log('api server address ' + apiServerAddress);
-  // TODO: stop importing portable-fetch, or use portable-fetch instead of node-fetch
+  // TODO: Use portable-fetch instead of node-fetch in other parts too. The generated api here only
+  // supports portable-fetch.
   const authService = new AuthServiceApi(
     { basePath: apiServerAddress },
     undefined,
@@ -64,11 +65,11 @@ export const getTensorboardHandlers = (
   const get: Handler = async (req, res) => {
     const { logdir, namespace } = req.query;
     if (!logdir) {
-      res.status(404).send('logdir argument is required');
+      res.status(400).send('logdir argument is required');
       return;
     }
     if (!namespace) {
-      res.status(404).send('namespace argument is required');
+      res.status(400).send('namespace argument is required');
       return;
     }
 
@@ -101,15 +102,15 @@ export const getTensorboardHandlers = (
   const create: Handler = async (req, res) => {
     const { logdir, namespace, tfversion } = req.query;
     if (!logdir) {
-      res.status(404).send('logdir argument is required');
+      res.status(400).send('logdir argument is required');
       return;
     }
     if (!namespace) {
-      res.status(404).send('namespace argument is required');
+      res.status(400).send('namespace argument is required');
       return;
     }
     if (!tfversion) {
-      res.status(404).send('tfversion (tensorflow version) argument is required');
+      res.status(400).send('tfversion (tensorflow version) argument is required');
       return;
     }
 
@@ -151,11 +152,11 @@ export const getTensorboardHandlers = (
   const deleteHandler: Handler = async (req, res) => {
     const { logdir, namespace } = req.query;
     if (!logdir) {
-      res.status(404).send('logdir argument is required');
+      res.status(400).send('logdir argument is required');
       return;
     }
     if (!namespace) {
-      res.status(404).send('namespace argument is required');
+      res.status(400).send('namespace argument is required');
       return;
     }
 

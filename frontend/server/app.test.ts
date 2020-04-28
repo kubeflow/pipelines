@@ -686,14 +686,14 @@ describe('UIServer apis', () => {
         app = new UIServer(loadConfigs(argv, {}));
         requests(app.start())
           .get('/apps/tensorboard')
-          .expect(404, 'logdir argument is required', done);
+          .expect(400, 'logdir argument is required', done);
       });
 
       it('requires namespace for get tensorboard', done => {
         app = new UIServer(loadConfigs(argv, {}));
         requests(app.start())
           .get('/apps/tensorboard?logdir=some-log-dir')
-          .expect(404, 'namespace argument is required', done);
+          .expect(400, 'namespace argument is required', done);
       });
 
       it('does not crash with a weird query', done => {
@@ -802,21 +802,21 @@ describe('UIServer apis', () => {
         app = new UIServer(loadConfigs(argv, {}));
         requests(app.start())
           .post('/apps/tensorboard')
-          .expect(404, 'logdir argument is required', done);
+          .expect(400, 'logdir argument is required', done);
       });
 
       it('requires namespace', done => {
         app = new UIServer(loadConfigs(argv, {}));
         requests(app.start())
           .post('/apps/tensorboard?logdir=some-log-dir')
-          .expect(404, 'namespace argument is required', done);
+          .expect(400, 'namespace argument is required', done);
       });
 
       it('requires tfversion', done => {
         app = new UIServer(loadConfigs(argv, {}));
         requests(app.start())
           .post('/apps/tensorboard?logdir=some-log-dir&namespace=test-ns')
-          .expect(404, 'tfversion (tensorflow version) argument is required', done);
+          .expect(400, 'tfversion (tensorflow version) argument is required', done);
       });
 
       it('creates tensorboard viewer custom object and waits for it', done => {
@@ -967,14 +967,14 @@ describe('UIServer apis', () => {
         app = new UIServer(loadConfigs(argv, {}));
         requests(app.start())
           .delete('/apps/tensorboard')
-          .expect(404, 'logdir argument is required', done);
+          .expect(400, 'logdir argument is required', done);
       });
 
       it('requires namespace', done => {
         app = new UIServer(loadConfigs(argv, {}));
         requests(app.start())
           .delete('/apps/tensorboard?logdir=some-log-dir')
-          .expect(404, 'namespace argument is required', done);
+          .expect(400, 'namespace argument is required', done);
       });
 
       it('deletes tensorboard viewer custom object', done => {
