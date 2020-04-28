@@ -99,16 +99,12 @@ export interface ErrorDetails {
   message: string;
   additionalInfo: any;
 }
-export const UNKOWN_ERROR: ErrorDetails = {
-  message: 'Unknown error',
-  additionalInfo: 'Unknown error',
-};
+const UNKOWN_ERROR = 'Unknown error';
 export async function parseError(error: any): Promise<ErrorDetails> {
   return (
     parseK8sError(error) ||
     (await parseKfpApiError(error)) ||
-    parseGenericError(error) ||
-    UNKOWN_ERROR
+    parseGenericError(error) || { message: UNKOWN_ERROR, additionalInfo: error }
   );
 }
 
@@ -124,6 +120,19 @@ function parseGenericError(error: any): ErrorDetails | undefined {
     return { message: error.message, additionalInfo: error };
   } else if (error.message && typeof error.message === 'string') {
     return { message: error.message, additionalInfo: error };
+  } else if (
+    error.url &&
+    typeof error.url === 'string' &&
+    error.status &&
+    typeof error.status === 'number' &&
+    error.statusText &&
+    typeof error.statusText === 'string'
+  ) {
+    const { url, status, statusText } = error;
+    return {
+      message: `Fetching ${url} failed with status code ${status} and message: ${statusText}`,
+      additionalInfo: { url, status, statusText },
+    };
   }
   // Cannot understand error type
   return undefined;
