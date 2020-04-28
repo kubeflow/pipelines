@@ -6,7 +6,8 @@ phases:
       - docker build . -f ./sagemaker/unit_tests/Dockerfile -t amazon/unit-test-image --quiet
 
       # Run the container and copy the results to /tmp
-      - docker run -dit --name unit-test-container  -e "PYTEST_ADDOPTS=\"--color=no\"" amazon/unit-test-image
+      # Passes all host environment variables through to the container
+      - docker run -dit --name unit-test-container --env-file <( env| cut -f1 -d= ) amazon/unit-test-image
       - docker wait unit-test-container
       - docker logs unit-test-container
       - docker cp unit-test-container:/app/unit_tests/log /tmp/results.xml
