@@ -13,6 +13,9 @@ spec:
   serviceAccountName: pipeline-runner
   templates:
   - name: create-volume
+    metadata:
+      labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     outputs:
       parameters:
       - name: create-volume-manifest
@@ -44,6 +47,9 @@ spec:
       - name: create-volume-name
       - name: url
     name: step1-ingest
+    metadata:
+      labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     volumes:
     - name: create-volume
       persistentVolumeClaim:
@@ -52,6 +58,9 @@ spec:
       parameters:
       - name: create-volume-name
     name: step1-snap
+    metadata:
+      labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     outputs:
       parameters:
       - name: step1-snap-manifest
@@ -83,6 +92,9 @@ spec:
       parameters:
       - name: create-volume-name
     name: step2-gunzip
+    metadata:
+      labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     volumes:
     - name: create-volume
       persistentVolumeClaim:
@@ -91,6 +103,9 @@ spec:
       parameters:
       - name: create-volume-name
     name: step2-snap
+    metadata:
+      labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     outputs:
       parameters:
       - name: step2-snap-manifest
@@ -122,6 +137,9 @@ spec:
       parameters:
       - name: create-volume-name
     name: step3-copy
+    metadata:
+      labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     volumes:
     - name: create-volume
       persistentVolumeClaim:
@@ -130,6 +148,9 @@ spec:
       parameters:
       - name: create-volume-name
     name: step3-snap
+    metadata:
+      labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     outputs:
       parameters:
       - name: step3-snap-manifest
@@ -160,6 +181,9 @@ spec:
       parameters:
       - name: create-volume-name
     name: step4-output
+    metadata:
+      labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     volumes:
     - name: create-volume
       persistentVolumeClaim:
