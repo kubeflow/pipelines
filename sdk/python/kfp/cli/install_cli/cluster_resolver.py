@@ -4,10 +4,13 @@ from ..common import executer
 def resolve_cluster(gcp_project_id, gcp_create_cluster, gcp_cluster_id, gcp_cluster_zone) -> (str, str):
   print("\n===== Resolve GCP Cluster =====\n")
 
+  display_cluster_list(gcp_project_id)
+
   if gcp_create_cluster == None:
-    display_cluster_list(gcp_project_id)
     gcp_create_cluster = utils.input_must_have_boolean(
         'Do you want to create a new cluster? y/n: ')
+  else:
+    gcp_create_cluster = True if gcp_create_cluster == 'true' else False
 
   gcp_cluster_id, gcp_cluster_zone = resolve_cluster_id_zone(
       gcp_project_id, gcp_cluster_id, gcp_cluster_zone)
