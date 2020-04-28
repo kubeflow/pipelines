@@ -88,6 +88,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ARGO_ARCHIVE_PREFIX = 'logs',
     /** Disables GKE metadata endpoint. */
     DISABLE_GKE_METADATA = 'false',
+    /** Enable authorization checks for multi user mode. */
+    ENABLE_AUTHZ = 'false',
     /** Deployment type. */
     DEPLOYMENT: DEPLOYMENT_STR = '',
   } = env;
@@ -158,6 +160,9 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     gkeMetadata: {
       disabled: asBool(DISABLE_GKE_METADATA),
     },
+    auth: {
+      enabled: asBool(ENABLE_AUTHZ),
+    },
   };
 }
 
@@ -216,6 +221,9 @@ export interface ServerConfigs {
 export interface GkeMetadataConfigs {
   disabled: boolean;
 }
+export interface AuthorizationConfigs {
+  enabled: boolean;
+}
 export interface UIConfigs {
   server: ServerConfigs;
   artifacts: {
@@ -230,4 +238,5 @@ export interface UIConfigs {
   viewer: ViewerConfigs;
   pipeline: PipelineConfigs;
   gkeMetadata: GkeMetadataConfigs;
+  auth: AuthorizationConfigs;
 }

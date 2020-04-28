@@ -24,11 +24,7 @@ import {
   getArtifactsProxyHandler,
   getArtifactServiceGetter,
 } from './handlers/artifacts';
-import {
-  getCreateTensorboardHandler,
-  getTensorboardHandler,
-  deleteTensorboardHandler,
-} from './handlers/tensorboard';
+import { getTensorboardHandlers } from './handlers/tensorboard';
 import { getPodLogsHandler } from './handlers/pod-logs';
 import { podInfoHandler, podEventsHandler } from './handlers/pod-info';
 import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata';
@@ -129,13 +125,17 @@ function createUIServer(options: UIConfigs) {
   registerHandler(app.get, '/artifacts/get', getArtifactsHandler(options.artifacts));
 
   /** Tensorboard viewer */
-  registerHandler(app.get, '/apps/tensorboard', getTensorboardHandler);
-  registerHandler(app.delete, '/apps/tensorboard', deleteTensorboardHandler);
-  registerHandler(
-    app.post,
-    '/apps/tensorboard',
-    getCreateTensorboardHandler(options.viewer.tensorboard),
-  );
+  const {
+    get: tensorboardGetHandler,
+    create: tensorboardCreateHandler,
+    delete: tensorboardDeleteHandler,
+  } = getTensorboardHandlers(options.viewer.tensorboard, {
+    apiServerAddress,
+    authzEnabled: options.auth.enabled,
+  });
+  registerHandler(app.get, '/apps/tensorboard', tensorboardGetHandler);
+  registerHandler(app.delete, '/apps/tensorboard', tensorboardDeleteHandler);
+  registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);
 
   /** Pod logs */
   registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));
