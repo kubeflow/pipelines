@@ -105,9 +105,9 @@ export const UNKOWN_ERROR: ErrorDetails = {
 };
 export async function parseError(error: any): Promise<ErrorDetails> {
   return (
-    parseGenericError(error) ||
-    (await parseKfpApiError(error)) ||
     parseK8sError(error) ||
+    (await parseKfpApiError(error)) ||
+    parseGenericError(error) ||
     UNKOWN_ERROR
   );
 }
@@ -121,6 +121,8 @@ function parseGenericError(error: any): ErrorDetails | undefined {
       additionalInfo: error,
     };
   } else if (error instanceof Error) {
+    return { message: error.message, additionalInfo: error };
+  } else if (error.message && typeof error.message === 'string') {
     return { message: error.message, additionalInfo: error };
   }
   // Cannot understand error type
