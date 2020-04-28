@@ -8,7 +8,7 @@ These unit tests test the user input parsing part of the code.
     ```
     # For now using my branch as an example 
     
-    git clone --single-branch --branch unit_test https://github.com/akartsky/pipelines.git
+    git clone https://github.com/kubeflow/pipelines.git
     ```
 2. Install the pip pakages required for testing 
     ```
@@ -20,6 +20,6 @@ These unit tests test the user input parsing part of the code.
     ```
     # while in the same directory pipelines/components/aws/sagemaker/unit_tests/
    
-    python run_tests.py
+    ./run_all_tests.sh
     ```
    

@@ -1,7 +1,6 @@
 # How to build this docker file
 #
-# For now using my branch as an example
-# git clone --single-branch --branch unit_test https://github.com/akartsky/pipelines.git
+# https://github.com/kubeflow/pipelines.git
 #
 # cd pipelines/components/aws
 #
