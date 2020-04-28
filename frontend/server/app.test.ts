@@ -853,7 +853,7 @@ describe('UIServer apis', () => {
           )
           .expect(
             500,
-            `Failed to start Tensorboard app: Error: There's already an existing tensorboard instance with a different version 2.1.0`,
+            `Failed to start Tensorboard app: There's already an existing tensorboard instance with a different version 2.1.0`,
             err => {
               expect(errorSpy).toHaveBeenCalledTimes(1);
               done(err);
