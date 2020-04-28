@@ -317,8 +317,8 @@ def _extract_component_interface(func) -> ComponentSpec:
         if isinstance(parameter_annotation, (InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile)):
             passing_style = type(parameter_annotation)
             parameter_annotation = parameter_annotation.type
-            if parameter.default is not inspect.Parameter.empty:
-                raise ValueError('Default values for file inputs/outputs are not supported. If you need them for some reason, please create an issue and write about your usage scenario.')
+            if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
+                raise ValueError('Path inputs only support default values of None. Default values for outputs are not supported.')
             # Removing the "_path" and "_file" suffixes from the input/output names as the argument passed to the component needs to be the data itself, not local file path.
             # Problem: When accepting file inputs (outputs), the function inside the component receives file paths (or file streams), so it's natural to call the function parameter "something_file_path" (e.g. model_file_path or number_file_path).
             # But from the outside perspective, there are no files or paths - the actual data objects (or references to them) are passed in.
