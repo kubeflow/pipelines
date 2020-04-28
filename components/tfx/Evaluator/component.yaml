@@ -55,7 +55,6 @@ inputs:
 - {name: fairness_indicator_thresholds, type: JsonArray, optional: true}
 outputs:
 - {name: evaluation, type: ModelEvaluation}
-- {name: blessing, type: ModelBlessing}
 implementation:
   container:
     image: tensorflow/tfx:0.21.4
@@ -71,7 +70,6 @@ implementation:
 
       def Evaluator(
           evaluation_path ,
-          blessing_path ,
 
           examples_path ,
           model_path ,
@@ -81,6 +79,8 @@ implementation:
           feature_slicing_spec    = None,  # TODO: Replace feature_slicing_spec with eval_config
           eval_config    = None,
           fairness_indicator_thresholds  = None, # List[str]
+
+          #blessing_path: OutputPath('ModelBlessing') = None,  # Optional outputs are not supported yet
       ):
           """
           A TFX component to evaluate models trained by a TFX Trainer component.
@@ -166,11 +166,12 @@ implementation:
 
           # Generating paths for output artifacts
           for name, artifacts in output_dict.items():
-              base_artifact_path = arguments[name + '_path']
-              # Are there still cases where output channel has multiple artifacts?
-              for idx, artifact in enumerate(artifacts):
-                  subdir = str(idx + 1) if idx > 0 else ''
-                  artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
+              base_artifact_path = arguments.get(name + '_path', None)
+              if base_artifact_path:
+                  # Are there still cases where output channel has multiple artifacts?
+                  for idx, artifact in enumerate(artifacts):
+                      subdir = str(idx + 1) if idx > 0 else ''
+                      artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
 
           print('component instance: ' + str(component_class_instance))
 
@@ -193,7 +194,6 @@ implementation:
       _parser.add_argument("--eval-config", dest="eval_config", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--fairness-indicator-thresholds", dest="fairness_indicator_thresholds", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--evaluation", dest="evaluation_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--blessing", dest="blessing_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
 
@@ -243,5 +243,3 @@ implementation:
         - {inputValue: fairness_indicator_thresholds}
     - --evaluation
     - {outputPath: evaluation}
-    - --blessing
-    - {outputPath: blessing}

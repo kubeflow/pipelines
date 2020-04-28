@@ -5,7 +5,6 @@ from kfp.components import InputPath, OutputPath
 
 def Evaluator(
     evaluation_path: OutputPath('ModelEvaluation'),
-    blessing_path: OutputPath('ModelBlessing'),
 
     examples_path: InputPath('Examples'),
     model_path: InputPath('Model'),
@@ -15,6 +14,8 @@ def Evaluator(
     feature_slicing_spec: {'JsonObject': {'data_type': 'proto:tfx.components.evaluator.FeatureSlicingSpec'}} = None,  # TODO: Replace feature_slicing_spec with eval_config
     eval_config: {'JsonObject': {'data_type': 'proto:tensorflow_model_analysis.EvalConfig'}} = None,
     fairness_indicator_thresholds: list = None, # List[str]
+
+    #blessing_path: OutputPath('ModelBlessing') = None,  # Optional outputs are not supported yet
 ):
     """
     A TFX component to evaluate models trained by a TFX Trainer component.
@@ -100,11 +101,12 @@ def Evaluator(
 
     # Generating paths for output artifacts
     for name, artifacts in output_dict.items():
-        base_artifact_path = arguments[name + '_path']
-        # Are there still cases where output channel has multiple artifacts?
-        for idx, artifact in enumerate(artifacts):
-            subdir = str(idx + 1) if idx > 0 else ''
-            artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
+        base_artifact_path = arguments.get(name + '_path', None)
+        if base_artifact_path:
+            # Are there still cases where output channel has multiple artifacts?
+            for idx, artifact in enumerate(artifacts):
+                subdir = str(idx + 1) if idx > 0 else ''
+                artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
 
     print('component instance: ' + str(component_class_instance))
 
