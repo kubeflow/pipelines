@@ -8,6 +8,7 @@ phases:
       # Run the container and copy the results to /tmp
       - docker run -dit --name unit-test-container amazon/unit-test-image
       - docker wait unit-test-container
+      - docker logs unit-test-container
       - docker cp unit-test-container:/app/unit_tests/log /tmp/results.xml
       - docker rm -f unit-test-container
 
