@@ -15,7 +15,7 @@ import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper';
 import { ViewerTensorboardConfig } from '../configs';
 import { AuthServiceApi } from '../src/generated/apis/auth';
-import 'portable-fetch';
+import fetch from 'node-fetch';
 import { parseError } from '../utils';
 
 export const getTensorboardHandlers = (
@@ -24,7 +24,7 @@ export const getTensorboardHandlers = (
 ): { get: Handler; create: Handler; delete: Handler } => {
   const { apiServerAddress, authzEnabled } = otherConfig;
   console.log('api server address ' + apiServerAddress);
-  const authService = new AuthServiceApi({ basePath: apiServerAddress }, undefined, fetch);
+  const authService = new AuthServiceApi({ basePath: apiServerAddress }, undefined, fetch as any);
   /**
    * A handler which retrieve the endpoint for a tensorboard instance. The
    * handler expects a query string `logdir`.
