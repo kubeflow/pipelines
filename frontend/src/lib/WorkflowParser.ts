@@ -29,7 +29,7 @@ import { Constants } from './Constants';
 import { KeyValue } from './StaticGraphParser';
 import { hasFinished, NodePhase, statusToBgColor } from './StatusUtils';
 import { parseTaskDisplayName } from './ParserUtils';
-import { isS3Endpoint } from '../../server/aws-helper';
+import { isS3Endpoint } from './AwsHelper';
 
 export enum StorageService {
   GCS = 'gcs',
