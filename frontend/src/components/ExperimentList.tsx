@@ -3,7 +3,7 @@ import CustomTable, {
   CustomRendererProps,
   Row,
   ExpandState,
-} from '../components/CustomTable';
+} from './CustomTable';
 import * as React from 'react';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import {
@@ -12,7 +12,7 @@ import {
   ExperimentStorageState,
 } from '../apis/experiment';
 import { errorToMessage } from '../lib/Utils';
-import { RoutePage, RouteParams } from '../components/Router';
+import { RoutePage, RouteParams } from './Router';
 import { commonCss } from '../Css';
 import { Apis, ExperimentSortKeys, ListRequest } from '../lib/Apis';
 import { RunStorageState } from 'src/apis/run';
@@ -21,7 +21,7 @@ import { PredicateOp, ApiFilter } from '../apis/filter';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
 
-export interface ExperimentListComponentProps extends RouteComponentProps {
+export interface ExperimentListProps extends RouteComponentProps {
   namespace?: string;
   storageState?: ExperimentStorageState;
   onError: (message: string, error: Error) => void;
@@ -32,13 +32,13 @@ interface DisplayExperiment extends ApiExperiment {
   expandState?: ExpandState;
 }
 
-interface ExperimentListComponentState {
+interface ExperimentListState {
   displayExperiments: DisplayExperiment[];
 }
 
-export class ExperimentListComponent extends React.PureComponent<
-  ExperimentListComponentProps,
-  ExperimentListComponentState
+export class ExperimentList extends React.PureComponent<
+  ExperimentListProps,
+  ExperimentListState
 > {
   private _tableRef = React.createRef<CustomTable>();
 
@@ -199,4 +199,4 @@ export class ExperimentListComponent extends React.PureComponent<
   }
 }
 
-export default ExperimentListComponent;
+export default ExperimentList;
