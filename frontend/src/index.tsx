@@ -60,7 +60,7 @@ ReactDOM.render(
     <NamespaceContextProvider>{app}</NamespaceContextProvider>
   ) : (
     // Uncomment the following for namespace switch during development.
-    // <NamespaceContext.Provider value='kubeflow-gongyuan'>{app}</NamespaceContext.Provider>
+    // <NamespaceContext.Provider value='your-namespace'>{app}</NamespaceContext.Provider>
     <NamespaceContext.Provider value={undefined}>{app}</NamespaceContext.Provider>
   ),
   document.getElementById('root'),
