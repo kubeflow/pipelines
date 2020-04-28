@@ -1,0 +1,20 @@
+version: 0.2      
+phases:
+  build:
+    commands:
+      - cd components/aws
+      - docker build . -f ./sagemaker/integration_tests/Dockerfile -t amazon/integration-test-image --quiet
+
+      # Run the container and copy the results to /tmp
+      # Passes all host environment variables through to the container
+      - docker run -dit --name integration-test-container --env-file <( env| cut -f1 -d= ) amazon/integration-test-image
+      - docker wait integration-test-container
+      - docker logs integration-test-container
+      - docker cp integration-test-container:/app/integration_tests/log /tmp/results.xml
+      - docker rm -f integration-test-container
+
+reports:
+  IntegrationTestReport:
+    files:
+      - "results.xml"
+    base-directory: "/tmp"
