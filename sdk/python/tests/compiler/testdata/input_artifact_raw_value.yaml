@@ -22,6 +22,9 @@ spec:
         raw:
           data: Constant artifact value
     name: component-with-inline-input-artifact
+    metadata:
+      labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
   - container:
       command:
       - cat
@@ -34,6 +37,9 @@ spec:
         raw:
           data: Constant artifact value
     name: component-with-input-artifact
+    metadata:
+      labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
   - container:
       command:
       - cat
@@ -46,6 +52,9 @@ spec:
         raw:
           data: hard-coded artifact value
     name: component-with-input-artifact-2
+    metadata:
+      labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
   - container:
       command:
       - cat
@@ -58,6 +67,9 @@ spec:
         raw:
           data: Text from a file with hard-coded artifact value
     name: component-with-input-artifact-3
+    metadata:
+      labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
   - dag:
       tasks:
       - name: component-with-inline-input-artifact
