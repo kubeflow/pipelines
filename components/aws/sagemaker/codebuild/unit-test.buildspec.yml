@@ -7,7 +7,7 @@ phases:
 
       # Run the container and copy the results to /tmp
       # Passes all host environment variables through to the container
-      - docker run -dit --name unit-test-container --env-file <( env| cut -f1 -d= ) amazon/unit-test-image
+      - docker run -dit --name unit-test-container $(env | cut -f1 -d= | sed 's/^/-e /') amazon/unit-test-image
       - docker wait unit-test-container
       - docker logs unit-test-container
       - docker cp unit-test-container:/app/unit_tests/log /tmp/results.xml
