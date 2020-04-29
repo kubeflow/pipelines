@@ -229,10 +229,12 @@ def get_image_from_job(client, job_name):
 
 def create_model(client, args):
     request = create_model_request(args)
-    create_model_response = client.create_model(**request)
-
-    logging.info("Model Config Arn: " + create_model_response['ModelArn'])
-    return create_model_response['ModelArn']
+    try:
+        create_model_response = client.create_model(**request)
+        logging.info("Model Config Arn: " + create_model_response['ModelArn'])
+        return create_model_response['ModelArn']
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
 
 
 def create_model_request(args):

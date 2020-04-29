@@ -1,5 +1,6 @@
 boto3
 coverage
+pathlib2
 pytest
 pyyaml
 sagemaker

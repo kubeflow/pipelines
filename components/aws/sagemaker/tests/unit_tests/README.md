@@ -1,6 +1,4 @@
-# Unit tests for AWS SageMaker KFP Components 
-
-These unit tests test the user input parsing part of the code.  
+# Unit tests for AWS SageMaker KFP Components  
 
 ## How to run these tests 
 
