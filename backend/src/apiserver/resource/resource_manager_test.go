@@ -532,6 +532,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 				Relationship: api.Relationship_CREATOR,
 			},
 		},
+		ServiceAccount: "sa1",
 	}
 	runDetail, err := manager.CreateRun(apiRun)
 	assert.Nil(t, err)
@@ -541,7 +542,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{

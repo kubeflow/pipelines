@@ -1101,9 +1101,9 @@ func (r *ResourceManager) GetNamespaceFromJobID(jobId string) (string, error) {
 	return job.Namespace, nil
 }
 
-func (r *ResourceManager) setDefaultServiceAccount(workflow *util.Workflow, string serviceAccountArg) {
-	if len(serviceAccountArg) > 0 {
-		workflow.SetServiceAccount(serviceAccountArg)
+func (r *ResourceManager) setDefaultServiceAccount(workflow *util.Workflow, serviceAccount string) {
+	if len(serviceAccount) > 0 {
+		workflow.SetServiceAccount(serviceAccount)
 		return
 	}
 	workflowServiceAccount := workflow.Spec.ServiceAccountName
