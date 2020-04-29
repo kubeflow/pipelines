@@ -37,7 +37,10 @@ interface ArchivedExperimentAndRunsState {
   selectedTab: ArchivedExperimentsAndRunsTab;
 }
 
-class ArchivedExperimentsAndRuns extends Page<ArchivedExperimentAndRunsProps, ArchivedExperimentAndRunsState> {
+class ArchivedExperimentsAndRuns extends Page<
+  ArchivedExperimentAndRunsProps,
+  ArchivedExperimentAndRunsState
+> {
   public getInitialToolbarState(): ToolbarProps {
     return { actions: {}, breadcrumbs: [], pageTitle: '' };
   }
@@ -52,7 +55,9 @@ class ArchivedExperimentsAndRuns extends Page<ArchivedExperimentAndRunsProps, Ar
         />
         {this.props.view === ArchivedExperimentsAndRunsTab.RUNS && <ArchivedRuns {...this.props} />}
 
-        {this.props.view === ArchivedExperimentsAndRunsTab.EXPERIMENTS && <ArchivedExperiments {...this.props} />}
+        {this.props.view === ArchivedExperimentsAndRunsTab.EXPERIMENTS && (
+          <ArchivedExperiments {...this.props} />
+        )}
       </div>
     );
   }
@@ -63,7 +68,9 @@ class ArchivedExperimentsAndRuns extends Page<ArchivedExperimentAndRunsProps, Ar
 
   private _tabSwitched(newTab: ArchivedExperimentsAndRunsTab): void {
     this.props.history.push(
-      newTab === ArchivedExperimentsAndRunsTab.EXPERIMENTS ? RoutePage.ARCHIVED_EXPERIMENTS : RoutePage.ARCHIVED_RUNS,
+      newTab === ArchivedExperimentsAndRunsTab.EXPERIMENTS
+        ? RoutePage.ARCHIVED_EXPERIMENTS
+        : RoutePage.ARCHIVED_RUNS,
     );
   }
 }

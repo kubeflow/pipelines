@@ -23,7 +23,7 @@ import { ShallowWrapper, shallow } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
 import { Apis } from '../lib/Apis';
 
-describe('Archive', () => {
+describe('ArchivedRuns', () => {
   const updateBannerSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
   const historyPushSpy = jest.fn();

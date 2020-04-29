@@ -1,9 +1,4 @@
-import CustomTable, {
-  Column,
-  CustomRendererProps,
-  Row,
-  ExpandState,
-} from './CustomTable';
+import CustomTable, { Column, CustomRendererProps, Row, ExpandState } from './CustomTable';
 import * as React from 'react';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import {
@@ -36,10 +31,7 @@ interface ExperimentListState {
   displayExperiments: DisplayExperiment[];
 }
 
-export class ExperimentList extends React.PureComponent<
-  ExperimentListProps,
-  ExperimentListState
-> {
+export class ExperimentList extends React.PureComponent<ExperimentListProps, ExperimentListState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {

@@ -25,11 +25,10 @@ import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface ArchivedExperimentsProp {
-  namespace?: string,
+  namespace?: string;
 }
 
-interface ArchivedExperimentsState {
-}
+interface ArchivedExperimentsState {}
 
 export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedExperimentsState> {
   private _experimentlistRef = React.createRef<ExperimentList>();
@@ -41,9 +40,7 @@ export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedE
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: buttons
-        .refresh(this.refresh.bind(this))
-        .getToolbarActionMap(),
+      actions: buttons.refresh(this.refresh.bind(this)).getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: 'Archive',
     };

@@ -448,7 +448,10 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           )}
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
           <div
-            className={classes(css.indicator, page !== RoutePage.ARCHIVED_RUNS && css.indicatorHidden)}
+            className={classes(
+              css.indicator,
+              page !== RoutePage.ARCHIVED_RUNS && css.indicatorHidden,
+            )}
           />
           <Tooltip
             title={'Archive'}

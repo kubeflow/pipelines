@@ -28,7 +28,9 @@ import ExecutionList from '../pages/ExecutionList';
 import ExecutionDetails from '../pages/ExecutionDetails';
 import ExperimentDetails from '../pages/ExperimentDetails';
 import ExperimentsAndRuns, { ExperimentsAndRunsTab } from '../pages/ExperimentsAndRuns';
-import ArchivedExperimentsAndRuns, { ArchivedExperimentsAndRunsTab } from '../pages/ArchivedExperimentsAndRuns';
+import ArchivedExperimentsAndRuns, {
+  ArchivedExperimentsAndRunsTab,
+} from '../pages/ArchivedExperimentsAndRuns';
 import NewExperiment from '../pages/NewExperiment';
 import NewRun from '../pages/NewRun';
 import Page404 from '../pages/404';
@@ -167,12 +169,12 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     {
       Component: ArchivedExperimentsAndRuns,
       path: RoutePage.ARCHIVED_RUNS,
-      view:  ArchivedExperimentsAndRunsTab.RUNS,
+      view: ArchivedExperimentsAndRunsTab.RUNS,
     },
     {
       Component: ArchivedExperimentsAndRuns,
       path: RoutePage.ARCHIVED_EXPERIMENTS,
-      view:  ArchivedExperimentsAndRunsTab.EXPERIMENTS,
+      view: ArchivedExperimentsAndRunsTab.EXPERIMENTS,
     },
     { path: RoutePage.ARTIFACTS, Component: ArtifactList },
     { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails, notExact: true },
