@@ -4,11 +4,12 @@ from kfp.components import InputPath, OutputPath
 
 
 def BigQueryExampleGen(
-    example_artifacts_path: OutputPath('Examples'),
+    examples_path: OutputPath('Examples'),
 
     query: str = None,
-    input_config: 'JsonObject: example_gen_pb2.Input' = None,
-    output_config: 'JsonObject: example_gen_pb2.Output' = None,
+    input_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Input'}} = None,
+    output_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Output'}} = None,
+    custom_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.CustomConfig'}} = None,
 ):
     """
     Official TFX BigQueryExampleGen component.
@@ -27,22 +28,20 @@ def BigQueryExampleGen(
             configuration. If unset, default splits will be 'train' and 'eval' with
             size 2:1.
     Returns:
-        example_artifacts: Optional channel of 'ExamplesPath' for output train and
+        examples: Optional channel of 'ExamplesPath' for output train and
             eval examples.
 
     Raises:
         RuntimeError: Only one of query and input_config should be set.
     """
-    from tfx.components.example_gen.csv_example_gen.component import BigQueryExampleGen
-    component_class = BigQueryExampleGen
-    input_channels_with_splits = {}
-    output_channels_with_splits = {'example_artifacts'}
+    from tfx.components.example_gen.csv_example_gen.component import BigQueryExampleGen as component_class
 
-
+    #Generated code
     import json
     import os
+    import tensorflow
     from google.protobuf import json_format, message
-    from tfx.types import Artifact, channel_utils
+    from tfx.types import Artifact, channel_utils, artifact_utils
 
     arguments = locals().copy()
 
@@ -53,27 +52,21 @@ def BigQueryExampleGen(
         if argument_value is None:
             continue
         parameter_type = execution_parameter.type
-        if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message): # execution_parameter.type can also be a tuple
+        if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message): # Maybe FIX: execution_parameter.type can also be a tuple
             argument_value_obj = parameter_type()
             json_format.Parse(argument_value, argument_value_obj)
         component_class_args[name] = argument_value_obj
 
     for name, channel_parameter in component_class.SPEC_CLASS.INPUTS.items():
         artifact_path = arguments[name + '_path']
-        artifacts = []
-        if name in input_channels_with_splits:
-            # Recovering splits
-            splits = sorted(os.listdir(artifact_path))
-            for split in splits:
-                artifact = Artifact(type_name=channel_parameter.type_name)
-                artifact.split = split
-                artifact.uri = os.path.join(artifact_path, split) + '/'
-                artifacts.append(artifact)
-        else:
-            artifact = Artifact(type_name=channel_parameter.type_name)
+        if artifact_path:
+            artifact = channel_parameter.type()
             artifact.uri = artifact_path + '/' # ?
-            artifacts.append(artifact)
-        component_class_args[name] = channel_utils.as_channel(artifacts)
+            if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
+                # Recovering splits
+                subdirs = tensorflow.io.gfile.listdir(artifact_path)
+                artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))
+            component_class_args[name] = channel_utils.as_channel([artifact])
 
     component_class_instance = component_class(**component_class_args)
 
@@ -84,8 +77,10 @@ def BigQueryExampleGen(
     # Generating paths for output artifacts
     for name, artifacts in output_dict.items():
         base_artifact_path = arguments[name + '_path']
-        for artifact in artifacts:
-            artifact.uri = os.path.join(base_artifact_path, artifact.split) # Default split is ''
+        # Are there still cases where output channel has multiple artifacts?
+        for idx, artifact in enumerate(artifacts):
+            subdir = str(idx + 1) if idx > 0 else ''
+            artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
 
     print('component instance: ' + str(component_class_instance))
 
@@ -102,6 +97,6 @@ if __name__ == '__main__':
     import kfp
     kfp.components.func_to_container_op(
         BigQueryExampleGen,
-        base_image='tensorflow/tfx:0.15.0',
+        base_image='tensorflow/tfx:0.21.4',
         output_component_file='component.yaml'
     )
