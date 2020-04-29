@@ -74,6 +74,9 @@ type APIJob struct {
 	// Optional input field. Specify which resource this run belongs to.
 	ResourceReferences []*APIResourceReference `json:"resource_references"`
 
+	// Optional input field. Specify which service account this run uses.
+	ServiceAccount string `json:"serviceAccount,omitempty"`
+
 	// Output. The status of the job.
 	// One of [Enable, Disable, Error]
 	Status string `json:"status,omitempty"`

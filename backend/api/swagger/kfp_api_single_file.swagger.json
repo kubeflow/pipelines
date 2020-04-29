@@ -1562,6 +1562,10 @@
           },
           "description": "Optional input field. Specify which resource this run belongs to."
         },
+        "serviceAccount": {
+          "type": "string",
+          "description": "Optional input field. Specify which service account this run uses."
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -1715,6 +1719,10 @@
             "$ref": "#/definitions/apiResourceReference"
           },
           "description": "Optional input field. Specify which resource this run belongs to."
+        },
+        "serviceAccount": {
+          "type": "string",
+          "description": "Optional input field. Specify which service account this run uses."
         },
         "max_concurrency": {
           "type": "string",
