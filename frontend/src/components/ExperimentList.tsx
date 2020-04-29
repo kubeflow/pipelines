@@ -1,25 +1,25 @@
-
-import CustomTable, { Column, CustomRendererProps, Row, ExpandState } from '../components/CustomTable';
+import CustomTable, { Column, CustomRendererProps, Row, ExpandState } from './CustomTable';
 import * as React from 'react';
 import { Link, RouteComponentProps } from 'react-router-dom';
-import { ApiListExperimentsResponse, ApiExperiment, ExperimentStorageState } from '../apis/experiment';
-import { errorToMessage, logger, formatDateString } from '../lib/Utils';
-import { RoutePage, RouteParams } from '../components/Router';
+import {
+  ApiListExperimentsResponse,
+  ApiExperiment,
+  ExperimentStorageState,
+} from '../apis/experiment';
+import { errorToMessage } from '../lib/Utils';
+import { RoutePage, RouteParams } from './Router';
 import { commonCss } from '../Css';
-import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
-import {RunStorageState} from 'src/apis/run';
+import { Apis, ExperimentSortKeys, ListRequest } from '../lib/Apis';
+import { RunStorageState } from 'src/apis/run';
 import RunList from '../pages/RunList';
 import { PredicateOp, ApiFilter } from '../apis/filter';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
 
-export interface ExperimentListComponentProp extends RouteComponentProps {
+export interface ExperimentListProps extends RouteComponentProps {
   namespace?: string;
   storageState?: ExperimentStorageState;
   onError: (message: string, error: Error) => void;
-  onSelectionChange?: (selectedIds: string[]) => void;
-  onRunSelectionChange?: (selectedIds: string[]) => void;
-  selectedIds?: string[];
 }
 
 interface DisplayExperiment extends ApiExperiment {
@@ -27,12 +27,11 @@ interface DisplayExperiment extends ApiExperiment {
   expandState?: ExpandState;
 }
 
-interface ExperimentListComponentState {
+interface ExperimentListState {
   displayExperiments: DisplayExperiment[];
-  selectedIds: string[];
 }
 
-export class ExperimentListComponent extends React.PureComponent<ExperimentListComponentProp, ExperimentListComponentState> {
+export class ExperimentList extends React.PureComponent<ExperimentListProps, ExperimentListState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -40,7 +39,6 @@ export class ExperimentListComponent extends React.PureComponent<ExperimentListC
 
     this.state = {
       displayExperiments: [],
-      selectedIds: [],
     };
   }
 
@@ -63,10 +61,7 @@ export class ExperimentListComponent extends React.PureComponent<ExperimentListC
         error: exp.error,
         expandState: exp.expandState,
         id: exp.id!,
-        otherFields: [
-          exp.name!,
-          exp.description!,
-        ],
+        otherFields: [exp.name!, exp.description!],
       };
     });
 
@@ -110,7 +105,7 @@ export class ExperimentListComponent extends React.PureComponent<ExperimentListC
     );
   };
 
-private async _loadExperiments(request: ListRequest): Promise<string> {
+  protected async _loadExperiments(request: ListRequest): Promise<string> {
     let nextPageToken = '';
     let displayExperiments: DisplayExperiment[];
 
@@ -134,7 +129,9 @@ private async _loadExperiments(request: ListRequest): Promise<string> {
         ]);
         request.filter = encodeURIComponent(JSON.stringify(filter));
       } catch (err) {
-        logger.error('Could not parse request filter: ', request.filter);
+        const error = new Error(await errorToMessage(err));
+        this.props.onError('Error: failed to parse request filter: ', error);
+        return '';
       }
     }
 
@@ -148,12 +145,14 @@ private async _loadExperiments(request: ListRequest): Promise<string> {
         this.props.namespace ? 'NAMESPACE' : undefined,
         this.props.namespace || undefined,
       );
-      nextPageToken = response.next_page_token || ''
+      nextPageToken = response.next_page_token || '';
       displayExperiments = response.experiments || [];
       displayExperiments.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
       this.setState({ displayExperiments });
     } catch (err) {
-      logger.error('Could not list experiments: ', request.filter);
+      const error = new Error(await errorToMessage(err));
+      this.props.onError('Error: failed to list experiments: ', error);
+      return '';
     }
 
     return nextPageToken;
@@ -179,14 +178,17 @@ private async _loadExperiments(request: ListRequest): Promise<string> {
         onError={() => null}
         {...this.props}
         disablePaging={true}
-        selectedIds={this.state.selectedIds}
         noFilterBox={true}
-        storageState={this.props.storageState === ExperimentStorageState.ARCHIVED ? RunStorageState.ARCHIVED : RunStorageState.AVAILABLE}
-        onSelectionChange={this.props.onRunSelectionChange}
+        storageState={
+          this.props.storageState === ExperimentStorageState.ARCHIVED
+            ? RunStorageState.ARCHIVED
+            : RunStorageState.AVAILABLE
+        }
         disableSorting={true}
+        disableSelection={true}
       />
     );
   }
 }
 
-export default ExperimentListComponent;
+export default ExperimentList;

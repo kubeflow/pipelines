@@ -145,15 +145,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: buttons
-        .refresh(this.refresh.bind(this))
-        // .archive(
-        //   'experiment',
-        //   () => [this.state.experiment!.id!],
-        //   true,
-        //   ids => this._selectionChanged(ids),
-        // )
-        .getToolbarActionMap(),
+      actions: buttons.refresh(this.refresh.bind(this)).getToolbarActionMap(),
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       // TODO: determine what to show if no props.
       pageTitle: this.props ? this.props.match.params[RouteParams.experimentId] : '',
@@ -294,16 +286,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
       const pageTitle = experiment.name || this.props.match.params[RouteParams.experimentId];
 
-      this.props.updateToolbar({
-        actions: this.props.toolbarProps.actions,
-        breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
-        pageTitle,
-        pageTitleTooltip: pageTitle,
-      });
-
-      let activeRecurringRunsCount = -1;
-
-      // Update the Archive/Restore button based on the storage state of this experiment
+      // Update the Archive/Restore button based on the storage state of this experiment.
       const buttons = new Buttons(
         this.props,
         this.refresh.bind(this),
@@ -316,8 +299,12 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       const actions = buttons.getToolbarActionMap();
       this.props.updateToolbar({
         actions,
-        // breadcrumbs,
+        breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+        pageTitle,
+        pageTitleTooltip: pageTitle,
       });
+
+      let activeRecurringRunsCount = -1;
 
       // Fetch this experiment's jobs
       try {

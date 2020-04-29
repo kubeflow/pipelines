@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { Archive } from './Archive';
+import { ArchivedRuns } from './ArchivedRuns';
 import TestUtils from '../TestUtils';
 import { PageProps } from './Page';
 import { RunStorageState } from '../apis/run';
@@ -23,7 +23,7 @@ import { ShallowWrapper, shallow } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
 import { Apis } from '../lib/Apis';
 
-describe('Archive', () => {
+describe('ArchivedRuns', () => {
   const updateBannerSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
   const historyPushSpy = jest.fn();
@@ -34,7 +34,7 @@ describe('Archive', () => {
 
   function generateProps(): PageProps {
     return TestUtils.generatePageProps(
-      Archive,
+      ArchivedRuns,
       {} as any,
       {} as any,
       historyPushSpy,
@@ -57,23 +57,23 @@ describe('Archive', () => {
   afterEach(() => tree.unmount());
 
   it('renders archived runs', () => {
-    tree = shallow(<Archive {...generateProps()} />);
+    tree = shallow(<ArchivedRuns {...generateProps()} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('lists archived runs in namespace', () => {
-    tree = shallow(<Archive {...generateProps()} namespace='test-ns' />);
+    tree = shallow(<ArchivedRuns {...generateProps()} namespace='test-ns' />);
     expect(tree.find('RunList').prop('namespaceMask')).toEqual('test-ns');
   });
 
   it('removes error banner on unmount', () => {
-    tree = shallow(<Archive {...generateProps()} />);
+    tree = shallow(<ArchivedRuns {...generateProps()} />);
     tree.unmount();
     expect(updateBannerSpy).toHaveBeenCalledWith({});
   });
 
   it('enables restore and delete button when at least one run is selected', () => {
-    tree = shallow(<Archive {...generateProps()} />);
+    tree = shallow(<ArchivedRuns {...generateProps()} />);
     TestUtils.flushPromises();
     tree.update();
     expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE).disabled).toBeTruthy();
@@ -98,7 +98,7 @@ describe('Archive', () => {
   });
 
   it('refreshes the run list when refresh button is clicked', async () => {
-    tree = shallow(<Archive {...generateProps()} />);
+    tree = shallow(<ArchivedRuns {...generateProps()} />);
     const spy = jest.fn();
     (tree.instance() as any)._runlistRef = { current: { refresh: spy } };
     await TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.REFRESH).action();
@@ -106,15 +106,15 @@ describe('Archive', () => {
   });
 
   it('shows a list of available runs', () => {
-    tree = shallow(<Archive {...generateProps()} />);
+    tree = shallow(<ArchivedRuns {...generateProps()} />);
     expect(tree.find('RunList').prop('storageState')).toBe(RunStorageState.ARCHIVED.toString());
   });
 
   it('cancells deletion when Cancel is clicked', async () => {
-    tree = shallow(<Archive {...generateProps()} />);
+    tree = shallow(<ArchivedRuns {...generateProps()} />);
 
     // Click delete button to delete selected ids.
-    const deleteBtn = (tree.instance() as Archive).getInitialToolbarState().actions[
+    const deleteBtn = (tree.instance() as ArchivedRuns).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
     await deleteBtn!.action();
@@ -135,7 +135,7 @@ describe('Archive', () => {
   });
 
   it('deletes selected ids when Confirm is clicked', async () => {
-    tree = shallow(<Archive {...generateProps()} />);
+    tree = shallow(<ArchivedRuns {...generateProps()} />);
     tree.setState({ selectedIds: ['id1', 'id2', 'id3'] });
 
     // Mock the behavior where the deletion of id1 fails, the deletion of id2 and id3 succeed.
@@ -143,7 +143,7 @@ describe('Archive', () => {
     deleteRunSpy.mockImplementation(() => Promise.resolve({}));
 
     // Click delete button to delete selected ids.
-    const deleteBtn = (tree.instance() as Archive).getInitialToolbarState().actions[
+    const deleteBtn = (tree.instance() as ArchivedRuns).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
     await deleteBtn!.action();
