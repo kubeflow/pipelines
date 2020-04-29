@@ -3,6 +3,7 @@ phases:
   pre_build:
     commands:
       # Log in to Dockerhub
+      - mkdir -p ~/.docker
       - echo $DOCKER_CONFIG > ~/.docker/config.json
 
   build:
