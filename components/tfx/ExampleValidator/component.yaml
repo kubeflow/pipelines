@@ -1,5 +1,5 @@
-name: Examplevalidator
-description: |
+name: ExampleValidator
+description: |-
   A TFX component to validate input examples.
 
       The ExampleValidator component uses [Tensorflow Data
@@ -24,52 +24,36 @@ description: |
       Please see https://www.tensorflow.org/tfx/data_validation for more details.
 
       Args:
-          stats: A Channel of 'ExampleStatisticsPath` type. This should contain at
-              least 'eval' split. Other splits are ignored currently.  Will be
-              deprecated in the future for the `statistics` parameter.
-          #statistics: Future replacement of the 'stats' argument.
-          schema: A Channel of "SchemaPath' type. _required_
+          statistics: A Channel of 'ExampleStatistics` type. This should contain at
+              least 'eval' split. Other splits are ignored currently.
+          schema: A Channel of "Schema' type. _required_
       Returns:
-          output: Output channel of 'ExampleValidationPath' type.
+          anomalies: Output channel of 'ExampleAnomalies' type.
 
       Either `stats` or `statistics` must be present in the arguments.
 inputs:
-- name: stats
-  type: ExampleStatistics
-- name: schema
-  type: Schema
+- {name: statistics, type: ExampleStatistics}
+- {name: schema, type: Schema}
 outputs:
-- name: output
-  type: ExampleValidation
+- {name: anomalies, type: ExampleAnomalies}
 implementation:
   container:
-    image: tensorflow/tfx:0.15.0
+    image: tensorflow/tfx:0.21.4
     command:
     - python3
     - -u
     - -c
     - |
-      class InputPath:
-          '''When creating component from function, InputPath should be used as function parameter annotation to tell the system to pass the *data file path* to the function instead of passing the actual data.'''
-          def __init__(self, type=None):
-              self.type = type
-
       def _make_parent_dirs_and_return_path(file_path: str):
           import os
           os.makedirs(os.path.dirname(file_path), exist_ok=True)
           return file_path
 
-      class OutputPath:
-          '''When creating component from function, OutputPath should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a file with the given path instead of returning the data from the function.'''
-          def __init__(self, type=None):
-              self.type = type
-
       def ExampleValidator(
-          stats_path: InputPath('ExampleStatistics'),
-          #statistics_path: InputPath('ExampleStatistics'),
-          schema_path: InputPath('Schema'),
+          statistics_path ,
+          schema_path ,
 
-          output_path: OutputPath('ExampleValidation'),
+          anomalies_path ,
       ):
           """
           A TFX component to validate input examples.
@@ -96,25 +80,22 @@ implementation:
           Please see https://www.tensorflow.org/tfx/data_validation for more details.
 
           Args:
-              stats: A Channel of 'ExampleStatisticsPath` type. This should contain at
-                  least 'eval' split. Other splits are ignored currently.  Will be
-                  deprecated in the future for the `statistics` parameter.
-              #statistics: Future replacement of the 'stats' argument.
-              schema: A Channel of "SchemaPath' type. _required_
+              statistics: A Channel of 'ExampleStatistics` type. This should contain at
+                  least 'eval' split. Other splits are ignored currently.
+              schema: A Channel of "Schema' type. _required_
           Returns:
-              output: Output channel of 'ExampleValidationPath' type.
+              anomalies: Output channel of 'ExampleAnomalies' type.
 
           Either `stats` or `statistics` must be present in the arguments.
           """
-          from tfx.components.example_validator.component import ExampleValidator
-          component_class = ExampleValidator
-          input_channels_with_splits = {'stats', 'statistics'}
-          output_channels_with_splits = {}
+          from tfx.components.example_validator.component import ExampleValidator as component_class
 
+          #Generated code
           import json
           import os
+          import tensorflow
           from google.protobuf import json_format, message
-          from tfx.types import Artifact, channel_utils
+          from tfx.types import Artifact, channel_utils, artifact_utils
 
           arguments = locals().copy()
 
@@ -125,27 +106,21 @@ implementation:
               if argument_value is None:
                   continue
               parameter_type = execution_parameter.type
-              if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message): # execution_parameter.type can also be a tuple
+              if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message): # Maybe FIX: execution_parameter.type can also be a tuple
                   argument_value_obj = parameter_type()
                   json_format.Parse(argument_value, argument_value_obj)
               component_class_args[name] = argument_value_obj
 
           for name, channel_parameter in component_class.SPEC_CLASS.INPUTS.items():
               artifact_path = arguments[name + '_path']
-              artifacts = []
-              if name in input_channels_with_splits:
-                  # Recovering splits
-                  splits = sorted(os.listdir(artifact_path))
-                  for split in splits:
-                      artifact = Artifact(type_name=channel_parameter.type_name)
-                      artifact.split = split
-                      artifact.uri = os.path.join(artifact_path, split) + '/'
-                      artifacts.append(artifact)
-              else:
-                  artifact = Artifact(type_name=channel_parameter.type_name)
+              if artifact_path:
+                  artifact = channel_parameter.type()
                   artifact.uri = artifact_path + '/' # ?
-                  artifacts.append(artifact)
-              component_class_args[name] = channel_utils.as_channel(artifacts)
+                  if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
+                      # Recovering splits
+                      subdirs = tensorflow.io.gfile.listdir(artifact_path)
+                      artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))
+                  component_class_args[name] = channel_utils.as_channel([artifact])
 
           component_class_instance = component_class(**component_class_args)
 
@@ -156,8 +131,10 @@ implementation:
           # Generating paths for output artifacts
           for name, artifacts in output_dict.items():
               base_artifact_path = arguments[name + '_path']
-              for artifact in artifacts:
-                  artifact.uri = os.path.join(base_artifact_path, artifact.split) # Default split is ''
+              # Are there still cases where output channel has multiple artifacts?
+              for idx, artifact in enumerate(artifacts):
+                  subdir = str(idx + 1) if idx > 0 else ''
+                  artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
 
           print('component instance: ' + str(component_class_instance))
 
@@ -170,17 +147,14 @@ implementation:
           )
 
       import argparse
-      _parser = argparse.ArgumentParser(prog='Examplevalidator', description='A TFX component to validate input examples.\n\n    The ExampleValidator component uses [Tensorflow Data\n    Validation](https://www.tensorflow.org/tfx/data_validation) to\n    validate the statistics of some splits on input examples against a schema.\n\n    The ExampleValidator component identifies anomalies in training and serving\n    data. The component can be configured to detect different classes of anomalies\n    in the data. It can:\n        - perform validity checks by comparing data statistics against a schema that\n        codifies expectations of the user.\n        - detect data drift by looking at a series of data.\n        - detect changes in dataset-wide data (i.e., num_examples) across spans or\n        versions.\n\n    Schema Based Example Validation\n    The ExampleValidator component identifies any anomalies in the example data by\n    comparing data statistics computed by the StatisticsGen component against a\n    schema. The schema codifies properties which the input data is expected to\n    satisfy, and is provided and maintained by the user.\n\n    Please see https://www.tensorflow.org/tfx/data_validation for more details.\n\n    Args:\n        stats: A Channel of \'ExampleStatisticsPath` type. This should contain at\n            least \'eval\' split. Other splits are ignored currently.  Will be\n            deprecated in the future for the `statistics` parameter.\n        #statistics: Future replacement of the \'stats\' argument.\n        schema: A Channel of "SchemaPath\' type. _required_\n    Returns:\n        output: Output channel of \'ExampleValidationPath\' type.\n\n    Either `stats` or `statistics` must be present in the arguments.\n')
-      _parser.add_argument("--stats", dest="stats_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser = argparse.ArgumentParser(prog='ExampleValidator', description='A TFX component to validate input examples.\n\n    The ExampleValidator component uses [Tensorflow Data\n    Validation](https://www.tensorflow.org/tfx/data_validation) to\n    validate the statistics of some splits on input examples against a schema.\n\n    The ExampleValidator component identifies anomalies in training and serving\n    data. The component can be configured to detect different classes of anomalies\n    in the data. It can:\n        - perform validity checks by comparing data statistics against a schema that\n        codifies expectations of the user.\n        - detect data drift by looking at a series of data.\n        - detect changes in dataset-wide data (i.e., num_examples) across spans or\n        versions.\n\n    Schema Based Example Validation\n    The ExampleValidator component identifies any anomalies in the example data by\n    comparing data statistics computed by the StatisticsGen component against a\n    schema. The schema codifies properties which the input data is expected to\n    satisfy, and is provided and maintained by the user.\n\n    Please see https://www.tensorflow.org/tfx/data_validation for more details.\n\n    Args:\n        statistics: A Channel of \'ExampleStatistics` type. This should contain at\n            least \'eval\' split. Other splits are ignored currently.\n        schema: A Channel of "Schema\' type. _required_\n    Returns:\n        anomalies: Output channel of \'ExampleAnomalies\' type.\n\n    Either `stats` or `statistics` must be present in the arguments.')
+      _parser.add_argument("--statistics", dest="statistics_path", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--schema", dest="schema_path", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output", dest="output_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--anomalies", dest="anomalies_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
 
       _outputs = ExampleValidator(**_parsed_args)
-
-      if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-          _outputs = [_outputs]
 
       _output_serializers = [
 
@@ -195,9 +169,9 @@ implementation:
           with open(output_file, 'w') as f:
               f.write(_output_serializers[idx](_outputs[idx]))
     args:
-    - --stats
-    - inputPath: stats
+    - --statistics
+    - {inputPath: statistics}
     - --schema
-    - inputPath: schema
-    - --output
-    - outputPath: output
+    - {inputPath: schema}
+    - --anomalies
+    - {outputPath: anomalies}
