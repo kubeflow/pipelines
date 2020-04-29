@@ -347,6 +347,12 @@ export interface ApiRun {
    */
   resource_references?: Array<ApiResourceReference>;
   /**
+   * Optional input field. Specify which Kubernetes service account this run uses.
+   * @type {string}
+   * @memberof ApiRun
+   */
+  service_account?: string;
+  /**
    * Output. The time that the run created.
    * @type {Date}
    * @memberof ApiRun

@@ -62,6 +62,7 @@ interface NewRunState {
   errorMessage: string;
   experiment?: ApiExperiment;
   experimentName: string;
+  serviceAccount: string;
   experimentSelectorOpen: boolean;
   isBeingStarted: boolean;
   isClone: boolean;
@@ -115,6 +116,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     description: '',
     errorMessage: '',
     experimentName: '',
+    serviceAccount: '',
     experimentSelectorOpen: false,
     isBeingStarted: false,
     isClone: false,
@@ -175,6 +177,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       description,
       errorMessage,
       experimentName,
+      serviceAccount,
       experimentSelectorOpen,
       isClone,
       isFirstRunInExperiment,
@@ -483,6 +486,14 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
               ),
               readOnly: true,
             }}
+          />
+
+          <div>This run will use the following Kubernetes service account.</div>
+          <Input
+            value={serviceAccount}
+            onChange={this.handleChange('serviceAccount')}
+            label='Service Account (Optional)'
+            variant='outlined'
           />
 
           {/* One-off/Recurring Run Type */}
@@ -1025,6 +1036,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           : undefined,
       },
       resource_references: references,
+      service_account: this.state.serviceAccount,
     };
     if (this.state.isRecurringRun) {
       newRun = Object.assign(newRun, {
