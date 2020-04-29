@@ -4,13 +4,11 @@ phases:
     commands:
       # Log in to Dockerhub
       - echo $DOCKER_CONFIG > ~/.docker/config.json
-      # Set dry run parameter
-      - [ "${STAGE}" == "prod" ] && dryrun="false" || dryrun="true"
 
   build:
     commands:
       - cd components/aws/sagemaker
-      - ./codebuild/scripts/deploy.sh -d "${dryrun}"
+      - ./codebuild/scripts/deploy.sh -d "${DRY_RUN}"
 
       - docker build . -f ./sagemaker/integration_tests/Dockerfile -t amazon/integration-test-image --quiet
 
