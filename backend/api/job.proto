@@ -206,10 +206,10 @@ message Job {
   // for the scheduled job.
   PipelineSpec pipeline_spec = 4;
 
-  // Optional input field. Specify which resource this run belongs to.
+  // Optional input field. Specify which resource this job belongs to.
   repeated ResourceReference resource_references = 5;
 
-  // Optional input field. Specify which service account this run uses.
+  // Optional input field. Specify which service account this job uses.
   string serviceAccount = 18;
 
   // Required input field.
