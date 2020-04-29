@@ -12,6 +12,7 @@
 
 import argparse
 import logging
+from pathlib2 import Path
 
 from common import _utils
 
@@ -64,8 +65,8 @@ def main(argv=None):
   logging.info('Batch Job request submitted. Waiting for completion...')
   _utils.wait_for_transform_job(client, batch_job_name)
 
-  with open('args.output_location_file', 'w') as f:
-    f.write(unicode(args.output_location))
+  Path(args.output_location_file).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.output_location_file).write_text(unicode(args.output_location))
 
   logging.info('Batch Transformation creation completed.')
 
