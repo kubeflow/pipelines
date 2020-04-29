@@ -7,7 +7,7 @@ from datetime import datetime
 
 from hyperparameter_tuning.src import hyperparameter_tuning as hpo
 from common import _utils
-from . import testUtils
+from . import test_utils
 
 
 required_args = [
@@ -60,4 +60,4 @@ class HyperparameterTestCase(unittest.TestCase):
       required_args + ['--spot_instance', 'True', '--max_wait_time', '86400', '--checkpoint_config',
                        '{"S3Uri": "s3://fake-uri/"}'])
     response = _utils.create_hyperparameter_tuning_job_request(vars(good_args))
-    testUtils.check_empty_string_values(response)
+    test_utils.check_empty_string_values(response)

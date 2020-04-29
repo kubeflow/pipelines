@@ -7,7 +7,7 @@ from datetime import datetime
 
 from model.src import create_model
 from common import _utils
-from . import testUtils
+from . import test_utils
 
 
 required_args = [
@@ -32,4 +32,4 @@ class ModelTestCase(unittest.TestCase):
   def test_empty_string(self):
     args = self.parser.parse_args(required_args)
     response = _utils.create_model_request(vars(args))
-    testUtils.check_empty_string_values(response)
+    test_utils.check_empty_string_values(response)

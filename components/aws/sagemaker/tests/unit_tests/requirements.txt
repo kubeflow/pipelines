@@ -1,0 +1,5 @@
+boto3
+coverage
+pytest
+pyyaml
+sagemaker

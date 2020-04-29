@@ -7,7 +7,7 @@ from datetime import datetime
 
 from batch_transform.src import batch_transform
 from common import _utils
-from . import testUtils
+from . import test_utils
 
 
 # TODO : Errors out if model_name doesn't contain '-'
@@ -36,4 +36,4 @@ class BatchTransformTestCase(unittest.TestCase):
   def test_empty_string(self):
     args = self.parser.parse_args(required_args)
     response = _utils.create_transform_job_request(vars(args))
-    testUtils.check_empty_string_values(response)
+    test_utils.check_empty_string_values(response)
