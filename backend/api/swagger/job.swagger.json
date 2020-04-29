@@ -306,9 +306,9 @@
           },
           "description": "Optional input field. Specify which resource this job belongs to."
         },
-        "serviceAccount": {
+        "service_account": {
           "type": "string",
-          "description": "Optional input field. Specify which service account this job uses."
+          "description": "Optional input field. Specify which Kubernetes service account this job uses."
         },
         "max_concurrency": {
           "type": "string",

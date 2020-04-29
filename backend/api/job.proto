@@ -209,8 +209,8 @@ message Job {
   // Optional input field. Specify which resource this job belongs to.
   repeated ResourceReference resource_references = 5;
 
-  // Optional input field. Specify which service account this job uses.
-  string serviceAccount = 18;
+  // Optional input field. Specify which Kubernetes service account this job uses.
+  string service_account = 18;
 
   // Required input field.
   // Specify how many runs can be executed concurrently. Rage [1-10]

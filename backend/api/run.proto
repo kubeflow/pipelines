@@ -215,8 +215,8 @@ message Run {
   // Optional input field. Specify which resource this run belongs to.
   repeated ResourceReference resource_references = 5;
 
-  // Optional input field. Specify which service account this run uses.
-  string serviceAccount = 14;
+  // Optional input field. Specify which Kubernetes service account this run uses.
+  string service_account = 14;
 
   // Output. The time that the run created.
   google.protobuf.Timestamp created_at = 6;
