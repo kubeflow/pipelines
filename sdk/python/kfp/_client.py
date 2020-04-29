@@ -446,7 +446,7 @@ class Client(object):
       pipeline_id=pipeline_id,
       version_id=version_id)
 
-    if (interval_second is None) ^ (cron_expression is None):
+    if all([interval_second, cron_expression]) or not any([interval_second, cron_expression]):
       raise ValueError('Either interval_second or cron_expression is required')
     if interval_second is not None:
       trigger = kfp_server_api.models.ApiTrigger(
