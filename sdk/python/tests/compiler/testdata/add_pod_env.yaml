@@ -28,6 +28,7 @@ spec:
       image: library/bash
     metadata:
       labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
         add-pod-env: 'true'
     name: echo
   - dag:

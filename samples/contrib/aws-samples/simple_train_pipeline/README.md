@@ -7,20 +7,13 @@ An example pipeline with only [train component](https://github.com/kubeflow/pipe
 2. Get and store data in S3 buckets. You can get sample data using this code.  
    Create a new file `s3_sample_data_creator.py` with following content :
    ```buildoutcfg
-   import pickle, gzip, numpy, urllib.request, json
-   from urllib.parse import urlparse
-
-   # Load the dataset
-   urllib.request.urlretrieve("http://deeplearning.net/data/mnist/mnist.pkl.gz", "mnist.pkl.gz")
-   with gzip.open('mnist.pkl.gz', 'rb') as f:
-       train_set, valid_set, test_set = pickle.load(f, encoding='latin1')
-
-
-   # Upload dataset to S3
-   from sagemaker.amazon.common import write_numpy_to_dense_tensor
    import io
    import boto3
+   import pickle, gzip, numpy, urllib.request, json
+   from urllib.parse import urlparse
+   from sagemaker.amazon.common import write_numpy_to_dense_tensor
 
+   
    ###########################################################################################
    # This is the only thing that you need to change in this code 
    # Give the name of your S3 bucket 
@@ -28,7 +21,14 @@ An example pipeline with only [train component](https://github.com/kubeflow/pipe
    bucket = '<bucket-name>' 
 
    ###########################################################################################
-   
+      
+   # Load the dataset
+   urllib.request.urlretrieve("http://deeplearning.net/data/mnist/mnist.pkl.gz", "mnist.pkl.gz")
+   with gzip.open('mnist.pkl.gz', 'rb') as f:
+       train_set, valid_set, test_set = pickle.load(f, encoding='latin1')
+
+
+   # Upload dataset to S3   
    data_key = 'mnist_kmeans_example/data'
    data_location = 's3://{}/{}'.format(bucket, data_key)
    print('Data will be uploaded to: {}'.format(data_location))
@@ -41,8 +41,34 @@ An example pipeline with only [train component](https://github.com/kubeflow/pipe
    boto3.resource('s3').Bucket(bucket).Object(data_key).upload_fileobj(buf)
    ```
    Run this file `python s3_sample_data_creator.py`
-3. Prepare an IAM role with permissions to run SageMaker jobs and access to S3 buckets. https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-roles.html  
-   Go to you AWS account -> IAM -> Roles -> Create Role -> Select SageMaker Service -> Next -> Next -> Next -> Give "SageMakerExecutorKFP" as Role Name -> Create Role -> Click on the role that you created -> Attach policy -> AmazonS3FullAccess -> Attach Policy -> Note down the role ARN
+3. Prepare an IAM role with permissions to run SageMaker jobs and access to S3 buckets.   
+   
+   create a new file "trust.json" with following content
+   ```buildoutcfg 
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Sid": "",
+         "Effect": "Allow",
+         "Principal": {
+           "Service": "sagemaker.amazonaws.com"
+         },
+         "Action": "sts:AssumeRole"
+       }
+     ]
+   }
+   ```
+   ```buildoutcfg
+
+   # run these commands to create a role named "SageMakerExecutorKFP" with SageMaker and S3 access
+   aws iam create-role --role-name SageMakerExecutorKFP --assume-role-policy-document file://trust.json
+   aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess --role-name SageMakerExecutorKFP
+   aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess --role-name SageMakerExecutorKFP
+   
+   # Note down the role ARN
+   aws iam get-role --role-name SageMakerExecutorKFP     # | jq .Role.Arn
+   ```
 4. Add 'aws-secret' to your Kubeflow namespace.
    ```
    # 1. get aws key and secret in base64 format: 

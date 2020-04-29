@@ -79,6 +79,8 @@ type CreateVisualizationParams struct {
 
 	/*Body*/
 	Body *visualization_model.APIVisualization
+	/*Namespace*/
+	Namespace string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -129,6 +131,17 @@ func (o *CreateVisualizationParams) SetBody(body *visualization_model.APIVisuali
 	o.Body = body
 }
 
+// WithNamespace adds the namespace to the create visualization params
+func (o *CreateVisualizationParams) WithNamespace(namespace string) *CreateVisualizationParams {
+	o.SetNamespace(namespace)
+	return o
+}
+
+// SetNamespace adds the namespace to the create visualization params
+func (o *CreateVisualizationParams) SetNamespace(namespace string) {
+	o.Namespace = namespace
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *CreateVisualizationParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -141,6 +154,11 @@ func (o *CreateVisualizationParams) WriteToRequest(r runtime.ClientRequest, reg 
 		if err := r.SetBodyParam(o.Body); err != nil {
 			return err
 		}
+	}
+
+	// path param namespace
+	if err := r.SetPathParam("namespace", o.Namespace); err != nil {
+		return err
 	}
 
 	if len(res) > 0 {

@@ -260,6 +260,7 @@ func serviceFrom(v *viewerV1beta1.Viewer, deploymentName string) *corev1.Service
 			},
 			Ports: []corev1.ServicePort{
 				corev1.ServicePort{
+					Name:       "http",
 					Protocol:   corev1.ProtocolTCP,
 					Port:       80,
 					TargetPort: intstr.IntOrString{IntVal: viewerTargetPort}},

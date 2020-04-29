@@ -82,7 +82,7 @@ def delete(ctx, pipeline_id):
     client = ctx.obj["client"]
 
     client.delete_pipeline(pipeline_id)
-    print(f"{pipeline_id} is deleted")
+    print("{} is deleted".format(pipeline_id))
 
 
 def _print_pipelines(pipelines):

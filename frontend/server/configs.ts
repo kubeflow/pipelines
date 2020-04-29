@@ -13,6 +13,7 @@
 // limitations under the License.
 import * as path from 'path';
 import { loadJSON } from './utils';
+import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artifacts';
 export const BASEPATH = '/pipeline';
 export const apiVersion = 'v1beta1';
 export const apiVersionPrefix = `apis/${apiVersion}`;
@@ -41,10 +42,9 @@ function parseArgs(argv: string[]) {
   return { staticDir, port };
 }
 
-export function loadConfigs(
-  argv: string[],
-  env: NodeJS.ProcessEnv | { [key: string]: string },
-): UIConfigs {
+export type ProcessEnv = NodeJS.ProcessEnv | { [key: string]: string };
+
+export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
   const { staticDir, port } = parseArgs(argv);
   /** All configurable environment variables can be found here. */
   const {
@@ -88,6 +88,8 @@ export function loadConfigs(
     ARGO_ARCHIVE_PREFIX = 'logs',
     /** Disables GKE metadata endpoint. */
     DISABLE_GKE_METADATA = 'false',
+    /** Enable authorization checks for multi user mode. */
+    ENABLE_AUTHZ = 'false',
     /** Deployment type. */
     DEPLOYMENT: DEPLOYMENT_STR = '',
   } = env;
@@ -122,6 +124,7 @@ export function loadConfigs(
         secretKey: MINIO_SECRET_KEY,
         useSSL: asBool(MINIO_SSL),
       },
+      proxy: loadArtifactsProxyConfig(env),
     },
     metadata: {
       envoyService: {
@@ -156,6 +159,9 @@ export function loadConfigs(
     },
     gkeMetadata: {
       disabled: asBool(DISABLE_GKE_METADATA),
+    },
+    auth: {
+      enabled: asBool(ENABLE_AUTHZ),
     },
   };
 }
@@ -215,12 +221,16 @@ export interface ServerConfigs {
 export interface GkeMetadataConfigs {
   disabled: boolean;
 }
+export interface AuthorizationConfigs {
+  enabled: boolean;
+}
 export interface UIConfigs {
   server: ServerConfigs;
   artifacts: {
     aws: AWSConfigs;
     minio: MinioConfigs;
     http: HttpConfigs;
+    proxy: ArtifactsProxyConfig;
   };
   argo: ArgoConfigs;
   metadata: MetadataConfigs;
@@ -228,4 +238,5 @@ export interface UIConfigs {
   viewer: ViewerConfigs;
   pipeline: PipelineConfigs;
   gkeMetadata: GkeMetadataConfigs;
+  auth: AuthorizationConfigs;
 }

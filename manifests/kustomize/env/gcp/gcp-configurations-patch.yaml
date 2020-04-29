@@ -8,52 +8,18 @@ spec:
       containers:
         - name: ml-pipeline-api-server
           env:
-            - name: OBJECTSTORECONFIG_BUCKETNAME
-              # Don't add gs:// prefix.
-              # If bucket doesn't exist, the deployment will create one.
-              value: ''
-            - name: DBCONFIG_PASSWORD
-              value: ''
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: cloudsqlproxy
-spec:
-  template:
-    spec:
-      containers:
-        - name: cloudsqlproxy
-          env:
-            - name: CLOUD_SQL_INSTANCE_CONNECTION_NAME
-              # E.g. project-id:us-central1:instance-name
-              value: ''
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: workflow-controller-configmap
-data:
-  config: |
-    {
-    namespace: $(NAMESPACE),
-    executorImage: gcr.io/ml-pipeline/argoexec:v2.3.0-license-compliance,
-    artifactRepository:
-    {
-        s3: {
-            bucket: '', # Replace this with the same bucket as OBJECTSTORECONFIG_BUCKETNAME.
-            keyPrefix: artifacts,
-            endpoint: minio-service.$(NAMESPACE):9000,
-            insecure: true,
-            accessKeySecret: {
-                name: mlpipeline-minio-artifact,
-                key: accesskey
-            },
-            secretKeySecret: {
-                name: mlpipeline-minio-artifact,
-                key: secretkey
-            }
-        },
-        archiveLogs: true
-    }
-    }
+            - name: HAS_DEFAULT_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: gcp-default-config
+                  key: "has_default_bucket"
+            - name: BUCKET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: gcp-default-config
+                  key: "bucket_name"
+            - name: PROJECT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: gcp-default-config
+                  key: "project_id"

@@ -1,11 +1,35 @@
 #!/usr/bin/env python3
 
 import kfp
+import json
+import copy
 from kfp import components
 from kfp import dsl
 from kfp.aws import use_aws_secret
 
 sagemaker_train_op = components.load_component_from_file('../../../../components/aws/sagemaker/train/component.yaml')
+
+channelObjList = []
+
+channelObj = {
+    'ChannelName': '',
+    'DataSource': {
+        'S3DataSource': {
+            'S3Uri': '',
+            'S3DataType': 'S3Prefix',
+            'S3DataDistributionType': 'FullyReplicated'
+        }
+    },
+    'ContentType': '',
+    'CompressionType': 'None',
+    'RecordWrapperType': 'None',
+    'InputMode': 'File'
+}
+
+channelObj['ChannelName'] = 'train'
+channelObj['DataSource']['S3DataSource']['S3Uri'] = 's3://kubeflow-pipeline-data/mnist_kmeans_example/data'
+channelObjList.append(copy.deepcopy(channelObj))
+
 
 @dsl.pipeline(
     name='Training pipeline',
@@ -17,22 +41,7 @@ def training(
         image='382416733822.dkr.ecr.us-east-1.amazonaws.com/kmeans:1',
         training_input_mode='File',
         hyperparameters='{"k": "10", "feature_dim": "784"}',
-        channels='[                                                                          \
-                    {                                                                        \
-                      "ChannelName": "train",                                                \
-                      "DataSource": {                                                        \
-                        "S3DataSource": {                                                    \
-                          "S3Uri": "s3://kubeflow-pipeline-data/mnist_kmeans_example/data",  \
-                          "S3DataType": "S3Prefix",                                          \
-                          "S3DataDistributionType": "FullyReplicated"                        \
-                        }                                                                    \
-                      },                                                                     \
-                      "ContentType": "",                                                     \
-                      "CompressionType": "None",                                             \
-                      "RecordWrapperType": "None",                                           \
-                      "InputMode": "File"                                                    \
-                    }                                                                        \
-                  ]',
+        channels=json.dumps(channelObjList),
         instance_type='ml.p2.xlarge',
         instance_count='1',
         volume_size='50',

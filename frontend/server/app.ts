@@ -11,20 +11,20 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import * as path from 'path';
-import * as express from 'express';
+import path from 'path';
+import express from 'express';
 import { Application, static as StaticHandler } from 'express';
-import * as proxy from 'http-proxy-middleware';
+import proxy from 'http-proxy-middleware';
 
 import { UIConfigs } from './configs';
 import { getAddress } from './utils';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz';
-import { getArtifactsHandler } from './handlers/artifacts';
 import {
-  getCreateTensorboardHandler,
-  getTensorboardHandler,
-  deleteTensorboardHandler,
-} from './handlers/tensorboard';
+  getArtifactsHandler,
+  getArtifactsProxyHandler,
+  getArtifactServiceGetter,
+} from './handlers/artifacts';
+import { getTensorboardHandlers } from './handlers/tensorboard';
 import { getPodLogsHandler } from './handlers/pod-logs';
 import { podInfoHandler, podEventsHandler } from './handlers/pod-info';
 import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata';
@@ -36,7 +36,7 @@ import { Server } from 'http';
 
 function getRegisterHandler(app: Application, basePath: string) {
   return (
-    func: (name: string, handler: express.Handler) => express.Application,
+    func: (name: string | string[], handler: express.Handler) => express.Application,
     route: string | string[],
     handler: express.Handler,
   ) => {
@@ -114,16 +114,28 @@ function createUIServer(options: UIConfigs) {
   );
 
   /** Artifact */
+  registerHandler(
+    app.get,
+    '/artifacts/get',
+    getArtifactsProxyHandler({
+      enabled: options.artifacts.proxy.enabled,
+      namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
+    }),
+  );
   registerHandler(app.get, '/artifacts/get', getArtifactsHandler(options.artifacts));
 
   /** Tensorboard viewer */
-  registerHandler(app.get, '/apps/tensorboard', getTensorboardHandler);
-  registerHandler(app.delete, '/apps/tensorboard', deleteTensorboardHandler);
-  registerHandler(
-    app.post,
-    '/apps/tensorboard',
-    getCreateTensorboardHandler(options.viewer.tensorboard),
-  );
+  const {
+    get: tensorboardGetHandler,
+    create: tensorboardCreateHandler,
+    delete: tensorboardDeleteHandler,
+  } = getTensorboardHandlers(options.viewer.tensorboard, {
+    apiServerAddress,
+    authzEnabled: options.auth.enabled,
+  });
+  registerHandler(app.get, '/apps/tensorboard', tensorboardGetHandler);
+  registerHandler(app.delete, '/apps/tensorboard', tensorboardDeleteHandler);
+  registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);
 
   /** Pod logs */
   registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));

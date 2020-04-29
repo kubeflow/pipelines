@@ -15,7 +15,7 @@
     "application/json"
   ],
   "paths": {
-    "/apis/v1beta1/visualizations": {
+    "/apis/v1beta1/visualizations/{namespace}": {
       "post": {
         "operationId": "CreateVisualization",
         "responses": {
@@ -33,6 +33,12 @@
           }
         },
         "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
           {
             "name": "body",
             "in": "body",

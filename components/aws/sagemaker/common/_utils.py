@@ -144,11 +144,6 @@ def create_training_job_request(args):
     ### Update input channels, must have at least one specified
     if len(args['channels']) > 0:
         request['InputDataConfig'] = args['channels']
-        # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
-        #   Source: Input data configuration description in the SageMaker create training job form
-        for i in range(1, len(args['channels']) + 1):
-            if args['data_location_' + str(i)]:
-                request['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
         logging.error("Must specify at least one input channel.")
         raise Exception('Could not create job request')
@@ -535,11 +530,6 @@ def create_hyperparameter_tuning_job_request(args):
     ### Update input channels, must have at least one specified
     if len(args['channels']) > 0:
         request['TrainingJobDefinition']['InputDataConfig'] = args['channels']
-        # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
-        #   Source: Input data configuration description in the SageMaker create hyperparameter tuning job form
-        for i in range(1, len(args['channels']) + 1):
-            if args['data_location_' + str(i)]:
-                request['TrainingJobDefinition']['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
         logging.error("Must specify at least one input channel.")
         raise Exception('Could not make job request')

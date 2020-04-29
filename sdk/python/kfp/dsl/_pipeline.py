@@ -60,8 +60,8 @@ class PipelineConf():
     self.image_pull_secrets = []
     self.timeout = 0
     self.ttl_seconds_after_finished = -1
-    self.artifact_location = None
     self.op_transformers = []
+    self.image_pull_policy = None
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """Configures the pipeline level imagepullsecret
@@ -92,38 +92,14 @@ class PipelineConf():
     self.ttl_seconds_after_finished = seconds
     return self
 
-  def set_artifact_location(self, artifact_location):
-    """Configures the pipeline level artifact location.
-
-    Example::
-
-      from kfp.dsl import ArtifactLocation, get_pipeline_conf, pipeline
-      from kubernetes.client.models import V1SecretKeySelector
-
-
-      @pipeline(name='foo', description='hello world')
-      def foo_pipeline(tag: str, pull_image_policy: str):
-        '''A demo pipeline'''
-        # create artifact location object
-        artifact_location = ArtifactLocation.s3(
-                              bucket="foo",
-                              endpoint="minio-service:9000",
-                              insecure=True,
-                              access_key_secret=V1SecretKeySelector(name="minio", key="accesskey"),
-                              secret_key_secret=V1SecretKeySelector(name="minio", key="secretkey"))
-        # config pipeline level artifact location
-        conf = get_pipeline_conf().set_artifact_location(artifact_location)
-
-        # rest of codes
-        ...
+  def set_image_pull_policy(self, policy: str):
+    """Configures the default image pull policy
 
     Args:
-      artifact_location: V1alpha1ArtifactLocation object
-      For detailed description, check Argo V1alpha1ArtifactLocation definition
-      https://github.com/e2fyi/argo-models/blob/release-2.2/argo/models/v1alpha1_artifact_location.py
-      https://github.com/argoproj/argo/blob/release-2.2/api/openapi-spec/swagger.json
+      policy: the pull policy, has to be one of: Always, Never, IfNotPresent. 
+      For more info: https://github.com/kubernetes-client/python/blob/10a7f95435c0b94a6d949ba98375f8cc85a70e5a/kubernetes/docs/V1Container.md
     """
-    self.artifact_location = artifact_location
+    self.image_pull_policy = policy
     return self
 
   def add_op_transformer(self, transformer):
@@ -253,5 +229,3 @@ class Pipeline():
       metadata (ComponentMeta): component metadata
     '''
     self._metadata = metadata
-
-

@@ -56,10 +56,12 @@ This requires you already have a real KFP cluster, you can proxy requests to it.
 Before you start, configure your `kubectl` to talk to your KFP cluster.
 
 Then it depends on what you want to develop:
+
 | What to develop?        | Script to run                                                  | Extra notes                                                        |
 | ----------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------ |
 | Client UI               | `NAMESPACE=kubeflow npm run start:proxy`            |                                                                    |
 | Client UI + Node server | `NAMESPACE=kubeflow npm run start:proxy-and-server` | You need to rerun the script every time you edit node server code. |
+| Client UI + Node server (debug mode) | `NAMESPACE=kubeflow npm run start:proxy-and-server-inspect` | Same as above, and you can use chrome to debug the server. |
 
 ## Unit testing FAQ
 There are a few typees of tests during presubmit:

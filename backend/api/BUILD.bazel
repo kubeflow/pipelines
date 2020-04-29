@@ -5,6 +5,7 @@ load("@com_github_grpc_ecosystem_grpc_gateway//protoc-gen-swagger:defs.bzl", "pr
 proto_library(
     name = "go_client_proto",
     srcs = [
+        "auth.proto",
         "error.proto",
         "experiment.proto",
         "filter.proto",
