@@ -2,11 +2,8 @@
 from ..common import utils, executer
 
 def show_welcome_message():
-  print("""
-===== Welcome =====
-
-Welcome to use Kubeflow Pipeline CLI Installer.
-""")
+  print("\n===== Welcome =====\n")
+  print("\nWelcome to use Kubeflow Pipeline CLI Installer.\n")
 
 def check_gcloud_auth_login():
 
