@@ -10,14 +10,5 @@ def print_error(data):
 def print_success(data):
   click.echo(click.style(data, fg='green'))
 
-def input_must_have(msg):
-  data = ''
-  while not data:
-    data = input(msg)
-  return data
-
-def input_must_have_boolean(msg):
-  data = ''
-  while not data or data not in ('y', 'n'):
-    data = input(msg)
-  return data
+def write_line(file, data):
+  file.write(data + '\n')

@@ -5,9 +5,25 @@ def show_welcome_message():
   print("""
 ===== Welcome =====
 
-Welcome to use Kubeflow Pipeline Installer.
-If you want to install to GCP, please make sure 'gcloud auth login' to get authenticated before launch this installer
+Welcome to use Kubeflow Pipeline CLI Installer.
 """)
+
+def check_gcloud_auth_login():
+
+  print("\n===== Check gcloud credentials =====\n")
+
+  print("Executing 'gcloud auth print-access-token' to test whether already login")
+  result = executer.execute("gcloud auth print-access-token")
+  if result.has_error:
+    utils.print_warning("Can't get access token, {0}".format(result.stderr))
+  else:
+    print("Already login, let's continue.")
+    return
+
+  result = executer.execute_subprocess("gcloud auth login")
+  if result.returncode != 0:
+    utils.print_error("Can't run 'gcloud auth login', can't continue the installation")
+    exit(1)
 
 def request_tool(name):
   """Check whether `name` is on PATH and marked as executable."""
@@ -37,6 +53,6 @@ def check_gcp_account():
 
   print("\n===== Check GCP account =====\n")
 
-  gcp_account = executer.execute_stdout('gcloud config get-value account'.split()).rstrip()
+  gcp_account = executer.execute('gcloud config get-value account').stdout.rstrip()
   print('Current GCP Account: {0}'.format(gcp_account))
 
