@@ -4,7 +4,7 @@ import json as json_library
 import sys
 from typing import Dict, Text
 import click
-from .install_cli import prerequest, project_id_resolver, kfp_installer, cluster_resolver, gcs_resolver, kfp_input_resolver
+from .install_cli import prerequest, project_id_resolver, kfp_installer, cluster_resolver, gcs_resolver, kfp_input_resolver, cloud_sql_resolver, gpu_resolver
 
 @click.group()
 def install():
@@ -36,8 +36,29 @@ def install():
     '--namespace',
     type=Text,
     help='Namespace to use for Kubernetes cluster.')
+@click.option(
+    '--enable_managed_storage',
+    type=click.Choice(['true','false']),
+    help='Whether use CloudSQL & GCS to store KFP system data.'
+       + ' If false, it will use in-cluster volume while will be deleted in uninstallation.')
+@click.option(
+    '--cloud_sql_instance_name',
+    type=Text,
+    help='CloudSQL instance name formatted as projectId::region::name.')
+@click.option(
+    '--cloud_sql_username',
+    type=Text,
+    help='CloudSQL username.')
+@click.option(
+    '--cloud_sql_password',
+    type=Text,
+    help="CloudSQL password. Not suggested to pass password here.")
 @click.pass_context
-def install(ctx, gcp_project_id, gcp_cluster_id, gcp_cluster_zone, gcs_default_bucket, instance_name, namespace):
+def install(ctx, gcp_project_id, gcp_cluster_id, gcp_cluster_zone,
+            gcs_default_bucket,
+            instance_name, namespace,
+            enable_managed_storage,
+            cloud_sql_instance_name, cloud_sql_username, cloud_sql_password):
   """Kubeflow Pipelines CLI Installer"""
 
   # Show welcome messages
@@ -67,8 +88,14 @@ def install(ctx, gcp_project_id, gcp_cluster_id, gcp_cluster_zone, gcs_default_b
   instance_name, namespace = kfp_input_resolver.resolve_kfp_input(instance_name, namespace)
 
   # Resolve GCS CloudSQL (only required when enable Managed Storage)
+  result = cloud_sql_resolver.resolve_cloud_sql(enable_managed_storage,
+      cloud_sql_instance_name, cloud_sql_username, cloud_sql_password)
+  enable_managed_storage, cloud_sql_instance_name, cloud_sql_username, cloud_sql_password = result
 
   # Resolve GPU node pool (only required when enable GPU)
+  gpu_resolver.resolve_gpu()
 
   # Resolve KFP
-  kfp_installer.install(gcp_project_id, gcp_cluster_id, gcp_cluster_zone, gcs_default_bucket, instance_name, namespace)
+  kfp_installer.install(gcp_project_id, gcp_cluster_id, gcp_cluster_zone, gcs_default_bucket,
+      instance_name, namespace,
+      enable_managed_storage, cloud_sql_instance_name, cloud_sql_username, cloud_sql_password)
