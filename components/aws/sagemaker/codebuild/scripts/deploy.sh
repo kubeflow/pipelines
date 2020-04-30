@@ -47,7 +47,9 @@ docker build . -f Dockerfile -t "${FULL_VERSION_IMAGE}"
 
 # Re-tag the image with major and minor versions
 docker tag "${FULL_VERSION_IMAGE}" "${MINOR_VERSION_IMAGE}"
+echo "Tagged image with ${MINOR_VERSION_IMAGE}"
 docker tag "${FULL_VERSION_IMAGE}" "${MAJOR_VERSION_IMAGE}"
+echo "Tagged image with ${MAJOR_VERSION_IMAGE}"
 
 # Push to the remote repository
 if [ "${DRYRUN}" == "false" ]; then
