@@ -29,6 +29,8 @@ def resolve_gcs_default_bucket(gcp_project_id, gcs_default_bucket) -> str:
 
   print("GCS Default Bucket: {0}".format(gcs_default_bucket))
 
+  return gcs_default_bucket
+
 def create_bucket(gcp_project_id, gcs_default_bucket):
   cmd = "gsutil mb -p {0} gs://{1}".format(gcp_project_id, gcs_default_bucket)
   cmd_result = executer.execute_subprocess(cmd)

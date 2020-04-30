@@ -4,6 +4,10 @@ from ..common import utils, executer
 def show_welcome_message():
   print("\n===== Welcome =====\n")
   print("\nWelcome to use Kubeflow Pipeline CLI Installer.\n")
+  print("Example usages:")
+  print("python3 -m kfp install")
+  print("python3 -m kfp install --install-version latest")
+  print("python3 -m kfp install --install-version latest --keep-kustomize-directory")
 
 def check_gcloud_auth_login():
 
