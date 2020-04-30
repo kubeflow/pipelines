@@ -45,7 +45,7 @@ matrix:
         - coverage run --source=kfp --append sdk/python/tests/dsl/main.py
         - coverage run --source=kfp --append sdk/python/tests/compiler/main.py
         - coverage run --source=kfp --append -m unittest discover --verbose --start-dir sdk/python/tests --top-level-directory=sdk/python
-        - coveralls
+        #- coveralls
 
         # Test against TFX
         # Compile and setup protobuf
