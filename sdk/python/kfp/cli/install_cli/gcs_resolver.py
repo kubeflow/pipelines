@@ -18,9 +18,8 @@ def resolve_gcs_default_bucket(gcp_project_id, gcs_default_bucket) -> str:
   # check whether bucket already exist
   cmd = "gsutil ls -p {0} gs://{1}".format(gcp_project_id, gcs_default_bucket)
   print("Executing command to check whether bucket exists: {0}".format(cmd))
-  cmd_result = executer.execute(cmd)
-  if cmd_result.has_error:
-    utils.print_error("{0}".format(cmd_result.stderr))
+  cmd_result = executer.execute_subprocess(cmd)
+  if cmd_result.returncode:
     result = click.confirm("Seem can't find the bucket, do you want to create the bucket?", default=True)
     if result:
       create_bucket(gcp_project_id, gcs_default_bucket)
@@ -32,7 +31,7 @@ def resolve_gcs_default_bucket(gcp_project_id, gcs_default_bucket) -> str:
 
 def create_bucket(gcp_project_id, gcs_default_bucket):
   cmd = "gsutil mb -p {0} gs://{1}".format(gcp_project_id, gcs_default_bucket)
-  cmd_result = executer.execute(cmd)
-  if cmd_result.has_error:
+  cmd_result = executer.execute_subprocess(cmd)
+  if cmd_result.returncode:
     utils.print_error("{0}".format(cmd_result.stderr))
     exit(1)

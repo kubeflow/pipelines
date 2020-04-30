@@ -1,5 +1,4 @@
 import click
-from ../.. import __VERSION__
 
 def print_warning(data):
   click.echo(click.style(data, fg='yellow'))
@@ -13,6 +12,3 @@ def print_success(data):
 
 def write_line(file, data):
   file.write(data + '\n')
-
-def current_version():
-  return __VERSION__

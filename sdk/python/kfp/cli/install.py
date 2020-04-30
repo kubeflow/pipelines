@@ -5,6 +5,7 @@ import sys
 from typing import Dict, Text
 import click
 from .install_cli import prerequest, project_id_resolver, kfp_installer, cluster_resolver, gcs_resolver, kfp_input_resolver, cloud_sql_resolver, gpu_resolver
+from ..__init__ import __version__
 
 @click.group()
 def install():
@@ -29,7 +30,7 @@ def install():
     type=Text,
     help='GCS default bucket. No "gs://" prefix')
 @click.option(
-    '--instance_name',
+    '--instance-name',
     type=Text,
     help='The instance name of the Kubeflow Pipelines installation')
 @click.option(
@@ -37,29 +38,41 @@ def install():
     type=Text,
     help='Namespace to use for Kubernetes cluster.')
 @click.option(
-    '--enable_managed_storage',
+    '--enable-managed-storage',
     type=click.Choice(['true','false']),
     help='Whether use CloudSQL & GCS to store KFP system data.'
        + ' If false, it will use in-cluster volume while will be deleted in uninstallation.')
 @click.option(
-    '--cloud_sql_instance_name',
+    '--cloud-sql-instance-name',
     type=Text,
     help='CloudSQL instance name formatted as projectId::region::name.')
 @click.option(
-    '--cloud_sql_username',
+    '--cloud-sql-username',
     type=Text,
     help='CloudSQL username.')
 @click.option(
-    '--cloud_sql_password',
+    '--cloud-sql-password',
     type=Text,
     help="CloudSQL password. Not suggested to pass password here.")
+@click.option(
+    '--install-version',
+    type=Text,
+    help="Install which version, latest or something like 1.0.0")
+@click.option(
+    '--keep-kustomize-directory',
+    is_flag=True,
+    help="Whether keep the generated kustomize directory for debug purpose")
 @click.pass_context
 def install(ctx, gcp_project_id, gcp_cluster_id, gcp_cluster_zone,
             gcs_default_bucket,
             instance_name, namespace,
             enable_managed_storage,
-            cloud_sql_instance_name, cloud_sql_username, cloud_sql_password):
+            cloud_sql_instance_name, cloud_sql_username, cloud_sql_password,
+            install_version, keep_kustomize_directory):
   """Kubeflow Pipelines CLI Installer"""
+
+  if install_version == None:
+    install_version = __version__
 
   # Show welcome messages
   prerequest.show_welcome_message()
@@ -98,4 +111,5 @@ def install(ctx, gcp_project_id, gcp_cluster_id, gcp_cluster_zone,
   # Resolve KFP
   kfp_installer.install(gcp_project_id, gcp_cluster_id, gcp_cluster_zone, gcs_default_bucket,
       instance_name, namespace,
-      enable_managed_storage, cloud_sql_instance_name, cloud_sql_username, cloud_sql_password)
+      enable_managed_storage, cloud_sql_instance_name, cloud_sql_username, cloud_sql_password,
+      install_version, keep_kustomize_directory)

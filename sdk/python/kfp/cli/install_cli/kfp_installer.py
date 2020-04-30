@@ -5,7 +5,8 @@ import os
 from ..common import utils, executer
 
 def install(gcp_project_id, gcp_cluster_id, gcp_cluster_zone, gcs_default_bucket, instance_name, namespace,
-    enable_managed_storage, cloud_sql_instance_name, cloud_sql_username, cloud_sql_password):
+    enable_managed_storage, cloud_sql_instance_name, cloud_sql_username, cloud_sql_password,
+    install_version, keep_kustomize_directory):
 
   print("\n===== Installing Kubeflow Pipelines =====\n")
   print("gcp_project_id: {0}".format(gcp_project_id))
@@ -17,17 +18,25 @@ def install(gcp_project_id, gcp_cluster_id, gcp_cluster_zone, gcs_default_bucket
   print("enable_managed_storage: {0}".format(enable_managed_storage))
   print("cloud_sql_instance_name: {0}".format(cloud_sql_instance_name))
   print("cloud_sql_username: {0}".format(cloud_sql_username))
+  print("install_version: {0}".format(install_version))
   print("\n")
 
   folder, cluster_scoped_folder = preparation_kustomize_folder()
-  install_cluster_scoped(cluster_scoped_folder, namespace)
+
+  install_cluster_scoped(cluster_scoped_folder, namespace, install_version)
   wait_for_cluster_scoped_ready()
+
   # TODO: workload identity binding or ADC generation
+
   install_namespace_scoped(folder, gcp_project_id, gcs_default_bucket, instance_name, namespace,
-      enable_managed_storage, cloud_sql_instance_name, cloud_sql_username, cloud_sql_password)
+      enable_managed_storage, cloud_sql_instance_name, cloud_sql_username, cloud_sql_password,
+      install_version)
   wait_for_namespace_scoped_ready(instance_name, namespace)
 
-  cleanup_kustomize_folder(folder)
+  if keep_kustomize_directory:
+    print('{0} is not deleted per --keep-kustomize-directory'.format(folder))
+  else:
+    cleanup_kustomize_folder(folder)
 
   utils.print_success('SUCCESS, you can find your installation here:')
   utils.print_success('http://console.cloud.google.com/ai-platform/pipelines')
@@ -47,14 +56,15 @@ def cleanup_kustomize_folder(folder):
   shutil.rmtree(folder)
   print("Deleted temp directory: {0}".format(folder))
 
-def install_cluster_scoped(cluster_scoped_folder, namespace):
+def install_cluster_scoped(cluster_scoped_folder, namespace, install_version):
+  print('Preparing cluster-scoped workspace')
   kustomize_file = os.path.join(cluster_scoped_folder, 'kustomization.yaml')
   with open(kustomize_file, 'w') as file:
     utils.write_line(file, 'apiVersion: kustomize.config.k8s.io/v1beta1')
     utils.write_line(file, 'kind: Kustomization')
     utils.write_line(file, 'bases:')
-    utils.write_line(file, '  - github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref={0}'.format(
-        utils.current_version()))
+    utils.write_line(file, '  - github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources{0}'.format(
+        version_ref(install_version)))
     utils.write_line(file, '')
     utils.write_line(file, 'configMapGenerator:')
     utils.write_line(file, '  - name: pipeline-cluster-scoped-install-config')
@@ -89,14 +99,16 @@ def wait_for_cluster_scoped_ready():
   utils.print_success("Cluster scoped resources ready.")
 
 def install_namespace_scoped(folder, gcp_project_id, gcs_default_bucket, instance_name, namespace,
-    enable_managed_storage, cloud_sql_instance_name, cloud_sql_username, cloud_sql_password):
+    enable_managed_storage, cloud_sql_instance_name, cloud_sql_username, cloud_sql_password,
+    install_version):
+  print('Preparing namespace-scoped workspace')
   kustomize_file = os.path.join(folder, 'kustomization.yaml')
   with open(kustomize_file, 'w') as file:
     utils.write_line(file, 'apiVersion: kustomize.config.k8s.io/v1beta1')
     utils.write_line(file, 'kind: Kustomization')
     utils.write_line(file, 'bases:')
-    utils.write_line(file, '  - github.com/kubeflow/pipelines/manifests/kustomize/env/{0}?ref={1}'.format(
-        'gcp' if enable_managed_storage else 'dev', utils.current_version()))
+    utils.write_line(file, '  - github.com/kubeflow/pipelines/manifests/kustomize/env/{0}{1}'.format(
+        'gcp' if enable_managed_storage else 'dev', version_ref(install_version)))
     utils.write_line(file, '')
     utils.write_line(file, 'commonLabels:')
     utils.write_line(file, '  application-crd-id: kubeflow-pipelines')
@@ -155,6 +167,10 @@ def installation_fatal(folder):
   print("https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md")
   print("Temp directory {0} is not deleted for your debugging purpose".format(folder))
   exit(1)
+
+def version_ref(install_version):
+  # ?ref=x.x.x
+  return '' if install_version == 'latest' else '?ref='.format(install_version)
 
 def handle_workload_identity():
   print("!!! Not Implemented !!!")
