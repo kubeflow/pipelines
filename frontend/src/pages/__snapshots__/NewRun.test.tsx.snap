@@ -378,6 +378,15 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       value=""
       variant="outlined"
     />
+    <div>
+      This run will use the following Kubernetes service account.
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
     <div
       className="header"
     >
@@ -873,6 +882,15 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       value="some mock experiment name"
       variant="outlined"
     />
+    <div>
+      This run will use the following Kubernetes service account.
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
     <div
       className="header"
     >
@@ -1366,6 +1384,15 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
       variant="outlined"
     />
     <div
@@ -1874,6 +1901,15 @@ exports[`NewRun changes title and form to default state if the new run is a one-
       value=""
       variant="outlined"
     />
+    <div>
+      This run will use the following Kubernetes service account.
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
     <div
       className="header"
     >
@@ -2366,6 +2402,15 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       disabled={true}
       label="Experiment"
       required={true}
+      value=""
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
       value=""
       variant="outlined"
     />
@@ -2862,6 +2907,15 @@ exports[`NewRun renders the new run page 1`] = `
       value="some mock experiment name"
       variant="outlined"
     />
+    <div>
+      This run will use the following Kubernetes service account.
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
     <div
       className="header"
     >
@@ -3354,6 +3408,15 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       disabled={true}
       label="Experiment"
       required={true}
+      value=""
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
       value=""
       variant="outlined"
     />
@@ -3863,6 +3926,15 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       value="some mock experiment name"
       variant="outlined"
     />
+    <div>
+      This run will use the following Kubernetes service account.
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
     <div
       className="header"
     >
@@ -4356,6 +4428,15 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
       variant="outlined"
     />
     <div
@@ -4864,6 +4945,15 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       value="some mock experiment name"
       variant="outlined"
     />
+    <div>
+      This run will use the following Kubernetes service account.
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
     <div
       className="header"
     >
@@ -5357,6 +5447,15 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
       variant="outlined"
     />
     <div

@@ -1183,6 +1183,7 @@ describe('NewRun', () => {
         pipeline_spec: {
           parameters: MOCK_PIPELINE.parameters,
         },
+        service_account: '',
         resource_references: [
           {
             key: {
@@ -1237,6 +1238,7 @@ describe('NewRun', () => {
         pipeline_spec: {
           parameters: [{ name: 'testName', value: '{\n  "test2": "value2"\n}' }],
         },
+        service_account: '',
         resource_references: [
           {
             key: {
@@ -1329,6 +1331,7 @@ describe('NewRun', () => {
           pipeline_id: undefined,
           workflow_manifest: '{"metadata":{"name":"embedded"},"parameters":[]}',
         },
+        service_account: '',
         resource_references: [],
       });
       // TODO: verify route change happens
@@ -1653,6 +1656,7 @@ describe('NewRun', () => {
         pipeline_spec: {
           parameters: MOCK_PIPELINE.parameters,
         },
+        service_account: '',
         resource_references: [
           {
             key: {
