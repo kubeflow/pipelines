@@ -23,28 +23,42 @@ function docker_tag_exists() {
 
 # Check version does not already exist
 VERSION_LICENSE_FILE="THIRD-PARTY-LICENSES.txt"
-LOCAL_VERSION="$(cat ${VERSION_LICENSE_FILE} | head -n1 | grep -Po '(?<=version )\d.\d.\d')"
+FULL_VERSION_TAG="$(cat ${VERSION_LICENSE_FILE} | head -n1 | grep -Po '(?<=version )\d.\d.\d')"
 
-if [ -z "$LOCAL_VERSION" ]; then
+if [ -z "$FULL_VERSION_TAG" ]; then
   >&2 echo "Could not find version inside ${VERSION_LICENSE_FILE} file."
   exit 1
 fi
 
-echo "Deploying version ${LOCAL_VERSION}"
+echo "Deploying version ${FULL_VERSION_TAG}"
 
-if docker_tag_exists "$REMOTE_REPOSITORY" "$LOCAL_VERSION"; then
-  >&2 echo "Tag ${REMOTE_REPOSITORY}:${LOCAL_VERSION} already exists. Cannot overwrite an existing image."
+if docker_tag_exists "$REMOTE_REPOSITORY" "$FULL_VERSION_TAG"; then
+  >&2 echo "Tag ${REMOTE_REPOSITORY}:${FULL_VERSION_TAG} already exists. Cannot overwrite an existing image."
   exit 1
 fi
 
 # Build the image
-DOCKERHUB_TAG="${REMOTE_REPOSITORY}:${LOCAL_VERSION}"
-docker build . -f Dockerfile -t "${DOCKERHUB_TAG}"
+FULL_VERSION_IMAGE="${REMOTE_REPOSITORY}:${FULL_VERSION_TAG}"
+docker build . -f Dockerfile -t "${FULL_VERSION_IMAGE}"
+
+# Get the minor and major versions
+[[ $FULL_VERSION_TAG =~ ^[0-9]+\.[0-9]+ ]] && 	MINOR_VERSION_IMAGE="${REMOTE_REPOSITORY}:${BASH_REMATCH[0]}"
+[[ $FULL_VERSION_TAG =~ ^[0-9]+ ]] && 					MAJOR_VERSION_IMAGE="${REMOTE_REPOSITORY}:${BASH_REMATCH[0]}"
+
+# Re-tag the image with major and minor versions
+docker tag "${FULL_VERSION_IMAGE}" "${MINOR_VERSION_IMAGE}"
+docker tag "${FULL_VERSION_IMAGE}" "${MAJOR_VERSION_IMAGE}"
 
 # Push to the remote repository
 if [ "${DRYRUN}" == "false" ]; then
-  docker push "${DOCKERHUB_TAG}"
-  echo "Successfully pushed tag ${DOCKERHUB_TAG} to Docker Hub"
+  docker push "${FULL_VERSION_IMAGE}"
+  echo "Successfully pushed tag ${FULL_VERSION_IMAGE} to Docker Hub"
+
+	docker push "${MINOR_VERSION_IMAGE}"
+  echo "Successfully pushed tag ${MINOR_VERSION_IMAGE} to Docker Hub"
+
+	docker push "${MAJOR_VERSION_IMAGE}"
+  echo "Successfully pushed tag ${MAJOR_VERSION_IMAGE} to Docker Hub"
 else
-  echo "Dry run detected. Not pushing image."
+  echo "Dry run detected. Not pushing images."
 fi
