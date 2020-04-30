@@ -30,6 +30,8 @@ if [ -z "$LOCAL_VERSION" ]; then
   exit 1
 fi
 
+echo "Deploying version ${LOCAL_VERSION}"
+
 if docker_tag_exists "$REMOTE_REPOSITORY" "$LOCAL_VERSION"; then
   >&2 echo "Tag ${REMOTE_REPOSITORY}:${LOCAL_VERSION} already exists. Cannot overwrite an existing image."
   exit 1
