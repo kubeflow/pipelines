@@ -77,7 +77,10 @@ kubectl patch configmap/inverse-proxy-config \
     --patch "${PATCH_JSON}"
 
 # Patch again as catched case that it actually didn't merge successfully but no error.
-# It looks like a bug of K8s master. Here patch it twice to mitigate the problem first.
+# It looks like a bug of K8s master or configmap is not ready when run here.
+# Here sleep for 20 seconds and patch it again to mitigate the problem first.
+sleep 20
+
 kubectl patch configmap/inverse-proxy-config \
     --type merge \
     --patch "${PATCH_JSON}"
