@@ -150,7 +150,7 @@ exports[`SideNav populates the display build information using the response from
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"
@@ -214,7 +214,7 @@ exports[`SideNav populates the display build information using the response from
         className="envMetadata"
       >
         <span>
-          Build commit: 
+          Build commit:
         </span>
         <a
           className="link unstyled"
