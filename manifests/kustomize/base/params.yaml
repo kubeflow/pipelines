@@ -17,8 +17,6 @@ varReference:
 - path: data/pipeline_db
   kind: ConfigMap
 - path: metadata/name
-  kind: Namespace
-- path: metadata/name
   kind: Application
 - path: spec/descriptor/version
   kind: Application
