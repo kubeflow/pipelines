@@ -53,8 +53,8 @@ FULL_VERSION_IMAGE="${REMOTE_REPOSITORY}:${FULL_VERSION_TAG}"
 docker build . -f Dockerfile -t "${FULL_VERSION_IMAGE}"
 
 # Get the minor and major versions
-[[ $FULL_VERSION_TAG =~ ^[0-9]+\.[0-9]+ ]] && 	MINOR_VERSION_IMAGE="${REMOTE_REPOSITORY}:${BASH_REMATCH[0]}"
-[[ $FULL_VERSION_TAG =~ ^[0-9]+ ]] && 					MAJOR_VERSION_IMAGE="${REMOTE_REPOSITORY}:${BASH_REMATCH[0]}"
+[[ $FULL_VERSION_TAG =~ ^[0-9]+\.[0-9]+ ]] && MINOR_VERSION_IMAGE="${REMOTE_REPOSITORY}:${BASH_REMATCH[0]}"
+[[ $FULL_VERSION_TAG =~ ^[0-9]+ ]] && MAJOR_VERSION_IMAGE="${REMOTE_REPOSITORY}:${BASH_REMATCH[0]}"
 
 # Re-tag the image with major and minor versions
 docker tag "${FULL_VERSION_IMAGE}" "${MINOR_VERSION_IMAGE}"
