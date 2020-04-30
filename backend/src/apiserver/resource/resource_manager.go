@@ -384,8 +384,13 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
 	}
 
+	workflowFinalSpecManifestBytes, err := json.Marshal(workflow)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to marshal final workflow spec manifest into JSON")
+	}
+
 	// Store run metadata into database
-	runDetail, err := r.ToModelRunDetail(apiRun, runId, util.NewWorkflow(newWorkflow), string(workflowSpecManifestBytes))
+	runDetail, err := r.ToModelRunDetail(apiRun, runId, util.NewWorkflow(newWorkflow), string(workflowFinalSpecManifestBytes))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert run model")
 	}
@@ -630,7 +635,12 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
 	}
 
-	job, err := r.ToModelJob(apiJob, util.NewScheduledWorkflow(newScheduledWorkflow), string(workflowSpecManifestBytes))
+	workflowFinalSpecManifestBytes, err := json.Marshal(workflow)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to marshal final workflow spec manifest into JSON")
+	}
+
+	job, err := r.ToModelJob(apiJob, util.NewScheduledWorkflow(newScheduledWorkflow), string(workflowFinalSpecManifestBytes))
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
