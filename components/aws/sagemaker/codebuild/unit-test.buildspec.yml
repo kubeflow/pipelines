@@ -3,7 +3,7 @@ phases:
   build:
     commands:
       - cd components/aws
-      - docker build . -f ./sagemaker/unit_tests/Dockerfile -t amazon/unit-test-image --quiet
+      - docker build . -f ./sagemaker/tests/unit_tests/Dockerfile -t amazon/unit-test-image --quiet
 
       # Run the container and copy the results to /tmp
       # Passes all host environment variables through to the container
