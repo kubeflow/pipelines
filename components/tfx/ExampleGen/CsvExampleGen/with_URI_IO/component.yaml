@@ -1,157 +1,122 @@
-name: CsvExampleGen GCS
-inputs:
-- {name: input_base_path, type: ExternalPath}
-- {name: example_artifacts_path, type: ExamplesPath}
-- {name: input_config, optional: true, type: ExampleGen.Input}
-- {name: output_config, optional: true, type: ExampleGen.Output}
-outputs:
-- {name: example_artifacts, type: ExamplesPath}
-description: |
+name: CsvExampleGen URI
+description: |-
   Executes the CsvExampleGen component.
 
       Args:
-        input_base: A Channel of 'ExternalPath' type, which includes one artifact
+        input: A Channel of 'ExternalPath' type, which includes one artifact
           whose uri is an external directory with csv files inside (required).
         input_config: An example_gen_pb2.Input instance, providing input
-          configuration. If unset, the files under input_base will be treated as a
+          configuration. If unset, the files under input will be treated as a
           single split.
         output_config: An example_gen_pb2.Output instance, providing output
           configuration. If unset, default splits will be 'train' and 'eval' with
           size 2:1.
-        ??? input: Forwards compatibility alias for the 'input_base' argument.
       Returns:
-        example_artifacts: Artifact of type 'ExamplesPath' for output train and
+        examples: Artifact of type 'Examples' for output train and
           eval examples.
+inputs:
+- {name: input_path, type: ExternalArtifactUri}
+- {name: examples_path, type: ExamplesUri}
+- name: input_config
+  type:
+    JsonObject: {data_type: 'proto:tfx.components.example_gen.Input'}
+  optional: true
+- name: output_config
+  type:
+    JsonObject: {data_type: 'proto:tfx.components.example_gen.Output'}
+  optional: true
+- name: custom_config
+  type:
+    JsonObject: {data_type: 'proto:tfx.components.example_gen.CustomConfig'}
+  optional: true
+outputs:
+- {name: examples, type: ExamplesUri}
 implementation:
   container:
-    image: tensorflow/tfx:0.15.0
+    image: tensorflow/tfx:0.21.4
     command:
     - python3
     - -u
     - -c
-    - |
-      from typing import NamedTuple
-
-      def CsvExampleGen_GCS( #
-          # Inputs
-          #input_base_path: InputPath('ExternalPath'),
-          input_base_path: 'ExternalPath', # A Channel of 'ExternalPath' type, which includes one artifact whose uri is an external directory with csv files inside (required).
-
-          # Outputs
-          #example_artifacts_path: OutputPath('ExamplesPath'),
-          example_artifacts_path: 'ExamplesPath',
-
-          # Execution properties
-          #input_config_splits: {'List' : {'item_type': 'ExampleGen.Input.Split'}},
-          input_config: 'ExampleGen.Input' = None, # = '{"splits": []}', # JSON-serialized example_gen_pb2.Input instance, providing input configuration. If unset, the files under input_base will be treated as a single split.
-          #output_config_splits: {'List' : {'item_type': 'ExampleGen.SplitConfig'}},
-          output_config: 'ExampleGen.Output' = None, # = '{"splitConfig": {"splits": []}}', # JSON-serialized example_gen_pb2.Output instance, providing output configuration. If unset, default splits will be 'train' and 'eval' with size 2:1.
-          #custom_config: 'ExampleGen.CustomConfig' = None,
-      ) -> NamedTuple('Outputs', [
-          ('example_artifacts', 'ExamplesPath'),
-      ]):
-          """Executes the CsvExampleGen component.
-
-          Args:
-            input_base: A Channel of 'ExternalPath' type, which includes one artifact
-              whose uri is an external directory with csv files inside (required).
-            input_config: An example_gen_pb2.Input instance, providing input
-              configuration. If unset, the files under input_base will be treated as a
-              single split.
-            output_config: An example_gen_pb2.Output instance, providing output
-              configuration. If unset, default splits will be 'train' and 'eval' with
-              size 2:1.
-            ??? input: Forwards compatibility alias for the 'input_base' argument.
-          Returns:
-            example_artifacts: Artifact of type 'ExamplesPath' for output train and
-              eval examples.
-          """
-
-          import json
-          import os
-          from google.protobuf import json_format
-          from tfx.components.example_gen.csv_example_gen.component import CsvExampleGen
-          from tfx.proto import example_gen_pb2
-          from tfx.types import standard_artifacts
-          from tfx.types import channel_utils
-
-          # Create input dict.
-          input_base = standard_artifacts.ExternalArtifact()
-          input_base.uri = input_base_path
-          input_base_channel = channel_utils.as_channel([input_base])
-
-          input_config_obj = None
-          if input_config:
-              input_config_obj = example_gen_pb2.Input()
-              json_format.Parse(input_config, input_config_obj)
-
-          output_config_obj = None
-          if output_config:
-              output_config_obj = example_gen_pb2.Output()
-              json_format.Parse(output_config, output_config_obj)
-
-          component_class_instance = CsvExampleGen(
-              input=input_base_channel,
-              input_config=input_config_obj,
-              output_config=output_config_obj,
-          )
-
-          # component_class_instance.inputs/outputs are wrappers that do not behave like real dictionaries. The underlying dict can be accessed using .get_all()
-          # Channel artifacts can be accessed by calling .get()
-          input_dict = {name: channel.get() for name, channel in component_class_instance.inputs.get_all().items()}
-          output_dict = {name: channel.get() for name, channel in component_class_instance.outputs.get_all().items()}
-          exec_properties = component_class_instance.exec_properties
-
-          # Generating paths for output artifacts
-          for output_artifact in output_dict['examples']:
-              output_artifact.uri = example_artifacts_path
-              if output_artifact.split:
-                  output_artifact.uri = os.path.join(output_artifact.uri, output_artifact.split)
-
-          print('component instance: ' + str(component_class_instance))
-
-          executor = CsvExampleGen.EXECUTOR_SPEC.executor_class()
-          executor.Do(
-              input_dict=input_dict,
-              output_dict=output_dict,
-              exec_properties=exec_properties,
-          )
-
-          return (example_artifacts_path,)
-
-      import argparse
-      _parser = argparse.ArgumentParser(prog='Csvexamplegen gcs', description="Executes the CsvExampleGen component.\n\n    Args:\n      input_base: A Channel of 'ExternalPath' type, which includes one artifact\n        whose uri is an external directory with csv files inside (required).\n      input_config: An example_gen_pb2.Input instance, providing input\n        configuration. If unset, the files under input_base will be treated as a\n        single split.\n      output_config: An example_gen_pb2.Output instance, providing output\n        configuration. If unset, default splits will be 'train' and 'eval' with\n        size 2:1.\n      ??? input: Forwards compatibility alias for the 'input_base' argument.\n    Returns:\n      example_artifacts: Artifact of type 'ExamplesPath' for output train and\n        eval examples.\n")
-      _parser.add_argument("--input-base-path", dest="input_base_path", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--example-artifacts-path", dest="example_artifacts_path", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--input-config", dest="input_config", type=str, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-config", dest="output_config", type=str, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
-      _parsed_args = vars(_parser.parse_args())
-      _output_files = _parsed_args.pop("_output_paths", [])
-
-      _outputs = CsvExampleGen_GCS(**_parsed_args)
-
-      if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-          _outputs = [_outputs]
-
-      _output_serializers = [
-          str,
-
-      ]
-
-      import os
-      for idx, output_file in enumerate(_output_files):
-          try:
-              os.makedirs(os.path.dirname(output_file))
-          except OSError:
-              pass
-          with open(output_file, 'w') as f:
-              f.write(_output_serializers[idx](_outputs[idx]))
+    - "def CsvExampleGen_URI( #\n    # Inputs\n    input_path , # A Channel of 'ExternalPath'\
+      \ type, which includes one artifact whose uri is an external directory with\
+      \ csv files inside (required).\n\n    # Outputs\n    examples_path ,\n\n   \
+      \ # Execution properties\n    input_config    = None, # = '{\"splits\": []}',\
+      \ # JSON-serialized example_gen_pb2.Input instance, providing input configuration.\
+      \ If unset, the files under input_base will be treated as a single split.\n\
+      \    output_config    = None, # = '{\"splitConfig\": {\"splits\": []}}', # JSON-serialized\
+      \ example_gen_pb2.Output instance, providing output configuration. If unset,\
+      \ default splits will be 'train' and 'eval' with size 2:1.\n    custom_config\
+      \    = None,\n):   \n     \n\n    \"\"\"Executes the CsvExampleGen component.\n\
+      \n    Args:\n      input: A Channel of 'ExternalPath' type, which includes one\
+      \ artifact\n        whose uri is an external directory with csv files inside\
+      \ (required).\n      input_config: An example_gen_pb2.Input instance, providing\
+      \ input\n        configuration. If unset, the files under input will be treated\
+      \ as a\n        single split.\n      output_config: An example_gen_pb2.Output\
+      \ instance, providing output\n        configuration. If unset, default splits\
+      \ will be 'train' and 'eval' with\n        size 2:1.\n    Returns:\n      examples:\
+      \ Artifact of type 'Examples' for output train and\n        eval examples.\n\
+      \    \"\"\"\n    from tfx.components.example_gen.csv_example_gen.component import\
+      \ CsvExampleGen as component_class\n\n    #Generated code\n    import json\n\
+      \    import os\n    import tensorflow\n    from google.protobuf import json_format,\
+      \ message\n    from tfx.types import Artifact, channel_utils, artifact_utils\n\
+      \n    arguments = locals().copy()\n\n    component_class_args = {}\n\n    for\
+      \ name, execution_parameter in component_class.SPEC_CLASS.PARAMETERS.items():\n\
+      \        argument_value_obj = argument_value = arguments.get(name, None)\n \
+      \       if argument_value is None:\n            continue\n        parameter_type\
+      \ = execution_parameter.type\n        if isinstance(parameter_type, type) and\
+      \ issubclass(parameter_type, message.Message): # Maybe FIX: execution_parameter.type\
+      \ can also be a tuple\n            argument_value_obj = parameter_type()\n \
+      \           json_format.Parse(argument_value, argument_value_obj)\n        component_class_args[name]\
+      \ = argument_value_obj\n\n    for name, channel_parameter in component_class.SPEC_CLASS.INPUTS.items():\n\
+      \        artifact_path = arguments[name + '_path']\n        if artifact_path:\n\
+      \            artifact = channel_parameter.type()\n            artifact.uri =\
+      \ artifact_path + '/' # ?\n            if channel_parameter.type.PROPERTIES\
+      \ and 'split_names' in channel_parameter.type.PROPERTIES:\n                #\
+      \ Recovering splits\n                subdirs = tensorflow.io.gfile.listdir(artifact_path)\n\
+      \                artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))\n\
+      \            component_class_args[name] = channel_utils.as_channel([artifact])\n\
+      \n    component_class_instance = component_class(**component_class_args)\n\n\
+      \    input_dict = {name: channel.get() for name, channel in component_class_instance.inputs.get_all().items()}\n\
+      \    output_dict = {name: channel.get() for name, channel in component_class_instance.outputs.get_all().items()}\n\
+      \    exec_properties = component_class_instance.exec_properties\n\n    # Generating\
+      \ paths for output artifacts\n    for name, artifacts in output_dict.items():\n\
+      \        base_artifact_path = arguments[name + '_path']\n        # Are there\
+      \ still cases where output channel has multiple artifacts?\n        for idx,\
+      \ artifact in enumerate(artifacts):\n            subdir = str(idx + 1) if idx\
+      \ > 0 else ''\n            artifact.uri = os.path.join(base_artifact_path, subdir)\
+      \  # Ends with '/'\n\n    print('component instance: ' + str(component_class_instance))\n\
+      \n    #executor = component_class.EXECUTOR_SPEC.executor_class() # Same\n  \
+      \  executor = component_class_instance.executor_spec.executor_class()\n    executor.Do(\n\
+      \        input_dict=input_dict,\n        output_dict=output_dict,\n        exec_properties=exec_properties,\n\
+      \    )\n    # End generated code\n    return (examples_path,)\n\nimport argparse\n\
+      _parser = argparse.ArgumentParser(prog='CsvExampleGen URI', description=\"Executes\
+      \ the CsvExampleGen component.\\n\\n    Args:\\n      input: A Channel of 'ExternalPath'\
+      \ type, which includes one artifact\\n        whose uri is an external directory\
+      \ with csv files inside (required).\\n      input_config: An example_gen_pb2.Input\
+      \ instance, providing input\\n        configuration. If unset, the files under\
+      \ input will be treated as a\\n        single split.\\n      output_config:\
+      \ An example_gen_pb2.Output instance, providing output\\n        configuration.\
+      \ If unset, default splits will be 'train' and 'eval' with\\n        size 2:1.\\\
+      n    Returns:\\n      examples: Artifact of type 'Examples' for output train\
+      \ and\\n        eval examples.\")\n_parser.add_argument(\"--input-path\", dest=\"\
+      input_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"\
+      --examples-path\", dest=\"examples_path\", type=str, required=True, default=argparse.SUPPRESS)\n\
+      _parser.add_argument(\"--input-config\", dest=\"input_config\", type=str, required=False,\
+      \ default=argparse.SUPPRESS)\n_parser.add_argument(\"--output-config\", dest=\"\
+      output_config\", type=str, required=False, default=argparse.SUPPRESS)\n_parser.add_argument(\"\
+      --custom-config\", dest=\"custom_config\", type=str, required=False, default=argparse.SUPPRESS)\n\
+      _parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str,\
+      \ nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"\
+      _output_paths\", [])\n\n_outputs = CsvExampleGen_URI(**_parsed_args)\n\n_output_serializers\
+      \ = [\n    str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n\
+      \    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n\
+      \        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
     args:
-    - --input-base-path
-    - {inputValue: input_base_path}
-    - --example-artifacts-path
-    - {inputValue: example_artifacts_path}
+    - --input-path
+    - {inputValue: input_path}
+    - --examples-path
+    - {inputValue: examples_path}
     - if:
         cond: {isPresent: input_config}
         then:
@@ -162,5 +127,10 @@ implementation:
         then:
         - --output-config
         - {inputValue: output_config}
+    - if:
+        cond: {isPresent: custom_config}
+        then:
+        - --custom-config
+        - {inputValue: custom_config}
     - '----output-paths'
-    - {outputPath: example_artifacts}
+    - {outputPath: examples}

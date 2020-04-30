@@ -50,13 +50,13 @@ gsutil mb -p myProjectId gs://myBucketName/
 ```
 
 4. Customize your values
-- Edit **params.env** and **params-db-secret.env**
+- Edit **params.env**, **params-db-secret.env** and **cluster-scoped-resources/params.env**
 - Edit kustomization.yaml to set your namespace, e.x. "kubeflow"
 
 5. Install
 
 ```
-kubectl apply -k cluster-scoped-resources/
+kubectl apply -k sample/cluster-scoped-resources/
 
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
 

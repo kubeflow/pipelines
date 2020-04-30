@@ -21,6 +21,7 @@
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
     "skipLibCheck": true,
+    "strictPropertyInitialization": false, // Workaround: swagger generated client breaks this.
     "strict": true
   },
   "exclude": ["dist", "coverage", "node_modules"]

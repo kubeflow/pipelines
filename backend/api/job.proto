@@ -206,8 +206,11 @@ message Job {
   // for the scheduled job.
   PipelineSpec pipeline_spec = 4;
 
-  // Optional input field. Specify which resource this run belongs to.
+  // Optional input field. Specify which resource this job belongs to.
   repeated ResourceReference resource_references = 5;
+
+  // Optional input field. Specify which Kubernetes service account this job uses.
+  string service_account = 18;
 
   // Required input field.
   // Specify how many runs can be executed concurrently. Rage [1-10]
@@ -249,3 +252,4 @@ message Job {
   // If false, the job will catch up on each past interval.
   bool no_catchup = 17;
 }
+// Next field number of Job will be 19

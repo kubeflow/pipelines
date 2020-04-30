@@ -736,6 +736,35 @@ class PythonOpTestCase(unittest.TestCase):
             },
         )
 
+    def test_optional_input_path(self):
+        def consume_file_path(number_file_path: InputPath(int) = None) -> int:
+            result = -1
+            if number_file_path:
+                with open(number_file_path) as f:
+                    string_data = f.read()
+                    result = int(string_data)
+            return result
+
+        task_factory = comp.func_to_container_op(consume_file_path)
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'Output': '-1'})
+
+        self.helper_test_component_using_local_call(task_factory, arguments={'number': "42"}, expected_output_values={'Output': '42'})
+
+    def test_fail_on_input_path_non_none_default(self):
+        def read_from_file_path(file_path: InputPath(int) = '/tmp/something') -> str:
+            return file_path
+
+        with self.assertRaises(ValueError):
+            task_factory = comp.func_to_container_op(read_from_file_path)
+
+    def test_fail_on_output_path_default(self):
+        def write_to_file_path(file_path: OutputPath(int) = None) -> str:
+            return file_path
+
+        with self.assertRaises(ValueError):
+            task_factory = comp.func_to_container_op(write_to_file_path)
+
     def test_annotations_stripping(self):
         import typing
         import collections

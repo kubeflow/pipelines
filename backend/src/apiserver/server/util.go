@@ -347,6 +347,22 @@ func CanAccessNamespaceInResourceReferences(resourceManager *resource.ResourceMa
 	return nil
 }
 
+func CanAccessNamespace(resourceManager *resource.ResourceManager, ctx context.Context, namespace string) error {
+	if common.IsMultiUserMode() == false {
+		// Skip authz if not multi-user mode.
+		return nil
+	}
+
+	if len(namespace) == 0 {
+		return util.NewBadRequestError(errors.New("Namespace required for authorization."), "Namespace required for authorization.")
+	}
+	err := isAuthorized(resourceManager, ctx, namespace)
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize namespace")
+	}
+	return nil
+}
+
 // isAuthorized verified whether the user identity, which is contains in the context object,
 // can access the target namespace. If the returned error is nil, the authorization passes.
 // Otherwise, Authorization fails with a non-nil error.
