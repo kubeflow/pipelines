@@ -1167,6 +1167,9 @@ describe('NewRun', () => {
       (tree.instance() as TestNewRun).handleChange('description')({
         target: { value: 'test run description' },
       });
+      (tree.instance() as TestNewRun).handleChange('serviceAccount')({
+        target: { value: 'service-account-name' },
+      });
       await TestUtils.flushPromises();
 
       tree
@@ -1183,7 +1186,7 @@ describe('NewRun', () => {
         pipeline_spec: {
           parameters: MOCK_PIPELINE.parameters,
         },
-        service_account: '',
+        service_account: 'service-account-name',
         resource_references: [
           {
             key: {
@@ -1636,6 +1639,7 @@ describe('NewRun', () => {
 
       instance.handleChange('runName')({ target: { value: 'test run name' } });
       instance.handleChange('description')({ target: { value: 'test run description' } });
+      instance.handleChange('serviceAccount')({ target: { value: 'service-account-name' } });
       await TestUtils.flushPromises();
 
       tree
@@ -1656,7 +1660,7 @@ describe('NewRun', () => {
         pipeline_spec: {
           parameters: MOCK_PIPELINE.parameters,
         },
-        service_account: '',
+        service_account: 'service-account-name',
         resource_references: [
           {
             key: {
