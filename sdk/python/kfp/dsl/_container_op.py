@@ -947,7 +947,7 @@ class ContainerOp(BaseOp):
             )
 
             # set `imagePullPolicy` property for `container` with `PipelineParam` 
-            op.container.set_pull_image_policy(pull_image_policy)
+            op.container.set_image_pull_policy(pull_image_policy)
 
             # add sidecar with parameterized image tag
             # sidecar follows the argo sidecar swagger spec
