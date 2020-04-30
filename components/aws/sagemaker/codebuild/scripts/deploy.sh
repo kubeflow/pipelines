@@ -3,16 +3,20 @@
 set -e
 
 REMOTE_REPOSITORY="amazon/aws-sagemaker-kfp-components"
-DRYRUN=true
+DRYRUN="true"
+FULL_VERSION_TAG=""
 
-while getopts ":d:" opt; do
+while getopts ":d:v:" opt; do
 	case ${opt} in
 		d)
 			if [[ "${OPTARG}" = "false" ]]; then
-				DRYRUN=false
+				DRYRUN="false"
 			else
-				DRYRUN=true
+				DRYRUN="true"
 			fi
+			;;
+		v)
+			FULL_VERSION_TAG="${OPTARG}"
 			;;
 	esac
 done
@@ -21,9 +25,16 @@ function docker_tag_exists() {
     curl --silent -f -lSL https://index.docker.io/v1/repositories/$1/tags/$2 > /dev/null 2> /dev/null
 }
 
+if [[ ! -z "${FULL_VERSION_TAG}" && ! "${FULL_VERSION_TAG}" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+	>&2 echo "Version tag does not match SEMVER style (X.Y.Z)"
+	exit 1
+fi
+
 # Check version does not already exist
 VERSION_LICENSE_FILE="THIRD-PARTY-LICENSES.txt"
-FULL_VERSION_TAG="$(cat ${VERSION_LICENSE_FILE} | head -n1 | grep -Po '(?<=version )\d.\d.\d')"
+if [[ -z "${FULL_VERSION_TAG}" ]]; then
+	FULL_VERSION_TAG="$(cat ${VERSION_LICENSE_FILE} | head -n1 | grep -Po '(?<=version )\d.\d.\d')"
+fi
 
 if [ -z "$FULL_VERSION_TAG" ]; then
   >&2 echo "Could not find version inside ${VERSION_LICENSE_FILE} file."
