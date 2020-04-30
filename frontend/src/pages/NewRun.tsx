@@ -970,6 +970,20 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       ? await RunUtils.getParametersFromRuntime(runtime) // cloned from run
       : originalRun.pipeline_spec.parameters || []; // cloned from recurring run
 
+    let serviceAccount = '';
+    if (embeddedPipelineSpec) {
+      try {
+        const workflow = JSON.parse(embeddedPipelineSpec);
+        serviceAccount = workflow!.spec.serviceAccountName || '';
+        if (serviceAccount === 'pipeline-runner') {
+          // pipeline-runner is sdk's default value, it shouldn't get copied
+          serviceAccount = '';
+        }
+      } catch (err) {
+        console.warn('Cannot extract service account from run embedded workflow: ', err);
+      }
+    }
+
     this.setStateSafe({
       isClone: true,
       parameters,
@@ -981,6 +995,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       usePipelineFromRunLabel,
       useWorkflowFromRun,
       workflowFromRun,
+      serviceAccount,
     });
 
     this._validate();
