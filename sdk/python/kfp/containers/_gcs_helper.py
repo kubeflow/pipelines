@@ -70,9 +70,9 @@ class GCSHelper(object):
       gcs_bucket (str) : gcs bucket name
     """
     from google.cloud import storage
-    from google.cloud.exceptions import Conflict
+    from google.cloud.exceptions import NotFound
     client = storage.Client()
     try:
+      client.get_bucket(gcs_bucket)
+    except NotFound:
       client.create_bucket(gcs_bucket)
-    except Conflict:
-      pass
