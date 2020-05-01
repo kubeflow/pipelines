@@ -63,7 +63,7 @@ def nullable_string_argument(value):
 
 
 def add_default_client_arguments(parser):
-    parser.add_argument('--region', type=str.strip, required=True, help='The region where the training job launches.')
+    parser.add_argument('--region', type=str, required=True, help='The region where the training job launches.')
     parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the Sagemaker service.')
 
 
@@ -890,3 +890,11 @@ def str_to_json_list(s):
       return json.loads(s)
   else:
       return []
+
+def yaml_or_json_str(str):
+  if str == "" or str == None:
+    return None
+  try:
+    return json.loads(str)
+  except:
+    return yaml.safe_load(str)
