@@ -122,7 +122,8 @@ def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(effect='NoS
 
   return _set_preemptible
 
-def use_gpu_nodepool(toleration: V1Toleration = V1Toleration(effect='NoSchedule', key='nvidia.com/gpu', operator='Equal', value='true')):
+def use_gpu_nodepool(toleration: V1Toleration = V1Toleration(
+    effect='NoSchedule', key='nvidia.com/gpu', operator='Equal', value='true')):
     """An operator that configures the GKE GPU nodes in a container op.
 
     Args:
