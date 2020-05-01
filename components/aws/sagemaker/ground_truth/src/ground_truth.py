@@ -46,7 +46,7 @@ def create_parser():
   parser.add_argument('--time_limit', type=int, required=True, help='The amount of time that a worker has to complete a task in seconds')
   parser.add_argument('--task_availibility', type=int, required=False, help='The length of time that a task remains available for labelling by human workers.', default=0)
   parser.add_argument('--max_concurrent_tasks', type=int, required=False, help='The maximum number of data objects that can be labeled by human workers at the same time.', default=0)
-  parser.add_argument('--workforce_task_price', type=_utils.str_to_float, required=False, help='The price that you pay for each task performed by a public worker in USD. Specify to the tenth fractions of a cent. Format as "0.000".', default=0.000)
+  parser.add_argument('--workforce_task_price', type=float, required=False, help='The price that you pay for each task performed by a public worker in USD. Specify to the tenth fractions of a cent. Format as "0.000".', default=0.000)
   parser.add_argument('--tags', type=_utils.yaml_or_json_str, required=False, help='An array of key-value pairs, to categorize AWS resources.', default={})
 
   return parser
