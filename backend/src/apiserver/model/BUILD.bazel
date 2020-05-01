@@ -16,12 +16,16 @@ go_library(
     ],
     importpath = "github.com/kubeflow/pipelines/backend/src/apiserver/model",
     visibility = ["//visibility:public"],
-    deps = ["//backend/src/apiserver/common:go_default_library"],
+    deps = [
+        "//backend/src/apiserver/common:go_default_library",
+        "//backend/src/common/util:go_default_library",
+    ],
 )
 
 go_test(
     name = "go_default_test",
     srcs = [
+        "job_test.go",
         "pipeline_version_test.go",
         "resource_reference_test.go",
     ],
@@ -32,7 +36,12 @@ go_test(
         "//backend/api:go_default_library",
         "//backend/src/apiserver/common:go_default_library",
         "//backend/src/apiserver/list:go_default_library",
+        "//backend/src/common/util:go_default_library",
+        "//backend/src/crd/pkg/apis/scheduledworkflow/v1beta1:go_default_library",
+        "@com_github_argoproj_argo//pkg/apis/workflow/v1alpha1:go_default_library",
         "@com_github_masterminds_squirrel//:go_default_library",
         "@com_github_stretchr_testify//assert:go_default_library",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:go_default_library",
+        "@io_k8s_kubernetes//pkg/apis/core:go_default_library",
     ],
 )

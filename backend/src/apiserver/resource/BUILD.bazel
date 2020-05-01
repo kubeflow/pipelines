@@ -57,6 +57,7 @@ go_test(
         "@io_bazel_rules_go//proto/wkt:timestamp_go_proto",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:go_default_library",
         "@io_k8s_apimachinery//pkg/types:go_default_library",
+        "@io_k8s_kubernetes//pkg/util/pointer:go_default_library",
         "@org_golang_google_grpc//codes:go_default_library",
     ],
 )

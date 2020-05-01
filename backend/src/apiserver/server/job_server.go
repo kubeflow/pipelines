@@ -18,13 +18,14 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
+	"github.com/robfig/cron"
+
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/pkg/errors"
-	"github.com/robfig/cron"
 )
 
 type JobServer struct {
@@ -139,6 +140,20 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 	return &empty.Empty{}, nil
 }
 
+func (s *JobServer) UpdateJob(ctx context.Context, request *api.UpdateJobRequest) (*empty.Empty, error) {
+	err := s.canAccessJob(ctx, request.Job.Id)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request.")
+	}
+
+	err = s.validateJobUpdate(request.Job)
+	if err != nil {
+		return nil, util.Wrap(err, "Validate job failed.")
+	}
+
+	return &empty.Empty{}, s.resourceManager.UpdateJob(request.Job)
+}
+
 func (s *JobServer) validateCreateJobRequest(request *api.CreateJobRequest) error {
 	job := request.Job
 
@@ -149,21 +164,47 @@ func (s *JobServer) validateCreateJobRequest(request *api.CreateJobRequest) erro
 	}
 
 	if job.MaxConcurrency > 10 || job.MaxConcurrency < 1 {
-		return util.NewInvalidInputError("The max concurrency of the job is out of range. Support 1-10. Received %v.", job.MaxConcurrency)
+		return util.NewInvalidInputError("supported max concurrency in range [1, 10], got %v.", job.MaxConcurrency)
 	}
-	if job.Trigger != nil && job.Trigger.GetCronSchedule() != nil {
-		if _, err := cron.Parse(job.Trigger.GetCronSchedule().Cron); err != nil {
+
+	return s.validateTrigger(job.Trigger)
+}
+
+func (s *JobServer) validateJobUpdate(job *api.Job) error {
+	if job.Name == "" {
+		return util.NewInvalidInputError("job name missing")
+	}
+
+	if job.GetPipelineSpec() == nil {
+		return util.NewInvalidInputError("pipeline spec missing")
+	}
+
+	if job.MaxConcurrency > 10 || job.MaxConcurrency < 1 {
+		return util.NewInvalidInputError("supported max concurrency in range [1, 10], got %v.", job.MaxConcurrency)
+	}
+
+	if job.Trigger == nil {
+		return util.NewInvalidInputError("trigger missing")
+	}
+	return s.validateTrigger(job.Trigger)
+}
+
+func (s *JobServer) validateTrigger(trigger *api.Trigger) error {
+	if trigger.GetCronSchedule() != nil {
+		if _, err := cron.Parse(trigger.GetCronSchedule().Cron); err != nil {
 			return util.NewInvalidInputError(
 				"Schedule cron is not a supported format(https://godoc.org/github.com/robfig/cron). Error: %v", err)
 		}
 	}
-	if job.Trigger != nil && job.Trigger.GetPeriodicSchedule() != nil {
-		periodicScheduleInterval := job.Trigger.GetPeriodicSchedule().IntervalSecond
+
+	if trigger.GetPeriodicSchedule() != nil {
+		periodicScheduleInterval := trigger.GetPeriodicSchedule().IntervalSecond
 		if periodicScheduleInterval < 1 {
 			return util.NewInvalidInputError(
 				"Found invalid period schedule interval %v. Set at interval to least 1 second.", periodicScheduleInterval)
 		}
 	}
+
 	return nil
 }
 

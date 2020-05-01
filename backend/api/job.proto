@@ -105,6 +105,15 @@ service JobService {
       delete: "/apis/v1beta1/jobs/{id}"
     };
   }
+
+  //Update a job. Only the following properties will be updated:
+  //name, description, service_account, pipeline_spec.parameters, max_concurrency, trigger, no_catchup
+  rpc UpdateJob(UpdateJobRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      put: "/apis/v1beta1/jobs/{job.id}"
+      body: "job"
+    };
+  }
 }
 
 message CreateJobRequest {
@@ -156,6 +165,11 @@ message EnableJobRequest {
 message DisableJobRequest {
   // The ID of the job to be disabled
   string id = 1;
+}
+
+message UpdateJobRequest {
+  // The job to be updated
+  Job job = 1;
 }
 
 // CronSchedule allow scheduling the job with unix-like cron

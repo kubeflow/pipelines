@@ -435,7 +435,7 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 }
 
 func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
-	opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
+	opts *list.Options) (jobs []*model.Job, _ int, nextPageToken string, err error) {
 	return r.jobStore.ListJobs(filterContext, opts)
 }
 
@@ -683,6 +683,56 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 	return nil
 }
 
+func (r *ResourceManager) UpdateJob(apiJob *api.Job) (err error) {
+	defer func() {
+		err = util.Wrapf(err, "update job %q failed", apiJob.Name)
+	}()
+
+	job, err := r.checkJobExist(apiJob.Id)
+	if err != nil {
+		return err
+	}
+
+	cli := r.getScheduledWorkflowClient(job.Namespace)
+	swf, err := cli.Get(job.Name, v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	w := util.Workflow{Workflow: &workflowapi.Workflow{
+		Spec: swf.Spec.Workflow.Spec,
+	}}
+
+	err = w.VerifyParameters(toParametersMap(apiJob.GetPipelineSpec().GetParameters()))
+	if err != nil {
+		return util.Wrap(err, "failed to verify new params")
+	}
+
+	swf.Spec.MaxConcurrency = &apiJob.MaxConcurrency
+	swf.Spec.NoCatchup = &apiJob.NoCatchup
+	swf.Spec.Trigger = *toCRDTrigger(apiJob.Trigger)
+	swf.Spec.Workflow.Parameters = toCRDParameter(apiJob.GetPipelineSpec().GetParameters())
+
+	if len(apiJob.GetServiceAccount()) > 0 {
+		swf.Spec.Workflow.Spec.ServiceAccountName = apiJob.GetServiceAccount()
+	}
+
+	job.DisplayName = apiJob.Name
+	job.Description = apiJob.Description
+
+	err = job.UpdateWorkflow(&util.ScheduledWorkflow{ScheduledWorkflow: swf})
+	if err != nil {
+		return err
+	}
+
+	_, err = cli.Update(swf)
+	if err != nil {
+		return err
+	}
+
+	return r.jobStore.UpdateJob(job)
+}
+
 func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error {
 	if _, ok := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
 		// Skip reporting if the workflow doesn't have the run id label
@@ -798,7 +848,17 @@ func AddWorkflowLabel(wfClient workflowclient.WorkflowInterface, name string, la
 }
 
 func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWorkflow) error {
-	return r.jobStore.UpdateJob(swf)
+	job, err := r.checkJobExist(string(swf.UID))
+	if err != nil {
+		return util.Wrapf(err, "failed to check job %q exists", swf.Name)
+	}
+
+	err = job.UpdateWorkflow(swf)
+	if err != nil {
+		return util.Wrapf(err, "failed to update job %q workflow", job.Name)
+	}
+
+	return r.jobStore.UpdateJob(job)
 }
 
 // checkJobExist The Kubernetes API doesn't support CRUD by UID. This method

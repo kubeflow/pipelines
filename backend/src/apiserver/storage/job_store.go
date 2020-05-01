@@ -38,7 +38,7 @@ type JobStoreInterface interface {
 	CreateJob(*model.Job) (*model.Job, error)
 	DeleteJob(id string) error
 	EnableJob(id string, enabled bool) error
-	UpdateJob(swf *util.ScheduledWorkflow) error
+	UpdateJob(*model.Job) error
 }
 
 type JobStore struct {
@@ -344,55 +344,52 @@ func (s *JobStore) EnableJob(id string, enabled bool) error {
 	return nil
 }
 
-func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
+func (s *JobStore) UpdateJob(j *model.Job) error {
 	now := s.time.Now().Unix()
-	parameters, err := swf.ParametersAsString()
-	if err != nil {
-		return err
-	}
 
-	sql, args, err := sq.
+	sqlStatement, args, err := sq.
 		Update("jobs").
 		SetMap(sq.Eq{
-			"Name":                           swf.Name,
-			"Namespace":                      swf.Namespace,
-			"Enabled":                        swf.Spec.Enabled,
-			"Conditions":                     swf.ConditionSummary(),
-			"MaxConcurrency":                 swf.MaxConcurrencyOr0(),
-			"NoCatchup":                      swf.NoCatchupOrFalse(),
-			"Parameters":                     parameters,
+			"Name":                           j.Name,
+			"DisplayName":                    j.DisplayName,
+			"Namespace":                      j.Namespace,
+			"ServiceAccount":                 j.ServiceAccount,
+			"Description":                    j.Description,
+			"MaxConcurrency":                 j.MaxConcurrency,
+			"NoCatchup":                      j.NoCatchup,
+			"Enabled":                        j.Enabled,
+			"Conditions":                     j.Conditions,
+			"CronScheduleStartTimeInSec":     PointerToNullInt64(j.CronScheduleStartTimeInSec),
+			"CronScheduleEndTimeInSec":       PointerToNullInt64(j.CronScheduleEndTimeInSec),
+			"Schedule":                       PointerToNullString(j.Cron),
+			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(j.PeriodicScheduleStartTimeInSec),
+			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(j.PeriodicScheduleEndTimeInSec),
+			"IntervalSecond":                 PointerToNullInt64(j.IntervalSecond),
 			"UpdatedAtInSec":                 now,
-			"CronScheduleStartTimeInSec":     PointerToNullInt64(swf.CronScheduleStartTimeInSecOrNull()),
-			"CronScheduleEndTimeInSec":       PointerToNullInt64(swf.CronScheduleEndTimeInSecOrNull()),
-			"Schedule":                       swf.CronOrEmpty(),
-			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(swf.PeriodicScheduleStartTimeInSecOrNull()),
-			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(swf.PeriodicScheduleEndTimeInSecOrNull()),
-			"IntervalSecond":                 swf.IntervalSecondOr0()}).
-		Where(sq.Eq{"UUID": string(swf.UID)}).
+			"PipelineId":                     j.PipelineId,
+			"PipelineName":                   j.PipelineName,
+			"PipelineSpecManifest":           j.PipelineSpecManifest,
+			"WorkflowSpecManifest":           j.WorkflowSpecManifest,
+			"Parameters":                     j.Parameters}).
+		Where(sq.Eq{"UUID": j.UUID, "UpdatedAtInSec": j.UpdatedAtInSec}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
-			"Error while creating query to update job with scheduled workflow: %v: %+v",
-			err, swf.ScheduledWorkflow)
+			"Error while creating query to update job: %q", j.Name)
 	}
-	r, err := s.db.Exec(sql, args...)
 
+	r, err := s.db.Exec(sqlStatement, args...)
 	if err != nil {
-		return util.NewInternalServerError(err,
-			"Error while updating job with scheduled workflow: %v: %+v",
-			err, swf.ScheduledWorkflow)
+		return util.NewInternalServerError(err, "Error while updating job: %q", j.Name)
 	}
 
 	rowsAffected, err := r.RowsAffected()
 	if err != nil {
 		return util.NewInternalServerError(err,
-			"Error getting affected rows while updating job with scheduled workflow: %v: %+v",
-			err, swf.ScheduledWorkflow)
+			"error getting affected rows while updating job: %q", j.Name)
 	}
 	if rowsAffected <= 0 {
-		return util.NewInvalidInputError(
-			"There is no job corresponding to this scheduled workflow: %v/%v/%v",
-			swf.UID, swf.Namespace, swf.Name)
+		return util.NewBadRequestError(err, "job not found or conflict: %q", j.Name)
 	}
 
 	return nil

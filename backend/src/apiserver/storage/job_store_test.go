@@ -16,18 +16,15 @@ package storage
 
 import (
 	"testing"
-	"time"
+
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc/codes"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 const (
@@ -680,26 +677,37 @@ func TestUpdateJob_Success(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
 
-	jobExpected := model.Job{
-		UUID:        "1",
-		DisplayName: "pp 1",
-		Name:        "pp1",
-		Namespace:   "n1",
+	job, err := jobStore.GetJob("1")
+	assert.Nil(t, err)
+
+	job = &model.Job{
+		UUID:           "1",
+		DisplayName:    "pp 1",
+		Name:           "MY_NAME",
+		Description:    "MY_DESCRIPTION",
+		Namespace:      "MY_NAMESPACE",
+		ServiceAccount: "MY_SERVICE_ACCOUNT",
+		Enabled:        false,
+		Conditions:     "Enabled",
+		MaxConcurrency: 200,
+		NoCatchup:      true,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
 			PipelineName: "p1",
+			Parameters:   "[{\"name\":\"PARAM1\",\"value\":\"NEW_VALUE1\"}]",
 		},
-		Conditions: "ready",
-		Enabled:    true,
 		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: util.Int64Pointer(10),
+				CronScheduleEndTimeInSec:   util.Int64Pointer(20),
+				Cron:                       util.StringPointer("MY_CRON"),
+			},
 			PeriodicSchedule: model.PeriodicSchedule{
-				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
-				PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
-				IntervalSecond:                 util.Int64Pointer(3),
+				PeriodicScheduleStartTimeInSec: util.Int64Pointer(30),
+				PeriodicScheduleEndTimeInSec:   util.Int64Pointer(40),
+				IntervalSecond:                 util.Int64Pointer(50),
 			},
 		},
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
 		ResourceReferences: []*model.ResourceReference{
 			{
 				ResourceUUID: "1", ResourceType: common.Job,
@@ -707,61 +715,19 @@ func TestUpdateJob_Success(t *testing.T) {
 				ReferenceType: common.Experiment, Relationship: common.Owner,
 			},
 		},
+		UpdatedAtInSec: job.UpdatedAtInSec,
 	}
 
-	job, err := jobStore.GetJob("1")
-	assert.Nil(t, err)
-	assert.Equal(t, jobExpected, *job)
-
-	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
-			UID:       "1",
-		},
-		Spec: swfapi.ScheduledWorkflowSpec{
-			Enabled:        false,
-			MaxConcurrency: util.Int64Pointer(200),
-			NoCatchup:      util.BoolPointer(true),
-			Workflow: &swfapi.WorkflowResource{
-				Parameters: []swfapi.Parameter{
-					{Name: "PARAM1", Value: "NEW_VALUE1"},
-				},
-			},
-			Trigger: swfapi.Trigger{
-				CronSchedule: &swfapi.CronSchedule{
-					StartTime: util.MetaV1TimePointer(metav1.NewTime(time.Unix(10, 0).UTC())),
-					EndTime:   util.MetaV1TimePointer(metav1.NewTime(time.Unix(20, 0).UTC())),
-					Cron:      "MY_CRON",
-				},
-				PeriodicSchedule: &swfapi.PeriodicSchedule{
-					StartTime:      util.MetaV1TimePointer(metav1.NewTime(time.Unix(30, 0).UTC())),
-					EndTime:        util.MetaV1TimePointer(metav1.NewTime(time.Unix(40, 0).UTC())),
-					IntervalSecond: 50,
-				},
-			},
-		},
-		Status: swfapi.ScheduledWorkflowStatus{
-			Conditions: []swfapi.ScheduledWorkflowCondition{{
-				Type:               swfapi.ScheduledWorkflowEnabled,
-				Status:             core.ConditionTrue,
-				LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
-				LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
-				Reason:             string(swfapi.ScheduledWorkflowEnabled),
-				Message:            "The schedule is enabled.",
-			},
-			},
-		},
-	})
-
-	err = jobStore.UpdateJob(swf)
+	err = jobStore.UpdateJob(job)
 	assert.Nil(t, err)
 
-	jobExpected = model.Job{
+	jobExpected := model.Job{
 		UUID:           "1",
 		DisplayName:    "pp 1",
 		Name:           "MY_NAME",
 		Namespace:      "MY_NAMESPACE",
+		ServiceAccount: "MY_SERVICE_ACCOUNT",
+		Description:    "MY_DESCRIPTION",
 		Enabled:        false,
 		Conditions:     "Enabled",
 		CreatedAtInSec: 1,
@@ -799,7 +765,7 @@ func TestUpdateJob_Success(t *testing.T) {
 	assert.Equal(t, jobExpected, *job)
 }
 
-func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
+func TestUpdateJob_SmallChange(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
 
@@ -836,51 +802,16 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, jobExpected, *job)
 
-	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
-			UID:       "1",
-		},
-	})
+	job.Name = "MY_NAME"
+	job.Namespace = "MY_NAMESPACE"
+	job.Enabled = false
 
-	err = jobStore.UpdateJob(swf)
+	err = jobStore.UpdateJob(job)
 	assert.Nil(t, err)
 
-	jobExpected = model.Job{
-		UUID:           "1",
-		DisplayName:    "pp 1",
-		Name:           "MY_NAME",
-		Namespace:      "MY_NAMESPACE",
-		Enabled:        false,
-		Conditions:     "NO_STATUS",
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
-			PipelineName: "p1",
-			Parameters:   "[]",
-		},
-		Trigger: model.Trigger{
-			CronSchedule: model.CronSchedule{
-				CronScheduleStartTimeInSec: nil,
-				CronScheduleEndTimeInSec:   nil,
-				Cron:                       util.StringPointer(""),
-			},
-			PeriodicSchedule: model.PeriodicSchedule{
-				PeriodicScheduleStartTimeInSec: nil,
-				PeriodicScheduleEndTimeInSec:   nil,
-				IntervalSecond:                 util.Int64Pointer(0),
-			},
-		},
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: common.Experiment, Relationship: common.Owner,
-			},
-		},
-	}
+	jobExpected.Name = "MY_NAME"
+	jobExpected.Namespace = "MY_NAMESPACE"
+	jobExpected.Enabled = false
 
 	job, err = jobStore.GetJob("1")
 	assert.Nil(t, err)
@@ -891,32 +822,28 @@ func TestUpdateJob_RecordNotFound(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
 
-	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
-			UID:       "UNKNOWN_UID",
-		},
-	})
+	job := &model.Job{
+		UUID:      "UNKNOWN_UID",
+		Name:      "MY_NAME",
+		Namespace: "MY_NAMESPACE",
+	}
 
-	err := jobStore.UpdateJob(swf)
+	err := jobStore.UpdateJob(job)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "There is no job")
-	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "job not found")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.Aborted)
 }
 
 func TestUpdateJob_InternalError(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	db.Close()
-	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
-			UID:       "UNKNOWN_UID",
-		},
-	})
+	job := &model.Job{
+		UUID:      "UNKNOWN_UID",
+		Name:      "MY_NAME",
+		Namespace: "MY_NAMESPACE",
+	}
 
-	err := jobStore.UpdateJob(swf)
+	err := jobStore.UpdateJob(job)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "Internal Server Error")
 	assert.Contains(t, err.(*util.UserError).Error(), "database is closed")

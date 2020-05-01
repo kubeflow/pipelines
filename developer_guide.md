@@ -85,12 +85,13 @@ To create predefine visualizations please check the [developer guide](https://gi
 ## Unit test
 
 ### API server
-Run unit test for the API server
 ```bash
 cd backend/src/ && go test ./...
 ```
 ### Frontend
-TODO: add instruction
+```bash
+cd frontend/ && npm run test [optional/path/to/tests]
+```
 
 ### DSL
 ```bash
@@ -112,6 +113,7 @@ kubectl run -it --rm --image=gcr.io/ml-pipeline/mysql:5.6 --restart=Never mysql-
 mysql> use mlpipeline;
 mysql> select * from jobs;
 ```
+note: you may need to replace `-h mysql` with `-h <mysql service ip>`, if it does not resolve mysql.
 
 **Q: How to inspect object store directly?**
 

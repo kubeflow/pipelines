@@ -212,6 +212,35 @@ func (a *Client) ListJobs(params *ListJobsParams, authInfo runtime.ClientAuthInf
 
 }
 
+/*
+UpdateJob updates a job
+*/
+func (a *Client) UpdateJob(params *UpdateJobParams, authInfo runtime.ClientAuthInfoWriter) (*UpdateJobOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewUpdateJobParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdateJob",
+		Method:             "PUT",
+		PathPattern:        "/apis/v1beta1/jobs/{job.id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UpdateJobReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdateJobOK), nil
+
+}
+
 // SetTransport changes the transport on the client
 func (a *Client) SetTransport(transport runtime.ClientTransport) {
 	a.transport = transport

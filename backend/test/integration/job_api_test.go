@@ -10,6 +10,11 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/glog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"google.golang.org/grpc"
+	"k8s.io/apimachinery/pkg/util/yaml"
+
 	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
 	jobparams "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
@@ -19,10 +24,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
-	"google.golang.org/grpc"
-	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 const (
@@ -234,6 +235,38 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, 1, totalSize)
 	argParamsRun := runs[0]
 	s.checkArgParamsRun(t, argParamsRun, argParamsExperiment.ID, argParamsExperiment.Name, argParamsJob.ID, argParamsJob.Name)
+
+	/* ---------------- Update arg params job ------------------- */
+	jobUpdate := &job_model.APIJob{
+		ID:             argParamsJob.ID,
+		Description:    "NEW_DESCRIPTION",
+		MaxConcurrency: 7,
+		Name:           "NEW_NAME",
+		NoCatchup:      true,
+		PipelineSpec: &job_model.APIPipelineSpec{
+			Parameters: []*job_model.APIParameter{
+				{Name: "param1", Value: ""},
+				{Name: "param2", Value: "NEW VALUE"},
+			},
+		},
+		ServiceAccount: "NEW_SERVICE_ACCOUNT",
+		Trigger: &job_model.APITrigger{
+			CronSchedule: &job_model.APICronSchedule{
+				Cron:    "1 1 1 ? * *",
+				EndTime: strfmt.DateTime(time.Date(2020, 04, 01, 10, 11, 12, 000, time.UTC)),
+			},
+		},
+	}
+
+	err = s.jobClient.Update(&jobparams.UpdateJobParams{
+		Body:  jobUpdate,
+		JobID: jobUpdate.ID,
+	})
+	assert.Nil(t, err)
+
+	updatedJob, err := s.jobClient.Get(&jobparams.GetJobParams{ID: argParamsJob.ID})
+	assert.Nil(t, err)
+	s.checkUpdatedJob(t, jobUpdate, argParamsJob, updatedJob)
 }
 
 func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
@@ -414,6 +447,28 @@ func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob,
 	}
 
 	assert.Equal(t, expectedJob, job)
+}
+
+func (s *JobApiTestSuite) checkUpdatedJob(t *testing.T, jobUpdate *job_model.APIJob, originalJob *job_model.APIJob, updatedJob *job_model.APIJob) {
+	expectedUpdatedJob := originalJob
+
+	expectedUpdatedJob.Description = jobUpdate.Description
+	expectedUpdatedJob.MaxConcurrency = 7
+	expectedUpdatedJob.Name = jobUpdate.Name
+	expectedUpdatedJob.NoCatchup = jobUpdate.NoCatchup
+	expectedUpdatedJob.PipelineSpec.Parameters = jobUpdate.PipelineSpec.Parameters
+	expectedUpdatedJob.ServiceAccount = jobUpdate.ServiceAccount
+	expectedUpdatedJob.Trigger = jobUpdate.Trigger
+	expectedUpdatedJob.PipelineSpec.WorkflowManifest = originalJob.PipelineSpec.WorkflowManifest
+
+	expectedUpdatedJob.CreatedAt = updatedJob.CreatedAt
+	expectedUpdatedJob.UpdatedAt = updatedJob.UpdatedAt
+	expectedUpdatedJob.Status = updatedJob.Status
+	expectedUpdatedJob.Enabled = updatedJob.Enabled
+
+	assert.Equal(t, expectedUpdatedJob, updatedJob)
+	assert.True(t, time.Time(expectedUpdatedJob.UpdatedAt).Before(time.Now()))
+	assert.True(t, time.Time(expectedUpdatedJob.UpdatedAt).After(time.Now().Add(-2*time.Minute)))
 }
 
 func (s *JobApiTestSuite) checkHelloWorldRun(t *testing.T, run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) {

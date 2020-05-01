@@ -107,3 +107,12 @@ func (c *JobClientFake) ListAll(params *jobparams.ListJobsParams,
 	maxResultSize int) ([]*jobmodel.APIJob, error) {
 	return listAllForJob(c, params, maxResultSize)
 }
+
+func (c *JobClientFake) Update(params *jobparams.UpdateJobParams) error {
+	switch params.Body.ID {
+	case JobForClientErrorTest:
+		return fmt.Errorf(ClientErrorString)
+	default:
+		return nil
+	}
+}

@@ -212,7 +212,7 @@ func TestValidateApiJob_MaxConcurrencyOutOfRange(t *testing.T) {
 	}
 	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "max concurrency of the job is out of range")
+	assert.Contains(t, err.Error(), "supported max concurrency in range")
 }
 
 func TestValidateApiJob_NegativeIntervalSecond(t *testing.T) {
@@ -237,7 +237,7 @@ func TestValidateApiJob_NegativeIntervalSecond(t *testing.T) {
 	}
 	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "The max concurrency of the job is out of range")
+	assert.Contains(t, err.Error(), "supported max concurrency in range")
 }
 
 func TestCreateJob(t *testing.T) {
@@ -511,4 +511,59 @@ func TestDisableJob_Multiuser(t *testing.T) {
 
 	_, err = server.DisableJob(ctx, &api.DisableJobRequest{Id: job.Id})
 	assert.Nil(t, err)
+}
+
+func TestUpdateJob_Success(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewJobServer(manager)
+
+	job, err := server.CreateJob(context.Background(), &api.CreateJobRequest{Job: commonApiJob})
+	assert.Nil(t, err)
+
+	_, err = server.UpdateJob(nil, &api.UpdateJobRequest{Job: job})
+	assert.Nil(t, err)
+}
+
+func TestUpdateJob_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewJobServer(manager)
+
+	_, err := server.UpdateJob(context.Background(), &api.UpdateJobRequest{Job: &api.Job{Id: "unknown-job"}})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to authorize")
+}
+
+func TestUpdateJob_InvalidName(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewJobServer(manager)
+
+	job, err := server.CreateJob(context.Background(), &api.CreateJobRequest{Job: commonApiJob})
+	assert.Nil(t, err)
+
+	job.Name = ""
+
+	_, err = server.UpdateJob(nil, &api.UpdateJobRequest{Job: job})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "job name missing")
+}
+
+func TestUpdateJob_InvalidTrigger(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewJobServer(manager)
+
+	job, err := server.CreateJob(context.Background(), &api.CreateJobRequest{Job: commonApiJob})
+	assert.Nil(t, err)
+
+	job.Trigger = nil
+
+	_, err = server.UpdateJob(nil, &api.UpdateJobRequest{Job: job})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "trigger missing")
 }

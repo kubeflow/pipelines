@@ -14,7 +14,11 @@
 
 package model
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+)
 
 type Job struct {
 	UUID               string `gorm:"column:UUID; not null; primary_key"`
@@ -96,11 +100,41 @@ var jobAPIToModelFieldMap = map[string]string{
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Job.
-func (k *Job) APIToModelFieldMap() map[string]string {
+func (j *Job) APIToModelFieldMap() map[string]string {
 	return jobAPIToModelFieldMap
 }
 
 // GetModelName returns table name used as sort field prefix
 func (j *Job) GetModelName() string {
 	return "jobs"
+}
+
+// UpdateWorkflow updates the properties of the job to sync up to those of the scheduled workflow
+func (j *Job) UpdateWorkflow(swf *util.ScheduledWorkflow) error {
+	parameters, err := swf.ParametersAsString()
+	if err != nil {
+		return util.Wrapf(err, "failed to convert parameters: %+v", parameters)
+	}
+
+	intervalSeconds := swf.IntervalSecondOr0()
+	cronSchedule := swf.CronOrEmpty()
+
+	j.Name = swf.Name
+	j.Namespace = swf.Namespace
+	j.Enabled = swf.Spec.Enabled
+	j.Conditions = swf.ConditionSummary()
+	j.MaxConcurrency = swf.MaxConcurrencyOr0()
+	j.NoCatchup = swf.NoCatchupOrFalse()
+	j.Parameters = parameters
+	j.CronScheduleStartTimeInSec = swf.CronScheduleStartTimeInSecOrNull()
+	j.CronScheduleEndTimeInSec = swf.CronScheduleEndTimeInSecOrNull()
+	j.Cron = &cronSchedule
+	j.PeriodicScheduleStartTimeInSec = swf.PeriodicScheduleStartTimeInSecOrNull()
+	j.PeriodicScheduleEndTimeInSec = swf.PeriodicScheduleEndTimeInSecOrNull()
+	j.IntervalSecond = &intervalSeconds
+
+	if swf.Spec.Workflow != nil {
+		j.ServiceAccount = swf.Spec.Workflow.Spec.ServiceAccountName
+	}
+	return nil
 }

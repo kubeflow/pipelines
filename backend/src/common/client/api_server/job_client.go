@@ -21,15 +21,14 @@ type JobInterface interface {
 	Disable(params *params.DisableJobParams) error
 	List(params *params.ListJobsParams) ([]*model.APIJob, int, string, error)
 	ListAll(params *params.ListJobsParams, maxResultSize int) ([]*model.APIJob, error)
+	Update(params *params.UpdateJobParams) error
 }
 
 type JobClient struct {
 	apiClient *apiclient.Job
 }
 
-func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (
-	*JobClient, error) {
-
+func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (*JobClient, error) {
 	runtime, err := NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
 		return nil, err
@@ -212,4 +211,27 @@ func listAllForJob(client JobInterface, parameters *params.ListJobsParams,
 	}
 
 	return allResults, nil
+}
+
+func (c *JobClient) Update(parameters *params.UpdateJobParams) error {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.JobService.UpdateJob(parameters, PassThroughAuth)
+	if err != nil {
+		if defaultError, ok := err.(*params.UpdateJobDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to update job. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
+			fmt.Sprintf("Failed to update job '%v'", parameters.Body.Name))
+	}
+
+	return nil
 }

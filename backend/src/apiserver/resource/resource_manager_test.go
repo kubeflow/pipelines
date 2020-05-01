@@ -21,6 +21,9 @@ import (
 	"time"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	timestamp2 "github.com/golang/protobuf/ptypes/timestamp"
+	"k8s.io/kubernetes/pkg/util/pointer"
+
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -28,6 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -109,9 +113,14 @@ func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceM
 func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job) {
 	store, manager, exp := initWithExperiment(t)
 	job := &api.Job{
-		Name:         "j1",
-		Enabled:      true,
-		PipelineSpec: &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()},
+		Name:    "j1",
+		Enabled: true,
+		PipelineSpec: &api.PipelineSpec{
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "param value"},
+			},
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+		},
 		ResourceReferences: []*api.ResourceReference{
 			{
 				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
@@ -918,6 +927,7 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 		UpdatedAtInSec: 2,
 		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
+			Parameters:           `[{"name":"param1","value":"param value"}]`,
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 		},
 		ResourceReferences: []*model.ResourceReference{
@@ -1179,6 +1189,7 @@ func TestEnableJob(t *testing.T) {
 		UpdatedAtInSec: 3,
 		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
+			Parameters:           `[{"name":"param1","value":"param value"}]`,
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 		},
 		ResourceReferences: []*model.ResourceReference{
@@ -1260,6 +1271,115 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 	store.DB().Close()
 	err := manager.DeleteJob(job.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "database is closed")
+}
+
+func TestUpdateJob(t *testing.T) {
+	_, manager, existingJob := initWithJob(t)
+
+	apiJob := &api.Job{
+		Id:   existingJob.UUID,
+		Name: existingJob.Name,
+		PipelineSpec: &api.PipelineSpec{
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "new value"},
+			},
+		},
+		MaxConcurrency: 3,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{
+				CronSchedule: &api.CronSchedule{
+					StartTime: &timestamp2.Timestamp{Seconds: 100000},
+					EndTime:   nil,
+					Cron:      "0 0 0 ? * 1,2,3",
+				},
+			},
+		},
+		Enabled:   !existingJob.Enabled,
+		NoCatchup: !existingJob.NoCatchup,
+	}
+
+	err := manager.UpdateJob(apiJob)
+	assert.Nil(t, err)
+
+	expectedJob := existingJob
+	expectedJob.PipelineSpec.Parameters = `[{"name":"param1","value":"new value"}]`
+	expectedJob.MaxConcurrency = 3
+	expectedJob.Trigger = model.Trigger{
+		CronSchedule: model.CronSchedule{
+			CronScheduleStartTimeInSec: &apiJob.GetTrigger().GetCronSchedule().StartTime.Seconds,
+			CronScheduleEndTimeInSec:   nil,
+			Cron:                       &apiJob.GetTrigger().GetCronSchedule().Cron,
+		},
+		PeriodicSchedule: model.PeriodicSchedule{
+			IntervalSecond: pointer.Int64Ptr(0),
+		},
+	}
+
+	expectedJob.UpdatedAtInSec = 3
+	expectedJob.NoCatchup = !existingJob.NoCatchup
+
+	updatedJob, err := manager.GetJob(existingJob.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, updatedJob)
+}
+
+func TestUpdateJob_WrongParams(t *testing.T) {
+	_, manager, existingJob := initWithJob(t)
+
+	apiJob := &api.Job{
+		Id:   existingJob.UUID,
+		Name: existingJob.Name,
+		PipelineSpec: &api.PipelineSpec{
+			Parameters: []*api.Parameter{
+				{Name: "wrong_param", Value: "new value"},
+			},
+		},
+		MaxConcurrency: 3,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{
+				CronSchedule: &api.CronSchedule{
+					StartTime: &timestamp2.Timestamp{Seconds: 100000},
+					EndTime:   nil,
+					Cron:      "0 0 0 ? * 1,2,3",
+				},
+			},
+		},
+	}
+
+	err := manager.UpdateJob(apiJob)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unrecognized input parameter: wrong_param")
+}
+
+func TestUpdateJob_JobNotExist(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	err := manager.UpdateJob(&api.Job{Id: "1", Name: "new-name"})
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Job 1 not found")
+}
+
+func TestUpdateJob_NotFoundError(t *testing.T) {
+	store, manager, _ := initWithJob(t)
+	defer store.Close()
+
+	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
+	err := manager.UpdateJob(&api.Job{Id: "1", Name: "new-name"})
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Check job exist failed: ResourceNotFoundError")
+}
+
+func TestUpdateJob_DbFailure(t *testing.T) {
+	store, manager, _ := initWithJob(t)
+	defer store.Close()
+
+	store.DB().Close()
+	err := manager.UpdateJob(&api.Job{Id: "1", Name: "new-name"})
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "database is closed")
 }
 

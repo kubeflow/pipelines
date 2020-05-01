@@ -16,6 +16,8 @@ go_library(
         "job_service_client.go",
         "list_jobs_parameters.go",
         "list_jobs_responses.go",
+        "update_job_parameters.go",
+        "update_job_responses.go",
     ],
     importpath = "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service",
     visibility = ["//visibility:public"],
