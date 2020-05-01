@@ -119,7 +119,7 @@ class MultiuserTest(object):
       print('Get run statu')
       response = self._client.get_run(run_id)
       print(response)
-      response = self._client.wait_for_run_completion(run_id, 300)
+      response = self._client.wait_for_run_completion(run_id, 600)
       succ = (response.run.status.lower() == 'succeeded')
       utils.add_junit_test(self._test_cases, 'get run status', succ)
       if not succ:
