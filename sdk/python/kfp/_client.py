@@ -688,6 +688,18 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return response
 
+  def upload_pipeline_version(self, pipeline_package_path, version_name, pipeline_id):
+    """Uploads a version of the pipeline to the Kubeflow pipeline cluster.
+    Args:
+      pipeline_package_path: Local path to the pipeline package.
+      version_name: Version name of the pipeline.
+      pipeline_id: The string ID of the pipeline.
+    Returns:
+      A response object including details of a pipeline.
+    """
+    response = self._upload_api.upload_pipeline_version(pipeline_package_path, name=version_name, pipelineid=pipeline_id)
+    return response
+
   def get_pipeline(self, pipeline_id):
     """Get pipeline details.
     Args:
