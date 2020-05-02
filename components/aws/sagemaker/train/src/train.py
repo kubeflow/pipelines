@@ -12,8 +12,6 @@
 
 import argparse
 import logging
-import json
-import yaml
 
 from common import _utils
 
