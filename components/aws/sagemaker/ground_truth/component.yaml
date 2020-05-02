@@ -120,7 +120,7 @@ outputs:
 implementation:
   container:
     image: redbackthomson/aws-kubeflow-sagemaker:20200501-1
-    command: ['python']
+    command: ['python3']
     args: [
       ground_truth.py,
       --region, {inputValue: region},
