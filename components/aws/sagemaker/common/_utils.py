@@ -154,7 +154,6 @@ def create_training_job_request(args):
     request['ResourceConfig']['InstanceType'] = args['instance_type']
     request['ResourceConfig']['VolumeKmsKeyId'] = args['resource_encryption_key']
     request['EnableNetworkIsolation'] = args['network_isolation']
-    print(bool(args))
     request['EnableInterContainerTrafficEncryption'] = args['traffic_encryption']
 
     ### Update InstanceCount, VolumeSizeInGB, and MaxRuntimeInSeconds if input is non-empty and > 0, otherwise use default values
@@ -179,7 +178,6 @@ def create_training_job_request(args):
 def create_training_job(client, args):
   """Create a Sagemaker training job."""
   request = create_training_job_request(args)
-  print(request)
   try:
       client.create_training_job(**request)
       training_job_name = request['TrainingJobName']
