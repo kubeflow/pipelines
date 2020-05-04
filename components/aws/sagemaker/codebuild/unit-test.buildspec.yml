@@ -1,0 +1,18 @@
+version: 0.2      
+phases:
+  build:
+    commands:
+      - cd components/aws
+      - docker build . -f ./sagemaker/tests/unit_tests/Dockerfile -t amazon/unit-test-image --quiet
+
+      # Run the container and copy the results to /tmp
+      # Passes all host environment variables through to the container
+      - docker run --name unit-test-container $(env | cut -f1 -d= | sed 's/^/-e /') amazon/unit-test-image
+      - docker cp unit-test-container:/app/tests/unit_tests/unit_tests.log /tmp/results.xml
+      - docker rm -f unit-test-container
+
+reports:
+  UnitTestReport:
+    files:
+      - "results.xml"
+    base-directory: "/tmp"
