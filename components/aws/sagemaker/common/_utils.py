@@ -13,6 +13,7 @@
 import os
 import argparse
 from time import gmtime, strftime
+from distutils.util import strtobool
 import time
 import string
 import random
@@ -71,7 +72,7 @@ def get_component_version():
     """Get component version from the first line of License file"""
     component_version = 'NULL'
 
-    with open('/THIRD-PARTY-LICENSES.txt', 'r') as license_file:
+    with open('THIRD-PARTY-LICENSES.txt', 'r') as license_file:
         version_match = re.search('Amazon SageMaker Components for Kubeflow Pipelines; version (([0-9]+[.])+[0-9]+)',
                         license_file.readline())
         if version_match is not None:
@@ -153,6 +154,7 @@ def create_training_job_request(args):
     request['ResourceConfig']['InstanceType'] = args['instance_type']
     request['ResourceConfig']['VolumeKmsKeyId'] = args['resource_encryption_key']
     request['EnableNetworkIsolation'] = args['network_isolation']
+    print(bool(args))
     request['EnableInterContainerTrafficEncryption'] = args['traffic_encryption']
 
     ### Update InstanceCount, VolumeSizeInGB, and MaxRuntimeInSeconds if input is non-empty and > 0, otherwise use default values
@@ -177,6 +179,7 @@ def create_training_job_request(args):
 def create_training_job(client, args):
   """Create a Sagemaker training job."""
   request = create_training_job_request(args)
+  print(request)
   try:
       client.create_training_job(**request)
       training_job_name = request['TrainingJobName']
@@ -858,39 +861,6 @@ def enable_spot_instance_support(training_job_config, args):
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):
   return ''.join(random.choice(chars) for _ in range(size))
 
-
-def str_to_bool(s):
-  if s.lower().strip() == 'true':
-    return True
-  elif s.lower().strip() == 'false':
-    return False
-  else:
-    raise argparse.ArgumentTypeError('"True" or "False" expected.')
-
-def str_to_int(s):
-  if s:
-    return int(s)
-  else:
-    return 0
-
-def str_to_float(s):
-  if s:
-    return float(s)
-  else:
-    return 0.0
-
-def str_to_json_dict(s):
-  if s != '':
-      return json.loads(s)
-  else:
-      return {}
-
-def str_to_json_list(s):
-  if s != '':
-      return json.loads(s)
-  else:
-      return []
-
 def yaml_or_json_str(str):
   if str == "" or str == None:
     return None
@@ -898,3 +868,8 @@ def yaml_or_json_str(str):
     return json.loads(str)
   except:
     return yaml.safe_load(str)
+
+def str_to_bool(str):
+    # This distutils function returns an integer representation of the boolean
+    # rather than a True/False value. This simply hard casts it.
+    return bool(strtobool(str))
