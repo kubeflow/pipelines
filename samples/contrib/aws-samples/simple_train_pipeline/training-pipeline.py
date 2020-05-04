@@ -20,7 +20,6 @@ channelObj = {
             'S3DataDistributionType': 'FullyReplicated'
         }
     },
-    'ContentType': '',
     'CompressionType': 'None',
     'RecordWrapperType': 'None',
     'InputMode': 'File'
