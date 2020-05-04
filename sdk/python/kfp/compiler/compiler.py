@@ -704,7 +704,6 @@ class Compiler(object):
         raise ValueError(
                   'Invalid imagePullPolicy. Must be one of `Always`, `Never`, `IfNotPresent`.'
               )
-
     return workflow
 
   def _validate_exit_handler(self, pipeline):
