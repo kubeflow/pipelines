@@ -78,8 +78,10 @@ function deploy-kubeflow-cli-env {
 
   # If using Cloud IAP for authentication, create environment variables
   # from the OAuth client ID and secret that you obtained earlier:
+  set +x
   export CLIENT_ID=${CLIENT_ID:-$(gsutil cat gs://ml-pipeline-test-keys/oauth_client_id)}
   export CLIENT_SECRET=${CLIENT_SECRET:-$(gsutil cat gs://ml-pipeline-test-keys/oauth_client_secret)}
+  set -x
 
   # Set KF_NAME to the name of your Kubeflow deployment. You also use this
   # value as directory name when creating your configuration directory.
@@ -119,6 +121,7 @@ pushd $KF_DIR
 kfctl build -V -f ${CONFIG_URI}
 
 # Deploy test images
+# TODO: Patch artifact fecter and visualization server deployed by metacontroller.
 pushd kustomize/api-service/base
 kustomize edit set image gcr.io/ml-pipeline/api-server=${GCR_IMAGE_BASE_DIR}/api-server:${GCR_IMAGE_TAG}
 popd

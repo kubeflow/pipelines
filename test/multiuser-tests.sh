@@ -113,6 +113,7 @@ fi
 # Create test profiles in prepare for test scenarios
 kubectl create -f ${DIR}/multi-user-test/profile.yaml
 
+set +x
 KFP_HOST="https://${TEST_CLUSTER}.endpoints.${PROJECT}.cloud.goog/pipeline"
 CLIENT_ID=${CLIENT_ID:-$(gsutil cat gs://ml-pipeline-test-keys/oauth_client_id)}
 OTHER_CLIENT_ID=${OTHER_CLIENT_ID:-$(gsutil cat gs://ml-pipeline-test-keys/other_client_id)}
@@ -142,6 +143,8 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 --serviceaccount test-runner \
 -o name
 `
+set -x
+
 echo "argo workflow submitted successfully"
 source "${DIR}/check-argo-status.sh"
 echo "test workflow completed"
