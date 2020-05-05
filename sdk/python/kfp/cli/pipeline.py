@@ -59,8 +59,11 @@ def upload_version(ctx, package_file, pipeline_version, pipeline_id):
     """Upload a version of the KFP pipeline"""
     client = ctx.obj["client"]
 
-    version = client.pipeline_uploads.upload_pipeline_version(package_file, name=pipeline_version, pipelineid=pipeline_id)
-    logging.info("The {} version of the pipeline {} has been submitted\n".format(pipeline_version, pipeline_id))
+    version = client.pipeline_uploads.upload_pipeline_version(
+        package_file, name=pipeline_version, pipelineid=pipeline_id)
+    logging.info(
+        "The {} version of the pipeline {} has been submitted\n".format(
+            pipeline_version, pipeline_id))
     _display_pipeline_version(version)
 
 
