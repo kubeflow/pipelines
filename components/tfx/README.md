@@ -16,7 +16,7 @@ With URI-based I/O, only the URIs pointing to the data are passed between compon
 ### Google Cloud Dataflow
 
 The TFX components that use URI-based I/O allow specifying the `beam_pipeline_args` parameter that enables setting the runner to `DataflowRunner` which executes the components on Google Cloud Dataflow.
-See the [sample TFX on Dataflow pipeline](_samples/TFX_DataFlow_pipeline.ipynb).
+See the [sample TFX on Dataflow pipeline](_samples/TFX_Dataflow_pipeline.ipynb).
 
 
 Aspects and limitations
