@@ -77,7 +77,7 @@ echo
 read -p "Continue? (Y/n) " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    exit 0
+  exit 0
 fi
 
 echo "Creating Google service accounts..."
