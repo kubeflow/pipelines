@@ -48,7 +48,7 @@ def Evaluator(
         artifact_path = arguments.get(name + '_uri', None) or arguments.get(name + '_path', None)
         if artifact_path:
             artifact = channel_parameter.type()
-            artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with slash
+            artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
             if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
                 # Recovering splits
                 subdirs = tensorflow.io.gfile.listdir(artifact_path)
@@ -59,8 +59,8 @@ def Evaluator(
 
     component_class_instance = component_class(**component_class_args)
 
-    input_dict = {name: channel.get() for name, channel in component_class_instance.inputs.get_all().items()}
-    output_dict = {name: channel.get() for name, channel in component_class_instance.outputs.get_all().items()}
+    input_dict = channel_utils.unwrap_channel_dict(component_class_instance.inputs.get_all())
+    output_dict = channel_utils.unwrap_channel_dict(component_class_instance.outputs.get_all())
     exec_properties = component_class_instance.exec_properties
 
     # Generating paths for output artifacts

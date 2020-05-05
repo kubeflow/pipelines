@@ -71,8 +71,8 @@ implementation:
 
           component_class_instance = component_class(**component_class_args)
 
-          input_dict = {name: channel.get() for name, channel in component_class_instance.inputs.get_all().items()}
-          output_dict = {name: channel.get() for name, channel in component_class_instance.outputs.get_all().items()}
+          input_dict = channel_utils.unwrap_channel_dict(component_class_instance.inputs.get_all())
+          output_dict = channel_utils.unwrap_channel_dict(component_class_instance.outputs.get_all())
           exec_properties = component_class_instance.exec_properties
 
           # Generating paths for output artifacts
