@@ -44,7 +44,7 @@ def upload(ctx, pipeline_name, package_file):
 
 @pipeline.command()
 @click.option(
-    "--id",
+    "-p",
     "--pipeline-id",
     help="ID of the pipeline"
 )
