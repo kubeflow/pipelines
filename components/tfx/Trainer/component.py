@@ -5,18 +5,19 @@ from kfp.components import InputPath, OutputPath
 
 def Trainer(
     examples_path: InputPath('Examples'),
-    transform_output_path: InputPath('TransformGraph'), # ? = None
-    #transform_graph_path: InputPath('TransformGraph'),
     schema_path: InputPath('Schema'),
 
-    output_path: OutputPath('Model'),
+    model_path: OutputPath('Model'),
 
+    train_args: {'JsonObject': {'data_type': 'proto:tfx.components.trainer.TrainArgs'}},
+    eval_args: {'JsonObject': {'data_type': 'proto:tfx.components.trainer.EvalArgs'}},
     module_file: str = None,
     trainer_fn: str = None,
-    train_args: 'JsonObject: tfx.proto.trainer_pb2.TrainArgs' = None,
-    eval_args: 'JsonObject: tfx.proto.trainer_pb2.EvalArgs' = None,
-    #custom_config: dict = None,
-    #custom_executor_spec: Optional[executor_spec.ExecutorSpec] = None,
+    custom_config: dict = None,
+
+    transform_graph_path: InputPath('TransformGraph') = None,
+    base_model_path: InputPath('Model') = None,
+    hyperparameters_path: InputPath('HyperParameters') = None,
 ):
     """
     A TFX component to train a TensorFlow model.
@@ -53,13 +54,11 @@ def Trainer(
 
 
     Args:
-      examples: A Channel of 'ExamplesPath' type, serving as the source of
+      examples: A Channel of 'Examples' type, serving as the source of
         examples that are used in training (required). May be raw or
         transformed.
-      transform_output: An optional Channel of 'TransformPath' type, serving as
+      transform_graph: An optional Channel of 'TransformGraph' type, serving as
         the input transform graph if present.
-      #transform_graph: Forwards compatibility alias for the 'transform_output'
-      #  argument.
       schema:  A Channel of 'SchemaPath' type, serving as the schema of training
         and eval data.
       module_file: A path to python module file containing UDF model definition.
@@ -84,31 +83,24 @@ def Trainer(
         training. Current only num_steps is available.
       eval_args: A trainer_pb2.EvalArgs instance, containing args used for eval.
         Current only num_steps is available.
-      #custom_config: A dict which contains the training job parameters to be
-      #  passed to Google Cloud ML Engine.  For the full set of parameters
-      #  supported by Google Cloud ML Engine, refer to
-      #  https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#Job
-      #custom_executor_spec: Optional custom executor spec.
+      custom_config: A dict which contains the training job parameters to be
+        passed to Google Cloud ML Engine.  For the full set of parameters
+        supported by Google Cloud ML Engine, refer to
+        https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#Job
     Returns:
-      output: Optional 'ModelExportPath' channel for result of exported models.
+      model: Optional 'Model' channel for result of exported models.
     Raises:
       ValueError:
         - When both or neither of 'module_file' and 'trainer_fn' is supplied.
-        - When both or neither of 'examples' and 'transformed_examples'
-            is supplied.
-        - When 'transformed_examples' is supplied but 'transform_output'
-            is not supplied.
     """
-    from tfx.components.trainer.component import Trainer
-    component_class = Trainer
-    input_channels_with_splits = {'examples'}
-    output_channels_with_splits = {}
+    from tfx.components.trainer.component import Trainer as component_class
 
-
+    #Generated code
     import json
     import os
+    import tensorflow
     from google.protobuf import json_format, message
-    from tfx.types import Artifact, channel_utils
+    from tfx.types import Artifact, channel_utils, artifact_utils
 
     arguments = locals().copy()
 
@@ -119,27 +111,21 @@ def Trainer(
         if argument_value is None:
             continue
         parameter_type = execution_parameter.type
-        if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message): # execution_parameter.type can also be a tuple
+        if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message): # Maybe FIX: execution_parameter.type can also be a tuple
             argument_value_obj = parameter_type()
             json_format.Parse(argument_value, argument_value_obj)
         component_class_args[name] = argument_value_obj
 
     for name, channel_parameter in component_class.SPEC_CLASS.INPUTS.items():
         artifact_path = arguments[name + '_path']
-        artifacts = []
-        if name in input_channels_with_splits:
-            # Recovering splits
-            splits = sorted(os.listdir(artifact_path))
-            for split in splits:
-                artifact = Artifact(type_name=channel_parameter.type_name)
-                artifact.split = split
-                artifact.uri = os.path.join(artifact_path, split) + '/'
-                artifacts.append(artifact)
-        else:
-            artifact = Artifact(type_name=channel_parameter.type_name)
+        if artifact_path:
+            artifact = channel_parameter.type()
             artifact.uri = artifact_path + '/' # ?
-            artifacts.append(artifact)
-        component_class_args[name] = channel_utils.as_channel(artifacts)
+            if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
+                # Recovering splits
+                subdirs = tensorflow.io.gfile.listdir(artifact_path)
+                artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))
+            component_class_args[name] = channel_utils.as_channel([artifact])
 
     component_class_instance = component_class(**component_class_args)
 
@@ -150,8 +136,10 @@ def Trainer(
     # Generating paths for output artifacts
     for name, artifacts in output_dict.items():
         base_artifact_path = arguments[name + '_path']
-        for artifact in artifacts:
-            artifact.uri = os.path.join(base_artifact_path, artifact.split) # Default split is ''
+        # Are there still cases where output channel has multiple artifacts?
+        for idx, artifact in enumerate(artifacts):
+            subdir = str(idx + 1) if idx > 0 else ''
+            artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
 
     print('component instance: ' + str(component_class_instance))
 
@@ -168,6 +156,6 @@ if __name__ == '__main__':
     import kfp
     kfp.components.func_to_container_op(
         Trainer,
-        base_image='tensorflow/tfx:0.15.0',
+        base_image='tensorflow/tfx:0.21.4',
         output_component_file='component.yaml'
     )

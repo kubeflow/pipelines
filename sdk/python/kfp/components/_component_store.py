@@ -3,6 +3,7 @@ __all__ = [
 ]
 
 from pathlib import Path
+import copy
 import requests
 from typing import Callable
 from . import _components as comp
@@ -52,10 +53,37 @@ class ComponentStore:
         #This function should be called load_task_factory since it returns a factory function.
         #The real load_component function should produce an object with component properties (e.g. name, description, inputs/outputs).
         #TODO: Change this function to return component spec object but it should be callable to construct tasks.
+        component_ref = ComponentReference(name=name, digest=digest, tag=tag)
+        component_ref = self._load_component_spec_in_component_ref(component_ref)
+        return comp._create_task_factory_from_component_spec(
+            component_spec=component_ref.spec,
+            component_ref=component_ref,
+        )
+
+    def _load_component_spec_in_component_ref(
+        self,
+        component_ref: ComponentReference,
+    ) -> ComponentReference:
+        '''Takes component_ref, finds the component spec and returns component_ref with .spec set to the component spec.
+
+        See ComponentStore.load_component for the details of the search logic.
+        '''
+        if component_ref.spec:
+            return component_ref
+
+        component_ref = copy.copy(component_ref)
+        if component_ref.url:
+            component_ref.spec = comp._load_component_spec_from_url(component_ref.url)
+            return component_ref
+
+        name = component_ref.name
         if not name:
             raise TypeError("name is required")
         if name.startswith('/') or name.endswith('/'):
             raise ValueError('Component name should not start or end with slash: "{}"'.format(name))
+
+        digest = component_ref.digest
+        tag = component_ref.tag
 
         tried_locations = []
 
@@ -75,8 +103,10 @@ class ComponentStore:
             component_path = Path(local_search_path, path_suffix)
             tried_locations.append(str(component_path))
             if component_path.is_file():
-                component_ref = ComponentReference(name=name, digest=digest, tag=tag)
-                return comp.load_component_from_file(str(component_path))
+                # TODO: Verify that the content matches the digest (if specified).
+                component_ref._local_path = str(component_path)
+                component_ref.spec = comp._load_component_spec_from_file(str(component_path))
+                return component_ref
 
         #Trying URL prefixes
         for url_search_prefix in self.url_search_prefixes:
@@ -88,21 +118,16 @@ class ComponentStore:
             except:
                 continue
             if response.content:
-                component_ref = ComponentReference(name=name, digest=digest, tag=tag, url=url)
-                return comp._load_component_from_yaml_or_zip_bytes(response.content, url, component_ref)
+                # TODO: Verify that the content matches the digest (if specified).
+                component_ref.url = url
+                component_ref.spec = comp._load_component_spec_from_yaml_or_zip_bytes(response.content)
+                return component_ref
 
         raise RuntimeError('Component {} was not found. Tried the following locations:\n{}'.format(name, '\n'.join(tried_locations)))
 
     def _load_component_from_ref(self, component_ref: ComponentReference) -> Callable:
-        if component_ref.spec:
-            return comp._create_task_factory_from_component_spec(component_spec=component_ref.spec, component_ref=component_ref)
-        if component_ref.url:
-            return self.load_component_from_url(component_ref.url)
-        return self.load_component(
-            name=component_ref.name,
-            digest=component_ref.digest,
-            tag=component_ref.tag,
-        )
+        component_ref = self._load_component_spec_in_component_ref(component_ref)
+        return comp._create_task_factory_from_component_spec(component_spec=component_ref.spec, component_ref=component_ref)
 
 
 ComponentStore.default_store = ComponentStore(

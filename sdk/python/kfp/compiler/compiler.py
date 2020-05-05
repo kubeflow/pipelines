@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import datetime
 import json
 from collections import defaultdict
 from deprecated import deprecated
@@ -20,15 +21,16 @@ import uuid
 import zipfile
 from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
-import yaml
+import kfp
 from kfp.dsl import _for_loop
 
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
 from ._op_to_template import _op_to_template
-from ._default_transformers import add_pod_env
+from ._default_transformers import add_pod_env, add_pod_labels, get_default_telemetry_labels
 
 from ..components.structures import InputSpec
+from ..components._yaml_utils import dump_yaml
 from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
@@ -668,9 +670,13 @@ class Compiler(object):
         'entrypoint': pipeline_template_name,
         'templates': templates,
         'arguments': {'parameters': input_params},
-        'serviceAccountName': 'pipeline-runner'
+        'serviceAccountName': 'pipeline-runner',
       }
     }
+    # set parallelism limits at pipeline level
+    if pipeline_conf.parallelism:
+      workflow['spec']['parallelism'] = pipeline_conf.parallelism
+
     # set ttl after workflow finishes
     if pipeline_conf.ttl_seconds_after_finished >= 0:
       workflow['spec']['ttlSecondsAfterFinished'] = pipeline_conf.ttl_seconds_after_finished
@@ -686,6 +692,22 @@ class Compiler(object):
 
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
+
+    # This can be overwritten by the task specific 
+    # nodeselection, specified in the template.
+    if pipeline_conf.default_pod_node_selector:
+      workflow['spec']['nodeSelector'] = pipeline_conf.default_pod_node_selector
+
+    if pipeline_conf.image_pull_policy != None:
+      if pipeline_conf.image_pull_policy in ["Always", "Never", "IfNotPresent"]:
+        for template in workflow["spec"]["templates"]:
+          container = template.get('container', None)
+          if container and "imagePullPolicy" not in container:
+            container["imagePullPolicy"] = pipeline_conf.image_pull_policy
+      else:
+        raise ValueError(
+                  'Invalid imagePullPolicy. Must be one of `Always`, `Never`, `IfNotPresent`.'
+              )
     return workflow
 
   def _validate_exit_handler(self, pipeline):
@@ -713,16 +735,8 @@ class Compiler(object):
 
     # Sanitize operator names and param names
     sanitized_ops = {}
-    # pipeline level artifact location
-    artifact_location = pipeline_conf.artifact_location
 
     for op in pipeline.ops.values():
-      # inject pipeline level artifact location into if the op does not have
-      # an artifact location config already.
-      if hasattr(op, "artifact_location"):
-        if artifact_location and not op.artifact_location:
-          op.artifact_location = artifact_location
-
       sanitized_name = sanitize_k8s_name(op.name)
       op.name = sanitized_name
       for param in op.outputs.values():
@@ -754,7 +768,8 @@ class Compiler(object):
       pipeline_description: Text=None,
       params_list: List[dsl.PipelineParam]=None,
       pipeline_conf: dsl.PipelineConf = None,
-      ) -> Dict[Text, Any]:
+      allow_telemetry: bool = True,
+  ) -> Dict[Text, Any]:
     """ Internal implementation of create_workflow."""
     params_list = params_list or []
     argspec = inspect.getfullargspec(pipeline_func)
@@ -816,6 +831,13 @@ class Compiler(object):
             default=param.value) for param in params_list]
 
     op_transformers = [add_pod_env]
+    # By default adds telemetry instruments. Users can opt out toggling
+    # allow_telemetry.
+    # Also, TFX pipelines will be bypassed for pipeline compiled by tfx>0.21.4.
+    if allow_telemetry:
+      pod_labels = get_default_telemetry_labels()
+      op_transformers.append(add_pod_labels(pod_labels))
+
     op_transformers.extend(pipeline_conf.op_transformers)
 
     workflow = self._create_pipeline_workflow(
@@ -828,8 +850,16 @@ class Compiler(object):
     from ._data_passing_rewriter import fix_big_data_passing
     workflow = fix_big_data_passing(workflow)
 
-    import json
-    workflow.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
+    metadata = workflow.setdefault('metadata', {})
+    annotations = metadata.setdefault('annotations', {})
+
+    annotations['pipelines.kubeflow.org/kfp_sdk_version'] = kfp.__version__
+    annotations['pipelines.kubeflow.org/pipeline_compilation_time'] = datetime.datetime.now().isoformat()
+    annotations['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
+
+    # Labels might be logged better than annotations so adding some information here as well
+    labels = metadata.setdefault('labels', {})
+    labels['pipelines.kubeflow.org/kfp_sdk_version'] = kfp.__version__
 
     return workflow
 
@@ -866,7 +896,14 @@ class Compiler(object):
     """Compile the given pipeline function into workflow."""
     return self._create_workflow(pipeline_func=pipeline_func, pipeline_conf=pipeline_conf)
 
-  def compile(self, pipeline_func, package_path, type_check=True, pipeline_conf: dsl.PipelineConf = None):
+  def compile(
+      self,
+      pipeline_func,
+      package_path,
+      type_check=True,
+      pipeline_conf: dsl.PipelineConf = None,
+      allow_telemetry: bool = True,
+  ):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
@@ -874,6 +911,9 @@ class Compiler(object):
       package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
       type_check: whether to enable the type check or not, default: False.
       pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
+      allow_telemetry: If set to true, two pod labels will be attached to k8s
+        pods spawned by this pipeline: 1) pipeline SDK style, 2) pipeline random
+        ID.
     """
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
@@ -882,7 +922,8 @@ class Compiler(object):
       self._create_and_write_workflow(
           pipeline_func=pipeline_func,
           pipeline_conf=pipeline_conf,
-          package_path=package_path)
+          package_path=package_path,
+          allow_telemetry=allow_telemetry)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
 
@@ -895,8 +936,7 @@ class Compiler(object):
       package_path: file path to be written. If not specified, a yaml_text string
         will be returned.
     """
-    yaml.Dumper.ignore_aliases = lambda *args : True
-    yaml_text = yaml.dump(workflow, default_flow_style=False, default_style='|')
+    yaml_text = dump_yaml(workflow)
 
     if package_path is None:
       return yaml_text
@@ -930,7 +970,8 @@ class Compiler(object):
       pipeline_description: Text=None,
       params_list: List[dsl.PipelineParam]=None,
       pipeline_conf: dsl.PipelineConf=None,
-      package_path: Text=None
+      package_path: Text=None,
+      allow_telemetry: bool=True
   ) -> None:
     """Compile the given pipeline function and dump it to specified file format."""
     workflow = self._create_workflow(
@@ -938,7 +979,8 @@ class Compiler(object):
         pipeline_name,
         pipeline_description,
         params_list,
-        pipeline_conf)
+        pipeline_conf,
+        allow_telemetry)
     self._write_workflow(workflow, package_path)
     _validate_workflow(workflow)
 
@@ -950,7 +992,7 @@ def _validate_workflow(workflow: dict):
     if 'value' not in argument:
       argument['value'] = ''
 
-  yaml_text = yaml.dump(workflow)
+  yaml_text = dump_yaml(workflow)
   if '{{pipelineparam' in yaml_text:
     raise RuntimeError(
         '''Internal compiler error: Found unresolved PipelineParam.
@@ -969,4 +1011,3 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
 Error: {}'''.format(result.stderr.decode('utf-8'))
       )
-  

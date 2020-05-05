@@ -215,6 +215,9 @@ message Run {
   // Optional input field. Specify which resource this run belongs to.
   repeated ResourceReference resource_references = 5;
 
+  // Optional input field. Specify which Kubernetes service account this run uses.
+  string service_account = 14;
+
   // Output. The time that the run created.
   google.protobuf.Timestamp created_at = 6;
 
@@ -240,6 +243,7 @@ message Run {
   // API.
   repeated RunMetric metrics = 9;
 }
+// Next field number of Run will be 15
 
 message PipelineRuntime {
   // Output. The runtime JSON manifest of the pipeline, including the status

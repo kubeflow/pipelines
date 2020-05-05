@@ -14,11 +14,20 @@
  * limitations under the License.
  */
 
+import { Context, Execution } from '@kubeflow/frontend';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import { flatten } from 'lodash';
 import * as React from 'react';
+import { Link, Redirect } from 'react-router-dom';
 import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
+import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
+import {
+  ExecutionHelpers,
+  getExecutionsFromContext,
+  getKfpRunContext,
+  getTfxRunContext,
+} from 'src/lib/MlmdUtils';
 import { classes, stylesheet } from 'typestyle';
 import {
   NodePhase as ArgoNodePhase,
@@ -38,7 +47,8 @@ import Graph from '../components/Graph';
 import LogViewer from '../components/LogViewer';
 import MinioArtifactLink from '../components/MinioArtifactLink';
 import PlotCard from '../components/PlotCard';
-import { RoutePage, RouteParams, RoutePageFactory } from '../components/Router';
+import { PodEvents, PodInfo } from '../components/PodYaml';
+import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import SidePanel from '../components/SidePanel';
 import { ToolbarProps } from '../components/Toolbar';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
@@ -63,18 +73,9 @@ import {
   serviceErrorToString,
 } from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
+import { ExecutionDetailsContent } from './ExecutionDetails';
 import { Page, PageProps } from './Page';
 import { statusToIcon } from './Status';
-import { PodEvents, PodInfo } from '../components/PodYaml';
-import { Link } from 'react-router-dom';
-import {
-  getTfxRunContext,
-  getExecutionsFromContext,
-  KfpExecutionProperties,
-  ExecutionHelpers,
-} from 'src/lib/MlmdUtils';
-import { Context, Execution, getResourceProperty } from '@kubeflow/frontend';
-import { ExecutionDetailsContent } from './ExecutionDetails';
 
 enum SidePaneTab {
   ARTIFACTS,
@@ -162,7 +163,7 @@ export const css = stylesheet({
   },
 });
 
-export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
+class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   public state: RunDetailsState = {
     allArtifactConfigs: [],
     allowCustomVisualizations: false,
@@ -256,8 +257,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       selectedNodeId,
     );
     const selectedExecution = mlmdExecutions?.find(
-      execution =>
-        getResourceProperty(execution, KfpExecutionProperties.KFP_POD_NAME) === selectedNodeId,
+      execution => ExecutionHelpers.getKfpPod(execution) === selectedNodeId,
     );
     // const selectedExecution = mlmdExecutions && mlmdExecutions.find(execution => execution.getPropertiesMap())
     const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
@@ -265,7 +265,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       allowCustomVisualizations,
       isBusy: isGeneratingVisualization,
       onGenerate: (visualizationArguments: string, source: string, type: ApiVisualizationType) => {
-        this._onGenerate(visualizationArguments, source, type);
+        this._onGenerate(visualizationArguments, source, type, namespace || '');
       },
       type: PlotType.VISUALIZATION_CREATOR,
     };
@@ -354,7 +354,9 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     <DetailsTable
                                       title='Input artifacts'
                                       fields={inputArtifacts}
-                                      valueComponent={MinioArtifactLink}
+                                      valueComponent={({ value }) => (
+                                        <MinioArtifactLink artifact={value} namespace={namespace} />
+                                      )}
                                     />
 
                                     <DetailsTable title='Output parameters' fields={outputParams} />
@@ -362,7 +364,9 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     <DetailsTable
                                       title='Output artifacts'
                                       fields={outputArtifacts}
-                                      valueComponent={MinioArtifactLink}
+                                      valueComponent={({ value }) => (
+                                        <MinioArtifactLink artifact={value} namespace={namespace} />
+                                      )}
                                     />
                                   </div>
                                 )}
@@ -663,7 +667,12 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       // Get data about this workflow from MLMD
       if (workflow.metadata?.name) {
         try {
-          mlmdRunContext = await getTfxRunContext(workflow.metadata.name);
+          try {
+            mlmdRunContext = await getTfxRunContext(workflow.metadata.name);
+          } catch (err) {
+            logger.warn(`Cannot find tfx run context (this is expected for non tfx runs)`, err);
+            mlmdRunContext = await getKfpRunContext(workflow.metadata.name);
+          }
           mlmdExecutions = await getExecutionsFromContext(mlmdRunContext);
         } catch (err) {
           // Data in MLMD may not exist depending on this pipeline is a TFX pipeline.
@@ -881,6 +890,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     visualizationArguments: string,
     source: string,
     type: ApiVisualizationType,
+    namespace: string,
   ): Promise<void> {
     const nodeId = this.state.selectedNodeDetails ? this.state.selectedNodeDetails.id : '';
     if (nodeId.length === 0) {
@@ -904,7 +914,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       type,
     };
     try {
-      const config = await Apis.buildPythonVisualizationConfig(visualizationData);
+      const config = await Apis.buildPythonVisualizationConfig(visualizationData, namespace);
       const { generatedVisualizations } = this.state;
       const generatedVisualization: GeneratedVisualization = {
         config,
@@ -1037,9 +1047,11 @@ const ArtifactsTabContent: React.FC<{
       // Load the viewer configurations from the output paths
       const builtConfigs = (
         await Promise.all([
-          OutputArtifactLoader.buildTFXArtifactViewerConfig(nodeId, reportProgress).catch(
-            reportErrorAndReturnEmpty,
-          ),
+          OutputArtifactLoader.buildTFXArtifactViewerConfig({
+            argoPodName: nodeId,
+            reportProgress,
+            namespace: namespace || '',
+          }).catch(reportErrorAndReturnEmpty),
           ...outputPaths.map(path =>
             OutputArtifactLoader.load(path, namespace).catch(reportErrorAndReturnEmpty),
           ),
@@ -1100,8 +1112,17 @@ const ArtifactsTabContent: React.FC<{
 };
 
 const EnhancedRunDetails: React.FC<RunDetailsProps> = props => {
+  const namespaceChanged = useNamespaceChangeEvent();
   const gkeMetadata = React.useContext(GkeMetadataContext);
+  if (namespaceChanged) {
+    // Run details page shows info about a run, when namespace changes, the run
+    // doesn't exist in the new namespace, so we should redirect to experiment
+    // list page.
+    return <Redirect to={RoutePage.EXPERIMENTS} />;
+  }
   return <RunDetails {...props} gkeMetadata={gkeMetadata} />;
 };
 
 export default EnhancedRunDetails;
+
+export const TEST_ONLY = { RunDetails };

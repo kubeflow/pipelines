@@ -670,7 +670,6 @@ spec:
               value: 'pipeline-runner'
             - name: OBJECTSTORECONFIG_SECURE
               value: "false"
-            # Following environment variables are only needed when using Cloud SQL and GCS.
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
               value: '{{ tpl .Values.managedstorage.gcsBucketName . }}'
@@ -698,3 +697,8 @@ spec:
             - containerPort: 8888
             - containerPort: 8887
       serviceAccountName: ml-pipeline
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubeflow-pipelines-container-builder

@@ -120,10 +120,10 @@ def _dump_outputs(job, output_path, table_ref):
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-job.json', 
         json.dumps(job.to_api_repr()))
     if not output_path:
-        output_path = ''
+        output_path = '-'  # Replace with empty string when we upgrade to Argo version which has the fix: https://github.com/argoproj/argo/pull/1653
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-output-path.txt', 
         output_path)
-    (dataset_id, table_id) = (table_ref.dataset_id, table_ref.table_id) if table_ref else ('', '')
+    (dataset_id, table_id) = (table_ref.dataset_id, table_ref.table_id) if table_ref else ('-', '-')
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-dataset-id.txt', 
         dataset_id)
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-table-id.txt', 

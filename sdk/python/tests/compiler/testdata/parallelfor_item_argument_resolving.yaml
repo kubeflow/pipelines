@@ -48,7 +48,9 @@ spec:
         parameters: 
           - 
             name: produce-list-of-strings-output
-      metadata: 
+      metadata:
+        labels:
+          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume
@@ -90,7 +92,9 @@ spec:
         parameters: 
           - 
             name: produce-list-of-strings-output-loop-item
-      metadata: 
+      metadata:
+        labels:
+          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-2
@@ -132,7 +136,9 @@ spec:
         parameters: 
           - 
             name: produce-str-output
-      metadata: 
+      metadata:
+        labels:
+          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-3
@@ -174,7 +180,9 @@ spec:
         parameters: 
           - 
             name: produce-list-of-ints-output
-      metadata: 
+      metadata:
+        labels:
+          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-4
@@ -216,7 +224,9 @@ spec:
         parameters: 
           - 
             name: produce-list-of-ints-output-loop-item
-      metadata: 
+      metadata:
+        labels:
+          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-5
@@ -258,7 +268,9 @@ spec:
         parameters: 
           - 
             name: produce-list-of-dicts-output
-      metadata: 
+      metadata:
+        labels:
+          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-6
@@ -300,7 +312,9 @@ spec:
         parameters: 
           - 
             name: produce-list-of-dicts-output-loop-item-subvar-aaa
-      metadata: 
+      metadata:
+        labels:
+          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-7
@@ -502,7 +516,9 @@ spec:
                   with open(output_file, 'w') as f:
                       f.write(_output_serializers[idx](_outputs[idx]))
         image: "tensorflow/tensorflow:1.13.2-py3"
-      metadata: 
+      metadata:
+        labels:
+          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce list of dicts\", \"outputs\": [{\"name\": \"Output\", \"type\": \"JsonArray\"}]}"
       name: produce-list-of-dicts
@@ -564,7 +580,9 @@ spec:
                   with open(output_file, 'w') as f:
                       f.write(_output_serializers[idx](_outputs[idx]))
         image: "tensorflow/tensorflow:1.13.2-py3"
-      metadata: 
+      metadata:
+        labels:
+          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce list of ints\", \"outputs\": [{\"name\": \"Output\", \"type\": \"JsonArray\"}]}"
       name: produce-list-of-ints
@@ -626,7 +644,9 @@ spec:
                   with open(output_file, 'w') as f:
                       f.write(_output_serializers[idx](_outputs[idx]))
         image: "tensorflow/tensorflow:1.13.2-py3"
-      metadata: 
+      metadata:
+        labels:
+          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce list of strings\", \"outputs\": [{\"name\": \"Output\", \"type\": \"JsonArray\"}]}"
       name: produce-list-of-strings
@@ -682,7 +702,9 @@ spec:
                   with open(output_file, 'w') as f:
                       f.write(_output_serializers[idx](_outputs[idx]))
         image: "tensorflow/tensorflow:1.13.2-py3"
-      metadata: 
+      metadata:
+        labels:
+          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce str\", \"outputs\": [{\"name\": \"Output\", \"type\": \"String\"}]}"
       name: produce-str

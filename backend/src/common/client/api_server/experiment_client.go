@@ -18,6 +18,8 @@ type ExperimentInterface interface {
 	Get(params *params.GetExperimentParams) (*model.APIExperiment, error)
 	List(params *params.ListExperimentParams) ([]*model.APIExperiment, int, string, error)
 	ListAll(params *params.ListExperimentParams, maxResultSize int) ([]*model.APIExperiment, error)
+	Archive(params *params.ArchiveExperimentParams) error
+	Unarchive(params *params.UnarchiveExperimentParams) error
 }
 
 type ExperimentClient struct {
@@ -163,4 +165,52 @@ func listAllForExperiment(client ExperimentInterface, parameters *params.ListExp
 	}
 
 	return allResults, nil
+}
+
+func (c *ExperimentClient) Archive(parameters *params.ArchiveExperimentParams) error {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.ExperimentService.ArchiveExperiment(parameters, PassThroughAuth)
+
+	if err != nil {
+		if defaultError, ok := err.(*params.ArchiveExperimentDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to archive experiments. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to archive experiments"))
+	}
+
+	return nil
+}
+
+func (c *ExperimentClient) Unarchive(parameters *params.UnarchiveExperimentParams) error {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.ExperimentService.UnarchiveExperiment(parameters, PassThroughAuth)
+
+	if err != nil {
+		if defaultError, ok := err.(*params.UnarchiveExperimentDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to unarchive experiments. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to unarchive experiments"))
+	}
+
+	return nil
 }

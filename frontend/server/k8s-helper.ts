@@ -23,6 +23,7 @@ import {
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import { PartialArgoWorkflow } from './workflow-helper';
+import { parseError } from './utils';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
@@ -233,7 +234,7 @@ export async function getPod(
     const { body } = await k8sV1Client.readNamespacedPod(podName, podNamespace);
     return [body, undefined];
   } catch (error) {
-    const { message, additionalInfo } = parseK8sError(error);
+    const { message, additionalInfo } = await parseError(error);
     const userMessage = `Could not get pod ${podName} in namespace ${podNamespace}: ${message}`;
     return [undefined, { message: userMessage, additionalInfo }];
   }
@@ -258,7 +259,7 @@ export async function listPodEvents(
     );
     return [body, undefined];
   } catch (error) {
-    const { message, additionalInfo } = parseK8sError(error);
+    const { message, additionalInfo } = await parseError(error);
     const userMessage = `Error when listing pod events for pod "${podName}" in "${podNamespace}" namespace: ${message}`;
     return [undefined, { message: userMessage, additionalInfo }];
   }
@@ -305,48 +306,6 @@ export async function getK8sSecret(name: string, key: string) {
   const secretb64 = k8sSecret.body.data[key];
   const buff = new Buffer(secretb64, 'base64');
   return buff.toString('ascii');
-}
-
-const UNKOWN_ERROR = {
-  message: 'Unknown error',
-  additionalInfo: 'Unknown error',
-};
-function parseK8sError(error: any): { message: string; additionalInfo: any } {
-  try {
-    if (!error) {
-      return UNKOWN_ERROR;
-    } else if (typeof error === 'string') {
-      return {
-        message: error,
-        additionalInfo: error,
-      };
-    } else if (error.body) {
-      // Kubernetes client http error has body with all the info.
-      // Example error.body
-      // {
-      //   kind: 'Status',
-      //   apiVersion: 'v1',
-      //   metadata: {},
-      //   status: 'Failure',
-      //   message: 'pods "test-pod" not found',
-      //   reason: 'NotFound',
-      //   details: { name: 'test-pod', kind: 'pods' },
-      //   code: 404
-      // }
-      return {
-        message: error.body.message || UNKOWN_ERROR.message,
-        additionalInfo: error.body,
-      };
-    } else {
-      return {
-        message: error.message || UNKOWN_ERROR.message,
-        additionalInfo: error,
-      };
-    }
-  } catch (parsingError) {
-    console.error('There was a parsing error: ', parsingError);
-    return UNKOWN_ERROR;
-  }
 }
 
 export const TEST_ONLY = {

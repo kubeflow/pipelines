@@ -1,10 +1,11 @@
 import {
-  Context,
   Api,
+  Context,
   Execution,
-  getResourceProperty,
-  ExecutionProperties,
   ExecutionCustomProperties,
+  getResourcePropertyViaFallBack,
+  ExecutionProperties,
+  getResourceProperty,
 } from '@kubeflow/frontend';
 import {
   GetContextByTypeAndNameRequest,
@@ -77,12 +78,16 @@ export enum KfpExecutionProperties {
   KFP_POD_NAME = 'kfp_pod_name',
 }
 
+const EXECUTION_PROPERTY_REPOS = [ExecutionProperties, ExecutionCustomProperties];
+
 export const ExecutionHelpers = {
-  getPipeline(execution: Execution): string | number | undefined {
+  getWorkspace(execution: Execution): string | number | undefined {
     return (
-      getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
+      getResourcePropertyViaFallBack(execution, EXECUTION_PROPERTY_REPOS, [
+        ExecutionProperties.RUN_ID,
+      ]) ||
       getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
-      getResourceProperty(execution, ExecutionCustomProperties.RUN_ID, true) ||
+      getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
       undefined
     );
   },
@@ -96,5 +101,12 @@ export const ExecutionHelpers = {
   },
   getState(execution: Execution): string | number | undefined {
     return getResourceProperty(execution, ExecutionProperties.STATE) || undefined;
+  },
+  getKfpPod(execution: Execution): string | number | undefined {
+    return (
+      getResourceProperty(execution, KfpExecutionProperties.KFP_POD_NAME) ||
+      getResourceProperty(execution, KfpExecutionProperties.KFP_POD_NAME, true) ||
+      undefined
+    );
   },
 };

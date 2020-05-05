@@ -18,6 +18,7 @@ import * as React from 'react';
 
 import DetailsTable from './DetailsTable';
 import { shallow } from 'enzyme';
+import { render } from '@testing-library/react';
 
 describe('DetailsTable', () => {
   it('shows no rows', () => {
@@ -124,10 +125,19 @@ describe('DetailsTable', () => {
   });
 
   it('does render values with the provided valueComponent', () => {
-    const valueComponent: React.FC<any> = ({ key }) => <a>{key}</a>;
-    const tree = shallow(
-      <DetailsTable fields={[['key', { key: 'foobar' } as any]]} valueComponent={valueComponent} />,
+    const ValueComponent: React.FC<any> = ({ value }) => (
+      <a data-testid='value-component'>{JSON.stringify(value)}</a>
     );
-    expect(tree).toMatchSnapshot();
+    const { container, getByTestId } = render(
+      <DetailsTable fields={[['key', { key: 'foobar' } as any]]} valueComponent={ValueComponent} />,
+    );
+    const valueNode = getByTestId('value-component');
+    expect(valueNode).toMatchInlineSnapshot(`
+      <a
+        data-testid="value-component"
+      >
+        {"key":"foobar"}
+      </a>
+    `);
   });
 });

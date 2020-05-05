@@ -386,13 +386,108 @@ class Client(object):
       pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: a dictionary with key (string) as param name and value (string) as as param value.
       pipeline_id: the string ID of a pipeline.
-      version_id: the string ID of a pipeline version. 
-        If both pipeline_id and version_id are specified, pipeline_id will take precendence
-        This will change in a future version, so it is recommended to use version_id by itself
+      version_id: the string ID of a pipeline version.
+        If both pipeline_id and version_id are specified, version_id will take precendence.
+        If only pipeline_id is specified, the default version of this pipeline is used to create the run.
 
     Returns:
       A run object. Most important field is id.
     """
+    job_config = self._create_job_config(
+      experiment_id=experiment_id,
+      params=params,
+      pipeline_package_path=pipeline_package_path,
+      pipeline_id=pipeline_id,
+      version_id=version_id)
+    run_body = kfp_server_api.models.ApiRun(
+        pipeline_spec=job_config.spec, resource_references=job_config.resource_references, name=job_name)
+
+    response = self._run_api.create_run(body=run_body)
+
+    if self._is_ipython():
+      import IPython
+      html = ('Run link <a href="%s/#/runs/details/%s" target="_blank" >here</a>'
+              % (self._get_url_prefix(), response.run.id))
+      IPython.display.display(IPython.display.HTML(html))
+    return response.run
+
+  def create_recurring_run(self, experiment_id, job_name, description=None, start_time=None, end_time=None, interval_second=None, cron_expression=None, max_concurrency=1, no_catchup=None, params={}, pipeline_package_path=None, pipeline_id=None, version_id=None, enabled=True):
+    """Create a recurring run.
+    Args:
+      experiment_id: The string id of an experiment.
+      job_name: name of the job.
+      description: An optional job description.
+      start_time: The RFC3339 time string of the time when to start the job.
+      end_time: The RFC3339 time string of the time when to end the job.
+      interval_second: Integer indicating the seconds between two recurring runs in for a periodic schedule.
+      cron_expression: A cron expression representing a set of times, using 5 space-separated fields, e.g. "0 0 9 ? * 2-6".
+      max_concurrency: Integer indicating how many jobs can be run in parallel.
+      no_catchup: Whether the recurring run should catch up if behind schedule.
+        For example, if the recurring run is paused for a while and re-enabled
+        afterwards. If no_catchup=False, the scheduler will catch up on (backfill) each
+        missed interval. Otherwise, it only schedules the latest interval if more than one interval
+        is ready to be scheduled.
+        Usually, if your pipeline handles backfill internally, you should turn catchup
+        off to avoid duplicate backfill. (default: {False})
+      pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+      params: A dictionary with key (string) as param name and value (string) as param value.
+      pipeline_id: The string ID of a pipeline.
+      version_id: The string ID of a pipeline version. 
+        If both pipeline_id and version_id are specified, pipeline_id will take precendence
+        This will change in a future version, so it is recommended to use version_id by itself.
+      enabled: A bool indicating whether the recurring run is enabled or disabled.
+    Returns:
+      A Job object. Most important field is id.
+    """
+    job_config = self._create_job_config(
+      experiment_id=experiment_id,
+      params=params,
+      pipeline_package_path=pipeline_package_path,
+      pipeline_id=pipeline_id,
+      version_id=version_id)
+
+    if all([interval_second, cron_expression]) or not any([interval_second, cron_expression]):
+      raise ValueError('Either interval_second or cron_expression is required')
+    if interval_second is not None:
+      trigger = kfp_server_api.models.ApiTrigger(
+        periodic_schedule=kfp_server_api.models.ApiPeriodicSchedule(
+          start_time=start_time, end_time=end_time, interval_second=interval_second)
+      )
+    if cron_expression is not None:
+      trigger = kfp_server_api.models.ApiTrigger(
+        cron_schedule=kfp_server_api.models.ApiCronSchedule(
+        start_time=start_time, end_time=end_time, cron=cron_expression)
+      )
+
+    job_body = kfp_server_api.models.ApiJob(
+        enabled=enabled,
+        pipeline_spec=job_config.spec,
+        resource_references=job_config.resource_references,
+        name=job_name,
+        description=description,
+        no_catchup=no_catchup,
+        trigger=trigger,
+        max_concurrency=max_concurrency)
+    return self._job_api.create_job(body=job_body)
+
+  def _create_job_config(self, experiment_id, params, pipeline_package_path, pipeline_id, version_id):
+    """Create a JobConfig with spec and resource_references.
+    Args:
+      experiment_id: The string id of an experiment.
+      pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+      params: A dictionary with key (string) as param name and value (string) as param value.
+      pipeline_id: The string ID of a pipeline.
+      version_id: The string ID of a pipeline version. 
+        If both pipeline_id and version_id are specified, pipeline_id will take precendence
+        This will change in a future version, so it is recommended to use version_id by itself.
+    Returns:
+      A JobConfig object with attributes spec and resource_reference.
+    """
+    
+    class JobConfig:
+      def __init__(self, spec, resource_references):
+        self.spec = spec
+        self.resource_references = resource_references
 
     pipeline_json_string = None
     if pipeline_package_path:
@@ -411,7 +506,7 @@ class Client(object):
     if version_id:
       key = kfp_server_api.models.ApiResourceKey(id=version_id,
                                                  type=kfp_server_api.models.ApiResourceType.PIPELINE_VERSION)
-      reference = kfp_server_api.models.ApiResourceReference(key=key, 
+      reference = kfp_server_api.models.ApiResourceReference(key=key,
                                                              relationship=kfp_server_api.models.ApiRelationship.CREATOR)
       resource_references.append(reference)
 
@@ -419,17 +514,7 @@ class Client(object):
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string,
         parameters=api_params)
-    run_body = kfp_server_api.models.ApiRun(
-        pipeline_spec=spec, resource_references=resource_references, name=job_name)
-
-    response = self._run_api.create_run(body=run_body)
-
-    if self._is_ipython():
-      import IPython
-      html = ('Run link <a href="%s/#/runs/details/%s" target="_blank" >here</a>'
-              % (self._get_url_prefix(), response.run.id))
-      IPython.display.display(IPython.display.HTML(html))
-    return response.run
+    return JobConfig(spec=spec, resource_references=resource_references)
 
   def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None, pipeline_conf: kfp.dsl.PipelineConf = None, namespace=None):
     '''Runs pipeline on KFP-enabled Kubernetes cluster.
@@ -493,6 +578,7 @@ class Client(object):
     experiment = self.create_experiment(name=experiment_name, namespace=namespace)
     run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments)
     return RunPipelineResult(self, run_info)
+
 
   def try_parsing_date_time(self, text):
     for fmt in ('%Y-%m-%dT%H:%M:%S.%f%z', '%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M', '%Y-%m-%dT%H', '%Y-%m-%d'):
@@ -603,9 +689,39 @@ class Client(object):
     namespace = namespace or self.get_user_namespace()
     if experiment_id is not None:
       response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
-    else:
+    elif namespace:
       response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE, resource_reference_key_id=namespace)
+    else:
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
+
+  def list_recurring_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
+    """List recurring runs.
+    Args:
+      page_token: token for starting of the page.
+      page_size: size of the page.
+      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+      experiment_id: experiment id to filter upon
+    Returns:
+      A response object including a list of recurring_runs and next page token.
+    """
+    if experiment_id is not None:
+      response = self._job_api.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
+    else:
+      response = self._job_api.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by)
+    return response
+
+  def get_recurring_run(self, job_id):
+    """Get recurring_run details.
+    Args:
+      id of the recurring_run.
+    Returns:
+      A response object including details of a recurring_run.
+    Throws:
+      Exception if recurring_run is not found.
+    """
+    return self._job_api.get_job(id=job_id)
+
 
   def get_run(self, run_id):
     """Get run details.

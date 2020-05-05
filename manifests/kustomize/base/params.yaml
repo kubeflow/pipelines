@@ -1,0 +1,24 @@
+# Allow Kustomize var to replace following fields.
+varReference:
+- path: data/config
+  kind: ConfigMap
+- path: data/bucket_name
+  kind: ConfigMap
+- path: data/project_id
+  kind: ConfigMap
+- path: data/host
+  kind: ConfigMap
+- path: data/port
+  kind: ConfigMap
+- path: data/mlmd_db
+  kind: ConfigMap
+- path: data/cache_db
+  kind: ConfigMap
+- path: data/pipeline_db
+  kind: ConfigMap
+- path: metadata/name
+  kind: Application
+- path: spec/descriptor/version
+  kind: Application
+- path: spec/template/spec/containers/image
+  kind: Deployment

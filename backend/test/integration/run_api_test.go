@@ -2,6 +2,7 @@ package integration
 
 import (
 	"io/ioutil"
+	"sort"
 	"testing"
 	"time"
 
@@ -29,6 +30,12 @@ type RunApiTestSuite struct {
 	pipelineUploadClient *api_server.PipelineUploadClient
 	runClient            *api_server.RunClient
 }
+
+type RunResourceReferenceSorter []*run_model.APIResourceReference
+
+func (r RunResourceReferenceSorter) Len() int           { return len(r) }
+func (r RunResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
+func (r RunResourceReferenceSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
 // Check the namespace have ML pipeline installed and ready
 func (s *RunApiTestSuite) SetupTest() {
@@ -263,6 +270,10 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
+
+	// Need to sort resource references before equality check as the order is non-deterministic
+	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
@@ -292,6 +303,10 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
+
+	// Need to sort resource references before equality check as the order is non-deterministic
+	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
@@ -323,6 +338,7 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
+
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 

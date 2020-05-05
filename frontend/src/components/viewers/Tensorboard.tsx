@@ -19,7 +19,7 @@ import BusyButton from '../../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
 import Viewer, { ViewerConfig } from './Viewer';
 import { Apis } from '../../lib/Apis';
-import { commonCss, padding } from '../../Css';
+import { commonCss, padding, color } from '../../Css';
 import InputLabel from '@material-ui/core/InputLabel';
 import Input from '@material-ui/core/Input';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -47,6 +47,12 @@ export const css = stylesheet({
   shortButton: {
     width: 50,
   },
+  warningText: {
+    color: color.warningText,
+  },
+  errorText: {
+    color: color.errorText,
+  },
 });
 
 export interface TensorboardViewerConfig extends ViewerConfig {
@@ -67,6 +73,7 @@ interface TensorboardViewerState {
   tensorflowVersion: string;
   // When podAddress is not null, we need to further tell whether the TensorBoard pod is accessible or not
   tensorboardReady: boolean;
+  errorMessage?: string;
 }
 
 // TODO(jingzhang36): we'll later parse Tensorboard version from mlpipeline-ui-metadata.json file.
@@ -84,6 +91,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       podAddress: '',
       tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
       tensorboardReady: false,
+      errorMessage: undefined,
     };
   }
 
@@ -117,6 +125,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   public render(): JSX.Element {
     return (
       <div>
+        {this.state.errorMessage && <div className={css.errorText}>{this.state.errorMessage}</div>}
         {this.state.podAddress && (
           <div>
             <div
@@ -138,7 +147,9 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
               {this.state.tensorboardReady ? (
                 ``
               ) : (
-                <div>Tensorboard is starting, and you may need to wait for a few minutes.</div>
+                <div className={css.warningText}>
+                  Tensorboard is starting, and you may need to wait for a few minutes.
+                </div>
               )}
             </a>
 
@@ -264,44 +275,56 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
-      const { podAddress, tfVersion } = await Apis.getTensorboardApp(
-        this._buildUrl(),
-        this._getNamespace(),
-      );
-      if (podAddress) {
-        this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
-      } else {
-        // No existing pod
-        this.setState({ busy: false });
+      try {
+        const { podAddress, tfVersion } = await Apis.getTensorboardApp(
+          this._buildUrl(),
+          this._getNamespace(),
+        );
+        if (podAddress) {
+          this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
+        } else {
+          // No existing pod
+          this.setState({ busy: false });
+        }
+      } catch (err) {
+        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
       }
     });
   }
 
   private _startTensorboard = async () => {
-    this.setState({ busy: true }, async () => {
-      await Apis.startTensorboardApp(
-        this._buildUrl(),
-        this.state.tensorflowVersion,
-        this._getNamespace(),
-      );
-      this.setState({ busy: false, tensorboardReady: false }, () => {
-        this._checkTensorboardApp();
-      });
+    this.setState({ busy: true, errorMessage: undefined }, async () => {
+      try {
+        await Apis.startTensorboardApp(
+          this._buildUrl(),
+          this.state.tensorflowVersion,
+          this._getNamespace(),
+        );
+        this.setState({ busy: false, tensorboardReady: false }, () => {
+          this._checkTensorboardApp();
+        });
+      } catch (err) {
+        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+      }
     });
   };
 
   private _deleteTensorboard = async () => {
     // delete the already opened Tensorboard, clear the podAddress recorded in frontend,
     // and return to the select & start tensorboard page
-    this.setState({ busy: true }, async () => {
-      await Apis.deleteTensorboardApp(this._buildUrl(), this._getNamespace());
-      this.setState({
-        busy: false,
-        deleteDialogOpen: false,
-        podAddress: '',
-        tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
-        tensorboardReady: false,
-      });
+    this.setState({ busy: true, errorMessage: undefined }, async () => {
+      try {
+        await Apis.deleteTensorboardApp(this._buildUrl(), this._getNamespace());
+        this.setState({
+          busy: false,
+          deleteDialogOpen: false,
+          podAddress: '',
+          tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
+          tensorboardReady: false,
+        });
+      } catch (err) {
+        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+      }
     });
   };
 }

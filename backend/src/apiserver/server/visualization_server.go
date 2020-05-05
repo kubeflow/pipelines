@@ -4,31 +4,42 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+)
+
+const (
+	visualizationServiceName = "VisualizationService.Name"
+	visualizationServicePort = "VisualizationService.Port"
 )
 
 type VisualizationServer struct {
-	resourceManager    *resource.ResourceManager
-	serviceURL         string
+	resourceManager *resource.ResourceManager
+	serviceURL      string
 }
 
 func (s *VisualizationServer) CreateVisualization(ctx context.Context, request *go_client.CreateVisualizationRequest) (*go_client.Visualization, error) {
-	if common.IsMultiUserMode() == true {
-		return nil, util.NewBadRequestError(errors.New("Visualization APIs are temporarily disabled in the multi-user mode until it is fully ready."), "Visualization APIs are temporarily disabled in the multi-user mode until it is fully ready.")
-	}
 	if err := s.validateCreateVisualizationRequest(request); err != nil {
 		return nil, err
 	}
+
+	// In multi-user mode, we allow empty namespace in which case we fall back to use the visualization service in system namespace.
+	// See getVisualizationServiceURL() for details.
+	if common.IsMultiUserMode() && len(request.Namespace) > 0 {
+		err := isAuthorized(s.resourceManager, ctx, request.Namespace)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize on namespace.")
+		}
+	}
+
 	body, err := s.generateVisualizationFromRequest(request)
 	if err != nil {
 		return nil, err
@@ -66,7 +77,8 @@ func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_cli
 // service to generate HTML visualizations from a request.
 // It returns the generated HTML as a string and any error that is encountered.
 func (s *VisualizationServer) generateVisualizationFromRequest(request *go_client.CreateVisualizationRequest) ([]byte, error) {
-	if !isVisualizationServiceAlive(s.serviceURL) {
+	serviceURL := s.getVisualizationServiceURL(request)
+	if !isVisualizationServiceAlive(serviceURL) {
 		return nil, util.NewInternalServerError(
 			fmt.Errorf("service not available"),
 			"Service not available",
@@ -75,10 +87,10 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 	visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
 	urlValues := url.Values{
 		"arguments": {request.Visualization.Arguments},
-		"source": {request.Visualization.Source},
-		"type": {visualizationType},
+		"source":    {request.Visualization.Source},
+		"type":      {visualizationType},
 	}
-	resp, err := http.PostForm(s.serviceURL, urlValues)
+	resp, err := http.PostForm(serviceURL, urlValues)
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to initialize visualization request.")
 	}
@@ -93,6 +105,16 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 	return body, nil
 }
 
+func (s *VisualizationServer) getVisualizationServiceURL(request *go_client.CreateVisualizationRequest) string {
+	if common.IsMultiUserMode() && len(request.Namespace) > 0 {
+		return fmt.Sprintf("http://%s.%s:%s",
+			common.GetStringConfig(visualizationServiceName),
+			request.Namespace,
+			common.GetStringConfig(visualizationServicePort))
+	}
+	return s.serviceURL
+}
+
 func isVisualizationServiceAlive(serviceURL string) bool {
 	resp, err := http.Get(serviceURL)
 	if err != nil {
@@ -105,7 +127,7 @@ func isVisualizationServiceAlive(serviceURL string) bool {
 func NewVisualizationServer(resourceManager *resource.ResourceManager, serviceHost string, servicePort string) *VisualizationServer {
 	serviceURL := fmt.Sprintf("http://%s:%s", serviceHost, servicePort)
 	return &VisualizationServer{
-		resourceManager:    resourceManager,
-		serviceURL:         serviceURL,
+		resourceManager: resourceManager,
+		serviceURL:      serviceURL,
 	}
 }

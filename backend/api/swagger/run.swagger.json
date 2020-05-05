@@ -632,6 +632,10 @@
           },
           "description": "Optional input field. Specify which resource this run belongs to."
         },
+        "service_account": {
+          "type": "string",
+          "description": "Optional input field. Specify which Kubernetes service account this run uses."
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",

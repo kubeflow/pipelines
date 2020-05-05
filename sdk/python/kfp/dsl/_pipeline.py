@@ -60,8 +60,10 @@ class PipelineConf():
     self.image_pull_secrets = []
     self.timeout = 0
     self.ttl_seconds_after_finished = -1
-    self.artifact_location = None
     self.op_transformers = []
+    self.default_pod_node_selector = {}
+    self.image_pull_policy = None
+    self.parallelism = None
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """Configures the pipeline level imagepullsecret
@@ -83,6 +85,15 @@ class PipelineConf():
     self.timeout = seconds
     return self
 
+  def set_parallelism(self, max_num_pods: int):
+    """Configures the max number of total parallel pods that can execute at the same time in a workflow.
+
+    Args:
+        max_num_pods (int): max number of total parallel pods.
+    """
+    self.parallelism = max_num_pods
+    return self
+
   def set_ttl_seconds_after_finished(self, seconds: int):
     """Configures the ttl after the pipeline has finished.
 
@@ -91,39 +102,28 @@ class PipelineConf():
     """
     self.ttl_seconds_after_finished = seconds
     return self
-
-  def set_artifact_location(self, artifact_location):
-    """Configures the pipeline level artifact location.
-
-    Example::
-
-      from kfp.dsl import ArtifactLocation, get_pipeline_conf, pipeline
-      from kubernetes.client.models import V1SecretKeySelector
-
-
-      @pipeline(name='foo', description='hello world')
-      def foo_pipeline(tag: str, pull_image_policy: str):
-        '''A demo pipeline'''
-        # create artifact location object
-        artifact_location = ArtifactLocation.s3(
-                              bucket="foo",
-                              endpoint="minio-service:9000",
-                              insecure=True,
-                              access_key_secret=V1SecretKeySelector(name="minio", key="accesskey"),
-                              secret_key_secret=V1SecretKeySelector(name="minio", key="secretkey"))
-        # config pipeline level artifact location
-        conf = get_pipeline_conf().set_artifact_location(artifact_location)
-
-        # rest of codes
-        ...
+  
+  def set_default_pod_node_selector(self, label_name: str, value: str): 
+    """Add a constraint for nodeSelector for a pipeline. Each constraint is a key-value pair label. For the 
+      container to be eligible to run on a node, the node must have each of the constraints appeared
+      as labels.
 
     Args:
-      artifact_location: V1alpha1ArtifactLocation object
-      For detailed description, check Argo V1alpha1ArtifactLocation definition
-      https://github.com/e2fyi/argo-models/blob/release-2.2/argo/models/v1alpha1_artifact_location.py
-      https://github.com/argoproj/argo/blob/release-2.2/api/openapi-spec/swagger.json
+        label_name: The name of the constraint label.
+        value: The value of the constraint label.
     """
-    self.artifact_location = artifact_location
+    self.default_pod_node_selector[label_name] = value
+    return self
+  
+
+  def set_image_pull_policy(self, policy: str):
+    """Configures the default image pull policy
+
+    Args:
+      policy: the pull policy, has to be one of: Always, Never, IfNotPresent.
+      For more info: https://github.com/kubernetes-client/python/blob/10a7f95435c0b94a6d949ba98375f8cc85a70e5a/kubernetes/docs/V1Container.md
+    """
+    self.image_pull_policy = policy
     return self
 
   def add_op_transformer(self, transformer):
@@ -253,5 +253,3 @@ class Pipeline():
       metadata (ComponentMeta): component metadata
     '''
     self._metadata = metadata
-
-

@@ -18,8 +18,10 @@ import string
 import random
 import json
 import yaml
+import re
 
 import boto3
+import botocore
 from botocore.exceptions import ClientError
 from sagemaker.amazon.amazon_estimator import get_image_uri
 
@@ -59,14 +61,33 @@ def nullable_string_argument(value):
         return None
     return value
 
+
 def add_default_client_arguments(parser):
     parser.add_argument('--region', type=str.strip, required=True, help='The region where the training job launches.')
     parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the Sagemaker service.')
 
+
+def get_component_version():
+    """Get component version from the first line of License file"""
+    component_version = 'NULL'
+
+    with open('/THIRD-PARTY-LICENSES.txt', 'r') as license_file:
+        version_match = re.search('Amazon SageMaker Components for Kubeflow Pipelines; version (([0-9]+[.])+[0-9]+)',
+                        license_file.readline())
+        if version_match is not None:
+            component_version = version_match.group(1)
+
+    return component_version
+
+
 def get_sagemaker_client(region, endpoint_url=None):
     """Builds a client to the AWS SageMaker API."""
-    client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url)
+    session_config = botocore.config.Config(
+        user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(get_component_version())
+    )
+    client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
     return client
+
 
 def create_training_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_training_job
@@ -123,11 +144,6 @@ def create_training_job_request(args):
     ### Update input channels, must have at least one specified
     if len(args['channels']) > 0:
         request['InputDataConfig'] = args['channels']
-        # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
-        #   Source: Input data configuration description in the SageMaker create training job form
-        for i in range(1, len(args['channels']) + 1):
-            if args['data_location_' + str(i)]:
-                request['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
         logging.error("Must specify at least one input channel.")
         raise Exception('Could not create job request')
@@ -207,6 +223,16 @@ def get_image_from_job(client, job_name):
 
 
 def create_model(client, args):
+    request = create_model_request(args)
+    try:
+        create_model_response = client.create_model(**request)
+        logging.info("Model Config Arn: " + create_model_response['ModelArn'])
+        return create_model_response['ModelArn']
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
+
+
+def create_model_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_model
     with open(os.path.join(__cwd__, 'model.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
@@ -255,19 +281,14 @@ def create_model(client, args):
     for key, val in args['tags'].items():
         request['Tags'].append({'Key': key, 'Value': val})
 
-    create_model_response = client.create_model(**request)
-
-    logging.info("Model Config Arn: " + create_model_response['ModelArn'])
-    return create_model_response['ModelArn']
-
+    return request
 
 def deploy_model(client, args):
   endpoint_config_name = create_endpoint_config(client, args)
   endpoint_name = create_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name, args['endpoint_tags'])
   return endpoint_name
 
-
-def create_endpoint_config(client, args):
+def create_endpoint_config_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint_config
     with open(os.path.join(__cwd__, 'endpoint_config.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
@@ -306,12 +327,16 @@ def create_endpoint_config(client, args):
     for key, val in args['endpoint_config_tags'].items():
         request['Tags'].append({'Key': key, 'Value': val})
 
+    return request
+
+def create_endpoint_config(client, args):
+    request = create_endpoint_config_request(args)
     try:
         create_endpoint_config_response = client.create_endpoint_config(**request)
         logging.info("Endpoint configuration in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/endpointConfig/{}"
-            .format(args['region'], args['region'], endpoint_config_name))
+            .format(args['region'], args['region'], request['EndpointConfigName']))
         logging.info("Endpoint Config Arn: " + create_endpoint_config_response['EndpointConfigArn'])
-        return endpoint_config_name
+        return request['EndpointConfigName']
     except ClientError as e:
         raise Exception(e.response['Error']['Message'])
 
@@ -514,11 +539,6 @@ def create_hyperparameter_tuning_job_request(args):
     ### Update input channels, must have at least one specified
     if len(args['channels']) > 0:
         request['TrainingJobDefinition']['InputDataConfig'] = args['channels']
-        # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
-        #   Source: Input data configuration description in the SageMaker create hyperparameter tuning job form
-        for i in range(1, len(args['channels']) + 1):
-            if args['data_location_' + str(i)]:
-                request['TrainingJobDefinition']['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
         logging.error("Must specify at least one input channel.")
         raise Exception('Could not make job request')
@@ -608,6 +628,16 @@ def get_best_training_job_and_hyperparameters(client, hpo_job_name):
 
 
 def create_workteam(client, args):
+    try:
+        request = create_workteam_request(args)
+        response = client.create_workteam(**request)
+        portal = client.describe_workteam(WorkteamName=args['team_name'])['Workteam']['SubDomain']
+        logging.info("Labeling portal: " + portal)
+        return response['WorkteamArn']
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
+
+def create_workteam_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_workteam
     """Create a workteam"""
     with open(os.path.join(__cwd__, 'workteam.template.yaml'), 'r') as f:
@@ -627,13 +657,7 @@ def create_workteam(client, args):
     for key, val in args['tags'].items():
         request['Tags'].append({'Key': key, 'Value': val})
 
-    try:
-        response = client.create_workteam(**request)
-        portal = client.describe_workteam(WorkteamName=args['team_name'])['Workteam']['SubDomain']
-        logging.info("Labeling portal: " + portal)
-        return response['WorkteamArn']
-    except ClientError as e:
-        raise Exception(e.response['Error']['Message'])
+    return request
 
 
 def create_labeling_job_request(args):
@@ -808,7 +832,7 @@ def get_labeling_job_outputs(client, labeling_job_name, auto_labeling):
     if auto_labeling:
         active_learning_model_arn = info['LabelingJobOutput']['FinalActiveLearningModelArn']
     else:
-        active_learning_model_arn = ''
+        active_learning_model_arn = ' '
     return output_manifest, active_learning_model_arn
 
 def enable_spot_instance_support(training_job_config, args):
