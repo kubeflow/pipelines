@@ -46,12 +46,14 @@ def upload(ctx, pipeline_name, package_file):
 @click.option(
     "-p",
     "--pipeline-id",
-    help="ID of the pipeline"
+    help="ID of the pipeline",
+    required=True
 )
 @click.option(
     "-v",
     "--pipeline-version",
-    help="Name of the pipeline version"
+    help="Name of the pipeline version",
+    required=True
 )
 @click.argument("package-file")
 @click.pass_context
