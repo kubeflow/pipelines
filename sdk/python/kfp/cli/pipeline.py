@@ -43,15 +43,23 @@ def upload(ctx, pipeline_name, package_file):
 
 
 @pipeline.command()
+@click.option(
+    "--id",
+    "--pipeline-id",
+    help="ID of the pipeline"
+)
+@click.option(
+    "-v",
+    "--pipeline-version",
+    help="Name of the pipeline version"
+)
 @click.argument("package-file")
-@click.argument("pipeline-version")
-@click.argument("pipeline-id")
 @click.pass_context
 def upload_version(ctx, package_file, pipeline_version, pipeline_id):
     """Upload a version of the KFP pipeline"""
     client = ctx.obj["client"]
 
-    version = client.upload_pipeline_version(package_file, pipeline_version, pipeline_id)
+    version = client.pipeline_uploads.upload_pipeline_version(package_file, name=pipeline_version, pipelineid=pipeline_id)
     logging.info("The {} version of the pipeline {} has been submitted\n".format(pipeline_version, pipeline_id))
     _display_pipeline_version(version)
 
