@@ -6,6 +6,7 @@ phases:
       - export DOCKER_CONFIG_PATH="~/.docker"
       - mkdir -p $DOCKER_CONFIG_PATH
       - echo $DOCKER_CONFIG > "$DOCKER_CONFIG_PATH/config.json"
+      - cat "$DOCKER_CONFIG_PATH/config.json"
 
   build:
     commands:
