@@ -8,9 +8,9 @@ from utils import minio_utils
 from utils import sagemaker_utils
 
 
-@pytest.mark.parametrize("test_file_dir", ["resources/config/simple-mnist-training",])
-def test_simple_mnist_training(
-    kfp_client, experiment_id, s3_client, sagemaker_client, region, test_file_dir
+@pytest.mark.parametrize("test_file_dir", ["resources/config/simple-mnist-training"])
+def test_trainingjob(
+    kfp_client, experiment_id, sagemaker_client, region, test_file_dir
 ):
 
     test_params = utils.load_params(
@@ -67,5 +67,5 @@ def test_simple_mnist_training(
         )
         assert (
             train_response["ModelArtifacts"]["S3ModelArtifacts"]
-            in model_artifact_url.decode().con
+            in model_artifact_url.decode()
         )

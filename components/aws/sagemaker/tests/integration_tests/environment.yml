@@ -12,8 +12,9 @@ dependencies:
   - flake8 3.7.*
   - flake8-black 0.1.*
   - pip:
-    - kubernetes 11.0.*
-    - kfp 0.5.*
-    - minio 5.0.*
+    - kubernetes==11.0.*
+    - kfp==0.5.*
+    - minio==5.0.10
+    - sagemaker==1.56.*
       
       

@@ -4,57 +4,7 @@ import pytest
 import tarfile
 import yaml
 
-# https://github.com/aws/sagemaker-python-sdk/blob/fbebd805e6efc212211b87eafbff3dc84c1062b9/src/sagemaker/amazon/amazon_estimator.py
-KMEANS_REGISTRY = {
-    "us-east-1": "382416733822",
-    "us-east-2": "404615174143",
-    "us-west-2": "174872318107",
-    "eu-west-1": "438346466558",
-    "eu-central-1": "664544806723",
-    "ap-northeast-1": "351501993468",
-    "ap-northeast-2": "835164637446",
-    "ap-southeast-2": "712309505854",
-    "us-gov-west-1": "226302683700",
-    "ap-southeast-1": "475088953585",
-    "ap-south-1": "991648021394",
-    "ca-central-1": "469771592824",
-    "eu-west-2": "644912444149",
-    "us-west-1": "632365934929",
-    "us-iso-east-1": "490574956308",
-    "ap-east-1": "286214385809",
-    "eu-north-1": "669576153137",
-    "eu-west-3": "749696950732",
-    "sa-east-1": "855470959533",
-    "me-south-1": "249704162688",
-    "cn-north-1": "390948362332",
-    "cn-northwest-1": "387376663083",
-}
-
-
-XGBOOST_REGISTRY = {
-    "us-east-1": "811284229777",
-    "us-east-2": "825641698319",
-    "us-west-2": "433757028032",
-    "eu-west-1": "685385470294",
-    "eu-central-1": "813361260812",
-    "ap-northeast-1": "501404015308",
-    "ap-northeast-2": "306986355934",
-    "ap-southeast-2": "544295431143",
-    "us-gov-west-1": "226302683700",
-    "ap-southeast-1": "475088953585",
-    "ap-south-1": "991648021394",
-    "ca-central-1": "469771592824",
-    "eu-west-2": "644912444149",
-    "us-west-1": "632365934929",
-    "us-iso-east-1": "490574956308",
-    "ap-east-1": "286214385809",
-    "eu-north-1": "669576153137",
-    "eu-west-3": "749696950732",
-    "sa-east-1": "855470959533",
-    "me-south-1": "249704162688",
-    "cn-north-1": "390948362332",
-    "cn-northwest-1": "387376663083",
-}
+from sagemaker.amazon.amazon_estimator import get_image_uri
 
 
 def get_region():
@@ -75,6 +25,10 @@ def get_minio_service_port():
 
 def get_kfp_namespace():
     return os.environ.get("NAMESPACE")
+
+
+def get_algorithm_image_registry(region, algorithm):
+    return get_image_uri(region, algorithm).split(".")[0]
 
 
 def run_command(cmd, *popenargs, **kwargs):
@@ -100,7 +54,7 @@ def replace_placeholders(file_name):
         "((REGION))": region,
         "((ROLE_ARN))": get_role_arn(),
         "((DATA_BUCKET))": get_s3_data_bucket(),
-        "((KMEANS_REGISTRY))": KMEANS_REGISTRY[region],
+        "((KMEANS_REGISTRY))": get_algorithm_image_registry(region, "kmeans"),
     }
 
     filedata = ""
