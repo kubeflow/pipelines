@@ -6,7 +6,7 @@ def Evaluator(
     examples_uri: 'ExamplesUri',
     model_uri: 'ModelUri',
     output_evaluation_uri: 'ModelEvaluationUri',
-    #output_blessing_uri: 'ModelBlessingUri',
+    output_blessing_uri: 'ModelBlessingUri',
     baseline_model_uri: 'ModelUri' = None,
     schema_uri: 'SchemaUri' = None,
     eval_config: {'JsonObject': {'data_type': 'proto:tensorflow_model_analysis.EvalConfig'}} = None,
@@ -15,7 +15,7 @@ def Evaluator(
     beam_pipeline_args: list = None,
 ) -> NamedTuple('Outputs', [
     ('evaluation_uri', 'ModelEvaluationUri'),
-    #('blessing_uri', 'ModelBlessingUri'),
+    ('blessing_uri', 'ModelBlessingUri'),
 ]):
     from tfx.components import Evaluator as component_class
 
@@ -90,8 +90,7 @@ def Evaluator(
         exec_properties=exec_properties,
     )
 
-#    return (output_evaluation_uri, output_blessing_uri, )
-    return (output_evaluation_uri, )
+    return (output_evaluation_uri, output_blessing_uri, )
 
 
 if __name__ == '__main__':

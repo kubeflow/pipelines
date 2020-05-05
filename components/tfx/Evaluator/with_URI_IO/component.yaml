@@ -3,6 +3,7 @@ inputs:
 - {name: examples_uri, type: ExamplesUri}
 - {name: model_uri, type: ModelUri}
 - {name: output_evaluation_uri, type: ModelEvaluationUri}
+- {name: output_blessing_uri, type: ModelBlessingUri}
 - {name: baseline_model_uri, type: ModelUri, optional: true}
 - {name: schema_uri, type: SchemaUri, optional: true}
 - name: eval_config
@@ -17,6 +18,7 @@ inputs:
 - {name: beam_pipeline_args, type: JsonArray, optional: true}
 outputs:
 - {name: evaluation_uri, type: ModelEvaluationUri}
+- {name: blessing_uri, type: ModelBlessingUri}
 implementation:
   container:
     image: tensorflow/tfx:0.21.4
@@ -29,7 +31,7 @@ implementation:
           examples_uri,
           model_uri,
           output_evaluation_uri,
-          #output_blessing_uri: 'ModelBlessingUri',
+          output_blessing_uri,
           baseline_model_uri = None,
           schema_uri = None,
           eval_config = None,
@@ -110,8 +112,7 @@ implementation:
               exec_properties=exec_properties,
           )
 
-      #    return (output_evaluation_uri, output_blessing_uri, )
-          return (output_evaluation_uri, )
+          return (output_evaluation_uri, output_blessing_uri, )
 
       import json
       import argparse
@@ -119,19 +120,21 @@ implementation:
       _parser.add_argument("--examples-uri", dest="examples_uri", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--model-uri", dest="model_uri", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--output-evaluation-uri", dest="output_evaluation_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-blessing-uri", dest="output_blessing_uri", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--baseline-model-uri", dest="baseline_model_uri", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--schema-uri", dest="schema_uri", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--eval-config", dest="eval_config", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--feature-slicing-spec", dest="feature_slicing_spec", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--fairness-indicator-thresholds", dest="fairness_indicator_thresholds", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--beam-pipeline-args", dest="beam_pipeline_args", type=json.loads, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
 
       _outputs = Evaluator(**_parsed_args)
 
       _output_serializers = [
+          str,
           str,
 
       ]
@@ -151,6 +154,8 @@ implementation:
     - {inputValue: model_uri}
     - --output-evaluation-uri
     - {inputValue: output_evaluation_uri}
+    - --output-blessing-uri
+    - {inputValue: output_blessing_uri}
     - if:
         cond: {isPresent: baseline_model_uri}
         then:
@@ -183,3 +188,4 @@ implementation:
         - {inputValue: beam_pipeline_args}
     - '----output-paths'
     - {outputPath: evaluation_uri}
+    - {outputPath: blessing_uri}
