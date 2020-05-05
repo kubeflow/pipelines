@@ -61,6 +61,7 @@ class PipelineConf():
     self.timeout = 0
     self.ttl_seconds_after_finished = -1
     self.op_transformers = []
+    self.default_pod_node_selector = {}
     self.image_pull_policy = None
     self.parallelism = None
 
@@ -101,6 +102,19 @@ class PipelineConf():
     """
     self.ttl_seconds_after_finished = seconds
     return self
+  
+  def set_default_pod_node_selector(self, label_name: str, value: str): 
+    """Add a constraint for nodeSelector for a pipeline. Each constraint is a key-value pair label. For the 
+      container to be eligible to run on a node, the node must have each of the constraints appeared
+      as labels.
+
+    Args:
+        label_name: The name of the constraint label.
+        value: The value of the constraint label.
+    """
+    self.default_pod_node_selector[label_name] = value
+    return self
+  
 
   def set_image_pull_policy(self, policy: str):
     """Configures the default image pull policy

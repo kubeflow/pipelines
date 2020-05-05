@@ -768,6 +768,23 @@ implementation:
 
       workflow_dict = compiler.Compiler()._compile(some_pipeline)
 
+  def test_set_default_pod_node_selector(self):
+    """Test a pipeline with node selector."""
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().set_default_pod_node_selector(label_name="cloud.google.com/gke-accelerator", value="nvidia-tesla-p4")
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']['nodeSelector'], {"cloud.google.com/gke-accelerator":"nvidia-tesla-p4"})
+
   def test_container_op_output_error_when_no_or_multiple_outputs(self):
 
     def no_outputs_pipeline():
