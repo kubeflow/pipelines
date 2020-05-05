@@ -3,6 +3,8 @@ import subprocess
 import pytest
 import tarfile
 import yaml
+import random
+import string
 
 from sagemaker.amazon.amazon_estimator import get_image_uri
 
@@ -37,7 +39,7 @@ def run_command(cmd, *popenargs, **kwargs):
     try:
         print("executing command: {}".format(" ".join(cmd)))
         return subprocess.check_output(
-            cmd, stderr=subprocess.STDOUT, *popenargs, **kwargs
+            cmd, *popenargs, stderr=subprocess.STDOUT, **kwargs
         )
     except subprocess.CalledProcessError as e:
         pytest.fail(f"Command failed. Error code: {e.returncode}, Log: {e.output}")
@@ -48,7 +50,7 @@ def extract_information(file_path, file_name):
         return f.read()
 
 
-def replace_placeholders(file_name):
+def replace_placeholders(input_filename, output_filename):
     region = get_region()
     variables_to_replace = {
         "((REGION))": region,
@@ -58,11 +60,11 @@ def replace_placeholders(file_name):
     }
 
     filedata = ""
-    with open(file_name, "r") as f:
+    with open(input_filename, "r") as f:
         filedata = f.read()
         for replace_key, replace_value in variables_to_replace.items():
             filedata = filedata.replace(replace_key, replace_value)
-    output_filename = file_name + ".generated"
+
     with open(output_filename, "w") as f:
         f.write(filedata)
     return output_filename
@@ -71,3 +73,18 @@ def replace_placeholders(file_name):
 def load_params(file_name):
     with open(file_name, "r") as f:
         return yaml.safe_load(f)
+
+
+def generate_random_string(length):
+    """Generate a random string with twice the length of input parameter"""
+    assert isinstance(length, int)
+    return "".join(
+        [random.choice(string.ascii_lowercase) for n in range(length)]
+        + [random.choice(string.digits) for n in range(length)]
+    )
+
+
+def mkdir(directory_path):
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
+    return directory_path

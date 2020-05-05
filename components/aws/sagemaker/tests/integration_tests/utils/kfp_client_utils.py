@@ -1,6 +1,8 @@
 import os
-import json
 import utils
+import pytest
+
+from utils import argo_utils
 
 
 def compile_and_run_pipeline(
@@ -31,6 +33,12 @@ def wait_for_job_completion(client, run_id, timeout):
     return status
 
 
+def get_workflow_json(client, run_id):
+    # API not in readthedocs
+    # Refer: https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/_client.py#L663
+    return client._get_workflow_json(run_id)
+
+
 def compile_run_monitor_pipeline(
     client,
     experiment_id,
@@ -39,6 +47,7 @@ def compile_run_monitor_pipeline(
     output_file_dir,
     pipeline_name,
     timeout,
+    check=True,
 ):
     run_id = compile_and_run_pipeline(
         client,
@@ -49,14 +58,10 @@ def compile_run_monitor_pipeline(
         pipeline_name,
     )
     status = wait_for_job_completion(client, run_id, timeout)
-    return run_id, status
+    workflow_json = get_workflow_json(client, run_id)
 
+    if check and not status:
+        argo_utils.print_workflow_logs(workflow_json["metadata"]["name"])
+        pytest.fail(f"Test Failed: {pipeline_name}")
 
-def get_workflow_json(client, run_id):
-    # https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/_client.py#L663
-    return client._get_workflow_json(run_id)
-
-
-def get_workflow_name(client, run_id):
-    response = client.get_run(run_id)
-    return json.loads(response.pipeline_runtime.workflow_manifest)["metadata"]["name"]
+    return run_id, status, workflow_json
