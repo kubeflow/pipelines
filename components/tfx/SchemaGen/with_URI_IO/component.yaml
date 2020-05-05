@@ -69,10 +69,10 @@ implementation:
           for name, artifacts in output_dict.items():
               base_artifact_path = arguments.get('output_' + name + '_uri', None) or arguments.get(name + '_path', None)
               if base_artifact_path:
-                # Are there still cases where output channel has multiple artifacts?
-                for idx, artifact in enumerate(artifacts):
-                    subdir = str(idx + 1) if idx > 0 else ''
-                    artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
+                  # Are there still cases where output channel has multiple artifacts?
+                  for idx, artifact in enumerate(artifacts):
+                      subdir = str(idx + 1) if idx > 0 else ''
+                      artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
 
           print('component instance: ' + str(component_class_instance))
 
