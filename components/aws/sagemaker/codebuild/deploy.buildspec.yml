@@ -5,7 +5,7 @@ phases:
       # Log in to Dockerhub
       - mkdir -p ~/.docker
       - echo $DOCKER_CONFIG > ~/.docker/config.json
-      - echo $DOCKER_CONFIG="~/.docker/config.json"
+      - export $DOCKER_CONFIG_PATH="~/.docker/config.json"
 
   build:
     commands:
