@@ -693,6 +693,11 @@ class Compiler(object):
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
 
+    # This can be overwritten by the task specific 
+    # nodeselection, specified in the template.
+    if pipeline_conf.default_pod_node_selector:
+      workflow['spec']['nodeSelector'] = pipeline_conf.default_pod_node_selector
+
     if pipeline_conf.image_pull_policy != None:
       if pipeline_conf.image_pull_policy in ["Always", "Never", "IfNotPresent"]:
         for template in workflow["spec"]["templates"]:
