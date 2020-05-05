@@ -5,6 +5,7 @@ phases:
       # Log in to Dockerhub
       - mkdir -p ~/.docker
       - echo $DOCKER_CONFIG > ~/.docker/config.json
+      - docker login
 
   build:
     commands:
