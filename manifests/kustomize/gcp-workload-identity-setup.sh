@@ -21,13 +21,8 @@ SYSTEM_GSA=${SYSTEM_GSA:-$CLUSTER_NAME-kfp-system}
 USER_GSA=${USER_GSA:-$CLUSTER_NAME-kfp-user}
 
 # Kubernetes Service Account (KSA)
-if [ ${KFP_DEPLOYMENT} != kubeflow ]; then
-    SYSTEM_KSA=(ml-pipeline-ui ml-pipeline-visualizationserver)
-    USER_KSA=(pipeline-runner kubeflow-pipelines-container-builder)
-else
-    SYSTEM_KSA=(ml-pipeline-ui)
-    USER_KSA=(pipeline-runner)
-fi
+SYSTEM_KSA=(ml-pipeline-ui ml-pipeline-visualizationserver)
+USER_KSA=(pipeline-runner kubeflow-pipelines-container-builder)
 
 cat <<EOF
 
@@ -79,6 +74,12 @@ echo "* CLUSTER_NAME=$CLUSTER_NAME"
 echo "* NAMESPACE=$NAMESPACE"
 echo
 
+read -p "Continue? (Y/n) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    exit 0
+fi
+
 echo "Creating Google service accounts..."
 function create_gsa_if_not_present {
   local name=${1}
@@ -128,4 +129,3 @@ echo "Binding each kfp user KSA to $USER_GSA"
 for ksa in ${USER_KSA[@]}; do
   bind_gsa_and_ksa $USER_GSA $ksa
 done
-echo "Exiting gcp-workload-identity-setup"

@@ -100,21 +100,14 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   # Use static GSAs for testing, so we don't need to GC them.
   export SYSTEM_GSA="test-kfp-system"
   export USER_GSA="test-kfp-user"
+  source "${DIR}/scripts/retry.sh"
 
-  PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
-    ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
-
-  echo "start add-iam-policy-binding"
-  gcloud projects add-iam-policy-binding $PROJECT \
+  retry gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$SYSTEM_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor"
-  gcloud projects add-iam-policy-binding $PROJECT \
+  retry gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$USER_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor"
-
-  echo "start verify_wi_binding"
-  source "$DIR/../manifests/kustomize/wi-utils.sh"
-  verify_workload_identity_binding "pipeline-runner" $NAMESPACE
 fi
 
 # Create test profiles in prepare for test scenarios
@@ -152,10 +145,3 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 echo "argo workflow submitted successfully"
 source "${DIR}/check-argo-status.sh"
 echo "test workflow completed"
-
-echo "Cleaning up service accounts"
-for sa_suffix in 'admin' 'user' 'vm';
-do
-    gcloud iam service-accounts delete ${TEST_CLUSTER}-${sa_suffix}@${PROJECT}.iam.gserviceaccount.com --quiet
-done
-echo "Post-test cleanup completed"

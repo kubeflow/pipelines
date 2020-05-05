@@ -14,6 +14,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+function clean_up {
+  set +e # the following clean up commands shouldn't exit on error
+  set +x # no need for command history
+
+  echo "Status of pods before clean up:"
+  kubectl get pods --all-namespaces
+
+  echo "Clean up service accounts..."
+  for sa_suffix in 'admin' 'user' 'vm';
+  do
+      gcloud iam service-accounts delete ${TEST_CLUSTER}-${sa_suffix}@${PROJECT}.iam.gserviceaccount.com --quiet
+  done
+
+  echo "Clean up cluster..."
+  # --async doesn't wait for this operation to complete, so we can get test
+  # results faster
+  gcloud container clusters delete ${TEST_CLUSTER} --async --quiet
+}
+
+trap clean_up EXIT SIGINT SIGTERM
+
 function download-kfctl {
   if which kfctl; then
     return 0
