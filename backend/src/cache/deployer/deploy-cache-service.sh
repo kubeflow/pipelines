@@ -23,7 +23,7 @@ set -ex
 echo "Start deploying cache service to existing cluster:"
 
 NAMESPACE=${NAMESPACE_TO_WATCH:-kubeflow}
-MUTATING_WEBHOOK_CONFIGURATION_NAME="cache-webhook"
+MUTATING_WEBHOOK_CONFIGURATION_NAME="cache-webhook-${NAMESPACE}"
 
 # This should fail if there are connectivity problems
 # Gotcha: Listing all objects requires list permission,
