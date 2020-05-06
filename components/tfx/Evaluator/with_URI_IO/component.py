@@ -2,17 +2,22 @@
 
 from typing import NamedTuple
 
-def CsvExampleGen(
-    input_uri: 'ExternalArtifactUri',
-    output_examples_uri: 'ExamplesUri',
-    input_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Input'}},
-    output_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Output'}},
-    custom_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.CustomConfig'}} = None,
+def Evaluator(
+    examples_uri: 'ExamplesUri',
+    model_uri: 'ModelUri',
+    output_evaluation_uri: 'ModelEvaluationUri',
+    output_blessing_uri: 'ModelBlessingUri',
+    baseline_model_uri: 'ModelUri' = None,
+    schema_uri: 'SchemaUri' = None,
+    eval_config: {'JsonObject': {'data_type': 'proto:tensorflow_model_analysis.EvalConfig'}} = None,
+    feature_slicing_spec: {'JsonObject': {'data_type': 'proto:tfx.components.evaluator.FeatureSlicingSpec'}} = None,
+    fairness_indicator_thresholds: list = None,
     beam_pipeline_args: list = None,
 ) -> NamedTuple('Outputs', [
-    ('examples_uri', 'ExamplesUri'),
+    ('evaluation_uri', 'ModelEvaluationUri'),
+    ('blessing_uri', 'ModelBlessingUri'),
 ]):
-    from tfx.components import CsvExampleGen as component_class
+    from tfx.components import Evaluator as component_class
 
     #Generated code
     import json
@@ -86,13 +91,13 @@ def CsvExampleGen(
         exec_properties=exec_properties,
     )
 
-    return (output_examples_uri, )
+    return (output_evaluation_uri, output_blessing_uri, )
 
 
 if __name__ == '__main__':
     import kfp
     kfp.components.create_component_from_func(
-        CsvExampleGen,
+        Evaluator,
         base_image='tensorflow/tfx:0.21.4',
         output_component_file='component.yaml'
     )

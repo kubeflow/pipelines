@@ -1,20 +1,11 @@
-name: CsvExampleGen
+name: SchemaGen
 inputs:
-- {name: input_uri, type: ExternalArtifactUri}
-- {name: output_examples_uri, type: ExamplesUri}
-- name: input_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.Input'}
-- name: output_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.Output'}
-- name: custom_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.CustomConfig'}
-  optional: true
+- {name: statistics_uri, type: ExampleStatisticsUri}
+- {name: output_schema_uri, type: SchemaUri}
+- {name: infer_feature_shape, type: Boolean, optional: true}
 - {name: beam_pipeline_args, type: JsonArray, optional: true}
 outputs:
-- {name: examples_uri, type: ExamplesUri}
+- {name: schema_uri, type: SchemaUri}
 implementation:
   container:
     image: tensorflow/tfx:0.21.4
@@ -23,15 +14,13 @@ implementation:
     - -u
     - -c
     - |
-      def CsvExampleGen(
-          input_uri,
-          output_examples_uri,
-          input_config,
-          output_config,
-          custom_config = None,
+      def SchemaGen(
+          statistics_uri,
+          output_schema_uri,
+          infer_feature_shape = None,
           beam_pipeline_args = None,
       ):
-          from tfx.components import CsvExampleGen as component_class
+          from tfx.components import SchemaGen as component_class
 
           #Generated code
           import json
@@ -105,22 +94,24 @@ implementation:
               exec_properties=exec_properties,
           )
 
-          return (output_examples_uri, )
+          return (output_schema_uri, )
+
+      def _deserialize_bool(s) -> bool:
+          from distutils.util import strtobool
+          return strtobool(s) == 1
 
       import json
       import argparse
-      _parser = argparse.ArgumentParser(prog='CsvExampleGen', description='')
-      _parser.add_argument("--input-uri", dest="input_uri", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-examples-uri", dest="output_examples_uri", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--input-config", dest="input_config", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-config", dest="output_config", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--custom-config", dest="custom_config", type=str, required=False, default=argparse.SUPPRESS)
+      _parser = argparse.ArgumentParser(prog='SchemaGen', description='')
+      _parser.add_argument("--statistics-uri", dest="statistics_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-schema-uri", dest="output_schema_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--infer-feature-shape", dest="infer_feature_shape", type=_deserialize_bool, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--beam-pipeline-args", dest="beam_pipeline_args", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
 
-      _outputs = CsvExampleGen(**_parsed_args)
+      _outputs = SchemaGen(**_parsed_args)
 
       _output_serializers = [
           str,
@@ -136,23 +127,19 @@ implementation:
           with open(output_file, 'w') as f:
               f.write(_output_serializers[idx](_outputs[idx]))
     args:
-    - --input-uri
-    - {inputValue: input_uri}
-    - --output-examples-uri
-    - {inputValue: output_examples_uri}
-    - --input-config
-    - {inputValue: input_config}
-    - --output-config
-    - {inputValue: output_config}
+    - --statistics-uri
+    - {inputValue: statistics_uri}
+    - --output-schema-uri
+    - {inputValue: output_schema_uri}
     - if:
-        cond: {isPresent: custom_config}
+        cond: {isPresent: infer_feature_shape}
         then:
-        - --custom-config
-        - {inputValue: custom_config}
+        - --infer-feature-shape
+        - {inputValue: infer_feature_shape}
     - if:
         cond: {isPresent: beam_pipeline_args}
         then:
         - --beam-pipeline-args
         - {inputValue: beam_pipeline_args}
     - '----output-paths'
-    - {outputPath: examples_uri}
+    - {outputPath: schema_uri}

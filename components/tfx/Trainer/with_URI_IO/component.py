@@ -2,17 +2,24 @@
 
 from typing import NamedTuple
 
-def CsvExampleGen(
-    input_uri: 'ExternalArtifactUri',
-    output_examples_uri: 'ExamplesUri',
-    input_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Input'}},
-    output_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Output'}},
-    custom_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.CustomConfig'}} = None,
+def Trainer(
+    examples_uri: 'ExamplesUri',
+    schema_uri: 'SchemaUri',
+    output_model_uri: 'ModelUri',
+    train_args: {'JsonObject': {'data_type': 'proto:tfx.components.trainer.TrainArgs'}},
+    eval_args: {'JsonObject': {'data_type': 'proto:tfx.components.trainer.EvalArgs'}},
+    transform_graph_uri: 'TransformGraphUri' = None,
+    base_model_uri: 'ModelUri' = None,
+    hyperparameters_uri: 'HyperParametersUri' = None,
+    module_file: str = None,
+    run_fn: str = None,
+    trainer_fn: str = None,
+    custom_config: dict = None,
     beam_pipeline_args: list = None,
 ) -> NamedTuple('Outputs', [
-    ('examples_uri', 'ExamplesUri'),
+    ('model_uri', 'ModelUri'),
 ]):
-    from tfx.components import CsvExampleGen as component_class
+    from tfx.components import Trainer as component_class
 
     #Generated code
     import json
@@ -86,13 +93,13 @@ def CsvExampleGen(
         exec_properties=exec_properties,
     )
 
-    return (output_examples_uri, )
+    return (output_model_uri, )
 
 
 if __name__ == '__main__':
     import kfp
     kfp.components.create_component_from_func(
-        CsvExampleGen,
+        Trainer,
         base_image='tensorflow/tfx:0.21.4',
         output_component_file='component.yaml'
     )

@@ -1,4 +1,4 @@
-name: CsvExampleGen
+name: ImportExampleGen
 inputs:
 - {name: input_uri, type: ExternalArtifactUri}
 - {name: output_examples_uri, type: ExamplesUri}
@@ -23,7 +23,7 @@ implementation:
     - -u
     - -c
     - |
-      def CsvExampleGen(
+      def ImportExampleGen(
           input_uri,
           output_examples_uri,
           input_config,
@@ -31,7 +31,7 @@ implementation:
           custom_config = None,
           beam_pipeline_args = None,
       ):
-          from tfx.components import CsvExampleGen as component_class
+          from tfx.components import ImportExampleGen as component_class
 
           #Generated code
           import json
@@ -109,7 +109,7 @@ implementation:
 
       import json
       import argparse
-      _parser = argparse.ArgumentParser(prog='CsvExampleGen', description='')
+      _parser = argparse.ArgumentParser(prog='ImportExampleGen', description='')
       _parser.add_argument("--input-uri", dest="input_uri", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--output-examples-uri", dest="output_examples_uri", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--input-config", dest="input_config", type=str, required=True, default=argparse.SUPPRESS)
@@ -120,7 +120,7 @@ implementation:
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
 
-      _outputs = CsvExampleGen(**_parsed_args)
+      _outputs = ImportExampleGen(**_parsed_args)
 
       _output_serializers = [
           str,

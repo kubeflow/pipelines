@@ -2,7 +2,7 @@
 
 from typing import NamedTuple
 
-def CsvExampleGen(
+def ImportExampleGen(
     input_uri: 'ExternalArtifactUri',
     output_examples_uri: 'ExamplesUri',
     input_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Input'}},
@@ -12,7 +12,7 @@ def CsvExampleGen(
 ) -> NamedTuple('Outputs', [
     ('examples_uri', 'ExamplesUri'),
 ]):
-    from tfx.components import CsvExampleGen as component_class
+    from tfx.components import ImportExampleGen as component_class
 
     #Generated code
     import json
@@ -92,7 +92,7 @@ def CsvExampleGen(
 if __name__ == '__main__':
     import kfp
     kfp.components.create_component_from_func(
-        CsvExampleGen,
+        ImportExampleGen,
         base_image='tensorflow/tfx:0.21.4',
         output_component_file='component.yaml'
     )

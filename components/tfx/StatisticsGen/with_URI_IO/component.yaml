@@ -1,20 +1,12 @@
-name: CsvExampleGen
+name: StatisticsGen
 inputs:
-- {name: input_uri, type: ExternalArtifactUri}
-- {name: output_examples_uri, type: ExamplesUri}
-- name: input_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.Input'}
-- name: output_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.Output'}
-- name: custom_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.CustomConfig'}
-  optional: true
+- {name: examples_uri, type: ExamplesUri}
+- {name: output_statistics_uri, type: ExampleStatisticsUri}
+- {name: schema_uri, type: SchemaUri, optional: true}
+- {name: stats_options_json, type: String, optional: true}
 - {name: beam_pipeline_args, type: JsonArray, optional: true}
 outputs:
-- {name: examples_uri, type: ExamplesUri}
+- {name: statistics_uri, type: ExampleStatisticsUri}
 implementation:
   container:
     image: tensorflow/tfx:0.21.4
@@ -23,15 +15,14 @@ implementation:
     - -u
     - -c
     - |
-      def CsvExampleGen(
-          input_uri,
-          output_examples_uri,
-          input_config,
-          output_config,
-          custom_config = None,
+      def StatisticsGen(
+          examples_uri,
+          output_statistics_uri,
+          schema_uri = None,
+          stats_options_json = None,
           beam_pipeline_args = None,
       ):
-          from tfx.components import CsvExampleGen as component_class
+          from tfx.components import StatisticsGen as component_class
 
           #Generated code
           import json
@@ -105,22 +96,21 @@ implementation:
               exec_properties=exec_properties,
           )
 
-          return (output_examples_uri, )
+          return (output_statistics_uri, )
 
       import json
       import argparse
-      _parser = argparse.ArgumentParser(prog='CsvExampleGen', description='')
-      _parser.add_argument("--input-uri", dest="input_uri", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-examples-uri", dest="output_examples_uri", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--input-config", dest="input_config", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-config", dest="output_config", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--custom-config", dest="custom_config", type=str, required=False, default=argparse.SUPPRESS)
+      _parser = argparse.ArgumentParser(prog='StatisticsGen', description='')
+      _parser.add_argument("--examples-uri", dest="examples_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-statistics-uri", dest="output_statistics_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--schema-uri", dest="schema_uri", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--stats-options-json", dest="stats_options_json", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--beam-pipeline-args", dest="beam_pipeline_args", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
 
-      _outputs = CsvExampleGen(**_parsed_args)
+      _outputs = StatisticsGen(**_parsed_args)
 
       _output_serializers = [
           str,
@@ -136,23 +126,24 @@ implementation:
           with open(output_file, 'w') as f:
               f.write(_output_serializers[idx](_outputs[idx]))
     args:
-    - --input-uri
-    - {inputValue: input_uri}
-    - --output-examples-uri
-    - {inputValue: output_examples_uri}
-    - --input-config
-    - {inputValue: input_config}
-    - --output-config
-    - {inputValue: output_config}
+    - --examples-uri
+    - {inputValue: examples_uri}
+    - --output-statistics-uri
+    - {inputValue: output_statistics_uri}
     - if:
-        cond: {isPresent: custom_config}
+        cond: {isPresent: schema_uri}
         then:
-        - --custom-config
-        - {inputValue: custom_config}
+        - --schema-uri
+        - {inputValue: schema_uri}
+    - if:
+        cond: {isPresent: stats_options_json}
+        then:
+        - --stats-options-json
+        - {inputValue: stats_options_json}
     - if:
         cond: {isPresent: beam_pipeline_args}
         then:
         - --beam-pipeline-args
         - {inputValue: beam_pipeline_args}
     - '----output-paths'
-    - {outputPath: examples_uri}
+    - {outputPath: statistics_uri}
