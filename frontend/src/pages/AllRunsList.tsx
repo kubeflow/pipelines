@@ -48,6 +48,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)
         .archive(
+          'run',
           () => this.state.selectedIds,
           false,
           selectedIds => this._selectionChanged(selectedIds),

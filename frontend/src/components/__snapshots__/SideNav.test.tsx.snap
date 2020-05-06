@@ -150,7 +150,7 @@ exports[`SideNav populates the display build information using the response from
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"
@@ -398,7 +398,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"
@@ -625,7 +625,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"
@@ -852,7 +852,7 @@ exports[`SideNav renders collapsed state 1`] = `
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button collapsedButton"
@@ -1079,7 +1079,7 @@ exports[`SideNav renders expanded state 1`] = `
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"
@@ -1306,7 +1306,7 @@ exports[`SideNav renders experiments as active page 1`] = `
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"
@@ -1533,7 +1533,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"
@@ -1760,7 +1760,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"
@@ -1987,7 +1987,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"
@@ -2214,7 +2214,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"
@@ -2441,7 +2441,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"
@@ -2668,7 +2668,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"
@@ -2895,7 +2895,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"
@@ -3159,7 +3159,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
         className="unstyled"
         id="archiveBtn"
         replace={false}
-        to="/archive"
+        to="/archive/runs"
       >
         <WithStyles(Button)
           className="button"

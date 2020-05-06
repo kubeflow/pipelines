@@ -24,11 +24,11 @@ import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
-interface ArchiveState {
+interface ArchivedRunsState {
   selectedIds: string[];
 }
 
-export class Archive extends Page<{ namespace?: string }, ArchiveState> {
+export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState> {
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
@@ -43,7 +43,7 @@ export class Archive extends Page<{ namespace?: string }, ArchiveState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .restore(() => this.state.selectedIds, false, this._selectionChanged.bind(this))
+        .restore('run', () => this.state.selectedIds, false, this._selectionChanged.bind(this))
         .refresh(this.refresh.bind(this))
         .delete(
           () => this.state.selectedIds,
@@ -93,9 +93,9 @@ export class Archive extends Page<{ namespace?: string }, ArchiveState> {
   }
 }
 
-const EnhancedArchive = (props: PageProps) => {
+const EnhancedArchivedRuns = (props: PageProps) => {
   const namespace = React.useContext(NamespaceContext);
-  return <Archive key={namespace} {...props} namespace={namespace} />;
+  return <ArchivedRuns key={namespace} {...props} namespace={namespace} />;
 };
 
-export default EnhancedArchive;
+export default EnhancedArchivedRuns;

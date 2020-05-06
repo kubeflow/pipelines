@@ -84,6 +84,7 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 			DisplayName:        run.Name,
 			Name:               workflow.Name,
 			Namespace:          workflow.Namespace,
+			ServiceAccount:     workflow.Spec.ServiceAccountName,
 			Conditions:         workflow.Condition(),
 			Description:        run.Description,
 			ResourceReferences: resourceReferences,
@@ -116,11 +117,16 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 			return nil, util.Wrap(err, "Error getting the pipeline name")
 		}
 	}
+	serviceAccount := ""
+	if swf.Spec.Workflow != nil {
+		serviceAccount = swf.Spec.Workflow.Spec.ServiceAccountName
+	}
 	return &model.Job{
 		UUID:               string(swf.UID),
 		DisplayName:        job.Name,
 		Name:               swf.Name,
 		Namespace:          swf.Namespace,
+		ServiceAccount:     serviceAccount,
 		Description:        job.Description,
 		Conditions:         swf.ConditionSummary(),
 		Enabled:            job.Enabled,

@@ -4,16 +4,15 @@ from kfp.components import InputPath, OutputPath
 
 
 def Transform(
-    input_data_path: InputPath('Examples'),
-    #examples: InputPath('Examples'),
+    examples_path: InputPath('Examples'),
     schema_path: InputPath('Schema'),
 
-    transform_output_path: OutputPath('TransformGraph'),
-    #transform_graph_path: OutputPath('TransformGraph'),
+    transform_graph_path: OutputPath('TransformGraph'),
     transformed_examples_path: OutputPath('Examples'),
 
-    module_file: 'Uri' = None,
+    module_file: str = None,
     preprocessing_fn: str = None,
+    custom_config: dict = None,
 ):
     """A TFX component to transform the input examples.
 
@@ -33,9 +32,8 @@ def Transform(
     of the TFX Chicago Taxi pipeline example.
 
     Args:
-      input_data: A Channel of 'Examples' type (required). This should
+      examples: A Channel of 'Examples' type (required). This should
         contain the two splits 'train' and 'eval'.
-      #examples: Forwards compatibility alias for the 'input_data' argument.
       schema: A Channel of 'SchemaPath' type. This should contain a single
         schema artifact.
       module_file: The file path to a python module file, from which the
@@ -54,7 +52,7 @@ def Transform(
          be supplied.
 
     Returns:
-      transform_output: Optional output 'TransformPath' channel for output of
+      transform_graph: Optional output 'TransformPath' channel for output of
         'tf.Transform', which includes an exported Tensorflow graph suitable for
         both training and serving;
       transformed_examples: Optional output 'ExamplesPath' channel for
@@ -67,15 +65,13 @@ def Transform(
     """
     from tfx.components.transform.component import Transform
     component_class = Transform
-    input_channels_with_splits = {'input_data', 'examples'}
-    output_channels_with_splits = {'transformed_examples'}
 
-
+    #Generated code
     import json
     import os
-    import tfx
+    import tensorflow
     from google.protobuf import json_format, message
-    from tfx.types import Artifact, channel_utils
+    from tfx.types import Artifact, channel_utils, artifact_utils
 
     arguments = locals().copy()
 
@@ -93,20 +89,14 @@ def Transform(
 
     for name, channel_parameter in component_class.SPEC_CLASS.INPUTS.items():
         artifact_path = arguments[name + '_path']
-        artifacts = []
-        if name in input_channels_with_splits:
-            # Recovering splits
-            splits = sorted(os.listdir(artifact_path))
-            for split in splits:
-                artifact = Artifact(type_name=channel_parameter.type_name)
-                artifact.split = split
-                artifact.uri = os.path.join(artifact_path, split) + '/'
-                artifacts.append(artifact)
-        else:
-            artifact = Artifact(type_name=channel_parameter.type_name)
+        if artifact_path:
+            artifact = channel_parameter.type()
             artifact.uri = artifact_path + '/' # ?
-            artifacts.append(artifact)
-        component_class_args[name] = channel_utils.as_channel(artifacts)
+            if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
+                # Recovering splits
+                subdirs = tensorflow.io.gfile.listdir(artifact_path)
+                artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))
+            component_class_args[name] = channel_utils.as_channel([artifact])
 
     component_class_instance = component_class(**component_class_args)
 
@@ -117,8 +107,10 @@ def Transform(
     # Generating paths for output artifacts
     for name, artifacts in output_dict.items():
         base_artifact_path = arguments[name + '_path']
-        for artifact in artifacts:
-            artifact.uri = os.path.join(base_artifact_path, artifact.split) # Default split is ''
+        # Are there still cases where output channel has multiple artifacts?
+        for idx, artifact in enumerate(artifacts):
+            subdir = str(idx + 1) if idx > 0 else ''
+            artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
 
     print('component instance: ' + str(component_class_instance))
 
@@ -131,11 +123,10 @@ def Transform(
     )
 
 
-
 if __name__ == '__main__':
     import kfp
     kfp.components.func_to_container_op(
         Transform,
-        base_image='tensorflow/tfx:0.15.0',
+        base_image='tensorflow/tfx:0.21.4',
         output_component_file='component.yaml'
     )
