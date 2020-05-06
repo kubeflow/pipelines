@@ -18,13 +18,11 @@ ENV PYTHONPATH /app
 RUN yum update -y \
  && yum install -y -q \
     ca-certificates \
-    python-devel \
-    python-setuptools \
-    python-pip \
+    python3 \
     wget \
     unzip
 
-RUN pip install \
+RUN pip3 install \
     boto3==1.12.33 \
     sagemaker==1.54.0 \
     pathlib2==2.3.5 \

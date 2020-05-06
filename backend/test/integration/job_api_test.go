@@ -2,6 +2,7 @@ package integration
 
 import (
 	"io/ioutil"
+	"sort"
 	"testing"
 	"time"
 
@@ -40,6 +41,12 @@ type JobApiTestSuite struct {
 	runClient            *api_server.RunClient
 	jobClient            *api_server.JobClient
 }
+
+type JobResourceReferenceSorter []*job_model.APIResourceReference
+
+func (r JobResourceReferenceSorter) Len() int           { return len(r) }
+func (r JobResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
+func (r JobResourceReferenceSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
 // Check the namespace have ML pipeline installed and ready
 func (s *JobApiTestSuite) SetupTest() {
@@ -345,24 +352,19 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 	// Check workflow manifest is not empty
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
 
-	// Check resource references contain experiment and pipeline version.
-	resourceReferences := []*job_model.APIResourceReference{
-		{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-			Name: experimentName, Relationship: job_model.APIRelationshipOWNER,
-		},
-		{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
-			Name: pipelineVersionName, Relationship: job_model.APIRelationshipCREATOR},
-	}
-	assert.ElementsMatch(t, job.ResourceReferences, resourceReferences)
-
-	// Check other fields in job object (other than resource references)
-	job.ResourceReferences = nil
 	expectedJob := &job_model.APIJob{
 		ID:          job.ID,
 		Name:        "hello world",
 		Description: "this is hello world",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
+		},
+		ResourceReferences: []*job_model.APIResourceReference{
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
+				Name: experimentName, Relationship: job_model.APIRelationshipOWNER,
+			},
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+				Name: pipelineVersionName, Relationship: job_model.APIRelationshipCREATOR},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
@@ -371,6 +373,10 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 		Status:         job.Status,
 		Trigger:        &job_model.APITrigger{},
 	}
+
+	// Need to sort resource references before equality check as the order is non-deterministic
+	sort.Sort(JobResourceReferenceSorter(job.ResourceReferences))
+	sort.Sort(JobResourceReferenceSorter(expectedJob.ResourceReferences))
 	assert.Equal(t, expectedJob, job)
 }
 

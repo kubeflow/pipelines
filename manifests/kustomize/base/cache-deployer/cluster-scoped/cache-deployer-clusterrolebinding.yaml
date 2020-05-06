@@ -9,5 +9,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kubeflow-pipelines-cache-deployer-sa
-  # Here it should be changed or overwrite to well match with customized namespace
-  namespace: kubeflow
+  namespace: $(NAMESPACE)

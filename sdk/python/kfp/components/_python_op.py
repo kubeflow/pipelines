@@ -247,7 +247,7 @@ def _strip_type_hints_using_lib2to3(source_code: str) -> str:
         def get_fixers(self):
             return self._fixers, []
 
-    stripped_code = Refactor([StripAnnotations]).refactor_string(source_code, '')
+    stripped_code = str(Refactor([StripAnnotations]).refactor_string(source_code, ''))
     return stripped_code
 
 

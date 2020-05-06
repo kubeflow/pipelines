@@ -31,11 +31,11 @@ type RunApiTestSuite struct {
 	runClient            *api_server.RunClient
 }
 
-type ResourceReferenceSorter []*run_model.APIResourceReference
+type RunResourceReferenceSorter []*run_model.APIResourceReference
 
-func (r ResourceReferenceSorter) Len() int           { return len(r) }
-func (r ResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
-func (r ResourceReferenceSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+func (r RunResourceReferenceSorter) Len() int           { return len(r) }
+func (r RunResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
+func (r RunResourceReferenceSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
 // Check the namespace have ML pipeline installed and ready
 func (s *RunApiTestSuite) SetupTest() {
@@ -272,8 +272,8 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 	}
 
 	// Need to sort resource references before equality check as the order is non-deterministic
-	sort.Sort(ResourceReferenceSorter(runDetail.Run.ResourceReferences))
-	sort.Sort(ResourceReferenceSorter(expectedRun.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
@@ -305,8 +305,8 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 	}
 
 	// Need to sort resource references before equality check as the order is non-deterministic
-	sort.Sort(ResourceReferenceSorter(runDetail.Run.ResourceReferences))
-	sort.Sort(ResourceReferenceSorter(expectedRun.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
