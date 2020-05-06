@@ -39,7 +39,7 @@ def StatisticsGen(
         component_class_args[name] = argument_value_obj
 
     for name, channel_parameter in component_class.SPEC_CLASS.INPUTS.items():
-        artifact_path = arguments.get(name + '_uri', None) or arguments.get(name + '_path', None)
+        artifact_path = arguments.get(name + '_uri') or arguments.get(name + '_path')
         if artifact_path:
             artifact = channel_parameter.type()
             artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
@@ -59,7 +59,7 @@ def StatisticsGen(
 
     # Generating paths for output artifacts
     for name, artifacts in output_dict.items():
-        base_artifact_path = arguments.get('output_' + name + '_uri', None) or arguments.get(name + '_path', None)
+        base_artifact_path = arguments.get('output_' + name + '_uri') or arguments.get(name + '_path')
         if base_artifact_path:
             # Are there still cases where output channel has multiple artifacts?
             for idx, artifact in enumerate(artifacts):
