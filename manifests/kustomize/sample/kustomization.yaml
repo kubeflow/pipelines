@@ -5,6 +5,12 @@ bases:
   # Or github.com/kubeflow/pipelines/manifests/kustomize/env/gcp?ref=1.0.0
   - ../env/gcp
 
+# Identifier for application manager to apply ownerReference.
+# The ownerReference ensures the resources get garbage collected
+# when application is deleted.
+commonLabels:
+  application-crd-id: kubeflow-pipelines
+
 # Used by Kustomize
 configMapGenerator:
   - name: pipeline-install-config
@@ -17,7 +23,7 @@ secretGenerator:
     behavior: merge
 
 # !!! If you want to customize the namespace,
-# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
+# please also update sample/params.env and sample/cluster-scoped-resources/params.env
 namespace: kubeflow
 
 #### Customization ###

@@ -12,5 +12,5 @@ commonLabels:
   application-crd-id: kubeflow-pipelines
 
 # !!! If you want to customize the namespace,
-# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
+# please refer sample/cluster-scoped-resources to update the namespace for cluster-scoped-resources
 namespace: kubeflow
