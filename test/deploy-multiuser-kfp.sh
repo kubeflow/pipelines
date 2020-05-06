@@ -28,7 +28,7 @@ function clean_up {
     for role in $(gcloud projects get-iam-policy ${PROJECT} --flatten="bindings[].members" --format="table(bindings.role)" --filter="bindings.members:${sa}");
     do
       if [[ $role =~ "roles" ]]; then
-	gcloud projects remove-iam-policy-binding ${PROJECT} --member="serviceAccount:${sa}" --role="${role}" >/dev/null
+        gcloud projects remove-iam-policy-binding ${PROJECT} --member="serviceAccount:${sa}" --role="${role}" >/dev/null
       fi
     done
     gcloud iam service-accounts delete ${sa} --quiet
