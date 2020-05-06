@@ -1,20 +1,16 @@
-name: CsvExampleGen
+name: Transform
 inputs:
-- {name: input_uri, type: ExternalArtifactUri}
-- {name: output_examples_uri, type: ExamplesUri}
-- name: input_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.Input'}
-- name: output_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.Output'}
-- name: custom_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.CustomConfig'}
-  optional: true
+- {name: examples_uri, type: ExamplesUri}
+- {name: schema_uri, type: SchemaUri}
+- {name: output_transform_graph_uri, type: TransformGraphUri}
+- {name: output_transformed_examples_uri, type: ExamplesUri}
+- {name: module_file, type: String, optional: true}
+- {name: preprocessing_fn, type: String, optional: true}
+- {name: custom_config, type: JsonObject, optional: true}
 - {name: beam_pipeline_args, type: JsonArray, optional: true}
 outputs:
-- {name: examples_uri, type: ExamplesUri}
+- {name: transform_graph_uri, type: TransformGraphUri}
+- {name: transformed_examples_uri, type: ExamplesUri}
 implementation:
   container:
     image: tensorflow/tfx:0.21.4
@@ -23,15 +19,17 @@ implementation:
     - -u
     - -c
     - |
-      def CsvExampleGen(
-          input_uri,
-          output_examples_uri,
-          input_config,
-          output_config,
+      def Transform(
+          examples_uri,
+          schema_uri,
+          output_transform_graph_uri,
+          output_transformed_examples_uri,
+          module_file = None,
+          preprocessing_fn = None,
           custom_config = None,
           beam_pipeline_args = None,
       ):
-          from tfx.components import CsvExampleGen as component_class
+          from tfx.components import Transform as component_class
 
           #Generated code
           import json
@@ -105,24 +103,27 @@ implementation:
               exec_properties=exec_properties,
           )
 
-          return (output_examples_uri, )
+          return (output_transform_graph_uri, output_transformed_examples_uri, )
 
       import json
       import argparse
-      _parser = argparse.ArgumentParser(prog='CsvExampleGen', description='')
-      _parser.add_argument("--input-uri", dest="input_uri", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-examples-uri", dest="output_examples_uri", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--input-config", dest="input_config", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-config", dest="output_config", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--custom-config", dest="custom_config", type=str, required=False, default=argparse.SUPPRESS)
+      _parser = argparse.ArgumentParser(prog='Transform', description='')
+      _parser.add_argument("--examples-uri", dest="examples_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--schema-uri", dest="schema_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-transform-graph-uri", dest="output_transform_graph_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-transformed-examples-uri", dest="output_transformed_examples_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--module-file", dest="module_file", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--preprocessing-fn", dest="preprocessing_fn", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--custom-config", dest="custom_config", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--beam-pipeline-args", dest="beam_pipeline_args", type=json.loads, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
 
-      _outputs = CsvExampleGen(**_parsed_args)
+      _outputs = Transform(**_parsed_args)
 
       _output_serializers = [
+          str,
           str,
 
       ]
@@ -136,14 +137,24 @@ implementation:
           with open(output_file, 'w') as f:
               f.write(_output_serializers[idx](_outputs[idx]))
     args:
-    - --input-uri
-    - {inputValue: input_uri}
-    - --output-examples-uri
-    - {inputValue: output_examples_uri}
-    - --input-config
-    - {inputValue: input_config}
-    - --output-config
-    - {inputValue: output_config}
+    - --examples-uri
+    - {inputValue: examples_uri}
+    - --schema-uri
+    - {inputValue: schema_uri}
+    - --output-transform-graph-uri
+    - {inputValue: output_transform_graph_uri}
+    - --output-transformed-examples-uri
+    - {inputValue: output_transformed_examples_uri}
+    - if:
+        cond: {isPresent: module_file}
+        then:
+        - --module-file
+        - {inputValue: module_file}
+    - if:
+        cond: {isPresent: preprocessing_fn}
+        then:
+        - --preprocessing-fn
+        - {inputValue: preprocessing_fn}
     - if:
         cond: {isPresent: custom_config}
         then:
@@ -155,4 +166,5 @@ implementation:
         - --beam-pipeline-args
         - {inputValue: beam_pipeline_args}
     - '----output-paths'
-    - {outputPath: examples_uri}
+    - {outputPath: transform_graph_uri}
+    - {outputPath: transformed_examples_uri}

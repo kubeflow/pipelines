@@ -1,6 +1,5 @@
-name: CsvExampleGen
+name: BigQueryExampleGen
 inputs:
-- {name: input_uri, type: ExternalArtifactUri}
 - {name: output_examples_uri, type: ExamplesUri}
 - name: input_config
   type:
@@ -23,15 +22,14 @@ implementation:
     - -u
     - -c
     - |
-      def CsvExampleGen(
-          input_uri,
+      def BigQueryExampleGen(
           output_examples_uri,
           input_config,
           output_config,
           custom_config = None,
           beam_pipeline_args = None,
       ):
-          from tfx.components import CsvExampleGen as component_class
+          from tfx.components import BigQueryExampleGen as component_class
 
           #Generated code
           import json
@@ -109,8 +107,7 @@ implementation:
 
       import json
       import argparse
-      _parser = argparse.ArgumentParser(prog='CsvExampleGen', description='')
-      _parser.add_argument("--input-uri", dest="input_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser = argparse.ArgumentParser(prog='BigQueryExampleGen', description='')
       _parser.add_argument("--output-examples-uri", dest="output_examples_uri", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--input-config", dest="input_config", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--output-config", dest="output_config", type=str, required=True, default=argparse.SUPPRESS)
@@ -120,7 +117,7 @@ implementation:
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
 
-      _outputs = CsvExampleGen(**_parsed_args)
+      _outputs = BigQueryExampleGen(**_parsed_args)
 
       _output_serializers = [
           str,
@@ -136,8 +133,6 @@ implementation:
           with open(output_file, 'w') as f:
               f.write(_output_serializers[idx](_outputs[idx]))
     args:
-    - --input-uri
-    - {inputValue: input_uri}
     - --output-examples-uri
     - {inputValue: output_examples_uri}
     - --input-config

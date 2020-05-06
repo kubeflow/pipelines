@@ -1,20 +1,24 @@
-name: CsvExampleGen
+name: Evaluator
 inputs:
-- {name: input_uri, type: ExternalArtifactUri}
-- {name: output_examples_uri, type: ExamplesUri}
-- name: input_config
+- {name: examples_uri, type: ExamplesUri}
+- {name: model_uri, type: ModelUri}
+- {name: output_evaluation_uri, type: ModelEvaluationUri}
+- {name: output_blessing_uri, type: ModelBlessingUri}
+- {name: baseline_model_uri, type: ModelUri, optional: true}
+- {name: schema_uri, type: SchemaUri, optional: true}
+- name: eval_config
   type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.Input'}
-- name: output_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.Output'}
-- name: custom_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.CustomConfig'}
+    JsonObject: {data_type: 'proto:tensorflow_model_analysis.EvalConfig'}
   optional: true
+- name: feature_slicing_spec
+  type:
+    JsonObject: {data_type: 'proto:tfx.components.evaluator.FeatureSlicingSpec'}
+  optional: true
+- {name: fairness_indicator_thresholds, type: JsonArray, optional: true}
 - {name: beam_pipeline_args, type: JsonArray, optional: true}
 outputs:
-- {name: examples_uri, type: ExamplesUri}
+- {name: evaluation_uri, type: ModelEvaluationUri}
+- {name: blessing_uri, type: ModelBlessingUri}
 implementation:
   container:
     image: tensorflow/tfx:0.21.4
@@ -23,15 +27,19 @@ implementation:
     - -u
     - -c
     - |
-      def CsvExampleGen(
-          input_uri,
-          output_examples_uri,
-          input_config,
-          output_config,
-          custom_config = None,
+      def Evaluator(
+          examples_uri,
+          model_uri,
+          output_evaluation_uri,
+          output_blessing_uri,
+          baseline_model_uri = None,
+          schema_uri = None,
+          eval_config = None,
+          feature_slicing_spec = None,
+          fairness_indicator_thresholds = None,
           beam_pipeline_args = None,
       ):
-          from tfx.components import CsvExampleGen as component_class
+          from tfx.components import Evaluator as component_class
 
           #Generated code
           import json
@@ -105,24 +113,29 @@ implementation:
               exec_properties=exec_properties,
           )
 
-          return (output_examples_uri, )
+          return (output_evaluation_uri, output_blessing_uri, )
 
       import json
       import argparse
-      _parser = argparse.ArgumentParser(prog='CsvExampleGen', description='')
-      _parser.add_argument("--input-uri", dest="input_uri", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-examples-uri", dest="output_examples_uri", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--input-config", dest="input_config", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-config", dest="output_config", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--custom-config", dest="custom_config", type=str, required=False, default=argparse.SUPPRESS)
+      _parser = argparse.ArgumentParser(prog='Evaluator', description='')
+      _parser.add_argument("--examples-uri", dest="examples_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--model-uri", dest="model_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-evaluation-uri", dest="output_evaluation_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-blessing-uri", dest="output_blessing_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--baseline-model-uri", dest="baseline_model_uri", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--schema-uri", dest="schema_uri", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--eval-config", dest="eval_config", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--feature-slicing-spec", dest="feature_slicing_spec", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--fairness-indicator-thresholds", dest="fairness_indicator_thresholds", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--beam-pipeline-args", dest="beam_pipeline_args", type=json.loads, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
 
-      _outputs = CsvExampleGen(**_parsed_args)
+      _outputs = Evaluator(**_parsed_args)
 
       _output_serializers = [
+          str,
           str,
 
       ]
@@ -136,23 +149,44 @@ implementation:
           with open(output_file, 'w') as f:
               f.write(_output_serializers[idx](_outputs[idx]))
     args:
-    - --input-uri
-    - {inputValue: input_uri}
-    - --output-examples-uri
-    - {inputValue: output_examples_uri}
-    - --input-config
-    - {inputValue: input_config}
-    - --output-config
-    - {inputValue: output_config}
+    - --examples-uri
+    - {inputValue: examples_uri}
+    - --model-uri
+    - {inputValue: model_uri}
+    - --output-evaluation-uri
+    - {inputValue: output_evaluation_uri}
+    - --output-blessing-uri
+    - {inputValue: output_blessing_uri}
     - if:
-        cond: {isPresent: custom_config}
+        cond: {isPresent: baseline_model_uri}
         then:
-        - --custom-config
-        - {inputValue: custom_config}
+        - --baseline-model-uri
+        - {inputValue: baseline_model_uri}
+    - if:
+        cond: {isPresent: schema_uri}
+        then:
+        - --schema-uri
+        - {inputValue: schema_uri}
+    - if:
+        cond: {isPresent: eval_config}
+        then:
+        - --eval-config
+        - {inputValue: eval_config}
+    - if:
+        cond: {isPresent: feature_slicing_spec}
+        then:
+        - --feature-slicing-spec
+        - {inputValue: feature_slicing_spec}
+    - if:
+        cond: {isPresent: fairness_indicator_thresholds}
+        then:
+        - --fairness-indicator-thresholds
+        - {inputValue: fairness_indicator_thresholds}
     - if:
         cond: {isPresent: beam_pipeline_args}
         then:
         - --beam-pipeline-args
         - {inputValue: beam_pipeline_args}
     - '----output-paths'
-    - {outputPath: examples_uri}
+    - {outputPath: evaluation_uri}
+    - {outputPath: blessing_uri}

@@ -1,20 +1,24 @@
-name: CsvExampleGen
+name: Trainer
 inputs:
-- {name: input_uri, type: ExternalArtifactUri}
-- {name: output_examples_uri, type: ExamplesUri}
-- name: input_config
+- {name: examples_uri, type: ExamplesUri}
+- {name: schema_uri, type: SchemaUri}
+- {name: output_model_uri, type: ModelUri}
+- name: train_args
   type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.Input'}
-- name: output_config
+    JsonObject: {data_type: 'proto:tfx.components.trainer.TrainArgs'}
+- name: eval_args
   type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.Output'}
-- name: custom_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.CustomConfig'}
-  optional: true
+    JsonObject: {data_type: 'proto:tfx.components.trainer.EvalArgs'}
+- {name: transform_graph_uri, type: TransformGraphUri, optional: true}
+- {name: base_model_uri, type: ModelUri, optional: true}
+- {name: hyperparameters_uri, type: HyperParametersUri, optional: true}
+- {name: module_file, type: String, optional: true}
+- {name: run_fn, type: String, optional: true}
+- {name: trainer_fn, type: String, optional: true}
+- {name: custom_config, type: JsonObject, optional: true}
 - {name: beam_pipeline_args, type: JsonArray, optional: true}
 outputs:
-- {name: examples_uri, type: ExamplesUri}
+- {name: model_uri, type: ModelUri}
 implementation:
   container:
     image: tensorflow/tfx:0.21.4
@@ -23,15 +27,22 @@ implementation:
     - -u
     - -c
     - |
-      def CsvExampleGen(
-          input_uri,
-          output_examples_uri,
-          input_config,
-          output_config,
+      def Trainer(
+          examples_uri,
+          schema_uri,
+          output_model_uri,
+          train_args,
+          eval_args,
+          transform_graph_uri = None,
+          base_model_uri = None,
+          hyperparameters_uri = None,
+          module_file = None,
+          run_fn = None,
+          trainer_fn = None,
           custom_config = None,
           beam_pipeline_args = None,
       ):
-          from tfx.components import CsvExampleGen as component_class
+          from tfx.components import Trainer as component_class
 
           #Generated code
           import json
@@ -105,22 +116,29 @@ implementation:
               exec_properties=exec_properties,
           )
 
-          return (output_examples_uri, )
+          return (output_model_uri, )
 
       import json
       import argparse
-      _parser = argparse.ArgumentParser(prog='CsvExampleGen', description='')
-      _parser.add_argument("--input-uri", dest="input_uri", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-examples-uri", dest="output_examples_uri", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--input-config", dest="input_config", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-config", dest="output_config", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--custom-config", dest="custom_config", type=str, required=False, default=argparse.SUPPRESS)
+      _parser = argparse.ArgumentParser(prog='Trainer', description='')
+      _parser.add_argument("--examples-uri", dest="examples_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--schema-uri", dest="schema_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-model-uri", dest="output_model_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--train-args", dest="train_args", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--eval-args", dest="eval_args", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--transform-graph-uri", dest="transform_graph_uri", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--base-model-uri", dest="base_model_uri", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--hyperparameters-uri", dest="hyperparameters_uri", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--module-file", dest="module_file", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--run-fn", dest="run_fn", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--trainer-fn", dest="trainer_fn", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--custom-config", dest="custom_config", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--beam-pipeline-args", dest="beam_pipeline_args", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
 
-      _outputs = CsvExampleGen(**_parsed_args)
+      _outputs = Trainer(**_parsed_args)
 
       _output_serializers = [
           str,
@@ -136,14 +154,46 @@ implementation:
           with open(output_file, 'w') as f:
               f.write(_output_serializers[idx](_outputs[idx]))
     args:
-    - --input-uri
-    - {inputValue: input_uri}
-    - --output-examples-uri
-    - {inputValue: output_examples_uri}
-    - --input-config
-    - {inputValue: input_config}
-    - --output-config
-    - {inputValue: output_config}
+    - --examples-uri
+    - {inputValue: examples_uri}
+    - --schema-uri
+    - {inputValue: schema_uri}
+    - --output-model-uri
+    - {inputValue: output_model_uri}
+    - --train-args
+    - {inputValue: train_args}
+    - --eval-args
+    - {inputValue: eval_args}
+    - if:
+        cond: {isPresent: transform_graph_uri}
+        then:
+        - --transform-graph-uri
+        - {inputValue: transform_graph_uri}
+    - if:
+        cond: {isPresent: base_model_uri}
+        then:
+        - --base-model-uri
+        - {inputValue: base_model_uri}
+    - if:
+        cond: {isPresent: hyperparameters_uri}
+        then:
+        - --hyperparameters-uri
+        - {inputValue: hyperparameters_uri}
+    - if:
+        cond: {isPresent: module_file}
+        then:
+        - --module-file
+        - {inputValue: module_file}
+    - if:
+        cond: {isPresent: run_fn}
+        then:
+        - --run-fn
+        - {inputValue: run_fn}
+    - if:
+        cond: {isPresent: trainer_fn}
+        then:
+        - --trainer-fn
+        - {inputValue: trainer_fn}
     - if:
         cond: {isPresent: custom_config}
         then:
@@ -155,4 +205,4 @@ implementation:
         - --beam-pipeline-args
         - {inputValue: beam_pipeline_args}
     - '----output-paths'
-    - {outputPath: examples_uri}
+    - {outputPath: model_uri}

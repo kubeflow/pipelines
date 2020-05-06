@@ -2,17 +2,16 @@
 
 from typing import NamedTuple
 
-def CsvExampleGen(
-    input_uri: 'ExternalArtifactUri',
-    output_examples_uri: 'ExamplesUri',
-    input_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Input'}},
-    output_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Output'}},
-    custom_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.CustomConfig'}} = None,
+def StatisticsGen(
+    examples_uri: 'ExamplesUri',
+    output_statistics_uri: 'ExampleStatisticsUri',
+    schema_uri: 'SchemaUri' = None,
+    stats_options_json: str = None,
     beam_pipeline_args: list = None,
 ) -> NamedTuple('Outputs', [
-    ('examples_uri', 'ExamplesUri'),
+    ('statistics_uri', 'ExampleStatisticsUri'),
 ]):
-    from tfx.components import CsvExampleGen as component_class
+    from tfx.components import StatisticsGen as component_class
 
     #Generated code
     import json
@@ -86,13 +85,13 @@ def CsvExampleGen(
         exec_properties=exec_properties,
     )
 
-    return (output_examples_uri, )
+    return (output_statistics_uri, )
 
 
 if __name__ == '__main__':
     import kfp
     kfp.components.create_component_from_func(
-        CsvExampleGen,
+        StatisticsGen,
         base_image='tensorflow/tfx:0.21.4',
         output_component_file='component.yaml'
     )
