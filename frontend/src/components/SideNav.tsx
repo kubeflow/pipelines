@@ -448,7 +448,11 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           )}
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
           <div
-            className={classes(css.indicator, page !== RoutePage.ARCHIVE && css.indicatorHidden)}
+            className={classes(
+              css.indicator,
+              ![RoutePage.ARCHIVED_RUNS, RoutePage.ARCHIVED_EXPERIMENTS].includes(page) &&
+                css.indicatorHidden,
+            )}
           />
           <Tooltip
             title={'Archive'}
@@ -458,11 +462,12 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link id='archiveBtn' to={RoutePage.ARCHIVE} className={commonCss.unstyled}>
+            <Link id='archiveBtn' to={RoutePage.ARCHIVED_RUNS} className={commonCss.unstyled}>
               <Button
                 className={classes(
                   css.button,
-                  page === RoutePage.ARCHIVE && css.active,
+                  (page === RoutePage.ARCHIVED_RUNS || page === RoutePage.ARCHIVED_EXPERIMENTS) &&
+                    css.active,
                   collapsed && css.collapsedButton,
                 )}
               >

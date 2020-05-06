@@ -26,7 +26,7 @@ import RecurringRunsManager from './RecurringRunsManager';
 import RunList from '../pages/RunList';
 import Toolbar, { ToolbarProps } from '../components/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
-import { ApiExperiment } from '../apis/experiment';
+import { ApiExperiment, ExperimentStorageState } from '../apis/experiment';
 import { Apis } from '../lib/Apis';
 import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -126,6 +126,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           .compareRuns(() => this.state.selectedIds)
           .cloneRun(() => this.state.selectedIds, false)
           .archive(
+            'run',
             () => this.state.selectedIds,
             false,
             ids => this._selectionChanged(ids),
@@ -285,8 +286,19 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
       const pageTitle = experiment.name || this.props.match.params[RouteParams.experimentId];
 
+      // Update the Archive/Restore button based on the storage state of this experiment.
+      const buttons = new Buttons(
+        this.props,
+        this.refresh.bind(this),
+        this.getInitialToolbarState().actions,
+      );
+      const idGetter = () => (experiment.id ? [experiment.id] : []);
+      experiment.storage_state === ExperimentStorageState.ARCHIVED
+        ? buttons.restore('experiment', idGetter, true, () => this.refresh())
+        : buttons.archive('experiment', idGetter, true, () => this.refresh());
+      const actions = buttons.getToolbarActionMap();
       this.props.updateToolbar({
-        actions: this.props.toolbarProps.actions,
+        actions,
         breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
         pageTitle,
         pageTitleTooltip: pageTitle,
