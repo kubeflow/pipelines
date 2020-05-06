@@ -57,6 +57,8 @@ import { Description } from '../components/Description';
 import { NamespaceContext } from '../lib/KubeflowClient';
 import { NameWithTooltip } from '../components/CustomTableNameColumn';
 import { PredicateOp, ApiFilter } from '../apis/filter';
+import { HelpButton } from 'src/atoms/HelpButton';
+import { ExternalLink } from 'src/atoms/ExternalLink';
 
 interface NewRunState {
   description: string;
@@ -502,7 +504,20 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             }}
           />
 
-          <div>This run will use the following Kubernetes service account.</div>
+          <div>
+            This run will use the following Kubernetes service account.{' '}
+            <HelpButton
+              helpText={
+                <div>
+                  Note, the service account needs{' '}
+                  <ExternalLink href='https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md'>
+                    minimum permissions required by argo workflows
+                  </ExternalLink>{' '}
+                  and extra permissions the specific task requires.
+                </div>
+              }
+            />
+          </div>
           <Input
             value={serviceAccount}
             onChange={this.handleChange('serviceAccount')}
@@ -921,6 +936,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     let usePipelineFromRunLabel = '';
     let name = '';
     let pipelineVersionName = '';
+    const serviceAccount = originalRun.service_account || '';
 
     // Case 1: a legacy run refers to a pipeline without specifying version.
     const referencePipelineId = RunUtils.getPipelineId(originalRun);
@@ -983,20 +999,6 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     const parameters = runtime
       ? await RunUtils.getParametersFromRuntime(runtime) // cloned from run
       : originalRun.pipeline_spec.parameters || []; // cloned from recurring run
-
-    let serviceAccount = '';
-    if (embeddedPipelineSpec) {
-      try {
-        const workflow = JSON.parse(embeddedPipelineSpec);
-        serviceAccount = workflow!.spec.serviceAccountName || '';
-        if (serviceAccount === 'pipeline-runner') {
-          // pipeline-runner is sdk's default value, it shouldn't get copied
-          serviceAccount = '';
-        }
-      } catch (err) {
-        console.warn('Cannot extract service account from run embedded workflow: ', err);
-      }
-    }
 
     this.setStateSafe({
       isClone: true,
