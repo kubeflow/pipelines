@@ -78,12 +78,15 @@ func (s *UpgradeTests) SetupSuite() {
 		return
 	}
 
-	err := test.WaitForReady(*namespace, *initializeTimeout)
-	if err != nil {
-		glog.Exitf("Failed to initialize test. Error: %v", err)
+	if !*isDevMode {
+		err := test.WaitForReady(*namespace, *initializeTimeout)
+		if err != nil {
+			glog.Exitf("Failed to initialize test. Error: %v", err)
+		}
 	}
 	s.namespace = *namespace
 	clientConfig := test.GetClientConfig(*namespace)
+	var err error
 	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
