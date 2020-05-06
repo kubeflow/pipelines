@@ -31,7 +31,7 @@ MUTATING_WEBHOOK_CONFIGURATION_NAME="cache-webhook"
 # unless --ignore-not-found is specified.
 kubectl get mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
 
-if grep "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --word-regexp <webhooks.txt; then
+if grep "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" -w <webhooks.txt; then
     echo "Webhook is already installed. Sleeping forever."
     sleep infinity
 fi
@@ -59,7 +59,7 @@ while true; do
     # Should fail if there are connectivity problems
     kubectl get mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
 
-    if grep "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --word-regexp <webhooks.txt; then
+    if grep "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" -w <webhooks.txt; then
         echo "Webhook has been installed. Sleeping forever."
         sleep infinity
     else
