@@ -1,8 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-06/schema#",
   "$id": "http://kubeflow.org/pipelines/components.json_schema.json",
-
-  "$ref": "#/definitions/PipelineRunSpec",
+  "allOf": [{"$ref": "#/definitions/ComponentSpec"}],
 
   "definitions": {
     "TypeSpecType": {
@@ -133,8 +132,8 @@
           "required": ["cond", "then"],
           "properties": {
             "cond": {"$ref": "#/definitions/IfConditionArgumentType"},
-            "then": {"$ref": "#/definitions/CommandlineArgumentOrArrayType"},
-            "else": {"$ref": "#/definitions/CommandlineArgumentOrArrayType"}
+            "then": {"$ref": "#/definitions/StringOrPlaceholder"},
+            "else": {"$ref": "#/definitions/StringOrPlaceholder"}
           }
         }
       }
@@ -188,15 +187,6 @@
       ]
     },
 
-    "SourceSpec": {
-      "description": "Specifies the location of the component source code.",
-      "type": "object",
-      "properties": {
-        "url": {"type": "string"}
-      },
-      "additionalProperties": false
-    },
-
     "ComponentSpec": {
       "description": "Component specification. Describes the metadata (name, description, source), the interface (inputs and outputs) and the implementation of the component.",
       "type": "object",
@@ -204,11 +194,9 @@
       "properties": {
         "name": {"type": "string"},
         "description": {"type": "string"},
-        "source": {"$ref": "#/definitions/SourceSpec"},
         "inputs": {"type": "array", "items": {"$ref": "#/definitions/InputSpec"}},
         "outputs": {"type": "array", "items": {"$ref": "#/definitions/OutputSpec"}},
-        "implementation": {"$ref": "#/definitions/ImplementationType"},
-        "schemaVersion": {"type": "string", "default": "kubeflow.org/pipelines/component/v1"}
+        "implementation": {"$ref": "#/definitions/ImplementationType"}
       },
       "additionalProperties": false
     },
@@ -333,7 +321,7 @@
       "description": "When running on Kubernetes, KubernetesExecutionOptionsSpec describes changes to the configuration of a Kubernetes Pod that will execute the task.",
       "type": "object",
       "properties": {
-        "metadata": {"$ref": "#https://kubernetesjsonschema.dev/v1.14.0/_definitions.json/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"},
+        "metadata": {"$ref": "https://kubernetesjsonschema.dev/v1.14.0/_definitions.json#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"},
         "mainContainer": {"$ref": "https://kubernetesjsonschema.dev/v1.14.0/_definitions.json#/definitions/io.k8s.api.core.v1.Container"},
         "podSpec": {"$ref": "https://kubernetesjsonschema.dev/v1.14.0/_definitions.json#/definitions/io.k8s.api.core.v1.PodSpec"}
       },
