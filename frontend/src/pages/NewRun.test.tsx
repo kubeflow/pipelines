@@ -130,6 +130,7 @@ describe('NewRun', () => {
       run: {
         id: 'some-mock-run-id',
         name: 'some mock run name',
+        service_account: 'pipeline-runner',
         pipeline_spec: {
           pipeline_id: 'original-run-pipeline-id',
           workflow_manifest: '{}',
@@ -785,6 +786,25 @@ describe('NewRun', () => {
       expect(tree.state('runName')).toBe('Clone (2) of some run');
     });
 
+    it('uses service account in the original run', async () => {
+      const defaultRunDetail = newMockRunDetail();
+      const runDetail = {
+        ...defaultRunDetail,
+        run: {
+          ...defaultRunDetail.run,
+          service_account: 'sa1',
+        },
+      };
+      const props = generateProps();
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+      getRunSpy.mockImplementation(() => runDetail);
+
+      tree = shallow(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+
+      expect(tree.state('serviceAccount')).toBe('sa1');
+    });
+
     it('uses the query param experiment ID over the one in the original run if an ID is present in both', async () => {
       const experiment = newMockExperiment();
       const runDetail = newMockRunDetail();
@@ -1356,7 +1376,7 @@ describe('NewRun', () => {
           pipeline_id: undefined,
           workflow_manifest: '{"metadata":{"name":"embedded"},"parameters":[]}',
         },
-        service_account: '',
+        service_account: 'pipeline-runner',
         resource_references: [],
       });
       // TODO: verify route change happens
