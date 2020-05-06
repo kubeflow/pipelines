@@ -2,6 +2,7 @@ package integration
 
 import (
 	"io/ioutil"
+	"sort"
 	"testing"
 	"time"
 
@@ -38,6 +39,18 @@ type UpgradeTests struct {
 	runClient            *api_server.RunClient
 	jobClient            *api_server.JobClient
 }
+
+type JobResourceReferenceSorter []*job_model.APIResourceReference
+
+func (r JobResourceReferenceSorter) Len() int           { return len(r) }
+func (r JobResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
+func (r JobResourceReferenceSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+
+type RunResourceReferenceSorter []*run_model.APIResourceReference
+
+func (r RunResourceReferenceSorter) Len() int           { return len(r) }
+func (r RunResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
+func (r RunResourceReferenceSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
 func TestUpgrade(t *testing.T) {
 	suite.Run(t, new(UpgradeTests))
@@ -343,6 +356,8 @@ func (s *UpgradeTests) VerifyJobs() {
 		Trigger:        &job_model.APITrigger{},
 	}
 
+	sort.Sort(JobResourceReferenceSorter(job.ResourceReferences))
+	sort.Sort(JobResourceReferenceSorter(expectedJob.ResourceReferences))
 	assert.Equal(t, expectedJob, job)
 }
 
@@ -374,6 +389,8 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
+	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
