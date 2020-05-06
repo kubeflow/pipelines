@@ -21,10 +21,17 @@ function clean_up {
   echo "Status of pods before clean up:"
   kubectl get pods --all-namespaces
 
-  echo "Clean up service accounts..."
+  echo "Clean up service accounts and iam bindings ..."
   for sa_suffix in 'admin' 'user' 'vm';
   do
-      gcloud iam service-accounts delete ${TEST_CLUSTER}-${sa_suffix}@${PROJECT}.iam.gserviceaccount.com --quiet
+    sa=${TEST_CLUSTER}-${sa_suffix}@${PROJECT}.iam.gserviceaccount.com
+    for role in $(gcloud projects get-iam-policy ${PROJECT} --flatten="bindings[].members" --format="table(bindings.role)" --filter="bindings.members:${sa}");
+    do
+      if [[ $role =~ "roles" ]]; then
+	gcloud projects remove-iam-policy-binding ${PROJECT} --member="serviceAccount:${sa}" --role="${role}" >/dev/null
+      fi
+    done
+    gcloud iam service-accounts delete ${sa} --quiet
   done
 
   echo "Clean up cluster..."
