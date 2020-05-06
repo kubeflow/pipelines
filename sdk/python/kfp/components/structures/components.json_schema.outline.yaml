@@ -1,9 +1,6 @@
 <ComponentSpec>:
     name: string
     description: string
-    source: #SourceSpec
-        url: string
-    schemaVersion: string
     inputs: #InputSpec[]
         <InputSpec[]>:
             name: string
