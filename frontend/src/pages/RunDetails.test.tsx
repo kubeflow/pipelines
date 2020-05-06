@@ -399,7 +399,7 @@ describe('RunDetails', () => {
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        breadcrumbs: [{ displayName: 'Archive', href: RoutePage.ARCHIVE }],
+        breadcrumbs: [{ displayName: 'Archive', href: RoutePage.ARCHIVED_RUNS }],
       }),
     );
   });

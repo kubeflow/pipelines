@@ -27,6 +27,8 @@ import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '..
 import { MemoryRouter } from 'react-router';
 import { logger } from '../lib/Utils';
 import { NamespaceContext } from '../lib/KubeflowClient';
+import { ApiFilter, PredicateOp } from '../apis/filter';
+import { ExperimentStorageState } from '../apis/experiment';
 
 class TestNewRun extends NewRun {
   public _experimentSelectorClosed = super._experimentSelectorClosed;
@@ -602,7 +604,17 @@ describe('NewRun', () => {
         '',
         10,
         'created_at desc',
-        '',
+        encodeURIComponent(
+          JSON.stringify({
+            predicates: [
+              {
+                key: 'storage_state',
+                op: PredicateOp.NOTEQUALS,
+                string_value: ExperimentStorageState.ARCHIVED.toString(),
+              },
+            ],
+          } as ApiFilter),
+        ),
         undefined,
         undefined,
       );
@@ -623,7 +635,17 @@ describe('NewRun', () => {
         '',
         10,
         'created_at desc',
-        '',
+        encodeURIComponent(
+          JSON.stringify({
+            predicates: [
+              {
+                key: 'storage_state',
+                op: PredicateOp.NOTEQUALS,
+                string_value: ExperimentStorageState.ARCHIVED.toString(),
+              },
+            ],
+          } as ApiFilter),
+        ),
         'NAMESPACE',
         'test-ns',
       );
