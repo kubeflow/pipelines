@@ -44,11 +44,7 @@ describe('ArchivedExperiemnts', () => {
   }
 
   beforeEach(() => {
-    updateBannerSpy.mockClear();
-    updateToolbarSpy.mockClear();
-    historyPushSpy.mockClear();
-    updateDialogSpy.mockClear();
-    updateSnackbarSpy.mockClear();
+    jest.clearAllMocks();
   });
 
   afterEach(() => tree.unmount());

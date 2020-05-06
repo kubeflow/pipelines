@@ -450,7 +450,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <div
             className={classes(
               css.indicator,
-              page !== RoutePage.ARCHIVED_RUNS && css.indicatorHidden,
+              ![RoutePage.ARCHIVED_RUNS, RoutePage.ARCHIVED_EXPERIMENTS].includes(page) && css.indicatorHidden,
             )}
           />
           <Tooltip
@@ -465,7 +465,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
               <Button
                 className={classes(
                   css.button,
-                  page === RoutePage.ARCHIVED_RUNS && css.active,
+                  (page === RoutePage.ARCHIVED_RUNS || page === RoutePage.ARCHIVED_EXPERIMENTS) && css.active,
                   collapsed && css.collapsedButton,
                 )}
               >
