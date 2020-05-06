@@ -353,9 +353,10 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
 
 	expectedJob := &job_model.APIJob{
-		ID:          job.ID,
-		Name:        "hello world",
-		Description: "this is hello world",
+		ID:             job.ID,
+		Name:           "hello world",
+		Description:    "this is hello world",
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
 		},
@@ -388,9 +389,10 @@ func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob,
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "arguments-parameters-")
 	expectedJob := &job_model.APIJob{
-		ID:          job.ID,
-		Name:        "argument parameter",
-		Description: "this is argument parameter",
+		ID:             job.ID,
+		Name:           "argument parameter",
+		Description:    "this is argument parameter",
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
 			Parameters: []*job_model.APIParameter{
