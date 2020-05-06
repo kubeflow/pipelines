@@ -50,12 +50,15 @@ function bind_gsa_and_ksa {
 # Usage: verify_workload_identity_binding $KSA $NAMESPACE
 #
 # If you want to verify manually, use the following command instead:
-# kubectl run test-$RANDOM --rm -it --restart=Never \
+# kubectl run test-$RANDOM --rm -it \
 #     --image=google/cloud-sdk:slim \
 #     --serviceaccount $ksa \
 #     --namespace $namespace \
 #     -- /bin/bash
 # It connects you to a pod using specified KSA running an image with gcloud and gsutil CLI tools.
+#
+# For kubeflow deployment with istio sidecar injection enabled, the test pod may fall into a crash-loop
+# for a while, but eventually pass beyond that point (The reason we should allow the pod to restart).
 function verify_workload_identity_binding {
   local ksa=${1}
   local namespace=${2}
