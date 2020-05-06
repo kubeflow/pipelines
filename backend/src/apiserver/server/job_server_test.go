@@ -43,6 +43,7 @@ var (
 	commonExpectedJob = &api.Job{
 		Id:             "123e4567-e89b-12d3-a456-426655440000",
 		Name:           "job1",
+		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
 		MaxConcurrency: 1,
 		Trigger: &api.Trigger{

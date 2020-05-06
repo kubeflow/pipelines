@@ -252,10 +252,11 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "wait-awhile")
 
 	expectedRun := &run_model.APIRun{
-		ID:          runDetail.Run.ID,
-		Name:        "long running",
-		Description: "this pipeline will run long enough for us to manually terminate it before it finishes",
-		Status:      "Terminating",
+		ID:             runDetail.Run.ID,
+		Name:           "long running",
+		Description:    "this pipeline will run long enough for us to manually terminate it before it finishes",
+		Status:         "Terminating",
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
@@ -284,10 +285,11 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "whalesay")
 
 	expectedRun := &run_model.APIRun{
-		ID:          runDetail.Run.ID,
-		Name:        "hello world",
-		Description: "this is hello world",
-		Status:      runDetail.Run.Status,
+		ID:             runDetail.Run.ID,
+		Name:           "hello world",
+		Description:    "this is hello world",
+		Status:         runDetail.Run.Status,
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
@@ -318,10 +320,11 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "arguments-parameters-")
 	expectedRun := &run_model.APIRun{
-		ID:          runDetail.Run.ID,
-		Name:        "argument parameter",
-		Description: "this is argument parameter",
-		Status:      runDetail.Run.Status,
+		ID:             runDetail.Run.ID,
+		Name:           "argument parameter",
+		Description:    "this is argument parameter",
+		Status:         runDetail.Run.Status,
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: string(argParamsBytes),
 			Parameters: []*run_model.APIParameter{
