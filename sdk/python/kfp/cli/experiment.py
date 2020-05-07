@@ -30,6 +30,17 @@ def list(ctx, max_size):
         logging.info("No experiments found")
 
 
+@experiment.command()
+@click.argument("experiment-id")
+@click.pass_context
+def get(ctx, experiment_id):
+    """Get detailed information about an experiment"""
+    client = ctx.obj["client"]
+
+    response = client.get_experiment(experiment_id)
+    _display_experiment(response)
+
+
 def _display_experiments(experiments):
     headers = ["Experiment ID", "Name", "Created at"]
     data = [[
@@ -38,3 +49,14 @@ def _display_experiments(experiments):
         exp.created_at.isoformat()
     ] for exp in experiments]
     print(tabulate(data, headers=headers, tablefmt="grid"))
+
+
+def _display_experiment(exp):
+    print(tabulate([], headers=["Experiment Details"]))
+    table = [
+        ["ID", exp.id],
+        ["Name", exp.name],
+        ["Description", exp.description],
+        ["Created at", exp.created_at.isoformat()],
+    ]
+    print(tabulate(table, tablefmt="plain"))
