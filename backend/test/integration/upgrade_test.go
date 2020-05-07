@@ -40,18 +40,6 @@ type UpgradeTests struct {
 	jobClient            *api_server.JobClient
 }
 
-type JobResourceReferenceSorter []*job_model.APIResourceReference
-
-func (r JobResourceReferenceSorter) Len() int           { return len(r) }
-func (r JobResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
-func (r JobResourceReferenceSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
-
-type RunResourceReferenceSorter []*run_model.APIResourceReference
-
-func (r RunResourceReferenceSorter) Len() int           { return len(r) }
-func (r RunResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
-func (r RunResourceReferenceSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
-
 func TestUpgrade(t *testing.T) {
 	suite.Run(t, new(UpgradeTests))
 }
