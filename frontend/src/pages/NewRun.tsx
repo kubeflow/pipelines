@@ -57,12 +57,15 @@ import { Description } from '../components/Description';
 import { NamespaceContext } from '../lib/KubeflowClient';
 import { NameWithTooltip } from '../components/CustomTableNameColumn';
 import { PredicateOp, ApiFilter } from '../apis/filter';
+import { HelpButton } from 'src/atoms/HelpButton';
+import { ExternalLink } from 'src/atoms/ExternalLink';
 
 interface NewRunState {
   description: string;
   errorMessage: string;
   experiment?: ApiExperiment;
   experimentName: string;
+  serviceAccount: string;
   experimentSelectorOpen: boolean;
   isBeingStarted: boolean;
   isClone: boolean;
@@ -116,6 +119,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     description: '',
     errorMessage: '',
     experimentName: '',
+    serviceAccount: '',
     experimentSelectorOpen: false,
     isBeingStarted: false,
     isClone: false,
@@ -176,6 +180,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       description,
       errorMessage,
       experimentName,
+      serviceAccount,
       experimentSelectorOpen,
       isClone,
       isFirstRunInExperiment,
@@ -497,6 +502,27 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
               ),
               readOnly: true,
             }}
+          />
+
+          <div>
+            This run will use the following Kubernetes service account.{' '}
+            <HelpButton
+              helpText={
+                <div>
+                  Note, the service account needs{' '}
+                  <ExternalLink href='https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md'>
+                    minimum permissions required by argo workflows
+                  </ExternalLink>{' '}
+                  and extra permissions the specific task requires.
+                </div>
+              }
+            />
+          </div>
+          <Input
+            value={serviceAccount}
+            onChange={this.handleChange('serviceAccount')}
+            label='Service Account (Optional)'
+            variant='outlined'
           />
 
           {/* One-off/Recurring Run Type */}
@@ -910,6 +936,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     let usePipelineFromRunLabel = '';
     let name = '';
     let pipelineVersionName = '';
+    const serviceAccount = originalRun.service_account || '';
 
     // Case 1: a legacy run refers to a pipeline without specifying version.
     const referencePipelineId = RunUtils.getPipelineId(originalRun);
@@ -984,6 +1011,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       usePipelineFromRunLabel,
       useWorkflowFromRun,
       workflowFromRun,
+      serviceAccount,
     });
 
     this._validate();
@@ -1039,6 +1067,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           : undefined,
       },
       resource_references: references,
+      service_account: this.state.serviceAccount,
     };
     if (this.state.isRecurringRun) {
       newRun = Object.assign(newRun, {
