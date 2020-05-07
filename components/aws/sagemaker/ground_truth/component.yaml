@@ -113,7 +113,7 @@ inputs:
   - name: tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
-    type: JSON
+    type: JsonObject
 outputs:
   - {name: output_manifest_location,  description: 'The Amazon S3 bucket location of the manifest file for labeled data.'}
   - {name: active_learning_model_arn, description: 'The ARN for the most recent Amazon SageMaker model trained as part of automated data labeling.'}

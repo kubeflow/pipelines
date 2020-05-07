@@ -26,7 +26,7 @@ inputs:
   - name: metric_definitions
     description: 'The dictionary of name-regex pairs specify the metrics that the algorithm emits.'
     default: '{}'
-    type: JSON
+    type: JsonObject
   - name: strategy
     description: 'How hyperparameter tuning chooses the combinations of hyperparameter values to use for the training job it launches.'
     default: 'Bayesian'
@@ -44,22 +44,22 @@ inputs:
   - name: static_parameters
     description: 'The values of hyperparameters that do not change for the tuning job.'
     default: '{}'
-    type: JSON
+    type: JsonObject
   - name: integer_parameters
     description: 'The array of IntegerParameterRange objects that specify ranges of integer hyperparameters that you want to search.'
     default: '[]'
-    type: JSON
+    type: JsonArray
   - name: continuous_parameters
     description: 'The array of ContinuousParameterRange objects that specify ranges of continuous hyperparameters that you want to search.'
     default: '[]'
-    type: JSON
+    type: JsonObject
   - name: categorical_parameters
     description: 'The array of CategoricalParameterRange objects that specify ranges of categorical hyperparameters that you want to search.'
     default: '[]'
-    type: JSON
+    type: JsonArray
   - name: channels
     description: 'A list of dicts specifying the input channels. Must have at least one.'
-    type: JSON
+    type: JsonArray
   - name: output_location
     description: 'The Amazon S3 path where you want Amazon SageMaker to store the model artifacts is from the best training job.'
     type: String
@@ -120,7 +120,7 @@ inputs:
   - name: checkpoint_config
     description: 'Dictionary of information about the output location for managed spot training checkpoint data.'
     default: '{}'
-    type: JSON
+    type: JsonObject
   - name: warm_start_type
     description: 'Specifies either "IdenticalDataAndAlgorithm" or "TransferLearning"'
     default: ''
@@ -136,7 +136,7 @@ inputs:
   - name: tags
     description: 'Key-value pairs, to categorize AWS resources.'
     default: '{}'
-    type: JSON
+    type: JsonObject
 outputs:
   - name: hpo_job_name
     description: 'The name of the hyper parameter tuning job'

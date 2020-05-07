@@ -91,7 +91,7 @@ inputs:
   - name: endpoint_config_tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
-    type: JSON
+    type: JsonObject
   - name: endpoint_name
     description: 'The name of the endpoint.'
     default: ''
@@ -99,7 +99,7 @@ inputs:
   - name: endpoint_tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
-    type: JSON
+    type: JsonObject
 outputs:
   - {name: endpoint_name,          description: 'Endpoint name'}
 implementation:

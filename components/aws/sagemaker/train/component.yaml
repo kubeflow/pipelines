@@ -23,7 +23,7 @@ inputs:
   - name: metric_definitions
     description: 'The dictionary of name-regex pairs specify the metrics that the algorithm emits.'
     default: '{}'
-    type: JSON
+    type: JsonObject
   - name: training_input_mode
     description: 'The input mode that the algorithm supports. File or Pipe.'
     default: 'File'
@@ -31,10 +31,10 @@ inputs:
   - name: hyperparameters
     description: 'Dictionary of hyperparameters for the the algorithm.'
     default: '{}'
-    type: JSON
+    type: JsonObject
   - name: channels
     description: 'A list of dicts specifying the input channels. Must have at least one.'
-    type: JSON
+    type: JsonArray
   - name: instance_type
     description: 'The ML compute instance type.'
     default: 'ml.m4.xlarge'
@@ -89,7 +89,7 @@ inputs:
   - name: checkpoint_config
     description: 'Dictionary of information about the output location for managed spot training checkpoint data.'
     default: '{}'
-    type: JSON
+    type: JsonObject
   - name: endpoint_url
     description: 'The endpoint URL for the private link VPC endpoint.'
     default: ''
@@ -97,7 +97,7 @@ inputs:
   - name: tags
     description: 'Key-value pairs, to categorize AWS resources.'
     default: '{}'
-    type: JSON
+    type: JsonObject
 outputs:
   - {name: model_artifact_url,    description: 'Model artifacts url'}
   - {name: job_name,              description: 'Training job name'}

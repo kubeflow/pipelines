@@ -27,7 +27,7 @@ inputs:
   - name: environment
     description: 'The environment variables to set in the Docker container. Up to 16 key-value entries in the map.'
     default: '{}'
-    type: JSON
+    type: JsonObject
   - name: input_location
     description: 'The S3 location of the data source that is associated with a channel.'
     type: String
@@ -93,7 +93,7 @@ inputs:
   - name: tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
-    type: JSON
+    type: JsonObject
 outputs:
   - {name: output_location,    description: 'S3 URI of the transform job results.'}
 implementation:

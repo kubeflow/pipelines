@@ -31,7 +31,7 @@ inputs:
   - name: tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
-    type: JSON
+    type: JsonObject
 outputs:
   - {name: workteam_arn, description: 'The ARN of the workteam.'}
 implementation:

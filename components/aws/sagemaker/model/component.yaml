@@ -26,7 +26,7 @@ inputs:
   - name: environment
     description: 'The dictionary of the environment variables to set in the Docker container. Up to 16 key-value entries in the map.'
     default: '{}'
-    type: JSON
+    type: JsonObject
   - name: model_package
     description: 'The name or Amazon Resource Name (ARN) of the model package to use to create the model.'
     default: ''
@@ -34,7 +34,7 @@ inputs:
   - name: secondary_containers
     description: 'A list of dicts that specifies the additional containers in the inference pipeline.'
     default: '[]'
-    type: JSON
+    type: JsonArray
   - name: vpc_security_group_ids
     description: 'The VPC security group IDs, in the form sg-xxxxxxxx.'
     default: ''
@@ -54,7 +54,7 @@ inputs:
   - name: tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
-    type: JSON
+    type: JsonObject
 outputs:
   - {name: model_name,          description: 'The model name Sagemaker created'}
 implementation:
