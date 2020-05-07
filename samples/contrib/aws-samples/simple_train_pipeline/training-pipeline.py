@@ -74,7 +74,7 @@ def training(
         max_wait_time=max_wait_time,
         checkpoint_config=checkpoint_config,
         role=role,
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(training, __file__ + '.zip')

@@ -32,7 +32,7 @@ def titanic_suvival_prediction(region='us-west-2',
         instance_type=instance_type,
         instance_count=instance_count,
         log_s3_uri=log_s3_uri,
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
     training_and_prediction = emr_submit_spark_job_op(
         region=region,
@@ -42,13 +42,13 @@ def titanic_suvival_prediction(region='us-west-2',
         main_class=main_class,
         input=input,
         output=output
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
     delete_cluster = emr_delete_cluster_op(
       region=region,
       jobflow_id=create_cluster.output,
       dependent=training_and_prediction.outputs['job_id']
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(titanic_suvival_prediction, __file__ + '.zip')

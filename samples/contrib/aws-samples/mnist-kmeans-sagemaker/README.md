@@ -69,25 +69,92 @@ s3_client.upload_file('valid-data.csv', bucket, input_key)
 ```
 
 Run this file `python s3_sample_data_creator.py`
-## SageMaker permission
+## IAM Roles
 
-In order to run this pipeline, we need to prepare an IAM Role to run Sagemaker jobs. You need this `role_arn` to run a pipeline. Check [here](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-roles.html) for details.
+We need two IAM roles to run AWS KFP components. You only have to do this once. (Re-use the Role ARNs if you have done this before)
 
-This pipeline also use aws-secret to get access to Sagemaker services, please also make sure you have a `aws-secret` in the kubeflow namespace.
+**Role 1]** For KFP pods to access AWS Sagemaker. Here are the steps to create it.
+1. Enable OIDC support on the EKS cluster
+   ```
+   eksctl utils associate-iam-oidc-provider --cluster <cluster_name> \
+    --region <cluster_region> --approve
+   ```
+2. Take note of the [OIDC](https://openid.net/connect/) issuer URL. This URL is in the form `oidc.eks.<region>.amazonaws.com/id/<OIDC_ID>` . Note down the URL.
+   ```
+   aws eks describe-cluster --name <cluster_name> --query "cluster.identity.oidc.issuer" --output text
+   ```
+3. Create a file named trust.json with the following content.   
+   Replace `<OIDC_URL>` with your OIDC issuer URL **(Don’t include https://)** and `<AWS_account_number>` with your AWS account number. 
+   ```
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Principal": {
+           "Federated": "arn:aws:iam::<AWS_account_number>:oidc-provider/<OIDC_URL>"
+         },
+         "Action": "sts:AssumeRoleWithWebIdentity",
+         "Condition": {
+           "StringEquals": {
+             "<OIDC_URL>:aud": "sts.amazonaws.com",
+             "<OIDC_URL>:sub": "system:serviceaccount:kubeflow:pipeline-runner"
+           }
+         }
+       }
+     ]
+   }
+   ```
+4. Create an IAM role using trust.json. Make a note of the ARN returned in the output.
+   ```
+   aws iam create-role --role-name kfp-example-pod-role --assume-role-policy-document file://trust.json
+   aws iam attach-role-policy --role-name kfp-example-pod-role --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+   aws iam get-role --role-name kfp-example-pod-role --output text --query 'Role.Arn'
+   ```
+5. Edit your pipeline-runner service account.
+   ```
+   kubectl edit -n kubeflow serviceaccount pipeline-runner
+   ```
+   Add `eks.amazonaws.com/role-arn: <role_arn>` to annotations, then save the file. Example:   
+   ```
+   apiVersion: v1
+   kind: ServiceAccount
+   metadata:
+     annotations:
+       eks.amazonaws.com/role-arn: <role_arn>
+       kubectl.kubernetes.io/last-applied-configuration: |
+         {"apiVersion":"v1","kind":"ServiceAccount","metadata":{"annotations":{},"labels":{"app":"pipeline-runner","app.kubernetes.io/component":"pipelines-runner","app.kubernetes.io/instance":"pipelines-runner-0.2.0","app.kubernetes.io/managed-by":"kfctl","app.kubernetes.io/name":"pipelines-runner","app.kubernetes.io/part-of":"kubeflow","app.kubernetes.io/version":"0.2.0"},"name":"pipeline-runner","namespace":"kubeflow"}}
+     creationTimestamp: "2020-04-16T05:48:06Z"
+     labels:
+       app: pipeline-runner
+       app.kubernetes.io/component: pipelines-runner
+       app.kubernetes.io/instance: pipelines-runner-0.2.0
+       app.kubernetes.io/managed-by: kfctl
+       app.kubernetes.io/name: pipelines-runner
+       app.kubernetes.io/part-of: kubeflow
+       app.kubernetes.io/version: 0.2.0
+     name: pipeline-runner
+     namespace: kubeflow
+     resourceVersion: "11787"
+     selfLink: /api/v1/namespaces/kubeflow/serviceaccounts/pipeline-runner
+     uid: d86234bd-7fa5-11ea-a8f2-02934be6dc88
+   secrets:
+   - name: pipeline-runner-token-dkjrk
+   ```
+**Role 2]** For sagemaker job to access S3 buckets and other Sagemaker services. This Role ARN is given as an input to the components.
+   ```
+   SAGEMAKER_EXECUTION_ROLE_NAME=kfp-example-sagemaker-execution-role
 
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: aws-secret
-  namespace: kubeflow
-type: Opaque
-data:
-  AWS_ACCESS_KEY_ID: YOUR_BASE64_ACCESS_KEY
-  AWS_SECRET_ACCESS_KEY: YOUR_BASE64_SECRET_ACCESS
-```
+   TRUST="{ \"Version\": \"2012-10-17\", \"Statement\": [ { \"Effect\": \"Allow\", \"Principal\": { \"Service\": \"sagemaker.amazonaws.com\" }, \"Action\": \"sts:AssumeRole\" } ] }"
+   aws iam create-role --role-name ${SAGEMAKER_EXECUTION_ROLE_NAME}--assume-role-policy-document "$TRUST"
+   aws iam attach-role-policy --role-name ${SAGEMAKER_EXECUTION_ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+   aws iam attach-role-policy --role-name ${SAGEMAKER_EXECUTION_ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
 
-> Note: To get base64 string, try `echo -n $AWS_ACCESS_KEY_ID | base64`
+   aws iam get-role --role-name ${SAGEMAKER_EXECUTION_ROLE_NAME} --output text --query 'Role.Arn'
+
+   # Note down the role arn which is of the form 
+   arn:aws:iam::<AWS_acc_num>:role/<role-name>
+   ```
 
 
 ## Compiling the pipeline template

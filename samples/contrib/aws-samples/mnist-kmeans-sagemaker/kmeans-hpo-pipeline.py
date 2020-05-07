@@ -115,7 +115,7 @@ def hpo_test(region='us-west-2',
         checkpoint_config=checkpoint_config,
         tags=tags,
         role=role_arn,
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(hpo_test, __file__ + '.zip')
