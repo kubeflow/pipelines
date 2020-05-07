@@ -71,7 +71,9 @@ def get_component_version():
     """Get component version from the first line of License file"""
     component_version = 'NULL'
 
-    with open('/THIRD-PARTY-LICENSES.txt', 'r') as license_file:
+    # Get license file using known common directory
+    license_file_path = os.path.abspath(os.path.join(__cwd__, '../THIRD-PARTY-LICENSES.txt'))
+    with open(license_file_path, 'r') as license_file:
         version_match = re.search('Amazon SageMaker Components for Kubeflow Pipelines; version (([0-9]+[.])+[0-9]+)',
                         license_file.readline())
         if version_match is not None:

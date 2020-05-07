@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, call, Mock, MagicMock, mock_open
 from botocore.exceptions import ClientError
 from datetime import datetime
 
@@ -26,6 +26,36 @@ class TrainTestCase(unittest.TestCase):
   def setUpClass(cls):
     parser = train.create_parser()
     cls.parser = parser
+
+  def test_main(self):
+    # Mock out all of utils except parser
+    train._utils = MagicMock()
+    train._utils.add_default_client_arguments = _utils.add_default_client_arguments
+
+    # Set some static returns
+    train._utils.create_training_job.return_value = 'job-name'
+    train._utils.get_image_from_job.return_value = 'training-image'
+    train._utils.get_model_artifacts_from_job.return_value = 'model-artifacts'
+
+    with patch('builtins.open', mock_open()) as file_open:
+      train.main(required_args)
+
+    # Check if correct requests were created and triggered
+    train._utils.create_training_job.assert_called()
+    train._utils.wait_for_training_job.assert_called()
+
+    # Check the file outputs
+    file_open.assert_has_calls([
+      call('/tmp/model_artifact_url.txt', 'w'),
+      call('/tmp/job_name.txt', 'w'),
+      call('/tmp/training_image.txt', 'w')
+    ], any_order=True)
+
+    file_open().write.assert_has_calls([
+      call('model-artifacts'),
+      call('job-name'),
+      call('training-image'),
+    ], any_order=False) # Must be in the same order as called
 
   def test_create_parser(self):
     self.assertIsNotNone(self.parser)
