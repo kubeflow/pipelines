@@ -24,9 +24,6 @@ import {
   getRunDuration,
   getRunDurationFromWorkflow,
   logger,
-  isS3Endpoint,
-  consistentDecodeURIComponent,
-  consistentEncodeURIComponent,
 } from './Utils';
 
 describe('Utils', () => {
