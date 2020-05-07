@@ -95,7 +95,9 @@ describe('MinioArtifactPreview', () => {
           >
             s3://foo/bar
           </a>
-          <div>
+          <div
+            class="preview"
+          >
             <small>
               <pre>
                 preview ...
@@ -130,7 +132,9 @@ describe('MinioArtifactPreview', () => {
           >
             minio://foo/bar
           </a>
-          <div>
+          <div
+            class="preview"
+          >
             <small>
               <pre>
                 preview ...
@@ -167,7 +171,9 @@ describe('MinioArtifactPreview', () => {
           >
             minio://foo/bar
           </a>
-          <div>
+          <div
+            class="preview"
+          >
             <small>
               <pre>
                 preview ...
