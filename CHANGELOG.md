@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.1](https://github.com/kubeflow/pipelines/tree/0.5.1) (2020-05-07)
+
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.4.0...0.5.1)
+
+Detailed PR can be found [here](https://github.com/kubeflow/pipelines/commits)
+
 ## [0.4.0](https://github.com/kubeflow/pipelines/tree/0.4.0) (2020-04-07)
 
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.3.0...0.4.0)
