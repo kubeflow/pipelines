@@ -138,11 +138,17 @@ export interface ApiJob {
    */
   pipeline_spec?: ApiPipelineSpec;
   /**
-   * Optional input field. Specify which resource this run belongs to.
+   * Optional input field. Specify which resource this job belongs to.
    * @type {Array<ApiResourceReference>}
    * @memberof ApiJob
    */
   resource_references?: Array<ApiResourceReference>;
+  /**
+   * Optional input field. Specify which Kubernetes service account this job uses.
+   * @type {string}
+   * @memberof ApiJob
+   */
+  service_account?: string;
   /**
    *
    * @type {string}
