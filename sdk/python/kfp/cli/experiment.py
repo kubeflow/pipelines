@@ -1,4 +1,3 @@
-
 import click
 import logging
 from tabulate import tabulate
@@ -8,6 +7,23 @@ from tabulate import tabulate
 def experiment():
     """Manage experiment resources"""
     pass
+
+
+@experiment.command()
+@click.option(
+    '--description',
+    help="Description of the experiment."
+)
+@click.argument("name")
+@click.pass_context
+def create(ctx, description, name):
+    """Create an experiment"""
+    client = ctx.obj["client"]
+
+    response = client.create_experiment(name, description=description)
+    logging.info("Experiment {} has been submitted\n".format(name))
+    _display_experiment(response)
+
 
 @experiment.command()
 @click.option(
