@@ -98,7 +98,7 @@ def create_training_job_request(args):
 
     request['TrainingJobName'] = job_name
     request['RoleArn'] = args['role']
-    request['HyperParameters'] = args['hyperparameters']
+    request['HyperParameters'] = create_hyperparameters(args['hyperparameters'])
     request['AlgorithmSpecification']['TrainingInputMode'] = args['training_input_mode']
 
     ### Update training image (for BYOC and built-in algorithms) or algorithm resource name
@@ -136,8 +136,8 @@ def create_training_job_request(args):
 
     ### Update or pop VPC configs
     if args['vpc_security_group_ids'] and args['vpc_subnets']:
-        request['VpcConfig']['SecurityGroupIds'] = [args['vpc_security_group_ids']]
-        request['VpcConfig']['Subnets'] = [args['vpc_subnets']]
+        request['VpcConfig']['SecurityGroupIds'] = args['vpc_security_group_ids'].split(',')
+        request['VpcConfig']['Subnets'] = args['vpc_subnets'].split(',')
     else:
         request.pop('VpcConfig')
 
@@ -272,8 +272,8 @@ def create_model_request(args):
 
     ### Update or pop VPC configs
     if args['vpc_security_group_ids'] and args['vpc_subnets']:
-        request['VpcConfig']['SecurityGroupIds'] = [args['vpc_security_group_ids']]
-        request['VpcConfig']['Subnets'] = [args['vpc_subnets']]
+        request['VpcConfig']['SecurityGroupIds'] = args['vpc_security_group_ids'].split(',')
+        request['VpcConfig']['Subnets'] = args['vpc_subnets'].split(',')
     else:
         request.pop('VpcConfig')
 
@@ -493,7 +493,7 @@ def create_hyperparameter_tuning_job_request(args):
     request['HyperParameterTuningJobConfig']['ParameterRanges']['CategoricalParameterRanges'] = args['categorical_parameters']
     request['HyperParameterTuningJobConfig']['TrainingJobEarlyStoppingType'] = args['early_stopping_type']
 
-    request['TrainingJobDefinition']['StaticHyperParameters'] = args['static_parameters']
+    request['TrainingJobDefinition']['StaticHyperParameters'] = create_hyperparameters(args['static_parameters'])
     request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingInputMode'] = args['training_input_mode']
 
     ### Update training image (for BYOC) or algorithm resource name
@@ -531,8 +531,8 @@ def create_hyperparameter_tuning_job_request(args):
 
     ### Update or pop VPC configs
     if args['vpc_security_group_ids'] and args['vpc_subnets']:
-        request['TrainingJobDefinition']['VpcConfig']['SecurityGroupIds'] = [args['vpc_security_group_ids']]
-        request['TrainingJobDefinition']['VpcConfig']['Subnets'] = [args['vpc_subnets']]
+        request['TrainingJobDefinition']['VpcConfig']['SecurityGroupIds'] = args['vpc_security_group_ids'].split(',')
+        request['TrainingJobDefinition']['VpcConfig']['Subnets'] = args['vpc_subnets'].split(',')
     else:
         request['TrainingJobDefinition'].pop('VpcConfig')
 
@@ -834,6 +834,14 @@ def get_labeling_job_outputs(client, labeling_job_name, auto_labeling):
     else:
         active_learning_model_arn = ' '
     return output_manifest, active_learning_model_arn
+
+def create_hyperparameters(hyperparam_args):
+    # Validate all values are strings
+    for key, value in hyperparam_args.items():
+        if not isinstance(value, str):
+            raise Exception(f"Could not parse hyperparameters. Value for {key} was not a string.")
+
+    return hyperparam_args
 
 def enable_spot_instance_support(training_job_config, args):
     if args['spot_instance']:
