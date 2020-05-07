@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Archive renders archived runs 1`] = `
+exports[`ArchivedRuns renders archived runs 1`] = `
 <div
   className="page"
 >

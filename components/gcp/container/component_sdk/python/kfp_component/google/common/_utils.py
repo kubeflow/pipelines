@@ -102,16 +102,15 @@ def wait_operation_done(get_operation, wait_interval):
     Returns:
         The completed operation.
     """
-    operation = None
     while True:
         operation = get_operation()
         operation_name = operation.get('name')
         done = operation.get('done', False)
-        if done:
-            break
-        logging.info('Operation {} is not done. Wait for {}s.'.format(
-            operation_name, wait_interval))
-        time.sleep(wait_interval)
+        if not done:
+            logging.info('Operation {} is not done. Wait for {}s.'.format(
+                operation_name, wait_interval))
+            time.sleep(wait_interval)
+            continue
         error = operation.get('error', None)
         if error:
             raise RuntimeError('Failed to complete operation {}: {} {}'.format(
@@ -119,5 +118,5 @@ def wait_operation_done(get_operation, wait_interval):
                 error.get('code', 'Unknown code'),
                 error.get('message', 'Unknown message'),
             ))
-    return operation
+        return operation
 

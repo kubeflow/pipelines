@@ -166,15 +166,16 @@ func toApiRun(run *model.Run) *api.Run {
 		}
 	}
 	return &api.Run{
-		CreatedAt:    &timestamp.Timestamp{Seconds: run.CreatedAtInSec},
-		Id:           run.UUID,
-		Metrics:      metrics,
-		Name:         run.DisplayName,
-		StorageState: api.Run_StorageState(api.Run_StorageState_value[run.StorageState]),
-		Description:  run.Description,
-		ScheduledAt:  &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
-		FinishedAt:   &timestamp.Timestamp{Seconds: run.FinishedAtInSec},
-		Status:       run.Conditions,
+		CreatedAt:      &timestamp.Timestamp{Seconds: run.CreatedAtInSec},
+		Id:             run.UUID,
+		Metrics:        metrics,
+		Name:           run.DisplayName,
+		ServiceAccount: run.ServiceAccount,
+		StorageState:   api.Run_StorageState(api.Run_StorageState_value[run.StorageState]),
+		Description:    run.Description,
+		ScheduledAt:    &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
+		FinishedAt:     &timestamp.Timestamp{Seconds: run.FinishedAtInSec},
+		Status:         run.Conditions,
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId:       run.PipelineId,
 			PipelineName:     run.PipelineName,
@@ -215,6 +216,7 @@ func ToApiJob(job *model.Job) *api.Job {
 	return &api.Job{
 		Id:             job.UUID,
 		Name:           job.DisplayName,
+		ServiceAccount: job.ServiceAccount,
 		Description:    job.Description,
 		Enabled:        job.Enabled,
 		CreatedAt:      &timestamp.Timestamp{Seconds: job.CreatedAtInSec},

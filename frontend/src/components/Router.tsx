@@ -15,7 +15,6 @@
  */
 
 import * as React from 'react';
-import Archive from '../pages/Archive';
 import ArtifactList from '../pages/ArtifactList';
 import ArtifactDetails from '../pages/ArtifactDetails';
 import Banner, { BannerProps } from '../components/Banner';
@@ -29,6 +28,9 @@ import ExecutionList from '../pages/ExecutionList';
 import ExecutionDetails from '../pages/ExecutionDetails';
 import ExperimentDetails from '../pages/ExperimentDetails';
 import ExperimentsAndRuns, { ExperimentsAndRunsTab } from '../pages/ExperimentsAndRuns';
+import ArchivedExperimentsAndRuns, {
+  ArchivedExperimentsAndRunsTab,
+} from '../pages/ArchivedExperimentsAndRuns';
 import NewExperiment from '../pages/NewExperiment';
 import NewRun from '../pages/NewRun';
 import Page404 from '../pages/404';
@@ -92,7 +94,8 @@ export const RoutePrefix = {
 
 // tslint:disable-next-line:variable-name
 export const RoutePage = {
-  ARCHIVE: '/archive',
+  ARCHIVED_RUNS: '/archive/runs',
+  ARCHIVED_EXPERIMENTS: '/archive/experiments',
   ARTIFACTS: '/artifacts',
   ARTIFACT_DETAILS: `/artifact_types/:${RouteParams.ARTIFACT_TYPE}+/artifacts/:${RouteParams.ID}`,
   COMPARE: `/compare`,
@@ -163,7 +166,16 @@ const DEFAULT_ROUTE =
 const Router: React.FC<RouterProps> = ({ configs }) => {
   const routes: RouteConfig[] = configs || [
     { path: RoutePage.START, Component: GettingStarted },
-    { path: RoutePage.ARCHIVE, Component: Archive },
+    {
+      Component: ArchivedExperimentsAndRuns,
+      path: RoutePage.ARCHIVED_RUNS,
+      view: ArchivedExperimentsAndRunsTab.RUNS,
+    },
+    {
+      Component: ArchivedExperimentsAndRuns,
+      path: RoutePage.ARCHIVED_EXPERIMENTS,
+      view: ArchivedExperimentsAndRunsTab.EXPERIMENTS,
+    },
     { path: RoutePage.ARTIFACTS, Component: ArtifactList },
     { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails, notExact: true },
     { path: RoutePage.EXECUTIONS, Component: ExecutionList },

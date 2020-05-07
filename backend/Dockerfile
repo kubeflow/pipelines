@@ -43,14 +43,21 @@ RUN python3 setup.py install
 WORKDIR /samples
 COPY ./samples .
 
-#We need to check that all samples have been compiled without error.
-#For find program, the -exec argument is a filter predicate just like -name. It only affects whether the file is "found", not the find's exit code.
-#One way to solve this problem is to check whether we have any python pipelines that cannot compile. Here the exit code is the number of such files:
-#RUN  bash -e -c 'exit $(find . -maxdepth 2 -name "*.py" ! -exec dsl-compile --py {} --output {}.tar.gz \; -print | wc -l)'
-#I think it's better to just use a shell loop though.
-#RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
-#The "for" loop breaks on all whitespace, so we either need to override IFS or use the "read" command instead.
-RUN  set -e; find core tutorials -maxdepth 2 -name '*.py' -type f | while read pipeline; do python3 "$pipeline"; done
+# We need to check that all samples have been compiled without error.
+# For find program, the -exec argument is a filter predicate just like -name. It
+# only affects whether the file is "found", not the find's exit code.
+# One way to solve this problem is to check whether we have any python pipelines
+# that cannot compile. Here the exit code is the number of such files:
+# RUN  bash -e -c 'exit $(find . -maxdepth 2 -name "*.py" ! -exec dsl-compile --py {} --output {}.tar.gz \; -print | wc -l)'
+# I think it's better to just use a shell loop though.
+# RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
+# The "for" loop breaks on all whitespace, so we either need to override IFS or
+# use the "read" command instead.
+RUN line="import kfp;kfp.components.default_base_image_or_builder='gcr.io/google-appengine/python:2020-03-31-141326";\
+    set -e; find core tutorials -maxdepth 2 -name '*.py' -type f | while read pipeline; do \
+    awk -v text="$line" '!/^#/ && !p {print text; p=1} 1' "$pipeline" && \
+    python3 "$pipeline"; \
+    done
 
 FROM debian:stretch
 

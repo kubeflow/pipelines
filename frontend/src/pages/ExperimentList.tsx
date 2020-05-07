@@ -25,7 +25,11 @@ import CustomTable, {
 import RunList from './RunList';
 import produce from 'immer';
 import { ApiFilter, PredicateOp } from '../apis/filter';
-import { ApiListExperimentsResponse, ApiExperiment } from '../apis/experiment';
+import {
+  ApiListExperimentsResponse,
+  ApiExperiment,
+  ExperimentStorageState,
+} from '../apis/experiment';
 import { ApiRun, RunStorageState } from '../apis/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
@@ -74,6 +78,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)
         .archive(
+          'run',
           () => this.state.selectedIds,
           false,
           ids => this._selectionChanged(ids),
@@ -177,6 +182,20 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     let response: ApiListExperimentsResponse;
     let displayExperiments: DisplayExperiment[];
     try {
+      // This ExperimentList page is used as the "All experiments" tab
+      // inside ExperimentAndRuns. Here we only list unarchived experiments.
+      // Archived experiments are listed in "Archive" page.
+      const filter = JSON.parse(
+        decodeURIComponent(request.filter || '{"predicates": []}'),
+      ) as ApiFilter;
+      filter.predicates = (filter.predicates || []).concat([
+        {
+          key: 'storage_state',
+          op: PredicateOp.NOTEQUALS,
+          string_value: ExperimentStorageState.ARCHIVED.toString(),
+        },
+      ]);
+      request.filter = encodeURIComponent(JSON.stringify(filter));
       response = await Apis.experimentServiceApi.listExperiment(
         request.pageToken,
         request.pageSize,

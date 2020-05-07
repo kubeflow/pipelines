@@ -1,0 +1,12 @@
+version: 0.2      
+phases:
+  pre_build:
+    commands:
+      # Log in to Dockerhub
+      - mkdir -p ~/.docker
+      - echo $DOCKER_CONFIG > ~/.docker/config.json
+
+  build:
+    commands:
+      - cd components/aws/sagemaker
+      - ./codebuild/scripts/deploy.sh -d "${DRY_RUN}"

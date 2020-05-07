@@ -17,102 +17,108 @@ exports[`Router initial render 1`] = `
     <Route
       exact={true}
       key="1"
-      path="/archive"
+      path="/archive/runs"
       render={[Function]}
     />
     <Route
       exact={true}
       key="2"
+      path="/archive/experiments"
+      render={[Function]}
+    />
+    <Route
+      exact={true}
+      key="3"
       path="/artifacts"
       render={[Function]}
     />
     <Route
       exact={false}
-      key="3"
+      key="4"
       path="/artifact_types/:artifactType+/artifacts/:id"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="4"
+      key="5"
       path="/executions"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="5"
+      key="6"
       path="/execution_types/:executionType+/executions/:id"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="6"
+      key="7"
       path="/experiments"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="7"
+      key="8"
       path="/experiments/details/:eid"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="8"
+      key="9"
       path="/experiments/new"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="9"
+      key="10"
       path="/pipeline_versions/new"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="10"
+      key="11"
       path="/runs/new"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="11"
+      key="12"
       path="/pipelines"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="12"
+      key="13"
       path="/pipelines/details/:pid/version/:vid?"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="13"
+      key="14"
       path="/pipelines/details/:pid?"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="14"
+      key="15"
       path="/runs"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="15"
+      key="16"
       path="/recurringrun/details/:rid"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="16"
+      key="17"
       path="/runs/details/:rid"
       render={[Function]}
     />
     <Route
       exact={true}
-      key="17"
+      key="18"
       path="/compare"
       render={[Function]}
     />

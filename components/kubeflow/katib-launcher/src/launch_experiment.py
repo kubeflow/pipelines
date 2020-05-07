@@ -19,6 +19,7 @@ import json
 import os
 import logging
 import yaml
+import uuid
 import launch_crd
 
 from kubernetes import client as k8s_client
@@ -99,11 +100,13 @@ def main(argv=None):
   config.load_incluster_config()
   api_client = k8s_client.ApiClient()
   experiment = Experiment(version=args.version, client=api_client)
+  exp_name = (args.name+'-'+uuid.uuid4().hex)[0:63]
+  
   inst = {
     "apiVersion": "%s/%s" % (ExperimentGroup, args.version),
     "kind": "Experiment",
     "metadata": {
-      "name": args.name,
+      "name": exp_name,
       "namespace": args.namespace,
     },
     "spec": {
@@ -121,7 +124,7 @@ def main(argv=None):
 
   expected_conditions = ["Succeeded", "Failed"]
   current_inst = experiment.wait_for_condition(
-      args.namespace, args.name, expected_conditions,
+      args.namespace, exp_name, expected_conditions,
       timeout=datetime.timedelta(minutes=args.experimentTimeoutMinutes))
   expected, conditon = experiment.is_expected_conditions(current_inst, ["Succeeded"])
   if expected:
@@ -131,7 +134,7 @@ def main(argv=None):
     with open(args.outputFile, 'w') as f:
       f.write(json.dumps(paramAssignments))
   if args.deleteAfterDone:
-    experiment.delete(args.name, args.namespace)
+    experiment.delete(exp_name, args.namespace)
 
 if __name__== "__main__":
   main()

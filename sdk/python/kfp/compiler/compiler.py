@@ -670,9 +670,13 @@ class Compiler(object):
         'entrypoint': pipeline_template_name,
         'templates': templates,
         'arguments': {'parameters': input_params},
-        'serviceAccountName': 'pipeline-runner'
+        'serviceAccountName': 'pipeline-runner',
       }
     }
+    # set parallelism limits at pipeline level
+    if pipeline_conf.parallelism:
+      workflow['spec']['parallelism'] = pipeline_conf.parallelism
+
     # set ttl after workflow finishes
     if pipeline_conf.ttl_seconds_after_finished >= 0:
       workflow['spec']['ttlSecondsAfterFinished'] = pipeline_conf.ttl_seconds_after_finished
@@ -688,6 +692,11 @@ class Compiler(object):
 
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
+
+    # This can be overwritten by the task specific 
+    # nodeselection, specified in the template.
+    if pipeline_conf.default_pod_node_selector:
+      workflow['spec']['nodeSelector'] = pipeline_conf.default_pod_node_selector
 
     if pipeline_conf.image_pull_policy != None:
       if pipeline_conf.image_pull_policy in ["Always", "Never", "IfNotPresent"]:

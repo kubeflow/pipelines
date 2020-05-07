@@ -6,3 +6,23 @@ bases:
 - ../base/argo/cluster-scoped
 - ../base/pipeline/cluster-scoped
 - ../base/cache-deployer/cluster-scoped
+
+resources:
+  - namespace.yaml
+
+# Used by Kustomize
+configMapGenerator:
+  - name: pipeline-cluster-scoped-install-config
+    env: params.env
+
+vars:
+  - name: NAMESPACE
+    objref:
+      kind: ConfigMap
+      name: pipeline-cluster-scoped-install-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.namespace
+
+configurations:
+  - params.yaml

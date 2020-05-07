@@ -152,7 +152,7 @@ class TestCompiler(unittest.TestCase):
       self.maxDiff = None
       self.assertEqual(golden_output, compiler._op_to_template._op_to_template(op))
       self.assertEqual(res_output, compiler._op_to_template._op_to_template(res))
-    
+
     kfp.compiler.Compiler()._compile(my_pipeline)
 
   def _get_yaml_from_zip(self, zip_file):
@@ -325,7 +325,7 @@ class TestCompiler(unittest.TestCase):
 
       with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
         compiled = yaml.safe_load(f)
-      
+
       for workflow in golden, compiled:
         del workflow['metadata']
 
@@ -640,6 +640,25 @@ implementation:
     template = workflow_dict['spec']['templates'][0]
     self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'], 'Custom name')
 
+  def test_set_parallelism(self):
+    """Test a pipeline with parallelism limits."""
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      some_op()
+      some_op()
+      dsl.get_pipeline_conf().set_parallelism(1)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']['parallelism'], 1)
+
   def test_set_ttl_seconds_after_finished(self):
     """Test a pipeline with ttl after finished."""
     def some_op():
@@ -749,6 +768,23 @@ implementation:
 
       workflow_dict = compiler.Compiler()._compile(some_pipeline)
 
+  def test_set_default_pod_node_selector(self):
+    """Test a pipeline with node selector."""
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().set_default_pod_node_selector(label_name="cloud.google.com/gke-accelerator", value="nvidia-tesla-p4")
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']['nodeSelector'], {"cloud.google.com/gke-accelerator":"nvidia-tesla-p4"})
+
   def test_container_op_output_error_when_no_or_multiple_outputs(self):
 
     def no_outputs_pipeline():
@@ -817,11 +853,11 @@ implementation:
               name="foo-bar-cm",
               namespace="default"
           )
-        )        
+        )
         # delete the config map in k8s
         dsl.ResourceOp(
-          name="delete-config-map", 
-          action="delete", 
+          name="delete-config-map",
+          action="delete",
           k8s_resource=config_map
         )
 
