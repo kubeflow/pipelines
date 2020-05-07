@@ -57,6 +57,17 @@ def get(ctx, experiment_id):
     _display_experiment(response)
 
 
+@experiment.command()
+@click.argument("experiment-id")
+@click.pass_context
+def delete(ctx, experiment_id):
+    """Delete an experiment"""
+    client = ctx.obj["client"]
+
+    client.experiments.delete_experiment(id=experiment_id)
+    print("{} is deleted.".format(experiment_id))
+
+
 def _display_experiments(experiments):
     headers = ["Experiment ID", "Name", "Created at"]
     data = [[
