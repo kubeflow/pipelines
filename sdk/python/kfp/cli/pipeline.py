@@ -44,6 +44,33 @@ def upload(ctx, pipeline_name, package_file):
 
 @pipeline.command()
 @click.option(
+    "-p",
+    "--pipeline-id",
+    help="ID of the pipeline",
+    required=True
+)
+@click.option(
+    "-v",
+    "--pipeline-version",
+    help="Name of the pipeline version",
+    required=True
+)
+@click.argument("package-file")
+@click.pass_context
+def upload_version(ctx, package_file, pipeline_version, pipeline_id):
+    """Upload a version of the KFP pipeline"""
+    client = ctx.obj["client"]
+
+    version = client.pipeline_uploads.upload_pipeline_version(
+        package_file, name=pipeline_version, pipelineid=pipeline_id)
+    logging.info(
+        "The {} version of the pipeline {} has been submitted\n".format(
+            pipeline_version, pipeline_id))
+    _display_pipeline_version(version)
+
+
+@pipeline.command()
+@click.option(
     "--max-size",
     default=100,
     help="Max size of the listed pipelines."
@@ -110,3 +137,14 @@ def _display_pipeline(pipeline):
     headers = ["Parameter Name", "Default Value"]
     data = [[param.name, param.value] for param in pipeline.parameters]
     print(tabulate(data, headers=headers, tablefmt="grid"))
+
+
+def _display_pipeline_version(version):
+    print(tabulate([], headers=["Pipeline Version Details"]))
+    pipeline_id = version.resource_references[0].key.id
+    table = [
+        ["Pipeline ID", pipeline_id],
+        ["Version Name", version.name],
+        ["Uploaded at", version.created_at.isoformat()],
+    ]
+    print(tabulate(table, tablefmt="plain"))
