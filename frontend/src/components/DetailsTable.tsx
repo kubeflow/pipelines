@@ -24,6 +24,7 @@ import 'brace/ext/language_tools';
 import 'brace/mode/json';
 import 'brace/theme/github';
 import { S3Artifact } from 'third_party/argo-ui/argo_template';
+import MinioArtifactPreview, { isS3Artifact } from './MinioArtifactPreview';
 
 export const css = stylesheet({
   key: {
@@ -49,9 +50,9 @@ export const css = stylesheet({
 });
 
 interface DetailsTableProps {
-  fields: Array<KeyValue<string | S3Artifact>>;
+  fields: Array<KeyValue<string | Partial<S3Artifact>>>;
+  namespace?: string;
   title?: string;
-  valueComponent?: React.FC<{ value: S3Artifact }>;
 }
 
 function isString(x: any): x is string {
@@ -97,18 +98,16 @@ const DetailsTable = (props: DetailsTableProps) => {
               // do nothing
             }
           }
-          // If the value isn't a JSON object, just display it as is
+          // If value is a S3Artifact render a preview, otherwise just display it as is
           return (
             <div key={i} className={css.row}>
               <span className={css.key}>{key}</span>
               <span className={css.valueText}>
-                {(() => {
-                  const ValueComponent = props.valueComponent;
-                  if (ValueComponent && !!value && !isString(value)) {
-                    return <ValueComponent value={value} />;
-                  }
-                  return value;
-                })()}
+                {isS3Artifact(value) ? (
+                  <MinioArtifactPreview artifact={value} namespace={props.namespace} />
+                ) : (
+                  `${value}`
+                )}
               </span>
             </div>
           );

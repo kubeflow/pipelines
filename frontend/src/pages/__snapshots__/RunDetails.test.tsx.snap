@@ -1770,7 +1770,6 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                   <DetailsTable
                     fields={Array []}
                     title="Input artifacts"
-                    valueComponent={[Function]}
                   />
                   <DetailsTable
                     fields={
@@ -1790,7 +1789,6 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                   <DetailsTable
                     fields={Array []}
                     title="Output artifacts"
-                    valueComponent={[Function]}
                   />
                 </div>
               </div>

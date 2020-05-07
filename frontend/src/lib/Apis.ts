@@ -205,9 +205,9 @@ export class Apis {
   /**
    * Reads file from storage using server.
    */
-  public static readFile(path: StoragePath, namespace?: string): Promise<string> {
+  public static readFile(path: StoragePath, namespace?: string, peek?: number): Promise<string> {
     const { source, bucket, key } = path;
-    return this._fetch(`artifacts/get${buildQuery({ source, bucket, key, namespace })}`);
+    return this._fetch(`artifacts/get${buildQuery({ source, bucket, key, namespace, peek })}`);
   }
 
   /**
