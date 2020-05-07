@@ -1,9 +1,20 @@
 import * as React from 'react';
+import { stylesheet } from 'typestyle';
+import { color } from '../Css';
 import { StorageService } from '../lib/WorkflowParser';
 import { S3Artifact } from '../../third_party/argo-ui/argo_template';
 import { buildQuery } from '../lib/Utils';
 import { isS3Endpoint } from '../lib/AwsHelper';
 import { Apis } from '../lib/Apis';
+
+const css = stylesheet({
+  preview: {
+    maxHeight: 250,
+    overflowY: 'auto',
+    padding: 3,
+    backgroundColor: color.lightGrey,
+  },
+});
 
 /**
  * Check if a javascript object is an argo S3Artifact object.
@@ -62,7 +73,7 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
         {linkText}
       </a>
       {content && (
-        <div>
+        <div className={css.preview}>
           <small>
             <pre>{content}</pre>
           </small>
