@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import { encode } from 'punycode';
+
 import { NodePhase } from './StatusUtils';
 import {
   enabledDisplayString,
@@ -22,6 +24,9 @@ import {
   getRunDuration,
   getRunDurationFromWorkflow,
   logger,
+  isS3Endpoint,
+  consistentDecodeURIComponent,
+  consistentEncodeURIComponent,
 } from './Utils';
 
 describe('Utils', () => {

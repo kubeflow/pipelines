@@ -45,7 +45,6 @@ import CompareTable from '../components/CompareTable';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
 import LogViewer from '../components/LogViewer';
-import MinioArtifactLink from '../components/MinioArtifactLink';
 import PlotCard from '../components/PlotCard';
 import { PodEvents, PodInfo } from '../components/PodYaml';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
@@ -356,24 +355,28 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
                                 {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
                                   <div className={padding(20)}>
-                                    <DetailsTable title='Input parameters' fields={inputParams} />
+                                    <DetailsTable
+                                      title='Input parameters'
+                                      fields={inputParams}
+                                      namespace={this.state.workflow?.metadata?.namespace}
+                                    />
 
                                     <DetailsTable
                                       title='Input artifacts'
                                       fields={inputArtifacts}
-                                      valueComponent={({ value }) => (
-                                        <MinioArtifactLink artifact={value} namespace={namespace} />
-                                      )}
+                                      namespace={this.state.workflow?.metadata?.namespace}
                                     />
 
-                                    <DetailsTable title='Output parameters' fields={outputParams} />
+                                    <DetailsTable
+                                      title='Output parameters'
+                                      fields={outputParams}
+                                      namespace={this.state.workflow?.metadata?.namespace}
+                                    />
 
                                     <DetailsTable
                                       title='Output artifacts'
                                       fields={outputArtifacts}
-                                      valueComponent={({ value }) => (
-                                        <MinioArtifactLink artifact={value} namespace={namespace} />
-                                      )}
+                                      namespace={this.state.workflow?.metadata?.namespace}
                                     />
                                   </div>
                                 )}
@@ -421,6 +424,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                         workflow,
                                         selectedNodeId,
                                       )}
+                                      namespace={this.state.workflow?.metadata?.namespace}
                                     />
                                   </div>
                                 )}
@@ -433,6 +437,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                         workflow,
                                         selectedNodeId,
                                       )}
+                                      namespace={this.state.workflow?.metadata?.namespace}
                                     />
                                   </div>
                                 )}
@@ -563,6 +568,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                   <DetailsTable
                     title='Run details'
                     fields={this._getDetailsFields(workflow, runMetadata)}
+                    namespace={this.state.workflow?.metadata?.namespace}
                   />
 
                   {workflowParameters && !!workflowParameters.length && (
@@ -570,6 +576,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                       <DetailsTable
                         title='Run parameters'
                         fields={workflowParameters.map(p => [p.name, p.value || ''])}
+                        namespace={this.state.workflow?.metadata?.namespace}
                       />
                     </div>
                   )}
