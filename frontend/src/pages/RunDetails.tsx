@@ -269,6 +269,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         this._onGenerate(visualizationArguments, source, type, namespace || '');
       },
       type: PlotType.VISUALIZATION_CREATOR,
+      collapsedInitially: true,
     };
 
     return (

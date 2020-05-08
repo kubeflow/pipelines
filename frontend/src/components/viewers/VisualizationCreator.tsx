@@ -37,6 +37,8 @@ export interface VisualizationCreatorConfig extends ViewerConfig {
   isBusy?: boolean;
   // Function called to generate a visualization.
   onGenerate?: (visualizationArguments: string, source: string, type: ApiVisualizationType) => void;
+  // Facilitate testing by not collapsing by default.
+  collapsedInitially?: boolean;
 }
 
 interface VisualizationCreatorProps {
@@ -54,16 +56,13 @@ interface VisualizationCreatorState {
 }
 
 class VisualizationCreator extends Viewer<VisualizationCreatorProps, VisualizationCreatorState> {
-  constructor(props: VisualizationCreatorProps) {
-    super(props);
-    this.state = {
-      // This feature is only for rare occasions, collapse by default.
-      expanded: false,
-      arguments: '',
-      code: '',
-      source: '',
-    };
-  }
+  state: VisualizationCreatorState = {
+    // This feature is only for rare occasions, collapse by default.
+    expanded: !this.props.configs[0]?.collapsedInitially,
+    arguments: '',
+    code: '',
+    source: '',
+  };
 
   public getDisplayName(): string {
     return 'Visualization Creator';
