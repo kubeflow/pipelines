@@ -79,8 +79,6 @@ export enum RouteParams {
   pipelineId = 'pid',
   pipelineVersionId = 'vid',
   runId = 'rid',
-  ARTIFACT_TYPE = 'artifactType',
-  EXECUTION_TYPE = 'executionType',
   // TODO: create one of these for artifact and execution?
   ID = 'id',
 }
@@ -97,10 +95,10 @@ export const RoutePage = {
   ARCHIVED_RUNS: '/archive/runs',
   ARCHIVED_EXPERIMENTS: '/archive/experiments',
   ARTIFACTS: '/artifacts',
-  ARTIFACT_DETAILS: `/artifact_types/:${RouteParams.ARTIFACT_TYPE}+/artifacts/:${RouteParams.ID}`,
+  ARTIFACT_DETAILS: `/artifacts/:${RouteParams.ID}`,
   COMPARE: `/compare`,
   EXECUTIONS: '/executions',
-  EXECUTION_DETAILS: `/execution_types/:${RouteParams.EXECUTION_TYPE}+/executions/:${RouteParams.ID}`,
+  EXECUTION_DETAILS: `/executions/:${RouteParams.ID}`,
   EXPERIMENTS: '/experiments',
   EXPERIMENT_DETAILS: `/experiments/details/:${RouteParams.experimentId}`,
   NEW_EXPERIMENT: '/experiments/new',
@@ -116,17 +114,11 @@ export const RoutePage = {
 };
 
 export const RoutePageFactory = {
-  artifactDetails: (artifactType: string, artifactId: number) => {
-    return RoutePage.ARTIFACT_DETAILS.replace(
-      `:${RouteParams.ARTIFACT_TYPE}+`,
-      artifactType,
-    ).replace(`:${RouteParams.ID}`, '' + artifactId);
+  artifactDetails: (artifactId: number) => {
+    return RoutePage.ARTIFACT_DETAILS.replace(`:${RouteParams.ID}`, '' + artifactId);
   },
-  executionDetails: (executionType: string, executionId: number) => {
-    return RoutePage.EXECUTION_DETAILS.replace(
-      `:${RouteParams.EXECUTION_TYPE}+`,
-      executionType,
-    ).replace(`:${RouteParams.ID}`, '' + executionId);
+  executionDetails: (executionId: number) => {
+    return RoutePage.EXECUTION_DETAILS.replace(`:${RouteParams.ID}`, '' + executionId);
   },
   pipelineDetails: (id: string) => {
     return RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(`:${RouteParams.pipelineId}`, id);
