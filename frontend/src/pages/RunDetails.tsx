@@ -240,7 +240,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       mlmdExecutions,
     } = this.state;
     const { projectId, clusterName } = this.props.gkeMetadata;
-    const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
+    const selectedNodeId = selectedNodeDetails?.id || '';
     const namespace = workflow?.metadata?.namespace;
     let stackdriverK8sLogsUrl = '';
     if (projectId && clusterName && selectedNodeDetails && selectedNodeDetails.id) {
@@ -329,7 +329,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   this.state.selectedNodeDetails &&
                                   this.state.workflow && (
                                     <ArtifactsTabContent
-                                      nodeId={this.state.selectedNodeDetails.id}
+                                      execution={selectedExecution}
+                                      nodeId={selectedNodeId}
                                       nodeStatus={
                                         this.state.workflow && this.state.workflow.status
                                           ? this.state.workflow.status.nodes[
@@ -997,6 +998,7 @@ const COMPLETED_NODE_PHASES: ArgoNodePhase[] = ['Succeeded', 'Failed', 'Error'];
  */
 const ArtifactsTabContent: React.FC<{
   visualizationCreatorConfig: VisualizationCreatorConfig;
+  execution?: Execution;
   nodeId: string;
   nodeStatus?: NodeStatus;
   generatedVisualizations: GeneratedVisualization[];
@@ -1005,6 +1007,7 @@ const ArtifactsTabContent: React.FC<{
 }> = ({
   visualizationCreatorConfig,
   generatedVisualizations,
+  execution,
   nodeId,
   nodeStatus,
   namespace,
@@ -1047,11 +1050,15 @@ const ArtifactsTabContent: React.FC<{
       // Load the viewer configurations from the output paths
       const builtConfigs = (
         await Promise.all([
-          OutputArtifactLoader.buildTFXArtifactViewerConfig({
-            argoPodName: nodeId,
-            reportProgress,
-            namespace: namespace || '',
-          }).catch(reportErrorAndReturnEmpty),
+          ...(!execution
+            ? []
+            : [
+                OutputArtifactLoader.buildTFXArtifactViewerConfig({
+                  reportProgress,
+                  execution,
+                  namespace: namespace || '',
+                }).catch(reportErrorAndReturnEmpty),
+              ]),
           ...outputPaths.map(path =>
             OutputArtifactLoader.load(path, namespace).catch(reportErrorAndReturnEmpty),
           ),
@@ -1077,7 +1084,7 @@ const ArtifactsTabContent: React.FC<{
     // nodeStatus object instance will keep changing after new requests to get
     // workflow status.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeId, nodeCompleted, onError, namespace]);
+  }, [nodeId, execution?.getId(), nodeCompleted, onError, namespace]);
 
   return (
     <div className={commonCss.page}>
