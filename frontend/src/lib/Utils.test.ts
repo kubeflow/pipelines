@@ -19,6 +19,7 @@ import {
   enabledDisplayString,
   formatDateString,
   generateMinioArtifactUrl,
+  generateS3ArtifactUrl,
   getRunDuration,
   getRunDurationFromWorkflow,
   logger,
@@ -256,7 +257,7 @@ describe('Utils', () => {
 
   describe('generateS3ArtifactUrl', () => {
     it('handles s3:// URIs', () => {
-      expect(generateMinioArtifactUrl('s3://my-bucket/a/b/c')).toBe(
+      expect(generateS3ArtifactUrl('s3://my-bucket/a/b/c')).toBe(
         'artifacts/get?source=s3&bucket=my-bucket&key=a/b/c',
       );
     });
