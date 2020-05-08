@@ -8,7 +8,9 @@ from utils import sagemaker_utils
 
 
 @pytest.mark.parametrize("test_file_dir", ["resources/config/simple-mnist-training"])
-def test_trainingjob(kfp_client, experiment_id, sagemaker_client, test_file_dir):
+def test_trainingjob(
+    kfp_client, experiment_id, region, sagemaker_client, test_file_dir
+):
 
     download_dir = utils.mkdir(os.path.join(test_file_dir + "/generated"))
     test_params = utils.load_params(
@@ -34,7 +36,7 @@ def test_trainingjob(kfp_client, experiment_id, sagemaker_client, test_file_dir)
         test_params["Timeout"],
     )
 
-    outputs = {"sagemaker-training-job": ["job_name", "model_artifact_url"]}
+    outputs = {"sagemaker-training-job": ["job_name", "model_artifact_url", "training_image"]}
     output_files = minio_utils.artifact_download_iterator(
         workflow_json, outputs, download_dir
     )
@@ -45,7 +47,7 @@ def test_trainingjob(kfp_client, experiment_id, sagemaker_client, test_file_dir)
     )
     print(f"training job name: {training_job_name}")
     train_response = sagemaker_utils.describe_training_job(
-        sagemaker_client, training_job_name.decode()
+        sagemaker_client, training_job_name
     )
     assert train_response["TrainingJobStatus"] == "Completed"
 
@@ -55,11 +57,15 @@ def test_trainingjob(kfp_client, experiment_id, sagemaker_client, test_file_dir)
         "model_artifact_url.txt",
     )
     print(f"model_artifact_url: {model_artifact_url}")
-    assert (
-        model_artifact_url.decode()
-        == train_response["ModelArtifacts"]["S3ModelArtifacts"]
+    assert model_artifact_url == train_response["ModelArtifacts"]["S3ModelArtifacts"]
+    assert training_job_name in model_artifact_url
+
+    # Verify training image output is an ECR image
+    training_image = utils.extract_information(
+        output_files["sagemaker-training-job"]["training_image"], "training_image.txt",
     )
-    assert (
-        train_response["ModelArtifacts"]["S3ModelArtifacts"]
-        in model_artifact_url.decode()
-    )
+    print(f"Training image used: {training_image}")
+    if "ExpectedTrainingImage" in test_params.keys():
+        assert test_params["ExpectedTrainingImage"] == training_image
+    else:
+        assert f"dkr.ecr.{region}.amazonaws.com" in training_image

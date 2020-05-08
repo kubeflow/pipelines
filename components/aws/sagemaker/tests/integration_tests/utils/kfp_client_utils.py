@@ -13,13 +13,9 @@ def compile_and_run_pipeline(
     output_file_dir,
     pipeline_name,
 ):
-
-    env_value = os.environ.copy()
-    env_value["PYTHONPATH"] = f"{os.getcwd()}:" + os.environ.get("PYTHONPATH", "")
     pipeline_path = os.path.join(output_file_dir, pipeline_name)
     utils.run_command(
-        f"dsl-compile --py {pipeline_definition} --output {pipeline_path}.yaml",
-        env=env_value,
+        f"dsl-compile --py {pipeline_definition} --output {pipeline_path}.yaml"
     )
     run = client.run_pipeline(
         experiment_id, pipeline_name, f"{pipeline_path}.yaml", input_params

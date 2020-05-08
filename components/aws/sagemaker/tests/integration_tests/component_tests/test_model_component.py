@@ -42,8 +42,8 @@ def test_createmodel(kfp_client, experiment_id, sagemaker_client, test_file_dir)
     output_model_name = utils.extract_information(
         output_files["sagemaker-create-model"]["model_name"], "model_name.txt"
     )
-    print(f"model_name: {output_model_name.decode()}")
-    assert output_model_name.decode() == input_model_name
+    print(f"model_name: {output_model_name}")
+    assert output_model_name == input_model_name
     assert (
         sagemaker_utils.describe_model(sagemaker_client, input_model_name) is not None
     )

@@ -1,6 +1,7 @@
 PipelineDefinition: resources/definition/training_pipeline.py
 TestName: simple-mnist-training
 Timeout: 3600
+ExpectedTrainingImage: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
 Arguments:
   region: ((REGION))
   image: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1

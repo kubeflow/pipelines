@@ -45,9 +45,12 @@ def run_command(cmd, *popenargs, **kwargs):
         pytest.fail(f"Command failed. Error code: {e.returncode}, Log: {e.output}")
 
 
-def extract_information(file_path, file_name):
+def extract_information(file_path, file_name, decode=True):
     with tarfile.open(file_path).extractfile(file_name) as f:
-        return f.read()
+        if decode:
+            return f.read().decode()
+        else:
+            return f.read()
 
 
 def replace_placeholders(input_filename, output_filename):
