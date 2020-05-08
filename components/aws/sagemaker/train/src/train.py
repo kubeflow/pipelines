@@ -21,7 +21,7 @@ def create_parser():
   
   parser.add_argument('--job_name', type=str.strip, required=False, help='The name of the training job.', default='')
   parser.add_argument('--role', type=str.strip, required=True, help='The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.')
-  parser.add_argument('--image', type=str.strip, required=True, help='The registry path of the Docker image that contains the training algorithm.', default='')
+  parser.add_argument('--image', type=str.strip, help='The registry path of the Docker image that contains the training algorithm.', default='')
   parser.add_argument('--algorithm_name', type=str.strip, required=False, help='The name of the resource algorithm to use for the training job.', default='')
   parser.add_argument('--metric_definitions', type=_utils.str_to_json_dict, required=False, help='The dictionary of name-regex pairs specify the metrics that the algorithm emits.', default='{}')
   parser.add_argument('--training_input_mode', choices=['File', 'Pipe'], type=str.strip, help='The input mode that the algorithm supports. File or Pipe.', default='File')

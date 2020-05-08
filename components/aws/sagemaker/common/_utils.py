@@ -192,7 +192,7 @@ def create_training_job(client, args):
       raise Exception(e.response['Error']['Message'])
 
 
-def wait_for_training_job(client, training_job_name):
+def wait_for_training_job(client, training_job_name, poll_interval=30):
   while(True):
     response = client.describe_training_job(TrainingJobName=training_job_name)
     status = response['TrainingJobStatus']
@@ -204,7 +204,7 @@ def wait_for_training_job(client, training_job_name):
       logging.info('Training failed with the following error: {}'.format(message))
       raise Exception('Training job failed')
     logging.info("Training job is still in status: " + status)
-    time.sleep(30)
+    time.sleep(poll_interval)
 
 
 def get_model_artifacts_from_job(client, job_name):
@@ -215,9 +215,9 @@ def get_model_artifacts_from_job(client, job_name):
 
 def get_image_from_job(client, job_name):
     info = client.describe_training_job(TrainingJobName=job_name)
-    try:
+    if 'TrainingImage' in info['AlgorithmSpecification']:
         image = info['AlgorithmSpecification']['TrainingImage']
-    except:
+    else:
         algorithm_name = info['AlgorithmSpecification']['AlgorithmName']
         image = client.describe_algorithm(AlgorithmName=algorithm_name)['TrainingSpecification']['TrainingImage']
 
