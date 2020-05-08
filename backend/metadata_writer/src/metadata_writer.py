@@ -83,16 +83,7 @@ def output_name_to_argo(name: str) -> str:
 
 
 def argo_artifact_to_uri(artifact: dict) -> str:
-    if 's3' in artifact:
-        s3_artifact = artifact['s3']
-        return 'minio://{bucket}/{key}'.format(
-            bucket=s3_artifact.get('bucket', ''),
-            key=s3_artifact.get('key', ''),
-        )
-    elif 'raw' in artifact:
-        return None
-    else:
-        return None
+    return 'argo-artifact://' + json.dumps(artifact, sort_keys=True)
 
 
 def is_tfx_pod(pod) -> bool:
