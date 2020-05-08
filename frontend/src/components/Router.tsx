@@ -79,8 +79,6 @@ export enum RouteParams {
   pipelineId = 'pid',
   pipelineVersionId = 'vid',
   runId = 'rid',
-  ARTIFACT_TYPE = 'artifactType',
-  EXECUTION_TYPE = 'executionType',
   // TODO: create one of these for artifact and execution?
   ID = 'id',
 }
