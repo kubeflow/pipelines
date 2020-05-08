@@ -29,6 +29,7 @@ import 'brace/ext/language_tools';
 import 'brace/mode/json';
 import 'brace/mode/python';
 import 'brace/theme/github';
+import Button from '@material-ui/core/Button';
 
 export interface VisualizationCreatorConfig extends ViewerConfig {
   allowCustomVisualizations?: boolean;
@@ -44,6 +45,7 @@ interface VisualizationCreatorProps {
 }
 
 interface VisualizationCreatorState {
+  expanded: boolean;
   // arguments is expected to be a JSON object in string form.
   arguments: string;
   code: string;
@@ -55,6 +57,8 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
   constructor(props: VisualizationCreatorProps) {
     super(props);
     this.state = {
+      // This feature is only for rare occasions, collapse by default.
+      expanded: false,
       arguments: '',
       code: '',
       source: '',
@@ -86,6 +90,14 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
       !isBusy && !!onGenerate && (hasSourceAndSelectedType || isCustomTypeAndHasCode);
 
     const argumentsPlaceholder = this.getArgumentPlaceholderForType(selectedType);
+
+    if (!this.state.expanded) {
+      return (
+        <Button variant='text' onClick={this.handleExpansion}>
+          create visualizations manually
+        </Button>
+      );
+    }
 
     return (
       <div
@@ -258,6 +270,12 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
         .replace(new RegExp('\t', 'g'), '&nbsp&nbsp&nbsp&nbsp')
     );
   }
+
+  private handleExpansion = () => {
+    this.setState({
+      expanded: true,
+    });
+  };
 }
 
 export default VisualizationCreator;
