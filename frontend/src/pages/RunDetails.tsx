@@ -240,7 +240,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       mlmdExecutions,
     } = this.state;
     const { projectId, clusterName } = this.props.gkeMetadata;
-    const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
+    const selectedNodeId = selectedNodeDetails?.id || '';
     const namespace = workflow?.metadata?.namespace;
     let stackdriverK8sLogsUrl = '';
     if (projectId && clusterName && selectedNodeDetails && selectedNodeDetails.id) {
@@ -330,6 +330,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   this.state.workflow && (
                                     <ArtifactsTabContent
                                       execution={selectedExecution}
+                                      nodeId={selectedNodeId}
                                       nodeStatus={
                                         this.state.workflow && this.state.workflow.status
                                           ? this.state.workflow.status.nodes[
@@ -998,6 +999,7 @@ const COMPLETED_NODE_PHASES: ArgoNodePhase[] = ['Succeeded', 'Failed', 'Error'];
 const ArtifactsTabContent: React.FC<{
   visualizationCreatorConfig: VisualizationCreatorConfig;
   execution?: Execution;
+  nodeId: string;
   nodeStatus?: NodeStatus;
   generatedVisualizations: GeneratedVisualization[];
   namespace: string | undefined;
@@ -1006,6 +1008,7 @@ const ArtifactsTabContent: React.FC<{
   visualizationCreatorConfig,
   generatedVisualizations,
   execution,
+  nodeId,
   nodeStatus,
   namespace,
   onError,
@@ -1081,7 +1084,7 @@ const ArtifactsTabContent: React.FC<{
     // nodeStatus object instance will keep changing after new requests to get
     // workflow status.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [execution?.getId(), nodeCompleted, onError, namespace]);
+  }, [nodeId, execution?.getId(), nodeCompleted, onError, namespace]);
 
   return (
     <div className={commonCss.page}>
