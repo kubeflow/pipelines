@@ -56,7 +56,7 @@ interface VisualizationCreatorState {
 }
 
 class VisualizationCreator extends Viewer<VisualizationCreatorProps, VisualizationCreatorState> {
-  state: VisualizationCreatorState = {
+  public state: VisualizationCreatorState = {
     // This feature is only for rare occasions, collapse by default.
     expanded: !this.props.configs[0]?.collapsedInitially,
     arguments: '',
