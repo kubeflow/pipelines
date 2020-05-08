@@ -35,7 +35,7 @@ exports[`Router initial render 1`] = `
     <Route
       exact={false}
       key="4"
-      path="/artifact_types/:artifactType+/artifacts/:id"
+      path="/artifacts/:id"
       render={[Function]}
     />
     <Route
@@ -47,7 +47,7 @@ exports[`Router initial render 1`] = `
     <Route
       exact={true}
       key="6"
-      path="/execution_types/:executionType+/executions/:id"
+      path="/executions/:id"
       render={[Function]}
     />
     <Route

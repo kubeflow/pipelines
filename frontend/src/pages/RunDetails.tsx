@@ -385,7 +385,6 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                           <Link
                                             className={commonCss.link}
                                             to={RoutePageFactory.executionDetails(
-                                              selectedExecution.getTypeId() + '',
                                               selectedExecution.getId(),
                                             )}
                                           >
