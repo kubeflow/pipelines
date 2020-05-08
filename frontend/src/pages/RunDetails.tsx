@@ -312,7 +312,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   'Input/Output',
                                   'ML Metadata',
                                   'Volumes',
-                                  'Manifest',
+                                  ...(WorkflowParser.getNodeManifest(workflow, selectedNodeId)
+                                    .length > 0
+                                    ? ['Manifest']
+                                    : []),
                                   'Logs',
                                   'Pod',
                                   'Events',
