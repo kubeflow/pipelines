@@ -265,7 +265,7 @@ export class OutputArtifactLoader {
       getOutputArtifactsInExecution(execution),
     ]);
     if (artifactTypes.length === 0 || artifacts.length === 0) {
-      // There are no artifact types data.
+      // There are no artifact types data or no artifacts.
       return [];
     }
     reportProgress(70);
