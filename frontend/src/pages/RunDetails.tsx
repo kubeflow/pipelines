@@ -82,10 +82,10 @@ enum SidePaneTab {
   INPUT_OUTPUT,
   ML_METADATA,
   VOLUMES,
-  MANIFEST,
   LOGS,
   POD,
   EVENTS,
+  MANIFEST,
 }
 
 interface SelectedNodeDetails {
@@ -312,10 +312,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   'Input/Output',
                                   'ML Metadata',
                                   'Volumes',
-                                  'Manifest',
                                   'Logs',
                                   'Pod',
                                   'Events',
+                                  // NOTE: it's only possible to conditionally add a tab at the end
+                                  ...(WorkflowParser.getNodeManifest(workflow, selectedNodeId)
+                                    .length > 0
+                                    ? ['Manifest']
+                                    : []),
                                 ]}
                                 selectedTab={sidepanelSelectedTab}
                                 onSwitch={this._loadSidePaneTab.bind(this)}
