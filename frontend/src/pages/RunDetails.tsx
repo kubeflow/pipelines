@@ -1097,6 +1097,9 @@ const VisualizationsTabContent: React.FC<{
         <Progress value={progress} onComplete={onLoad} />
       ) : (
         <>
+          {viewerConfigs.length + generatedVisualizations.length === 0 && (
+            <Banner message='There are no visualizations in this step.' mode='warning' />
+          )}
           {[
             ...viewerConfigs,
             ...generatedVisualizations.map(visualization => visualization.config),
