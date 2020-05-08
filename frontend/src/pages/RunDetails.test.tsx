@@ -42,10 +42,10 @@ const STEP_TABS = {
   INPUT_OUTPUT: 1,
   ML_METADATA: 2,
   VOLUMES: 3,
-  MANIFEST: 4,
-  LOGS: 5,
-  POD: 6,
-  EVENTS: 7,
+  LOGS: 4,
+  POD: 5,
+  EVENTS: 6,
+  MANIFEST: 7,
 };
 
 const NODE_DETAILS_SELECTOR = '[data-testid="run-details-node-details"]';
