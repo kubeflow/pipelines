@@ -87,6 +87,18 @@ implementation:
 
         self.assertEqual(task_factory1.component_spec.implementation.container.image, component_dict['implementation']['container']['image'])
 
+    def test_digest_of_loaded_component(self):
+        component_text = textwrap.dedent('''\
+            implementation:
+              container:
+                image: busybox
+            '''
+        )
+        task_factory1 = comp.load_component_from_text(component_text)
+        task1 = task_factory1()
+
+        self.assertEqual(len(task1.component_ref.digest), 64)  # The length of SHA256 hash digest is 32256 bits = 32 bytes = 64 hex digits
+
     def test_accessing_component_spec_from_task_factory(self):
         component_text = '''\
 implementation:
