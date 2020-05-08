@@ -257,7 +257,7 @@ describe('Utils', () => {
   describe('generateS3ArtifactUrl', () => {
     it('handles s3:// URIs', () => {
       expect(generateMinioArtifactUrl('s3://my-bucket/a/b/c')).toBe(
-          'artifacts/get?source=s3&bucket=my-bucket&key=a/b/c',
+        'artifacts/get?source=s3&bucket=my-bucket&key=a/b/c',
       );
     });
   });
