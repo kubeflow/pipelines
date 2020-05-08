@@ -193,16 +193,16 @@ import pickle
 
 def strip_type_hints(source_code: str) -> str:
     try:
-        return _strip_type_hints_using_strip_hints(source_code)
-    except Exception as ex:
-        print('Error when stripping type annotations: ' + str(ex))
-
-    try:        
         return _strip_type_hints_using_lib2to3(source_code)
     except Exception as ex:
         print('Error when stripping type annotations: ' + str(ex))
 
-    return source_code    
+    try:
+        return _strip_type_hints_using_strip_hints(source_code)
+    except Exception as ex:
+        print('Error when stripping type annotations: ' + str(ex))
+
+    return source_code
 
 
 def _strip_type_hints_using_strip_hints(source_code: str) -> str:
