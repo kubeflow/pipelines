@@ -906,7 +906,7 @@ describe('DetailsTable', () => {
       <DetailsTable
         fields={[['key2', { key: 'foobar', bucket: 'bucket', endpoint: 's3.amazonaws.com' }]]}
         valueComponent={ValueComponent}
-        extraProp='extra'
+        extraprop='extra'
       />,
     );
     expect(getByTestId('value-component')).toMatchInlineSnapshot(`
