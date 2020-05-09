@@ -76,10 +76,11 @@ import WorkflowParser from '../lib/WorkflowParser';
 import { ExecutionDetailsContent } from './ExecutionDetails';
 import { Page, PageProps } from './Page';
 import { statusToIcon } from './Status';
+import { ExternalLink } from 'src/atoms/ExternalLink';
 
 enum SidePaneTab {
-  ARTIFACTS,
   INPUT_OUTPUT,
+  VISUALIZATIONS,
   ML_METADATA,
   VOLUMES,
   LOGS,
@@ -176,7 +177,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     selectedNodeDetails: null,
     selectedTab: 0,
     sidepanelBusy: false,
-    sidepanelSelectedTab: SidePaneTab.ARTIFACTS,
+    sidepanelSelectedTab: SidePaneTab.INPUT_OUTPUT,
     mlmdRunContext: undefined,
     mlmdExecutions: undefined,
   };
@@ -268,6 +269,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         this._onGenerate(visualizationArguments, source, type, namespace || '');
       },
       type: PlotType.VISUALIZATION_CREATOR,
+      collapsedInitially: true,
     };
 
     return (
@@ -308,8 +310,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                             <div className={commonCss.page}>
                               <MD2Tabs
                                 tabs={[
-                                  'Artifacts',
                                   'Input/Output',
+                                  'Visualizations',
                                   'ML Metadata',
                                   'Volumes',
                                   'Logs',
@@ -329,10 +331,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                 data-testid='run-details-node-details'
                                 className={commonCss.page}
                               >
-                                {sidepanelSelectedTab === SidePaneTab.ARTIFACTS &&
+                                {sidepanelSelectedTab === SidePaneTab.VISUALIZATIONS &&
                                   this.state.selectedNodeDetails &&
                                   this.state.workflow && (
-                                    <ArtifactsTabContent
+                                    <VisualizationsTabContent
                                       execution={selectedExecution}
                                       nodeId={selectedNodeId}
                                       nodeStatus={
@@ -996,10 +998,10 @@ const COMPLETED_NODE_PHASES: ArgoNodePhase[] = ['Succeeded', 'Failed', 'Error'];
 
 // TODO: add unit tests for this.
 /**
- * Artifacts tab content component, it handles loading progress state of
- * artifacts and visualize progress as a circular progress icon.
+ * Visualizations tab content component, it handles loading progress state of
+ * visualize progress as a circular progress icon.
  */
-const ArtifactsTabContent: React.FC<{
+const VisualizationsTabContent: React.FC<{
   visualizationCreatorConfig: VisualizationCreatorConfig;
   execution?: Execution;
   nodeId: string;
@@ -1026,7 +1028,7 @@ const ArtifactsTabContent: React.FC<{
 
   React.useEffect(() => {
     let aborted = false;
-    async function loadArtifacts() {
+    async function loadVisualizations() {
       if (aborted) {
         return;
       }
@@ -1075,7 +1077,7 @@ const ArtifactsTabContent: React.FC<{
       setProgress(100); // Loaded will be set by Progress onComplete
       return;
     }
-    loadArtifacts();
+    loadVisualizations();
 
     const abort = () => {
       aborted = true;
@@ -1095,6 +1097,9 @@ const ArtifactsTabContent: React.FC<{
         <Progress value={progress} onComplete={onLoad} />
       ) : (
         <>
+          {viewerConfigs.length + generatedVisualizations.length === 0 && (
+            <Banner message='There are no visualizations in this step.' mode='warning' />
+          )}
           {[
             ...viewerConfigs,
             ...generatedVisualizations.map(visualization => visualization.config),
@@ -1114,6 +1119,15 @@ const ArtifactsTabContent: React.FC<{
               maxDimension={500}
             />
             <Hr />
+          </div>
+          <div className={padding(20)}>
+            <p>
+              Add visualizations to your own components following instructions in{' '}
+              <ExternalLink href='https://www.kubeflow.org/docs/pipelines/sdk/output-viewer/'>
+                Visualize Results in the Pipelines UI
+              </ExternalLink>
+              .
+            </p>
           </div>
         </>
       )}

@@ -258,6 +258,7 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
             mode={this.state.bannerProps.mode}
             additionalInfo={this.state.bannerProps.additionalInfo}
             refresh={this.state.bannerProps.refresh}
+            showTroubleshootingGuideLink={true}
           />
         )}
         <Switch>
