@@ -33,10 +33,6 @@ interface ArchivedExperimentsState {}
 export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedExperimentsState> {
   private _experimentlistRef = React.createRef<ExperimentList>();
 
-  constructor(props: any) {
-    super(props);
-  }
-
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
