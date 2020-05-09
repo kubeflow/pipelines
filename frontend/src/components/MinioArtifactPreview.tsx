@@ -70,8 +70,10 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
   }, [storagePath, peek, namespace]);
 
   if (!storagePath) {
-    // return value as is if it is defined
-    return value ? <React.Fragment>{`${value}`}</React.Fragment> : null;
+    // if value is undefined, null, or an invalid s3artifact object, don't render
+    if (value === null || value === undefined || typeof value === 'object') return null;
+    // otherwise render value as string (with default string method)
+    return <React.Fragment>{`${value}`}</React.Fragment>;
   }
 
   // TODO need to come to an agreement how to encode artifact info inside a url

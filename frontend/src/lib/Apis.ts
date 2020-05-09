@@ -23,7 +23,6 @@ import { PlotType } from '../components/viewers/Viewer';
 import * as Utils from './Utils';
 import { StoragePath } from './WorkflowParser';
 import { buildQuery } from './Utils';
-import { StorageService } from './WorkflowParser';
 
 const v1beta1Prefix = 'apis/v1beta1';
 

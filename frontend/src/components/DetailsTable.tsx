@@ -56,7 +56,7 @@ interface DetailsTableProps<T> {
   fields: Array<KeyValue<string | T>>;
   title?: string;
   valueComponent?: React.FC<ValueComponentProps<T>>;
-  [key: string]: any;
+  valueComponentProps?: { [key: string]: any };
 }
 
 function isString(x: any): x is string {
@@ -64,7 +64,7 @@ function isString(x: any): x is string {
 }
 
 const DetailsTable = <T extends {}>(props: DetailsTableProps<T>) => {
-  const { fields, title, valueComponent: ValueComponent, ...rest } = props;
+  const { fields, title, valueComponent: ValueComponent, valueComponentProps } = props;
   return (
     <React.Fragment>
       {!!title && <div className={commonCss.header}>{title}</div>}
@@ -103,13 +103,14 @@ const DetailsTable = <T extends {}>(props: DetailsTableProps<T>) => {
               // do nothing
             }
           }
-          // If value is a S3Artifact render a preview, otherwise just display it as is
+          // If a ValueComponent and a value is provided, render the value with
+          // the ValueComponent. Otherwise render the value as a string (empty string if null or undefined).
           return (
             <div key={i} className={css.row}>
               <span className={css.key}>{key}</span>
               <span className={css.valueText}>
                 {ValueComponent && value ? (
-                  <ValueComponent value={value} {...rest} />
+                  <ValueComponent value={value} {...valueComponentProps} />
                 ) : (
                   `${value || ''}`
                 )}
