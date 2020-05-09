@@ -2,6 +2,7 @@ name: Upload to GCS
 inputs:
 - {name: Data}
 - {name: GCS path, type: URI}
+- {name: Parallel composite upload threshold, type: String}
 outputs:
 - {name: GCS path, type: URI}
 implementation:
@@ -12,10 +13,11 @@ implementation:
         - -ex
         - -c
         - |
+            [ -z "$3" ] || flags="-o GSUtil:parallel_composite_upload_threshold=$3"
             if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
                 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
             fi
-            gsutil cp -r "$0" "$1"
+            gsutil -m $flags cp -r "$0" "$1"
             mkdir -p "$(dirname "$2")"
             echo "$1" > "$2"
         - inputPath: Data
