@@ -306,7 +306,7 @@ export function generateArtifactUrl(
   key: string,
   peek?: number,
 ): string {
-  return  `artifacts/get${buildQuery({source, bucket, key, peek})}`;
+  return `artifacts/get${buildQuery({ source, bucket, key, peek })}`;
 }
 
 /**

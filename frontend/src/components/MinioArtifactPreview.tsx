@@ -82,7 +82,7 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
   // Opens in new window safely
   // TODO use ArtifactLink instead (but it need to support namespace)
   return (
-    <div className={css.preview}>
+    <div className={css.root}>
       <ExternalLink href={artifactUrl} title={linkText}>
         {linkText}
       </ExternalLink>
