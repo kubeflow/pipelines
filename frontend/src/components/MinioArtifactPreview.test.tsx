@@ -84,29 +84,7 @@ describe('MinioArtifactPreview', () => {
       render(<MinioArtifactPreview artifact={s3Artifact} />, { container });
     });
 
-    expect(container).toMatchInlineSnapshot(`
-      <div>
-        <div>
-          <a
-            href="artifacts/get?source=s3&bucket=foo&key=bar"
-            rel="noreferrer noopener"
-            target="_blank"
-            title="s3://foo/bar"
-          >
-            s3://foo/bar
-          </a>
-          <div
-            class="preview"
-          >
-            <small>
-              <pre>
-                preview ...
-              </pre>
-            </small>
-          </div>
-        </div>
-      </div>
-    `);
+    expect(container).toMatchInlineSnapshot(`<div />`);
   });
 
   it('handles minio artifact', async () => {
@@ -121,29 +99,7 @@ describe('MinioArtifactPreview', () => {
     await act(async () => {
       render(<MinioArtifactPreview artifact={minioArtifact} />, { container });
     });
-    expect(container).toMatchInlineSnapshot(`
-      <div>
-        <div>
-          <a
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
-            rel="noreferrer noopener"
-            target="_blank"
-            title="minio://foo/bar"
-          >
-            minio://foo/bar
-          </a>
-          <div
-            class="preview"
-          >
-            <small>
-              <pre>
-                preview ...
-              </pre>
-            </small>
-          </div>
-        </div>
-      </div>
-    `);
+    expect(container).toMatchInlineSnapshot(`<div />`);
   });
 
   it('handles artifact with namespace', async () => {
@@ -160,29 +116,7 @@ describe('MinioArtifactPreview', () => {
         container,
       });
     });
-    expect(container).toMatchInlineSnapshot(`
-      <div>
-        <div>
-          <a
-            href="artifacts/get?source=minio&bucket=foo&key=bar&namespace=namespace"
-            rel="noreferrer noopener"
-            target="_blank"
-            title="minio://foo/bar"
-          >
-            minio://foo/bar
-          </a>
-          <div
-            class="preview"
-          >
-            <small>
-              <pre>
-                preview ...
-              </pre>
-            </small>
-          </div>
-        </div>
-      </div>
-    `);
+    expect(container).toMatchInlineSnapshot(`<div />`);
   });
 
   it('handles artifact cleanly even when fetch fails', async () => {
@@ -200,19 +134,6 @@ describe('MinioArtifactPreview', () => {
         container,
       });
     });
-    expect(container).toMatchInlineSnapshot(`
-      <div>
-        <div>
-          <a
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
-            rel="noreferrer noopener"
-            target="_blank"
-            title="minio://foo/bar"
-          >
-            minio://foo/bar
-          </a>
-        </div>
-      </div>
-    `);
+    expect(container).toMatchInlineSnapshot(`<div />`);
   });
 });
