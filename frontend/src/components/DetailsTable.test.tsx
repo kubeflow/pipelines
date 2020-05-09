@@ -888,16 +888,7 @@ describe('DetailsTable', () => {
             <span
               class="valueText"
             >
-              <div>
-                <a
-                  href="artifacts/get?source=s3&bucket=bucket&key=foobar"
-                  rel="noreferrer noopener"
-                  target="_blank"
-                  title="s3://bucket/foobar"
-                >
-                  s3://bucket/foobar
-                </a>
-              </div>
+              [object Object]
             </span>
           </div>
         </div>
@@ -905,40 +896,26 @@ describe('DetailsTable', () => {
     `);
   });
 
-  it('shows artifact preview if artifact is valid', () => {
-    const { container } = render(
+  it('does render values with the provided valueComponent', () => {
+    const ValueComponent: React.FC<any> = ({ value, ...rest }) => (
+      <a data-testid='value-component' {...rest}>
+        {JSON.stringify(value)}
+      </a>
+    );
+    const { getByTestId } = render(
       <DetailsTable
         fields={[['key2', { key: 'foobar', bucket: 'bucket', endpoint: 's3.amazonaws.com' }]]}
+        valueComponent={ValueComponent}
+        extraProp='extra'
       />,
     );
-    expect(container).toMatchInlineSnapshot(`
-      <div>
-        <div>
-          <div
-            class="row"
-          >
-            <span
-              class="key"
-            >
-              key2
-            </span>
-            <span
-              class="valueText"
-            >
-              <div>
-                <a
-                  href="artifacts/get?source=s3&bucket=bucket&key=foobar"
-                  rel="noreferrer noopener"
-                  target="_blank"
-                  title="s3://bucket/foobar"
-                >
-                  s3://bucket/foobar
-                </a>
-              </div>
-            </span>
-          </div>
-        </div>
-      </div>
+    expect(getByTestId('value-component')).toMatchInlineSnapshot(`
+      <a
+        data-testid="value-component"
+        extraprop="extra"
+      >
+        {"key":"foobar","bucket":"bucket","endpoint":"s3.amazonaws.com"}
+      </a>
     `);
   });
 });
