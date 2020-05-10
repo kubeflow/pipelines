@@ -1098,9 +1098,11 @@ class ContainerOp(BaseOp):
                 name: _pipeline_param.PipelineParam(name, op_name=self.name)
                 for name in file_outputs.keys()
             }
-
-        if len(self.outputs) == 1:
-            self.output = list(self.outputs.values())[0]
+        
+        # Syntactic sugar: Add task.output attribute if the component has a single output.
+        unique_outputs = set(self.outputs.values())
+        if len(unique_outputs) == 1:
+            self.output = list(unique_outputs)[0]
         else:
             self.output = _MultipleOutputsError()
 
@@ -1163,9 +1165,6 @@ class ContainerOp(BaseOp):
                     if output_meta.name == output:
                         output_type = output_meta.type
                 self.outputs[output].param_type = output_type
-
-            if len(self.outputs) == 1:
-                self.output = list(self.outputs.values())[0]
 
     def add_pvolumes(self,
                      pvolumes: Dict[str, V1Volume] = None):
