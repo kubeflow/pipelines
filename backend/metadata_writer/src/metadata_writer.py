@@ -83,7 +83,16 @@ def output_name_to_argo(name: str) -> str:
 
 
 def argo_artifact_to_uri(artifact: dict) -> str:
-    return 'argo-artifact://' + json.dumps(artifact, sort_keys=True)
+    if 's3' in artifact:
+        s3_artifact = artifact['s3']
+        return 'minio://{bucket}/{key}'.format(
+            bucket=s3_artifact.get('bucket', ''),
+            key=s3_artifact.get('key', ''),
+        )
+    elif 'raw' in artifact:
+        return None
+    else:
+        return None
 
 
 def is_tfx_pod(pod) -> bool:
@@ -286,6 +295,7 @@ while True:
                             output_name=name,
                             #run_id='Context_' + str(context_id) + '_run',
                             run_id=argo_workflow_name,
+                            argo_artifact=art,
                         )
 
                         artifact_ids.append(dict(
