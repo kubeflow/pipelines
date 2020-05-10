@@ -2,7 +2,7 @@ name: Upload to GCS
 inputs:
 - {name: Data}
 - {name: GCS path, type: URI}
-- {name: Parallel composite upload threshold, type: String}
+- {name: Parallel composite upload threshold, type: String, default: '150M'}
 outputs:
 - {name: GCS path, type: URI}
 implementation:

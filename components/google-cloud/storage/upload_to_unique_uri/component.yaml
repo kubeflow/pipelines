@@ -3,7 +3,7 @@ description: Upload to GCS with unique URI suffix
 inputs:
 - {name: Data}
 - {name: GCS path prefix, type: URI}
-- {name: Parallel composite upload threshold, type: String}
+- {name: Parallel composite upload threshold, type: String, default: '150M'}
 outputs:
 - {name: GCS path, type: URI}
 implementation:
