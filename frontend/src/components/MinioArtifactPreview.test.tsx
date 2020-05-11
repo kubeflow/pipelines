@@ -1,8 +1,3 @@
-import MinioArtifactPreview from './MinioArtifactPreview';
-import React from 'react';
-import TestUtils from '../TestUtils';
-import { act, render } from '@testing-library/react';
-import { Apis } from '../lib/Apis';
 /*
  * Copyright 2019-2020 Google LLC
  *
@@ -18,10 +13,11 @@ import { Apis } from '../lib/Apis';
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-jest.mock('./Editor', () => {
-  return ({ value }: { value: string }) => <pre data-testid='Editor'>{value}</pre>;
-});
+import MinioArtifactPreview from './MinioArtifactPreview';
+import React from 'react';
+import TestUtils from '../TestUtils';
+import { act, render } from '@testing-library/react';
+import { Apis } from '../lib/Apis';
 
 describe('MinioArtifactPreview', () => {
   const readFile = jest.spyOn(Apis, 'readFile');
