@@ -171,11 +171,11 @@ class TrainTestCase(unittest.TestCase):
     with self.assertRaises(Exception):
       _utils.create_training_job_request(vars(parsed_args))
 
-  def test_multiple_defined_images(self):
-    multiple_image_args = self.parser.parse_args(required_args + ['--algorithm_name', 'first-algorithm'])
+  def test_first_party_algorithm(self):
+    algorithm_name_args = self.parser.parse_args(required_args + ['--algorithm_name', 'first-algorithm'])
 
     # Should not throw an exception
-    response = _utils.create_training_job_request(vars(multiple_image_args))
+    response = _utils.create_training_job_request(vars(algorithm_name_args))
     self.assertIn('TrainingImage', response['AlgorithmSpecification'])
     self.assertNotIn('AlgorithmName', response['AlgorithmSpecification'])
 
