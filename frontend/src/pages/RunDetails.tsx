@@ -45,12 +45,12 @@ import CompareTable from '../components/CompareTable';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
 import LogViewer from '../components/LogViewer';
-import MinioArtifactLink from '../components/MinioArtifactLink';
 import PlotCard from '../components/PlotCard';
 import { PodEvents, PodInfo } from '../components/PodYaml';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import SidePanel from '../components/SidePanel';
 import { ToolbarProps } from '../components/Toolbar';
+import MinioArtifactPreview from '../components/MinioArtifactPreview';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { componentMap } from '../components/viewers/ViewerContainer';
@@ -361,9 +361,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     <DetailsTable
                                       title='Input artifacts'
                                       fields={inputArtifacts}
-                                      valueComponent={({ value }) => (
-                                        <MinioArtifactLink artifact={value} namespace={namespace} />
-                                      )}
+                                      valueComponent={MinioArtifactPreview}
+                                      valueComponentProps={{
+                                        namespace: this.state.workflow?.metadata?.namespace,
+                                      }}
                                     />
 
                                     <DetailsTable title='Output parameters' fields={outputParams} />
@@ -371,9 +372,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     <DetailsTable
                                       title='Output artifacts'
                                       fields={outputArtifacts}
-                                      valueComponent={({ value }) => (
-                                        <MinioArtifactLink artifact={value} namespace={namespace} />
-                                      )}
+                                      valueComponent={MinioArtifactPreview}
+                                      valueComponentProps={{
+                                        namespace: this.state.workflow?.metadata?.namespace,
+                                      }}
                                     />
                                   </div>
                                 )}

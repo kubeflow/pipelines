@@ -205,9 +205,28 @@ export class Apis {
   /**
    * Reads file from storage using server.
    */
-  public static readFile(path: StoragePath, namespace?: string): Promise<string> {
-    const { source, bucket, key } = path;
-    return this._fetch(`artifacts/get${buildQuery({ source, bucket, key, namespace })}`);
+  public static readFile(path: StoragePath, namespace?: string, peek?: number): Promise<string> {
+    return this._fetch(this.buildReadFileUrl(path, namespace, peek));
+  }
+
+  /**
+   * Builds an url for the readFile API to retrieve a workflow artifact.
+   * @param props object describing the artifact (e.g. source, bucket, and key)
+   */
+  public static buildReadFileUrl(path: StoragePath, namespace?: string, peek?: number) {
+    const { source, ...rest } = path;
+    return `artifacts/get${buildQuery({ source: `${source}`, namespace, peek, ...rest })}`;
+  }
+
+  /**
+   * Builds an url to visually represents a workflow artifact location.
+   * @param param.source source of the artifact (e.g. minio, gcs, s3, http, or https)
+   * @param param.bucket name of the bucket with the artifact (or host for http/https)
+   * @param param.key key (i.e. path) of the artifact in the bucket
+   */
+  public static buildArtifactUrl({ source, bucket, key }: StoragePath) {
+    // TODO see https://github.com/kubeflow/pipelines/pull/3725
+    return `${source}://${bucket}/${key}`;
   }
 
   /**

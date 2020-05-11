@@ -1062,6 +1062,11 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
                     fields={Array []}
                     title="Input artifacts"
                     valueComponent={[Function]}
+                    valueComponentProps={
+                      Object {
+                        "namespace": undefined,
+                      }
+                    }
                   />
                   <DetailsTable
                     fields={Array []}
@@ -1071,6 +1076,11 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
                     fields={Array []}
                     title="Output artifacts"
                     valueComponent={[Function]}
+                    valueComponentProps={
+                      Object {
+                        "namespace": undefined,
+                      }
+                    }
                   />
                 </div>
               </div>
@@ -1641,6 +1651,11 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                     fields={Array []}
                     title="Input artifacts"
                     valueComponent={[Function]}
+                    valueComponentProps={
+                      Object {
+                        "namespace": undefined,
+                      }
+                    }
                   />
                   <DetailsTable
                     fields={
@@ -1661,6 +1676,11 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                     fields={Array []}
                     title="Output artifacts"
                     valueComponent={[Function]}
+                    valueComponentProps={
+                      Object {
+                        "namespace": undefined,
+                      }
+                    }
                   />
                 </div>
               </div>
