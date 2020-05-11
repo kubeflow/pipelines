@@ -72,7 +72,8 @@ def _create_container_op_from_component_and_arguments(
     output_name_to_python = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
     for output_name in output_names:
         pythonic_output_name = output_name_to_python[output_name]
-        if pythonic_output_name not in task.outputs:
+        # Note: Some component outputs are currently missing from task.outputs (e.g. MLPipeline UI Metadata)
+        if pythonic_output_name not in task.outputs and output_name in task.outputs:
             task.outputs[pythonic_output_name] = task.outputs[output_name]
 
     if container_spec.env:
