@@ -1,6 +1,7 @@
 name: Download from GCS
 inputs:
-- {name: GCS path, type: URI}
+- {name: GCS path, type: GCSPath}
+- {name: Recurse, type: Bool}
 outputs:
 - {name: Data}
 implementation:
@@ -11,6 +12,7 @@ implementation:
         - -ex
         - -c
         - |
+            [ "$2" == true ] && rsync_flags=-r
             if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
                 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
             fi
@@ -22,6 +24,7 @@ implementation:
                 mkdir -p "$(dirname "$1")"
             fi
             
-            gsutil -m rsync -r "$0" "$1" # gsutil cp has different path handling than Linux cp. It always puts the source directory (name) inside the destination directory. gsutil rsync does not have that problem.
+            gsutil -m rsync $rsync_flags "$0" "$1" # gsutil cp has different path handling than Linux cp. It always puts the source directory (name) inside the destination directory. gsutil rsync does not have that problem.
         - inputValue: GCS path
         - outputPath: Data
+        - inputValue: Recurse
