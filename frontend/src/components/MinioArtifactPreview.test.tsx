@@ -1,3 +1,8 @@
+import MinioArtifactPreview from './MinioArtifactPreview';
+import React from 'react';
+import TestUtils from '../TestUtils';
+import { act, render } from '@testing-library/react';
+import { Apis } from '../lib/Apis';
 /*
  * Copyright 2019-2020 Google LLC
  *
@@ -13,13 +18,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react';
-import { render, act } from '@testing-library/react';
-import MinioArtifactPreview from './MinioArtifactPreview';
-import { Apis } from '../lib/Apis';
-import TestUtils from '../TestUtils';
 
-jest.mock('../lib/Apis');
+jest.mock('./Editor', () => {
+  return ({ value }: { value: string }) => <pre data-testid='Editor'>{value}</pre>;
+});
 
 describe('MinioArtifactPreview', () => {
   const readFile = jest.spyOn(Apis, 'readFile');
@@ -107,9 +109,13 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
+            href="artifacts/get?source=s3&peek=255&bucket=foo&key=bar"
             rel="noopener"
             target="_blank"
-          />
+            title="s3://foo/bar"
+          >
+            s3://foo/bar
+          </a>
           <div
             class="preview"
           >
@@ -143,9 +149,13 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
+            href="artifacts/get?source=minio&peek=255&bucket=foo&key=bar"
             rel="noopener"
             target="_blank"
-          />
+            title="minio://foo/bar"
+          >
+            minio://foo/bar
+          </a>
           <div
             class="preview"
           >
@@ -179,9 +189,13 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
+            href="artifacts/get?source=minio&namespace=namespace&peek=255&bucket=foo&key=bar"
             rel="noopener"
             target="_blank"
-          />
+            title="minio://foo/bar"
+          >
+            minio://foo/bar
+          </a>
           <div
             class="preview"
           >
@@ -214,9 +228,147 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
+            href="artifacts/get?source=minio&peek=255&bucket=foo&key=bar"
             rel="noopener"
             target="_blank"
-          />
+            title="minio://foo/bar"
+          >
+            minio://foo/bar
+          </a>
+        </div>
+      </div>
+    `);
+  });
+
+  it('handles artifact that previews fully', async () => {
+    const minioArtifact = {
+      accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+      bucket: 'foo',
+      endpoint: 'minio.kubeflow',
+      key: 'bar',
+      secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+    };
+    const data = `012\n345\n678\n910`;
+    readFile.mockResolvedValue(data);
+    const { container } = render(
+      <MinioArtifactPreview value={minioArtifact} maxbytes={data.length} />,
+    );
+    await act(TestUtils.flushPromises);
+    expect(container).toMatchInlineSnapshot(`
+      <div>
+        <div
+          class="root"
+        >
+          <a
+            class="link"
+            href="artifacts/get?source=minio&peek=15&bucket=foo&key=bar"
+            rel="noopener"
+            target="_blank"
+            title="minio://foo/bar"
+          >
+            minio://foo/bar
+          </a>
+          <div
+            class="preview"
+          >
+            <small>
+              <pre>
+                012
+      345
+      678
+      910
+              </pre>
+            </small>
+          </div>
+        </div>
+      </div>
+    `);
+  });
+
+  it('handles artifact that previews with maxlines', async () => {
+    const minioArtifact = {
+      accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+      bucket: 'foo',
+      endpoint: 'minio.kubeflow',
+      key: 'bar',
+      secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+    };
+    const data = `012\n345\n678\n910`;
+    readFile.mockResolvedValue(data);
+    const { container } = render(
+      <MinioArtifactPreview value={minioArtifact} maxbytes={data.length} maxlines={2} />,
+    );
+    await act(TestUtils.flushPromises);
+    expect(container).toMatchInlineSnapshot(`
+      <div>
+        <div
+          class="root"
+        >
+          <a
+            class="link"
+            href="artifacts/get?source=minio&peek=15&bucket=foo&key=bar"
+            rel="noopener"
+            target="_blank"
+            title="minio://foo/bar"
+          >
+            minio://foo/bar
+          </a>
+          <div
+            class="preview"
+          >
+            <small>
+              <pre>
+                012
+      345
+      ...
+              </pre>
+            </small>
+          </div>
+        </div>
+      </div>
+    `);
+  });
+
+  it('handles artifact that previews with maxbytes', async () => {
+    const minioArtifact = {
+      accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+      bucket: 'foo',
+      endpoint: 'minio.kubeflow',
+      key: 'bar',
+      secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+    };
+    const data = `012\n345\n678\n910`;
+    readFile.mockResolvedValue(data);
+    const { container } = render(
+      <MinioArtifactPreview value={minioArtifact} maxbytes={data.length - 5} />,
+    );
+    await act(TestUtils.flushPromises);
+    expect(container).toMatchInlineSnapshot(`
+      <div>
+        <div
+          class="root"
+        >
+          <a
+            class="link"
+            href="artifacts/get?source=minio&peek=10&bucket=foo&key=bar"
+            rel="noopener"
+            target="_blank"
+            title="minio://foo/bar"
+          >
+            minio://foo/bar
+          </a>
+          <div
+            class="preview"
+          >
+            <small>
+              <pre>
+                012
+      345
+      67
+      ...
+              </pre>
+            </small>
+          </div>
         </div>
       </div>
     `);

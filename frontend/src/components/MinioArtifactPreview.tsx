@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { color } from '../Css';
-import { StorageService } from '../lib/WorkflowParser';
+import { StorageService, StoragePath } from '../lib/WorkflowParser';
 import { S3Artifact } from '../../third_party/argo-ui/argo_template';
 import { isS3Endpoint } from '../lib/AwsHelper';
 import { Apis } from '../lib/Apis';
@@ -33,7 +33,8 @@ export function isS3Artifact(value: any): value is S3Artifact {
 
 export interface MinioArtifactPreviewProps extends ValueComponentProps<Partial<S3Artifact>> {
   namespace?: string;
-  peek?: number;
+  maxbytes?: number;
+  maxlines?: number;
 }
 
 function getStoragePath(value?: string | Partial<S3Artifact>) {
@@ -44,13 +45,35 @@ function getStoragePath(value?: string | Partial<S3Artifact>) {
   return { source, bucket, key };
 }
 
+async function getPreview(
+  storagePath: StoragePath,
+  namespace: string | undefined,
+  maxbytes: number,
+  maxlines?: number,
+) {
+  // TODO how to handle binary data (can probably use magic number to id common mime types)
+  let data = await Apis.readFile(storagePath, namespace, maxbytes + 1);
+  // is preview === data and no maxlines
+  if (data.length <= maxbytes && !maxlines) {
+    return data;
+  }
+  // remove extra byte at the end (we requested maxbytes +1)
+  data = data.slice(0, maxbytes);
+  // check num lines
+  if (maxlines) {
+    data = data.split('\n').slice(0, maxlines).join("\n").trim();
+  }
+  return `${data}\n...`;
+}
+
 /**
  * A component that renders a preview to an artifact with a link to the full content.
  */
 const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
   value,
   namespace,
-  peek = 255,
+  maxbytes = 255,
+  maxlines,
 }) => {
   const [content, setContent] = React.useState<string | undefined>(undefined);
   const storagePath = getStoragePath(value);
@@ -58,16 +81,15 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
   React.useEffect(() => {
     let cancelled = false;
     if (storagePath) {
-      // TODO how to handle binary data
-      Apis.readFile(storagePath, namespace, peek + 1).then(
-        data => !cancelled && setContent(data.length > peek ? `${data.slice(0, peek)} ...` : data),
-        error => console.error(error),
+      getPreview(storagePath, namespace, maxbytes, maxlines).then(
+        data => !cancelled && setContent(data),
+        error => console.error(error), // TODO error badge on link?
       );
     }
     return () => {
       cancelled = true;
     };
-  }, [storagePath, peek, namespace]);
+  }, [storagePath, namespace, maxbytes, maxlines]);
 
   if (!storagePath) {
     // if value is undefined, null, or an invalid s3artifact object, don't render
@@ -79,7 +101,7 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
   // TODO need to come to an agreement how to encode artifact info inside a url
   // namespace is currently not supported
   const linkText = Apis.buildArtifactUrl(storagePath);
-  const artifactUrl = Apis.buildReadFileUrl(storagePath, namespace, peek);
+  const artifactUrl = Apis.buildReadFileUrl(storagePath, namespace, maxbytes);
 
   // Opens in new window safely
   // TODO use ArtifactLink instead (but it need to support namespace)
