@@ -68,13 +68,12 @@ def _create_container_op_from_component_and_arguments(
     # Now ContainerOp supports any output names, so we're now using the original output names.
     # However to support legacy pipelines, we're also adding output references with pythonic names.
     # TODO: Add warning when people use the legacy output names.
-    output_name_to_python = generate_unique_name_conversion_table(task.outputs.keys(), _sanitize_python_function_name)
-    legacy_outputs = {}
-    for output_name, output_ref in task.outputs.items():
+    output_names = [output_spec.name for output_spec in component_spec.outputs or []] # Stabilizing the ordering
+    output_name_to_python = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
+    for output_name in output_names:
         pythonic_output_name = output_name_to_python[output_name]
-        if pythonic_output_name != output_name:
-            legacy_outputs[pythonic_output_name] = output_ref
-    task.outputs.update(legacy_outputs)
+        if pythonic_output_name not in task.outputs:
+            task.outputs[pythonic_output_name] = task.outputs[output_name]
 
     if container_spec.env:
         from kubernetes import client as k8s_client
