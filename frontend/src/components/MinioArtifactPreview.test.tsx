@@ -19,10 +19,6 @@ import { Apis } from '../lib/Apis';
  * limitations under the License.
  */
 
-jest.mock('./Editor', () => {
-  return ({ value }: { value: string }) => <pre data-testid='Editor'>{value}</pre>;
-});
-
 describe('MinioArtifactPreview', () => {
   const readFile = jest.spyOn(Apis, 'readFile');
 

@@ -19,6 +19,10 @@ import * as React from 'react';
 import DetailsTable from './DetailsTable';
 import { render } from '@testing-library/react';
 
+jest.mock('./Editor', () => {
+  return ({ value }: { value: string }) => <pre data-testid='Editor'>{value}</pre>;
+});
+
 describe('DetailsTable', () => {
   it('shows no rows', () => {
     const { container } = render(<DetailsTable fields={[]} />);
@@ -170,94 +174,15 @@ describe('DetailsTable', () => {
             >
               key
             </span>
-            <div
-              class=" ace_editor ace-github"
-              id="brace-editor"
-              style="width: 100%; height: 500px;"
+            <pre
+              data-testid="Editor"
             >
-              <textarea
-                autocapitalize="off"
-                autocorrect="off"
-                class="ace_text-input"
-                spellcheck="false"
-                style="opacity: 0;"
-                wrap="off"
-              />
-              <div
-                aria-hidden="true"
-                class="ace_gutter"
-              >
-                <div
-                  class="ace_layer ace_gutter-layer ace_folding-enabled"
-                />
-                <div
-                  class="ace_gutter-active-line"
-                />
-              </div>
-              <div
-                class="ace_scroller"
-              >
-                <div
-                  class="ace_content"
-                >
-                  <div
-                    class="ace_layer ace_print-margin-layer"
-                  >
-                    <div
-                      class="ace_print-margin"
-                      style="left: 4px; visibility: visible;"
-                    />
-                  </div>
-                  <div
-                    class="ace_layer ace_marker-layer"
-                  />
-                  <div
-                    class="ace_layer ace_text-layer"
-                    style="padding: 0px 4px;"
-                  />
-                  <div
-                    class="ace_layer ace_marker-layer"
-                  />
-                  <div
-                    class="ace_layer ace_cursor-layer ace_hidden-cursors"
-                  >
-                    <div
-                      class="ace_cursor"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div
-                class="ace_scrollbar ace_scrollbar-v"
-                style="display: none; width: 20px;"
-              >
-                <div
-                  class="ace_scrollbar-inner"
-                  style="width: 20px;"
-                />
-              </div>
-              <div
-                class="ace_scrollbar ace_scrollbar-h"
-                style="display: none; height: 20px;"
-              >
-                <div
-                  class="ace_scrollbar-inner"
-                  style="height: 20px;"
-                />
-              </div>
-              <div
-                style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: hidden;"
-              >
-                <div
-                  style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: visible;"
-                />
-                <div
-                  style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: visible;"
-                >
-                  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-                </div>
-              </div>
-            </div>
+              [
+        {
+          "jsonKey": "jsonValue"
+        }
+      ]
+            </pre>
           </div>
         </div>
       </div>
@@ -277,94 +202,11 @@ describe('DetailsTable', () => {
             >
               key
             </span>
-            <div
-              class=" ace_editor ace-github"
-              id="brace-editor"
-              style="width: 100%; height: 500px;"
+            <pre
+              data-testid="Editor"
             >
-              <textarea
-                autocapitalize="off"
-                autocorrect="off"
-                class="ace_text-input"
-                spellcheck="false"
-                style="opacity: 0;"
-                wrap="off"
-              />
-              <div
-                aria-hidden="true"
-                class="ace_gutter"
-              >
-                <div
-                  class="ace_layer ace_gutter-layer ace_folding-enabled"
-                />
-                <div
-                  class="ace_gutter-active-line"
-                />
-              </div>
-              <div
-                class="ace_scroller"
-              >
-                <div
-                  class="ace_content"
-                >
-                  <div
-                    class="ace_layer ace_print-margin-layer"
-                  >
-                    <div
-                      class="ace_print-margin"
-                      style="left: 4px; visibility: visible;"
-                    />
-                  </div>
-                  <div
-                    class="ace_layer ace_marker-layer"
-                  />
-                  <div
-                    class="ace_layer ace_text-layer"
-                    style="padding: 0px 4px;"
-                  />
-                  <div
-                    class="ace_layer ace_marker-layer"
-                  />
-                  <div
-                    class="ace_layer ace_cursor-layer ace_hidden-cursors"
-                  >
-                    <div
-                      class="ace_cursor"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div
-                class="ace_scrollbar ace_scrollbar-v"
-                style="display: none; width: 20px;"
-              >
-                <div
-                  class="ace_scrollbar-inner"
-                  style="width: 20px;"
-                />
-              </div>
-              <div
-                class="ace_scrollbar ace_scrollbar-h"
-                style="display: none; height: 20px;"
-              >
-                <div
-                  class="ace_scrollbar-inner"
-                  style="height: 20px;"
-                />
-              </div>
-              <div
-                style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: hidden;"
-              >
-                <div
-                  style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: visible;"
-                />
-                <div
-                  style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: visible;"
-                >
-                  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-                </div>
-              </div>
-            </div>
+              []
+            </pre>
           </div>
         </div>
       </div>
@@ -384,94 +226,11 @@ describe('DetailsTable', () => {
             >
               key
             </span>
-            <div
-              class=" ace_editor ace-github"
-              id="brace-editor"
-              style="width: 100%; height: 500px;"
+            <pre
+              data-testid="Editor"
             >
-              <textarea
-                autocapitalize="off"
-                autocorrect="off"
-                class="ace_text-input"
-                spellcheck="false"
-                style="opacity: 0;"
-                wrap="off"
-              />
-              <div
-                aria-hidden="true"
-                class="ace_gutter"
-              >
-                <div
-                  class="ace_layer ace_gutter-layer ace_folding-enabled"
-                />
-                <div
-                  class="ace_gutter-active-line"
-                />
-              </div>
-              <div
-                class="ace_scroller"
-              >
-                <div
-                  class="ace_content"
-                >
-                  <div
-                    class="ace_layer ace_print-margin-layer"
-                  >
-                    <div
-                      class="ace_print-margin"
-                      style="left: 4px; visibility: visible;"
-                    />
-                  </div>
-                  <div
-                    class="ace_layer ace_marker-layer"
-                  />
-                  <div
-                    class="ace_layer ace_text-layer"
-                    style="padding: 0px 4px;"
-                  />
-                  <div
-                    class="ace_layer ace_marker-layer"
-                  />
-                  <div
-                    class="ace_layer ace_cursor-layer ace_hidden-cursors"
-                  >
-                    <div
-                      class="ace_cursor"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div
-                class="ace_scrollbar ace_scrollbar-v"
-                style="display: none; width: 20px;"
-              >
-                <div
-                  class="ace_scrollbar-inner"
-                  style="width: 20px;"
-                />
-              </div>
-              <div
-                class="ace_scrollbar ace_scrollbar-h"
-                style="display: none; height: 20px;"
-              >
-                <div
-                  class="ace_scrollbar-inner"
-                  style="height: 20px;"
-                />
-              </div>
-              <div
-                style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: hidden;"
-              >
-                <div
-                  style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: visible;"
-                />
-                <div
-                  style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: visible;"
-                >
-                  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-                </div>
-              </div>
-            </div>
+              {}
+            </pre>
           </div>
         </div>
       </div>
@@ -635,94 +394,15 @@ describe('DetailsTable', () => {
             >
               key2
             </span>
-            <div
-              class=" ace_editor ace-github"
-              id="brace-editor"
-              style="width: 100%; height: 500px;"
+            <pre
+              data-testid="Editor"
             >
-              <textarea
-                autocapitalize="off"
-                autocorrect="off"
-                class="ace_text-input"
-                spellcheck="false"
-                style="opacity: 0;"
-                wrap="off"
-              />
-              <div
-                aria-hidden="true"
-                class="ace_gutter"
-              >
-                <div
-                  class="ace_layer ace_gutter-layer ace_folding-enabled"
-                />
-                <div
-                  class="ace_gutter-active-line"
-                />
-              </div>
-              <div
-                class="ace_scroller"
-              >
-                <div
-                  class="ace_content"
-                >
-                  <div
-                    class="ace_layer ace_print-margin-layer"
-                  >
-                    <div
-                      class="ace_print-margin"
-                      style="left: 4px; visibility: visible;"
-                    />
-                  </div>
-                  <div
-                    class="ace_layer ace_marker-layer"
-                  />
-                  <div
-                    class="ace_layer ace_text-layer"
-                    style="padding: 0px 4px;"
-                  />
-                  <div
-                    class="ace_layer ace_marker-layer"
-                  />
-                  <div
-                    class="ace_layer ace_cursor-layer ace_hidden-cursors"
-                  >
-                    <div
-                      class="ace_cursor"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div
-                class="ace_scrollbar ace_scrollbar-v"
-                style="display: none; width: 20px;"
-              >
-                <div
-                  class="ace_scrollbar-inner"
-                  style="width: 20px;"
-                />
-              </div>
-              <div
-                class="ace_scrollbar ace_scrollbar-h"
-                style="display: none; height: 20px;"
-              >
-                <div
-                  class="ace_scrollbar-inner"
-                  style="height: 20px;"
-                />
-              </div>
-              <div
-                style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: hidden;"
-              >
-                <div
-                  style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: visible;"
-                />
-                <div
-                  style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: visible;"
-                >
-                  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-                </div>
-              </div>
-            </div>
+              [
+        {
+          "jsonKey": "jsonValue2"
+        }
+      ]
+            </pre>
           </div>
           <div
             class="row"
@@ -760,94 +440,15 @@ describe('DetailsTable', () => {
             >
               key5
             </span>
-            <div
-              class=" ace_editor ace-github"
-              id="brace-editor"
-              style="width: 100%; height: 500px;"
+            <pre
+              data-testid="Editor"
             >
-              <textarea
-                autocapitalize="off"
-                autocorrect="off"
-                class="ace_text-input"
-                spellcheck="false"
-                style="opacity: 0;"
-                wrap="off"
-              />
-              <div
-                aria-hidden="true"
-                class="ace_gutter"
-              >
-                <div
-                  class="ace_layer ace_gutter-layer ace_folding-enabled"
-                />
-                <div
-                  class="ace_gutter-active-line"
-                />
-              </div>
-              <div
-                class="ace_scroller"
-              >
-                <div
-                  class="ace_content"
-                >
-                  <div
-                    class="ace_layer ace_print-margin-layer"
-                  >
-                    <div
-                      class="ace_print-margin"
-                      style="left: 4px; visibility: visible;"
-                    />
-                  </div>
-                  <div
-                    class="ace_layer ace_marker-layer"
-                  />
-                  <div
-                    class="ace_layer ace_text-layer"
-                    style="padding: 0px 4px;"
-                  />
-                  <div
-                    class="ace_layer ace_marker-layer"
-                  />
-                  <div
-                    class="ace_layer ace_cursor-layer ace_hidden-cursors"
-                  >
-                    <div
-                      class="ace_cursor"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div
-                class="ace_scrollbar ace_scrollbar-v"
-                style="display: none; width: 20px;"
-              >
-                <div
-                  class="ace_scrollbar-inner"
-                  style="width: 20px;"
-                />
-              </div>
-              <div
-                class="ace_scrollbar ace_scrollbar-h"
-                style="display: none; height: 20px;"
-              >
-                <div
-                  class="ace_scrollbar-inner"
-                  style="height: 20px;"
-                />
-              </div>
-              <div
-                style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: hidden;"
-              >
-                <div
-                  style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: visible;"
-                />
-                <div
-                  style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; overflow: visible;"
-                >
-                  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-                </div>
-              </div>
-            </div>
+              {
+        "jsonKey": {
+          "nestedJsonKey": "jsonValue"
+        }
+      }
+            </pre>
           </div>
           <div
             class="row"
