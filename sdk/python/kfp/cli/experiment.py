@@ -36,7 +36,7 @@ def list(ctx, max_size):
     """List experiments"""
     client = ctx.obj['client']
 
-    response = client.list_experiments(
+    response = client.experiments.list_experiment(
         page_size=max_size,
         sort_by="created_at desc"
     )
