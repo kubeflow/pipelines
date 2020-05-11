@@ -4,7 +4,7 @@ inputs:
 - {name: Data}
 - {name: GCS path prefix, type: GCSPath}
 - {name: Parallel composite upload threshold, default: '150M'}
-- {name: Recurse, type: Bool, default: false}
+- {name: Recurse, type: Boolean, default: false}
 outputs:
 - {name: GCS path, type: GCSPath}
 implementation:
