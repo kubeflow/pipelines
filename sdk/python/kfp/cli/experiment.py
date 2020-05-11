@@ -62,6 +62,13 @@ def get(ctx, experiment_id):
 @click.pass_context
 def delete(ctx, experiment_id):
     """Delete an experiment"""
+
+    confirmation = "Caution. The RunDetails page could have an issue" \
+                   " when to render a run that has no experiment." \
+                   " Do you want to continue?"
+    if not click.confirm(confirmation):
+        return
+
     client = ctx.obj["client"]
 
     client.experiments.delete_experiment(id=experiment_id)
