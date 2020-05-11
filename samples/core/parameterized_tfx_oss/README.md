@@ -54,4 +54,4 @@ make sure that it is correctly converted to the string-formatted placeholder by
 calling `str(your_param)`.
 * The best practice is to specify TFX pipeline root to an empty dir. In this sample Argo 
 automatically do that by plugging in the 
-workflow unique ID (represented `kfp.dsl.RUN_ID_PLACEHOLDER`) to the pipeline root path.
+workflow unique ID (represented `kfp.dsl.get_run_information_placeholder('RUN_ID')`) to the pipeline root path.

@@ -210,7 +210,7 @@ def xgb_train_pipeline(
     diagnostic_mode='HALT_ON_ERROR',
     rounds=5,
 ):
-    output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
+    output_template = str(output) + '/' + dsl.get_run_information_placeholder('RUN_ID') + '/data'
     region='us-central1'
     workers=2
     quota_check=[{'region':region,'metric':'CPUS','quota_needed':12.0}]
@@ -220,7 +220,7 @@ def xgb_train_pipeline(
     true_label='ACTION'
     target='resolution'
     required_apis='dataproc.googleapis.com'
-    cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER
+    cluster_name='xgb-%s' % dsl.get_run_information_placeholder('RUN_ID')
 
     # Current GCP pyspark/spark op do not provide outputs as return values, instead,
     # we need to use strings to pass the uri around.

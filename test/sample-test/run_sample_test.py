@@ -116,12 +116,12 @@ class PySampleChecker(object):
     if self._testname == 'parameterized_tfx_oss':
       self._test_args['pipeline-root'] = os.path.join(
           self._test_args['output'],
-          'tfx_taxi_simple_' + kfp.dsl.RUN_ID_PLACEHOLDER)
+          'tfx_taxi_simple_' + kfp.dsl.get_run_information_placeholder('RUN_ID'))
       del self._test_args['output']
     if self._testname == 'iris':
       self._test_args['pipeline-root'] = os.path.join(
           self._test_args['output'],
-          'tfx_iris_' + kfp.dsl.RUN_ID_PLACEHOLDER)
+          'tfx_iris_' + kfp.dsl.get_run_information_placeholder('RUN_ID'))
       del self._test_args['output']
 
     # Submit for pipeline running.

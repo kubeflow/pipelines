@@ -74,7 +74,7 @@ _module_file_param = data_types.RuntimeParameter(
 # associated with KFP deployment. Otherwise you'll need to replace it with your
 # actual bucket name here or when creating a run.
 _pipeline_root = os.path.join(
-    'gs://{{kfp-default-bucket}}', 'tfx_iris', kfp.dsl.RUN_ID_PLACEHOLDER
+    'gs://{{kfp-default-bucket}}', 'tfx_iris', kfp.dsl.get_run_information_placeholder('RUN_ID')
 )
 
 
