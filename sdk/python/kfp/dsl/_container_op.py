@@ -1100,6 +1100,8 @@ class ContainerOp(BaseOp):
             }
         
         # Syntactic sugar: Add task.output attribute if the component has a single output.
+        # TODO: Currently the "MLPipeline UI Metadata" output is removed from outputs to preserve backwards compatibility.
+        # Maybe stop excluding it from outputs, but rather exclude it from unique_outputs.
         unique_outputs = set(self.outputs.values())
         if len(unique_outputs) == 1:
             self.output = list(unique_outputs)[0]
