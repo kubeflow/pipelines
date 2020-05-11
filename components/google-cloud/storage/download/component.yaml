@@ -1,7 +1,7 @@
 name: Download from GCS
 inputs:
 - {name: GCS path, type: GCSPath}
-- {name: Recurse, type: Bool}
+- {name: Recurse, type: Bool, default: false}
 outputs:
 - {name: Data}
 implementation:
