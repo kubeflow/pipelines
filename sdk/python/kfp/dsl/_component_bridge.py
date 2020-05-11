@@ -62,7 +62,8 @@ def _create_container_op_from_component_and_arguments(
     component_meta.implementation = None
     task._set_metadata(component_meta)
 
-    # Previously, ContainerOp had strict requirements for the output names, so we had to convert all the names before passing them to the ContainerOp constructor.
+    # Previously, ContainerOp had strict requirements for the output names, so we had to
+    # convert all the names before passing them to the ContainerOp constructor.
     # Outputs with non-pythonic names could not be accessed using their original names.
     # Now ContainerOp supports any output names, so we're now using the original output names.
     # However to support legacy pipelines, we're also adding output references with pythonic names.
