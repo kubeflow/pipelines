@@ -46,7 +46,7 @@ Arguments:
   metric_name: test:msd
   metric_type: Minimize
   hpo_strategy: Bayesian
-  instance_type: ml.p2.16xlarge
+  instance_type: ml.m5.xlarge
   instance_count: 1
   volume_size: 50
   max_run_time: 3600

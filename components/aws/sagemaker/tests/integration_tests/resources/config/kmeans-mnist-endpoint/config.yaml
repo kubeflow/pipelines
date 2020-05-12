@@ -1,6 +1,10 @@
 PipelineDefinition: resources/definition/create_endpoint_pipeline.py
 TestName: kmeans-create-endpoint-test
 Timeout: 1800
+ExpectedPrediction:
+  predictions:
+    - distance_to_cluster: 7.448746204376221
+      closest_cluster: 2.0
 Arguments:
   region: ((REGION))
   model_name: kmeans-mnist-model

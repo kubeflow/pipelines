@@ -70,14 +70,16 @@ def test_create_endpoint(
         test_params["TestName"],
         test_params["Timeout"],
     )
-
+    # input_endpoint_name = "gyyka18935-kmeans-mnist-model"
+    # run_id = "1776159b-aeb1-4dc2-8979-545e33db891b"
+    # workflow_json = kfp_client_utils.get_workflow_json(kfp_client, run_id)
     outputs = {"sagemaker-deploy-model": ["endpoint_name"]}
 
     output_files = minio_utils.artifact_download_iterator(
         workflow_json, outputs, download_dir
     )
 
-    output_endpoint_name = utils.extract_information(
+    output_endpoint_name = utils.read_from_file_in_tar(
         output_files["sagemaker-deploy-model"]["endpoint_name"], "endpoint_name.txt"
     )
     print(f"endpoint name: {output_endpoint_name}")
@@ -95,8 +97,12 @@ def test_create_endpoint(
 
     # Validate the model for use by running a prediction
     result = run_predict_mnist(boto3_session, input_endpoint_name, download_dir)
-    assert result is not None
     print(f"prediction result: {result}")
+    assert json.dumps(result, sort_keys=True) == json.dumps(
+        test_params["ExpectedPrediction"], sort_keys=True
+    )
 
     # Clean up
     sagemaker_utils.delete_endpoint(sagemaker_client, input_endpoint_name)
+
+    utils.remove_dir(download_dir)

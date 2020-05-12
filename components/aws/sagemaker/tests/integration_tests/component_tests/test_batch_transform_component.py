@@ -62,13 +62,17 @@ def test_transform_job(
     assert response["TransformJobName"] == input_job_name
 
     # Verify output location from pipeline matches job output and that the transformed file exists
-    output_location = utils.extract_information(
+    output_location = utils.read_from_file_in_tar(
         output_files["sagemaker-batch-transformation"]["output_location"], "data",
     )
     print(f"output location: {output_location}")
     assert output_location == response["TransformOutput"]["S3OutputPath"]
     # Get relative path of file in S3 bucket
+    # URI is following format s3://<bucket_name>/relative/path/to/file
+    # split below is to extract the part after bucket name
     file_key = os.path.join(
         "/".join(output_location.split("/")[3:]), test_params["ExpectedOutputFile"]
     )
     assert s3_utils.check_object_exists(s3_client, s3_data_bucket, file_key)
+
+    utils.remove_dir(download_dir)

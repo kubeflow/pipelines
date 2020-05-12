@@ -19,7 +19,7 @@ Arguments:
       CompressionType: None
       RecordWrapperType: None
       InputMode: File
-  instance_type: ml.p2.xlarge
+  instance_type: ml.m5.xlarge
   instance_count: 1
   volume_size: 50
   max_run_time: 3600

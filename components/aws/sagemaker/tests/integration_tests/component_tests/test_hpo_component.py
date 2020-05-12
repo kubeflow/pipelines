@@ -58,7 +58,7 @@ def test_hyperparameter_tuning(
     )
 
     # Verify HPO job was successful on SageMaker
-    hpo_job_name = utils.extract_information(
+    hpo_job_name = utils.read_from_file_in_tar(
         output_files["sagemaker-hyperparameter-tuning"]["hpo_job_name"],
         "hpo_job_name.txt",
     )
@@ -67,7 +67,7 @@ def test_hyperparameter_tuning(
     assert hpo_response["HyperParameterTuningJobStatus"] == "Completed"
 
     # Verify training image output is an ECR image
-    training_image = utils.extract_information(
+    training_image = utils.read_from_file_in_tar(
         output_files["sagemaker-hyperparameter-tuning"]["training_image"],
         "training_image.txt",
     )
@@ -78,7 +78,7 @@ def test_hyperparameter_tuning(
         assert f"dkr.ecr.{region}.amazonaws.com" in training_image
 
     # Verify Training job was part of HPO job, returned as best and was successful
-    best_training_job_name = utils.extract_information(
+    best_training_job_name = utils.read_from_file_in_tar(
         output_files["sagemaker-hyperparameter-tuning"]["best_job_name"],
         "best_job_name.txt",
     )
@@ -94,7 +94,7 @@ def test_hyperparameter_tuning(
     assert train_response["TrainingJobStatus"] == "Completed"
 
     # Verify model artifacts output was generated from this run
-    model_artifact_url = utils.extract_information(
+    model_artifact_url = utils.read_from_file_in_tar(
         output_files["sagemaker-hyperparameter-tuning"]["model_artifact_url"],
         "model_artifact_url.txt",
     )
@@ -104,10 +104,12 @@ def test_hyperparameter_tuning(
 
     # Verify hyper_parameters output is not empty
     hyper_parameters = json.loads(
-        utils.extract_information(
+        utils.read_from_file_in_tar(
             output_files["sagemaker-hyperparameter-tuning"]["best_hyperparameters"],
             "best_hyperparameters.txt",
         )
     )
     print(f"HPO best hyperparameters: {json.dumps(hyper_parameters, indent = 2)}")
     assert hyper_parameters is not None
+
+    utils.remove_dir(download_dir)

@@ -39,7 +39,7 @@ def test_createmodel(kfp_client, experiment_id, sagemaker_client, test_file_dir)
         workflow_json, outputs, download_dir
     )
 
-    output_model_name = utils.extract_information(
+    output_model_name = utils.read_from_file_in_tar(
         output_files["sagemaker-create-model"]["model_name"], "model_name.txt"
     )
     print(f"model_name: {output_model_name}")
@@ -47,3 +47,5 @@ def test_createmodel(kfp_client, experiment_id, sagemaker_client, test_file_dir)
     assert (
         sagemaker_utils.describe_model(sagemaker_client, input_model_name) is not None
     )
+
+    utils.remove_dir(download_dir)

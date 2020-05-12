@@ -36,13 +36,15 @@ def test_trainingjob(
         test_params["Timeout"],
     )
 
-    outputs = {"sagemaker-training-job": ["job_name", "model_artifact_url", "training_image"]}
+    outputs = {
+        "sagemaker-training-job": ["job_name", "model_artifact_url", "training_image"]
+    }
     output_files = minio_utils.artifact_download_iterator(
         workflow_json, outputs, download_dir
     )
 
     # Verify Training job was successful on SageMaker
-    training_job_name = utils.extract_information(
+    training_job_name = utils.read_from_file_in_tar(
         output_files["sagemaker-training-job"]["job_name"], "job_name.txt"
     )
     print(f"training job name: {training_job_name}")
@@ -52,7 +54,7 @@ def test_trainingjob(
     assert train_response["TrainingJobStatus"] == "Completed"
 
     # Verify model artifacts output was generated from this run
-    model_artifact_url = utils.extract_information(
+    model_artifact_url = utils.read_from_file_in_tar(
         output_files["sagemaker-training-job"]["model_artifact_url"],
         "model_artifact_url.txt",
     )
@@ -61,7 +63,7 @@ def test_trainingjob(
     assert training_job_name in model_artifact_url
 
     # Verify training image output is an ECR image
-    training_image = utils.extract_information(
+    training_image = utils.read_from_file_in_tar(
         output_files["sagemaker-training-job"]["training_image"], "training_image.txt",
     )
     print(f"Training image used: {training_image}")
@@ -69,3 +71,5 @@ def test_trainingjob(
         assert test_params["ExpectedTrainingImage"] == training_image
     else:
         assert f"dkr.ecr.{region}.amazonaws.com" in training_image
+
+    utils.remove_dir(download_dir)
