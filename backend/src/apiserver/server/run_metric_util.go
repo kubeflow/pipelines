@@ -25,7 +25,7 @@ import (
 
 const (
 	// This regex expresses the following constraints:
-	// * Allows lowercase/capital letters
+	// * Allows lowercase/uppercase letters
 	// * Allows "_", "-" and numbers in the middle
 	// * Additionally, numbers are also allowed at the end
 	// * At most 64 characters
