@@ -4,49 +4,63 @@ description: |
 inputs:
   - name: region
     description: 'The region where the training job launches.'
+    type: String
   - name: model_name
     description: 'The name of the new model.'
+    type: String
   - name: role
     description: 'The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.'
+    type: String
   - name: container_host_name
     description: 'When a ContainerDefinition is part of an inference pipeline, this value uniquely identifies the container for the purposes of logging and metrics.'
     default: ''
+    type: String
   - name: image
     description: 'The Amazon EC2 Container Registry (Amazon ECR) path where inference code is stored.'
     default: ''
+    type: String
   - name: model_artifact_url
     description: 'S3 path where Amazon SageMaker to store the model artifacts.'
     default: ''
+    type: String
   - name: environment
     description: 'The dictionary of the environment variables to set in the Docker container. Up to 16 key-value entries in the map.'
     default: '{}'
+    type: JsonObject
   - name: model_package
     description: 'The name or Amazon Resource Name (ARN) of the model package to use to create the model.'
     default: ''
+    type: String
   - name: secondary_containers
     description: 'A list of dicts that specifies the additional containers in the inference pipeline.'
     default: '[]'
+    type: JsonArray
   - name: vpc_security_group_ids
     description: 'The VPC security group IDs, in the form sg-xxxxxxxx.'
     default: ''
+    type: String
   - name: vpc_subnets
     description: 'The ID of the subnets in the VPC to which you want to connect your hpo job.'
     default: ''
+    type: String
   - name: network_isolation
     description: 'Isolates the training container.'
     default: 'True'
+    type: Bool
   - name: endpoint_url
     description: 'The endpoint URL for the private link VPC endpoint.'
     default: ''
+    type: String
   - name: tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
+    type: JsonObject
 outputs:
   - {name: model_name,          description: 'The model name Sagemaker created'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.3.0
-    command: ['python']
+    image: amazon/aws-sagemaker-kfp-components:0.3.1
+    command: ['python3']
     args: [
       create_model.py,
       --region, {inputValue: region},

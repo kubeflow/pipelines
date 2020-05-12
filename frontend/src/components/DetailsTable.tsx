@@ -23,7 +23,6 @@ import 'brace';
 import 'brace/ext/language_tools';
 import 'brace/mode/json';
 import 'brace/theme/github';
-import { S3Artifact } from 'third_party/argo-ui/argo_template';
 
 export const css = stylesheet({
   key: {
@@ -48,22 +47,29 @@ export const css = stylesheet({
   },
 });
 
-interface DetailsTableProps {
-  fields: Array<KeyValue<string | S3Artifact>>;
+export interface ValueComponentProps<T> {
+  value?: string | T;
+  [key: string]: any;
+}
+
+interface DetailsTableProps<T> {
+  fields: Array<KeyValue<string | T>>;
   title?: string;
-  valueComponent?: React.FC<{ value: S3Artifact }>;
+  valueComponent?: React.FC<ValueComponentProps<T>>;
+  valueComponentProps?: { [key: string]: any };
 }
 
 function isString(x: any): x is string {
   return typeof x === 'string';
 }
 
-const DetailsTable = (props: DetailsTableProps) => {
+const DetailsTable = <T extends {}>(props: DetailsTableProps<T>) => {
+  const { fields, title, valueComponent: ValueComponent, valueComponentProps } = props;
   return (
     <React.Fragment>
-      {!!props.title && <div className={commonCss.header}>{props.title}</div>}
+      {!!title && <div className={commonCss.header}>{title}</div>}
       <div>
-        {props.fields.map((f, i) => {
+        {fields.map((f, i) => {
           const [key, value] = f;
 
           // only try to parse json if value is a string
@@ -97,18 +103,17 @@ const DetailsTable = (props: DetailsTableProps) => {
               // do nothing
             }
           }
-          // If the value isn't a JSON object, just display it as is
+          // If a ValueComponent and a value is provided, render the value with
+          // the ValueComponent. Otherwise render the value as a string (empty string if null or undefined).
           return (
             <div key={i} className={css.row}>
               <span className={css.key}>{key}</span>
               <span className={css.valueText}>
-                {(() => {
-                  const ValueComponent = props.valueComponent;
-                  if (ValueComponent && !!value && !isString(value)) {
-                    return <ValueComponent value={value} />;
-                  }
-                  return value;
-                })()}
+                {ValueComponent && value ? (
+                  <ValueComponent value={value} {...valueComponentProps} />
+                ) : (
+                  `${value || ''}`
+                )}
               </span>
             </div>
           );

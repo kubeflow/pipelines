@@ -50,7 +50,7 @@ if [[ "$workflow_completed" == "false" ]] || [[ "$workflow_failed" != "false" ]]
   fi
 
   echo "=========Argo Workflow Logs========="
-  argo logs -w "${ARGO_WORKFLOW}" -n "${NAMESPACE}"
+  argo logs "${ARGO_WORKFLOW}" -n "${NAMESPACE}"
 
   echo "========All workflows============="
 

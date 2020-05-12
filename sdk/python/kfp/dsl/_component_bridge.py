@@ -72,6 +72,7 @@ def _create_container_op_from_component_and_arguments(
     component_meta = copy.copy(component_spec)
     component_meta.implementation = None
     task._set_metadata(component_meta)
+    task._component_ref = component_ref
 
     if container_spec.env:
         from kubernetes import client as k8s_client

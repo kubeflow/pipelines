@@ -55,14 +55,16 @@ steps:
   waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA',
-         '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
-         '/workspace/frontend/Dockerfile', '/workspace']
+         '--build-arg', 'COMMIT_HASH=$COMMIT_SHA',
+         '--build-arg', 'TAG_NAME=$TAG_NAME',
+         '-f', '/workspace/frontend/Dockerfile', '/workspace']
   id:   'buildFrontend'
   waitFor: ['prepareFrontend']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA',
-         '--build-arg', 'COMMIT_SHA=$COMMIT_SHA', '-f',
-         '/workspace/backend/Dockerfile', '/workspace']
+         '--build-arg', 'COMMIT_SHA=$COMMIT_SHA',
+         '--build-arg', 'TAG_NAME=$TAG_NAME',
+         '-f', '/workspace/backend/Dockerfile', '/workspace']
   id:   'buildApiServer'
   waitFor: ['copyPythonSDK']
 
@@ -211,10 +213,10 @@ steps:
   args: ['pull', 'gcr.io/cloudsql-docker/gce-proxy:1.14']
   id:   'pullCloudsqlProxy'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/argoexec:v2.3.0-license-compliance']
+  args: ['pull', 'gcr.io/ml-pipeline/argoexec:v2.7.5-license-compliance']
   id:   'pullArgoExecutor'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/workflow-controller:v2.3.0-license-compliance']
+  args: ['pull', 'gcr.io/ml-pipeline/workflow-controller:v2.7.5-license-compliance']
   id:   'pullArgoWorkflowController'
 
 # Tag for Hosted - SemVersion to Major.Minor parsing
