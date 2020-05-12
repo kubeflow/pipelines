@@ -19,9 +19,11 @@ import { Handler } from 'express';
 /** HealthzStats describes the ml-pipeline ui server state. */
 export interface HealthzStats {
   apiServerCommitHash: string;
+  apiServerTagName: string;
   apiServerReady: boolean;
   buildDate: string;
   frontendCommitHash: string;
+  frontendTagName: string;
 }
 
 /**
@@ -41,15 +43,20 @@ export function getHealthzEndpoint(apiServerAddress: string, apiVersionPrefix: s
 export function getBuildMetadata(currentDir: string = path.resolve(__dirname)) {
   const buildDatePath = path.join(currentDir, 'BUILD_DATE');
   const commitHashPath = path.join(currentDir, 'COMMIT_HASH');
+  const tagNamePath = path.join(currentDir, 'TAG_NAME');
   const buildDate = fs.existsSync(buildDatePath)
     ? fs.readFileSync(buildDatePath, 'utf-8').trim()
     : '';
   const frontendCommitHash = fs.existsSync(commitHashPath)
     ? fs.readFileSync(commitHashPath, 'utf-8').trim()
     : '';
+  const frontendTagName = fs.existsSync(tagNamePath)
+    ? fs.readFileSync(tagNamePath, 'utf-8').trim()
+    : '';
   return {
     buildDate,
     frontendCommitHash,
+    frontendTagName,
   };
 }
 
@@ -71,6 +78,7 @@ export function getHealthzHandler(options: {
       healthzStats.apiServerReady = true;
       const serverStatus = await response.json();
       healthzStats.apiServerCommitHash = serverStatus.commit_sha;
+      healthzStats.apiServerTagName = serverStatus.tag_name;
     } catch (e) {
       healthzStats.apiServerReady = false;
     }
