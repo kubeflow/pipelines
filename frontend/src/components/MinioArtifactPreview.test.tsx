@@ -105,7 +105,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=s3&peek=255&bucket=foo&key=bar"
+            href="artifacts/get?source=s3&bucket=foo&key=bar"
             rel="noopener"
             target="_blank"
             title="s3://foo/bar"
@@ -145,7 +145,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=minio&peek=255&bucket=foo&key=bar"
+            href="artifacts/get?source=minio&bucket=foo&key=bar"
             rel="noopener"
             target="_blank"
             title="minio://foo/bar"
@@ -185,7 +185,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=minio&namespace=namespace&peek=255&bucket=foo&key=bar"
+            href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar"
             rel="noopener"
             target="_blank"
             title="minio://foo/bar"
@@ -224,7 +224,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=minio&peek=255&bucket=foo&key=bar"
+            href="artifacts/get?source=minio&bucket=foo&key=bar"
             rel="noopener"
             target="_blank"
             title="minio://foo/bar"
@@ -257,7 +257,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=minio&peek=15&bucket=foo&key=bar"
+            href="artifacts/get?source=minio&bucket=foo&key=bar"
             rel="noopener"
             target="_blank"
             title="minio://foo/bar"
@@ -302,7 +302,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=minio&peek=15&bucket=foo&key=bar"
+            href="artifacts/get?source=minio&bucket=foo&key=bar"
             rel="noopener"
             target="_blank"
             title="minio://foo/bar"
@@ -346,7 +346,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=minio&peek=10&bucket=foo&key=bar"
+            href="artifacts/get?source=minio&bucket=foo&key=bar"
             rel="noopener"
             target="_blank"
             title="minio://foo/bar"
