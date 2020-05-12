@@ -24,7 +24,12 @@ import (
 )
 
 const (
-	metricNamePattern = "^[a-zA-Z]([_-a-zA-Z0-9]{0,62}[a-zA-Z0-9])?$"
+	// This regex expresses the following constraints:
+	// * Allows lowercase/capital letters
+	// * Allows "_", "-" and numbers in the middle
+	// * Additionally, numbers are also allowed at the end
+	// * At most 64 characters
+	metricNamePattern = "^[a-zA-Z]([-_a-zA-Z0-9]{0,62}[a-zA-Z0-9])?$"
 )
 
 // ValidateRunMetric validates RunMetric fields from request.

@@ -81,7 +81,7 @@ func TestNewReportRunMetricResult_OK(t *testing.T) {
 	}{
 		{"metric-1"},
 		{"Metric_2"},
-		{"MetricName"},
+		{"Metric3Name"},
 	}
 
 	for _, tc := range tests {
