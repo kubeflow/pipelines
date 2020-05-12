@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	metricNamePattern = "^[a-z]([-a-z0-9]{0,62}[a-z0-9])?$"
+	metricNamePattern = "^[a-zA-Z]([_-a-zA-Z0-9]{0,62}[a-zA-Z0-9])?$"
 )
 
 // ValidateRunMetric validates RunMetric fields from request.
