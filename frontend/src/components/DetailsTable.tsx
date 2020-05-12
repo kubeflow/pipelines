@@ -40,6 +40,8 @@ export const css = stylesheet({
     flexGrow: 1,
   },
   valueText: {
+    // flexGrow expands value text to full width.
+    flexGrow: 1,
     // For current use-cases, value text shouldn't be very long. It will be not readable when it's long.
     // Therefore, it's easier we just show it completely in the UX.
     overflow: 'hidden',
