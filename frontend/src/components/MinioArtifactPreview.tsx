@@ -11,9 +11,6 @@ import { ValueComponentProps } from './DetailsTable';
 const css = stylesheet({
   root: {
     width: '100%',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
   },
   preview: {
     maxHeight: 250,

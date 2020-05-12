@@ -40,10 +40,10 @@ export const css = stylesheet({
     flexGrow: 1,
   },
   valueText: {
-    maxWidth: 400,
+    // For current use-cases, value text shouldn't be very long. It will be not readable when it's long.
+    // Therefore, it's easier we just show it completely in the UX.
     overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    overflowWrap: 'break-word',
   },
 });
 
