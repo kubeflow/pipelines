@@ -32,7 +32,8 @@ COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt
 
 # Downloading Argo CLI so that the samples are validated
-ADD  https://github.com/argoproj/argo/releases/download/v2.3.0/argo-linux-amd64 /usr/local/bin/argo
+#ADD  https://github.com/argoproj/argo/releases/download/v2.7.5/argo-linux-amd64 /usr/local/bin/argo
+ADD  https://github.com/argoproj/argo/releases/download/v2.4.3/argo-linux-amd64 /usr/local/bin/argo
 RUN chmod +x /usr/local/bin/argo
 
 WORKDIR /go/src/github.com/kubeflow/pipelines

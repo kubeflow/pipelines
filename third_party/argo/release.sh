@@ -20,7 +20,7 @@ set -e
 # $PROJECT: gcp project
 
 RELEASE_PROJECT=ml-pipeline
-TAG=v2.3.0-license-compliance
+TAG=v2.7.5-license-compliance
 
 gcloud builds submit --config third_party/argo/cloudbuild.yaml . \
   --substitutions=TAG_NAME="$TAG" --project "$PROJECT"

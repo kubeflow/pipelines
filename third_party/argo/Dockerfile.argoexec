@@ -23,7 +23,7 @@ RUN sh /third_party/download_source.sh </third_party/argo/repo-MPL.txt
 
 
 # Argo exec image
-From argoproj/argoexec:v2.3.0
+From argoproj/argoexec:v2.7.5
 
 # Copy concatenated license file
 COPY third_party/argo/license.txt /third_party/license.txt
