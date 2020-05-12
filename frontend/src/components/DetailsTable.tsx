@@ -43,6 +43,8 @@ export const css = stylesheet({
     // For current use-cases, value text shouldn't be very long. It will be not readable when it's long.
     // Therefore, it's easier we just show it completely in the UX.
     overflow: 'hidden',
+    // Sometimes, urls will be unbreakable for a long string. overflow-wrap: break-word
+    // allows breaking an url at middle of a word so it will not overflow and get hidden.
     overflowWrap: 'break-word',
   },
 });
