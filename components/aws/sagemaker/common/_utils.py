@@ -13,6 +13,7 @@
 import os
 import argparse
 from time import gmtime, strftime
+from distutils.util import strtobool
 import time
 import string
 import random
@@ -63,7 +64,7 @@ def nullable_string_argument(value):
 
 
 def add_default_client_arguments(parser):
-    parser.add_argument('--region', type=str.strip, required=True, help='The region where the training job launches.')
+    parser.add_argument('--region', type=str, required=True, help='The region where the training job launches.')
     parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the Sagemaker service.')
 
 
@@ -71,7 +72,7 @@ def get_component_version():
     """Get component version from the first line of License file"""
     component_version = 'NULL'
 
-    with open('/THIRD-PARTY-LICENSES.txt', 'r') as license_file:
+    with open('THIRD-PARTY-LICENSES.txt', 'r') as license_file:
         version_match = re.search('Amazon SageMaker Components for Kubeflow Pipelines; version (([0-9]+[.])+[0-9]+)',
                         license_file.readline())
         if version_match is not None:
@@ -858,35 +859,15 @@ def enable_spot_instance_support(training_job_config, args):
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):
   return ''.join(random.choice(chars) for _ in range(size))
 
+def yaml_or_json_str(str):
+  if str == "" or str == None:
+    return None
+  try:
+    return json.loads(str)
+  except:
+    return yaml.safe_load(str)
 
-def str_to_bool(s):
-  if s.lower().strip() == 'true':
-    return True
-  elif s.lower().strip() == 'false':
-    return False
-  else:
-    raise argparse.ArgumentTypeError('"True" or "False" expected.')
-
-def str_to_int(s):
-  if s:
-    return int(s)
-  else:
-    return 0
-
-def str_to_float(s):
-  if s:
-    return float(s)
-  else:
-    return 0.0
-
-def str_to_json_dict(s):
-  if s != '':
-      return json.loads(s)
-  else:
-      return {}
-
-def str_to_json_list(s):
-  if s != '':
-      return json.loads(s)
-  else:
-      return []
+def str_to_bool(str):
+    # This distutils function returns an integer representation of the boolean
+    # rather than a True/False value. This simply hard casts it.
+    return bool(strtobool(str))
