@@ -208,13 +208,13 @@ exports[`SideNav populates the display build information using the response from
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Build date: 10/23/2018"
+      title="Build date: 10/23/2018, Commit hash: 0a7b9e3"
     >
       <div
         className="envMetadata"
       >
         <span>
-          Build commit: 
+          Version: 
         </span>
         <a
           className="link unstyled"
@@ -222,7 +222,7 @@ exports[`SideNav populates the display build information using the response from
           rel="noopener"
           target="_blank"
         >
-          0a7b9e3
+          1.0.0
         </a>
       </div>
     </WithStyles(Tooltip)>

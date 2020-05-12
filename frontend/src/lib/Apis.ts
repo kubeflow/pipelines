@@ -36,9 +36,11 @@ export interface ListRequest {
 
 export interface BuildInfo {
   apiServerCommitHash?: string;
+  apiServerTagName?: string;
   apiServerReady?: boolean;
   buildDate?: string;
   frontendCommitHash?: string;
+  frontendTagName?: string;
 }
 
 // Hack types from https://github.com/microsoft/TypeScript/issues/1897#issuecomment-557057387
