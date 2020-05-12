@@ -63,6 +63,8 @@ FROM debian:stretch
 
 ARG COMMIT_SHA=unknown
 ENV COMMIT_SHA=${COMMIT_SHA}
+ARG TAG_NAME=unknown
+ENV TAG_NAME=${TAG_NAME}
 
 WORKDIR /bin
 
