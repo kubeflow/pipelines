@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import sys
 import ml_metadata
@@ -240,6 +241,8 @@ CONTEXT_RUN_ID_PROPERTY_NAME = "run_id"
 
 KFP_POD_NAME_EXECUTION_PROPERTY_NAME = 'kfp_pod_name'
 
+ARTIFACT_ARGO_ARTIFACT_PROPERTY_NAME = 'argo_artifact'
+
 
 def get_or_create_run_context(
     store,
@@ -374,13 +377,17 @@ def create_new_output_artifact(
     type_name: str,
     output_name: str,
     run_id: str = None,
+    argo_artifact: dict = None,
 ) -> metadata_store_pb2.Artifact:
     properties = {
         ARTIFACT_IO_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=output_name),
     }
+    custom_properties = {}
     if run_id:
         properties[ARTIFACT_PIPELINE_NAME_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
         properties[ARTIFACT_RUN_ID_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
+    if argo_artifact:
+        custom_properties[ARTIFACT_ARGO_ARTIFACT_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=json.dumps(argo_artifact, sort_keys=True))
     return create_new_artifact_event_and_attribution(
         store=store,
         execution_id=execution_id,
@@ -402,5 +409,6 @@ def create_new_output_artifact(
             ARTIFACT_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
             ARTIFACT_RUN_ID_PROPERTY_NAME: metadata_store_pb2.STRING,
         },
+        custom_properties=custom_properties,
         #milliseconds_since_epoch=int(datetime.now(timezone.utc).timestamp() * 1000), # Happens automatically
     )
