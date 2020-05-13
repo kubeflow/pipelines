@@ -59,9 +59,10 @@ def _create_container_op_from_component_and_arguments(
     )
 
     component_meta = copy.copy(component_spec)
-    component_meta.implementation = None
     task._set_metadata(component_meta)
-    task._component_ref = component_ref
+    component_ref_without_spec = copy.copy(component_ref)
+    component_ref_without_spec.spec = None
+    task._component_ref = component_ref_without_spec
 
     # Previously, ContainerOp had strict requirements for the output names, so we had to
     # convert all the names before passing them to the ContainerOp constructor.
