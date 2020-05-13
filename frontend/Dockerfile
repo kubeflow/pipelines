@@ -38,3 +38,8 @@ EXPOSE 3000
 RUN npm run build
 ENV API_SERVER_ADDRESS http://localhost:3001
 CMD node dist/server.js ../client/ 3000
+
+# HACK: curl is required for running liveness/readiness probe inside the container
+# refer to https://github.com/kubeflow/pipelines/issues/3756
+# We can get rid of this when we no longer need to support using KFP with istio 1.1.
+RUN apk add --no-cache curl

@@ -570,6 +570,24 @@ spec:
           name: ml-pipeline-ui
           ports:
             - containerPort: 3000
+          readinessProbe:
+            exec:
+              command:
+                - curl
+                - -f
+                - http://localhost:3000/apis/v1beta1/healthz
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            exec:
+              command:
+                - curl
+                - -f
+                - http://localhost:3000/apis/v1beta1/healthz
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
       serviceAccountName: ml-pipeline-ui
 ---
 apiVersion: apps/v1beta2
