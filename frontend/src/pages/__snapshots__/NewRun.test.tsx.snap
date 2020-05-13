@@ -148,13 +148,14 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -668,13 +669,14 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -1188,13 +1190,14 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -1719,13 +1722,14 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -2239,13 +2243,14 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -2757,13 +2762,14 @@ exports[`NewRun renders the new run page 1`] = `
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -3277,13 +3283,14 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -3808,13 +3815,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -4328,13 +4336,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -4859,13 +4868,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -5379,13 +5389,14 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
