@@ -83,9 +83,19 @@ type ListPipelinesParams struct {
 
 	*/
 	Filter *string
-	/*PageSize*/
+	/*PageSize
+	  The number of pipelines to be listed per page. If there are more pipelines
+	than this number, the response message will contain a valid value in the
+	nextPageToken field.
+
+	*/
 	PageSize *int32
-	/*PageToken*/
+	/*PageToken
+	  A page token to request the next page of results. The token is acquried
+	from the nextPageToken field of the response from the previous
+	ListPipelines call.
+
+	*/
 	PageToken *string
 	/*SortBy
 	  Can be format of "field_name", "field_name asc" or "field_name des"

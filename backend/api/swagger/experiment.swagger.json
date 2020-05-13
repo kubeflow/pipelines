@@ -17,7 +17,7 @@
   "paths": {
     "/apis/v1beta1/experiments": {
       "get": {
-        "summary": "Find all experiments. Support pagination and sorting.",
+        "summary": "Find all experiments. Support pagination and sorting on certain fields.",
         "operationId": "ListExperiment",
         "responses": {
           "200": {
@@ -35,15 +35,15 @@
         },
         "parameters": [
           {
-            "description": "A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call.",
             "name": "page_token",
+            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListExperiment call.",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
-            "description": "The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a valid value in the nextPageToken field.",
             "name": "page_size",
+            "description": "The number of experiments to be listed per page. If there are more\nexperiments than this number, the response message will contain a valid\nvalue in the nextPageToken field.",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -156,7 +156,7 @@
         ]
       },
       "delete": {
-        "summary": "Delete an experiment.",
+        "summary": "Delete an experiment. Runs and jobs inside the experiment will stay. It is\nrecommended to delete runs and jobs inside the experiment before deleting\nthe experiment in order to avoid unexpected behaviors.",
         "operationId": "DeleteExperiment",
         "responses": {
           "200": {
@@ -188,7 +188,7 @@
     },
     "/apis/v1beta1/experiments/{id}:archive": {
       "post": {
-        "summary": "Archive an experiment.",
+        "summary": "Archive an experiment. Runs and jobs inside the experiment will be archived as well.",
         "operationId": "ArchiveExperiment",
         "responses": {
           "200": {
@@ -207,6 +207,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the experiment to be archived.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -219,7 +220,7 @@
     },
     "/apis/v1beta1/experiments/{id}:unarchive": {
       "post": {
-        "summary": "Restore an archived experiment.",
+        "summary": "Restore an archived experiment. Runs and jobs inside the experiment will stay archived.",
         "operationId": "UnarchiveExperiment",
         "responses": {
           "200": {
@@ -238,6 +239,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the experiment to be restored.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -287,7 +289,8 @@
           "description": "Optional input field. Specify which resource this run belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
         },
         "storage_state": {
-          "$ref": "#/definitions/ExperimentStorageState"
+          "$ref": "#/definitions/ExperimentStorageState",
+          "description": "Output. Specify whether this experiment is in archived or available mode."
         }
       }
     },

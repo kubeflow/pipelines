@@ -81,7 +81,7 @@ type APIRun struct {
 	// One of [Pending, Running, Succeeded, Skipped, Failed, Error]
 	Status string `json:"status,omitempty"`
 
-	// storage state
+	// Output. Specify whether this run is in archived or available mode.
 	StorageState RunStorageState `json:"storage_state,omitempty"`
 }
 

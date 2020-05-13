@@ -36,12 +36,14 @@
         "parameters": [
           {
             "name": "page_token",
+            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListJobs call.",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
             "name": "page_size",
+            "description": "The number of jobs to be listed per page. If there are more jobs than this\nnumber, the response message will contain a valid value in the\nnextPageToken field.",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -364,10 +366,12 @@
         },
         "total_size": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "The total number of jobs for the given query."
         },
         "next_page_token": {
-          "type": "string"
+          "type": "string",
+          "description": "The token to list the next page of jobs."
         }
       }
     },

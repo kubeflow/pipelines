@@ -39,7 +39,7 @@ type Client struct {
 }
 
 /*
-CreatePipeline adds a pipeline
+CreatePipeline creates a pipeline
 */
 func (a *Client) CreatePipeline(params *CreatePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineOK, error) {
 	// TODO: Validate the params before sending
@@ -68,7 +68,7 @@ func (a *Client) CreatePipeline(params *CreatePipelineParams, authInfo runtime.C
 }
 
 /*
-CreatePipelineVersion create pipeline version API
+CreatePipelineVersion creates a pipeline version under a given pipeline
 */
 func (a *Client) CreatePipelineVersion(params *CreatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineVersionOK, error) {
 	// TODO: Validate the params before sending
@@ -97,7 +97,7 @@ func (a *Client) CreatePipelineVersion(params *CreatePipelineVersionParams, auth
 }
 
 /*
-DeletePipeline deletes a pipeline
+DeletePipeline deletes a pipeline all pipeline versions under this pipeline will be deleted as well
 */
 func (a *Client) DeletePipeline(params *DeletePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineOK, error) {
 	// TODO: Validate the params before sending
@@ -126,7 +126,7 @@ func (a *Client) DeletePipeline(params *DeletePipelineParams, authInfo runtime.C
 }
 
 /*
-DeletePipelineVersion delete pipeline version API
+DeletePipelineVersion deletes a pipeline version by pipeline version ID if the deleted pipeline version happens to be the default pipeline version of a certain pipeline the default version of that pipeline will change to the latest pipeline version among all the remaining pipeline versions of that pipeline
 */
 func (a *Client) DeletePipelineVersion(params *DeletePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineVersionOK, error) {
 	// TODO: Validate the params before sending
@@ -184,7 +184,7 @@ func (a *Client) GetPipeline(params *GetPipelineParams, authInfo runtime.ClientA
 }
 
 /*
-GetPipelineVersion get pipeline version API
+GetPipelineVersion gets a pipeline version by pipeline version ID
 */
 func (a *Client) GetPipelineVersion(params *GetPipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineVersionOK, error) {
 	// TODO: Validate the params before sending
@@ -213,7 +213,7 @@ func (a *Client) GetPipelineVersion(params *GetPipelineVersionParams, authInfo r
 }
 
 /*
-GetPipelineVersionTemplate get pipeline version template API
+GetPipelineVersionTemplate returns a single y a m l template that contains the description parameters and metadata associated with the given pipeline version
 */
 func (a *Client) GetPipelineVersionTemplate(params *GetPipelineVersionTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineVersionTemplateOK, error) {
 	// TODO: Validate the params before sending
@@ -271,7 +271,7 @@ func (a *Client) GetTemplate(params *GetTemplateParams, authInfo runtime.ClientA
 }
 
 /*
-ListPipelineVersions list pipeline versions API
+ListPipelineVersions lists all pipeline versions of a given pipeline
 */
 func (a *Client) ListPipelineVersions(params *ListPipelineVersionsParams, authInfo runtime.ClientAuthInfoWriter) (*ListPipelineVersionsOK, error) {
 	// TODO: Validate the params before sending

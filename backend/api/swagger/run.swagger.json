@@ -36,12 +36,14 @@
         "parameters": [
           {
             "name": "page_token",
+            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListRuns call.",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
             "name": "page_size",
+            "description": "The number of runs to be listed per page. If there are more runs than this\nnumber, the response message will contain a valid value in the\nnextPageToken field.",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -142,6 +144,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the run to be deleted.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -173,6 +176,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the run to be archived.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -204,6 +208,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the run to be restored.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -235,6 +240,7 @@
         "parameters": [
           {
             "name": "run_id",
+            "description": "The ID of the run to be retrieved.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -312,6 +318,7 @@
         "parameters": [
           {
             "name": "run_id",
+            "description": "The ID of the run to be retried.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -343,6 +350,7 @@
         "parameters": [
           {
             "name": "run_id",
+            "description": "The ID of the run to be terminated.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -457,10 +465,12 @@
         },
         "total_size": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "The total number of runs for the given query."
         },
         "next_page_token": {
-          "type": "string"
+          "type": "string",
+          "description": "The token to list the next page of runs."
         }
       }
     },
@@ -615,7 +625,8 @@
           "description": "Required input field. Name provided by user,\nor auto generated if run is created by scheduled job. Not unique."
         },
         "storage_state": {
-          "$ref": "#/definitions/RunStorageState"
+          "$ref": "#/definitions/RunStorageState",
+          "description": "Output. Specify whether this run is in archived or available mode."
         },
         "description": {
           "type": "string",

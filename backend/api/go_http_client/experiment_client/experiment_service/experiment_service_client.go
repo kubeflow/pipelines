@@ -39,7 +39,7 @@ type Client struct {
 }
 
 /*
-ArchiveExperiment archives an experiment
+ArchiveExperiment archives an experiment runs and jobs inside the experiment will be archived as well
 */
 func (a *Client) ArchiveExperiment(params *ArchiveExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*ArchiveExperimentOK, error) {
 	// TODO: Validate the params before sending
@@ -97,7 +97,7 @@ func (a *Client) CreateExperiment(params *CreateExperimentParams, authInfo runti
 }
 
 /*
-DeleteExperiment deletes an experiment
+DeleteExperiment deletes an experiment runs and jobs inside the experiment will stay it is recommended to delete runs and jobs inside the experiment before deleting the experiment in order to avoid unexpected behaviors
 */
 func (a *Client) DeleteExperiment(params *DeleteExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteExperimentOK, error) {
 	// TODO: Validate the params before sending
@@ -155,7 +155,7 @@ func (a *Client) GetExperiment(params *GetExperimentParams, authInfo runtime.Cli
 }
 
 /*
-ListExperiment finds all experiments
+ListExperiment finds all experiments support pagination and sorting on certain fields
 */
 func (a *Client) ListExperiment(params *ListExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*ListExperimentOK, error) {
 	// TODO: Validate the params before sending
@@ -184,7 +184,7 @@ func (a *Client) ListExperiment(params *ListExperimentParams, authInfo runtime.C
 }
 
 /*
-UnarchiveExperiment restores an archived experiment
+UnarchiveExperiment restores an archived experiment runs and jobs inside the experiment will stay archived
 */
 func (a *Client) UnarchiveExperiment(params *UnarchiveExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*UnarchiveExperimentOK, error) {
 	// TODO: Validate the params before sending

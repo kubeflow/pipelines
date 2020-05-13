@@ -50,7 +50,7 @@ type APIExperiment struct {
 	// For Experiment, the only valid resource reference is a single Namespace.
 	ResourceReferences []*APIResourceReference `json:"resource_references"`
 
-	// storage state
+	// Output. Specify whether this experiment is in archived or available mode.
 	StorageState ExperimentStorageState `json:"storage_state,omitempty"`
 }
 

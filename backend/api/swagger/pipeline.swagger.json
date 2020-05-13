@@ -17,6 +17,7 @@
   "paths": {
     "/apis/v1beta1/pipeline_versions": {
       "get": {
+        "summary": "List all pipeline versions of a given pipeline.",
         "operationId": "ListPipelineVersions",
         "responses": {
           "200": {
@@ -58,6 +59,7 @@
           },
           {
             "name": "page_size",
+            "description": "The number of pipeline versions to be listed per page. If there are more\npipeline versions than this number, the response message will contain a\nvalid value in the nextPageToken field.",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -65,6 +67,7 @@
           },
           {
             "name": "page_token",
+            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListPipelineVersions call.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -89,6 +92,7 @@
         ]
       },
       "post": {
+        "summary": "Create a pipeline version under a given pipeline.",
         "operationId": "CreatePipelineVersion",
         "responses": {
           "200": {
@@ -122,6 +126,7 @@
     },
     "/apis/v1beta1/pipeline_versions/{version_id}": {
       "get": {
+        "summary": "Get a pipeline version by pipeline version ID.",
         "operationId": "GetPipelineVersion",
         "responses": {
           "200": {
@@ -140,6 +145,7 @@
         "parameters": [
           {
             "name": "version_id",
+            "description": "The ID of the pipeline version to be retrieved.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -150,6 +156,7 @@
         ]
       },
       "delete": {
+        "summary": "Delete a pipeline version by pipeline version ID. If the deleted pipeline\nversion happens to be the default pipeline version of a certain pipeline,\nthe default version of that pipeline will change to the latest pipeline\nversion among all the remaining pipeline versions of that pipeline.",
         "operationId": "DeletePipelineVersion",
         "responses": {
           "200": {
@@ -168,6 +175,7 @@
         "parameters": [
           {
             "name": "version_id",
+            "description": "The ID of the pipeline version to be deleted.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -180,6 +188,7 @@
     },
     "/apis/v1beta1/pipeline_versions/{version_id}/templates": {
       "get": {
+        "summary": "Returns a single YAML template that contains the description, parameters, and metadata associated with the given pipeline version.",
         "operationId": "GetPipelineVersionTemplate",
         "responses": {
           "200": {
@@ -198,6 +207,7 @@
         "parameters": [
           {
             "name": "version_id",
+            "description": "The ID of the pipeline version whose template is to be retrieved.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -229,12 +239,14 @@
         "parameters": [
           {
             "name": "page_token",
+            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListPipelines call.",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
             "name": "page_size",
+            "description": "The number of pipelines to be listed per page. If there are more pipelines\nthan this number, the response message will contain a valid value in the\nnextPageToken field.",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -260,7 +272,7 @@
         ]
       },
       "post": {
-        "summary": "Add a pipeline.",
+        "summary": "Create a pipeline.",
         "operationId": "CreatePipeline",
         "responses": {
           "200": {
@@ -312,6 +324,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the pipeline to be retrieved.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -322,7 +335,7 @@
         ]
       },
       "delete": {
-        "summary": "Delete a pipeline.",
+        "summary": "Delete a pipeline. All pipeline versions under this pipeline will be deleted as well.",
         "operationId": "DeletePipeline",
         "responses": {
           "200": {
@@ -341,6 +354,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the pipeline to be deleted.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -372,6 +386,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the pipeline whose template is to be retrieved.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -388,7 +403,8 @@
       "type": "object",
       "properties": {
         "template": {
-          "type": "string"
+          "type": "string",
+          "description": "The template of the pipeline passed to GetTemplate method or of the\npipeline version passed to GetPipelineVersionTemplate method."
         }
       }
     },
@@ -402,11 +418,13 @@
           }
         },
         "next_page_token": {
-          "type": "string"
+          "type": "string",
+          "description": "The token to list the next page of pipeline versions."
         },
         "total_size": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "The total number of pipeline versions for the given query."
         }
       }
     },
@@ -421,10 +439,12 @@
         },
         "total_size": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "The total number of pipelines for the given query."
         },
         "next_page_token": {
-          "type": "string"
+          "type": "string",
+          "description": "The token to list the next page of pipelines."
         }
       }
     },
@@ -593,7 +613,8 @@
       "type": "object",
       "properties": {
         "pipeline_url": {
-          "type": "string"
+          "type": "string",
+          "description": "Online storage URL of the file containing the pipeline or pipeline version definition."
         }
       }
     },

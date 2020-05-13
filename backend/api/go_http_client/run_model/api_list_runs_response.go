@@ -32,13 +32,13 @@ import (
 // swagger:model apiListRunsResponse
 type APIListRunsResponse struct {
 
-	// next page token
+	// The token to list the next page of runs.
 	NextPageToken string `json:"next_page_token,omitempty"`
 
 	// runs
 	Runs []*APIRun `json:"runs"`
 
-	// total size
+	// The total number of runs for the given query.
 	TotalSize int32 `json:"total_size,omitempty"`
 }
 

@@ -29,7 +29,8 @@ import (
 // swagger:model apiGetTemplateResponse
 type APIGetTemplateResponse struct {
 
-	// template
+	// The template of the pipeline passed to GetTemplate method or of the
+	// pipeline version passed to GetPipelineVersionTemplate method.
 	Template string `json:"template,omitempty"`
 }
 
