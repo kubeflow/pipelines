@@ -207,14 +207,25 @@ func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run)
 	if servercommon.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
 		patchedSlice := make([]wfv1.Parameter, 0)
 		for _, currentParam := range workflow.Spec.Arguments.Parameters {
-			desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
-			if err != nil {
-				return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			if currentParam.Value != nil {
+				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
+				if err != nil {
+					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+				}
+				patchedSlice = append(patchedSlice, wfv1.Parameter{
+					Name:  currentParam.Name,
+					Value: util.StringPointer(desiredValue),
+				})
+			} else if currentParam.Default != nil {
+				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Default)
+				if err != nil {
+					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+				}
+				patchedSlice = append(patchedSlice, wfv1.Parameter{
+					Name:  currentParam.Name,
+					Value: util.StringPointer(desiredValue),
+				})
 			}
-			patchedSlice = append(patchedSlice, wfv1.Parameter{
-				Name:  currentParam.Name,
-				Value: util.StringPointer(desiredValue),
-			})
 		}
 		workflow.Spec.Arguments.Parameters = patchedSlice
 

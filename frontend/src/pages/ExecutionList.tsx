@@ -42,7 +42,7 @@ import {
   CollapsedAndExpandedRows,
   serviceErrorToString,
 } from '../lib/Utils';
-import { RoutePage, RouteParams } from '../components/Router';
+import { RoutePageFactory } from '../components/Router';
 import { ExecutionHelpers } from 'src/lib/MlmdUtils';
 
 interface ExecutionListState {
@@ -182,13 +182,12 @@ class ExecutionList extends Page<{}, ExecutionListState> {
   private nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
     props: CustomRendererProps<string>,
   ) => {
-    const [executionType, executionId] = props.id.split(':');
-    const link = RoutePage.EXECUTION_DETAILS.replace(
-      `:${RouteParams.EXECUTION_TYPE}+`,
-      executionType,
-    ).replace(`:${RouteParams.ID}`, executionId);
     return (
-      <Link onClick={e => e.stopPropagation()} className={commonCss.link} to={link}>
+      <Link
+        onClick={e => e.stopPropagation()}
+        className={commonCss.link}
+        to={RoutePageFactory.executionDetails(Number(props.id))}
+      >
         {props.value}
       </Link>
     );
@@ -212,7 +211,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           const executionType = this.executionTypesMap!.get(execution.getTypeId());
           const type = executionType ? executionType.getName() : execution.getTypeId();
           return {
-            id: `${type}:${execution.getId()}`, // Join with colon so we can build the link
+            id: `${execution.getId()}`,
             otherFields: [
               ExecutionHelpers.getWorkspace(execution),
               ExecutionHelpers.getName(execution),
