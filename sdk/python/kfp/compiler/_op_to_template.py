@@ -155,7 +155,7 @@ def _outputs_to_json(op: BaseOp,
     else:
         value_from_key = "path"
     output_parameters = []
-    for param in outputs.values():
+    for param in set(outputs.values()):  # set() dedupes output references
         output_parameters.append({
             'name': param.full_name,
             'valueFrom': {

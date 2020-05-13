@@ -40,11 +40,6 @@ def _create_container_op_from_component_and_arguments(
         arguments=arguments,
     )
 
-    #Renaming outputs to conform with ContainerOp/Argo
-    output_names = (resolved_cmd.output_paths or {}).keys()
-    output_name_to_python = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
-    output_paths_for_container_op = {output_name_to_python[name]: path for name, path in resolved_cmd.output_paths.items()}
-
     container_spec = component_spec.implementation.container
 
     task = dsl.ContainerOp(
@@ -52,7 +47,7 @@ def _create_container_op_from_component_and_arguments(
         image=container_spec.image,
         command=resolved_cmd.command,
         arguments=resolved_cmd.args,
-        file_outputs=output_paths_for_container_op,
+        file_outputs=resolved_cmd.output_paths,
         artifact_argument_paths=[
             dsl.InputArgumentPath(
                 argument=arguments[input_name],
@@ -62,17 +57,25 @@ def _create_container_op_from_component_and_arguments(
             for input_name, path in resolved_cmd.input_paths.items()
         ],
     )
-    # Fixing ContainerOp output types
-    if component_spec.outputs:
-        for output in component_spec.outputs:
-            pythonic_name = output_name_to_python[output.name]
-            if pythonic_name in task.outputs:
-                task.outputs[pythonic_name].param_type = output.type
 
     component_meta = copy.copy(component_spec)
     component_meta.implementation = None
     task._set_metadata(component_meta)
     task._component_ref = component_ref
+
+    # Previously, ContainerOp had strict requirements for the output names, so we had to
+    # convert all the names before passing them to the ContainerOp constructor.
+    # Outputs with non-pythonic names could not be accessed using their original names.
+    # Now ContainerOp supports any output names, so we're now using the original output names.
+    # However to support legacy pipelines, we're also adding output references with pythonic names.
+    # TODO: Add warning when people use the legacy output names.
+    output_names = [output_spec.name for output_spec in component_spec.outputs or []] # Stabilizing the ordering
+    output_name_to_python = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
+    for output_name in output_names:
+        pythonic_output_name = output_name_to_python[output_name]
+        # Note: Some component outputs are currently missing from task.outputs (e.g. MLPipeline UI Metadata)
+        if pythonic_output_name not in task.outputs and output_name in task.outputs:
+            task.outputs[pythonic_output_name] = task.outputs[output_name]
 
     if container_spec.env:
         from kubernetes import client as k8s_client

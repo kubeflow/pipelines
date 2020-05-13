@@ -14,7 +14,7 @@ spec:
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-list-of-strings-output}}"
+          - "{{inputs.parameters.produce-list-of-strings-Output}}"
         command: 
           - python3
           - "-u"
@@ -47,7 +47,7 @@ spec:
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-strings-output
+            name: produce-list-of-strings-Output
       metadata:
         labels:
           pipelines.kubeflow.org/pipeline-sdk-type: kfp
@@ -58,7 +58,7 @@ spec:
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-list-of-strings-output-loop-item}}"
+          - "{{inputs.parameters.produce-list-of-strings-Output-loop-item}}"
         command: 
           - python3
           - "-u"
@@ -91,7 +91,7 @@ spec:
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-strings-output-loop-item
+            name: produce-list-of-strings-Output-loop-item
       metadata:
         labels:
           pipelines.kubeflow.org/pipeline-sdk-type: kfp
@@ -102,7 +102,7 @@ spec:
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-str-output}}"
+          - "{{inputs.parameters.produce-str-Output}}"
         command: 
           - python3
           - "-u"
@@ -135,7 +135,7 @@ spec:
       inputs: 
         parameters: 
           - 
-            name: produce-str-output
+            name: produce-str-Output
       metadata:
         labels:
           pipelines.kubeflow.org/pipeline-sdk-type: kfp
@@ -146,7 +146,7 @@ spec:
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-list-of-ints-output}}"
+          - "{{inputs.parameters.produce-list-of-ints-Output}}"
         command: 
           - python3
           - "-u"
@@ -179,7 +179,7 @@ spec:
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-ints-output
+            name: produce-list-of-ints-Output
       metadata:
         labels:
           pipelines.kubeflow.org/pipeline-sdk-type: kfp
@@ -190,7 +190,7 @@ spec:
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-list-of-ints-output-loop-item}}"
+          - "{{inputs.parameters.produce-list-of-ints-Output-loop-item}}"
         command: 
           - python3
           - "-u"
@@ -223,7 +223,7 @@ spec:
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-ints-output-loop-item
+            name: produce-list-of-ints-Output-loop-item
       metadata:
         labels:
           pipelines.kubeflow.org/pipeline-sdk-type: kfp
@@ -234,7 +234,7 @@ spec:
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-list-of-dicts-output}}"
+          - "{{inputs.parameters.produce-list-of-dicts-Output}}"
         command: 
           - python3
           - "-u"
@@ -267,7 +267,7 @@ spec:
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-dicts-output
+            name: produce-list-of-dicts-Output
       metadata:
         labels:
           pipelines.kubeflow.org/pipeline-sdk-type: kfp
@@ -278,7 +278,7 @@ spec:
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-list-of-dicts-output-loop-item-subvar-aaa}}"
+          - "{{inputs.parameters.produce-list-of-dicts-Output-loop-item-subvar-aaa}}"
         command: 
           - python3
           - "-u"
@@ -311,7 +311,7 @@ spec:
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-dicts-output-loop-item-subvar-aaa
+            name: produce-list-of-dicts-Output-loop-item-subvar-aaa
       metadata:
         labels:
           pipelines.kubeflow.org/pipeline-sdk-type: kfp
@@ -325,34 +325,34 @@ spec:
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-strings-output
-                  value: "{{inputs.parameters.produce-list-of-strings-output}}"
+                  name: produce-list-of-strings-Output
+                  value: "{{inputs.parameters.produce-list-of-strings-Output}}"
             name: consume
             template: consume
           - 
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-strings-output-loop-item
-                  value: "{{inputs.parameters.produce-list-of-strings-output-loop-item}}"
+                  name: produce-list-of-strings-Output-loop-item
+                  value: "{{inputs.parameters.produce-list-of-strings-Output-loop-item}}"
             name: consume-2
             template: consume-2
           - 
             arguments: 
               parameters: 
                 - 
-                  name: produce-str-output
-                  value: "{{inputs.parameters.produce-str-output}}"
+                  name: produce-str-Output
+                  value: "{{inputs.parameters.produce-str-Output}}"
             name: consume-3
             template: consume-3
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-strings-output
+            name: produce-list-of-strings-Output
           - 
-            name: produce-list-of-strings-output-loop-item
+            name: produce-list-of-strings-Output-loop-item
           - 
-            name: produce-str-output
+            name: produce-str-Output
       name: for-loop-for-loop-00000001-1
     - 
       dag: 
@@ -361,24 +361,24 @@ spec:
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-ints-output
-                  value: "{{inputs.parameters.produce-list-of-ints-output}}"
+                  name: produce-list-of-ints-Output
+                  value: "{{inputs.parameters.produce-list-of-ints-Output}}"
             name: consume-4
             template: consume-4
           - 
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-ints-output-loop-item
-                  value: "{{inputs.parameters.produce-list-of-ints-output-loop-item}}"
+                  name: produce-list-of-ints-Output-loop-item
+                  value: "{{inputs.parameters.produce-list-of-ints-Output-loop-item}}"
             name: consume-5
             template: consume-5
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-ints-output
+            name: produce-list-of-ints-Output
           - 
-            name: produce-list-of-ints-output-loop-item
+            name: produce-list-of-ints-Output-loop-item
       name: for-loop-for-loop-00000002-2
     - 
       dag: 
@@ -387,24 +387,24 @@ spec:
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-dicts-output
-                  value: "{{inputs.parameters.produce-list-of-dicts-output}}"
+                  name: produce-list-of-dicts-Output
+                  value: "{{inputs.parameters.produce-list-of-dicts-Output}}"
             name: consume-6
             template: consume-6
           - 
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-dicts-output-loop-item-subvar-aaa
-                  value: "{{inputs.parameters.produce-list-of-dicts-output-loop-item-subvar-aaa}}"
+                  name: produce-list-of-dicts-Output-loop-item-subvar-aaa
+                  value: "{{inputs.parameters.produce-list-of-dicts-Output-loop-item-subvar-aaa}}"
             name: consume-7
             template: consume-7
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-dicts-output
+            name: produce-list-of-dicts-Output
           - 
-            name: produce-list-of-dicts-output-loop-item-subvar-aaa
+            name: produce-list-of-dicts-Output-loop-item-subvar-aaa
       name: for-loop-for-loop-00000003-3
     - 
       dag: 
@@ -413,48 +413,48 @@ spec:
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-strings-output
-                  value: "{{tasks.produce-list-of-strings.outputs.parameters.produce-list-of-strings-output}}"
+                  name: produce-list-of-strings-Output
+                  value: "{{tasks.produce-list-of-strings.outputs.parameters.produce-list-of-strings-Output}}"
                 - 
-                  name: produce-list-of-strings-output-loop-item
+                  name: produce-list-of-strings-Output-loop-item
                   value: "{{item}}"
                 - 
-                  name: produce-str-output
-                  value: "{{tasks.produce-str.outputs.parameters.produce-str-output}}"
+                  name: produce-str-Output
+                  value: "{{tasks.produce-str.outputs.parameters.produce-str-Output}}"
             dependencies: 
               - produce-list-of-strings
               - produce-str
             name: for-loop-for-loop-00000001-1
             template: for-loop-for-loop-00000001-1
-            withParam: "{{tasks.produce-list-of-strings.outputs.parameters.produce-list-of-strings-output}}"
+            withParam: "{{tasks.produce-list-of-strings.outputs.parameters.produce-list-of-strings-Output}}"
           - 
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-ints-output
-                  value: "{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-output}}"
+                  name: produce-list-of-ints-Output
+                  value: "{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-Output}}"
                 - 
-                  name: produce-list-of-ints-output-loop-item
+                  name: produce-list-of-ints-Output-loop-item
                   value: "{{item}}"
             dependencies: 
               - produce-list-of-ints
             name: for-loop-for-loop-00000002-2
             template: for-loop-for-loop-00000002-2
-            withParam: "{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-output}}"
+            withParam: "{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-Output}}"
           - 
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-dicts-output
-                  value: "{{tasks.produce-list-of-dicts.outputs.parameters.produce-list-of-dicts-output}}"
+                  name: produce-list-of-dicts-Output
+                  value: "{{tasks.produce-list-of-dicts.outputs.parameters.produce-list-of-dicts-Output}}"
                 - 
-                  name: produce-list-of-dicts-output-loop-item-subvar-aaa
+                  name: produce-list-of-dicts-Output-loop-item-subvar-aaa
                   value: "{{item.aaa}}"
             dependencies: 
               - produce-list-of-dicts
             name: for-loop-for-loop-00000003-3
             template: for-loop-for-loop-00000003-3
-            withParam: "{{tasks.produce-list-of-dicts.outputs.parameters.produce-list-of-dicts-output}}"
+            withParam: "{{tasks.produce-list-of-dicts.outputs.parameters.produce-list-of-dicts-Output}}"
           - 
             name: produce-list-of-dicts
             template: produce-list-of-dicts
@@ -525,11 +525,11 @@ spec:
       outputs: 
         artifacts: 
           - 
-            name: produce-list-of-dicts-output
+            name: produce-list-of-dicts-Output
             path: /tmp/outputs/Output/data
         parameters: 
           - 
-            name: produce-list-of-dicts-output
+            name: produce-list-of-dicts-Output
             valueFrom: 
               path: /tmp/outputs/Output/data
     - 
@@ -589,11 +589,11 @@ spec:
       outputs: 
         artifacts: 
           - 
-            name: produce-list-of-ints-output
+            name: produce-list-of-ints-Output
             path: /tmp/outputs/Output/data
         parameters: 
           - 
-            name: produce-list-of-ints-output
+            name: produce-list-of-ints-Output
             valueFrom: 
               path: /tmp/outputs/Output/data
     - 
@@ -653,11 +653,11 @@ spec:
       outputs: 
         artifacts: 
           - 
-            name: produce-list-of-strings-output
+            name: produce-list-of-strings-Output
             path: /tmp/outputs/Output/data
         parameters: 
           - 
-            name: produce-list-of-strings-output
+            name: produce-list-of-strings-Output
             valueFrom: 
               path: /tmp/outputs/Output/data
     - 
@@ -711,10 +711,10 @@ spec:
       outputs: 
         artifacts: 
           - 
-            name: produce-str-output
+            name: produce-str-Output
             path: /tmp/outputs/Output/data
         parameters: 
           - 
-            name: produce-str-output
+            name: produce-str-Output
             valueFrom: 
               path: /tmp/outputs/Output/data
