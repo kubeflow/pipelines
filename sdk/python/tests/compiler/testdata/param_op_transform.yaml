@@ -21,6 +21,7 @@ spec:
       - name: param
     metadata:
       labels:
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
         param: '{{inputs.parameters.param}}'
     name: cop
   - dag:

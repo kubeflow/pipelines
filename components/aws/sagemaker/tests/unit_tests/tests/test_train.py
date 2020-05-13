@@ -7,6 +7,7 @@ from datetime import datetime
 
 from train.src import train
 from common import _utils
+from . import test_utils
 
 required_args = [
   '--region', 'us-west-2',
@@ -52,3 +53,8 @@ class TrainTestCase(unittest.TestCase):
     response = _utils.create_training_job_request(vars(args))
     self.assertEqual(response['CheckpointConfig']['S3Uri'], 's3://fake-uri/')
     self.assertEqual(response['CheckpointConfig']['LocalPath'], 'local-path')
+
+  def test_empty_string(self):
+    good_args = self.parser.parse_args(required_args + ['--spot_instance', 'True', '--max_wait_time', '3600', '--checkpoint_config', '{"S3Uri": "s3://fake-uri/"}'])
+    response = _utils.create_training_job_request(vars(good_args))
+    test_utils.check_empty_string_values(response)

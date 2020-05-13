@@ -24,6 +24,7 @@ import {
   LineageResource,
   LineageView,
   titleCase,
+  ArtifactType,
 } from '@kubeflow/frontend';
 import { CircularProgress } from '@material-ui/core';
 import * as React from 'react';
@@ -36,6 +37,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { commonCss, padding } from '../Css';
 import { logger, serviceErrorToString } from '../lib/Utils';
 import { Page, PageProps } from './Page';
+import { GetArtifactTypesByIDRequest } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 
 export enum ArtifactDetailsTab {
   OVERVIEW = 0,
@@ -55,11 +57,12 @@ const TAB_NAMES = [ArtifactDetailsTab.OVERVIEW, ArtifactDetailsTab.LINEAGE_EXPLO
 
 interface ArtifactDetailsState {
   artifact?: Artifact;
+  artifactType?: ArtifactType;
 }
 
 class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   private get fullTypeName(): string {
-    return this.props.match.params[RouteParams.ARTIFACT_TYPE] || '';
+    return this.state.artifactType?.getName() || '';
   }
 
   private get properTypeName(): string {
@@ -76,15 +79,16 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
 
   private static buildResourceDetailsPageRoute(
     resource: LineageResource,
-    typeName: string,
+    _: string, // typename is no longer used
   ): string {
-    let route;
-    if (resource instanceof Artifact) {
-      route = RoutePageFactory.artifactDetails(typeName, resource.getId());
+    // HACK: this distinguishes artifact from execution, only artifacts have
+    // the getUri() method.
+    // TODO: switch to use typedResource
+    if (typeof resource['getUri'] === 'function') {
+      return RoutePageFactory.artifactDetails(resource.getId());
     } else {
-      route = RoutePage.EXECUTION_DETAILS.replace(`:${RouteParams.EXECUTION_TYPE}+`, typeName);
+      return RoutePageFactory.executionDetails(resource.getId());
     }
-    return route.replace(`:${RouteParams.ID}`, String(resource.getId()));
   }
 
   public state: ArtifactDetailsState = {};
@@ -152,7 +156,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     return {
       actions: {},
       breadcrumbs: [{ displayName: 'Artifacts', href: RoutePage.ARTIFACTS }],
-      pageTitle: `${this.properTypeName} ${this.id} details`,
+      pageTitle: `Artifact #${this.id} details`,
     };
   }
 
@@ -166,18 +170,19 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
 
     try {
       const response = await this.api.metadataStoreService.getArtifactsByID(request);
-
       if (response.getArtifactsList().length === 0) {
-        this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
+        this.showPageError(`No artifact identified by id: ${this.id}`);
         return;
       }
-
       if (response.getArtifactsList().length > 1) {
         this.showPageError(`Found multiple artifacts with ID: ${this.id}`);
         return;
       }
-
       const artifact = response.getArtifactsList()[0];
+      const typeRequest = new GetArtifactTypesByIDRequest();
+      typeRequest.setTypeIdsList([artifact.getTypeId()]);
+      const typeResponse = await this.api.metadataStoreService.getArtifactTypesByID(typeRequest);
+      const artifactType = typeResponse.getArtifactTypesList()[0] || undefined;
 
       const artifactName =
         getResourceProperty(artifact, ArtifactProperties.NAME) ||
@@ -190,7 +195,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       this.props.updateToolbar({
         pageTitle: title,
       });
-      this.setState({ artifact });
+      this.setState({ artifact, artifactType });
     } catch (err) {
       this.showPageError(serviceErrorToString(err));
     }

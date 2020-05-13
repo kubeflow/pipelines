@@ -362,6 +362,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			Namespace:      "ns1",
+			ServiceAccount: "pipeline-runner",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 4,
 			Conditions:     "Running",
@@ -417,6 +418,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			Namespace:      "ns1",
+			ServiceAccount: "pipeline-runner",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 2,
 			Conditions:     "Running",
@@ -465,6 +467,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			Namespace:      "ns1",
+			ServiceAccount: "pipeline-runner",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 2,
 			Conditions:     "Running",
@@ -532,6 +535,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 				Relationship: api.Relationship_CREATOR,
 			},
 		},
+		ServiceAccount: "sa1",
 	}
 	runDetail, err := manager.CreateRun(apiRun)
 	assert.Nil(t, err)
@@ -541,7 +545,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
@@ -550,6 +554,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			Namespace:      "ns1",
+			ServiceAccount: "sa1",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 4,
 			Conditions:     "Running",
@@ -907,6 +912,7 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 		DisplayName:    "j1",
 		Name:           "j1",
 		Namespace:      "ns1",
+		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
@@ -976,6 +982,7 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		DisplayName:    "j1",
 		Name:           "j1",
 		Namespace:      "ns1",
+		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
 		CreatedAtInSec: 4,
 		UpdatedAtInSec: 4,
@@ -1055,6 +1062,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 		DisplayName:    "j1",
 		Name:           "j1",
 		Namespace:      "ns1",
+		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
 		CreatedAtInSec: 4,
 		UpdatedAtInSec: 4,
@@ -1165,6 +1173,7 @@ func TestEnableJob(t *testing.T) {
 		DisplayName:    "j1",
 		Name:           "j1",
 		Namespace:      "ns1",
+		ServiceAccount: "pipeline-runner",
 		Enabled:        false,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 3,
@@ -1277,6 +1286,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		DisplayName:    "run1",
 		Name:           "workflow-name",
 		Namespace:      "ns1",
+		ServiceAccount: "pipeline-runner",
 		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 		CreatedAtInSec: 2,
 		Conditions:     "Running",
@@ -1511,12 +1521,13 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedJob := &model.Job{
-		Name:        "MY_NAME",
-		DisplayName: "j1",
-		Namespace:   "MY_NAMESPACE",
-		Enabled:     false,
-		UUID:        job.UUID,
-		Conditions:  "NO_STATUS",
+		Name:           "MY_NAME",
+		DisplayName:    "j1",
+		Namespace:      "MY_NAMESPACE",
+		ServiceAccount: "pipeline-runner",
+		Enabled:        false,
+		UUID:           job.UUID,
+		Conditions:     "NO_STATUS",
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				Cron: util.StringPointer(""),

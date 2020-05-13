@@ -71,8 +71,11 @@ type APIJob struct {
 	// for the scheduled job.
 	PipelineSpec *APIPipelineSpec `json:"pipeline_spec,omitempty"`
 
-	// Optional input field. Specify which resource this run belongs to.
+	// Optional input field. Specify which resource this job belongs to.
 	ResourceReferences []*APIResourceReference `json:"resource_references"`
+
+	// Optional input field. Specify which Kubernetes service account this job uses.
+	ServiceAccount string `json:"service_account,omitempty"`
 
 	// Output. The status of the job.
 	// One of [Enable, Disable, Error]

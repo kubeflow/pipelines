@@ -31,11 +31,11 @@ type RunApiTestSuite struct {
 	runClient            *api_server.RunClient
 }
 
-type ResourceReferenceSorter []*run_model.APIResourceReference
+type RunResourceReferenceSorter []*run_model.APIResourceReference
 
-func (r ResourceReferenceSorter) Len() int           { return len(r) }
-func (r ResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
-func (r ResourceReferenceSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+func (r RunResourceReferenceSorter) Len() int           { return len(r) }
+func (r RunResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
+func (r RunResourceReferenceSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
 // Check the namespace have ML pipeline installed and ready
 func (s *RunApiTestSuite) SetupTest() {
@@ -252,10 +252,11 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "wait-awhile")
 
 	expectedRun := &run_model.APIRun{
-		ID:          runDetail.Run.ID,
-		Name:        "long running",
-		Description: "this pipeline will run long enough for us to manually terminate it before it finishes",
-		Status:      "Terminating",
+		ID:             runDetail.Run.ID,
+		Name:           "long running",
+		Description:    "this pipeline will run long enough for us to manually terminate it before it finishes",
+		Status:         "Terminating",
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
@@ -272,8 +273,8 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 	}
 
 	// Need to sort resource references before equality check as the order is non-deterministic
-	sort.Sort(ResourceReferenceSorter(runDetail.Run.ResourceReferences))
-	sort.Sort(ResourceReferenceSorter(expectedRun.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
@@ -284,10 +285,11 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "whalesay")
 
 	expectedRun := &run_model.APIRun{
-		ID:          runDetail.Run.ID,
-		Name:        "hello world",
-		Description: "this is hello world",
-		Status:      runDetail.Run.Status,
+		ID:             runDetail.Run.ID,
+		Name:           "hello world",
+		Description:    "this is hello world",
+		Status:         runDetail.Run.Status,
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
@@ -305,8 +307,8 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 	}
 
 	// Need to sort resource references before equality check as the order is non-deterministic
-	sort.Sort(ResourceReferenceSorter(runDetail.Run.ResourceReferences))
-	sort.Sort(ResourceReferenceSorter(expectedRun.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
@@ -318,10 +320,11 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "arguments-parameters-")
 	expectedRun := &run_model.APIRun{
-		ID:          runDetail.Run.ID,
-		Name:        "argument parameter",
-		Description: "this is argument parameter",
-		Status:      runDetail.Run.Status,
+		ID:             runDetail.Run.ID,
+		Name:           "argument parameter",
+		Description:    "this is argument parameter",
+		Status:         runDetail.Run.Status,
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: string(argParamsBytes),
 			Parameters: []*run_model.APIParameter{

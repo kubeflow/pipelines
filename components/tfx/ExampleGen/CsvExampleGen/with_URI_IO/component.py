@@ -1,98 +1,98 @@
-# flake8: noqa TODO
+# flake8: noqa
 
 from typing import NamedTuple
 
-def CsvExampleGen_GCS( #
-    # Inputs
-    #input_base_path: InputPath('ExternalPath'),
-    input_base_path: 'ExternalPath', # A Channel of 'ExternalPath' type, which includes one artifact whose uri is an external directory with csv files inside (required).
-
-    # Outputs
-    #example_artifacts_path: OutputPath('ExamplesPath'),
-    example_artifacts_path: 'ExamplesPath',
-
-    # Execution properties
-    #input_config_splits: {'List' : {'item_type': 'ExampleGen.Input.Split'}},
-    input_config: 'ExampleGen.Input' = None, # = '{"splits": []}', # JSON-serialized example_gen_pb2.Input instance, providing input configuration. If unset, the files under input_base will be treated as a single split.
-    #output_config_splits: {'List' : {'item_type': 'ExampleGen.SplitConfig'}},
-    output_config: 'ExampleGen.Output' = None, # = '{"splitConfig": {"splits": []}}', # JSON-serialized example_gen_pb2.Output instance, providing output configuration. If unset, default splits will be 'train' and 'eval' with size 2:1.
-    #custom_config: 'ExampleGen.CustomConfig' = None,
+def CsvExampleGen(
+    input_uri: 'ExternalArtifactUri',
+    output_examples_uri: 'ExamplesUri',
+    input_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Input'}},
+    output_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Output'}},
+    custom_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.CustomConfig'}} = None,
+    beam_pipeline_args: list = None,
 ) -> NamedTuple('Outputs', [
-    ('example_artifacts', 'ExamplesPath'),
+    ('examples_uri', 'ExamplesUri'),
 ]):
-    """Executes the CsvExampleGen component.
+    from tfx.components import CsvExampleGen as component_class
 
-    Args:
-      input_base: A Channel of 'ExternalPath' type, which includes one artifact
-        whose uri is an external directory with csv files inside (required).
-      input_config: An example_gen_pb2.Input instance, providing input
-        configuration. If unset, the files under input_base will be treated as a
-        single split.
-      output_config: An example_gen_pb2.Output instance, providing output
-        configuration. If unset, default splits will be 'train' and 'eval' with
-        size 2:1.
-      ??? input: Forwards compatibility alias for the 'input_base' argument.
-    Returns:
-      example_artifacts: Artifact of type 'ExamplesPath' for output train and
-        eval examples.
-    """
-
+    #Generated code
     import json
     import os
-    from google.protobuf import json_format
-    from tfx.components.example_gen.csv_example_gen.component import CsvExampleGen
-    from tfx.proto import example_gen_pb2
-    from tfx.types import standard_artifacts
-    from tfx.types import channel_utils
+    import tempfile
+    import tensorflow
+    from google.protobuf import json_format, message
+    from tfx.types import channel_utils, artifact_utils
+    from tfx.components.base import base_executor
 
-    # Create input dict.
-    input_base = standard_artifacts.ExternalArtifact()
-    input_base.uri = input_base_path
-    input_base_channel = channel_utils.as_channel([input_base])
+    arguments = locals().copy()
 
-    input_config_obj = None
-    if input_config:
-        input_config_obj = example_gen_pb2.Input()
-        json_format.Parse(input_config, input_config_obj)
+    component_class_args = {}
 
-    output_config_obj = None
-    if output_config:
-        output_config_obj = example_gen_pb2.Output()
-        json_format.Parse(output_config, output_config_obj)
+    for name, execution_parameter in component_class.SPEC_CLASS.PARAMETERS.items():
+        argument_value = arguments.get(name, None)
+        if argument_value is None:
+            continue
+        parameter_type = execution_parameter.type
+        if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message):
+            argument_value_obj = parameter_type()
+            json_format.Parse(argument_value, argument_value_obj)
+        else:
+            argument_value_obj = argument_value
+        component_class_args[name] = argument_value_obj
 
-    component_class_instance = CsvExampleGen(
-        input=input_base_channel,
-        input_config=input_config_obj,
-        output_config=output_config_obj,
-    )
+    for name, channel_parameter in component_class.SPEC_CLASS.INPUTS.items():
+        artifact_path = arguments.get(name + '_uri') or arguments.get(name + '_path')
+        if artifact_path:
+            artifact = channel_parameter.type()
+            artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
+            if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
+                # Recovering splits
+                subdirs = tensorflow.io.gfile.listdir(artifact_path)
+                # Workaround for https://github.com/tensorflow/tensorflow/issues/39167
+                subdirs = [subdir.rstrip('/') for subdir in subdirs]
+                artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))
+            component_class_args[name] = channel_utils.as_channel([artifact])
 
-    # component_class_instance.inputs/outputs are wrappers that do not behave like real dictionaries. The underlying dict can be accessed using .get_all()
-    # Channel artifacts can be accessed by calling .get()
-    input_dict = {name: channel.get() for name, channel in component_class_instance.inputs.get_all().items()}
-    output_dict = {name: channel.get() for name, channel in component_class_instance.outputs.get_all().items()}
+    component_class_instance = component_class(**component_class_args)
+
+    input_dict = channel_utils.unwrap_channel_dict(component_class_instance.inputs.get_all())
+    output_dict = channel_utils.unwrap_channel_dict(component_class_instance.outputs.get_all())
     exec_properties = component_class_instance.exec_properties
 
     # Generating paths for output artifacts
-    for output_artifact in output_dict['examples']:
-        output_artifact.uri = example_artifacts_path
-        if output_artifact.split:
-            output_artifact.uri = os.path.join(output_artifact.uri, output_artifact.split)
+    for name, artifacts in output_dict.items():
+        base_artifact_path = arguments.get('output_' + name + '_uri') or arguments.get(name + '_path')
+        if base_artifact_path:
+            # Are there still cases where output channel has multiple artifacts?
+            for idx, artifact in enumerate(artifacts):
+                subdir = str(idx + 1) if idx > 0 else ''
+                artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
 
     print('component instance: ' + str(component_class_instance))
 
-    executor = CsvExampleGen.EXECUTOR_SPEC.executor_class()
+    # Workaround for a TFX+Beam bug to make DataflowRunner work.
+    # Remove after the next release that has https://github.com/tensorflow/tfx/commit/ddb01c02426d59e8bd541e3fd3cbaaf68779b2df
+    import tfx
+    tfx.version.__version__ += 'dev'
+
+    executor_context = base_executor.BaseExecutor.Context(
+        beam_pipeline_args=beam_pipeline_args,
+        tmp_dir=tempfile.gettempdir(),
+        unique_id='tfx_component',
+    )
+    executor = component_class_instance.executor_spec.executor_class(executor_context)
     executor.Do(
         input_dict=input_dict,
         output_dict=output_dict,
         exec_properties=exec_properties,
     )
 
-    return (example_artifacts_path,)
+    return (output_examples_uri, )
+
 
 if __name__ == '__main__':
     import kfp
-    kfp.components.func_to_container_op(
-        CsvExampleGen_GCS,
-        base_image='tensorflow/tfx:0.15.0',
+    kfp.components.create_component_from_func(
+        CsvExampleGen,
+        base_image='tensorflow/tfx:0.21.4',
         output_component_file='component.yaml'
     )

@@ -74,6 +74,9 @@ type APIRun struct {
 	// Format: date-time
 	ScheduledAt strfmt.DateTime `json:"scheduled_at,omitempty"`
 
+	// Optional input field. Specify which Kubernetes service account this run uses.
+	ServiceAccount string `json:"service_account,omitempty"`
+
 	// Output. The status of the run.
 	// One of [Pending, Running, Succeeded, Skipped, Failed, Error]
 	Status string `json:"status,omitempty"`

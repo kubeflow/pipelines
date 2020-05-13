@@ -887,7 +887,7 @@ describe('WorkflowParser', () => {
       ]);
     });
 
-    it('returns the right bucket and key for a correct metadata artifact', () => {
+    it('returns the right bucket, key and source eq `minio` for a correct metadata artifact', () => {
       expect(
         WorkflowParser.loadNodeOutputPaths({
           outputs: {
@@ -907,6 +907,31 @@ describe('WorkflowParser', () => {
           bucket: 'test bucket',
           key: 'test key',
           source: 'minio',
+        },
+      ]);
+    });
+
+    it('returns the right bucket, key and source eq `s3` for a correct metadata artifact', () => {
+      expect(
+        WorkflowParser.loadNodeOutputPaths({
+          outputs: {
+            artifacts: [
+              {
+                name: 'mlpipeline-ui-metadata',
+                s3: {
+                  endpoint: 's3.amazonaws.com',
+                  bucket: 'test bucket',
+                  key: 'test key',
+                },
+              },
+            ],
+          },
+        } as any),
+      ).toEqual([
+        {
+          bucket: 'test bucket',
+          key: 'test key',
+          source: 's3',
         },
       ]);
     });

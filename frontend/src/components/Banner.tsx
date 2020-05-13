@@ -69,6 +69,7 @@ export interface BannerProps {
   additionalInfo?: string;
   message?: string;
   mode?: Mode;
+  showTroubleshootingGuideLink?: boolean;
   refresh?: () => void;
 }
 
@@ -120,12 +121,14 @@ class Banner extends React.Component<BannerProps, BannerState> {
           {this.props.message}
         </div>
         <div className={commonCss.flex}>
-          <a
-            className={css.troubleShootingLink}
-            href='https://www.kubeflow.org/docs/pipelines/troubleshooting'
-          >
-            Troubleshooting guide
-          </a>
+          {this.props.showTroubleshootingGuideLink && (
+            <a
+              className={css.troubleShootingLink}
+              href='https://www.kubeflow.org/docs/pipelines/troubleshooting'
+            >
+              Troubleshooting guide
+            </a>
+          )}
           {this.props.additionalInfo && (
             <Button
               className={classes(css.button, css.detailsButton)}

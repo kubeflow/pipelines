@@ -27,6 +27,8 @@ import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '..
 import { MemoryRouter } from 'react-router';
 import { logger } from '../lib/Utils';
 import { NamespaceContext } from '../lib/KubeflowClient';
+import { ApiFilter, PredicateOp } from '../apis/filter';
+import { ExperimentStorageState } from '../apis/experiment';
 
 class TestNewRun extends NewRun {
   public _experimentSelectorClosed = super._experimentSelectorClosed;
@@ -128,6 +130,7 @@ describe('NewRun', () => {
       run: {
         id: 'some-mock-run-id',
         name: 'some mock run name',
+        service_account: 'pipeline-runner',
         pipeline_spec: {
           pipeline_id: 'original-run-pipeline-id',
           workflow_manifest: '{}',
@@ -602,7 +605,17 @@ describe('NewRun', () => {
         '',
         10,
         'created_at desc',
-        '',
+        encodeURIComponent(
+          JSON.stringify({
+            predicates: [
+              {
+                key: 'storage_state',
+                op: PredicateOp.NOTEQUALS,
+                string_value: ExperimentStorageState.ARCHIVED.toString(),
+              },
+            ],
+          } as ApiFilter),
+        ),
         undefined,
         undefined,
       );
@@ -623,7 +636,17 @@ describe('NewRun', () => {
         '',
         10,
         'created_at desc',
-        '',
+        encodeURIComponent(
+          JSON.stringify({
+            predicates: [
+              {
+                key: 'storage_state',
+                op: PredicateOp.NOTEQUALS,
+                string_value: ExperimentStorageState.ARCHIVED.toString(),
+              },
+            ],
+          } as ApiFilter),
+        ),
         'NAMESPACE',
         'test-ns',
       );
@@ -761,6 +784,25 @@ describe('NewRun', () => {
       await TestUtils.flushPromises();
 
       expect(tree.state('runName')).toBe('Clone (2) of some run');
+    });
+
+    it('uses service account in the original run', async () => {
+      const defaultRunDetail = newMockRunDetail();
+      const runDetail = {
+        ...defaultRunDetail,
+        run: {
+          ...defaultRunDetail.run,
+          service_account: 'sa1',
+        },
+      };
+      const props = generateProps();
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+      getRunSpy.mockImplementation(() => runDetail);
+
+      tree = shallow(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+
+      expect(tree.state('serviceAccount')).toBe('sa1');
     });
 
     it('uses the query param experiment ID over the one in the original run if an ID is present in both', async () => {
@@ -1167,6 +1209,9 @@ describe('NewRun', () => {
       (tree.instance() as TestNewRun).handleChange('description')({
         target: { value: 'test run description' },
       });
+      (tree.instance() as TestNewRun).handleChange('serviceAccount')({
+        target: { value: 'service-account-name' },
+      });
       await TestUtils.flushPromises();
 
       tree
@@ -1183,6 +1228,7 @@ describe('NewRun', () => {
         pipeline_spec: {
           parameters: MOCK_PIPELINE.parameters,
         },
+        service_account: 'service-account-name',
         resource_references: [
           {
             key: {
@@ -1237,6 +1283,7 @@ describe('NewRun', () => {
         pipeline_spec: {
           parameters: [{ name: 'testName', value: '{\n  "test2": "value2"\n}' }],
         },
+        service_account: '',
         resource_references: [
           {
             key: {
@@ -1329,6 +1376,7 @@ describe('NewRun', () => {
           pipeline_id: undefined,
           workflow_manifest: '{"metadata":{"name":"embedded"},"parameters":[]}',
         },
+        service_account: 'pipeline-runner',
         resource_references: [],
       });
       // TODO: verify route change happens
@@ -1633,6 +1681,7 @@ describe('NewRun', () => {
 
       instance.handleChange('runName')({ target: { value: 'test run name' } });
       instance.handleChange('description')({ target: { value: 'test run description' } });
+      instance.handleChange('serviceAccount')({ target: { value: 'service-account-name' } });
       await TestUtils.flushPromises();
 
       tree
@@ -1653,6 +1702,7 @@ describe('NewRun', () => {
         pipeline_spec: {
           parameters: MOCK_PIPELINE.parameters,
         },
+        service_account: 'service-account-name',
         resource_references: [
           {
             key: {
