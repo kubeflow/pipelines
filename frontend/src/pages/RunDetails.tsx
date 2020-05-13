@@ -356,9 +356,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
                                 {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
                                   <div className={padding(20)}>
-                                    <DetailsTable title='Input parameters' fields={inputParams} />
+                                    <DetailsTable
+                                      key={`input-parameters-${selectedNodeId}`}
+                                      title='Input parameters'
+                                      fields={inputParams}
+                                    />
 
                                     <DetailsTable
+                                      key={`input-artifacts-${selectedNodeId}`}
                                       title='Input artifacts'
                                       fields={inputArtifacts}
                                       valueComponent={MinioArtifactPreview}
@@ -367,9 +372,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                       }}
                                     />
 
-                                    <DetailsTable title='Output parameters' fields={outputParams} />
+                                    <DetailsTable
+                                      key={`output-parameters-${selectedNodeId}`}
+                                      title='Output parameters'
+                                      fields={outputParams}
+                                    />
 
                                     <DetailsTable
+                                      key={`output-artifacts-${selectedNodeId}`}
                                       title='Output artifacts'
                                       fields={outputArtifacts}
                                       valueComponent={MinioArtifactPreview}

@@ -1056,10 +1056,12 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
                 >
                   <DetailsTable
                     fields={Array []}
+                    key="input-parameters-node1"
                     title="Input parameters"
                   />
                   <DetailsTable
                     fields={Array []}
+                    key="input-artifacts-node1"
                     title="Input artifacts"
                     valueComponent={[Function]}
                     valueComponentProps={
@@ -1070,10 +1072,12 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
                   />
                   <DetailsTable
                     fields={Array []}
+                    key="output-parameters-node1"
                     title="Output parameters"
                   />
                   <DetailsTable
                     fields={Array []}
+                    key="output-artifacts-node1"
                     title="Output artifacts"
                     valueComponent={[Function]}
                     valueComponentProps={
@@ -1645,10 +1649,12 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                         ],
                       ]
                     }
+                    key="input-parameters-node1"
                     title="Input parameters"
                   />
                   <DetailsTable
                     fields={Array []}
+                    key="input-artifacts-node1"
                     title="Input artifacts"
                     valueComponent={[Function]}
                     valueComponentProps={
@@ -1670,10 +1676,12 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                         ],
                       ]
                     }
+                    key="output-parameters-node1"
                     title="Output parameters"
                   />
                   <DetailsTable
                     fields={Array []}
+                    key="output-artifacts-node1"
                     title="Output artifacts"
                     valueComponent={[Function]}
                     valueComponentProps={
