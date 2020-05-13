@@ -114,7 +114,14 @@ message GetExperimentRequest {
 }
 
 message ListExperimentsRequest {
+  // A page token to request the next page of results. The token is acquried
+  // from the nextPageToken field of the response from the previous
+  // ListExperiment call.
   string page_token = 1;
+
+  // The number of experiments to be listed per page. If there are more
+  // experiments than this number, the response message will contain a valid
+  // value in the nextPageToken field.
   int32 page_size = 2;
 
   // Can be format of "field_name", "field_name asc" or "field_name des"
