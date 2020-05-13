@@ -712,6 +712,39 @@ describe('UIServer apis', () => {
           });
       });
 
+      it('uses configured KUBEFLOW_USERID_HEADER for user identity', done => {
+        app = new UIServer(
+          loadConfigs(argv, { ENABLE_AUTHZ: 'true', KUBEFLOW_USERID_HEADER: 'x-kubeflow-userid' }),
+        );
+        const appKfpApi = express();
+        const receivedHeaders: any[] = [];
+        appKfpApi.get('/apis/v1beta1/auth', (req, res) => {
+          receivedHeaders.push(req.headers);
+          res.status(200).send('{}'); // Authorized
+        });
+        kfpApiServer = appKfpApi.listen(3001);
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(newGetTensorboardResponse()),
+        );
+        requests(app.start())
+          .get(`/apps/tensorboard?logdir=some-log-dir&namespace=test-ns`)
+          .set('x-kubeflow-userid', 'user@kubeflow.org')
+          .expect(200, err => {
+            expect(receivedHeaders).toHaveLength(1);
+            expect(receivedHeaders[0]).toMatchInlineSnapshot(`
+              Object {
+                "accept": "*/*",
+                "accept-encoding": "gzip,deflate",
+                "connection": "close",
+                "host": "localhost:3001",
+                "user-agent": "node-fetch/1.0 (+https://github.com/bitinn/node-fetch)",
+                "x-kubeflow-userid": "user@kubeflow.org",
+              }
+            `);
+            done(err);
+          });
+      });
+
       it('rejects user requests when KFP auth api rejected', done => {
         const errorSpy = jest.spyOn(console, 'error');
         errorSpy.mockImplementation();
