@@ -72,7 +72,9 @@ def get_component_version():
     """Get component version from the first line of License file"""
     component_version = 'NULL'
 
-    with open('THIRD-PARTY-LICENSES.txt', 'r') as license_file:
+    # Get license file using known common directory
+    license_file_path = os.path.abspath(os.path.join(__cwd__, '../THIRD-PARTY-LICENSES.txt'))
+    with open(license_file_path, 'r') as license_file:
         version_match = re.search('Amazon SageMaker Components for Kubeflow Pipelines; version (([0-9]+[.])+[0-9]+)',
                         license_file.readline())
         if version_match is not None:
@@ -99,7 +101,7 @@ def create_training_job_request(args):
 
     request['TrainingJobName'] = job_name
     request['RoleArn'] = args['role']
-    request['HyperParameters'] = args['hyperparameters']
+    request['HyperParameters'] = create_hyperparameters(args['hyperparameters'])
     request['AlgorithmSpecification']['TrainingInputMode'] = args['training_input_mode']
 
     ### Update training image (for BYOC and built-in algorithms) or algorithm resource name
@@ -137,8 +139,8 @@ def create_training_job_request(args):
 
     ### Update or pop VPC configs
     if args['vpc_security_group_ids'] and args['vpc_subnets']:
-        request['VpcConfig']['SecurityGroupIds'] = [args['vpc_security_group_ids']]
-        request['VpcConfig']['Subnets'] = [args['vpc_subnets']]
+        request['VpcConfig']['SecurityGroupIds'] = args['vpc_security_group_ids'].split(',')
+        request['VpcConfig']['Subnets'] = args['vpc_subnets'].split(',')
     else:
         request.pop('VpcConfig')
 
@@ -191,7 +193,7 @@ def create_training_job(client, args):
       raise Exception(e.response['Error']['Message'])
 
 
-def wait_for_training_job(client, training_job_name):
+def wait_for_training_job(client, training_job_name, poll_interval=30):
   while(True):
     response = client.describe_training_job(TrainingJobName=training_job_name)
     status = response['TrainingJobStatus']
@@ -203,7 +205,7 @@ def wait_for_training_job(client, training_job_name):
       logging.info('Training failed with the following error: {}'.format(message))
       raise Exception('Training job failed')
     logging.info("Training job is still in status: " + status)
-    time.sleep(30)
+    time.sleep(poll_interval)
 
 
 def get_model_artifacts_from_job(client, job_name):
@@ -214,9 +216,9 @@ def get_model_artifacts_from_job(client, job_name):
 
 def get_image_from_job(client, job_name):
     info = client.describe_training_job(TrainingJobName=job_name)
-    try:
+    if 'TrainingImage' in info['AlgorithmSpecification']:
         image = info['AlgorithmSpecification']['TrainingImage']
-    except:
+    else:
         algorithm_name = info['AlgorithmSpecification']['AlgorithmName']
         image = client.describe_algorithm(AlgorithmName=algorithm_name)['TrainingSpecification']['TrainingImage']
 
@@ -273,8 +275,8 @@ def create_model_request(args):
 
     ### Update or pop VPC configs
     if args['vpc_security_group_ids'] and args['vpc_subnets']:
-        request['VpcConfig']['SecurityGroupIds'] = [args['vpc_security_group_ids']]
-        request['VpcConfig']['Subnets'] = [args['vpc_subnets']]
+        request['VpcConfig']['SecurityGroupIds'] = args['vpc_security_group_ids'].split(',')
+        request['VpcConfig']['Subnets'] = args['vpc_subnets'].split(',')
     else:
         request.pop('VpcConfig')
 
@@ -494,7 +496,7 @@ def create_hyperparameter_tuning_job_request(args):
     request['HyperParameterTuningJobConfig']['ParameterRanges']['CategoricalParameterRanges'] = args['categorical_parameters']
     request['HyperParameterTuningJobConfig']['TrainingJobEarlyStoppingType'] = args['early_stopping_type']
 
-    request['TrainingJobDefinition']['StaticHyperParameters'] = args['static_parameters']
+    request['TrainingJobDefinition']['StaticHyperParameters'] = create_hyperparameters(args['static_parameters'])
     request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingInputMode'] = args['training_input_mode']
 
     ### Update training image (for BYOC) or algorithm resource name
@@ -532,8 +534,8 @@ def create_hyperparameter_tuning_job_request(args):
 
     ### Update or pop VPC configs
     if args['vpc_security_group_ids'] and args['vpc_subnets']:
-        request['TrainingJobDefinition']['VpcConfig']['SecurityGroupIds'] = [args['vpc_security_group_ids']]
-        request['TrainingJobDefinition']['VpcConfig']['Subnets'] = [args['vpc_subnets']]
+        request['TrainingJobDefinition']['VpcConfig']['SecurityGroupIds'] = args['vpc_security_group_ids'].split(',')
+        request['TrainingJobDefinition']['VpcConfig']['Subnets'] = args['vpc_subnets'].split(',')
     else:
         request['TrainingJobDefinition'].pop('VpcConfig')
 
@@ -835,6 +837,14 @@ def get_labeling_job_outputs(client, labeling_job_name, auto_labeling):
     else:
         active_learning_model_arn = ' '
     return output_manifest, active_learning_model_arn
+
+def create_hyperparameters(hyperparam_args):
+    # Validate all values are strings
+    for key, value in hyperparam_args.items():
+        if not isinstance(value, str):
+            raise Exception(f"Could not parse hyperparameters. Value for {key} was not a string.")
+
+    return hyperparam_args
 
 def enable_spot_instance_support(training_job_config, args):
     if args['spot_instance']:
