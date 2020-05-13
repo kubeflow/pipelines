@@ -13,6 +13,7 @@
 import os
 import argparse
 from time import gmtime, strftime
+from distutils.util import strtobool
 import time
 import string
 import random
@@ -63,7 +64,7 @@ def nullable_string_argument(value):
 
 
 def add_default_client_arguments(parser):
-    parser.add_argument('--region', type=str.strip, required=True, help='The region where the training job launches.')
+    parser.add_argument('--region', type=str, required=True, help='The region where the training job launches.')
     parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the Sagemaker service.')
 
 
@@ -71,7 +72,7 @@ def get_component_version():
     """Get component version from the first line of License file"""
     component_version = 'NULL'
 
-    with open('/THIRD-PARTY-LICENSES.txt', 'r') as license_file:
+    with open('THIRD-PARTY-LICENSES.txt', 'r') as license_file:
         version_match = re.search('Amazon SageMaker Components for Kubeflow Pipelines; version (([0-9]+[.])+[0-9]+)',
                         license_file.readline())
         if version_match is not None:
@@ -223,6 +224,16 @@ def get_image_from_job(client, job_name):
 
 
 def create_model(client, args):
+    request = create_model_request(args)
+    try:
+        create_model_response = client.create_model(**request)
+        logging.info("Model Config Arn: " + create_model_response['ModelArn'])
+        return create_model_response['ModelArn']
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
+
+
+def create_model_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_model
     with open(os.path.join(__cwd__, 'model.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
@@ -271,19 +282,14 @@ def create_model(client, args):
     for key, val in args['tags'].items():
         request['Tags'].append({'Key': key, 'Value': val})
 
-    create_model_response = client.create_model(**request)
-
-    logging.info("Model Config Arn: " + create_model_response['ModelArn'])
-    return create_model_response['ModelArn']
-
+    return request
 
 def deploy_model(client, args):
   endpoint_config_name = create_endpoint_config(client, args)
   endpoint_name = create_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name, args['endpoint_tags'])
   return endpoint_name
 
-
-def create_endpoint_config(client, args):
+def create_endpoint_config_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint_config
     with open(os.path.join(__cwd__, 'endpoint_config.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
@@ -322,12 +328,16 @@ def create_endpoint_config(client, args):
     for key, val in args['endpoint_config_tags'].items():
         request['Tags'].append({'Key': key, 'Value': val})
 
+    return request
+
+def create_endpoint_config(client, args):
+    request = create_endpoint_config_request(args)
     try:
         create_endpoint_config_response = client.create_endpoint_config(**request)
         logging.info("Endpoint configuration in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/endpointConfig/{}"
-            .format(args['region'], args['region'], endpoint_config_name))
+            .format(args['region'], args['region'], request['EndpointConfigName']))
         logging.info("Endpoint Config Arn: " + create_endpoint_config_response['EndpointConfigArn'])
-        return endpoint_config_name
+        return request['EndpointConfigName']
     except ClientError as e:
         raise Exception(e.response['Error']['Message'])
 
@@ -619,6 +629,16 @@ def get_best_training_job_and_hyperparameters(client, hpo_job_name):
 
 
 def create_workteam(client, args):
+    try:
+        request = create_workteam_request(args)
+        response = client.create_workteam(**request)
+        portal = client.describe_workteam(WorkteamName=args['team_name'])['Workteam']['SubDomain']
+        logging.info("Labeling portal: " + portal)
+        return response['WorkteamArn']
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
+
+def create_workteam_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_workteam
     """Create a workteam"""
     with open(os.path.join(__cwd__, 'workteam.template.yaml'), 'r') as f:
@@ -638,13 +658,7 @@ def create_workteam(client, args):
     for key, val in args['tags'].items():
         request['Tags'].append({'Key': key, 'Value': val})
 
-    try:
-        response = client.create_workteam(**request)
-        portal = client.describe_workteam(WorkteamName=args['team_name'])['Workteam']['SubDomain']
-        logging.info("Labeling portal: " + portal)
-        return response['WorkteamArn']
-    except ClientError as e:
-        raise Exception(e.response['Error']['Message'])
+    return request
 
 
 def create_labeling_job_request(args):
@@ -845,35 +859,15 @@ def enable_spot_instance_support(training_job_config, args):
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):
   return ''.join(random.choice(chars) for _ in range(size))
 
+def yaml_or_json_str(str):
+  if str == "" or str == None:
+    return None
+  try:
+    return json.loads(str)
+  except:
+    return yaml.safe_load(str)
 
-def str_to_bool(s):
-  if s.lower().strip() == 'true':
-    return True
-  elif s.lower().strip() == 'false':
-    return False
-  else:
-    raise argparse.ArgumentTypeError('"True" or "False" expected.')
-
-def str_to_int(s):
-  if s:
-    return int(s)
-  else:
-    return 0
-
-def str_to_float(s):
-  if s:
-    return float(s)
-  else:
-    return 0.0
-
-def str_to_json_dict(s):
-  if s != '':
-      return json.loads(s)
-  else:
-      return {}
-
-def str_to_json_list(s):
-  if s != '':
-      return json.loads(s)
-  else:
-      return []
+def str_to_bool(str):
+    # This distutils function returns an integer representation of the boolean
+    # rather than a True/False value. This simply hard casts it.
+    return bool(strtobool(str))

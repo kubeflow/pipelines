@@ -38,14 +38,14 @@ import { NamespaceContext } from 'src/lib/KubeflowClient';
 const RunDetails = TEST_ONLY.RunDetails;
 
 const STEP_TABS = {
-  ARTIFACTS: 0,
-  INPUT_OUTPUT: 1,
+  INPUT_OUTPUT: 0,
+  VISUALIZATIONS: 1,
   ML_METADATA: 2,
   VOLUMES: 3,
-  MANIFEST: 4,
-  LOGS: 5,
-  POD: 6,
-  EVENTS: 7,
+  LOGS: 4,
+  POD: 5,
+  EVENTS: 6,
+  MANIFEST: 7,
 };
 
 const NODE_DETAILS_SELECTOR = '[data-testid="run-details-node-details"]';
@@ -399,7 +399,7 @@ describe('RunDetails', () => {
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        breadcrumbs: [{ displayName: 'Archive', href: RoutePage.ARCHIVE }],
+        breadcrumbs: [{ displayName: 'Archive', href: RoutePage.ARCHIVED_RUNS }],
       }),
     );
   });
@@ -637,7 +637,12 @@ describe('RunDetails', () => {
       'phaseMessage',
       'This step is in ' + testRun.run!.status + ' state with this message: some test message',
     );
-    expect(tree).toMatchSnapshot();
+    expect(tree.find('Banner')).toMatchInlineSnapshot(`
+      <Banner
+        message="This step is in Succeeded state with this message: some test message"
+        mode="warning"
+      />
+    `);
   });
 
   it('shows clicked node output in side pane', async () => {

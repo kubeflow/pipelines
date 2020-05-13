@@ -29,6 +29,7 @@ import { Constants } from './Constants';
 import { KeyValue } from './StaticGraphParser';
 import { hasFinished, NodePhase, statusToBgColor, parseNodePhase } from './StatusUtils';
 import { parseTaskDisplayName } from './ParserUtils';
+import { isS3Endpoint } from './AwsHelper';
 
 export enum StorageService {
   GCS = 'gcs',
@@ -292,11 +293,10 @@ export default class WorkflowParser {
           outputPaths.push({
             bucket: a.s3!.bucket,
             key: a.s3!.key,
-            source: StorageService.MINIO,
+            source: isS3Endpoint(a.s3!.endpoint) ? StorageService.S3 : StorageService.MINIO,
           }),
         );
     }
-
     return outputPaths;
   }
 

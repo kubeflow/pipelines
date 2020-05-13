@@ -30,7 +30,7 @@ import ResourceSelector from './ResourceSelector';
 import RunUtils from '../lib/RunUtils';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
-import { ApiExperiment } from '../apis/experiment';
+import { ApiExperiment, ExperimentStorageState } from '../apis/experiment';
 import { ApiPipeline, ApiParameter, ApiPipelineVersion } from '../apis/pipeline';
 import {
   ApiRun,
@@ -56,12 +56,16 @@ import { CustomRendererProps } from '../components/CustomTable';
 import { Description } from '../components/Description';
 import { NamespaceContext } from '../lib/KubeflowClient';
 import { NameWithTooltip } from '../components/CustomTableNameColumn';
+import { PredicateOp, ApiFilter } from '../apis/filter';
+import { HelpButton } from 'src/atoms/HelpButton';
+import { ExternalLink } from 'src/atoms/ExternalLink';
 
 interface NewRunState {
   description: string;
   errorMessage: string;
   experiment?: ApiExperiment;
   experimentName: string;
+  serviceAccount: string;
   experimentSelectorOpen: boolean;
   isBeingStarted: boolean;
   isClone: boolean;
@@ -115,6 +119,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     description: '',
     errorMessage: '',
     experimentName: '',
+    serviceAccount: '',
     experimentSelectorOpen: false,
     isBeingStarted: false,
     isClone: false,
@@ -143,10 +148,15 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   ];
 
   private pipelineVersionSelectorColumns = [
-    { label: 'Version name', flex: 1, sortKey: PipelineVersionSortKeys.NAME },
+    {
+      customRenderer: NameWithTooltip,
+      flex: 2,
+      label: 'Version name',
+      sortKey: PipelineVersionSortKeys.NAME,
+    },
     // TODO(jingzhang36): version doesn't have description field; remove it and
     // fix the rendering.
-    { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
+    { label: 'Description', flex: 1, customRenderer: descriptionCustomRenderer },
     { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
   ];
 
@@ -175,6 +185,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       description,
       errorMessage,
       experimentName,
+      serviceAccount,
       experimentSelectorOpen,
       isClone,
       isFirstRunInExperiment,
@@ -402,11 +413,24 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                   sort_by?: string,
                   filter?: string,
                 ) => {
+                  // A new run can only be created in an unarchived experiment.
+                  // Therefore, when listing experiments here for selection, we
+                  // only list unarchived experiments.
+                  const new_filter = JSON.parse(
+                    decodeURIComponent(filter || '{"predicates": []}'),
+                  ) as ApiFilter;
+                  new_filter.predicates = (new_filter.predicates || []).concat([
+                    {
+                      key: 'storage_state',
+                      op: PredicateOp.NOTEQUALS,
+                      string_value: ExperimentStorageState.ARCHIVED.toString(),
+                    },
+                  ]);
                   const response = await Apis.experimentServiceApi.listExperiment(
                     page_token,
                     page_size,
                     sort_by,
-                    filter,
+                    encodeURIComponent(JSON.stringify(new_filter)),
                     this.props.namespace ? 'NAMESPACE' : undefined,
                     this.props.namespace,
                   );
@@ -483,6 +507,27 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
               ),
               readOnly: true,
             }}
+          />
+
+          <div>
+            This run will use the following Kubernetes service account.{' '}
+            <HelpButton
+              helpText={
+                <div>
+                  Note, the service account needs{' '}
+                  <ExternalLink href='https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md'>
+                    minimum permissions required by argo workflows
+                  </ExternalLink>{' '}
+                  and extra permissions the specific task requires.
+                </div>
+              }
+            />
+          </div>
+          <Input
+            value={serviceAccount}
+            onChange={this.handleChange('serviceAccount')}
+            label='Service Account (Optional)'
+            variant='outlined'
           />
 
           {/* One-off/Recurring Run Type */}
@@ -896,6 +941,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     let usePipelineFromRunLabel = '';
     let name = '';
     let pipelineVersionName = '';
+    const serviceAccount = originalRun.service_account || '';
 
     // Case 1: a legacy run refers to a pipeline without specifying version.
     const referencePipelineId = RunUtils.getPipelineId(originalRun);
@@ -970,6 +1016,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       usePipelineFromRunLabel,
       useWorkflowFromRun,
       workflowFromRun,
+      serviceAccount,
     });
 
     this._validate();
@@ -1025,6 +1072,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           : undefined,
       },
       resource_references: references,
+      service_account: this.state.serviceAccount,
     };
     if (this.state.isRecurringRun) {
       newRun = Object.assign(newRun, {

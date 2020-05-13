@@ -30,7 +30,7 @@ output_location | The Amazon S3 path where you want Amazon SageMaker to store th
 output_encryption_key | The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts | Yes | Yes | String | | |
 instance_type | The ML compute instance type | Yes | No | String | ml.m4.xlarge, ml.m4.2xlarge, ml.m4.4xlarge, ml.m4.10xlarge, ml.m4.16xlarge, ml.m5.large, ml.m5.xlarge, ml.m5.2xlarge, ml.m5.4xlarge, ml.m5.12xlarge, ml.m5.24xlarge, ml.c4.xlarge, ml.c4.2xlarge, ml.c4.4xlarge, ml.c4.8xlarge, ml.p2.xlarge, ml.p2.8xlarge, ml.p2.16xlarge, ml.p3.2xlarge, ml.p3.8xlarge, ml.p3.16xlarge, ml.c5.xlarge, ml.c5.2xlarge, ml.c5.4xlarge, ml.c5.9xlarge, ml.c5.18xlarge | ml.m4.xlarge |
 instance_count | The number of ML compute instances to use in each training job | Yes | Yes | Int | ≥ 1 | 1 |
-volume_size | The size of the ML storage volume that you want to provision in GB | Yes | Yes | Int | ≥ 1 | 1 |
+volume_size | The size of the ML storage volume that you want to provision in GB | Yes | Yes | Int | ≥ 1 | 30 |
 max_num_jobs | The maximum number of training jobs that a hyperparameter tuning job can launch | No | No | Int | [1, 500] | |
 max_parallel_jobs | The maximum number of concurrent training jobs that a hyperparameter tuning job can launch | No | No | Int | [1, 10] | |
 max_run_time | The maximum run time in seconds per training job | Yes | Yes | Int | ≤ 432000 (5 days) | 86400 (1 day) |

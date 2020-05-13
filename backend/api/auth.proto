@@ -1,0 +1,86 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
+package api;
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "backend/api/error.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  responses: {
+    key: "default";
+    value: {
+      schema: {
+        json_schema: {
+          ref: ".api.Status";
+        }
+      }
+    }
+  }
+  // Use bearer token for authorizing access to job service.
+  // Kubernetes client library(https://kubernetes.io/docs/reference/using-api/client-libraries/)
+  // uses bearer token as default for authorization. The section below
+  // ensures security definition object is generated in the swagger definition.
+  // For more details see https://github.com/OAI/OpenAPI-Specification/blob/3.0.0/versions/2.0.md#securityDefinitionsObject
+  security_definitions: {
+    security: {
+      key: "Bearer";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "authorization";
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "Bearer";
+      value: {};
+    }
+  }
+};
+
+service AuthService {
+  rpc Authorize(AuthorizeRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/auth"
+    };
+  }
+}
+
+// Ask for authorization of an access by providing resource's namespace, type
+// and verb. User identity is not part of the message, because it is expected
+// to be parsed from request headers. Caller should proxy user request's headers.
+message AuthorizeRequest {
+  // Type of resources in pipelines system.
+  enum Resources {
+    UNASSIGNED_RESOURCES = 0;
+    VIEWERS = 1;
+  }
+  // Type of verbs that act on the resources.
+  enum Verb {
+    UNASSIGNED_VERB = 0;
+    CREATE = 1;
+    GET = 2;
+    DELETE = 3;
+  }
+  string namespace = 1;    // Namespace the resource belongs to.
+  Resources resources = 2; // Resource type asking for authorization.
+  Verb verb = 3;           // Verb on the resource asking for authorization.
+}

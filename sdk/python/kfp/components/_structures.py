@@ -607,6 +607,8 @@ class TaskSpec(ModelBase):
             task_outputs[output.name] = task_output_arg
 
         self.outputs = task_outputs
+        if len(task_outputs) == 1:
+            self.output = list(task_outputs.values())[0]
 
 
 class GraphSpec(ModelBase):

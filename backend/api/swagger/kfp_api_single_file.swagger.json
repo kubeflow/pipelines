@@ -1562,6 +1562,10 @@
           },
           "description": "Optional input field. Specify which resource this run belongs to."
         },
+        "service_account": {
+          "type": "string",
+          "description": "Optional input field. Specify which Kubernetes service account this run uses."
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -1714,7 +1718,11 @@
           "items": {
             "$ref": "#/definitions/apiResourceReference"
           },
-          "description": "Optional input field. Specify which resource this run belongs to."
+          "description": "Optional input field. Specify which resource this job belongs to."
+        },
+        "service_account": {
+          "type": "string",
+          "description": "Optional input field. Specify which Kubernetes service account this job uses."
         },
         "max_concurrency": {
           "type": "string",

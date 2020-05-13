@@ -47,6 +47,15 @@ async function getIAMInstanceProfile(): Promise<string | undefined> {
 }
 
 /**
+ * Check if the provided string is an S3 endpoint (can be any region).
+ *
+ * @param endpoint minio endpoint to check.
+ */
+export function isS3Endpoint(endpoint: string = ''): boolean {
+  return !!endpoint.match(/s3.{0,}\.amazonaws\.com\.?.{0,}/i);
+}
+
+/**
  * Class to handle the session credentials for AWS ec2 instance profile.
  */
 class AWSInstanceProfileCredentials {

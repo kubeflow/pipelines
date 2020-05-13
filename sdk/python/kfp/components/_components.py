@@ -74,19 +74,14 @@ def load_component_from_url(url):
         A factory function with a strongly-typed signature.
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp).
     '''
-    if url is None:
-        raise TypeError
-
-    #Handling Google Cloud Storage URIs
-    if url.startswith('gs://'):
-        #Replacing the gs:// URI with https:// URI (works for public objects)
-        url = 'https://storage.googleapis.com/' + url[len('gs://'):]
-
-    import requests
-    resp = requests.get(url)
-    resp.raise_for_status()
+    component_spec = _load_component_spec_from_url(url)
+    url = _fix_component_uri(url)
     component_ref = ComponentReference(url=url)
-    return _load_component_from_yaml_or_zip_bytes(resp.content, url, component_ref)
+    return _create_task_factory_from_component_spec(
+        component_spec=component_spec,
+        component_filename=url,
+        component_ref=component_ref,
+    )
 
 
 def load_component_from_file(filename):
@@ -100,10 +95,11 @@ def load_component_from_file(filename):
         A factory function with a strongly-typed signature.
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp).
     '''
-    if filename is None:
-        raise TypeError
-    with open(filename, 'rb') as component_stream:
-        return _load_component_from_yaml_or_zip_stream(component_stream, filename)
+    component_spec = _load_component_spec_from_file(path=filename)
+    return _create_task_factory_from_component_spec(
+        component_spec=component_spec,
+        component_filename=filename,
+    )
 
 
 def load_component_from_text(text):
@@ -119,42 +115,64 @@ def load_component_from_text(text):
     '''
     if text is None:
         raise TypeError
-    return _create_task_factory_from_component_text(text, None)
+    component_spec = _load_component_spec_from_component_text(text)
+    return _create_task_factory_from_component_spec(component_spec=component_spec)
+
+
+def _fix_component_uri(uri: str) -> str:
+    #Handling Google Cloud Storage URIs
+    if uri.startswith('gs://'):
+        #Replacing the gs:// URI with https:// URI (works for public objects)
+        uri = 'https://storage.googleapis.com/' + uri[len('gs://'):]
+    return uri
+
+
+def _load_component_spec_from_file(path) -> ComponentSpec:
+    with open(path, 'rb') as component_stream:
+        return _load_component_spec_from_yaml_or_zip_bytes(component_stream.read())
+
+
+def _load_component_spec_from_url(url: str):
+    if url is None:
+        raise TypeError
+
+    url = _fix_component_uri(url)
+
+    import requests
+    resp = requests.get(url)
+    resp.raise_for_status()
+    return _load_component_spec_from_yaml_or_zip_bytes(resp.content)
 
 
 _COMPONENT_FILE_NAME_IN_ARCHIVE = 'component.yaml'
 
 
-def _load_component_from_yaml_or_zip_bytes(bytes, component_filename=None, component_ref: ComponentReference = None):
-    import io
-    component_stream = io.BytesIO(bytes)
-    return _load_component_from_yaml_or_zip_stream(component_stream, component_filename, component_ref)
+def _load_component_spec_from_yaml_or_zip_bytes(data: bytes):
+    '''Loads component spec from binary data.
 
-
-def _load_component_from_yaml_or_zip_stream(stream, component_filename=None, component_ref: ComponentReference = None):
-    '''Loads component from a stream and creates a task factory function.
-    The stream can be YAML or a zip file with a component.yaml file inside.
+    The data can be a YAML file or a zip file with a component.yaml file inside.
     '''
     import zipfile
-    stream.seek(0)
+    import io
+    stream = io.BytesIO(data)
     if zipfile.is_zipfile(stream):
         stream.seek(0)
         with zipfile.ZipFile(stream) as zip_obj:
-            with zip_obj.open(_COMPONENT_FILE_NAME_IN_ARCHIVE) as component_stream:
-                return _create_task_factory_from_component_text(component_stream, component_filename, component_ref)
-    else:
-        stream.seek(0)
-        return _create_task_factory_from_component_text(stream, component_filename, component_ref)
+            data = zip_obj.read(_COMPONENT_FILE_NAME_IN_ARCHIVE)
+    return _load_component_spec_from_component_text(data)
 
 
-def _create_task_factory_from_component_text(text_or_file, component_filename=None, component_ref: ComponentReference = None):
-    component_dict = load_yaml(text_or_file)
-    return _create_task_factory_from_component_dict(component_dict, component_filename, component_ref)
-
-
-def _create_task_factory_from_component_dict(component_dict, component_filename=None, component_ref: ComponentReference = None):
+def _load_component_spec_from_component_text(text) -> ComponentSpec:
+    component_dict = load_yaml(text)
     component_spec = ComponentSpec.from_dict(component_dict)
-    return _create_task_factory_from_component_spec(component_spec, component_filename, component_ref)
+
+    # Calculating hash digest for the component
+    import hashlib
+    data = text if isinstance(text, bytes) else text.encode('utf-8')
+    digest = hashlib.sha256(data).hexdigest()
+    component_spec._digest = digest
+
+    return component_spec
 
 
 _inputs_dir = '/tmp/inputs'
@@ -266,6 +284,13 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
         component_ref = ComponentReference(spec=component_spec, url=component_filename)
     else:
         component_ref.spec = component_spec
+    
+    digest = getattr(component_spec, '_digest', None)
+    # TODO: Calculate the digest if missing
+    if digest:
+        # TODO: Report possible digest conflicts
+        component_ref.digest = digest
+
 
     def create_task_from_component_and_arguments(pythonic_arguments):
         arguments = {

@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
-var runColumns = []string{"UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "Description",
+var runColumns = []string{"UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description",
 	"CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineName", "PipelineSpecManifest",
 	"WorkflowSpecManifest", "Parameters", "pipelineRuntimeManifest", "WorkflowRuntimeManifest",
 }
@@ -233,8 +233,9 @@ func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.Sele
 func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, error) {
 	var runs []*model.RunDetail
 	for rows.Next() {
-		var uuid, experimentUUID, displayName, name, storageState, namespace, description, pipelineId, pipelineName, pipelineSpecManifest,
-			workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
+		var uuid, experimentUUID, displayName, name, storageState, namespace, serviceAccount, description, pipelineId,
+			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest,
+			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec int64
 		var metricsInString, resourceReferencesInString sql.NullString
 		err := rows.Scan(
@@ -244,6 +245,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			&name,
 			&storageState,
 			&namespace,
+			&serviceAccount,
 			&description,
 			&createdAtInSec,
 			&scheduledAtInSec,
@@ -282,6 +284,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			Name:               name,
 			StorageState:       storageState,
 			Namespace:          namespace,
+			ServiceAccount:     serviceAccount,
 			Description:        description,
 			CreatedAtInSec:     createdAtInSec,
 			ScheduledAtInSec:   scheduledAtInSec,
@@ -343,6 +346,7 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 			"Name":                    r.Name,
 			"StorageState":            r.StorageState,
 			"Namespace":               r.Namespace,
+			"ServiceAccount":          r.ServiceAccount,
 			"Description":             r.Description,
 			"CreatedAtInSec":          r.CreatedAtInSec,
 			"ScheduledAtInSec":        r.ScheduledAtInSec,

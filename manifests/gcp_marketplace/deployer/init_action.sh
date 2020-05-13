@@ -15,7 +15,7 @@
 # limitations under the License.
 
 function set_bucket_and_configmap() {
-  # Helper function to deploy bucket with a unique name. 
+  # Helper function to deploy bucket with a unique name.
   # Also detect the current GCP project ID and populate the properties into a
   # config map.
   #
@@ -34,12 +34,12 @@ function set_bucket_and_configmap() {
 
   bucket_name="${GCP_PROJECT_ID}-kubeflowpipelines-default"
   bucket_is_set=true
-  gsutil ls ${bucket_name} || bucket_is_set=false
+  gsutil ls gs://${bucket_name} || bucket_is_set=false
   if [ "$bucket_is_set" = false ]; then
     bucket_is_set=true
-    gsutil mb -p ${GCP_PROJECT_ID} "gs://${bucket_name}/" || bucket_is_set=false  
+    gsutil mb -p ${GCP_PROJECT_ID} "gs://${bucket_name}/" || bucket_is_set=false
   fi
-  
+
   # Populate configmap, with name gcp-default-config
   if [ "${bucket_is_set}" = true ]; then
     kubectl create configmap -n "${NAMESPACE}" "${CONFIG_NAME}" \

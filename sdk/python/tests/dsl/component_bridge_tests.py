@@ -194,3 +194,21 @@ class TestComponentBridge(unittest.TestCase):
         full_command_line = task.command + task.arguments
         for arg in full_command_line:
             self.assertNotIn('PipelineParam', arg)
+
+    def test_converted_outputs(self):
+        component_text = textwrap.dedent('''\
+            outputs:
+            - name: Output 1
+            implementation:
+                container:
+                    image: busybox
+                    command:
+                    - producer
+                    - {outputPath: Output 1}  # Outputs must be used in the implementation
+            '''
+        )
+        task_factory1 = load_component_from_text(component_text)
+        task1 = task_factory1()
+
+        self.assertSetEqual(set(task1.outputs.keys()), {'Output 1', 'output_1'})
+        self.assertIsNotNone(task1.output)
