@@ -1,7 +1,7 @@
 name: Download from GCS
 inputs:
 - {name: GCS path, type: GCSPath}
-- {name: Recurse, type: Boolean, default: false}
+- {name: Recurse, type: Boolean, default: True}
 outputs:
 - {name: Data}
 implementation:
@@ -12,7 +12,7 @@ implementation:
         - -ex
         - -c
         - |
-            [ "$2" == true ] && rsync_flags=-r
+            [ "$2" = False ] || rsync_flags=-r
             if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
                 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
             fi

@@ -4,7 +4,7 @@ inputs:
 - {name: Data}
 - {name: GCS path prefix, type: GCSPath}
 - {name: Parallel composite upload threshold, default: '150M'}
-- {name: Recurse, type: Boolean, default: false}
+- {name: Recurse, type: Boolean, default: True}
 outputs:
 - {name: GCS path, type: GCSPath}
 implementation:
@@ -16,7 +16,7 @@ implementation:
         - -c
         - |
             [ -z "$3" ] || flags="-o GSUtil:parallel_composite_upload_threshold=$3"
-            [ "$4" = True ] && cp_flags=-r
+            [ "$4" = False ] || cp_flags=-r
             if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
                 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
             fi
