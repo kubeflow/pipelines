@@ -74,34 +74,30 @@ service ExperimentService {
     };
   }
 
-  // Find all experiments.
-  // Support pagination and sorting on certain fields.
+  // Find all experiments. Support pagination and sorting on certain fields.
   rpc ListExperiment(ListExperimentsRequest) returns (ListExperimentsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/experiments"
     };
   }
 
-  // Delete an experiment.
-  // Runs and jobs inside the experiment will stay. It is recommended to delete
-  // runs and jobs inside the experiment before deleting the experiment in order
-  // to avoid unexpected behaviors.
+  // Delete an experiment. Runs and jobs inside the experiment will stay. It is
+  // recommended to delete runs and jobs inside the experiment before deleting
+  // the experiment in order to avoid unexpected behaviors.
   rpc DeleteExperiment(DeleteExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/experiments/{id}"
     };
   }
 
-  // Archive an experiment.
-  // Runs and jobs inside the experiment will be archived as well.
+  // Archive an experiment. Runs and jobs inside the experiment will be archived as well.
   rpc ArchiveExperiment(ArchiveExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/experiments/{id}:archive"
     };
   }
 
-  // Restore an archived experiment.
-  // Runs and jobs inside the experiment will stay archived.
+  // Restore an archived experiment. Runs and jobs inside the experiment will stay archived.
   rpc UnarchiveExperiment(UnarchiveExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/experiments/{id}:unarchive"
