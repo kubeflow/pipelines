@@ -59,7 +59,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service ExperimentService {
-  //Create a new experiment.
+  // Create a new experiment.
   rpc CreateExperiment(CreateExperimentRequest) returns (Experiment) {
     option (google.api.http) = {
       post: "/apis/v1beta1/experiments"
@@ -67,35 +67,37 @@ service ExperimentService {
     };
   }
 
-  //Find a specific experiment by ID.
+  // Find a specific experiment by ID.
   rpc GetExperiment(GetExperimentRequest) returns (Experiment) {
     option (google.api.http) = {
       get: "/apis/v1beta1/experiments/{id}"
     };
   }
 
-  //Find all experiments.
+  // Find all experiments. Support pagination and sorting on certain fields.
   rpc ListExperiment(ListExperimentsRequest) returns (ListExperimentsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/experiments"
     };
   }
 
-  //Delete an experiment.
+  // Delete an experiment. Runs and jobs inside the experiment will stay.
+  // It is recommended to delete runs and jobs inside the experiment before
+  // deleting the experiment in order to avoid unexpected behaviors.
   rpc DeleteExperiment(DeleteExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/experiments/{id}"
     };
   }
 
-  //Archive an experiment.
+  // Archive an experiment. Runs and jobs inside the experiment will be archived as well.
   rpc ArchiveExperiment(ArchiveExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/experiments/{id}:archive"
     };
   }
 
-  //Restore an archived experiment.
+  // Restore an archived experiment. Runs and jobs inside the experiment will stay archived.
   rpc UnarchiveExperiment(UnarchiveExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/experiments/{id}:unarchive"
@@ -178,13 +180,16 @@ message Experiment {
     STORAGESTATE_ARCHIVED = 2;
   }
 
+  // Output. Specify whether this experiment is in archived or available mode.
   StorageState storage_state = 6;
 }
 
 message ArchiveExperimentRequest {
+  // The ID of the experiment to be archived.
   string id = 1;
 }
 
 message UnarchiveExperimentRequest {
+  // The ID of the experiment to be restored.
   string id = 1;
 }
