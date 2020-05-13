@@ -17,7 +17,7 @@
   "paths": {
     "/apis/v1beta1/experiments": {
       "get": {
-        "summary": "Find all experiments.",
+        "summary": "Find all experiments. Support pagination and sorting.",
         "operationId": "ListExperiment",
         "responses": {
           "200": {
@@ -35,12 +35,14 @@
         },
         "parameters": [
           {
+            "description": "A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call.",
             "name": "page_token",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
+            "description": "The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a valid value in the nextPageToken field.",
             "name": "page_size",
             "in": "query",
             "required": false,
