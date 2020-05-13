@@ -7570,14 +7570,20 @@ exports[`RunList renders percentage metric 1`] = `
 `;
 
 exports[`RunList renders pipeline name as link to its details page 1`] = `
-<Link
-  className="link"
-  onClick={[Function]}
-  replace={false}
-  to="/pipelines/details/pipeline-id?"
+<WithStyles(Tooltip)
+  enterDelay={300}
+  placement="top-start"
+  title="test pipeline"
 >
-  test pipeline
-</Link>
+  <Link
+    className="link"
+    onClick={[Function]}
+    replace={false}
+    to="/pipelines/details/pipeline-id?"
+  >
+    test pipeline
+  </Link>
+</WithStyles(Tooltip)>
 `;
 
 exports[`RunList renders pipeline name as link to its details page 2`] = `
@@ -7592,14 +7598,20 @@ exports[`RunList renders pipeline name as link to its details page 2`] = `
 `;
 
 exports[`RunList renders pipeline version name as link to its details page 1`] = `
-<Link
-  className="link"
-  onClick={[Function]}
-  replace={false}
-  to="/pipelines/details/pipeline-id/version/version-id?"
+<WithStyles(Tooltip)
+  enterDelay={300}
+  placement="top-start"
+  title="test pipeline version"
 >
-  test pipeline version
-</Link>
+  <Link
+    className="link"
+    onClick={[Function]}
+    replace={false}
+    to="/pipelines/details/pipeline-id/version/version-id?"
+  >
+    test pipeline version
+  </Link>
+</WithStyles(Tooltip)>
 `;
 
 exports[`RunList renders raw metric 1`] = `

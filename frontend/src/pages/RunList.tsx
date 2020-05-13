@@ -246,11 +246,21 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           ':' + RouteParams.pipelineId,
           props.value.pipelineId || '',
         );
-    return (
+    const link = (
       <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
         {props.value.usePlaceholder ? '[View pipeline]' : props.value.displayName}
       </Link>
     );
+    if (props.value.usePlaceholder) {
+      return link;
+    } else {
+      // Display name could be too long, so we show the full content in tooltip on hover.
+      return (
+        <Tooltip title={props.value.displayName || ''} enterDelay={300} placement='top-start'>
+          {link}
+        </Tooltip>
+      );
+    }
   };
 
   public _recurringRunCustomRenderer: React.FC<CustomRendererProps<RecurringRunInfo>> = (
