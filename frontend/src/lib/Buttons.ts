@@ -878,7 +878,6 @@ export default class Buttons {
     useCurrent: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
   ): void {
-    console.log('experiment selected: ' + selectedIds);
     this._dialogActionHandler(
       selectedIds,
       `Experiment${s(selectedIds)} will be moved to the Archive section, where you can still view${

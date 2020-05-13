@@ -295,6 +295,7 @@ while True:
                             output_name=name,
                             #run_id='Context_' + str(context_id) + '_run',
                             run_id=argo_workflow_name,
+                            argo_artifact=art,
                         )
 
                         artifact_ids.append(dict(

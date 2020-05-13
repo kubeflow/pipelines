@@ -7,101 +7,136 @@ inputs:
   - name: job_name
     description: 'The name of the tuning job. Must be unique within the same AWS account and AWS region.'
     default: ''
+    type: String
   - name: role
     description: 'The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.'
+    type: String
   - name: image
     description: 'The registry path of the Docker image that contains the training algorithm.'
     default: ''
+    type: String
   - name: algorithm_name
     description: 'The name of the algorithm resource to use for the hyperparameter tuning job. Do not specify a value for this if using training image.'
     default: ''
+    type: String
   - name: training_input_mode
     description: 'The input mode that the algorithm supports. File or Pipe.'
     default: 'File'
+    type: String
   - name: metric_definitions
     description: 'The dictionary of name-regex pairs specify the metrics that the algorithm emits.'
     default: '{}'
+    type: JsonObject
   - name: strategy
     description: 'How hyperparameter tuning chooses the combinations of hyperparameter values to use for the training job it launches.'
     default: 'Bayesian'
+    type: String
   - name: metric_name
     description: 'The name of the metric to use for the objective metric.'
+    type: String
   - name: metric_type
     description: 'Whether to minimize or maximize the objective metric.'
+    type: String
   - name: early_stopping_type
     description: 'Whether to use early stopping for training jobs launched by the tuning job.'
     default: 'Off'
+    type: String
   - name: static_parameters
     description: 'The values of hyperparameters that do not change for the tuning job.'
     default: '{}'
+    type: JsonObject
   - name: integer_parameters
     description: 'The array of IntegerParameterRange objects that specify ranges of integer hyperparameters that you want to search.'
     default: '[]'
+    type: JsonArray
   - name: continuous_parameters
     description: 'The array of ContinuousParameterRange objects that specify ranges of continuous hyperparameters that you want to search.'
     default: '[]'
+    type: JsonObject
   - name: categorical_parameters
     description: 'The array of CategoricalParameterRange objects that specify ranges of categorical hyperparameters that you want to search.'
     default: '[]'
+    type: JsonArray
   - name: channels
     description: 'A list of dicts specifying the input channels. Must have at least one.'
+    type: JsonArray
   - name: output_location
     description: 'The Amazon S3 path where you want Amazon SageMaker to store the model artifacts is from the best training job.'
+    type: String
   - name: output_encryption_key
     description: 'The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts.'
     default: ''
+    type: String
   - name: instance_type
     description: 'The ML compute instance type.'
     default: 'ml.m4.xlarge'
+    type: String
   - name: instance_count
     description: 'The number of ML compute instances to use in each training job.'
     default: '1'
+    type: Integer
   - name: volume_size
     description: 'The size of the ML storage volume that you want to provision.'
     default: '30'
+    type: Integer
   - name: max_num_jobs
     description: 'The maximum number of training jobs that a hyperparameter tuning job can launch.'
+    type: Integer
   - name: max_parallel_jobs
     description: 'The maximum number of concurrent training jobs that a hyperparameter tuning job can launch.'
+    type: Integer
   - name: max_run_time
     description: 'The maximum run time in seconds per training job.'
     default: '86400'
+    type: Integer
   - name: resource_encryption_key
     description: 'The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).'
     default: ''
+    type: String
   - name: vpc_security_group_ids
     description: 'The VPC security group IDs, in the form sg-xxxxxxxx.'
     default: ''
+    type: String
   - name: vpc_subnets
     description: 'The ID of the subnets in the VPC to which you want to connect your hpo job.'
     default: ''
+    type: String
   - name: network_isolation
     description: 'Isolates the training container.'
     default: 'True'
+    type: Bool
   - name: traffic_encryption
     description: 'Encrypts all communications between ML compute instances in distributed training.'
     default: 'False'
+    type: Bool
   - name: spot_instance
     description: 'Use managed spot training.'
     default: 'False'
+    type: Bool
   - name: max_wait_time
     description: 'The maximum time in seconds you are willing to wait for a managed spot training job to complete.'
     default: '86400'
+    type: Integer
   - name: checkpoint_config
     description: 'Dictionary of information about the output location for managed spot training checkpoint data.'
     default: '{}'
+    type: JsonObject
   - name: warm_start_type
     description: 'Specifies either "IdenticalDataAndAlgorithm" or "TransferLearning"'
     default: ''
+    type: String
   - name: parent_hpo_jobs
     description: 'List of previously completed or stopped hyperparameter tuning jobs to be used as a starting point.'
     default: ''
+    type: String
   - name: endpoint_url
     description: 'The endpoint URL for the private link VPC endpoint.'
     default: ''
+    type: String
   - name: tags
     description: 'Key-value pairs, to categorize AWS resources.'
     default: '{}'
+    type: JsonObject
 outputs:
   - name: hpo_job_name
     description: 'The name of the hyper parameter tuning job'
@@ -115,8 +150,8 @@ outputs:
     description: 'The registry path of the Docker image that contains the training algorithm'
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.3.0
-    command: ['python']
+    image: amazon/aws-sagemaker-kfp-components:0.3.1
+    command: ['python3']
     args: [
       hyperparameter_tuning.py,
       --region, {inputValue: region},
