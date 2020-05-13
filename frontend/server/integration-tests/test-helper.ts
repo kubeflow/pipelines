@@ -2,11 +2,14 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
 
-export function commonSetup() {
+export function commonSetup(
+  options: { commitHash?: string; tagName?: string } = {},
+): { argv: string[]; buildDate: string; indexHtmlPath: string; indexHtmlContent: string } {
   const indexHtmlPath = path.resolve(os.tmpdir(), 'index.html');
   const argv = ['node', 'dist/server.js', os.tmpdir(), '3000'];
   const buildDate = new Date().toISOString();
-  const commitHash = 'abcdefg';
+  const commitHash = options.commitHash || 'abcdefg';
+  const tagName = options.tagName || '1.0.0';
   const indexHtmlContent = `
 <html>
 <head>
@@ -18,15 +21,11 @@ export function commonSetup() {
 </html>`;
 
   beforeAll(() => {
-    fs.writeFileSync(path.resolve(__dirname, 'BUILD_DATE'), buildDate);
-    fs.writeFileSync(path.resolve(__dirname, 'COMMIT_HASH'), commitHash);
+    console.log('beforeAll, writing files');
+    fs.writeFileSync(path.resolve(__dirname, '..', 'BUILD_DATE'), buildDate);
+    fs.writeFileSync(path.resolve(__dirname, '..', 'COMMIT_HASH'), commitHash);
+    fs.writeFileSync(path.resolve(__dirname, '..', 'TAG_NAME'), tagName);
     fs.writeFileSync(indexHtmlPath, indexHtmlContent);
-  });
-
-  afterAll(() => {
-    fs.unlinkSync(path.resolve(__dirname, 'BUILD_DATE'));
-    fs.unlinkSync(path.resolve(__dirname, 'COMMIT_HASH'));
-    fs.unlinkSync(indexHtmlPath);
   });
 
   beforeEach(() => {
@@ -34,7 +33,7 @@ export function commonSetup() {
     jest.restoreAllMocks();
   });
 
-  return { argv };
+  return { argv, buildDate, indexHtmlPath, indexHtmlContent };
 }
 
 export function buildQuery(queriesMap: { [key: string]: string | undefined }): string {

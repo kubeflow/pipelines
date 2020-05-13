@@ -20,7 +20,6 @@ channelObj = {
             'S3DataDistributionType': 'FullyReplicated'
         }
     },
-    'ContentType': '',
     'CompressionType': 'None',
     'RecordWrapperType': 'None',
     'InputMode': 'File'
@@ -40,19 +39,19 @@ def training(
         endpoint_url='',
         image='382416733822.dkr.ecr.us-east-1.amazonaws.com/kmeans:1',
         training_input_mode='File',
-        hyperparameters='{"k": "10", "feature_dim": "784"}',
-        channels=json.dumps(channelObjList),
+        hyperparameters={"k": "10", "feature_dim": "784"},
+        channels=channelObjList,
         instance_type='ml.p2.xlarge',
-        instance_count='1',
-        volume_size='50',
-        max_run_time='3600',
+        instance_count=1,
+        volume_size=50,
+        max_run_time=3600,
         model_artifact_path='s3://kubeflow-pipeline-data/mnist_kmeans_example/data',
         output_encryption_key='',
-        network_isolation='True',
-        traffic_encryption='False',
-        spot_instance='False',
-        max_wait_time='3600',
-        checkpoint_config='{}',
+        network_isolation=True,
+        traffic_encryption=False,
+        spot_instance=False,
+        max_wait_time=3600,
+        checkpoint_config={},
         role=''
         ):
     training = sagemaker_train_op(

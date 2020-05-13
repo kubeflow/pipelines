@@ -4,31 +4,40 @@ description: |
 inputs:
   - name: region
     description: 'The region where the cluster launches.'
+    type: String
   - name: team_name
     description: 'The name of your work team.'
+    type: String
   - name: description
     description: 'A description of the work team.'
+    type: String
   - name: user_pool
     description: 'An identifier for a user pool. The user pool must be in the same region as the service that you are calling.'
+    type: String
   - name: user_groups
     description: 'An identifier for a user group.'
+    type: String
   - name: client_id
     description: 'An identifier for an application client. You must create the app client ID using Amazon Cognito.'
+    type: String
   - name: sns_topic
     description: 'The ARN for the SNS topic to which notifications should be published.'
     default: ''
+    type: String
   - name: endpoint_url
     description: 'The endpoint URL for the private link VPC endpoint.'
     default: ''
+    type: String
   - name: tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
+    type: JsonObject
 outputs:
   - {name: workteam_arn, description: 'The ARN of the workteam.'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.3.0
-    command: ['python']
+    image: amazon/aws-sagemaker-kfp-components:0.3.1
+    command: ['python3']
     args: [
       workteam.py,
       --region, {inputValue: region},

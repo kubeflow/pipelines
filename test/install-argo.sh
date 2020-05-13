@@ -25,7 +25,7 @@ ACCOUNT=$(gcloud info --format='value(config.account)')
 kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT --dry-run -o yaml | kubectl apply -f -
 kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default --dry-run -o yaml | kubectl apply -f -
 
-ARGO_VERSION=v2.3.0
+ARGO_VERSION=v2.7.5
 
 # if argo is not installed
 if ! which argo; then

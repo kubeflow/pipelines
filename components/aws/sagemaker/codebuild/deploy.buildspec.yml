@@ -1,10 +1,10 @@
-version: 0.2      
+version: 0.2
+
 phases:
   pre_build:
     commands:
       # Log in to Dockerhub
-      - mkdir -p ~/.docker
-      - echo $DOCKER_CONFIG > ~/.docker/config.json
+      - docker login -u $DOCKER_CONFIG_USERNAME -p $DOCKER_CONFIG_PASSWORD
 
   build:
     commands:
