@@ -246,18 +246,19 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           ':' + RouteParams.pipelineId,
           props.value.pipelineId || '',
         );
-    const link = (
-      <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
-        {props.value.usePlaceholder ? '[View pipeline]' : props.value.displayName}
-      </Link>
-    );
     if (props.value.usePlaceholder) {
-      return link;
+      return (
+        <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
+          [View pipeline]
+        </Link>
+      );
     } else {
       // Display name could be too long, so we show the full content in tooltip on hover.
       return (
         <Tooltip title={props.value.displayName || ''} enterDelay={300} placement='top-start'>
-          {link}
+          <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
+            {props.value.displayName}
+          </Link>
         </Tooltip>
       );
     }
