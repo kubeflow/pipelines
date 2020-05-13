@@ -8,7 +8,10 @@ from utils import minio_utils
 from utils import sagemaker_utils
 
 
-@pytest.mark.parametrize("test_file_dir", ["resources/config/kmeans-mnist-hpo"])
+@pytest.mark.parametrize(
+    "test_file_dir",
+    [pytest.param("resources/config/kmeans-mnist-hpo", marks=pytest.mark.canary_test)],
+)
 def test_hyperparameter_tuning(
     kfp_client, experiment_id, region, sagemaker_client, test_file_dir
 ):

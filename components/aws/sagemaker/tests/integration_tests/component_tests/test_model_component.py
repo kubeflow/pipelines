@@ -7,7 +7,14 @@ from utils import minio_utils
 from utils import sagemaker_utils
 
 
-@pytest.mark.parametrize("test_file_dir", ["resources/config/kmeans-mnist-model"])
+@pytest.mark.parametrize(
+    "test_file_dir",
+    [
+        pytest.param(
+            "resources/config/kmeans-mnist-model", marks=pytest.mark.canary_test
+        )
+    ],
+)
 def test_createmodel(kfp_client, experiment_id, sagemaker_client, test_file_dir):
 
     download_dir = utils.mkdir(os.path.join(test_file_dir + "/generated"))

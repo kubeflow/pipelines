@@ -40,7 +40,14 @@ def run_predict_mnist(boto3_session, endpoint_name, download_dir):
     return json.loads(response["Body"].read().decode())
 
 
-@pytest.mark.parametrize("test_file_dir", ["resources/config/kmeans-mnist-endpoint"])
+@pytest.mark.parametrize(
+    "test_file_dir",
+    [
+        pytest.param(
+            "resources/config/kmeans-mnist-endpoint", marks=pytest.mark.canary_test
+        )
+    ],
+)
 def test_create_endpoint(
     kfp_client, experiment_id, boto3_session, sagemaker_client, test_file_dir
 ):

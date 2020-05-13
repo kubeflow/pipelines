@@ -9,7 +9,13 @@ from utils import s3_utils
 
 
 @pytest.mark.parametrize(
-    "test_file_dir", ["resources/config/kmeans-mnist-batch-transform"]
+    "test_file_dir",
+    [
+        pytest.param(
+            "resources/config/kmeans-mnist-batch-transform",
+            marks=pytest.mark.canary_test,
+        )
+    ],
 )
 def test_transform_job(
     kfp_client,
