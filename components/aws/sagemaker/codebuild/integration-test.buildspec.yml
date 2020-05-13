@@ -8,7 +8,7 @@ phases:
       # Run the container and copy the results to /tmp
       # Passes all host environment variables through to the container
       - docker run --name integration-test-container $(env | cut -f1 -d= | sed 's/^/-e /') amazon/integration-test-image
-      - docker cp integration-test-container:/app/tests/integration_tests/integration_tests.log /tmp/results.xml
+      - docker cp integration-test-container:/tests/integration_tests/integration_tests.log /tmp/results.xml
       - docker rm -f integration-test-container
 
 reports:
