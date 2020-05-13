@@ -97,7 +97,7 @@ implementation:
         task_factory1 = comp.load_component_from_text(component_text)
         task1 = task_factory1()
 
-        self.assertEqual(len(task1.component_ref.digest), 64)  # The length of SHA256 hash digest is 32256 bits = 32 bytes = 64 hex digits
+        self.assertEqual(task1.component_ref.digest, '1ede211233e869581d098673962c2c1e8c1e4cebb7cf5d7332c2f73cb4900823')
 
     def test_accessing_component_spec_from_task_factory(self):
         component_text = '''\
