@@ -6,11 +6,9 @@ import {
   AuthorizeRequestVerb,
   AuthServiceApi,
 } from '../src/generated/apis/auth';
-import { parseError } from '../utils';
+import { parseError, ErrorDetails } from '../utils';
 
 export type AuthorizeFn = (
-  req: Request,
-  res: Response,
   {
     resources,
     verb,
@@ -20,7 +18,8 @@ export type AuthorizeFn = (
     verb: AuthorizeRequestVerb;
     namespace: string;
   },
-) => Promise<boolean>;
+  req: Request,
+) => Promise<ErrorDetails | undefined>;
 
 export const getAuthorizeFn = (
   authConfigs: AuthConfigs,
@@ -36,9 +35,9 @@ export const getAuthorizeFn = (
     undefined,
     portableFetch as any,
   );
-  const authorize: AuthorizeFn = async (req, res, { resources, verb, namespace }) => {
+  const authorize: AuthorizeFn = async ({ resources, verb, namespace }, req) => {
     if (!authConfigs.enabled) {
-      return true;
+      return undefined;
     }
     try {
       // Resources and verb are string enums, they are used as string here, that
@@ -51,14 +50,13 @@ export const getAuthorizeFn = (
         },
       });
       console.debug(`Authorized to ${verb} ${resources} in namespace ${namespace}.`);
-      return true;
+      return undefined;
     } catch (err) {
       const details = await parseError(err);
       const message = `User is not authorized to ${verb} ${resources} in namespace ${namespace}: ${details.message}`;
       console.error(message, details.additionalInfo);
-      res.status(401).send(message);
+      return { message, additionalInfo: details.additionalInfo };
     }
-    return false;
   };
   return authorize;
 };

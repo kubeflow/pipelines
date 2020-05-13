@@ -38,12 +38,16 @@ export const getTensorboardHandlers = (
     }
 
     try {
-      const authorized = await authorizeFn(req, res, {
-        verb: AuthorizeRequestVerb.GET,
-        resources: AuthorizeRequestResources.VIEWERS,
-        namespace,
-      });
-      if (!authorized) {
+      const authError = await authorizeFn(
+        {
+          verb: AuthorizeRequestVerb.GET,
+          resources: AuthorizeRequestResources.VIEWERS,
+          namespace,
+        },
+        req,
+      );
+      if (authError) {
+        res.status(401).send(authError.message);
         return;
       }
       res.send(await k8sHelper.getTensorboardInstance(logdir, namespace));
@@ -77,12 +81,16 @@ export const getTensorboardHandlers = (
     }
 
     try {
-      const authorized = await authorizeFn(req, res, {
-        verb: AuthorizeRequestVerb.CREATE,
-        resources: AuthorizeRequestResources.VIEWERS,
-        namespace,
-      });
-      if (!authorized) {
+      const authError = await authorizeFn(
+        {
+          verb: AuthorizeRequestVerb.CREATE,
+          resources: AuthorizeRequestResources.VIEWERS,
+          namespace,
+        },
+        req,
+      );
+      if (authError) {
+        res.status(401).send(authError.message);
         return;
       }
       await k8sHelper.newTensorboardInstance(
@@ -121,12 +129,16 @@ export const getTensorboardHandlers = (
     }
 
     try {
-      const authorized = await authorizeFn(req, res, {
-        verb: AuthorizeRequestVerb.DELETE,
-        resources: AuthorizeRequestResources.VIEWERS,
-        namespace,
-      });
-      if (!authorized) {
+      const authError = await authorizeFn(
+        {
+          verb: AuthorizeRequestVerb.DELETE,
+          resources: AuthorizeRequestResources.VIEWERS,
+          namespace,
+        },
+        req,
+      );
+      if (authError) {
+        res.status(401).send(authError.message);
         return;
       }
       await k8sHelper.deleteTensorboardInstance(logdir, namespace);
