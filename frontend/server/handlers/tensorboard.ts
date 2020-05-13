@@ -11,60 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { Handler, Request, Response } from 'express';
+import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper';
 import { ViewerTensorboardConfig } from '../configs';
-import {
-  AuthServiceApi,
-  AuthorizeRequestResources,
-  AuthorizeRequestVerb,
-} from '../src/generated/apis/auth';
-import portableFetch from 'portable-fetch';
+import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth';
 import { parseError } from '../utils';
-
-async function authorize(
-  req: Request,
-  res: Response,
-  authService: AuthServiceApi,
-  {
-    resources,
-    verb,
-    namespace,
-  }: { resources: AuthorizeRequestResources; verb: AuthorizeRequestVerb; namespace: string },
-): Promise<boolean> {
-  try {
-    // Resources and verb are string enums, they are used as string here, that
-    // requires a force type conversion. If we generated client should accept
-    // enums instead.
-    await authService.authorize(namespace, resources as any, verb as any, {
-      // Pass authentication header.
-      // TODO: parameterize the header.
-      headers: { [AUTH_EMAIL_HEADER]: req.headers[AUTH_EMAIL_HEADER] },
-    });
-    console.debug(`Authorized to ${verb} ${resources} in namespace ${namespace}.`);
-    return true;
-  } catch (err) {
-    const details = await parseError(err);
-    const message = `User is not authorized to ${verb} ${resources} in namespace ${namespace}: ${details.message}`;
-    console.error(message, details.additionalInfo);
-    res.status(401).send(message);
-  }
-  return false;
-}
+import { AuthorizeFn } from '../helpers/auth';
 
 export const getTensorboardHandlers = (
   tensorboardConfig: ViewerTensorboardConfig,
-  otherConfig: { apiServerAddress: string; authzEnabled: boolean },
+  authorizeFn: AuthorizeFn,
 ): { get: Handler; create: Handler; delete: Handler } => {
-  const { apiServerAddress, authzEnabled } = otherConfig;
-  console.log('api server address ' + apiServerAddress);
-  // TODO: Use portable-fetch instead of node-fetch in other parts too. The generated api here only
-  // supports portable-fetch.
-  const authService = new AuthServiceApi(
-    { basePath: apiServerAddress },
-    undefined,
-    portableFetch as any,
-  );
   /**
    * A handler which retrieve the endpoint for a tensorboard instance. The
    * handler expects a query string `logdir`.
@@ -81,15 +38,17 @@ export const getTensorboardHandlers = (
     }
 
     try {
-      if (authzEnabled) {
-        const authorized = await authorize(req, res, authService, {
+      const authError = await authorizeFn(
+        {
           verb: AuthorizeRequestVerb.GET,
           resources: AuthorizeRequestResources.VIEWERS,
           namespace,
-        });
-        if (!authorized) {
-          return;
-        }
+        },
+        req,
+      );
+      if (authError) {
+        res.status(401).send(authError.message);
+        return;
       }
       res.send(await k8sHelper.getTensorboardInstance(logdir, namespace));
     } catch (err) {
@@ -122,15 +81,17 @@ export const getTensorboardHandlers = (
     }
 
     try {
-      if (authzEnabled) {
-        const authorized = await authorize(req, res, authService, {
+      const authError = await authorizeFn(
+        {
           verb: AuthorizeRequestVerb.CREATE,
           resources: AuthorizeRequestResources.VIEWERS,
           namespace,
-        });
-        if (!authorized) {
-          return;
-        }
+        },
+        req,
+      );
+      if (authError) {
+        res.status(401).send(authError.message);
+        return;
       }
       await k8sHelper.newTensorboardInstance(
         logdir,
@@ -168,15 +129,17 @@ export const getTensorboardHandlers = (
     }
 
     try {
-      if (authzEnabled) {
-        const authorized = await authorize(req, res, authService, {
+      const authError = await authorizeFn(
+        {
           verb: AuthorizeRequestVerb.DELETE,
           resources: AuthorizeRequestResources.VIEWERS,
           namespace,
-        });
-        if (!authorized) {
-          return;
-        }
+        },
+        req,
+      );
+      if (authError) {
+        res.status(401).send(authError.message);
+        return;
       }
       await k8sHelper.deleteTensorboardInstance(logdir, namespace);
       res.send('Tensorboard deleted.');
@@ -193,5 +156,3 @@ export const getTensorboardHandlers = (
     delete: deleteHandler,
   };
 };
-
-const AUTH_EMAIL_HEADER = 'x-goog-authenticated-user-email';
