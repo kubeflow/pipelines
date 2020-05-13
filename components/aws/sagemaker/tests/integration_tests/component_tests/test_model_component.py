@@ -22,8 +22,9 @@ def test_createmodel(kfp_client, experiment_id, sagemaker_client, test_file_dir)
     test_params["Arguments"]["model_name"] = input_model_name = (
         utils.generate_random_string(5) + "-" + test_params["Arguments"]["model_name"]
     )
+    print(f"running test with model_name: {input_model_name}")
 
-    run_id, status, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
+    _, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,
         experiment_id,
         test_params["PipelineDefinition"],

@@ -34,13 +34,14 @@ def test_transform_job(
     ] = input_job_name = (
         utils.generate_random_string(5) + "-" + test_params["Arguments"]["model_name"]
     )
+    print(f"running test with model/job name: {input_job_name}")
 
     # Generate unique location for output since output filename is generated according to the content_type
     test_params["Arguments"]["output_location"] = os.path.join(
         test_params["Arguments"]["output_location"], input_job_name
     )
 
-    run_id, status, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
+    _, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,
         experiment_id,
         test_params["PipelineDefinition"],

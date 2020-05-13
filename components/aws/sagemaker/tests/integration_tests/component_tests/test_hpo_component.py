@@ -34,7 +34,7 @@ def test_hyperparameter_tuning(
         test_params["Arguments"]["categorical_parameters"]
     )
 
-    run_id, status, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
+    _, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,
         experiment_id,
         test_params["PipelineDefinition"],

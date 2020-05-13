@@ -60,8 +60,9 @@ def test_create_endpoint(
     ] = test_params["Arguments"]["endpoint_name"] = input_endpoint_name = (
         utils.generate_random_string(5) + "-" + test_params["Arguments"]["model_name"]
     )
+    print(f"running test with model/endpoint name: {input_endpoint_name}")
 
-    run_id, status, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
+    _, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,
         experiment_id,
         test_params["PipelineDefinition"],
@@ -70,39 +71,37 @@ def test_create_endpoint(
         test_params["TestName"],
         test_params["Timeout"],
     )
-    # input_endpoint_name = "gyyka18935-kmeans-mnist-model"
-    # run_id = "1776159b-aeb1-4dc2-8979-545e33db891b"
-    # workflow_json = kfp_client_utils.get_workflow_json(kfp_client, run_id)
-    outputs = {"sagemaker-deploy-model": ["endpoint_name"]}
 
-    output_files = minio_utils.artifact_download_iterator(
-        workflow_json, outputs, download_dir
-    )
+    try:
+        outputs = {"sagemaker-deploy-model": ["endpoint_name"]}
 
-    output_endpoint_name = utils.read_from_file_in_tar(
-        output_files["sagemaker-deploy-model"]["endpoint_name"], "endpoint_name.txt"
-    )
-    print(f"endpoint name: {output_endpoint_name}")
+        output_files = minio_utils.artifact_download_iterator(
+            workflow_json, outputs, download_dir
+        )
 
-    # Verify output from pipeline is endpoint name
-    assert output_endpoint_name == input_endpoint_name
+        output_endpoint_name = utils.read_from_file_in_tar(
+            output_files["sagemaker-deploy-model"]["endpoint_name"], "endpoint_name.txt"
+        )
+        print(f"endpoint name: {output_endpoint_name}")
 
-    # Verify endpoint is running
-    assert (
-        sagemaker_utils.describe_endpoint(sagemaker_client, input_endpoint_name)[
-            "EndpointStatus"
-        ]
-        == "InService"
-    )
+        # Verify output from pipeline is endpoint name
+        assert output_endpoint_name == input_endpoint_name
 
-    # Validate the model for use by running a prediction
-    result = run_predict_mnist(boto3_session, input_endpoint_name, download_dir)
-    print(f"prediction result: {result}")
-    assert json.dumps(result, sort_keys=True) == json.dumps(
-        test_params["ExpectedPrediction"], sort_keys=True
-    )
+        # Verify endpoint is running
+        assert (
+            sagemaker_utils.describe_endpoint(sagemaker_client, input_endpoint_name)[
+                "EndpointStatus"
+            ]
+            == "InService"
+        )
 
-    # Clean up
-    sagemaker_utils.delete_endpoint(sagemaker_client, input_endpoint_name)
-
-    utils.remove_dir(download_dir)
+        # Validate the model for use by running a prediction
+        result = run_predict_mnist(boto3_session, input_endpoint_name, download_dir)
+        print(f"prediction result: {result}")
+        assert json.dumps(result, sort_keys=True) == json.dumps(
+            test_params["ExpectedPrediction"], sort_keys=True
+        )
+        utils.remove_dir(download_dir)
+    finally:
+        # delete endpoint
+        sagemaker_utils.delete_endpoint(sagemaker_client, input_endpoint_name)
