@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 import argparse
 import logging
 
@@ -21,7 +22,7 @@ def create_parser():
   
   parser.add_argument('--job_name', type=str, required=False, help='The name of the training job.', default='')
   parser.add_argument('--role', type=str, required=True, help='The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.')
-  parser.add_argument('--image', type=str, required=True, help='The registry path of the Docker image that contains the training algorithm.', default='')
+  parser.add_argument('--image', type=str, required=False, help='The registry path of the Docker image that contains the training algorithm.', default='')
   parser.add_argument('--algorithm_name', type=str, required=False, help='The name of the resource algorithm to use for the training job.', default='')
   parser.add_argument('--metric_definitions', type=_utils.yaml_or_json_str, required=False, help='The dictionary of name-regex pairs specify the metrics that the algorithm emits.', default={})
   parser.add_argument('--training_input_mode', choices=['File', 'Pipe'], type=str, help='The input mode that the algorithm supports. File or Pipe.', default='File')
@@ -53,7 +54,7 @@ def create_parser():
 
 def main(argv=None):
   parser = create_parser()
-  args = parser.parse_args()
+  args = parser.parse_args(argv)
 
   logging.getLogger().setLevel(logging.INFO)
   client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
@@ -78,4 +79,4 @@ def main(argv=None):
 
 
 if __name__== "__main__":
-  main()
+  main(sys.argv[1:])
