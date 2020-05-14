@@ -7,7 +7,7 @@ metadata:
   name: metadata-grpc-service
 spec:
   ports:
-    - name: md-backendapi
+    - name: grpc-api
       port: 8080
       protocol: TCP
   selector:
@@ -81,7 +81,19 @@ spec:
                 ]
         ports:
         - containerPort: 8080
-          name: md-backendapi
+          name: grpc-api
+        livenessProbe:
+          tcpSocket:
+            port: grpc-api
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        readinessProbe:
+          tcpSocket:
+            port: grpc-api
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
 ---
 kind: Service
 apiVersion: v1
