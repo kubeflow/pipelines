@@ -180,7 +180,7 @@ message Experiment {
     STORAGESTATE_ARCHIVED = 2;
   }
 
-  // Output. Specify whether this experiment is in archived or available mode.
+  // Output. Specify whether this experiment is in archived or available state.
   StorageState storage_state = 6;
 }
 

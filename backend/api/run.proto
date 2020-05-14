@@ -232,6 +232,8 @@ message Run {
   PipelineSpec pipeline_spec = 4;
 
   // Optional input field. Specify which resource this run belongs to.
+  // When creating a run from a particular pipeline version, the pipeline
+  // version can be specified here.
   repeated ResourceReference resource_references = 5;
 
   // Optional input field. Specify which Kubernetes service account this run uses.

@@ -124,7 +124,9 @@ service PipelineService {
   // Delete a pipeline version by pipeline version ID. If the deleted pipeline
   // version happens to be the default pipeline version of a certain pipeline,
   // the default version of that pipeline will change to the latest pipeline
-  // version among all the remaining pipeline versions of that pipeline.
+  // version among all the remaining pipeline versions of that pipeline. If
+  // there is no remaining pipeline version, that pipeline will have no default
+  // version. Examine the run_service_api.ipynb notebook to [learn more about creating a run using a pipeline version](https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb)
   rpc DeletePipelineVersion(DeletePipelineVersionRequest)
       returns (google.protobuf.Empty) {
     option (google.api.http) = {
