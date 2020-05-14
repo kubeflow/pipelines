@@ -37,9 +37,7 @@ def create_parser():
   parser.add_argument('--channels', type=_utils.str_to_json_list, required=True, help='A list of dicts specifying the input channels. Must have at least one.')
   parser.add_argument('--output_location', type=str.strip, required=True, help='The Amazon S3 path where you want Amazon SageMaker to store the results of the transform job.')
   parser.add_argument('--output_encryption_key', type=str.strip, required=False, help='The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts.', default='')
-  parser.add_argument('--instance_type', choices=['ml.m4.xlarge', 'ml.m4.2xlarge', 'ml.m4.4xlarge', 'ml.m4.10xlarge', 'ml.m4.16xlarge', 'ml.m5.large', 'ml.m5.xlarge', 'ml.m5.2xlarge', 'ml.m5.4xlarge',
-    'ml.m5.12xlarge', 'ml.m5.24xlarge', 'ml.c4.xlarge', 'ml.c4.2xlarge', 'ml.c4.4xlarge', 'ml.c4.8xlarge', 'ml.p2.xlarge', 'ml.p2.8xlarge', 'ml.p2.16xlarge', 'ml.p3.2xlarge', 'ml.p3.8xlarge', 'ml.p3.16xlarge',
-    'ml.c5.xlarge', 'ml.c5.2xlarge', 'ml.c5.4xlarge', 'ml.c5.9xlarge', 'ml.c5.18xlarge'], type=str.strip, required=False, help='The ML compute instance type.', default='ml.m4.xlarge')
+  parser.add_argument('--instance_type', type=str.strip, required=False, help='The ML compute instance type.', default='ml.m4.xlarge')
   parser.add_argument('--instance_count', type=_utils.str_to_int, required=False, help='The number of ML compute instances to use in each training job.', default=1)
   parser.add_argument('--volume_size', type=_utils.str_to_int, required=False, help='The size of the ML storage volume that you want to provision.', default=1)
   parser.add_argument('--max_num_jobs', type=_utils.str_to_int, required=True, help='The maximum number of training jobs that a hyperparameter tuning job can launch.')
