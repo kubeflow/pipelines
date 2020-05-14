@@ -29,8 +29,11 @@ spec:
         readinessProbe:
           exec:
             command:
-              - curl
-              - -f
+              - wget
+              - -q # quiet
+              - -S # show server response
+              - -O
+              - "-" # Redirect output to stdout
               - http://localhost:3000/apis/v1beta1/healthz
           initialDelaySeconds: 3
           periodSeconds: 5
@@ -38,8 +41,11 @@ spec:
         livenessProbe:
           exec:
             command:
-              - curl
-              - -f
+              - wget
+              - -q # quiet
+              - -S # show server response
+              - -O
+              - "-" # Redirect output to stdout
               - http://localhost:3000/apis/v1beta1/healthz
           initialDelaySeconds: 3
           periodSeconds: 5
