@@ -11,4 +11,4 @@ spec:
   ports:
   - port: 8080
     protocol: TCP
-    name: grpc-md-backendapi
+    name: grpc-api
