@@ -5,6 +5,7 @@ import tarfile
 import yaml
 import random
 import string
+import shutil
 
 from sagemaker.amazon.amazon_estimator import get_image_uri
 
@@ -45,9 +46,12 @@ def run_command(cmd, *popenargs, **kwargs):
         pytest.fail(f"Command failed. Error code: {e.returncode}, Log: {e.output}")
 
 
-def extract_information(file_path, file_name):
+def read_from_file_in_tar(file_path, file_name, decode=True):
     with tarfile.open(file_path).extractfile(file_name) as f:
-        return f.read()
+        if decode:
+            return f.read().decode()
+        else:
+            return f.read()
 
 
 def replace_placeholders(input_filename, output_filename):
@@ -88,3 +92,7 @@ def mkdir(directory_path):
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
     return directory_path
+
+
+def remove_dir(dir_path):
+    shutil.rmtree(dir_path)
