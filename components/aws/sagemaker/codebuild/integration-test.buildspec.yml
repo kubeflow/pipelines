@@ -11,7 +11,7 @@ phases:
       - docker build . -f ./sagemaker/tests/integration_tests/Dockerfile -t amazon/integration-test-image
 
       # Construct the list of environment variable by splitting the string
-      - export variable_array=($CONTAINER_VARIABLES)
+      - IFS=' ' read -a variable_array <<< $CONTAINER_VARIABLES
 
       # Run the container and copy the results to /tmp
       # Passes all listed host environment variables through to the container
