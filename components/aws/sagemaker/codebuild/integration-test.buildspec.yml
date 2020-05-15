@@ -7,7 +7,7 @@ phases:
 
       # Run the container and copy the results to /tmp
       # Passes all host environment variables through to the container
-      - docker run --name integration-test-container $(env | cut -f1 -d= | sed 's/^/-e /') amazon/integration-test-image
+      - docker run --name integration-test-container -e EKS_PRIVATE_SUBNETS -e EKS_PUBLIC_SUBNETS -e PYTEST_ADDOPTS -e S3_DATA_BUCKET -e EKS_EXISTING_CLUSTER -e SAGEMAKER_EXECUTION_ROLE_ARN -e REGION amazon/integration-test-image
       - docker cp integration-test-container:/tests/integration_tests/integration_tests.log /tmp/results.xml
       - docker rm -f integration-test-container
 
