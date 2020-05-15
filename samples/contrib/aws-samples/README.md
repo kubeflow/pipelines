@@ -19,13 +19,10 @@ This folder contains many example pipelines which use [AWS SageMaker Components 
 
 ## IAM Permissions 
 
-You need two IAM Roles/Users 
-1. For KFP pods to access AWS SageMaker. Let's call this one **kfp-pod-permissions**
-2. For SageMaker job to access S3 buckets and other SageMaker services. Let's call this one **kfp-sagemaker-execution-permissions**
+To use AWS KFP Components the KFP pods need access to AWS SageMaker.
+There are two ways you can give it access to SageMaker. 
 
-### kfp-pod-permissions
-
-**Option 1]** [IAM roles for service account](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) (This is the recommended way)
+**Option 1]** (Recommended) [IAM roles for service account](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) 
    1. Enable OIDC support on the EKS cluster
       ```
       eksctl utils associate-iam-oidc-provider --cluster <cluster_name> \
@@ -101,19 +98,10 @@ You need two IAM Roles/Users
       secrets:
       - name: pipeline-runner-token-dkjrk
       ``` 
-**option 2]** Create an IAM User and store the credentials as a `aws-secret` in kubernetes cluster. Then use those in the components.
-   1. Create an IAM User with SageMaker permissions
-      ```
-      aws iam create-user --user-name kfp-example-pod-user
-      aws iam attach-user-policy --user-name kfp-example-pod-user --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
-      aws iam create-access-key --user-name kfp-example-pod-user > /tmp/create_output.json
-      ```
-   2. Convert the Access key and secret to base64.
-      ```
-      export AWS_ACCESS_KEY_ID_VALUE=$(jq -j .AccessKey.AccessKeyId /tmp/create_output.json | base64)
-      export AWS_SECRET_ACCESS_KEY_VALUE=$(jq -j .AccessKey.SecretAccessKey /tmp/create_output.json | base64)
-      ```
-   3. Apply them to k8s cluster
+**option 2]** Store the IAM credentials as a `aws-secret` in kubernetes cluster. Then use those in the components.
+   1. You need credentials for an IAM user with SageMakerFullAccess. Apply them to k8s cluster.
+      Replace `AWS_ACCESS_KEY_IN_BASE64` and `AWS_SECRET_ACCESS_IN_BASE64`.
+      > Note: To get base64 string you can do `echo -n $AWS_ACCESS_KEY_ID | base64`
       ```
       cat <<EOF | kubectl apply -f -
       apiVersion: v1
@@ -123,30 +111,16 @@ You need two IAM Roles/Users
         namespace: kubeflow
       type: Opaque
       data:
-        AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID_VALUE
-        AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY_VALUE
+        AWS_ACCESS_KEY_ID: <AWS_ACCESS_KEY_IN_BASE64>
+        AWS_SECRET_ACCESS_KEY: <AWS_SECRET_ACCESS_IN_BASE64>
       EOF
       ```
-   4. Use the credentials in pipeline code by adding this line to each component in your pipeline `.apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))`  
+   2. Use the stored `aws-secret` in pipeline code by adding this line to each component in your pipeline `.apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))`  
       [Example](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/simple_train_pipeline/training-pipeline.py#L76) (uncomment this line)
-      
-### kfp-sagemaker-execution-permissions
 
-Run these commands to create the sagemaker-execution-role.   
-Note down the Role ARN. You need to give this Role ARN as input in pipeline.
+## Inputs to the pipeline
 
-```
-TRUST="{ \"Version\": \"2012-10-17\", \"Statement\": [ { \"Effect\": \"Allow\", \"Principal\": { \"Service\": \"sagemaker.amazonaws.com\" }, \"Action\": \"sts:AssumeRole\" } ] }"
-aws iam create-role --role-name kfp-example-sagemaker-execution-role --assume-role-policy-document "$TRUST"
-aws iam attach-role-policy --role-name kfp-example-sagemaker-execution-role --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
-aws iam attach-role-policy --role-name kfp-example-sagemaker-execution-role --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
-aws iam get-role --role-name kfp-example-sagemaker-execution-role --output text --query 'Role.Arn'
-
-# note down the Role ARN. 
-```
-
-
-## Sample Mnist dataset
+### Sample Mnist dataset
 
 Use the following python script to copy train_data, test_data, and valid_data to your bucket.  
 [create a bucket](https://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html) in `us-east-1` region if you don't have one already. 
@@ -206,4 +180,19 @@ s3_client.upload_file('valid-data.csv', bucket, input_key)
 ```
 Run this file `python s3_sample_data_creator.py`
 
+### Role Input
+
+This role is used by SageMaker jobs created by the KFP to access the S3 buckets and other SageMaker resources.
+Run these commands to create the sagemaker-execution-role.   
+Note down the Role ARN. You need to give this Role ARN as input in pipeline.
+
+```
+TRUST="{ \"Version\": \"2012-10-17\", \"Statement\": [ { \"Effect\": \"Allow\", \"Principal\": { \"Service\": \"sagemaker.amazonaws.com\" }, \"Action\": \"sts:AssumeRole\" } ] }"
+aws iam create-role --role-name kfp-example-sagemaker-execution-role --assume-role-policy-document "$TRUST"
+aws iam attach-role-policy --role-name kfp-example-sagemaker-execution-role --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+aws iam attach-role-policy --role-name kfp-example-sagemaker-execution-role --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
+aws iam get-role --role-name kfp-example-sagemaker-execution-role --output text --query 'Role.Arn'
+
+# note down the Role ARN. 
+```
 
