@@ -290,7 +290,7 @@
         },
         "storage_state": {
           "$ref": "#/definitions/ExperimentStorageState",
-          "description": "Output. Specify whether this experiment is in archived or available mode."
+          "description": "Output. Specify whether this experiment is in archived or available state."
         }
       }
     },
