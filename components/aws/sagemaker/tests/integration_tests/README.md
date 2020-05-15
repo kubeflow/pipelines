@@ -5,10 +5,14 @@
 1. K8s cluster with Kubeflow pipelines > 0.4.0 installed
 1. [IAM Role](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-roles.html) with a SageMakerFullAccess and S3FullAccess
 1. IAM User credentials with SageMakerFullAccess permissions
+2. The SageMaker WorkTeam and GroundTruth Component tests expect that atleast one private workteam already exists in the region where you are running these tests. 
+
 
 ## Creating S3 buckets with datasets
 
-Change the bucket name and run the python script `[s3_sample_data_creator.py](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker#the-sample-dataset)` to create S3 buckets with mnist dataset in the region where you want to run the tests
+1. Change the bucket name and run the python script `[s3_sample_data_creator.py](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker#the-sample-dataset)` to create S3 buckets with mnist dataset in the region where you want to run the tests
+2. To prepare the dataset for the SageMaker GroundTruth Component test, follow the steps in the `[GroundTruth Sample README](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/ground_truth_pipeline_demo#prep-the-dataset-label-categories-and-ui-template)`.
+
 
 ## Step to run integration tests
 1. Configure AWS credentials with access to EKS cluster
