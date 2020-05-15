@@ -26,7 +26,7 @@ Change the bucket name and run the python script `[s3_sample_data_creator.py](ht
       AWS_SECRET_ACCESS_KEY: YOUR_BASE64_SECRET_ACCESS
     ```
     
-    > Note: To get base64 string, try `echo -n $AWS_ACCESS_KEY_ID | base64`
+    > Note: To get base64 string, run `echo -n $AWS_ACCESS_KEY_ID | base64`
 1. Create conda environment using environment.yml for running tests. Run `conda env create -f environment.yml`
 1. Activate the conda environment `conda activate kfp_test_env`
 1. Run port-forward to minio service in background. Example: `kubectl port-forward svc/minio-service 9000:9000 -n kubeflow &`
