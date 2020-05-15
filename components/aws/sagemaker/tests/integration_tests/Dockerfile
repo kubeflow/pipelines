@@ -4,14 +4,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
     git \
-    python \
-    python-pip \
     vim \
     sudo \
     jq
-
-# Install AWSCLI
-RUN pip install awscli
 
 # Install eksctl
 RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.19.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp \
