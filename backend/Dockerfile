@@ -78,7 +78,9 @@ COPY backend/src/apiserver/config/ /config
 COPY --from=compiler /samples/ /samples/
 
 # Adding CA certificate so API server can download pipeline through URL
-RUN apt-get update && apt-get install -y ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates \
+    # wget is used for liveness/readiness probe command
+    wget
 
 # Pin sample doc links to the commit that built the backend image
 RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_config.json && \
