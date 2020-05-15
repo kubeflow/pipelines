@@ -5,7 +5,6 @@
 # for CodeBuild because these commands do not run in dash - the default terminal
 # on the CodeBuild standard images.
 
-set -x
-
 IFS=' ' read -a variable_array <<< $CONTAINER_VARIABLES
-export CONTAINER_VARIABLE_ARGUMENTS="$(printf -- "-e %s " "${variable_array[@]}")"
+printf -v CONTAINER_VARIABLE_ARGUMENTS -- "--env %s " "${variable_array[@]}"
+echo $CONTAINER_VARIABLE_ARGUMENTS
