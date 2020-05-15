@@ -56,7 +56,7 @@ def hpo_pipeline(
         network_isolation=network_isolation,
         max_wait_time=max_wait_time,
         role=role,
-    ).apply(use_aws_secret("aws-secret", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"))
+    )
 
 
 if __name__ == "__main__":
