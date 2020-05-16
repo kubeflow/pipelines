@@ -18,7 +18,7 @@ def create_workteamjob(
     )
 
     # Get the account, region specific user_pool and client_id for the Sagemaker Workforce. 
-    test_params["Arguments"]["user_pool"], test_params["Arguments"]["client_id"], test_params["Arguments"]["user_groups"] = sagemaker_utils.get_cognitoMemberDefinitions(sagemaker_client)
+    test_params["Arguments"]["user_pool"], test_params["Arguments"]["client_id"], test_params["Arguments"]["user_groups"] = sagemaker_utils.get_cognito_member_definitions(sagemaker_client)
 
     # Generate random prefix for workteam_name to avoid errors if resources with same name exists
     test_params["Arguments"]["team_name"] = workteam_name = (

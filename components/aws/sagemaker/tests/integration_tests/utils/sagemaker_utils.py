@@ -31,7 +31,7 @@ def describe_workteam(client, workteam_name):
 def list_workteams(client):
     return client.list_workteams()
 
-def get_cognitoMemberDefinitions(client):
+def get_cognito_member_definitions(client):
     # This is one way to get the user_pool and client_id for the Sagemaker Workforce.
     # An alternative would be to take these values as user input via params or a config file.
     # The current mechanism expects that there exists atleast one private workteam in the region.
