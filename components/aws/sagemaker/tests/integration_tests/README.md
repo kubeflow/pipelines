@@ -5,7 +5,7 @@
 1. K8s cluster with Kubeflow pipelines > 0.4.0 installed
 1. [IAM Role](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-roles.html) with a SageMakerFullAccess and S3FullAccess
 1. IAM User credentials with SageMakerFullAccess permissions
-2. The SageMaker WorkTeam and GroundTruth Component tests expect that atleast one private workteam already exists in the region where you are running these tests. 
+2. The SageMaker WorkTeam and GroundTruth Component tests expect that at least one private workteam already exists in the region where you are running these tests. 
 
 
 ## Creating S3 buckets with datasets
