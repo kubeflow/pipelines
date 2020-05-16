@@ -8,7 +8,14 @@ from test_workteam_component import create_workteamjob
 import time
 
 
-@pytest.mark.parametrize("test_file_dir", ["resources/config/image-classification-groundtruth"])
+@pytest.mark.parametrize(
+    "test_file_dir",
+    [
+        pytest.param(
+            "resources/config/image-classification-groundtruth", marks=pytest.mark.canary_test
+        )
+    ],
+)
 def test_groundtruth_labeling_job(
     kfp_client, experiment_id, region, sagemaker_client, test_file_dir
 ):
