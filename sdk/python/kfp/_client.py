@@ -83,7 +83,8 @@ class Client(object):
   IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
-  LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
+  #TODO: create tests
+  LOCAL_KFP_CONTEXT = os.environ.get("KFP_CONTEXT", os.path.expanduser('~/.config/kfp/context.json'))
 
   # TODO: Wrap the configurations for different authentication methods.
   def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None):
@@ -128,6 +129,8 @@ class Client(object):
 
     if host:
       config.host = host
+    else:
+      config.host = self._context_setting["endpoint"]
 
     token = None
 
@@ -172,7 +175,7 @@ class Client(object):
       in_cluster = False
       pass
 
-    if in_cluster:
+    if not config.host and in_cluster:
       config.host = Client.IN_CLUSTER_DNS_NAME.format(namespace)
       return config
 
@@ -218,13 +221,15 @@ class Client(object):
     # In-cluster pod. We could use relative URL.
     return '/pipeline'
 
+  #TODO: create tests
   def _load_context_setting_or_default(self):
     if os.path.exists(Client.LOCAL_KFP_CONTEXT):
       with open(Client.LOCAL_KFP_CONTEXT, 'r') as f:
         self._context_setting = json.load(f)
     else:
       self._context_setting = {
-        'namespace': '',
+        'namespace': os.environ.get("KFP_NAMESPACE", ''),
+        'endpoint': os.environ.get("KFP_ENDPOINT", None)
       }
 
   def set_user_namespace(self, namespace):
