@@ -8,6 +8,10 @@ bases:
 
 # Used by Kustomize.
 configMapGenerator:
-    - name: pipeline-install-config
-      env: params.env
-      behavior: merge
+- behavior: merge
+  env: params.env
+  name: pipeline-install-config
+images:
+- name: gcr.io/ml-pipeline/api-server
+  newName: gcr.io/ml-pipeline-test/api-server
+  newTag: latest

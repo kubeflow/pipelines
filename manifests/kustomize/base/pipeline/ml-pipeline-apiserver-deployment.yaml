@@ -48,7 +48,7 @@ spec:
             configMapKeyRef:
               name: mysql-configmap
               key: port
-        image: $(IMAGE_PREFIX)/api-server:$(IMAGE_TAG)
+        image: gcr.io/ml-pipeline/api-server:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server
         ports:
