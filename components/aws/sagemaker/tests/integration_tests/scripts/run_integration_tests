@@ -97,7 +97,7 @@ function launch_eks() {
 }
 
 function delete_eks() {
-  eksctl delete cluster --name "${EKS_CLUSTER_NAME}"
+  eksctl delete cluster --name "${EKS_CLUSTER_NAME}" --region "${REGION}"
 }
 
 function install_kfp() {
