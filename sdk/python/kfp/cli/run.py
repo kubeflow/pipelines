@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .._client import Client
-import sys
-import subprocess
-import pprint
-import time
 import json
-import click
+import subprocess
+import sys
+import time
 
+import click
 from tabulate import tabulate
+
 
 @click.group()
 def run():

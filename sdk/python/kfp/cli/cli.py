@@ -33,7 +33,7 @@ def cli(ctx, endpoint, iap_client_id, namespace, other_client_id, other_client_s
           # Do not create a client for diagnose_me
           return
     ctx.obj['client'] = Client(endpoint, iap_client_id, namespace, other_client_id, other_client_secret)
-    ctx.obj['namespace']= namespace
+    ctx.obj['namespace'] = namespace
 
 def main():
     logging.basicConfig(format='%(message)s', level=logging.INFO)
