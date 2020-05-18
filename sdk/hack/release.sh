@@ -25,4 +25,3 @@ if [[ -z "$TAG_NAME" ]]; then
 fi
 
 sed -i.bak -e "s|__version__ =.\+|__version__ = '$TAG_NAME'|g" "$DIR/../python/kfp/__init__.py"
-sed -i.bak -e "s|__version__ =.\+|__version__ = '$TAG_NAME'|g" "$DIR/../python/setup.py"
