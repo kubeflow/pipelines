@@ -19,7 +19,6 @@ set -xe
 TAG_NAME=$1
 BRANCH=$2
 REPO=kubeflow/pipelines
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 if [[ -z "$BRANCH" || -z "$TAG_NAME" ]]; then
   echo "Usage: release-branch.sh <release-tag> <release-branch>" >&2
@@ -32,7 +31,8 @@ git clone "git@github.com:${REPO}.git" "$clone_dir"
 cd "$clone_dir"
 git checkout "$BRANCH"
 
-"$DIR/release-imp.sh" $TAG_NAME
+# Run the release script in cloned repo
+"hack/release-imp.sh" $TAG_NAME
 
 # Checking-in the component changes
 git add --all

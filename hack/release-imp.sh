@@ -29,4 +29,4 @@ fi
 "$DIR/../manifests/gcp_marketplace/hack/release.sh" $TAG_NAME
 "$DIR/../manifests/kustomize/hack/release.sh" $TAG_NAME
 "$DIR/../sdk/hack/release.sh" $TAG_NAME
-echo "$TAG_NAME" > VERSION
+echo "$TAG_NAME" > "$DIR/VERSION"
