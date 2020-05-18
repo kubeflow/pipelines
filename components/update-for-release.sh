@@ -48,6 +48,9 @@ function update_for_release {
     return 1
   fi
 
+  # Update setup.py VERSION
+  sed -i.bak -e "s|VERSION =.\+'|VERSION = '${TAG_NAME}'|g" "components/gcp/container/component_sdk/python/setup.py"
+
   # Updating components and samples.
   for image in "${images[@]}"
   do
