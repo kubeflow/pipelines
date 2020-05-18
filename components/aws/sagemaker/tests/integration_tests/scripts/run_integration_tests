@@ -141,7 +141,7 @@ function delete_generated_role() {
 function cleanup_kfp() {
   # Clean up Minio
   if [ ! -z "${MINIO_PID}" ]; then
-    kill -9 $MINIO_PID
+    kill -9 $MINIO_PID || true
   fi
 }
 
