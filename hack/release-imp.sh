@@ -14,33 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -xe
+set -ex
 
 TAG_NAME=$1
-BRANCH=$2
-REPO=kubeflow/pipelines
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-if [[ -z "$BRANCH" || -z "$TAG_NAME" ]]; then
-  echo "Usage: release-branch.sh <release-tag> <release-branch>" >&2
+if [[ -z "$TAG_NAME" ]]; then
+  echo "Usage: release.sh <release-tag>" >&2
   exit 1
 fi
 
-# Checking out the repo's release branch
-clone_dir=$(mktemp -d)
-git clone "git@github.com:${REPO}.git" "$clone_dir"
-cd "$clone_dir"
-git checkout "$BRANCH"
-
-"$DIR/release-imp.sh" $TAG_NAME
-
-# Checking-in the component changes
-git add --all
-git commit --message "Updated version to $TAG_NAME"
-
-# Pushing the changes upstream
-read -p "Do you want to push the branch to upstream? [y|n]"
-if [ "$REPLY" != "y" ]; then
-   exit
-fi
-git push --set-upstream origin "$BRANCH"
+# source "$DIR/../components/update-for-release.sh"
+# update_for_release $TAG_NAME
+"$DIR/../manifests/gcp_marketplace/hack/release.sh" $TAG_NAME
+"$DIR/../manifests/kustomize/hack/release.sh" $TAG_NAME
+"$DIR/../sdk/hack/release.sh" $TAG_NAME
+echo "$TAG_NAME" > VERSION
