@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-# Helper script to generate trust policy needed to install operator using role-based authentication.
+# Helper script to generate trust the policy needed to assign role-based authentication to a KFP service account.
 #
 # Run as:
 # $ ./generate_trust_policy ${EKS_CLUSTER_REGION} ${AWS_ACCOUNT_ID} ${OIDC_ID} ${SERVICE_NAMESPACE} ${SERVICE_ACCOUNT} > trust.json
 #
 # For example:
 # $ ./generate_trust_policy us-west-2 123456789012 D48675832CA65BD10A532F597OIDCID > trust.json
-# This will create a file `trust.json` containing a role policy that enables the operator in an EKS cluster to assume AWS roles.
+# This will create a file `trust.json` containing a role policy that enables the KFP service runner in an EKS cluster to assume AWS roles.
 #
 # The SERVICE_NAMESPACE parameter is for when you want to run Kubeflow in a custom namespace other than "kubeflow".
 # The SERVICE_ACCOUNT parameter is for when you want to give permissions to a service account other than the default "pipeline-runner".

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Helper script to generate an IAM Role needed to install operator using role-based authentication.
+# Helper script to generate an IAM Role needed to install role-based authentication to a KFP service account.
 #
 # Run as:
 # $ ./generate_iam_role ${cluster_arn/cluster_name} ${role_name} ${cluster_region} [optional: ${service_namespace} ${service_account}]

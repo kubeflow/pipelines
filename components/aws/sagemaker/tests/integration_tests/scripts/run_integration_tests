@@ -27,13 +27,16 @@ KFP_NAMESPACE=${KFP_NAMESPACE:-"kubeflow"}
 KFP_SERVICE_ACCOUNT=${KFP_SERVICE_ACCOUNT:-"pipeline-runner"}
 
 PYTEST_MARKER=${PYTEST_MARKER:-""}
-S3_DATA_BUCKET=${S3_DATA_BUCKET:-"kfp-test-data"}
+S3_DATA_BUCKET=${S3_DATA_BUCKET:-""}
 SAGEMAKER_EXECUTION_ROLE_ARN=${SAGEMAKER_EXECUTION_ROLE_ARN:-""}
 
-while getopts ":n:r:" opt; do
+while getopts ":n:r:s:" opt; do
   case $opt in
     n)
       DEPLOY_NAME="$OPTARG"
+      ;;
+    s)
+      S3_DATA_BUCKET="$OPTARG"
       ;;
     r)
       REGION="$OPTARG"
@@ -52,6 +55,12 @@ done
 # Ensure a deployment name was specified
 if [ "$DEPLOY_NAME" == "" ]; then
   echo "Missing deployment name"
+  usage
+  exit 1
+fi
+
+if [ "$S3_DATA_BUCKET" == "" ]; then
+  echo "Missing S3 data bucket name"
   usage
   exit 1
 fi
