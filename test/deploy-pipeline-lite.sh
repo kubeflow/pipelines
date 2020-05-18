@@ -31,7 +31,9 @@ if ! which kustomize; then
   # Download kustomize cli tool
   TOOL_DIR=${DIR}/bin
   mkdir -p ${TOOL_DIR}
-  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/v3.1.0/kustomize_3.1.0_linux_amd64 \
+  # Use 2.0.3 because we want it to be compatible with kubectl apply -k.
+  # The change in https://github.com/kubernetes-sigs/kustomize/blob/master/docs/v2.1.0.md#envs-field broke backward compatibility.
+  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/v2.0.3/kustomize_2.0.3_linux_amd64 \
     -O ${TOOL_DIR}/kustomize --no-verbose
   chmod +x ${TOOL_DIR}/kustomize
   PATH=${PATH}:${TOOL_DIR}
@@ -47,9 +49,19 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   popd
 
   pushd ${KFP_MANIFEST_DIR}/dev
-  echo imagePrefix=${GCR_IMAGE_BASE_DIR} > params.env
-  echo imageTag=${GCR_IMAGE_TAG} >> params.env  
-  cat params.env
+  # This is the recommended approach to do this.
+  # reference: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/eschewedFeatures.md#build-time-side-effects-from-cli-args-or-env-variables
+  kustomize edit set image gcr.io/ml-pipeline/api-server=${GCR_IMAGE_BASE_DIR}/api-server:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/persistenceagent=${GCR_IMAGE_BASE_DIR}/persistenceagent:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/scheduledworkflow=${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/frontend=${GCR_IMAGE_BASE_DIR}/frontend:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/viewer-crd-controller=${GCR_IMAGE_BASE_DIR}/viewer-crd-controller:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/visualization-server=${GCR_IMAGE_BASE_DIR}/visualization-server:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/inverse-proxy-agent=${GCR_IMAGE_BASE_DIR}/inverse-proxy-agent:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/metadata-writer=${GCR_IMAGE_BASE_DIR}/metadata-writer:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/cache-server=${GCR_IMAGE_BASE_DIR}/cache-server:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/cache-deployer=${GCR_IMAGE_BASE_DIR}/cache-deployer:${GCR_IMAGE_TAG}
+  cat kustomization.yaml
 
   kubectl apply -k .
   popd
@@ -61,23 +73,13 @@ else
   git checkout $KFP_LATEST_RELEASE
 
   pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
-  # TODO: delete usage on kustomize after next release
-  if [ "0.4.0" = "$KFP_LATEST_RELEASE" ]; then
-    kustomize build . | kubectl apply -f -
-  else
-    kubectl apply -k .
-  fi;
-  
+  kubectl apply -k .
+
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
 
   pushd ${KFP_MANIFEST_DIR}/dev
-  # TODO: delete usage on kustomize after next release
-  if [ "0.4.0" = "$KFP_LATEST_RELEASE" ]; then
-    kustomize build . | kubectl apply -f -
-  else
-    kubectl apply -k .
-  fi;
+  kubectl apply -k .
   popd
 
   # go back to previous commit
