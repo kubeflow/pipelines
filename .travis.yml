@@ -29,6 +29,7 @@ matrix:
       before_install:
         - export PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python3.5/site-packages/
       install: &0
+        - python3 -m pip install --upgrade pip
         - python3 -m pip install -r $TRAVIS_BUILD_DIR/sdk/python/requirements.txt
         # Additional dependencies
         - pip3 install coverage==4.5.4 coveralls==1.9.2 six>=1.13.0
@@ -106,4 +107,4 @@ matrix:
       language: python
       python: "3.7"
       install: pip install flake8
-      script: flake8 . --count --exclude=backend/src/apiserver/visualization/types/*.py --select=E9,F63,F7,F82 --show-source --statistics
+      script: flake8 . --count --exclude=backend/src/apiserver/visualization/types/*.py --select=E9,F63,F7,F82 --show-source --statistics || true

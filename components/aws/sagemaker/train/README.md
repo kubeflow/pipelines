@@ -28,8 +28,8 @@ resource_encryption_key | The AWS KMS key that Amazon SageMaker uses to encrypt 
 max_run_time | The maximum run time in seconds per training job | Yes | Int | ≤ 432000 (5 days) | 86400 (1 day) |
 model_artifact_path | | No | String | | |
 output_encryption_key | The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts | Yes | String | | |
-vpc_security_group_ids | The VPC security group IDs, in the form sg-xxxxxxxx | Yes | String | | |
-vpc_subnets | The ID of the subnets in the VPC to which you want to connect your hpo job | Yes | String | | |
+vpc_security_group_ids | A comma-delimited list of security group IDs, in the form sg-xxxxxxxx | Yes | String | | |
+vpc_subnets | A comma-delimited list of subnet IDs in the VPC to which you want to connect your hpo job | Yes | String | | |
 network_isolation | Isolates the training container if true | No | Boolean | False, True | True |
 traffic_encryption | Encrypts all communications between ML compute instances in distributed training if true | No | Boolean | False, True | False |
 spot_instance | Use managed spot training if true | No | Boolean | False, True | False |

@@ -4,83 +4,108 @@ description: |
 inputs:
   - name: region
     description: 'The region to deploy your model endpoints.'
+    type: String
   - name: endpoint_config_name
     description: 'The name of the endpoint configuration.'
     default: ''
+    type: String
   - name: variant_name_1
     description: 'The name of the production variant.'
     default: 'variant-name-1'
+    type: String
   - name: model_name_1
     description: 'The model name used for endpoint deployment.'
+    type: String
   - name: initial_instance_count_1
     description: 'Number of instances to launch initially.'
     default: '1'
+    type: Integer
   - name: instance_type_1
     description: 'The ML compute instance type.'
     default: 'ml.m4.xlarge'
+    type: String
   - name: initial_variant_weight_1
     description: 'Determines initial traffic distribution among all of the models that you specify in the endpoint configuration.'
     default: '1.0'
+    type: Float
   - name: accelerator_type_1
     description: 'The size of the Elastic Inference (EI) instance to use for the production variant.'
     default: ''
+    type: String
   - name: variant_name_2
     description: 'The name of the production variant.'
     default: 'variant-name-2'
+    type: String
   - name: model_name_2
     description: 'The model name used for endpoint deployment.'
     default: ''
+    type: String
   - name: initial_instance_count_2
     description: 'Number of instances to launch initially.'
     default: '1'
+    type: Integer
   - name: instance_type_2
     description: 'The ML compute instance type.'
     default: 'ml.m4.xlarge'
+    type: String
   - name: initial_variant_weight_2
     description: 'Determines initial traffic distribution among all of the models that you specify in the endpoint configuration.'
     default: '1.0'
+    type: Float
   - name: accelerator_type_2
     description: 'The size of the Elastic Inference (EI) instance to use for the production variant.'
     default: ''
+    type: String
   - name: variant_name_3
     description: 'The name of the production variant.'
     default: 'variant-name-3'
+    type: String
   - name: model_name_3
     description: 'The model name used for endpoint deployment'
     default: ''
+    type: String
   - name: initial_instance_count_3
     description: 'Number of instances to launch initially.'
     default: '1'
+    type: Integer
   - name: instance_type_3
     description: 'The ML compute instance type.'
     default: 'ml.m4.xlarge'
+    type: String
   - name: initial_variant_weight_3
     description: 'Determines initial traffic distribution among all of the models that you specify in the endpoint configuration.'
     default: '1.0'
+    type: Float
   - name: accelerator_type_3
     description: 'The size of the Elastic Inference (EI) instance to use for the production variant.'
     default: ''
+    type: String
   - name: resource_encryption_key
     description: 'The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance that hosts the endpoint.'
     default: ''
+    type: String
   - name: endpoint_url
     description: 'The endpoint URL for the private link VPC endpoint.'
     default: ''
+    type: String
   - name: endpoint_config_tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
+    type: JsonObject
   - name: endpoint_name
     description: 'The name of the endpoint.'
     default: ''
+    type: String
   - name: endpoint_tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
+    type: JsonObject
 outputs:
   - {name: endpoint_name,          description: 'Endpoint name'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.3.0
-    command: ['python']
+    image: amazon/aws-sagemaker-kfp-components:0.3.1
+    command: ['python3']
     args: [
       deploy.py,
       --region, {inputValue: region},

@@ -52,6 +52,34 @@ describe('Banner', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('shows troubleshooting link instructed by prop', () => {
+    const tree = shallow(<Banner message='Some message' showTroubleshootingGuideLink={true} />);
+    expect(tree).toMatchInlineSnapshot(`
+      <div
+        className="flex banner mode"
+      >
+        <div
+          className="message"
+        >
+          <pure(ErrorIcon)
+            className="icon"
+          />
+          Some message
+        </div>
+        <div
+          className="flex"
+        >
+          <a
+            className="troubleShootingLink"
+            href="https://www.kubeflow.org/docs/pipelines/troubleshooting"
+          >
+            Troubleshooting guide
+          </a>
+        </div>
+      </div>
+    `);
+  });
+
   it('opens details dialog when button is clicked', () => {
     const tree = shallow(<Banner message='hello' additionalInfo='world' />);
     tree

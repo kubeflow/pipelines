@@ -1,0 +1,35 @@
+name: Create Tensorboard visualization
+description: |
+  Pre-creates Tensorboard visualization for a given Log dir URI.
+  This way the Tensorboard can be viewed before the training completes.
+  The output Log dir URI should be passed to a trainer component that will write Tensorboard logs to that directory.
+inputs:
+- {name: Log dir URI}
+outputs:
+- {name: Log dir URI}
+- {name: MLPipeline UI Metadata}
+implementation:
+  container:
+    image: alpine
+    command:
+    - sh
+    - -ex
+    - -c
+    - |
+      log_dir="$0"
+      output_log_dir_path="$1"
+      output_metadata_path="$2"
+      mkdir -p "$(dirname "$output_log_dir_path")"
+      mkdir -p "$(dirname "$output_metadata_path")"
+      echo "$log_dir" > "$output_log_dir_path"
+      echo '
+          {
+            "outputs" : [{
+              "type": "tensorboard",
+              "source": "'"$log_dir"'"
+            }]
+          }
+      ' >"$output_metadata_path"
+    - {inputValue: Log dir URI}
+    - {outputPath: Log dir URI}
+    - {outputPath: MLPipeline UI Metadata}

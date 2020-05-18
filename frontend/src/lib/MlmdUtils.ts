@@ -83,9 +83,7 @@ const EXECUTION_PROPERTY_REPOS = [ExecutionProperties, ExecutionCustomProperties
 export const ExecutionHelpers = {
   getWorkspace(execution: Execution): string | number | undefined {
     return (
-      getResourcePropertyViaFallBack(execution, EXECUTION_PROPERTY_REPOS, [
-        ExecutionProperties.RUN_ID,
-      ]) ||
+      getResourcePropertyViaFallBack(execution, EXECUTION_PROPERTY_REPOS, ['RUN_ID']) ||
       getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
       getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
       undefined

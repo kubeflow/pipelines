@@ -180,6 +180,8 @@ class TestCompiler(unittest.TestCase):
 
       for workflow in golden, compiled:
         del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.maxDiff = None
       # Comment next line for generating golden yaml.
@@ -235,6 +237,8 @@ class TestCompiler(unittest.TestCase):
 
       for workflow in golden, compiled:
         del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.maxDiff = None
       # Comment next line for generating golden yaml.
@@ -265,6 +269,8 @@ class TestCompiler(unittest.TestCase):
 
       for workflow in golden, compiled:
         del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -286,6 +292,8 @@ class TestCompiler(unittest.TestCase):
 
       for workflow in golden, compiled:
         del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -306,6 +314,8 @@ class TestCompiler(unittest.TestCase):
 
       for workflow in golden, compiled:
         del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -328,6 +338,8 @@ class TestCompiler(unittest.TestCase):
 
       for workflow in golden, compiled:
         del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -353,6 +365,8 @@ class TestCompiler(unittest.TestCase):
 
       for workflow in golden, compiled:
         del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)

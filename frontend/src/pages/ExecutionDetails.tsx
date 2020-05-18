@@ -102,15 +102,7 @@ export class ExecutionDetailsContent extends Component<
   public state: ExecutionDetailsState = {};
 
   private get fullTypeName(): string {
-    // This can be called during constructor, so this.state may not be initialized.
-    if (this.state) {
-      const { executionType } = this.state;
-      const name = executionType?.getName();
-      if (name) {
-        return name;
-      }
-    }
-    return '';
+    return this.state.executionType?.getName() || '';
   }
 
   public async componentDidMount(): Promise<void> {
@@ -159,7 +151,7 @@ export class ExecutionDetailsContent extends Component<
     return {
       actions: {},
       breadcrumbs: [{ displayName: 'Executions', href: RoutePage.EXECUTIONS }],
-      pageTitle: `${this.fullTypeName} ${this.props.id} details`,
+      pageTitle: `Execution #${this.props.id} details`,
     };
   }
 
@@ -201,7 +193,7 @@ export class ExecutionDetailsContent extends Component<
 
       if (!executionResponse.getExecutionsList().length) {
         this.props.onError(
-          `No ${this.fullTypeName} identified by id: ${this.props.id}`,
+          `No execution identified by id: ${this.props.id}`,
           undefined,
           'error',
           this.refresh,
@@ -398,8 +390,8 @@ const ArtifactRow: React.FC<{ id: number; name: string; type?: string; uri: stri
 }) => (
   <tr>
     <td className={css.tableCell}>
-      {type && id ? (
-        <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(type, id)}>
+      {id ? (
+        <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(id)}>
           {id}
         </Link>
       ) : (
@@ -407,8 +399,8 @@ const ArtifactRow: React.FC<{ id: number; name: string; type?: string; uri: stri
       )}
     </td>
     <td className={css.tableCell}>
-      {type && id ? (
-        <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(type, id)}>
+      {id ? (
+        <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(id)}>
           {name}
         </Link>
       ) : (

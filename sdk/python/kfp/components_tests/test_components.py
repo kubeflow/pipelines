@@ -87,6 +87,18 @@ implementation:
 
         self.assertEqual(task_factory1.component_spec.implementation.container.image, component_dict['implementation']['container']['image'])
 
+    def test_digest_of_loaded_component(self):
+        component_text = textwrap.dedent('''\
+            implementation:
+              container:
+                image: busybox
+            '''
+        )
+        task_factory1 = comp.load_component_from_text(component_text)
+        task1 = task_factory1()
+
+        self.assertEqual(task1.component_ref.digest, '1ede211233e869581d098673962c2c1e8c1e4cebb7cf5d7332c2f73cb4900823')
+
     def test_accessing_component_spec_from_task_factory(self):
         component_text = '''\
 implementation:
@@ -191,6 +203,36 @@ implementation:
     image: busybox
 '''
         task_factory1 = comp.load_component_from_text(component_text)
+
+    def test_conflicting_name_renaming_stability(self):
+        # Checking that already pythonic input names are not renamed
+        # Checking that renaming is deterministic
+        component_text = textwrap.dedent('''\
+            inputs:
+            - {name: Input 1}
+            - {name: Input_1}
+            - {name: Input-1}
+            - {name: input_1}  # Last in the list, but is pythonic, so it should not be renamed
+            implementation:
+              container:
+                image: busybox
+                command:
+                - inputValue: Input 1
+                - inputValue: Input_1
+                - inputValue: Input-1
+                - inputValue: input_1
+            '''
+        )
+        task_factory1 = comp.load_component(text=component_text)
+        task1 = task_factory1(
+          input_1_2='value_1_2',
+          input_1_3='value_1_3',
+          input_1_4='value_1_4',
+          input_1='value_1',  # Expecting this input not to be renamed
+        )
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+
+        self.assertEqual(resolved_cmd.command, ['value_1_2', 'value_1_3', 'value_1_4', 'value_1'])
 
     def test_handle_duplicate_input_output_names(self):
         component_text = '''\

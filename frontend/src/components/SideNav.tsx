@@ -180,6 +180,7 @@ interface DisplayBuildInfo {
   commitHash: string;
   commitUrl: string;
   date: string;
+  tagName: string;
 }
 
 interface SideNavProps extends RouterProps {
@@ -222,10 +223,13 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
     async function fetchBuildInfo() {
       const buildInfo = await Apis.getBuildInfo();
       const commitHash = buildInfo.apiServerCommitHash || buildInfo.frontendCommitHash || '';
+      const tagName = buildInfo.apiServerTagName || buildInfo.frontendTagName || '';
       return {
+        tagName: tagName || 'unknown',
         commitHash: commitHash ? commitHash.substring(0, 7) : 'unknown',
         commitUrl:
-          'https://www.github.com/kubeflow/pipelines' + (commitHash ? `/commit/${commitHash}` : ''),
+          'https://www.github.com/kubeflow/pipelines' +
+          (commitHash && commitHash !== 'unknown' ? `/commit/${commitHash}` : ''),
         date: buildInfo.buildDate
           ? new Date(buildInfo.buildDate).toLocaleDateString('en-US')
           : 'unknown',
@@ -533,19 +537,19 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           )}
           {displayBuildInfo && (
             <Tooltip
-              title={'Build date: ' + displayBuildInfo.date}
+              title={`Build date: ${displayBuildInfo.date}, Commit hash: ${displayBuildInfo.commitHash}`}
               enterDelay={300}
               placement={'top-start'}
             >
               <div className={css.envMetadata}>
-                <span>Build commit: </span>
+                <span>Version: </span>
                 <a
                   href={displayBuildInfo.commitUrl}
                   className={classes(css.link, commonCss.unstyled)}
                   rel='noopener'
                   target='_blank'
                 >
-                  {displayBuildInfo.commitHash}
+                  {displayBuildInfo.tagName}
                 </a>
               </div>
             </Tooltip>
