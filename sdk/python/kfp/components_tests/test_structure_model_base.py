@@ -18,7 +18,7 @@ import unittest
 from pathlib import Path
 
 from typing import List, Dict, Union, Optional
-from kfp.components.modelbase import ModelBase
+from ..components.modelbase import ModelBase
 
 class TestModel1(ModelBase):
     _serialized_names = {
