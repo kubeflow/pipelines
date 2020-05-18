@@ -45,7 +45,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 if [ -z "$TAG_NAME" ]; then
   echo "Usage: release.sh <tag-name>" >&2
-  return 1
+  exit 1
 fi
 
 # KFP repo root

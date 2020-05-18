@@ -24,7 +24,7 @@ if [[ -z "$TAG_NAME" ]]; then
   exit 1
 fi
 
-"$DIR/../components/release.sh"
+"$DIR/../components/release.sh" $TAG_NAME
 "$DIR/../manifests/gcp_marketplace/hack/release.sh" $TAG_NAME
 "$DIR/../manifests/kustomize/hack/release.sh" $TAG_NAME
 "$DIR/../sdk/hack/release.sh" $TAG_NAME
