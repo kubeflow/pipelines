@@ -39,43 +39,36 @@ function update_for_release {
     "ml-pipeline-gcp"
   )
 
-  local COMMIT_SHA=$1
+  local TAG_NAME=$1
   local FROM_GCR_PREFIX='gcr.io/ml-pipeline-test/'
   local TO_GCR_PREFIX='gcr.io/ml-pipeline/'
 
-  if [ -z "$COMMIT_SHA" ]; then
-    echo "Usage: update-for-release <commit-SHA>" >&2
+  if [ -z "$TAG_NAME" ]; then
+    echo "Usage: update_for_release <tag-name>" >&2
     return 1
   fi
 
-  # Releasing the container images to public. Updating components and samples.
+  # Updating components and samples.
   for image in "${images[@]}"
   do
     local TARGET_IMAGE_BASE=${TO_GCR_PREFIX}${image}
-    local TARGET_IMAGE=${TARGET_IMAGE_BASE}:${COMMIT_SHA}
-
-    # Move image from test to prod GCR
-    gcloud container images add-tag --quiet \
-    ${FROM_GCR_PREFIX}${image}:${COMMIT_SHA} ${TARGET_IMAGE}
+    local TARGET_IMAGE=${TARGET_IMAGE_BASE}:${TAG_NAME}
 
     # Update the code
-    find components samples -type f | while read file; do sed -i -e "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g" "$file"; done
+    find components samples -type f | while read file; do
+      sed -i -e "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g" "$file"
+    done
   done
 
-  # Checking-in the container image changes
-  git add --all
-  git commit --message "Updated component images to version $COMMIT_SHA"
-  local image_update_commit_sha=$(git rev-parse HEAD)
-
   # Updating the samples to use the updated components
-  git diff HEAD~1 HEAD --name-only | while read component_file; do
+  git diff --name-only | while read component_file; do
       echo $component_file
       find components samples -type f | while read file; do
-        sed -i -E "s|(https://raw.githubusercontent.com/kubeflow/pipelines/)[^/]+(/$component_file)|\1${image_update_commit_sha}\2|g" "$file";
+        sed -i -E "s|(https://raw.githubusercontent.com/kubeflow/pipelines/)[^/]+(/$component_file)|\1${TAG_NAME}\2|g" "$file";
       done
   done
 
   # Checking-in the component changes
   git add --all
-  git commit --message "Updated components to version $image_update_commit_sha"
+  git commit --message "Updated components images and refs to version $TAG_NAME"
 }
