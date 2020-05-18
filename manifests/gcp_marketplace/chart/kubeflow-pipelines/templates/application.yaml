@@ -28,7 +28,7 @@ spec:
 
   info:
     - name: Application Namespace
-      value: {{ .Release.Namespace }}
+      value: "{{ .Release.Namespace }}"
     - name: Console
       value: 'https://console.cloud.google.com/ai-platform/pipelines/clusters'
   componentKinds:
