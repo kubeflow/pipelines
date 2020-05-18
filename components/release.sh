@@ -41,11 +41,15 @@ images=(
 TAG_NAME=$1
 FROM_GCR_PREFIX='gcr.io/ml-pipeline-test/'
 TO_GCR_PREFIX='gcr.io/ml-pipeline/'
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 if [ -z "$TAG_NAME" ]; then
   echo "Usage: release.sh <tag-name>" >&2
   return 1
 fi
+
+# KFP repo root
+pushd "$DIR/.."
 
 # Update setup.py VERSION
 sed -i.bak -e "s|VERSION =.\+'|VERSION = '${TAG_NAME}'|g" "components/gcp/container/component_sdk/python/setup.py"
@@ -69,3 +73,4 @@ git diff --name-only | while read component_file; do
       sed -i -E "s|(https://raw.githubusercontent.com/kubeflow/pipelines/)[^/]+(/$component_file)|\1${TAG_NAME}\2|g" "$file";
     done
 done
+popd
