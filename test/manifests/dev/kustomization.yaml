@@ -11,7 +11,6 @@ configMapGenerator:
 - behavior: merge
   env: params.env
   name: pipeline-install-config
-images:
-- name: gcr.io/ml-pipeline/api-server
-  newName: gcr.io/ml-pipeline-test/api-server
-  newTag: latest
+
+# Actual image overrides will be added in test scripts.
+images: []
