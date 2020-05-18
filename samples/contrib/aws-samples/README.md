@@ -182,7 +182,7 @@ Run this file `python s3_sample_data_creator.py`
 
 ### Role Input
 
-This role is used by SageMaker jobs created by the KFP to access the S3 buckets and other SageMaker resources.
+This role is used by SageMaker jobs created by the KFP to access the S3 buckets and other AWS resources.
 Run these commands to create the sagemaker-execution-role.   
 Note down the Role ARN. You need to give this Role ARN as input in pipeline.
 
