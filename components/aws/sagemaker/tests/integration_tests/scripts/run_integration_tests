@@ -115,6 +115,12 @@ function install_kfp() {
   MINIO_PID=$!
 
   echo "[Installing KFP] Minio port-forwarded to ${MINIO_LOCAL_PORT}"
+
+  echo "[Installing KFP] Waiting for pods to stand up"
+
+  kubectl wait --for=condition=ready -n "${KFP_NAMESPACE}" pod -l app=ml-pipeline --timeout=5m
+
+  echo "[Installing KFP] Pipeline pods are ready"
 }
 
 function generate_iam_role_name() {
