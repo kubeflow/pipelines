@@ -96,7 +96,7 @@ def get_experiment_id(kfp_client):
     return experiment.id
 
 @pytest.fixture(scope="session")
-def experiment_id(kfp_client, worker_id):
+def experiment_id(kfp_client, tmp_path_factory, worker_id):
     if not worker_id:
         return get_experiment_id(kfp_client)
 
