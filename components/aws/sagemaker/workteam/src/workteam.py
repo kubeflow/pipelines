@@ -31,7 +31,7 @@ def create_parser():
 
 def main(argv=None):
   parser = create_parser()
-  args = parser.parse_args()
+  args = parser.parse_args(argv)
 
   logging.getLogger().setLevel(logging.INFO)
   client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
@@ -45,4 +45,4 @@ def main(argv=None):
 
 
 if __name__== "__main__":
-  main()
+  main(sys.argv[1:])
