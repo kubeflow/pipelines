@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: server
-        image: $(IMAGE_PREFIX)/cache-server:$(IMAGE_TAG)
+        image: gcr.io/ml-pipeline/cache-server:dummy
         env:
           - name: DBCONFIG_DRIVER
             value: mysql

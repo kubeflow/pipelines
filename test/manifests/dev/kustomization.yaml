@@ -8,6 +8,9 @@ bases:
 
 # Used by Kustomize.
 configMapGenerator:
-    - name: pipeline-install-config
-      env: params.env
-      behavior: merge
+- behavior: merge
+  env: params.env
+  name: pipeline-install-config
+
+# Actual image overrides will be added in test scripts.
+images: []

@@ -14,7 +14,7 @@ spec:
         app: ml-pipeline-ui
     spec:
       containers:
-      - image: $(IMAGE_PREFIX)/frontend:$(IMAGE_TAG)
+      - image: gcr.io/ml-pipeline/frontend:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-ui
         ports:
