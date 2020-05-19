@@ -88,7 +88,7 @@ def kfp_client():
     return kfp.Client(namespace=kfp_installed_namespace)
 
 def get_experiment_id(kfp_client):
-    exp_name = datetime.now().strftime("%Y-%m-%d")
+    exp_name = datetime.now().strftime("%Y-%m-%d-%H-%M")
     experiment = kfp_client.create_experiment(name=exp_name)
     return experiment.id
 
