@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, call, Mock, MagicMock, mock_open
 from botocore.exceptions import ClientError
 from datetime import datetime
 
@@ -19,7 +19,7 @@ required_args = [
   '--input_location', 's3://fake-bucket/data',
   '--output_location', 's3://fake-bucket/output',
   '--instance_type', 'ml.c5.18xlarge',
-  '--output_location_file', 'tmp/'
+  '--output_location_file', 'tmp/output.txt'
 ]
 
 class BatchTransformTestCase(unittest.TestCase):
@@ -28,12 +28,60 @@ class BatchTransformTestCase(unittest.TestCase):
     parser = batch_transform.create_parser()
     cls.parser = parser
 
-  def test_sample(self):
-    args = self.parser.parse_args(required_args)
-    response = _utils.create_transform_job_request(vars(args))
-    self.assertEqual(response['TransformOutput']['S3OutputPath'], 's3://fake-bucket/output')
 
-  def test_empty_string(self):
-    args = self.parser.parse_args(required_args)
-    response = _utils.create_transform_job_request(vars(args))
-    test_utils.check_empty_string_values(response)
+  def test_create_parser(self):
+    self.assertIsNotNone(self.parser)
+
+  def test_main(self):
+    # Mock out all of utils except parser
+    batch_transform._utils = MagicMock()
+    batch_transform._utils.add_default_client_arguments = _utils.add_default_client_arguments
+
+    # Set some static returns
+    batch_transform._utils.create_transform_job.return_value = 'test-batch-job'
+
+    with patch('builtins.open', mock_open()) as file_open:
+      batch_transform.main(required_args)
+
+    # Check if correct requests were created and triggered
+    batch_transform._utils.create_transform_job.assert_called()
+    batch_transform._utils.wait_for_transform_job.assert_called()
+
+    # Check the file outputs
+    file_open.assert_has_calls([
+      call('tmp/output.txt', 'w')
+    ])
+
+    file_open().write.assert_has_calls([
+      call('s3://fake-bucket/output')
+    ])
+
+  def test_batch_transform(self):
+    mock_client = MagicMock()
+    mock_args = self.parser.parse_args(required_args + ['--job_name', 'test-batch-job'])
+    response = _utils.create_transform_job(mock_client, vars(mock_args))
+
+    mock_client.create_transform_job.assert_called_once_with(
+      DataProcessing={'InputFilter': '', 'OutputFilter': '', 'JoinSource': 'None'},
+      Environment={},
+      MaxConcurrentTransforms=0,
+      MaxPayloadInMB=6,
+      ModelName='model-test',
+      Tags=[],
+      TransformInput={'DataSource': {'S3DataSource': {'S3DataType': 'S3Prefix', 'S3Uri': 's3://fake-bucket/data'}},
+                      'ContentType': '', 'CompressionType': 'None', 'SplitType': 'None'},
+      TransformJobName='test-batch-job',
+      TransformOutput={'S3OutputPath': 's3://fake-bucket/output', 'Accept': None, 'KmsKeyId': ''},
+      TransformResources={'InstanceType': 'ml.c5.18xlarge', 'InstanceCount': None, 'VolumeKmsKeyId': ''}
+    )
+
+    self.assertEqual(response, 'test-batch-job')
+
+  def test_sagemaker_exception_in_batch_transform(self):
+    mock_client = MagicMock()
+    mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "batch_transform")
+    mock_client.create_transform_job.side_effect = mock_exception
+    mock_args = self.parser.parse_args(required_args)
+
+    with self.assertRaises(Exception):
+      _utils.create_transform_job(mock_client, vars(mock_args))

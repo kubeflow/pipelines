@@ -61,7 +61,7 @@ class WorkTeamTestCase(unittest.TestCase):
 
   def test_sagemaker_exception_in_workteam(self):
     mock_client = MagicMock()
-    mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "deploy_model")
+    mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "workteam")
     mock_client.create_workteam.side_effect = mock_exception
     mock_args = self.parser.parse_args(required_args)
 

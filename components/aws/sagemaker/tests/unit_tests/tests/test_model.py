@@ -66,7 +66,7 @@ class ModelTestCase(unittest.TestCase):
 
   def test_sagemaker_exception_in_create_model(self):
     mock_client = MagicMock()
-    mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "deploy_model")
+    mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "create_model")
     mock_client.create_model.side_effect = mock_exception
     mock_args = self.parser.parse_args(required_args)
 
