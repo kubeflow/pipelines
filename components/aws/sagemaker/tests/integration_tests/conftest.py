@@ -89,7 +89,10 @@ def kfp_client():
 
 def get_experiment_id(kfp_client):
     exp_name = datetime.now().strftime("%Y-%m-%d-%H-%M")
-    experiment = kfp_client.create_experiment(name=exp_name)
+    try:
+        experiment = kfp_client.get_experiment(experiment_name=exp_name)
+    except ValueError:
+        experiment = kfp_client.create_experiment(name=exp_name)
     return experiment.id
 
 @pytest.fixture(scope="session")
@@ -97,6 +100,8 @@ def experiment_id(kfp_client, tmp_path_factory, worker_id):
     if not worker_id:
         return get_experiment_id(kfp_client)
 
+    # Locking taking as an example from
+    # https://github.com/pytest-dev/pytest-xdist#making-session-scoped-fixtures-execute-only-once
     # get the temp directory shared by all workers
     root_tmp_dir = tmp_path_factory.getbasetemp().parent
 

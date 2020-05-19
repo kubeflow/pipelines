@@ -5,7 +5,7 @@
 
 ## Creating S3 buckets with datasets
 
-In the following Python script, change the bucket name and run the `[s3_sample_data_creator.py](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker#the-sample-dataset)` to create an S3 bucket with the sample mnist dataset in the region where you want to run the tests.
+In the following Python script, change the bucket name and run the [`s3_sample_data_creator.py`](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker#the-sample-dataset) to create an S3 bucket with the sample mnist dataset in the region where you want to run the tests.
 
 ## Step to run integration tests
 1. Copy the `.env.example` file to `.env` and in the following steps modify the fields of this new file:
