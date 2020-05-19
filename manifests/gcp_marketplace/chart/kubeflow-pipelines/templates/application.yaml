@@ -46,6 +46,6 @@ spec:
       kind: ConfigMap
     - group: v1
       kind: Secret
-    - group: apps/v1beta2
+    - group: apps/v1
       kind: Deployment
 

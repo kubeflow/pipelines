@@ -14,7 +14,7 @@ spec:
         app: ml-pipeline-viewer-crd
     spec:
       containers:
-      - image: $(IMAGE_PREFIX)/viewer-crd-controller:$(IMAGE_TAG)
+      - image: gcr.io/ml-pipeline/viewer-crd-controller:dummy
         imagePullPolicy: Always
         name: ml-pipeline-viewer-crd
         env:
