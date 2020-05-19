@@ -18,8 +18,8 @@ import unittest
 from collections import OrderedDict
 from pathlib import Path
 
-import kfp.components as comp
-from kfp.components._python_to_graph_component import create_graph_component_spec_from_pipeline_func
+from .. import components as comp
+from ..components._python_to_graph_component import create_graph_component_spec_from_pipeline_func
 
 
 class PythonPipelineToGraphComponentTestCase(unittest.TestCase):
