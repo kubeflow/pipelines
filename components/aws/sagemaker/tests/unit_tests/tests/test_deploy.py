@@ -53,11 +53,13 @@ class DeployTestCase(unittest.TestCase):
     mock_args = self.parser.parse_args(required_args + ['--endpoint_name', 'test-endpoint-name', '--endpoint_config_name', 'test-endpoint-config-name'])
     response = _utils.deploy_model(mock_client, vars(mock_args))
 
-    # todo : Reformat this
     mock_client.create_endpoint_config.assert_called_once_with(
-      EndpointConfigName='test-endpoint-config-name', ProductionVariants=[
+      EndpointConfigName='test-endpoint-config-name',
+      ProductionVariants=[
         {'VariantName': 'variant-name-1', 'ModelName': 'model-test', 'InitialInstanceCount': 1,
-         'InstanceType': 'ml.m4.xlarge', 'InitialVariantWeight': 1.0}], Tags=[]
+         'InstanceType': 'ml.m4.xlarge', 'InitialVariantWeight': 1.0}
+      ],
+      Tags=[]
     )
 
     self.assertEqual(response, 'test-endpoint-name')
