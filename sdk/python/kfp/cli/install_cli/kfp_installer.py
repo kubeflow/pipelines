@@ -184,7 +184,7 @@ def installation_fatal(folder):
 
 def version_ref(install_version):
   # ?ref=x.x.x
-  return '' if install_version == 'latest' else '?ref='.format(install_version)
+  return '' if install_version == 'latest' else '?ref={0}'.format(install_version)
 
 def handle_workload_identity():
   print("!!! Not Implemented !!!")
