@@ -89,10 +89,7 @@ def kfp_client():
 
 def get_experiment_id(kfp_client):
     exp_name = datetime.now().strftime("%Y-%m-%d")
-    try:
-        experiment = kfp_client.get_experiment(experiment_name=exp_name)
-    except ValueError:
-        experiment = kfp_client.create_experiment(name=exp_name)
+    experiment = kfp_client.create_experiment(name=exp_name)
     return experiment.id
 
 @pytest.fixture(scope="session")
