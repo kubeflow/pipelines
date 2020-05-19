@@ -64,7 +64,7 @@ def delete(ctx, experiment_id):
     """Delete an experiment"""
 
     confirmation = "Caution. The RunDetails page could have an issue" \
-                   " when to render a run that has no experiment." \
+                   " when it renders a run that has no experiment." \
                    " Do you want to continue?"
     if not click.confirm(confirmation):
         return
