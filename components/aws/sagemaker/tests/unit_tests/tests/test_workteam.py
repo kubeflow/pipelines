@@ -48,7 +48,7 @@ class WorkTeamTestCase(unittest.TestCase):
       call('arn:aws:sagemaker:us-east-1:999999999999:work-team')
     ])
 
-  def test_deploy_model(self):
+  def test_workteam(self):
     mock_client = MagicMock()
     mock_args = self.parser.parse_args(required_args)
     response = _utils.create_workteam(mock_client, vars(mock_args))
@@ -59,7 +59,7 @@ class WorkTeamTestCase(unittest.TestCase):
       WorkteamName='test-team'
     )
 
-  def test_sagemaker_exception_in_deploy_model(self):
+  def test_sagemaker_exception_in_workteam(self):
     mock_client = MagicMock()
     mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "deploy_model")
     mock_client.create_workteam.side_effect = mock_exception

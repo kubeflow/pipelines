@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 import argparse
 import logging
 
@@ -72,4 +73,4 @@ def main(argv=None):
 
 
 if __name__== "__main__":
-  main()
+  main(sys.argv[1:])
