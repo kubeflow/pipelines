@@ -65,6 +65,3 @@ _artifacts
 
 # Generated Python SDK documentation
 docs/_build
-
-# Any environment variable files
-**/*/.env
