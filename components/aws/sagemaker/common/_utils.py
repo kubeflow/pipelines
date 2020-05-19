@@ -592,7 +592,7 @@ def create_hyperparameter_tuning_job(client, args):
     """Create a Sagemaker HPO job"""
     request = create_hyperparameter_tuning_job_request(args)
     try:
-        job_arn = client.create_hyper_parameter_tuning_job(**request)
+        client.create_hyper_parameter_tuning_job(**request)
         hpo_job_name = request['HyperParameterTuningJobName']
         logging.info("Created Hyperparameter Training Job with name: " + hpo_job_name)
         logging.info("HPO job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/hyper-tuning-jobs/{}"
@@ -604,7 +604,7 @@ def create_hyperparameter_tuning_job(client, args):
         raise Exception(e.response['Error']['Message'])
 
 
-def wait_for_hyperparameter_training_job(client, hpo_job_name):
+def wait_for_hyperparameter_training_job(client, hpo_job_name, poll_interval=30):
     ### Wait until the job finishes
     while(True):
         response = client.describe_hyper_parameter_tuning_job(HyperParameterTuningJobName=hpo_job_name)
@@ -617,7 +617,7 @@ def wait_for_hyperparameter_training_job(client, hpo_job_name):
             logging.error('Hyperparameter tuning failed with the following error: {}'.format(message))
             raise Exception('Hyperparameter tuning job failed')
         logging.info("Hyperparameter tuning job is still in status: " + status)
-        time.sleep(30)
+        time.sleep(poll_interval)
 
 
 def get_best_training_job_and_hyperparameters(client, hpo_job_name):
