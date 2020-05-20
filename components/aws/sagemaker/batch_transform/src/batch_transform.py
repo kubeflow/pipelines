@@ -44,9 +44,7 @@ def create_parser():
   parser.add_argument('--input_filter', type=str, required=False, help='A JSONPath expression used to select a portion of the input data to pass to the algorithm.', default='')
   parser.add_argument('--output_filter', type=str, required=False, help='A JSONPath expression used to select a portion of the joined dataset to save in the output file for a batch transform job.', default='')
   parser.add_argument('--join_source', choices=['None', 'Input', ''], type=str, required=False, help='Specifies the source of the data to join with the transformed data.', default='None')
-  parser.add_argument('--instance_type', choices=['ml.m4.xlarge', 'ml.m4.2xlarge', 'ml.m4.4xlarge', 'ml.m4.10xlarge', 'ml.m4.16xlarge', 'ml.m5.large', 'ml.m5.xlarge', 'ml.m5.2xlarge', 'ml.m5.4xlarge',
-    'ml.m5.12xlarge', 'ml.m5.24xlarge', 'ml.c4.xlarge', 'ml.c4.2xlarge', 'ml.c4.4xlarge', 'ml.c4.8xlarge', 'ml.p2.xlarge', 'ml.p2.8xlarge', 'ml.p2.16xlarge', 'ml.p3.2xlarge', 'ml.p3.8xlarge', 'ml.p3.16xlarge',
-    'ml.c5.xlarge', 'ml.c5.2xlarge', 'ml.c5.4xlarge', 'ml.c5.9xlarge', 'ml.c5.18xlarge'], type=str, required=True, help='The ML compute instance type for the transform job.', default='ml.m4.xlarge')
+  parser.add_argument('--instance_type', type=str, required=False, help='The ML compute instance type for the transform job.', default='ml.m4.xlarge')
   parser.add_argument('--instance_count', type=int, required=False, help='The number of ML compute instances to use in the transform job.')
   parser.add_argument('--resource_encryption_key', type=str, required=False, help='The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).', default='')
   parser.add_argument('--tags', type=_utils.yaml_or_json_str, required=False, help='An array of key-value pairs, to categorize AWS resources.', default={})

@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-# Uncomment the apply(use_aws_secret()) below if you are not using OIDC
-# more info : https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/README.md
-
 import kfp
 import json
 import copy
@@ -76,7 +73,7 @@ def ground_truth_test(region='us-west-2',
         user_pool=user_pool,
         user_groups=user_groups,
         client_id=client_id
-    )#.apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
     ground_truth_train = sagemaker_gt_op(
         region=region,
@@ -96,7 +93,7 @@ def ground_truth_test(region='us-west-2',
         time_limit=ground_truth_time_limit,
         task_availibility=ground_truth_task_availibility,
         max_concurrent_tasks=ground_truth_max_concurrent_tasks
-    )#.apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
     ground_truth_validation = sagemaker_gt_op(
         region=region,
@@ -116,7 +113,7 @@ def ground_truth_test(region='us-west-2',
         time_limit=ground_truth_time_limit,
         task_availibility=ground_truth_task_availibility,
         max_concurrent_tasks=ground_truth_max_concurrent_tasks
-    )#.apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
     channelObj['ChannelName'] = 'train'
     channelObj['DataSource']['S3DataSource']['S3Uri'] = str(ground_truth_train.outputs['output_manifest_location'])
@@ -137,7 +134,7 @@ def ground_truth_test(region='us-west-2',
         max_run_time=training_max_run_time,
         model_artifact_path=training_output_location,
         role=role_arn
-    )#.apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
 
 if __name__ == '__main__':

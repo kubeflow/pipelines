@@ -28,7 +28,7 @@ def create_parser():
   parser.add_argument('--training_input_mode', choices=['File', 'Pipe'], type=str, help='The input mode that the algorithm supports. File or Pipe.', default='File')
   parser.add_argument('--hyperparameters', type=_utils.yaml_or_json_str, help='Dictionary of hyperparameters for the the algorithm.', default={})
   parser.add_argument('--channels', type=_utils.yaml_or_json_str, required=True, help='A list of dicts specifying the input channels. Must have at least one.')
-  parser.add_argument('--instance_type', required=True, type=str, help='The ML compute instance type.', default='ml.m4.xlarge')
+  parser.add_argument('--instance_type', required=False, type=str, help='The ML compute instance type.', default='ml.m4.xlarge')
   parser.add_argument('--instance_count', required=True, type=int, help='The registry path of the Docker image that contains the training algorithm.', default=1)
   parser.add_argument('--volume_size', type=int, required=True, help='The size of the ML storage volume that you want to provision.', default=1)
   parser.add_argument('--resource_encryption_key', type=str, required=False, help='The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).', default='')
