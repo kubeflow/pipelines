@@ -156,7 +156,7 @@
         ]
       },
       "delete": {
-        "summary": "Deletes an experiment without deleting the experiment's runs and jobs. To\navoid unexpected behaviors, delete an experiment's runs and jobs before\ndeleting the experiment",
+        "summary": "Deletes an experiment without deleting the experiment's runs and jobs. To\navoid unexpected behaviors, delete an experiment's runs and jobs before\ndeleting the experiment.",
         "operationId": "DeleteExperiment",
         "responses": {
           "200": {

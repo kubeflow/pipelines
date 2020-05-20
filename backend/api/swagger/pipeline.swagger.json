@@ -614,7 +614,7 @@
       "properties": {
         "pipeline_url": {
           "type": "string",
-          "title": "URL of the pipeline definition or the pipeline version definition"
+          "description": "URL of the pipeline definition or the pipeline version definition."
         }
       }
     },

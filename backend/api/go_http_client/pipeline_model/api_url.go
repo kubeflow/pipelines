@@ -29,7 +29,7 @@ import (
 // swagger:model apiUrl
 type APIURL struct {
 
-	// URL of the pipeline definition or the pipeline version definition
+	// URL of the pipeline definition or the pipeline version definition.
 	PipelineURL string `json:"pipeline_url,omitempty"`
 }
 
