@@ -33,7 +33,7 @@ managedstorage:
   # Name pattern:
   # If spedify databaseNamePrefix: %{cloudsqlInstanceConnectionName}-%{truncedDatabaseNamePrefix}
   # else: %{cloudsqlInstanceConnectionName}-%{releaseName}
-  gcsBucketName: '{{ if .Values.managedstorage.databaseNamePrefix }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Values.managedstorage.databaseNamePrefix | replace ":" "-" | lower | trunc 60 }}{{ else }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Release.Name | replace ":" "-" | lower | trunc 60 }}{{ end }}'
+  gcsBucketName: '{{ if .Values.managedstorage.databaseNamePrefix }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Values.managedstorage.databaseNamePrefix | replace ":" "-" | lower | trunc 60 }}{{ else if .Values.managedstorage.cloudsqlInstanceConnectionName }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Release.Name | replace ":" "-" | lower | trunc 60 }}{{ else if .Values.managedstorage.gcsProjectId}}{{ printf "%s-kubeflowpipelines-default" .Values.managedstorage.gcsProjectId }}{{ else }}null{{ end }}'
   databaseNamePrefix: null
   dbUsername: 'root'
   dbPassword: ''
