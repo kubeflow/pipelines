@@ -34,7 +34,7 @@ def create_endpoint_pipeline(
         model_artifact_url=model_artifact_url,
         network_isolation=network_isolation,
         role=role,
-    ).apply(use_aws_secret("aws-secret", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"))
+    )
 
     sagemaker_deploy_op(
         region=region,
@@ -46,7 +46,7 @@ def create_endpoint_pipeline(
         instance_type_1=instance_type_1,
         initial_instance_count_1=initial_instance_count_1,
         initial_variant_weight_1=initial_variant_weight_1,
-    ).apply(use_aws_secret("aws-secret", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"))
+    )
 
 
 if __name__ == "__main__":
