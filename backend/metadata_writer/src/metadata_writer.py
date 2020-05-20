@@ -16,6 +16,7 @@ import json
 import hashlib
 import os
 import sys
+import re
 import kubernetes
 import yaml
 from time import sleep
@@ -81,11 +82,21 @@ def output_name_to_argo(name: str) -> str:
     import re
     return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).strip('-')
 
+def is_s3_endpoint(endpoint: str) -> bool:
+    return re.search('^.*s3.*amazonaws.com.*$', endpoint)
+
+def get_object_store_provider(endpoint: str) -> bool:
+    if is_s3_endpoint(endpoint):
+        return 's3'
+    else:
+        return 'minio'
 
 def argo_artifact_to_uri(artifact: dict) -> str:
+    # s3 here means s3 compatible object storage. not AWS S3.
     if 's3' in artifact:
         s3_artifact = artifact['s3']
-        return 'minio://{bucket}/{key}'.format(
+        return '{provider}://{bucket}/{key}'.format(
+            provider=get_object_store_provider(s3_artifact['endpoint']),
             bucket=s3_artifact.get('bucket', ''),
             key=s3_artifact.get('key', ''),
         )
