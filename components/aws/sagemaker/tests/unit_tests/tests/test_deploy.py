@@ -72,3 +72,69 @@ class DeployTestCase(unittest.TestCase):
 
     with self.assertRaises(Exception):
       _utils.deploy_model(mock_client, vars(mock_args))
+
+  def test_wait_for_endpoint_creation(self):
+    mock_client = MagicMock()
+    mock_client.describe_endpoint.side_effect = [
+      {"EndpointStatus": "Creating", "EndpointArn": "fake_arn"},
+      {"EndpointStatus": "InService", "EndpointArn": "fake_arn"},
+      {"EndpointStatus": "Should not be called", "EndpointArn": "fake_arn"}
+    ]
+
+    _utils.wait_for_endpoint_creation(mock_client, 'test-endpoint')
+    self.assertEqual(mock_client.describe_endpoint.call_count, 2)
+
+  def test_wait_for_failed_job(self):
+    mock_client = MagicMock()
+    mock_client.describe_endpoint.side_effect = [
+      {"EndpointStatus": "Creating", "EndpointArn": "fake_arn"},
+      {"EndpointStatus": "Failed", "FailureReason": "SYSTEM FAILURE"},
+      {"EndpointStatus": "Should not be called"}
+    ]
+
+    with self.assertRaises(Exception):
+      _utils.wait_for_endpoint_creation(mock_client, 'test-endpoint')
+
+    self.assertEqual(mock_client.describe_endpoint.call_count, 2)
+
+  def test_get_endpoint_name_from_job(self):
+    mock_client = MagicMock()
+
+    # if we don't pass --endpoint_name argument then endpoint name is constructed using --model_name_1
+    self.assertEqual(_utils.deploy_model(mock_client, vars(self.parser.parse_args(required_args))), 'Endpoint-test')
+
+
+  def test_reasonable_required_args(self):
+    arguments =  [
+      '--region', 'us-west-2',
+      '--model_name_1', 'model-test-1',
+      '--model_name_2', 'model-test-2',
+      '--model_name_3', 'model-test-3',
+      '--resource_encryption_key', 'fake-key'
+    ]
+    self.maxDiff=None
+    response = _utils.create_endpoint_config_request(vars(self.parser.parse_args(arguments)))
+    self.assertEqual(response, {'EndpointConfigName': 'EndpointConfig-test-1',
+                                'KmsKeyId': 'fake-key',
+                                'ProductionVariants': [
+                                   {'InitialInstanceCount': 1,
+                                    'InitialVariantWeight': 1.0,
+                                    'InstanceType': 'ml.m4.xlarge',
+                                    'ModelName': 'model-test-1',
+                                    'VariantName': 'variant-name-1'
+                                    },
+                                   {'InitialInstanceCount': 1,
+                                    'InitialVariantWeight': 1.0,
+                                    'InstanceType': 'ml.m4.xlarge',
+                                    'ModelName': 'model-test-2',
+                                    'VariantName': 'variant-name-2'
+                                    },
+                                   {'InitialInstanceCount': 1,
+                                    'InitialVariantWeight': 1.0,
+                                    'InstanceType': 'ml.m4.xlarge',
+                                    'ModelName': 'model-test-3',
+                                    'VariantName': 'variant-name-3'
+                                    }
+                                  ],
+                                'Tags': []
+                               })

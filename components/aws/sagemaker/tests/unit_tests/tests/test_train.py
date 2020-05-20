@@ -254,11 +254,6 @@ class TrainTestCase(unittest.TestCase):
     with self.assertRaises(Exception):
       _utils.create_training_job_request(vars(parsed_args))
 
-  def test_invalid_instance_type(self):
-    invalid_instance_args = required_args + ['--instance_type', 'invalid-instance']
-
-    with self.assertRaises(SystemExit):
-      self.parser.parse_args(invalid_instance_args)
 
   def test_valid_hyperparameters(self):
     hyperparameters_str = '{"hp1": "val1", "hp2": "val2", "hp3": "val3"}'

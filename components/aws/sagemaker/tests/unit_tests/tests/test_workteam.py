@@ -68,3 +68,8 @@ class WorkTeamTestCase(unittest.TestCase):
     with self.assertRaises(Exception):
       _utils.create_workteam(mock_client, vars(mock_args))
 
+  def test_get_workteam_output_from_job(self):
+    mock_client = MagicMock()
+    mock_client.create_workteam.return_value = {"WorkteamArn": "fake-arn"}
+
+    self.assertEqual(_utils.create_workteam(mock_client, vars(self.parser.parse_args(required_args))), 'fake-arn')

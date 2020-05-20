@@ -89,3 +89,36 @@ class GroundTruthTestCase(unittest.TestCase):
     with self.assertRaises(Exception):
       _utils.get_labeling_job_outputs(mock_client, vars(mock_args))
 
+  def test_wait_for_labeling_job_creation(self):
+    mock_client = MagicMock()
+    mock_client.describe_labeling_job.side_effect = [
+      {"LabelingJobStatus": "InProgress"},
+      {"LabelingJobStatus": "Completed"},
+      {"LabelingJobStatus": "Should not be called"}
+    ]
+
+    _utils.wait_for_labeling_job(mock_client, 'test-batch', 0)
+    self.assertEqual(mock_client.describe_labeling_job.call_count, 2)
+
+  def test_wait_for_labeling_job_creation(self):
+    mock_client = MagicMock()
+    mock_client.describe_labeling_job.side_effect = [
+      {"LabelingJobStatus": "InProgress"},
+      {"LabelingJobStatus": "Failed"},
+      {"LabelingJobStatus": "Should not be called"}
+    ]
+
+    with self.assertRaises(Exception):
+      _utils.wait_for_labeling_job(mock_client, 'test-batch', 0)
+    self.assertEqual(mock_client.describe_labeling_job.call_count, 2)
+
+  def test_get_labeling_job_output_from_job(self):
+    mock_client = MagicMock()
+    mock_client.describe_labeling_job.return_value = {"LabelingJobOutput": {
+                                                          "OutputDatasetS3Uri": "s3://path/",
+                                                          "FinalActiveLearningModelArn": "fake-arn"
+                                                      }}
+
+    output_manifest, active_learning_model_arn = _utils.get_labeling_job_outputs(mock_client, 'labeling-job', True)
+    self.assertEqual(output_manifest, 's3://path/')
+    self.assertEqual(active_learning_model_arn, 'fake-arn')

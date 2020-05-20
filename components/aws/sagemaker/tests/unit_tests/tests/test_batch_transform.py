@@ -32,6 +32,7 @@ class BatchTransformTestCase(unittest.TestCase):
   def test_create_parser(self):
     self.assertIsNotNone(self.parser)
 
+
   def test_main(self):
     # Mock out all of utils except parser
     batch_transform._utils = MagicMock()
@@ -56,6 +57,7 @@ class BatchTransformTestCase(unittest.TestCase):
       call('s3://fake-bucket/output')
     ])
 
+
   def test_batch_transform(self):
     mock_client = MagicMock()
     mock_args = self.parser.parse_args(required_args + ['--job_name', 'test-batch-job'])
@@ -77,6 +79,50 @@ class BatchTransformTestCase(unittest.TestCase):
 
     self.assertEqual(response, 'test-batch-job')
 
+
+  def test_pass_all_arguments(self):
+    mock_client = MagicMock()
+    mock_args = self.parser.parse_args(required_args + [
+                          '--job_name', 'test-batch-job',
+                          '--max_concurrent', '5',
+                          '--max_payload', '100',
+                          '--batch_strategy', 'MultiRecord',
+                          '--data_type', 'S3Prefix',
+                          '--compression_type', 'Gzip',
+                          '--split_type', 'RecordIO',
+                          '--assemble_with', 'Line',
+                          '--join_source', 'Input',
+                ])
+    response = _utils.create_transform_job(mock_client, vars(mock_args))
+
+    mock_client.create_transform_job.assert_called_once_with(
+      BatchStrategy='MultiRecord',
+      DataProcessing={'InputFilter': '', 'OutputFilter': '',
+                      'JoinSource': 'Input'},
+      Environment={},
+      MaxConcurrentTransforms=5,
+      MaxPayloadInMB=100,
+      ModelName='model-test',
+      Tags=[],
+      TransformInput={
+          'DataSource': {'S3DataSource': {'S3DataType': 'S3Prefix',
+                         'S3Uri': 's3://fake-bucket/data'}},
+          'ContentType': '',
+          'CompressionType': 'Gzip',
+          'SplitType': 'RecordIO',
+          },
+      TransformJobName='test-batch-job',
+      TransformOutput={
+          'S3OutputPath': 's3://fake-bucket/output',
+          'Accept': None,
+          'AssembleWith': 'Line',
+          'KmsKeyId': '',
+          },
+      TransformResources={'InstanceType': 'ml.c5.18xlarge',
+                          'InstanceCount': None, 'VolumeKmsKeyId': ''}
+    )
+
+
   def test_sagemaker_exception_in_batch_transform(self):
     mock_client = MagicMock()
     mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "batch_transform")
@@ -85,3 +131,31 @@ class BatchTransformTestCase(unittest.TestCase):
 
     with self.assertRaises(Exception):
       _utils.create_transform_job(mock_client, vars(mock_args))
+
+
+  def test_wait_for_transform_job_creation(self):
+    mock_client = MagicMock()
+    mock_client.describe_transform_job.side_effect = [
+      {"TransformJobStatus": "InProgress"},
+      {"TransformJobStatus": "Completed"},
+      {"TransformJobStatus": "Should not be called"}
+    ]
+
+    _utils.wait_for_transform_job(mock_client, 'test-batch', 0)
+    self.assertEqual(mock_client.describe_transform_job.call_count, 2)
+
+
+  def test_wait_for_failed_job(self):
+    mock_client = MagicMock()
+    mock_client.describe_transform_job.side_effect = [
+      {"TransformJobStatus": "InProgress"},
+      {"TransformJobStatus": "Failed", "FailureReason": "SYSTEM FAILURE"},
+      {"TransformJobStatus": "Should not be called"}
+    ]
+
+    with self.assertRaises(Exception):
+      _utils.wait_for_transform_job(mock_client, 'test-batch', 0)
+
+    self.assertEqual(mock_client.describe_transform_job.call_count, 2)
+
+

@@ -462,7 +462,7 @@ def create_transform_job(client, args):
       raise Exception(e.response['Error']['Message'])
 
 
-def wait_for_transform_job(client, batch_job_name):
+def wait_for_transform_job(client, batch_job_name, poll_interval=30):
   ### Wait until the job finishes
   while(True):
     response = client.describe_transform_job(TransformJobName=batch_job_name)
@@ -475,7 +475,7 @@ def wait_for_transform_job(client, batch_job_name):
       logging.info('Transform failed with the following error: {}'.format(message))
       raise Exception('Transform job failed')
     logging.info("Transform job is still in status: " + status)
-    time.sleep(30)
+    time.sleep(poll_interval)
 
 
 def create_hyperparameter_tuning_job_request(args):
@@ -809,7 +809,7 @@ def create_labeling_job(client, args):
         raise Exception(e.response['Error']['Message'])
 
 
-def wait_for_labeling_job(client, labeling_job_name):
+def wait_for_labeling_job(client, labeling_job_name, poll_interval=30):
     ### Wait until the job finishes
     status = 'InProgress'
     while(status == 'InProgress'):
@@ -820,7 +820,7 @@ def wait_for_labeling_job(client, labeling_job_name):
             logging.info('Labeling failed with the following error: {}'.format(message))
             raise Exception('Labeling job failed')
         logging.info("Labeling job is still in status: " + status)
-        time.sleep(30)
+        time.sleep(poll_interval)
 
     if status == 'Completed':
         logging.info("Labeling job ended with status: " + status)
