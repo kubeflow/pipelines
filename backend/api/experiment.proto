@@ -83,7 +83,7 @@ service ExperimentService {
 
   // Deletes an experiment without deleting the experiment's runs and jobs. To
   // avoid unexpected behaviors, delete an experiment's runs and jobs before
-  // deleting the experiment
+  // deleting the experiment.
   rpc DeleteExperiment(DeleteExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/experiments/{id}"
