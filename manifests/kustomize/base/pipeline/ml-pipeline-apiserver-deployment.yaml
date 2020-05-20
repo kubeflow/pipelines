@@ -48,12 +48,36 @@ spec:
             configMapKeyRef:
               name: mysql-configmap
               key: port
-
-
         image: $(IMAGE_PREFIX)/api-server:$(IMAGE_TAG)
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server
         ports:
-        - containerPort: 8888
-        - containerPort: 8887
+        - name: http
+          containerPort: 8888
+        - name: grpc
+          containerPort: 8887
+        readinessProbe:
+          exec:
+            command:
+              - wget
+              - -q # quiet
+              - -S # show server response
+              - -O
+              - "-" # Redirect output to stdout
+              - http://localhost:8888/apis/v1beta1/healthz
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        livenessProbe:
+          exec:
+            command:
+              - wget
+              - -q # quiet
+              - -S # show server response
+              - -O
+              - "-" # Redirect output to stdout
+              - http://localhost:8888/apis/v1beta1/healthz
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
       serviceAccountName: ml-pipeline

@@ -156,7 +156,7 @@
         ]
       },
       "delete": {
-        "summary": "Delete a pipeline version by pipeline version ID. If the deleted pipeline\nversion happens to be the default pipeline version of a certain pipeline,\nthe default version of that pipeline will change to the latest pipeline\nversion among all the remaining pipeline versions of that pipeline.",
+        "summary": "Delete a pipeline version by pipeline version ID. If the deleted pipeline\nversion happens to be the default pipeline version of a certain pipeline,\nthe default version of that pipeline will change to the latest pipeline\nversion among all the remaining pipeline versions of that pipeline. If\nthere is no remaining pipeline version, that pipeline will have no default\nversion. Examine the run_service_api.ipynb notebook to [learn more about creating a run using a pipeline version](https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb)",
         "operationId": "DeletePipelineVersion",
         "responses": {
           "200": {

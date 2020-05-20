@@ -92,6 +92,18 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ENABLE_AUTHZ = 'false',
     /** Deployment type. */
     DEPLOYMENT: DEPLOYMENT_STR = '',
+    /**
+     * A header user requests have when authenticated. It carries user identity information.
+     * The default value works with Google Cloud IAP.
+     */
+    KUBEFLOW_USERID_HEADER = 'x-goog-authenticated-user-email',
+    /**
+     * KUBEFLOW_USERID_HEADER's value may have a prefix before user identity.
+     * Use this header to specify what the prefix is.
+     *
+     * e.g. a valid header value for default values can be like `accounts.google.com:user@gmail.com`.
+     */
+    KUBEFLOW_USERID_PREFIX = 'accounts.google.com:',
   } = env;
 
   return {
@@ -162,6 +174,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     },
     auth: {
       enabled: asBool(ENABLE_AUTHZ),
+      kubeflowUserIdHeader: KUBEFLOW_USERID_HEADER,
+      kubeflowUserIdPrefix: KUBEFLOW_USERID_PREFIX,
     },
   };
 }
@@ -221,8 +235,10 @@ export interface ServerConfigs {
 export interface GkeMetadataConfigs {
   disabled: boolean;
 }
-export interface AuthorizationConfigs {
+export interface AuthConfigs {
   enabled: boolean;
+  kubeflowUserIdHeader: string;
+  kubeflowUserIdPrefix: string;
 }
 export interface UIConfigs {
   server: ServerConfigs;
@@ -238,5 +254,5 @@ export interface UIConfigs {
   viewer: ViewerConfigs;
   pipeline: PipelineConfigs;
   gkeMetadata: GkeMetadataConfigs;
-  auth: AuthorizationConfigs;
+  auth: AuthConfigs;
 }

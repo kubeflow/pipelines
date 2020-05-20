@@ -778,7 +778,7 @@
         ]
       },
       "delete": {
-        "summary": "Delete a pipeline version by pipeline version ID. If the deleted pipeline\nversion happens to be the default pipeline version of a certain pipeline,\nthe default version of that pipeline will change to the latest pipeline\nversion among all the remaining pipeline versions of that pipeline.",
+        "summary": "Delete a pipeline version by pipeline version ID. If the deleted pipeline\nversion happens to be the default pipeline version of a certain pipeline,\nthe default version of that pipeline will change to the latest pipeline\nversion among all the remaining pipeline versions of that pipeline. If\nthere is no remaining pipeline version, that pipeline will have no default\nversion. Examine the run_service_api.ipynb notebook to [learn more about creating a run using a pipeline version](https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb)",
         "operationId": "DeletePipelineVersion",
         "responses": {
           "200": {
@@ -1592,7 +1592,7 @@
           "items": {
             "$ref": "#/definitions/apiResourceReference"
           },
-          "description": "Optional input field. Specify which resource this run belongs to."
+          "description": "Optional input field. Specify which resource this run belongs to.\nWhen creating a run from a particular pipeline version, the pipeline\nversion can be specified here."
         },
         "service_account": {
           "type": "string",
@@ -2030,7 +2030,7 @@
         },
         "storage_state": {
           "$ref": "#/definitions/ExperimentStorageState",
-          "description": "Output. Specify whether this experiment is in archived or available mode."
+          "description": "Output. Specify whether this experiment is in archived or available state."
         }
       }
     },

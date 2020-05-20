@@ -126,7 +126,7 @@ func (a *Client) DeletePipeline(params *DeletePipelineParams, authInfo runtime.C
 }
 
 /*
-DeletePipelineVersion deletes a pipeline version by pipeline version ID if the deleted pipeline version happens to be the default pipeline version of a certain pipeline the default version of that pipeline will change to the latest pipeline version among all the remaining pipeline versions of that pipeline
+DeletePipelineVersion deletes a pipeline version by pipeline version ID if the deleted pipeline version happens to be the default pipeline version of a certain pipeline the default version of that pipeline will change to the latest pipeline version among all the remaining pipeline versions of that pipeline if there is no remaining pipeline version that pipeline will have no default version examine the run service api ipynb notebook to learn more about creating a run using a pipeline version https github com kubeflow pipelines blob master tools benchmarks run service api ipynb
 */
 func (a *Client) DeletePipelineVersion(params *DeletePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineVersionOK, error) {
 	// TODO: Validate the params before sending

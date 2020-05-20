@@ -65,6 +65,8 @@ type APIRun struct {
 	PipelineSpec *APIPipelineSpec `json:"pipeline_spec,omitempty"`
 
 	// Optional input field. Specify which resource this run belongs to.
+	// When creating a run from a particular pipeline version, the pipeline
+	// version can be specified here.
 	ResourceReferences []*APIResourceReference `json:"resource_references"`
 
 	// Output. When this run is scheduled to run. This could be different from

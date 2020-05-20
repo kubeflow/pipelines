@@ -25,6 +25,7 @@ import {
   getArtifactServiceGetter,
 } from './handlers/artifacts';
 import { getTensorboardHandlers } from './handlers/tensorboard';
+import { getAuthorizeFn } from './helpers/auth';
 import { getPodLogsHandler } from './handlers/pod-logs';
 import { podInfoHandler, podEventsHandler } from './handlers/pod-info';
 import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata';
@@ -124,15 +125,15 @@ function createUIServer(options: UIConfigs) {
   );
   registerHandler(app.get, '/artifacts/get', getArtifactsHandler(options.artifacts));
 
+  /** Authorize function */
+  const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
+
   /** Tensorboard viewer */
   const {
     get: tensorboardGetHandler,
     create: tensorboardCreateHandler,
     delete: tensorboardDeleteHandler,
-  } = getTensorboardHandlers(options.viewer.tensorboard, {
-    apiServerAddress,
-    authzEnabled: options.auth.enabled,
-  });
+  } = getTensorboardHandlers(options.viewer.tensorboard, authorizeFn);
   registerHandler(app.get, '/apps/tensorboard', tensorboardGetHandler);
   registerHandler(app.delete, '/apps/tensorboard', tensorboardDeleteHandler);
   registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);

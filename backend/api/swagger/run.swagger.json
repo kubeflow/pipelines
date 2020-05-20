@@ -641,7 +641,7 @@
           "items": {
             "$ref": "#/definitions/apiResourceReference"
           },
-          "description": "Optional input field. Specify which resource this run belongs to."
+          "description": "Optional input field. Specify which resource this run belongs to.\nWhen creating a run from a particular pipeline version, the pipeline\nversion can be specified here."
         },
         "service_account": {
           "type": "string",
