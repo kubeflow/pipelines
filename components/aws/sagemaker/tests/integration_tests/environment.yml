@@ -12,6 +12,7 @@ dependencies:
   - pyyaml=5.3.*
   - flake8=3.7.*
   - flake8-black=0.1.*
+  - filelock=3.0.*
   - pip:
     - kubernetes==11.0.*
     - kfp==0.5.*

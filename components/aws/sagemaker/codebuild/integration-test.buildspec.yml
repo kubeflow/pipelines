@@ -1,14 +1,24 @@
 version: 0.2      
+
+env:
+  variables:
+    CONTAINER_VARIABLES: "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI EKS_PRIVATE_SUBNETS EKS_PUBLIC_SUBNETS PYTEST_ADDOPTS S3_DATA_BUCKET EKS_EXISTING_CLUSTER SAGEMAKER_EXECUTION_ROLE_ARN REGION"
+
 phases:
   build:
     commands:
       - cd components/aws
       - docker build . -f ./sagemaker/tests/integration_tests/Dockerfile -t amazon/integration-test-image --quiet
 
+      - cd sagemaker/codebuild/scripts && export CONTAINER_VARIABLE_ARGUMENTS="$(./construct_environment_array.sh)"
+
       # Run the container and copy the results to /tmp
-      # Passes all host environment variables through to the container
-      - docker run --name integration-test-container $(env | cut -f1 -d= | sed 's/^/-e /') amazon/integration-test-image
-      - docker cp integration-test-container:/app/tests/integration_tests/integration_tests.log /tmp/results.xml
+      # Passes all listed host environment variables through to the container
+      - docker run --name integration-test-container $(echo $CONTAINER_VARIABLE_ARGUMENTS) amazon/integration-test-image
+
+  post_build:
+    commands:
+      - docker cp integration-test-container:/tests/integration_tests/integration_tests.log /tmp/results.xml
       - docker rm -f integration-test-container
 
 reports:
