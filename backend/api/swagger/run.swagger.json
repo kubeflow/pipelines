@@ -17,7 +17,7 @@
   "paths": {
     "/apis/v1beta1/runs": {
       "get": {
-        "summary": "Find all runs.",
+        "summary": "Finds all runs.",
         "operationId": "ListRuns",
         "responses": {
           "200": {
@@ -36,14 +36,14 @@
         "parameters": [
           {
             "name": "page_token",
-            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListRuns call.",
+            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListRuns call or can be omitted when fetching the first page.",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
             "name": "page_size",
-            "description": "The number of runs to be listed per page. If there are more runs than this\nnumber, the response message will contain a valid value in the\nnextPageToken field.",
+            "description": "The number of runs to be listed per page. If there are more runs than this\nnumber, the response message will contain a nextPageToken field you can use\nto fetch the next page.",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -92,7 +92,7 @@
         ]
       },
       "post": {
-        "summary": "Create a new run.",
+        "summary": "Creates a new run.",
         "operationId": "CreateRun",
         "responses": {
           "200": {
@@ -125,7 +125,7 @@
     },
     "/apis/v1beta1/runs/{id}": {
       "delete": {
-        "summary": "Delete a run.",
+        "summary": "Deletes a run.",
         "operationId": "DeleteRun",
         "responses": {
           "200": {
@@ -157,7 +157,7 @@
     },
     "/apis/v1beta1/runs/{id}:archive": {
       "post": {
-        "summary": "Archive a run.",
+        "summary": "Archives a run.",
         "operationId": "ArchiveRun",
         "responses": {
           "200": {
@@ -189,7 +189,7 @@
     },
     "/apis/v1beta1/runs/{id}:unarchive": {
       "post": {
-        "summary": "Restore an archived run.",
+        "summary": "Restores an archived run.",
         "operationId": "UnarchiveRun",
         "responses": {
           "200": {
@@ -221,7 +221,7 @@
     },
     "/apis/v1beta1/runs/{run_id}": {
       "get": {
-        "summary": "Find a specific run by ID.",
+        "summary": "Finds a specific run by ID.",
         "operationId": "GetRun",
         "responses": {
           "200": {
@@ -253,7 +253,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
       "get": {
-        "summary": "Find a run's artifact data.",
+        "summary": "Finds a run's artifact data.",
         "operationId": "ReadArtifact",
         "responses": {
           "200": {
@@ -299,7 +299,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/retry": {
       "post": {
-        "summary": "Re-initiate a failed or terminated run.",
+        "summary": "Re-initiates a failed or terminated run.",
         "operationId": "RetryRun",
         "responses": {
           "200": {
@@ -331,7 +331,7 @@
     },
     "/apis/v1beta1/runs/{run_id}/terminate": {
       "post": {
-        "summary": "Terminate an active run.",
+        "summary": "Terminates an active run.",
         "operationId": "TerminateRun",
         "responses": {
           "200": {

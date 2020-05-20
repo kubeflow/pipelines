@@ -68,7 +68,7 @@ func (a *Client) CreatePipeline(params *CreatePipelineParams, authInfo runtime.C
 }
 
 /*
-CreatePipelineVersion creates a pipeline version under a given pipeline
+CreatePipelineVersion adds a pipeline version to the specified pipeline
 */
 func (a *Client) CreatePipelineVersion(params *CreatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineVersionOK, error) {
 	// TODO: Validate the params before sending
@@ -97,7 +97,7 @@ func (a *Client) CreatePipelineVersion(params *CreatePipelineVersionParams, auth
 }
 
 /*
-DeletePipeline deletes a pipeline all pipeline versions under this pipeline will be deleted as well
+DeletePipeline deletes a pipeline and its pipeline versions
 */
 func (a *Client) DeletePipeline(params *DeletePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineOK, error) {
 	// TODO: Validate the params before sending
@@ -126,7 +126,7 @@ func (a *Client) DeletePipeline(params *DeletePipelineParams, authInfo runtime.C
 }
 
 /*
-DeletePipelineVersion deletes a pipeline version by pipeline version ID if the deleted pipeline version happens to be the default pipeline version of a certain pipeline the default version of that pipeline will change to the latest pipeline version among all the remaining pipeline versions of that pipeline if there is no remaining pipeline version that pipeline will have no default version examine the run service api ipynb notebook to learn more about creating a run using a pipeline version https github com kubeflow pipelines blob master tools benchmarks run service api ipynb
+DeletePipelineVersion deletes a pipeline version by pipeline version ID if the deleted pipeline version is the default pipeline version the pipeline s default version changes to the pipeline s most recent pipeline version if there are no remaining pipeline versions the pipeline will have no default version examines the run service api ipynb notebook to learn more about creating a run using a pipeline version https github com kubeflow pipelines blob master tools benchmarks run service api ipynb
 */
 func (a *Client) DeletePipelineVersion(params *DeletePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineVersionOK, error) {
 	// TODO: Validate the params before sending
@@ -213,7 +213,7 @@ func (a *Client) GetPipelineVersion(params *GetPipelineVersionParams, authInfo r
 }
 
 /*
-GetPipelineVersionTemplate returns a single y a m l template that contains the description parameters and metadata associated with the given pipeline version
+GetPipelineVersionTemplate returns a y a m l template that contains the specified pipeline version s description parameters and metadata
 */
 func (a *Client) GetPipelineVersionTemplate(params *GetPipelineVersionTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineVersionTemplateOK, error) {
 	// TODO: Validate the params before sending
