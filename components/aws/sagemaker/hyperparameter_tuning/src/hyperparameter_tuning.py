@@ -19,7 +19,7 @@ from common import _utils
 def create_parser():
   parser = argparse.ArgumentParser(description='SageMaker Hyperparameter Tuning Job')
   _utils.add_default_client_arguments(parser)
-  
+
   parser.add_argument('--job_name', type=str, required=False, help='The name of the tuning job. Must be unique within the same AWS account and AWS region.')
   parser.add_argument('--role', type=str, required=True, help='The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.')
   parser.add_argument('--image', type=str, required=True, help='The registry path of the Docker image that contains the training algorithm.', default='')
@@ -37,9 +37,7 @@ def create_parser():
   parser.add_argument('--channels', type=_utils.yaml_or_json_str, required=True, help='A list of dicts specifying the input channels. Must have at least one.')
   parser.add_argument('--output_location', type=str, required=True, help='The Amazon S3 path where you want Amazon SageMaker to store the results of the transform job.')
   parser.add_argument('--output_encryption_key', type=str, required=False, help='The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts.', default='')
-  parser.add_argument('--instance_type', choices=['ml.m4.xlarge', 'ml.m4.2xlarge', 'ml.m4.4xlarge', 'ml.m4.10xlarge', 'ml.m4.16xlarge', 'ml.m5.large', 'ml.m5.xlarge', 'ml.m5.2xlarge', 'ml.m5.4xlarge',
-    'ml.m5.12xlarge', 'ml.m5.24xlarge', 'ml.c4.xlarge', 'ml.c4.2xlarge', 'ml.c4.4xlarge', 'ml.c4.8xlarge', 'ml.p2.xlarge', 'ml.p2.8xlarge', 'ml.p2.16xlarge', 'ml.p3.2xlarge', 'ml.p3.8xlarge', 'ml.p3.16xlarge',
-    'ml.c5.xlarge', 'ml.c5.2xlarge', 'ml.c5.4xlarge', 'ml.c5.9xlarge', 'ml.c5.18xlarge'], type=str, required=False, help='The ML compute instance type.', default='ml.m4.xlarge')
+  parser.add_argument('--instance_type', type=str, required=False, help='The ML compute instance type.', default='ml.m4.xlarge')
   parser.add_argument('--instance_count', type=int, required=False, help='The number of ML compute instances to use in each training job.', default=1)
   parser.add_argument('--volume_size', type=int, required=False, help='The size of the ML storage volume that you want to provision.', default=30)
   parser.add_argument('--max_num_jobs', type=int, required=True, help='The maximum number of training jobs that a hyperparameter tuning job can launch.')
