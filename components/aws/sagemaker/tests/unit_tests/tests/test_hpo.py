@@ -59,7 +59,7 @@ class HyperparameterTestCase(unittest.TestCase):
     self.assertEqual(response['TrainingJobDefinition']['CheckpointConfig']['S3Uri'], 's3://fake-uri/')
     self.assertEqual(response['TrainingJobDefinition']['CheckpointConfig']['LocalPath'], 'local-path')
 
-  def check_empty_string(self):
+  def test_empty_string(self):
     good_args = self.parser.parse_args(
       required_args + ['--spot_instance', 'True', '--max_wait_time', '86400', '--checkpoint_config',
                        '{"S3Uri": "s3://fake-uri/"}'])
@@ -199,13 +199,13 @@ class HyperparameterTestCase(unittest.TestCase):
  
   def test_either_warm_start_or_parents_args(self):
     # It will generate an exception if either warm_start_type or parent hpo jobs is being passed
-    good_args = self.parser.parse_args(required_args + ['--warm_start_type', 'TransferLearning'])
+    missing_parent_hpo_jobs_args = self.parser.parse_args(required_args + ['--warm_start_type', 'TransferLearning'])
     with self.assertRaises(Exception):
-      _utils.create_hyperparameter_tuning_job_request(vars(good_args))
+      _utils.create_hyperparameter_tuning_job_request(vars(missing_parent_hpo_jobs_args))
 
-    good_args = self.parser.parse_args(required_args + ['--parent_hpo_jobs', 'A,B,C']) 
+    missing_warm_start_type_args = self.parser.parse_args(required_args + ['--parent_hpo_jobs', 'A,B,C']) 
     with self.assertRaises(Exception):
-      _utils.create_hyperparameter_tuning_job_request(vars(good_args))
+      _utils.create_hyperparameter_tuning_job_request(vars(missing_warm_start_type_args))
      
 
   def test_reasonable_required_args(self):
