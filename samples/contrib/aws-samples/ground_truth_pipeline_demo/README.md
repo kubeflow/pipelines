@@ -4,6 +4,10 @@ This sample is based on [this example](https://github.com/awslabs/amazon-sagemak
 
 The sample goes through the workflow of creating a private workteam, creating data labeling jobs for that team, and running a training job using the new labeled data.
 
+## Prerequisites 
+
+Make sure you have the setup explained in this [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/README.md)
+(This pipeline does not use mnist dataset. Follow the instruction bellow to get sample dataset)
 
 ## Prep the dataset, label categories, and UI template
 
@@ -33,26 +37,6 @@ user_groups = Amazon Cognito user group
 client_ID = App client  
 
 > Note : Once you start a run on the pipeline you will receive the ground_truth labeling jobs at "Labeling portal sign-in URL" link 
-
-## SageMaker permission
-
-In order to run this pipeline, we need to prepare an IAM Role to run Sagemaker jobs. You need this `role_arn` to run a pipeline. Check [here](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-roles.html) for details.
-
-This pipeline also use aws-secret to get access to Sagemaker services, please also make sure you have a `aws-secret` in the kubeflow namespace.
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: aws-secret
-  namespace: kubeflow
-type: Opaque
-data:
-  AWS_ACCESS_KEY_ID: YOUR_BASE64_ACCESS_KEY
-  AWS_SECRET_ACCESS_KEY: YOUR_BASE64_SECRET_ACCESS
-```
-
-> Note: To get base64 string, try `echo -n $AWS_ACCESS_KEY_ID | base64`
 
 
 ## Compiling the pipeline template
