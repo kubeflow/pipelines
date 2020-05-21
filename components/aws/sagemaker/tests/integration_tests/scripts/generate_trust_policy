@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+# Helper script to generate trust the policy needed to assign role-based authentication to a KFP service account.
+#
+# Run as:
+# $ ./generate_trust_policy ${EKS_CLUSTER_REGION} ${AWS_ACCOUNT_ID} ${OIDC_ID} ${SERVICE_NAMESPACE} ${SERVICE_ACCOUNT} > trust.json
+#
+# For example:
+# $ ./generate_trust_policy us-west-2 123456789012 D48675832CA65BD10A532F597OIDCID > trust.json
+# This will create a file `trust.json` containing a role policy that enables the KFP service runner in an EKS cluster to assume AWS roles.
+#
+# The SERVICE_NAMESPACE parameter is for when you want to run Kubeflow in a custom namespace other than "kubeflow".
+# The SERVICE_ACCOUNT parameter is for when you want to give permissions to a service account other than the default "pipeline-runner".
+
+cluster_region="$1"
+account_number="$2"
+oidc_id="$3"
+service_namespace="${4}"
+service_account="${5}"
+
+printf '{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::'"${account_number}"':oidc-provider/oidc.eks.'"${cluster_region}"'.amazonaws.com/id/'"${oidc_id}"'"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.'"${cluster_region}"'.amazonaws.com/id/'"${oidc_id}"':aud": "sts.amazonaws.com",
+          "oidc.eks.'"${cluster_region}"'.amazonaws.com/id/'"${oidc_id}"':sub": "system:serviceaccount:'"${service_namespace}"':'"${service_account}"'"
+        }
+      }
+    }
+  ]
+}
+'

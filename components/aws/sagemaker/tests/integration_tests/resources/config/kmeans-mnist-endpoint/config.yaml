@@ -15,6 +15,7 @@ Arguments:
   variant_name_1: variant-1
   instance_type_1: ml.m4.xlarge
   initial_instance_count_1: 1
+  initial_variant_weight_1: 1.0
   network_isolation: "True"
   role: ((ROLE_ARN))
   

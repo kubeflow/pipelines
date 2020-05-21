@@ -1,4 +1,4 @@
-from kfp.components import load_component_from_url
+from ...components import load_component_from_url
 
 automl_create_dataset_for_tables_op        = load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b3179d86b239a08bf4884b50dbf3a9151da96d66/components/gcp/automl/create_dataset_for_tables/component.yaml')
 automl_import_data_from_bigquery_source_op = load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b3179d86b239a08bf4884b50dbf3a9151da96d66/components/gcp/automl/import_data_from_bigquery/component.yaml')

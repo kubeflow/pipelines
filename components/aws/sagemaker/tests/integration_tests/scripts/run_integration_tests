@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+
+set -u
+set -o pipefail
+
+usage(){
+	echo "Usage: $0 -n <deployment name> [-r <region>]"
+	exit 1
+}
+
+cwd=$(dirname $(realpath $0))
+
+### Input parameters
+DEPLOY_NAME="sagemaker-kfp-"$(date '+%Y-%m-%d-%H-%M-%S')"" # The name given to the entire deployment (tagging all resources)
+REGION=${REGION:-"$(aws configure get region)"} # Deployment region
+
+### Configuration parameters
+EKS_EXISTING_CLUSTER=${EKS_EXISTING_CLUSTER:-""} # Use an existing EKS cluster
+EKS_CLUSTER_VERSION=${EKS_CLUSTER_VERSION:-"1.15"} # EKS cluster K8s version
+EKS_NODE_COUNT=${EKS_NODE_COUNT:-"1"} # The initial node count of the EKS cluster
+EKS_PUBLIC_SUBNETS=${EKS_PUBLIC_SUBNETS:-""}
+EKS_PRIVATE_SUBNETS=${EKS_PRIVATE_SUBNETS:-""}
+
+### Testing parameters
+MINIO_LOCAL_PORT=${MINIO_LOCAL_PORT:-9000}
+KFP_NAMESPACE=${KFP_NAMESPACE:-"kubeflow"}
+KFP_SERVICE_ACCOUNT=${KFP_SERVICE_ACCOUNT:-"pipeline-runner"}
+
+PYTEST_MARKER=${PYTEST_MARKER:-""}
+S3_DATA_BUCKET=${S3_DATA_BUCKET:-""}
+SAGEMAKER_EXECUTION_ROLE_ARN=${SAGEMAKER_EXECUTION_ROLE_ARN:-""}
+
+while getopts ":n:r:s:" opt; do
+  case $opt in
+    n)
+      DEPLOY_NAME="$OPTARG"
+      ;;
+    s)
+      S3_DATA_BUCKET="$OPTARG"
+      ;;
+    r)
+      REGION="$OPTARG"
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+# Ensure a deployment name was specified
+if [ "$DEPLOY_NAME" == "" ]; then
+  echo "Missing deployment name"
+  usage
+  exit 1
+fi
+
+if [ "$S3_DATA_BUCKET" == "" ]; then
+  echo "Missing S3 data bucket name"
+  usage
+  exit 1
+fi
+
+function cleanup() {
+  set +e
+
+  cleanup_kfp
+  delete_generated_role
+
+  if [[ -z "${EKS_EXISTING_CLUSTER}" ]]; then
+    delete_eks
+  fi
+}
+
+# Set the trap to clean up resources in the case of an error
+trap cleanup EXIT
+set -e
+
+function launch_eks() {
+  EKS_CLUSTER_NAME="${DEPLOY_NAME}-eks-cluster"
+
+  echo "[Creating EKS] Launching EKS cluster $EKS_CLUSTER_NAME"
+
+  eksctl_args=( --managed --nodes "${EKS_NODE_COUNT}" --node-type=c5.xlarge --timeout=30m --region "${REGION}" --auto-kubeconfig --version "${EKS_CLUSTER_VERSION}" )
+  [ ! -z "${EKS_PUBLIC_SUBNETS}" ] && eksctl_args+=( --vpc-public-subnets="${EKS_PUBLIC_SUBNETS}" )
+  [ ! -z "${EKS_PRIVATE_SUBNETS}" ] && eksctl_args+=( --vpc-private-subnets="${EKS_PRIVATE_SUBNETS}" )
+
+  eksctl create cluster "${EKS_CLUSTER_NAME}" "${eksctl_args[@]}"
+
+  aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region "$REGION"
+
+  echo "[Creating EKS] $EKS_CLUSTER_NAME launched"
+}
+
+function delete_eks() {
+  eksctl delete cluster --name "${EKS_CLUSTER_NAME}" --region "${REGION}"
+}
+
+function install_kfp() {
+  echo "[Installing KFP] Applying KFP manifests"
+
+  PIPELINE_VERSION=0.5.1
+  kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION
+  kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+  kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION
+
+  echo "[Installing KFP] Port-forwarding Minio"
+
+  kubectl wait --for=condition=ready -n "${KFP_NAMESPACE}" pod -l app=minio --timeout=5m
+  kubectl port-forward -n kubeflow svc/minio-service $MINIO_LOCAL_PORT:9000 &
+  MINIO_PID=$!
+
+  echo "[Installing KFP] Minio port-forwarded to ${MINIO_LOCAL_PORT}"
+
+  echo "[Installing KFP] Waiting for pods to stand up"
+
+  kubectl wait --for=condition=ready -n "${KFP_NAMESPACE}" pod -l app=ml-pipeline --timeout=5m
+
+  # TODO: Replace with calculated waits
+  # For the moment we don't know which pods will be slower, so we are just relying on a fixed interval
+  sleep 3m
+
+  echo "[Installing KFP] Pipeline pods are ready"
+}
+
+function generate_iam_role_name() {
+  OIDC_ROLE_NAME="$(echo "${DEPLOY_NAME}-kubeflow-role" | cut -c1-64)"
+  OIDC_ROLE_ARN="arn:aws:iam::$(aws sts get-caller-identity --query=Account --output=text):role/${OIDC_ROLE_NAME}"
+}
+
+function install_generated_role() {
+  kubectl patch serviceaccount -n ${KFP_NAMESPACE} ${KFP_SERVICE_ACCOUNT} --patch '{"metadata": {"annotations": {"eks.amazonaws.com/role-arn": "'"${OIDC_ROLE_ARN}"'"}}}'
+}
+
+function delete_generated_role() {
+  # Delete the role associated with the cluster thats being deleted
+  aws iam detach-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+  aws iam delete-role --role-name "${OIDC_ROLE_NAME}"
+}
+
+function cleanup_kfp() {
+  # Clean up Minio
+  if [ ! -z "${MINIO_PID}" ]; then
+    kill -9 $MINIO_PID || true
+  fi
+}
+
+if [[ -z "${EKS_EXISTING_CLUSTER}" ]]; then
+  launch_eks
+else
+  aws eks update-kubeconfig --name "${EKS_EXISTING_CLUSTER}" --region "$REGION"
+  EKS_CLUSTER_NAME="${EKS_EXISTING_CLUSTER}"
+  DEPLOY_NAME="${EKS_EXISTING_CLUSTER}"
+fi
+
+generate_iam_role_name
+"$cwd"/generate_iam_role ${EKS_CLUSTER_NAME} ${OIDC_ROLE_NAME} ${REGION} ${KFP_NAMESPACE} ${KFP_SERVICE_ACCOUNT}
+install_kfp
+install_generated_role
+
+pytest_args=( --region "${REGION}" --role-arn "${SAGEMAKER_EXECUTION_ROLE_ARN}" --s3-data-bucket "${S3_DATA_BUCKET}" --minio-service-port "${MINIO_LOCAL_PORT}" --kfp-namespace "${KFP_NAMESPACE}" )
+[ ! -z "${PYTEST_MARKER}" ] && pytest_args+=( -m "${PYTEST_MARKER}" )
+
+cd tests/integration_tests && python -m pytest "${pytest_args[@]}" --junitxml ./integration_tests.log -n $(nproc)

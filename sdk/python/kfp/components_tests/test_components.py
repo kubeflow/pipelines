@@ -20,10 +20,10 @@ from contextlib import contextmanager
 from pathlib import Path
 
 
-import kfp.components as comp
-from kfp.components._components import _resolve_command_line_and_paths
-from kfp.components._yaml_utils import load_yaml
-from kfp.components.structures import ComponentSpec
+from .. import components as comp
+from ..components._components import _resolve_command_line_and_paths
+from ..components._yaml_utils import load_yaml
+from ..components.structures import ComponentSpec
 
 
 class LoadComponentTestCase(unittest.TestCase):
