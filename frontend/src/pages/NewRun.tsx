@@ -148,10 +148,15 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   ];
 
   private pipelineVersionSelectorColumns = [
-    { label: 'Version name', flex: 1, sortKey: PipelineVersionSortKeys.NAME },
+    {
+      customRenderer: NameWithTooltip,
+      flex: 2,
+      label: 'Version name',
+      sortKey: PipelineVersionSortKeys.NAME,
+    },
     // TODO(jingzhang36): version doesn't have description field; remove it and
     // fix the rendering.
-    { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
+    { label: 'Description', flex: 1, customRenderer: descriptionCustomRenderer },
     { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
   ];
 

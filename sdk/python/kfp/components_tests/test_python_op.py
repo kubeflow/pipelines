@@ -19,10 +19,10 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable, NamedTuple, Sequence
 
-import kfp.components as comp
-from kfp.components import InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile
-from kfp.components.structures import InputSpec, OutputSpec
-from kfp.components._components import _resolve_command_line_and_paths
+from .. import components as comp
+from ..components import InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile
+from ..components.structures import InputSpec, OutputSpec
+from ..components._components import _resolve_command_line_and_paths
 
 def add_two_numbers(a: float, b: float) -> float:
     '''Returns sum of two arguments'''

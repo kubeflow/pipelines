@@ -15,7 +15,7 @@ spec:
     spec:
       hostNetwork: true
       containers:
-      - image: $(IMAGE_PREFIX)/inverse-proxy-agent:$(IMAGE_TAG)
+      - image: gcr.io/ml-pipeline/inverse-proxy-agent:dummy
         imagePullPolicy: IfNotPresent
         name: proxy-agent
       serviceAccountName: proxy-agent-runner
