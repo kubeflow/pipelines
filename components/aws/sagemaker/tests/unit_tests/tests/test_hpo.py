@@ -59,7 +59,7 @@ class HyperparameterTestCase(unittest.TestCase):
     self.assertEqual(response['TrainingJobDefinition']['CheckpointConfig']['S3Uri'], 's3://fake-uri/')
     self.assertEqual(response['TrainingJobDefinition']['CheckpointConfig']['LocalPath'], 'local-path')
 
-  def test_empty_string(self):
+  def check_empty_string(self):
     good_args = self.parser.parse_args(
       required_args + ['--spot_instance', 'True', '--max_wait_time', '86400', '--checkpoint_config',
                        '{"S3Uri": "s3://fake-uri/"}'])
@@ -176,6 +176,37 @@ class HyperparameterTestCase(unittest.TestCase):
     mock_client.describe_algorithm.return_value = {"TrainingSpecification": {"TrainingImage": "training-image-url"}}
 
     self.assertEqual(_utils.get_image_from_job(mock_client, 'training-job'), "training-image-url")
+
+  def test_best_training_job(self):
+    mock_client = MagicMock()
+    mock_client.describe_hyper_parameter_tuning_job.return_value = {'BestTrainingJob': {'TrainingJobName': 'best_training_job'}}
+    mock_client.describe_training_job.return_value = {"HyperParameters": {"hp": "val", '_tuning_objective_metric': 'remove_me'}}
+    name, params =_utils.get_best_training_job_and_hyperparameters(mock_client, "mock-hpo-job")
+    self.assertEqual("best_training_job", name)
+    self.assertEqual("val", params["hp"])
+    
+  def test_warm_start_and_parents_args(self):
+    # specifying both params 
+    good_args = self.parser.parse_args(required_args + ['--warm_start_type', 'TransferLearning'] + ['--parent_hpo_jobs', 'A,B,C'])
+    response = _utils.create_hyperparameter_tuning_job_request(vars(good_args))
+    self.assertIn('WarmStartConfig', response)
+    self.assertIn('ParentHyperParameterTuningJobs', response['WarmStartConfig'])
+    self.assertIn('WarmStartType', response['WarmStartConfig'])
+    self.assertEqual(response['WarmStartConfig']['ParentHyperParameterTuningJobs'][0]['HyperParameterTuningJobName'], 'A')
+    self.assertEqual(response['WarmStartConfig']['ParentHyperParameterTuningJobs'][1]['HyperParameterTuningJobName'], 'B')
+    self.assertEqual(response['WarmStartConfig']['ParentHyperParameterTuningJobs'][2]['HyperParameterTuningJobName'], 'C')
+    self.assertEqual(response['WarmStartConfig']['WarmStartType'], 'TransferLearning')
+ 
+  def test_either_warm_start_or_parents_args(self):
+    # It will generate an exception if either warm_start_type or parent hpo jobs is being passed
+    good_args = self.parser.parse_args(required_args + ['--warm_start_type', 'TransferLearning'])
+    with self.assertRaises(Exception):
+      _utils.create_hyperparameter_tuning_job_request(vars(good_args))
+
+    good_args = self.parser.parse_args(required_args + ['--parent_hpo_jobs', 'A,B,C']) 
+    with self.assertRaises(Exception):
+      _utils.create_hyperparameter_tuning_job_request(vars(good_args))
+     
 
   def test_reasonable_required_args(self):
     response = _utils.create_hyperparameter_tuning_job_request(vars(self.parser.parse_args(required_args)))
@@ -305,8 +336,10 @@ class HyperparameterTestCase(unittest.TestCase):
 
   def test_valid_hyperparameters(self):
     hyperparameters_str = '{"hp1": "val1", "hp2": "val2", "hp3": "val3"}'
-
-    good_args = self.parser.parse_args(required_args + ['--static_parameters', hyperparameters_str])
+    categorical_params = '[{"Name" : "categorical", "Values": ["A", "B"]}]'
+    integer_params = '[{"MaxValue": "integer_val1", "MinValue": "integer_val2", "Name": "integer", "ScalingType": "test_integer"}]'
+    continuous_params = '[{"MaxValue": "continuous_val1", "MinValue": "continuous_val2", "Name": "continuous", "ScalingType": "test_continuous"}]'
+    good_args = self.parser.parse_args(required_args + ['--static_parameters', hyperparameters_str] + ['--integer_parameters', integer_params] + ['--continuous_parameters', continuous_params] + ['--categorical_parameters', categorical_params])
     response = _utils.create_hyperparameter_tuning_job_request(vars(good_args))
     
     self.assertIn('hp1', response['TrainingJobDefinition']['StaticHyperParameters'])
@@ -315,6 +348,34 @@ class HyperparameterTestCase(unittest.TestCase):
     self.assertEqual(response['TrainingJobDefinition']['StaticHyperParameters']['hp1'], "val1")
     self.assertEqual(response['TrainingJobDefinition']['StaticHyperParameters']['hp2'], "val2")
     self.assertEqual(response['TrainingJobDefinition']['StaticHyperParameters']['hp3'], "val3")
+  
+    self.assertIn('ParameterRanges', response['HyperParameterTuningJobConfig'])
+    self.assertIn('IntegerParameterRanges', response['HyperParameterTuningJobConfig']['ParameterRanges'])
+    self.assertIn('ContinuousParameterRanges', response['HyperParameterTuningJobConfig']['ParameterRanges'])
+    self.assertIn('CategoricalParameterRanges', response['HyperParameterTuningJobConfig']['ParameterRanges'])
+    self.assertIn('Name', response['HyperParameterTuningJobConfig']['ParameterRanges']['CategoricalParameterRanges'][0])
+    self.assertIn('Values', response['HyperParameterTuningJobConfig']['ParameterRanges']['CategoricalParameterRanges'][0])
+    self.assertIn('MaxValue', response['HyperParameterTuningJobConfig']['ParameterRanges']['IntegerParameterRanges'][0])
+    self.assertIn('MinValue', response['HyperParameterTuningJobConfig']['ParameterRanges']['IntegerParameterRanges'][0])
+    self.assertIn('Name', response['HyperParameterTuningJobConfig']['ParameterRanges']['IntegerParameterRanges'][0])
+    self.assertIn('ScalingType', response['HyperParameterTuningJobConfig']['ParameterRanges']['IntegerParameterRanges'][0])
+    self.assertIn('MaxValue', response['HyperParameterTuningJobConfig']['ParameterRanges']['ContinuousParameterRanges'][0])
+    self.assertIn('MinValue', response['HyperParameterTuningJobConfig']['ParameterRanges']['ContinuousParameterRanges'][0])
+    self.assertIn('Name', response['HyperParameterTuningJobConfig']['ParameterRanges']['ContinuousParameterRanges'][0])
+    self.assertIn('ScalingType', response['HyperParameterTuningJobConfig']['ParameterRanges']['ContinuousParameterRanges'][0])
+
+    self.assertEqual(response['HyperParameterTuningJobConfig']['ParameterRanges']['CategoricalParameterRanges'][0]['Name'], "categorical")
+    self.assertEqual(response['HyperParameterTuningJobConfig']['ParameterRanges']['CategoricalParameterRanges'][0]["Values"][0], "A")
+    self.assertEqual(response['HyperParameterTuningJobConfig']['ParameterRanges']['CategoricalParameterRanges'][0]["Values"][1], "B")
+    self.assertEqual(response['HyperParameterTuningJobConfig']['ParameterRanges']['IntegerParameterRanges'][0]['MaxValue'], "integer_val1")
+    self.assertEqual(response['HyperParameterTuningJobConfig']['ParameterRanges']['IntegerParameterRanges'][0]['MinValue'], "integer_val2")
+    self.assertEqual(response['HyperParameterTuningJobConfig']['ParameterRanges']['IntegerParameterRanges'][0]['Name'], "integer")
+    self.assertEqual(response['HyperParameterTuningJobConfig']['ParameterRanges']['IntegerParameterRanges'][0]['ScalingType'], "test_integer")
+    self.assertEqual(response['HyperParameterTuningJobConfig']['ParameterRanges']['ContinuousParameterRanges'][0]['MaxValue'], "continuous_val1")
+    self.assertEqual(response['HyperParameterTuningJobConfig']['ParameterRanges']['ContinuousParameterRanges'][0]['MinValue'], "continuous_val2")
+    self.assertEqual(response['HyperParameterTuningJobConfig']['ParameterRanges']['ContinuousParameterRanges'][0]['Name'], "continuous")
+    self.assertEqual(response['HyperParameterTuningJobConfig']['ParameterRanges']['ContinuousParameterRanges'][0]['ScalingType'], "test_continuous")
+
 
   def test_empty_hyperparameters(self):
     hyperparameters_str = '{}'
