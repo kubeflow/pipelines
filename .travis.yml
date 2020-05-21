@@ -64,7 +64,7 @@ matrix:
         - set -e
         - python3 setup.py bdist_wheel
         - WHEEL_PATH=$(find dist -name "tfx-*.whl")
-        - python3 -m pip install "${WHEEL_PATH}" --upgrade
+        - python3 -m pip install "${WHEEL_PATH}" --upgrade --unstable-feature=resolver   # See https://github.com/pypa/pip/issues/8218#issuecomment-628429786
         - set +e
         - set +x
         # Three KFP-related unittests
