@@ -126,6 +126,13 @@ properties:
       This is the recommended option especially for production scenarios.
       If false, the data will be stored in GCE Persistent Disk.
     default: false
+  managedstorage.storageBucket:
+    type: string
+    title: Artifact storage GCS bucket (Managed storage only)
+    description: |-
+      The name of the Google Cloud Storage bucket that should be used for storing the output artifacts.
+      Use lowercase letters, numbers, and hyphens. Start with a letter.
+      See https://cloud.google.com/storage/docs/naming-buckets for details on bucket naming.
   managedstorage.cloudsqlInstanceConnectionName:
     type: string
     title: Cloud SQL instance connection name (Managed storage only)
