@@ -39,7 +39,7 @@ spec:
         imagePullPolicy: 'Always'
         env:
         # TODO: merge all into mysql-credential
-        {{ if .Values.managedstorage.enabled }}
+        {{ if .Values.managedstorage.cloudsqlInstanceConnectionName }}
         - name: DBCONFIG_USER
           valueFrom:
             secretKeyRef:

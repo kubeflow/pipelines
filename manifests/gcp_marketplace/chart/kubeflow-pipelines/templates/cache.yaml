@@ -205,7 +205,7 @@ spec:
       - name: server
         image: {{ .Values.images.cacheserver }}
         env:
-          {{ if .Values.managedstorage.enabled }}
+          {{ if .Values.managedstorage.cloudsqlInstanceConnectionName }}
           - name: DBCONFIG_USER
             valueFrom:
               secretKeyRef:

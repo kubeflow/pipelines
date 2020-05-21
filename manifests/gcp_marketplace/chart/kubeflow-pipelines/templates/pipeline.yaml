@@ -726,7 +726,7 @@ spec:
               value: 'pipeline-runner'
             - name: OBJECTSTORECONFIG_SECURE
               value: "false"
-            {{ if .Values.managedstorage.enabled }}
+            {{ if .Values.managedstorage.cloudsqlInstanceConnectionName }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
               value: '{{ tpl .Values.managedstorage.gcsBucketName . }}'
             - name: DBCONFIG_DBNAME
