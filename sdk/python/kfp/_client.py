@@ -672,7 +672,7 @@ class Client(object):
     workflow_json = json.loads(workflow)
     return workflow_json
 
-  def upload_pipeline(self, pipeline_package_path, pipeline_name=None):
+  def upload_pipeline(self, pipeline_package_path, pipeline_name=None, description: str = None):
     """Uploads the pipeline to the Kubeflow Pipelines cluster.
     Args:
       pipeline_package_path: Local path to the pipeline package.
@@ -681,7 +681,7 @@ class Client(object):
       Server response object containing pipleine id and other information.
     """
 
-    response = self._upload_api.upload_pipeline(pipeline_package_path, name=pipeline_name)
+    response = self._upload_api.upload_pipeline(pipeline_package_path, name=pipeline_name, description=description)
     if self._is_ipython():
       import IPython
       html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
