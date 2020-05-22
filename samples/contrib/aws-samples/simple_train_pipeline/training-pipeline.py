@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# Uncomment the apply(use_aws_secret()) below if you are not using OIDC
+# more info : https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/README.md
+
 import kfp
 import json
 import copy
@@ -41,7 +44,7 @@ def training(
         training_input_mode='File',
         hyperparameters={"k": "10", "feature_dim": "784"},
         channels=channelObjList,
-        instance_type='ml.p2.xlarge',
+        instance_type='ml.m5.2xlarge',
         instance_count=1,
         volume_size=50,
         max_run_time=3600,
@@ -73,7 +76,8 @@ def training(
         max_wait_time=max_wait_time,
         checkpoint_config=checkpoint_config,
         role=role,
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )#.apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(training, __file__ + '.zip')

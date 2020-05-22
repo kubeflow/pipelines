@@ -18,10 +18,10 @@ import unittest
 from pathlib import Path
 
 
-import kfp.components as comp
-from kfp.components.structures import ComponentReference, ComponentSpec, ContainerSpec, GraphInputReference, GraphSpec, InputSpec, InputValuePlaceholder, GraphImplementation, OutputPathPlaceholder, OutputSpec, TaskOutputArgument, TaskSpec
+from .. import components as comp
+from ..components.structures import ComponentReference, ComponentSpec, ContainerSpec, GraphInputReference, GraphSpec, InputSpec, InputValuePlaceholder, GraphImplementation, OutputPathPlaceholder, OutputSpec, TaskOutputArgument, TaskSpec
 
-from kfp.components._yaml_utils import load_yaml
+from ..components._yaml_utils import load_yaml
 
 class GraphComponentTestCase(unittest.TestCase):
     def test_handle_constructing_graph_component(self):

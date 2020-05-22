@@ -37,7 +37,8 @@ const (
 )
 
 const (
-	GoogleIAPUserIdentityHeader	string = "x-goog-authenticated-user-email"
+	GoogleIAPUserIdentityHeader string = "x-goog-authenticated-user-email"
+	GoogleIAPUserIdentityPrefix string = "accounts.google.com:"
 )
 
 func ToModelResourceType(apiType api.ResourceType) (ResourceType, error) {

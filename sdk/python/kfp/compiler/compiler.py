@@ -792,7 +792,6 @@ class Compiler(object):
     if params_list and pipeline_meta.inputs:
       raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
-
     args_list = []
     for arg_name in argspec.args:
       arg_type = None

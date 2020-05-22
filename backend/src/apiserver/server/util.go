@@ -282,7 +282,7 @@ func getUserIdentity(ctx context.Context) (string, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	// If the request header contains the user identity, requests are authorized
 	// based on the namespace field in the request.
-	if userIdentityHeader, ok := md[common.GoogleIAPUserIdentityHeader]; ok {
+	if userIdentityHeader, ok := md[common.GetKubeflowUserIDHeader()]; ok {
 		if len(userIdentityHeader) != 1 {
 			return "", util.NewBadRequestError(errors.New("Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader))),
 				"Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader)))

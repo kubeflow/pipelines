@@ -5,6 +5,7 @@ import os
 import utils
 
 from datetime import datetime
+from filelock import FileLock
 
 
 def pytest_addoption(parser):
@@ -86,12 +87,29 @@ def kfp_client():
     kfp_installed_namespace = utils.get_kfp_namespace()
     return kfp.Client(namespace=kfp_installed_namespace)
 
-
-@pytest.fixture(scope="session")
-def experiment_id(kfp_client):
-    exp_name = datetime.now().strftime("%Y-%m-%d")
+def get_experiment_id(kfp_client):
+    exp_name = datetime.now().strftime("%Y-%m-%d-%H-%M")
     try:
         experiment = kfp_client.get_experiment(experiment_name=exp_name)
     except ValueError:
         experiment = kfp_client.create_experiment(name=exp_name)
     return experiment.id
+
+@pytest.fixture(scope="session")
+def experiment_id(kfp_client, tmp_path_factory, worker_id):
+    if not worker_id:
+        return get_experiment_id(kfp_client)
+
+    # Locking taking as an example from
+    # https://github.com/pytest-dev/pytest-xdist#making-session-scoped-fixtures-execute-only-once
+    # get the temp directory shared by all workers
+    root_tmp_dir = tmp_path_factory.getbasetemp().parent
+
+    fn = root_tmp_dir / "experiment_id"
+    with FileLock(str(fn) + ".lock"):
+        if fn.is_file():
+            data = fn.read_text()
+        else:
+            data = get_experiment_id(kfp_client)
+            fn.write_text(data)
+    return data

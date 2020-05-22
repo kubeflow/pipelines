@@ -204,8 +204,8 @@ def build_python_component(component_func, target_image, base_image=None, depend
   if base_image is None:
     base_image = getattr(component_func, '_component_base_image', None)
   if base_image is None:
-    from ..components._python_op import get_default_base_image
-    base_image = get_default_base_image()
+    from ..components._python_op import default_base_image_or_builder
+    base_image = default_base_image_or_builder
     if isinstance(base_image, Callable):
       base_image = base_image()
 
