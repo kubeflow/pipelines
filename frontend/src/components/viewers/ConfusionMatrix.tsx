@@ -55,35 +55,7 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
       ) - 1
     : 0;
   private _shrinkThreshold = 600;
-  private _uiData = (() => {
-    // Raw data:
-    // [
-    //   [1, 2],
-    //   [3, 4],
-    // ]
-    // converts to UI data:
-    // y-axis
-    // ^
-    // |
-    // 1  [2, 4],
-    // |
-    // 0  [1, 3],
-    // |
-    // *---0--1---> x-axis
-    if (!this._config || !this._config.labels || !this._config.data) {
-      return [];
-    }
-    const labelCount = this._config.labels.length;
-    const uiData: number[][] = new Array(labelCount)
-      .fill(undefined)
-      .map(() => new Array(labelCount));
-    for (let i = 0; i < labelCount; ++i) {
-      for (let j = 0; j < labelCount; ++j) {
-        uiData[labelCount - 1 - j][i] = this._config.data[i]?.[j];
-      }
-    }
-    return uiData;
-  })();
+  private _uiData: number[][] = [];
 
   private _css = stylesheet({
     activeLabel: {
@@ -183,8 +155,36 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
     this.state = {
       activeCell: [-1, -1],
     };
+    // Raw data:
+    // [
+    //   [1, 2],
+    //   [3, 4],
+    // ]
+    // converts to UI data:
+    // y-axis
+    // ^
+    // |
+    // 1  [2, 4],
+    // |
+    // 0  [1, 3],
+    // |
+    // *---0--1---> x-axis
+    if (!this._config || !this._config.labels || !this._config.data) {
+      this._uiData = [];
+    } else {
+      const labelCount = this._config.labels.length;
+      const uiData: number[][] = new Array(labelCount)
+        .fill(undefined)
+        .map(() => new Array(labelCount));
+      for (let i = 0; i < labelCount; ++i) {
+        for (let j = 0; j < labelCount; ++j) {
+          uiData[labelCount - 1 - j][i] = this._config.data[i]?.[j];
+        }
+      }
+      this._uiData = uiData;
+    }
 
-    for (const i of this._config.data) {
+    for (const i of this._uiData) {
       const row = [];
       for (const j of i) {
         row.push(+j / this._max);

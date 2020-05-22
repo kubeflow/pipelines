@@ -30,7 +30,7 @@ exports[`ConfusionMatrix does not break on asymetric data 1`] = `
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.375)",
+              "backgroundColor": "rgba(41, 121, 255, 0.5)",
               "color": "#000",
             }
           }
@@ -52,8 +52,8 @@ exports[`ConfusionMatrix does not break on asymetric data 1`] = `
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.5)",
-              "color": "#000",
+              "backgroundColor": "rgba(41, 121, 255, 0.875)",
+              "color": "#fff",
             }
           }
         >
@@ -85,8 +85,8 @@ exports[`ConfusionMatrix does not break on asymetric data 1`] = `
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.75)",
-              "color": "#fff",
+              "backgroundColor": "rgba(41, 121, 255, 0.375)",
+              "color": "#000",
             }
           }
         >
@@ -107,7 +107,7 @@ exports[`ConfusionMatrix does not break on asymetric data 1`] = `
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.875)",
+              "backgroundColor": "rgba(41, 121, 255, 0.75)",
               "color": "#fff",
             }
           }
@@ -286,7 +286,7 @@ exports[`ConfusionMatrix renders a basic confusion matrix 1`] = `
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0)",
+              "backgroundColor": "rgba(41, 121, 255, 0.125)",
               "color": "#000",
             }
           }
@@ -308,7 +308,7 @@ exports[`ConfusionMatrix renders a basic confusion matrix 1`] = `
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.125)",
+              "backgroundColor": "rgba(41, 121, 255, 0.5)",
               "color": "#000",
             }
           }
@@ -341,7 +341,7 @@ exports[`ConfusionMatrix renders a basic confusion matrix 1`] = `
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.375)",
+              "backgroundColor": "rgba(41, 121, 255, 0)",
               "color": "#000",
             }
           }
@@ -363,7 +363,7 @@ exports[`ConfusionMatrix renders a basic confusion matrix 1`] = `
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.5)",
+              "backgroundColor": "rgba(41, 121, 255, 0.375)",
               "color": "#000",
             }
           }
@@ -526,7 +526,7 @@ exports[`ConfusionMatrix renders a small confusion matrix snapshot, with no labe
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0)",
+              "backgroundColor": "rgba(41, 121, 255, 0.125)",
               "color": "#000",
             }
           }
@@ -548,7 +548,7 @@ exports[`ConfusionMatrix renders a small confusion matrix snapshot, with no labe
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.125)",
+              "backgroundColor": "rgba(41, 121, 255, 0.5)",
               "color": "#000",
             }
           }
@@ -574,7 +574,7 @@ exports[`ConfusionMatrix renders a small confusion matrix snapshot, with no labe
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.375)",
+              "backgroundColor": "rgba(41, 121, 255, 0)",
               "color": "#000",
             }
           }
@@ -596,7 +596,7 @@ exports[`ConfusionMatrix renders a small confusion matrix snapshot, with no labe
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.5)",
+              "backgroundColor": "rgba(41, 121, 255, 0.375)",
               "color": "#000",
             }
           }
@@ -647,7 +647,7 @@ exports[`ConfusionMatrix renders only one of the given list of configs 1`] = `
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0)",
+              "backgroundColor": "rgba(41, 121, 255, 0.125)",
               "color": "#000",
             }
           }
@@ -669,7 +669,7 @@ exports[`ConfusionMatrix renders only one of the given list of configs 1`] = `
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.125)",
+              "backgroundColor": "rgba(41, 121, 255, 0.5)",
               "color": "#000",
             }
           }
@@ -702,7 +702,7 @@ exports[`ConfusionMatrix renders only one of the given list of configs 1`] = `
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.375)",
+              "backgroundColor": "rgba(41, 121, 255, 0)",
               "color": "#000",
             }
           }
@@ -724,7 +724,7 @@ exports[`ConfusionMatrix renders only one of the given list of configs 1`] = `
           onMouseOver={[Function]}
           style={
             Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.5)",
+              "backgroundColor": "rgba(41, 121, 255, 0.375)",
               "color": "#000",
             }
           }
