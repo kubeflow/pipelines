@@ -92,6 +92,7 @@ class BatchTransformTestCase(unittest.TestCase):
                           '--split_type', 'RecordIO',
                           '--assemble_with', 'Line',
                           '--join_source', 'Input',
+                          '--tags', '{"fake_key": "fake_value"}'
                 ])
     response = _utils.create_transform_job(mock_client, vars(mock_args))
 
@@ -103,7 +104,7 @@ class BatchTransformTestCase(unittest.TestCase):
       MaxConcurrentTransforms=5,
       MaxPayloadInMB=100,
       ModelName='model-test',
-      Tags=[],
+      Tags=[{'Key': 'fake_key', 'Value': 'fake_value'}],
       TransformInput={
           'DataSource': {'S3DataSource': {'S3DataType': 'S3Prefix',
                          'S3Uri': 's3://fake-bucket/data'}},

@@ -73,3 +73,14 @@ class WorkTeamTestCase(unittest.TestCase):
     mock_client.create_workteam.return_value = {"WorkteamArn": "fake-arn"}
 
     self.assertEqual(_utils.create_workteam(mock_client, vars(self.parser.parse_args(required_args))), 'fake-arn')
+
+  def test_pass_most_arguments(self):
+    arguments = required_args + ['--sns_topic', 'fake-topic', '--tags', '{"fake_key": "fake_value"}']
+    response = _utils.create_workteam_request(vars(self.parser.parse_args(arguments)))
+
+    self.assertEqual(response, {'WorkteamName': 'test-team',
+                                'MemberDefinitions': [{'CognitoMemberDefinition': {'UserPool': '', 'UserGroup': '', 'ClientId': ''}}],
+                                'Description': 'fake team',
+                                'NotificationConfiguration' : {'NotificationTopicArn': 'fake-topic'},
+                                'Tags': [{'Key': 'fake_key', 'Value': 'fake_value'}]
+                                })
