@@ -3,7 +3,7 @@
 ## Summary
 With Amazon SageMaker Components for Kubeflow Pipelines (KFP), you can create and monitor training, tuning, endpoint deployment, and batch transform jobs in Amazon SageMaker. By running Kubeflow Pipeline jobs on Amazon SageMaker, you move data processing and training jobs from the Kubernetes cluster to Amazon SageMaker’s machine learning-optimized managed service.
 
-Using the Amazon SageMaker components, each of the jobs in the pipeline workflow runs on Amazon SageMaker instead of the local Kubernetes cluster. The job parameters, status, logs, and outputs from Amazon SageMaker are still accessible from the Kubeflow Pipelines UI.
+Using the Amazon SageMaker components, each of the job steps in the pipeline workflow runs on Amazon SageMaker instead of the local Kubernetes cluster. The job parameters, status, logs, and outputs from Amazon SageMaker are still accessible from the Kubeflow Pipelines UI.
 
 
 ## Components
