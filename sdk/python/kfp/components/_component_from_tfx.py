@@ -1,5 +1,5 @@
 __all__ = [
-    'create_component_from_tfx',
+    'create_component_from_tfx_component',
 ]
 
 import collections
