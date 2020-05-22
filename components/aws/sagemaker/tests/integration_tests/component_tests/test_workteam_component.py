@@ -4,12 +4,12 @@ import json
 import utils
 from utils import kfp_client_utils
 from utils import sagemaker_utils
+from utils import minio_utils
 
 def create_workteamjob(
-    kfp_client, experiment_id, region, sagemaker_client, test_file_dir
+    kfp_client, experiment_id, region, sagemaker_client, test_file_dir, download_dir
 ):
 
-    download_dir = utils.mkdir(os.path.join(test_file_dir + "/generated"))
     test_params = utils.load_params(
         utils.replace_placeholders(
             os.path.join(test_file_dir, "config.yaml"),
@@ -25,7 +25,7 @@ def create_workteamjob(
         utils.generate_random_string(5) + "-" + test_params["Arguments"]["team_name"]
     )
 
-    _ = kfp_client_utils.compile_run_monitor_pipeline(
+    _, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,
         experiment_id,
         test_params["PipelineDefinition"],
@@ -34,11 +34,8 @@ def create_workteamjob(
         test_params["TestName"],
         test_params["Timeout"],
     )
-
-    # Delete generated files
-    utils.remove_dir(download_dir)
     
-    return workteam_name
+    return workteam_name, workflow_json
 
 
 @pytest.mark.parametrize(
@@ -53,14 +50,32 @@ def test_workteamjob(
     kfp_client, experiment_id, region, sagemaker_client, test_file_dir
 ):
 
-    workteam_name = create_workteamjob(kfp_client, experiment_id, region, sagemaker_client, test_file_dir)
+    download_dir = utils.mkdir(os.path.join(test_file_dir + "/generated"))
+    workteam_name, workflow_json = create_workteamjob(kfp_client, experiment_id, region, sagemaker_client, test_file_dir, download_dir)
+
+    outputs = {
+        "sagemaker-private-workforce": ["workteam_arn"]
+    }
+    output_files = minio_utils.artifact_download_iterator(
+        workflow_json, outputs, download_dir
+    )
 
     try:
-        # Verify WorkTeam was created in SageMaker
         response = sagemaker_utils.describe_workteam(sagemaker_client, workteam_name)
+
+        # Verify WorkTeam was created in SageMaker
         assert response['Workteam']["CreateDate"] is not None
         assert response['Workteam']["WorkteamName"] == workteam_name
-        assert response['Workteam']["WorkteamArn"] is not None
+
+        # Verify WorkTeam arn artifact was created in Minio and matches the one in SageMaker
+        workteam_arn = utils.read_from_file_in_tar(
+        output_files["sagemaker-private-workforce"]["workteam_arn"], "workteam_arn.txt"
+        )
+        assert response['Workteam']["WorkteamArn"] == workteam_arn
+
     finally:
         # Cleanup the SageMaker Resources
         sagemaker_utils.delete_workteam(sagemaker_client, workteam_name)
+
+    # Delete generated files only if the test is successful
+    utils.remove_dir(download_dir)

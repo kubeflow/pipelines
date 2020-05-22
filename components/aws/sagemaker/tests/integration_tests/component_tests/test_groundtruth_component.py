@@ -29,7 +29,7 @@ def test_groundtruth_labeling_job(
     )
 
     # First create a workteam using a separate pipeline and get the name, arn of the workteam created.
-    workteam_name = create_workteamjob(kfp_client, experiment_id, region, sagemaker_client, "resources/config/create-workteam")
+    workteam_name, _ = create_workteamjob(kfp_client, experiment_id, region, sagemaker_client, "resources/config/create-workteam", download_dir)
     
     test_params["Arguments"]["workteam_arn"] = workteam_arn = sagemaker_utils.get_workteam_arn(sagemaker_client, workteam_name)
 
@@ -38,13 +38,15 @@ def test_groundtruth_labeling_job(
         test_params["Arguments"]["ground_truth_train_job_name"] + "-by-" + workteam_name
     )
 
-    _ = kfp_client_utils.compile_run_pipeline(
+    _ = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,
         experiment_id,
         test_params["PipelineDefinition"],
         test_params["Arguments"],
         download_dir,
         test_params["TestName"],
+        test_params["Timeout"],
+        test_params["StatusToCheck"],
     )
 
     # Verify the GroundTruthJob was created in SageMaker and is InProgress.

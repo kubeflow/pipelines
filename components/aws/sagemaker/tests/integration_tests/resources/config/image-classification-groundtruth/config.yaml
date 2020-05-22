@@ -1,6 +1,7 @@
 PipelineDefinition: resources/definition/groundtruth_pipeline.py
 TestName: image-classification-groundtruth
-Timeout: 3600
+Timeout: 10
+StatusToCheck: 'running'
 Arguments:
   region: ((REGION))
   role: ((ROLE_ARN))
