@@ -1,5 +1,10 @@
 name: Chicago Taxi Trips dataset
-description: 'City of Chicago Taxi Trips dataset: https://data.cityofchicago.org/Transportation/Taxi-Trips/wrvz-psew'
+description: |
+  City of Chicago Taxi Trips dataset: https://data.cityofchicago.org/Transportation/Taxi-Trips/wrvz-psew
+
+  The input parameters configure the SQL query to the database.
+  The dataset is pretty big, so limit the number of results using the `Limit` or `Where` parameters.
+  Read [Socrata dev](https://dev.socrata.com/docs/queries/) for the advanced query syntax
 metadata:
   annotations:
     author: Alexey Volkov <alexey.volkov@ark-kun.com>
