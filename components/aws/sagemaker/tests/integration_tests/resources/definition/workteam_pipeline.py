@@ -28,7 +28,7 @@ def workteam_test(region='',
         user_pool=user_pool,
         user_groups=user_groups,
         client_id=client_id
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(workteam_test, "SageMaker_WorkTeam_Pipelines" + '.yaml')

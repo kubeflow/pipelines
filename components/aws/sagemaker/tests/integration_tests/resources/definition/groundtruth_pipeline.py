@@ -48,7 +48,7 @@ def ground_truth_test(region='',
         time_limit=ground_truth_time_limit,
         task_availibility=ground_truth_task_availibility,
         max_concurrent_tasks=ground_truth_max_concurrent_tasks
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(ground_truth_test, __file__ + '.yaml')
