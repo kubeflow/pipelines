@@ -143,9 +143,10 @@ export class OutputArtifactLoader {
     }
 
     const data = Array.from(Array(labels.length), () => new Array(labels.length));
-    csvRows.forEach(([target, predicted, count]) => {
-      const i = labelIndex[target.trim()];
-      const j = labelIndex[predicted.trim()];
+    csvRows.forEach(([labelX, labelY, count]) => {
+      const i = labelIndex[labelX.trim()];
+      const j = labelIndex[labelY.trim()];
+      // Note: data[i][j] means data(i, j) i on x-axis, j on y-axis
       data[i][j] = Number.parseInt(count, 10);
     });
 
