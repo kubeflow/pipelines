@@ -49,11 +49,11 @@ inputs:
     type: String
   - name: max_human_labeled_objects
     description: 'The maximum number of objects that can be labeled by human workers.'
-    default: ''
+    default: '0'
     type: Integer
   - name: max_percent_objects
     description: 'The maximum number of input data objects that should be labeled.'
-    default: ''
+    default: '0'
     type: Integer
   - name: enable_auto_labeling
     description: 'Enables auto-labeling, only for bounding box, text classification, and image classification.'

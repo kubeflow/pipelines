@@ -1,6 +1,7 @@
 import os
 import utils
 import pytest
+import time
 
 from utils import argo_utils
 
@@ -23,9 +24,20 @@ def compile_and_run_pipeline(
     return run.id
 
 
-def wait_for_job_completion(client, run_id, timeout):
+def wait_for_job_completion(client, run_id, timeout, status_to_check):
     response = client.wait_for_run_completion(run_id, timeout)
-    status = response.run.status.lower() == "succeeded"
+    status = response.run.status.lower() == status_to_check
+    return status
+
+
+def wait_for_job_status(client, run_id, timeout, status_to_check="succeeded"):
+    if status_to_check == "succeeded":
+        status = wait_for_job_completion(client, run_id, timeout, status_to_check)
+    else:
+        time.sleep(timeout)
+        response = client.get_run(run_id)
+        status = response.run.status.lower() == status_to_check
+
     return status
 
 
@@ -43,6 +55,7 @@ def compile_run_monitor_pipeline(
     output_file_dir,
     pipeline_name,
     timeout,
+    status_to_check="succeeded",
     check=True,
 ):
     run_id = compile_and_run_pipeline(
@@ -53,7 +66,7 @@ def compile_run_monitor_pipeline(
         output_file_dir,
         pipeline_name,
     )
-    status = wait_for_job_completion(client, run_id, timeout)
+    status = wait_for_job_status(client, run_id, timeout, status_to_check)
     workflow_json = get_workflow_json(client, run_id)
 
     if check and not status:

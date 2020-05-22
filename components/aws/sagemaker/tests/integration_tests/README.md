@@ -1,11 +1,18 @@
 ## Requirements
 1. [Docker](https://www.docker.com/)
-1. [IAM Role](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-roles.html) with a SageMakerFullAccess and AmazonS3FullAccess
-1. IAM User credentials with SageMakerFullAccess, AWSCloudFormationFullAccess, IAMFullAccess, AmazonEC2FullAccess, AmazonS3FullAccess permissions
+1. [Conda](https://docs.conda.io/en/latest/miniconda.html)
+1. [Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+1. Argo CLI: [Mac](https://github.com/argoproj/homebrew-tap), [Linux](https://eksworkshop.com/advanced/410_batch/install/)
+1. K8s cluster with Kubeflow pipelines > 0.4.0 installed
+1. [IAM Role](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-roles.html) with a `SageMakerFullAccess` and `AmazonS3FullAccess`
+1. IAM User credentials with `SageMakerFullAccess`, `AWSCloudFormationFullAccess`, `IAMFullAccess`, `AmazonEC2FullAccess`, `AmazonS3FullAccess` permissions
+2. The SageMaker WorkTeam and GroundTruth Component tests expect that at least one private workteam already exists in the region where you are running these tests. 
+
 
 ## Creating S3 buckets with datasets
+1. Change the bucket name and run the python script `[s3_sample_data_creator.py](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker#the-sample-dataset)` to create S3 buckets with mnist dataset in the region where you want to run the tests
+2. To prepare the dataset for the SageMaker GroundTruth Component test, follow the steps in the `[GroundTruth Sample README](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/ground_truth_pipeline_demo#prep-the-dataset-label-categories-and-ui-template)`.
 
-In the following Python script, change the bucket name and run the [`s3_sample_data_creator.py`](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker#the-sample-dataset) to create an S3 bucket with the sample mnist dataset in the region where you want to run the tests.
 
 ## Step to run integration tests
 1. Copy the `.env.example` file to `.env` and in the following steps modify the fields of this new file:
