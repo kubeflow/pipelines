@@ -55,6 +55,7 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
       ) - 1
     : 0;
   private _shrinkThreshold = 600;
+  private _uiData: number[][] = [];
 
   private _css = stylesheet({
     activeLabel: {
@@ -154,8 +155,36 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
     this.state = {
       activeCell: [-1, -1],
     };
+    // Raw data:
+    // [
+    //   [1, 2],
+    //   [3, 4],
+    // ]
+    // converts to UI data:
+    // y-axis
+    // ^
+    // |
+    // 1  [2, 4],
+    // |
+    // 0  [1, 3],
+    // |
+    // *---0--1---> x-axis
+    if (!this._config || !this._config.labels || !this._config.data) {
+      this._uiData = [];
+    } else {
+      const labelCount = this._config.labels.length;
+      const uiData: number[][] = new Array(labelCount)
+        .fill(undefined)
+        .map(() => new Array(labelCount));
+      for (let i = 0; i < labelCount; ++i) {
+        for (let j = 0; j < labelCount; ++j) {
+          uiData[labelCount - 1 - j][i] = this._config.data[i]?.[j];
+        }
+      }
+      this._uiData = uiData;
+    }
 
-    for (const i of this._config.data) {
+    for (const i of this._uiData) {
       const row = [];
       for (const j of i) {
         row.push(+j / this._max);
@@ -186,7 +215,7 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                 <td className={this._css.yAxisLabel}>{yAxisLabel}</td>
               </tr>
             )}
-            {this._config.data.map((row, r) => (
+            {this._uiData.map((row, r) => (
               <tr key={r}>
                 {!small && (
                   <td>
@@ -196,7 +225,11 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                         r === activeRow ? this._css.activeLabel : '',
                       )}
                     >
-                      {this._config.labels[r]}
+                      {
+                        this._config.labels[
+                          this._config.labels.length - 1 - r
+                        ] /* uiData's ith's row corresponds to the reverse ordered label */
+                      }
                     </div>
                   </td>
                 )}
@@ -209,6 +242,15 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                       color: this._opacities[r][c] < 0.6 ? color.foreground : color.background,
                     }}
                     onMouseOver={() => this.setState({ activeCell: [r, c] })}
+                    onMouseLeave={() =>
+                      this.setState(state => ({
+                        // Remove active cell if it's still the one active
+                        activeCell:
+                          state.activeCell[0] === r && state.activeCell[1] === c
+                            ? [-1, -1]
+                            : state.activeCell,
+                      }))
+                    }
                   >
                     <div
                       className={this._css.overlay}
