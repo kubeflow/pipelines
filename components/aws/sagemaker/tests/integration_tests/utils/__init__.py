@@ -30,6 +30,18 @@ def get_kfp_namespace():
     return os.environ.get("NAMESPACE")
 
 
+def get_fsx_subnet():
+    return os.environ.get("FSX_SUBNET")
+
+
+def get_fsx_security_group():
+    return os.environ.get("FSX_SECURITY_GROUP")
+
+
+def get_fsx_id():
+    return os.environ.get("FSX_ID")
+
+
 def get_algorithm_image_registry(region, algorithm):
     return get_image_uri(region, algorithm).split(".")[0]
 
@@ -61,6 +73,9 @@ def replace_placeholders(input_filename, output_filename):
         "((ROLE_ARN))": get_role_arn(),
         "((DATA_BUCKET))": get_s3_data_bucket(),
         "((KMEANS_REGISTRY))": get_algorithm_image_registry(region, "kmeans"),
+        "((FSX_ID))": get_fsx_id(),
+        "((FSX_SUBNET))": get_fsx_subnet(),
+        "((FSX_SECURITY_GROUP))": get_fsx_security_group(),
     }
 
     filedata = ""
