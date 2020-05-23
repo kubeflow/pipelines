@@ -812,11 +812,10 @@ class Compiler(object):
     # Fill in the default values.
     args_list_with_defaults = []
     if pipeline_meta.inputs:
-      args_list_with_defaults = [dsl.PipelineParam(sanitize_k8s_name(arg_name, True))
-                                 for arg_name in argspec.args]
-      if argspec.defaults:
-        for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
-          arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
+      args_list_with_defaults = [
+        dsl.PipelineParam(sanitize_k8s_name(input_spec.name, True), value=input_spec.default)
+        for input_spec in pipeline_meta.inputs
+      ]
     elif params_list:
       # Or, if args are provided by params_list, fill in pipeline_meta.
       for param in params_list:
