@@ -672,11 +672,17 @@ class Client(object):
     workflow_json = json.loads(workflow)
     return workflow_json
 
-  def upload_pipeline(self, pipeline_package_path, pipeline_name=None, description: str = None):
+  def upload_pipeline(
+    self,
+    pipeline_package_path: str = None,
+    pipeline_name: str = None,
+    description: str = None,
+  ):
     """Uploads the pipeline to the Kubeflow Pipelines cluster.
     Args:
       pipeline_package_path: Local path to the pipeline package.
       pipeline_name: Optional. Name of the pipeline to be shown in the UI.
+      description: Optional. Description of the pipeline to be shown in the UI.
     Returns:
       Server response object containing pipleine id and other information.
     """
