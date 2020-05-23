@@ -138,5 +138,4 @@ spec:
   volumes:
   - name: data-storage
     persistentVolumeClaim:
-      spec:
-        volumeName: data-volume
+      claimName: data-volume
