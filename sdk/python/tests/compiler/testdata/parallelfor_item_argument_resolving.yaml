@@ -27,22 +27,8 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
-              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-              
-              _output_serializers = [
-              
-              ]
-              
-              import os
-              for idx, output_file in enumerate(_output_files):
-                  try:
-                      os.makedirs(os.path.dirname(output_file))
-                  except OSError:
-                      pass
-                  with open(output_file, 'w') as f:
-                      f.write(_output_serializers[idx](_outputs[idx]))
         image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
@@ -71,22 +57,8 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
-              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-              
-              _output_serializers = [
-              
-              ]
-              
-              import os
-              for idx, output_file in enumerate(_output_files):
-                  try:
-                      os.makedirs(os.path.dirname(output_file))
-                  except OSError:
-                      pass
-                  with open(output_file, 'w') as f:
-                      f.write(_output_serializers[idx](_outputs[idx]))
         image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
@@ -115,22 +87,8 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
-              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-              
-              _output_serializers = [
-              
-              ]
-              
-              import os
-              for idx, output_file in enumerate(_output_files):
-                  try:
-                      os.makedirs(os.path.dirname(output_file))
-                  except OSError:
-                      pass
-                  with open(output_file, 'w') as f:
-                      f.write(_output_serializers[idx](_outputs[idx]))
         image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
@@ -159,22 +117,8 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
-              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-              
-              _output_serializers = [
-              
-              ]
-              
-              import os
-              for idx, output_file in enumerate(_output_files):
-                  try:
-                      os.makedirs(os.path.dirname(output_file))
-                  except OSError:
-                      pass
-                  with open(output_file, 'w') as f:
-                      f.write(_output_serializers[idx](_outputs[idx]))
         image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
@@ -203,22 +147,8 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
-              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-              
-              _output_serializers = [
-              
-              ]
-              
-              import os
-              for idx, output_file in enumerate(_output_files):
-                  try:
-                      os.makedirs(os.path.dirname(output_file))
-                  except OSError:
-                      pass
-                  with open(output_file, 'w') as f:
-                      f.write(_output_serializers[idx](_outputs[idx]))
         image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
@@ -247,22 +177,8 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
-              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-              
-              _output_serializers = [
-              
-              ]
-              
-              import os
-              for idx, output_file in enumerate(_output_files):
-                  try:
-                      os.makedirs(os.path.dirname(output_file))
-                  except OSError:
-                      pass
-                  with open(output_file, 'w') as f:
-                      f.write(_output_serializers[idx](_outputs[idx]))
         image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
@@ -291,22 +207,8 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
-              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-              
-              _output_serializers = [
-              
-              ]
-              
-              import os
-              for idx, output_file in enumerate(_output_files):
-                  try:
-                      os.makedirs(os.path.dirname(output_file))
-                  except OSError:
-                      pass
-                  with open(output_file, 'w') as f:
-                      f.write(_output_serializers[idx](_outputs[idx]))
         image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
