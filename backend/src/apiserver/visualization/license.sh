@@ -23,8 +23,15 @@
 
 # Get the list of python packages installed locally.
 IFS=$'\n'
-INSTALLED_PACKAGES=($(pip freeze | sed s/=.*//))
-
+INSTALLED_PACKAGES=($(if [ "$(uname -m)" = "x86_64" ]; then \
+                          pip freeze | sed s/=.*// ; \
+                      # As some of the AArch64 dependancies are installed from source,
+                      # running pip freeze will give additional package information after
+		      # an " @", we need to remove that part.
+		      # The license checking on some additional installed packages on AArch64 should also be skipped.
+		      elif [ "$(uname -m)" = "aarch64" ]; then \
+                          pip freeze | sed s/=.*// | sed s/@.*// | sed s/[[:space:]]// | sed s/Cython.*// | sed s/cffi.*// | sed s/jeepney.*// | sed s/pycairo.*// | sed s/pycparser.*// | sed /^$/d ; \
+                      fi))
 
 # Get the list of python packages tracked in the given CSV file.
 REGISTERED_PACKAGES=()

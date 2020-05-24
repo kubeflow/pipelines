@@ -1,0 +1,68 @@
+FROM ubuntu:18.04 as builder
+
+RUN apt-get update \
+     && apt-get install -y curl \
+          software-properties-common \
+          openjdk-8-jdk \
+          openjdk-8-jre-headless \
+          pkg-config \
+          zip \
+          g++ \
+          wget \
+          git \
+          zlib1g-dev \
+          unzip \
+          python \
+          python-dev \
+          python-setuptools \
+          python-virtualenv \
+          python3.6 \
+          python3.6-dev \
+          python3-setuptools \
+          autoconf \
+          autogen \
+          libtool \
+          build-essential \
+          cmake \
+          ninja-build \
+     && apt-get clean \
+     && rm -rf /var/lib/apt/lists/*
+
+ENV BAZEL_VERSION=1.1.0
+
+# Build bazel from source.
+RUN mkdir -p /bazel \
+     && cd /bazel \
+     && curl -fSsL -O https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-dist.zip \
+     && unzip bazel-$BAZEL_VERSION-dist.zip \
+     && ./compile.sh \
+     && cp output/bazel /usr/local/bin \
+     && rm -rf /bazel
+
+WORKDIR /
+
+# Build envoy v1.12.2 from source.
+RUN git clone https://github.com/envoyproxy/envoy.git && \
+    cd envoy && git checkout v1.12.2 && \
+    bazel build -c opt //source/exe:envoy-static
+
+FROM ubuntu:18.04
+
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y ca-certificates \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /tmp/* /var/tmp/* \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /etc/envoy
+
+COPY --from=builder /envoy/bazel-bin/source/exe/envoy-static /usr/local/bin/envoy
+COPY --from=builder /envoy/configs/google_com_proxy.v2.yaml /etc/envoy/envoy.yaml
+
+EXPOSE 10000
+
+COPY --from=builder /envoy/ci/docker-entrypoint.sh /
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["envoy", "-c", "/etc/envoy/envoy.yaml"]

@@ -7,7 +7,12 @@ RUN apk update && apk upgrade && \
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
 
-RUN GO111MODULE=on go build -o /bin/cache_server backend/src/cache/*.go
+RUN if [ "$(uname -m)" = "aarch64" ]; then \
+        GO111MODULE=on GOOS=linux GOARCH=arm64 go build -o /bin/cache_server backend/src/cache/*.go; \
+    else \
+        GO111MODULE=on GOOS=linux GOARCH=amd64 go build -o /bin/cache_server backend/src/cache/*.go; \
+    fi
+
 RUN git clone https://github.com/hashicorp/golang-lru.git /kfp/cache/golang-lru/
 
 FROM alpine:3.8
