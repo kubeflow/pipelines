@@ -1,0 +1,239 @@
+ARG BASE=python:3.5
+FROM $BASE as builder
+ARG TF_VERSION=v2.1.0
+
+# Install bazel
+RUN apt-get update \
+    && apt-get install -y curl \
+    	software-properties-common \
+        build-essential \
+        pkg-config \
+    	rsync \
+        zip \
+        unzip \
+        wget \
+        git \
+        gfortran \
+    	zlib1g-dev \
+        libcurl3-dev \
+        libfreetype6-dev \
+        libhdf5-serial-dev \
+        libzmq3-dev \
+        libtool \
+        liblapack-dev \
+        libopenblas-dev \
+    && apt-get clean
+
+# Bazel requires jdk, and the name of jdk package differ from Linux distributions.
+RUN if [ "$(cat /etc/issue | head -n1 | awk '{print $1;}')" = "Debian" ]; then \
+        apt-get update && apt-get install -y default-jdk && apt-get clean; \
+    elif [ "$(cat /etc/issue | head -n1 | awk '{print $1;}')" = "Ubuntu" ]; then \
+        apt-get update && apt-get install -y python3 openjdk-11-jdk openjdk-11-jre-headless && apt-get clean && \
+        ln -s /usr/bin/python3.6 /usr/bin/python && \
+        ln -s /usr/bin/python3.6 /usr/local/bin/python3; \
+    fi
+
+RUN apt-get update -y && \
+    apt-get install --no-install-recommends -y -q python3-setuptools python3-dev && \
+    wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+
+ENV BAZEL_VERSION=0.29.1
+
+RUN mkdir -p /bazel \
+    && cd /bazel \
+    && curl -fSsL -O https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-dist.zip \
+    && unzip bazel-$BAZEL_VERSION-dist.zip \
+    && ./compile.sh \
+    && cp output/bazel /usr/local/bin \
+    && rm -rf /bazel
+
+# Build and install tensorflow
+RUN pip3 --no-cache-dir install numpy cython scipy
+RUN pip3 --no-cache-dir install \
+    Pillow \
+    h5py \
+    keras_applications \
+    keras_preprocessing \
+    matplotlib \
+    mock \
+    sklearn \
+    pandas \
+    future \
+    portpicker \
+    enum34
+
+ENV TF_ROOT=/tensorflow
+ENV PYTHON_BIN_PATH=/usr/local/bin/python3
+ENV PYTHON_LIB_PATH="$($PYTHON_BIN_PATH -c 'import site; print(site.getsitepackages()[0])')"
+ENV PYTHONPATH=${TF_ROOT}/lib
+ENV PYTHON_ARG=${TF_ROOT}/lib
+ENV TF_NEED_GCP=0
+ENV TF_NEED_CUDA=0
+ENV TF_NEED_HDFS=0
+ENV TF_NEED_OPENCL=0
+ENV TF_NEED_JEMALLOC=0
+ENV TF_ENABLE_XLA=0
+ENV TF_NEED_VERBS=0
+ENV TF_NEED_MKL=0
+ENV TF_DOWNLOAD_MKL=0
+ENV TF_NEED_AWS=0
+ENV TF_NEED_MPI=0
+ENV TF_NEED_GDR=0
+ENV TF_NEED_S3=0
+ENV TF_NEED_OPENCL_SYCL=0
+ENV TF_SET_ANDROID_WORKSPACE=0
+ENV TF_NEED_COMPUTECPP=0
+ENV CC_OPT_FLAGS="-march=native"
+ENV TF_SET_ANDROID_WORKSPACE=0
+ENV TF_NEED_KAFKA=0
+ENV TF_NEED_TENSORRT=0
+
+RUN git clone https://github.com/tensorflow/tensorflow.git \
+    && cd tensorflow \
+    && git checkout $TF_VERSION \
+    && ./configure
+
+RUN cd tensorflow && bazel build --config=opt //tensorflow/tools/pip_package:build_pip_package \
+    && bazel-bin/tensorflow/tools/pip_package/build_pip_package /tmp/tensorflow_pkg \
+    && mv /tmp/tensorflow_pkg/tensorflow*.whl /
+
+# Build and install pyarrow v0.15.1
+# On AArch64 this package can only be installed from source.
+RUN apt-get update && \
+    apt-get install -y cmake \
+            automake autoconf \
+            libssl-dev \
+            libjemalloc-dev \
+            libboost-dev \
+            libboost-filesystem-dev \
+            libboost-system-dev \
+            libboost-regex-dev \
+            flex \
+            bison && \
+    pip3 install pytest wheel
+
+ARG ARROW_VERSION=0.15.1
+ARG ARROW_BUILD_TYPE=release
+
+ENV ARROW_HOME=/usr/local \
+    PARQUET_HOME=/usr/local
+
+RUN if [ "$(cat /etc/issue | head -n1 | awk '{print $1;}')" = "Ubuntu" ]; then \
+        pip3 uninstall -y enum34; \
+    fi \
+    && mkdir /arrow \
+    && apt-get install -y curl \
+    && curl -o /tmp/apache-arrow.tar.gz -SL https://github.com/apache/arrow/archive/apache-arrow-${ARROW_VERSION}.tar.gz \
+    && tar -xvf /tmp/apache-arrow.tar.gz -C /arrow --strip-components 1 \
+    && mkdir -p /arrow/cpp/build \
+    && cd /arrow/cpp/build \
+    && cmake -DCMAKE_BUILD_TYPE=$ARROW_BUILD_TYPE \
+          -DOPENSSL_ROOT_DIR=/usr/local/ssl \
+          -DCMAKE_INSTALL_LIBDIR=lib \
+          -DCMAKE_INSTALL_PREFIX=$ARROW_HOME \
+          -DARROW_WITH_BZ2=ON \
+          -DARROW_WITH_ZLIB=ON \
+          -DARROW_WITH_ZSTD=ON \
+          -DARROW_WITH_LZ4=ON \
+          -DARROW_WITH_SNAPPY=ON \
+          -DARROW_PARQUET=ON \
+          -DARROW_PYTHON=ON \
+          -DARROW_PLASMA=ON \
+          -DARROW_VERBOSE_THIRDPARTY_BUILD=ON \
+          -DARROW_BUILD_TESTS=OFF \
+          .. \
+    && make -j$(nproc) \
+    && make install \
+    && cd /arrow/python \
+    && python setup.py build_ext --build-type=$ARROW_BUILD_TYPE --with-parquet \
+    && python setup.py install \
+    # Build wheel
+    && python setup.py build_ext --build-type=$ARROW_BUILD_TYPE --bundle-arrow-cpp bdist_wheel \
+    && mv /arrow/python/dist/pyarrow*.whl /
+
+ENV LD_LIBRARY_PATH=/usr/local/lib
+
+# Build wheels of dependancies required by the api-server base image from source.
+RUN if [ "$(cat /etc/issue | head -n1 | awk '{print $1;}')" = "Debian" ]; then \
+        # ml-metadata needs bazel 0.24.1 to successfully compile
+        export BAZEL_VERSION=0.24.1 \
+        &&mkdir -p /bazel \
+        && cd /bazel \
+        && curl -fSsL -O https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-dist.zip \
+        && unzip bazel-$BAZEL_VERSION-dist.zip \
+        && ./compile.sh \
+        && cp output/bazel /usr/local/bin \
+        && rm -rf /bazel \
+        # Build wheel for ml-metadata 0.21.2
+        && cd / && git clone https://github.com/google/ml-metadata && cd ml-metadata && git checkout v0.21.2 && \
+        # Workaround to fix a weird versioning bug in the source code.
+        sed -ie "s/'0.22.0dev'/ '0.21.2'/g" ./ml_metadata/version.py && \
+        bazel run -c opt --define grpc_no_ares=true ml_metadata:build_pip_package && \
+        mv dist/*.whl /ml_metadata-0.21.2-cp35-cp35m-linux_aarch64.whl && \
+        # Build wheel for tfx-bsl 0.21.3
+        cd / && git clone https://github.com/tensorflow/tfx-bsl.git && cd /tfx-bsl && git checkout 0.21.3 && \
+        ./configure.sh && \
+        ln -s /usr/local/lib/lib* /usr/local/lib/python3.5/site-packages/pyarrow-0.15.1-py3.5-linux-aarch64.egg/pyarrow && \
+        bazel run -c opt tfx_bsl:build_pip_package && \
+        mv dist/*.whl / && \
+        # Build wheel for tensorflow-data-validation 0.21.4
+        cd / && git clone https://github.com/tensorflow/data-validation.git && cd /data-validation && git checkout v0.21.4 && \
+        sed -i 's/isnan/std::isnan/g' tensorflow_data_validation/anomalies/float_domain_util.cc && \
+        bazel run -c opt tensorflow_data_validation:build_pip_package && \
+        mv dist/*.whl / ; \
+    fi
+
+# Build wheels of dependancies required by the visualization server base image from source.
+RUN if [ "$(cat /etc/issue | head -n1 | awk '{print $1;}')" = "Ubuntu" ]; then \
+        # tensorflow-data-validation needs bazel 0.24.1 to successfully compile
+        export BAZEL_VERSION=0.24.1 \
+        && mkdir -p /bazel \
+        && cd /bazel \
+        && curl -fSsL -O https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-dist.zip \
+        && unzip bazel-$BAZEL_VERSION-dist.zip \
+        && ./compile.sh \
+        && cp output/bazel /usr/local/bin \
+        && rm -rf /bazel && \
+        # Build wheel for tfx-bsl 0.21.3
+        cd / && git clone https://github.com/tensorflow/tfx-bsl.git && cd /tfx-bsl && git checkout 0.21.3 && \
+        ./configure.sh && \
+        ln -s /usr/local/lib/lib* /usr/local/lib/python3.6/dist-packages/pyarrow-0.15.1-py3.6-linux-aarch64.egg/pyarrow && \
+        bazel run -c opt tfx_bsl:build_pip_package && \
+        mv dist/*.whl / && \
+        # Build wheel for tensorflow-data-validation 0.21.1
+        cd / && git clone https://github.com/tensorflow/data-validation.git && cd /data-validation && git checkout v0.21.1 && \
+        # Workaround to fix isnan build error caused by gcc.
+        sed -i 's/isnan/std::isnan/g' tensorflow_data_validation/anomalies/float_domain_util.cc && \
+        bazel run -c opt tensorflow_data_validation:build_pip_package && \
+        mv dist/*.whl / ; \
+    fi
+
+FROM $BASE
+
+RUN if [ "$(cat /etc/issue | head -n1 | awk '{print $1;}')" = "Ubuntu" ]; then \
+        apt-get update && apt-get install -y python3 wget && apt-get clean && \
+        ln -s /usr/bin/python3.6 /usr/bin/python && \
+        ln -s /usr/bin/python3.6 /usr/local/bin/python3; \
+    fi
+
+# For api-server base image, we need to install golang to compile argo
+RUN if [ "$(cat /etc/issue | head -n1 | awk '{print $1;}')" = "Debian" ]; then \
+        wget https://dl.google.com/go/go1.14.2.linux-arm64.tar.gz && \
+        tar -C /usr/local -xzf go1.14.2.linux-arm64.tar.gz && \
+        rm go1.14.2.linux-arm64.tar.gz; \
+    fi
+
+RUN apt-get update -y && \
+    apt-get install --no-install-recommends -y -q python3-setuptools python3-dev build-essential pkg-config zlib1g-dev \
+                    liblapack-dev libopenblas-dev gfortran libcurl3-dev libfreetype6-dev libhdf5-serial-dev libzmq3-dev libtool \
+                    libssl-dev libjemalloc-dev libboost-dev libboost-filesystem-dev libboost-system-dev libboost-regex-dev flex bison && \ 
+    apt-get clean && \
+    wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py && \
+    pip3 --no-cache-dir install cython numpy
+
+COPY --from=builder /usr/local/bin/bazel /usr/local/bin/bazel
+
+COPY --from=builder /*.whl /
+
+RUN pip3 install /*.whl && \
+    rm /*.whl

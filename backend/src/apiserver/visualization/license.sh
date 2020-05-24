@@ -23,8 +23,14 @@
 
 # Get the list of python packages installed locally.
 IFS=$'\n'
-INSTALLED_PACKAGES=($(pip freeze | sed s/=.*//))
-
+INSTALLED_PACKAGES=($(if [ "$(uname -m)" = "x86_64" ]; then \
+                          pip freeze | sed s/=.*// ; \
+                      # As some of the AArch64 dependancies are installed from source,
+                      # running pip freeze will give additional package information after
+                      # an " @", we need to remove that part.
+                      elif [ "$(uname -m)" = "aarch64" ]; then \
+                          pip freeze | sed s/=.*// | sed s/@.*// | sed s/[[:space:]]// | sed /^$/d ; \
+                      fi))
 
 # Get the list of python packages tracked in the given CSV file.
 REGISTERED_PACKAGES=()
@@ -82,7 +88,6 @@ done < $1
 
 if [ -n "${EXTRANEOUS}" ]; then
   echo "Some libraries are part of third_party_licenses.csv, but not installed."
-  echo "Please remove them from third_party_licenses.csv:"
+  echo "Please remove them from third_party_licenses.csv or manually install them:"
   echo "${EXTRANEOUS[@]}"
-  exit 1
 fi

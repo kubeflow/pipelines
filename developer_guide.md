@@ -23,9 +23,11 @@ $ docker push gcr.io/<your-gcp-project>/api-server:latest
 To build the API server image and upload it to GCR on non-x86_64 machines (such as aarch64 machines):
 ```bash
 # Build bazel (e.g. version 0.24.0) image firstly
-$ docker build -t bazel:0.24.0 -f backend/Dockerfile.bazel .
+$ docker build -t bazel:0.24.0 -f backend/Dockerfile.bazel --build-arg VERSION=0.24.0 .
+# Build tensorflow (e.g. version v2.1.0) base image firstly
+$ docker build -t tensorflow:v2.1.0 -f backend/Dockerfile.arm64base --build-arg TF_VERSION=v2.1.0 --build-arg BASE=python:3.5 .
 # Run in the repository root directory
-$ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f backend/Dockerfile --build-arg BAZEL_IMAGE=bazel:0.24.0 .
+$ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f backend/Dockerfile --build-arg BAZEL_IMAGE=bazel:0.24.0 --build-arg COMPILE_BASE=tensorflow:v2.1.0 .
 # Push to GCR
 $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/api-server:latest
@@ -56,6 +58,35 @@ $ docker build -t gcr.io/<your-gcp-project>/persistenceagent:latest -f backend/D
 # Push to GCR
 $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/persistenceagent:latest
+```
+
+To build the cache server image and upload it to GCR:
+```bash
+# Run in the repository root directory
+$ docker build -t gcr.io/<your-gcp-project>/cache-server:latest -f backend/Dockerfile.cacheserver .
+# Push to GCR
+$ gcloud auth configure-docker
+$ docker push gcr.io/<your-gcp-project>/cache-server:latest
+```
+
+To build the visualization server image and upload it to GCR on x86_64 machines:
+```bash
+# Run in the repository root directory
+$ docker build -t gcr.io/<your-gcp-project>/visualization-server:latest -f backend/Dockerfile.visualization .
+# Push to GCR
+$ gcloud auth configure-docker
+$ docker push gcr.io/<your-gcp-project>/visualization-server:latest
+```
+
+To build the visualization server image and upload it to GCR on non-x86_64 machines (such as aarch64 machines):
+```bash
+# Build tensorflow (e.g. version v2.1.0) base image firstly
+$ docker build -t tensorflow:v2.1.0 -f backend/Dockerfile.arm64base --build-arg TF_VERSION=v2.1.0 --build-arg BASE=ubuntu:18.04 .
+# Run in the repository root directory
+$ docker build -t gcr.io/<your-gcp-project>/visualization-server:latest -f backend/Dockerfile.visualization --build-arg TENSORFLOW_BASE=tensorflow:v2.1.0 .
+# Push to GCR
+$ gcloud auth configure-docker
+$ docker push gcr.io/<your-gcp-project>/visualization-server:latest
 ```
 
 To build the frontend image and upload it to GCR:

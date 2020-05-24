@@ -16,8 +16,14 @@ python dependency_helper.py dependencies.json
 
 # Building image
 
-To build the image run:
+To build the image on x86_64 machines, run:
 
 ```bash
+docker build -t <image-tag> .
+```
+
+On AArch64 machines, run:
+```bash
+docker build -t envoyproxy/envoy:v1.12.2 -f Dockerfile.envoybase.arm64 .
 docker build -t <image-tag> .
 ```

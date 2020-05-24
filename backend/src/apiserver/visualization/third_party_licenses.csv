@@ -18,8 +18,10 @@ bleach,https://raw.githubusercontent.com/mozilla/bleach/master/LICENSE,Apache 2.
 bokeh,https://raw.githubusercontent.com/bokeh/bokeh/master/LICENSE.txt,BSD-3
 cachetools,https://raw.githubusercontent.com/tkem/cachetools/master/LICENSE,MIT
 certifi,https://raw.githubusercontent.com/certifi/python-certifi/master/LICENSE,MPL 2.0
+cffi,https://raw.githubusercontent.com/cffi/cffi/master/COPYRIGHT,MIT
 chardet,https://raw.githubusercontent.com/chardet/chardet/master/LICENSE,LGPL
 crcmod,http://crcmod.sourceforge.net/intro.html#license,MIT
+Cython,https://raw.githubusercontent.com/cython/cython/master/COPYING.txt,Apache 2.0
 decorator,https://raw.githubusercontent.com/micheles/decorator/master/LICENSE.txt,BSD-2
 defusedxml,https://raw.githubusercontent.com/tiran/defusedxml/master/LICENSE,PSF
 dill,https://raw.githubusercontent.com/uqfoundation/dill/master/LICENSE,BSD-3
@@ -62,6 +64,7 @@ ipython-genutils,https://raw.githubusercontent.com/ipython/ipython_genutils/mast
 ipywidgets,https://raw.githubusercontent.com/jupyter-widgets/ipywidgets/master/LICENSE,BSD-3
 itables,https://raw.githubusercontent.com/mwouts/itables/master/LICENSE,MIT
 jedi,https://raw.githubusercontent.com/davidhalter/jedi/master/LICENSE.txt,MIT
+jeepney,https://gitlab.com/takluyver/jeepney/-/raw/master/LICENSE,MIT
 joblib,https://raw.githubusercontent.com/joblib/joblib/master/LICENSE.txt,BSD-3
 jsonschema,https://raw.githubusercontent.com/Julian/jsonschema/master/COPYING,MIT
 jupyter,https://raw.githubusercontent.com/jupyter/jupyter/master/LICENSE,BSD-3
@@ -91,6 +94,8 @@ ptyprocess,https://raw.githubusercontent.com/pexpect/ptyprocess/master/LICENSE,I
 pyarrow,https://raw.githubusercontent.com/apache/arrow/master/LICENSE.txt,Apache 2.0
 pyasn1,https://raw.githubusercontent.com/etingof/pyasn1/master/LICENSE.rst,BSD-2
 pyasn1-modules,https://raw.githubusercontent.com/etingof/pyasn1-modules/master/LICENSE.txt,BSD-2
+pycairo,https://raw.githubusercontent.com/pygobject/pycairo/master/COPYING,LGPL-2.1-only OR MPL-1.1
+pycparser,https://raw.githubusercontent.com/eliben/pycparser/master/LICENSE,BSD
 pydot,https://raw.githubusercontent.com/pydot/pydot/master/LICENSE,MIT
 pymongo,https://raw.githubusercontent.com/mongodb/mongo-python-driver/master/LICENSE,Apache 2.0
 pyparsing,https://raw.githubusercontent.com/pyparsing/pyparsing/master/LICENSE,MIT

@@ -17,16 +17,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM tensorflow/tensorflow:2.1.0-py3
+ARG TENSORFLOW_BASE=tensorflow/tensorflow:2.1.0-py3
+FROM $TENSORFLOW_BASE
 
 RUN apt-get update \
   && apt-get install -y wget curl tar \
   pkg-config libcairo2-dev libgirepository1.0-dev # For the pygobject and pycairo package setup due to licensing
 
-RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
-RUN mkdir -p /usr/local/gcloud
-RUN tar -C /usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz
-RUN /usr/local/gcloud/google-cloud-sdk/install.sh
+RUN if [ "$(uname -m)" = "x86_64" ]; then \
+        curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz && \
+        mkdir -p /usr/local/gcloud && \
+        tar -C /usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz && \
+        /usr/local/gcloud/google-cloud-sdk/install.sh; \
+    fi
+
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
 WORKDIR /src
@@ -34,6 +38,10 @@ WORKDIR /src
 COPY backend/src/apiserver/visualization/requirements.txt /src
 
 RUN pip3 install -r requirements.txt
+RUN if [ "$(uname -m)" = "aarch64" ]; then \
+        apt-get update && apt-get install -y python3-cairo-dev && \
+        pip3 --no-cache-dir install asn1crypto cryptography keyring keyrings.alt pycrypto pygobject==3.27.0 pyxdg SecretStorage; \
+    fi
 
 COPY backend/src/apiserver/visualization/license.sh /src
 COPY backend/src/apiserver/visualization/third_party_licenses.csv /src

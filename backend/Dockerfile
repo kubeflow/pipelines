@@ -1,4 +1,6 @@
 ARG BAZEL_IMAGE=l.gcr.io/google/bazel:0.24.0
+ARG COMPILE_BASE=python:3.5
+
 FROM $BAZEL_IMAGE as builder
 
 RUN apt-get update && \
@@ -24,7 +26,7 @@ RUN if [ "$use_remote_build" = "true" ]; then \
   fi
 
 # Compile
-FROM python:3.5 as compiler
+FROM $COMPILE_BASE as compiler
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
@@ -34,6 +36,16 @@ RUN python3 -m pip install -r requirements.txt
 # Downloading Argo CLI so that the samples are validated
 #ADD  https://github.com/argoproj/argo/releases/download/v2.7.5/argo-linux-amd64 /usr/local/bin/argo
 ADD  https://github.com/argoproj/argo/releases/download/v2.4.3/argo-linux-amd64 /usr/local/bin/argo
+# On AArch64, before the argo v2.7.5 (which has arm64 releases) comment above is removed, we get the binary from compiling the source.
+RUN if [ "$(uname -m)" = "aarch64" ]; then \
+        apt-get install -y go-dep && \
+        export PATH=$PATH:/usr/local/go/bin && \
+        go get github.com/argoproj/argo && cd $(go env GOPATH)/src/github.com/argoproj/argo && git checkout v2.4.3 && \
+        sed -i  's/amd64/arm64/' Makefile && \
+        dep ensure -vendor-only && make cli-linux-arm64 && cp ./dist/argo-linux-* /usr/local/bin/argo && \
+        rm -rf $(go env GOPATH)/src/github.com/argoproj/argo && rm -rf /usr/local/go; \
+    fi
+
 RUN chmod +x /usr/local/bin/argo
 
 WORKDIR /go/src/github.com/kubeflow/pipelines

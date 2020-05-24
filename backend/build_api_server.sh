@@ -80,15 +80,23 @@ if [[ ${USE_REMOTE_BUILD} == true ]]; then
   if [ $MACHINE_ARCH == "aarch64" ]; then
     docker build \
       -t bazel:0.24.0 \
-      -f backend/Dockerfile.bazel .
-
+      -f backend/Dockerfile.bazel \
+      --build-arg VERSION=0.24.0 \
+      .
+    docker build \
+      -t tensorflow:v2.1.0 \
+      -f backend/Dockerfile.arm64base \
+      --build-arg TF_VERSION=v2.1.0 \
+      --build-arg BASE=python:3.5 \
+      .
     docker build \
       -t "${IMAGE_TAG}" \
       -f backend/Dockerfile \
       . \
       --build-arg use_remote_build=true \
       --build-arg google_application_credentials="${GCP_CREDENTIALS}" \
-      --build-arg BAZEL_IMAGE=bazel:0.24.0
+      --build-arg BAZEL_IMAGE=bazel:0.24.0 \
+      --build-arg COMPILE_BASE=tensorflow:v2.1.0
   else
     docker build \
       -t "${IMAGE_TAG}" \
@@ -103,13 +111,21 @@ else
   if [ $MACHINE_ARCH == "aarch64" ]; then
     docker build \
       -t bazel:0.24.0 \
-      -f backend/Dockerfile.bazel .
-
+      -f backend/Dockerfile.bazel \
+      . \
+      --build-arg VERSION=0.24.0
+    docker build \
+      -t tensorflow:v2.1.0 \
+      -f backend/Dockerfile.arm64base \
+      --build-arg TF_VERSION=v2.1.0 \
+      --build-arg BASE=python:3.5 \
+      .
     docker build \
       -t "${IMAGE_TAG}" \
       -f backend/Dockerfile \
       . \
-      --build-arg BAZEL_IMAGE=bazel:0.24.0
+      --build-arg BAZEL_IMAGE=bazel:0.24.0 \
+      --build-arg COMPILE_BASE=tensorflow:v2.1.0
   else
     docker build \
       -t "${IMAGE_TAG}" \
