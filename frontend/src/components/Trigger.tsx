@@ -33,9 +33,19 @@ import {
   pickersToDate,
   triggers,
   TriggerType,
+  parseTrigger,
+  ParsedTrigger,
 } from '../lib/TriggerUtils';
+import { logger } from 'src/lib/Utils';
+
+type TriggerInitialProps = {
+  maxConcurrentRuns?: string;
+  catchup?: boolean;
+  trigger?: ApiTrigger;
+};
 
 interface TriggerProps {
+  initialProps?: TriggerInitialProps;
   onChange?: (config: {
     trigger?: ApiTrigger;
     maxConcurrentRuns?: string;
@@ -67,33 +77,48 @@ const css = stylesheet({
 });
 
 export default class Trigger extends React.Component<TriggerProps, TriggerState> {
-  public state = (() => {
-    const now = new Date();
-    const inAWeek = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + 7,
-      now.getHours(),
-      now.getMinutes(),
-    );
-    const [startDate, startTime] = dateToPickerFormat(now);
-    const [endDate, endTime] = dateToPickerFormat(inAWeek);
+  public state: TriggerState = (() => {
+    const { maxConcurrentRuns, catchup, trigger } =
+      this.props.initialProps || ({} as TriggerInitialProps);
+    let parsedTrigger: Partial<ParsedTrigger> = {};
+    try {
+      if (trigger) {
+        parsedTrigger = parseTrigger(trigger);
+      }
+    } catch (err) {
+      logger.warn('Failed to parse original trigger: ', trigger);
+      logger.warn(err);
+    }
+    const startDateTime = parsedTrigger.startDateTime ?? new Date();
+    const endDateTime =
+      parsedTrigger.endDateTime ??
+      new Date(
+        startDateTime.getFullYear(),
+        startDateTime.getMonth(),
+        startDateTime.getDate() + 7,
+        startDateTime.getHours(),
+        startDateTime.getMinutes(),
+      );
+    const [startDate, startTime] = dateToPickerFormat(startDateTime);
+    const [endDate, endTime] = dateToPickerFormat(endDateTime);
 
     return {
-      catchup: true,
-      cron: '',
-      editCron: false,
+      catchup: catchup ?? true,
+      maxConcurrentRuns: maxConcurrentRuns || '10',
+      hasEndDate: !!parsedTrigger?.endDateTime,
       endDate,
       endTime,
-      hasEndDate: false,
-      hasStartDate: false,
-      intervalCategory: PeriodicInterval.MINUTE,
-      intervalValue: 1,
-      maxConcurrentRuns: '10',
-      selectedDays: new Array(7).fill(true),
+      hasStartDate: !!parsedTrigger?.startDateTime,
       startDate,
       startTime,
-      type: TriggerType.INTERVALED,
+      selectedDays: new Array(7).fill(true),
+      type: parsedTrigger.type ?? TriggerType.INTERVALED,
+      // cron state
+      editCron: parsedTrigger.type === TriggerType.CRON,
+      cron: parsedTrigger.cron || '',
+      // interval state
+      intervalCategory: parsedTrigger.intervalCategory ?? PeriodicInterval.MINUTE,
+      intervalValue: parsedTrigger.intervalValue ?? 1,
     };
   })();
 
