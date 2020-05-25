@@ -14,8 +14,9 @@
 
 
 from typing import Dict
+import warnings
 
-from ._container_op import BaseOp
+from ._container_op import BaseOp, ContainerOp
 from . import _pipeline_param
 
 
@@ -103,6 +104,9 @@ class ResourceOp(BaseOp):
         if k8s_resource is None:
             raise ValueError("You need to provide a k8s_resource.")
 
+        if action == "delete":
+            warnings.warn('Please use `kubernetes_resource_delete_op` instead of `ResourceOp(action="delete")`', DeprecationWarning)
+
         if merge_strategy and action != "apply":
             raise ValueError("You can't set merge_strategy when action != 'apply'")
         
@@ -164,15 +168,37 @@ class ResourceOp(BaseOp):
         if self.resource.action == "delete":
             raise ValueError("This operation is already a resource deletion.")
 
-        k8s_resource = dict()
         if isinstance(self.k8s_resource, dict):
-            k8s_resource["apiVersion"] = self.k8s_resource["apiVersion"]
-            k8s_resource["kind"] = self.k8s_resource["kind"]
+            kind = self.k8s_resource["kind"]
         else:
-            k8s_resource["apiVersion"] = self.k8s_resource.api_version
-            k8s_resource["kind"] = self.k8s_resource.kind
-        k8s_resource["metadata"] = {"name": self.outputs["name"]}
+            kind = self.k8s_resource.kind
 
-        return ResourceOp(name="del-%s" % self.name,
-                          action="delete",
-                          k8s_resource=k8s_resource)
+        return kubernetes_resource_delete_op(
+            name=self.outputs["name"],
+            kind=kind
+        )
+
+
+def kubernetes_resource_delete_op(
+    name: str,
+    kind: str,
+    namespace: str = None,
+) -> ContainerOp:
+    """Operation that deletes a Kubernetes resource.
+    
+    Outputs:
+        name: The name of the deleted resource
+    """
+
+    command = [
+        'kubectl', 'delete', str(kind), str(name), '--ignore-not-found', '--output', 'name'
+    ]
+    if namespace:
+        command.extend(['--namespace', str(namespace)])
+
+    result = ContainerOp(
+        name='kubernetes_resource_delete',
+        image='gcr.io/cloud-builders/kubectl',
+        command=command,
+    )
+    return result
