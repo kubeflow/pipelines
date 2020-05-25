@@ -246,14 +246,13 @@ describe('TriggerUtils', () => {
       const startTime = new Date(1234);
       const parsedTrigger = parseTrigger({
         periodic_schedule: {
-          // there's type mismatch between real data and typing here, test by real data
-          start_time: startTime.toISOString() as any,
+          start_time: startTime,
           interval_second: '120',
         },
       });
       expect(parsedTrigger).toEqual({
         type: TriggerType.INTERVALED,
-        startDateTime: startTime.toISOString(),
+        startDateTime: startTime,
         endDateTime: undefined,
         intervalCategory: PeriodicInterval.MINUTE,
         intervalValue: 2,
@@ -264,8 +263,7 @@ describe('TriggerUtils', () => {
       const endTime = new Date(12345);
       const parsedTrigger = parseTrigger({
         cron_schedule: {
-          // there's type mismatch between real data and typing here, test by real data
-          end_time: endTime.toISOString() as any,
+          end_time: endTime,
           cron: '0 0 0 ? * 0,6',
         },
       });
@@ -273,7 +271,7 @@ describe('TriggerUtils', () => {
         type: TriggerType.CRON,
         cron: '0 0 0 ? * 0,6',
         startDateTime: undefined,
-        endDateTime: endTime.toISOString(),
+        endDateTime: endTime,
       });
     });
   });
