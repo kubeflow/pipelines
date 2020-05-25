@@ -30,6 +30,10 @@ const PERIODIC_DEFAULT = {
 };
 const CRON_DEFAULT = { cron: '0 * * * * ?', end_time: undefined, start_time: undefined };
 
+beforeAll(() => {
+  process.env.TZ = 'UTC';
+});
+
 describe('Trigger', () => {
   // tslint:disable-next-line:variable-name
   const RealDate = Date;
@@ -357,7 +361,7 @@ describe('Trigger', () => {
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
-          cron_schedule: { ...CRON_DEFAULT, start_time: new Date('2018-03-22T23:53:00.000Z') },
+          cron_schedule: { ...CRON_DEFAULT, start_time: new Date('2018-03-23T07:53:00.000Z') },
         },
       });
     });
