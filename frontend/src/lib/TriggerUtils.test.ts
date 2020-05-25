@@ -23,6 +23,7 @@ import {
   TriggerType,
   dateToPickerFormat,
   triggerDisplayString,
+  parseTrigger,
 } from './TriggerUtils';
 import { ApiTrigger } from '../apis/job';
 
@@ -233,6 +234,47 @@ describe('TriggerUtils', () => {
           '',
         ),
       ).toThrowError('Invalid TriggerType: ' + 'not a trigger type');
+    });
+  });
+
+  describe('parseTrigger', () => {
+    it('throws on invalid trigger', () => {
+      expect(() => parseTrigger({})).toThrow('Invalid trigger: {}');
+    });
+
+    it('parses periodic schedule', () => {
+      const startTime = new Date(1234);
+      const parsedTrigger = parseTrigger({
+        periodic_schedule: {
+          // there's type mismatch between real data and typing here, test by real data
+          start_time: startTime.toISOString() as any,
+          interval_second: '120',
+        },
+      });
+      expect(parsedTrigger).toEqual({
+        type: TriggerType.INTERVALED,
+        startDateTime: startTime.toISOString(),
+        endDateTime: undefined,
+        intervalCategory: PeriodicInterval.MINUTE,
+        intervalValue: 2,
+      });
+    });
+
+    it('parses cron schedule', () => {
+      const endTime = new Date(12345);
+      const parsedTrigger = parseTrigger({
+        cron_schedule: {
+          // there's type mismatch between real data and typing here, test by real data
+          end_time: endTime.toISOString() as any,
+          cron: '0 0 0 ? * 0,6',
+        },
+      });
+      expect(parsedTrigger).toEqual({
+        type: TriggerType.CRON,
+        cron: '0 0 0 ? * 0,6',
+        startDateTime: undefined,
+        endDateTime: endTime.toISOString(),
+      });
     });
   });
 
