@@ -222,16 +222,25 @@ export function parseTrigger(trigger: ApiTrigger): ParsedTrigger {
       type: TriggerType.INTERVALED,
       intervalCategory,
       intervalValue,
-      startDateTime: periodicSchedule.start_time,
-      endDateTime: periodicSchedule.end_time,
+      // Generated client has a bug the fields will be string here instead, so
+      // we use new Date() to convert them to Date.
+      startDateTime: periodicSchedule.start_time
+        ? new Date(periodicSchedule.start_time as any)
+        : undefined,
+      endDateTime: periodicSchedule.end_time
+        ? new Date(periodicSchedule.end_time as any)
+        : undefined,
     };
   }
   if (trigger.cron_schedule) {
+    const { cron, start_time: startTime, end_time: endTime } = trigger.cron_schedule;
     return {
       type: TriggerType.CRON,
-      cron: trigger.cron_schedule.cron || '',
-      startDateTime: trigger.cron_schedule.start_time,
-      endDateTime: trigger.cron_schedule.end_time,
+      cron: cron || '',
+      // Generated client has a bug the fields will be string here instead, so
+      // we use new Date() to convert them to Date.
+      startDateTime: startTime ? new Date(startTime as any) : undefined,
+      endDateTime: endTime ? new Date(endTime as any) : undefined,
     };
   }
   throw new Error(`Invalid trigger: ${JSON.stringify(trigger)}`);

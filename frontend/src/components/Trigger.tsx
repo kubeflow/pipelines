@@ -89,32 +89,16 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       logger.warn('Failed to parse original trigger: ', trigger);
       logger.warn(err);
     }
-    let startDateTime = new Date();
-    let endDateTime = new Date(
-      startDateTime.getFullYear(),
-      startDateTime.getMonth(),
-      startDateTime.getDate() + 7,
-      startDateTime.getHours(),
-      startDateTime.getMinutes(),
-    );
-    if (parsedTrigger.startDateTime) {
-      // Although startDateTime has Date type, but real data is string
-      // type time string. So we had to convert it to Date.
-      // TODO: fix the api client generator.
-      const clonedStartTime = new Date(parsedTrigger.startDateTime);
-      // Invalid dates will get NaN by .getTime()
-      if (Number.isFinite(clonedStartTime.getTime())) {
-        startDateTime = clonedStartTime;
-      }
-    }
-    if (parsedTrigger.endDateTime) {
-      // endDateTime is string in real data as explained above.
-      const clonedEndTime = new Date(parsedTrigger.endDateTime);
-      // Invalid dates will get NaN by .getTime()
-      if (Number.isFinite(clonedEndTime.getTime())) {
-        endDateTime = clonedEndTime;
-      }
-    }
+    const startDateTime = parsedTrigger.startDateTime ?? new Date();
+    const endDateTime =
+      parsedTrigger.endDateTime ??
+      new Date(
+        startDateTime.getFullYear(),
+        startDateTime.getMonth(),
+        startDateTime.getDate() + 7,
+        startDateTime.getHours(),
+        startDateTime.getMinutes(),
+      );
     const [startDate, startTime] = dateToPickerFormat(startDateTime);
     const [endDate, endTime] = dateToPickerFormat(endDateTime);
 
