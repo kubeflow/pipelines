@@ -29,6 +29,7 @@ import { logger } from '../lib/Utils';
 import { NamespaceContext } from '../lib/KubeflowClient';
 import { ApiFilter, PredicateOp } from '../apis/filter';
 import { ExperimentStorageState } from '../apis/experiment';
+import { ApiJob } from 'src/apis/job';
 
 class TestNewRun extends NewRun {
   public _experimentSelectorClosed = super._experimentSelectorClosed;
@@ -55,6 +56,7 @@ describe('NewRun', () => {
   const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
   const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+  const getJobSpy = jest.spyOn(Apis.jobServiceApi, 'getJob');
   const loggerErrorSpy = jest.spyOn(logger, 'error');
   const historyPushSpy = jest.fn();
   const historyReplaceSpy = jest.fn();
@@ -134,6 +136,23 @@ describe('NewRun', () => {
         pipeline_spec: {
           pipeline_id: 'original-run-pipeline-id',
           workflow_manifest: '{}',
+        },
+      },
+    };
+  }
+
+  function newMockJob(): ApiJob {
+    return {
+      id: 'job-id1',
+      name: 'some mock job name',
+      service_account: 'pipeline-runner',
+      pipeline_spec: {
+        pipeline_id: 'original-run-pipeline-id',
+        workflow_manifest: '{}',
+      },
+      trigger: {
+        periodic_schedule: {
+          interval_second: '60',
         },
       },
     };
@@ -1061,6 +1080,36 @@ describe('NewRun', () => {
           mode: 'error',
         }),
       );
+    });
+  });
+
+  // TODO: test other attributes and scenarios
+  describe('cloning from a recurring run', () => {
+    it('clones trigger schedule', async () => {
+      const jobDetail = newMockJob();
+      const startTime = new Date(1234);
+      jobDetail.name = 'job1';
+      jobDetail.trigger = {
+        periodic_schedule: {
+          interval_second: '360',
+          start_time: startTime.toISOString() as any,
+        },
+      };
+      const props = generateProps();
+      props.location.search = `?${QUERY_PARAMS.cloneFromRecurringRun}=${jobDetail.id}`;
+
+      getJobSpy.mockImplementation(() => jobDetail);
+
+      tree = shallow(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+
+      expect(tree.state('runName')).toBe('Clone of job1');
+      expect(tree.state('trigger')).toEqual({
+        periodic_schedule: {
+          interval_second: '360',
+          start_time: '1970-01-01T00:00:01.234Z',
+        },
+      });
     });
   });
 
