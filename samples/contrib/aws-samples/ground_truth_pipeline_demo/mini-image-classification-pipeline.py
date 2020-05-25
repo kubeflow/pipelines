@@ -59,7 +59,7 @@ def ground_truth_test(region='us-west-2',
     training_input_mode='Pipe',
     training_hyperparameters={"num_classes": "2", "num_training_samples": "14", "mini_batch_size": "2"},
     training_output_location='s3://your-bucket-name/mini-image-classification/training-output',
-    training_instance_type='ml.p2.xlarge',
+    training_instance_type='ml.m5.2xlarge',
     training_instance_count=1,
     training_volume_size=50,
     training_max_run_time=3600,
@@ -73,7 +73,7 @@ def ground_truth_test(region='us-west-2',
         user_pool=user_pool,
         user_groups=user_groups,
         client_id=client_id
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
     ground_truth_train = sagemaker_gt_op(
         region=region,
@@ -93,7 +93,7 @@ def ground_truth_test(region='us-west-2',
         time_limit=ground_truth_time_limit,
         task_availibility=ground_truth_task_availibility,
         max_concurrent_tasks=ground_truth_max_concurrent_tasks
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
     ground_truth_validation = sagemaker_gt_op(
         region=region,
@@ -113,7 +113,7 @@ def ground_truth_test(region='us-west-2',
         time_limit=ground_truth_time_limit,
         task_availibility=ground_truth_task_availibility,
         max_concurrent_tasks=ground_truth_max_concurrent_tasks
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
     channelObj['ChannelName'] = 'train'
     channelObj['DataSource']['S3DataSource']['S3Uri'] = str(ground_truth_train.outputs['output_manifest_location'])
@@ -134,7 +134,8 @@ def ground_truth_test(region='us-west-2',
         max_run_time=training_max_run_time,
         model_artifact_path=training_output_location,
         role=role_arn
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
+
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(ground_truth_test, __file__ + '.zip')

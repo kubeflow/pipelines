@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+
 import kfp
 import json
 import copy
@@ -44,8 +45,8 @@ hpoChannels.append(copy.deepcopy(channelObj))
     name='MNIST Classification pipeline',
     description='MNIST Classification using KMEANS in SageMaker'
 )
-def mnist_classification(region='us-west-2',
-    image='174872318107.dkr.ecr.us-west-2.amazonaws.com/kmeans:1',
+def mnist_classification(region='us-east-1',
+    image='382416733822.dkr.ecr.us-east-1.amazonaws.com/kmeans:1',
     training_input_mode='File',
     hpo_strategy='Bayesian',
     hpo_metric_name='test:msd',
@@ -61,7 +62,7 @@ def mnist_classification(region='us-west-2',
     hpo_checkpoint_config={},
     output_location='s3://kubeflow-pipeline-data/mnist_kmeans_example/output',
     output_encryption_key='',
-    instance_type='ml.p2.16xlarge',
+    instance_type='ml.m5.2xlarge',
     instance_count=1,
     volume_size=50,
     hpo_max_num_jobs=9,
@@ -115,7 +116,7 @@ def mnist_classification(region='us-west-2',
         max_wait_time=hpo_max_wait_time,
         checkpoint_config=hpo_checkpoint_config,
         role=role_arn,
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
     training = sagemaker_train_op(
         region=region,
@@ -136,7 +137,7 @@ def mnist_classification(region='us-west-2',
         max_wait_time=train_max_wait_time,
         checkpoint_config=train_checkpoint_config,
         role=role_arn,
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
     create_model = sagemaker_model_op(
         region=region,
@@ -146,13 +147,13 @@ def mnist_classification(region='us-west-2',
         model_artifact_url=training.outputs['model_artifact_url'],
         network_isolation=network_isolation,
         role=role_arn
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
     prediction = sagemaker_deploy_op(
         region=region,
         endpoint_url=endpoint_url,
         model_name_1=create_model.output,
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
     batch_transform = sagemaker_batch_transform_op(
         region=region,
@@ -169,7 +170,7 @@ def mnist_classification(region='us-west-2',
         split_type=batch_transform_split_type,
         compression_type=batch_transform_compression_type,
         output_location=batch_transform_ouput
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(mnist_classification, __file__ + '.zip')

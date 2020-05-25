@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+
 import kfp
 import json
 import copy
@@ -38,7 +39,7 @@ channelObjList.append(copy.deepcopy(channelObj))
     name='MNIST HPO test pipeline',
     description='SageMaker hyperparameter tuning job test'
 )
-def hpo_test(region='us-west-2',
+def hpo_test(region='us-east-1',
     hpo_job_name='HPO-kmeans-sample',
     image='',
     algorithm_name='K-Means',
@@ -56,7 +57,7 @@ def hpo_test(region='us-west-2',
     channels=channelObjList,
     output_location='s3://kubeflow-pipeline-data/mnist_kmeans_example/output',
     output_encryption_key='',
-    instance_type='ml.p2.16xlarge',
+    instance_type='ml.m5.2xlarge',
     instance_count=1,
     volume_size=50,
     max_num_jobs=1,
@@ -114,7 +115,8 @@ def hpo_test(region='us-west-2',
         checkpoint_config=checkpoint_config,
         tags=tags,
         role=role_arn,
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
+
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(hpo_test, __file__ + '.zip')
