@@ -12,6 +12,7 @@ inputs:
   - {name: Canary Custom Model Spec,        type: String, default: '{}', description: 'Custom runtime canary custom model container spec.'}
   - {name: Autoscaling Target,              type: String, default: '0',        description: 'Autoscaling Target Number'}
   - {name: KFServing Endpoint,              type: String, default: '', description: 'KFServing remote deployer API endpoint'}
+  - {name: Service Account,                type: String, default: '', description: 'Model Service Account'}
 outputs:
   - {name: Service Endpoint URI, type: String,                      description: 'URI of the deployed prediction service..'}
 implementation:
@@ -31,5 +32,6 @@ implementation:
       --canary-custom-model-spec, {inputValue: Canary Custom Model Spec},
       --kfserving-endpoint,       {inputValue: KFServing Endpoint},
       --autoscaling-target,       {inputValue: Autoscaling Target},
-      --output_path,              {outputPath: Service Endpoint URI}
+      --service-account,          {inputValue: Service Account},
+      --output-path,              {outputPath: Service Endpoint URI}
     ]
