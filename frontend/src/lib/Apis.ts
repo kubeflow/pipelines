@@ -98,7 +98,7 @@ export class Apis {
   /**
    * Get pod logs
    */
-  public static getPodLogs(podName: string, podNamespace?: string): Promise<string> {
+  public static getPodLogs(podName: string, podNamespace: string): Promise<string> {
     let query = `k8s/pod/logs?podname=${encodeURIComponent(podName)}`;
     if (podNamespace) {
       query += `&podnamespace=${encodeURIComponent(podNamespace)}`;
@@ -389,6 +389,7 @@ export class Apis {
       Utils.logger.error(
         `Response for path: ${path} was not 'ok'\n\nResponse was: ${responseText}`,
       );
+      // TODO: create/use existing HTTP error class
       throw new Error(responseText);
     }
   }
