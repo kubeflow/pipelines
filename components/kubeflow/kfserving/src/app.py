@@ -37,7 +37,8 @@ def deploy_model_post():
                 framework=request.json['framework'],
                 default_custom_model_spec=request.json['default_custom_model_spec'],
                 canary_custom_model_spec=request.json['canary_custom_model_spec'],
-                autoscaling_target=request.json['autoscaling_target']
+                autoscaling_target=request.json['autoscaling_target'],
+                service_account=request.json['service_account']
                 ))
 
 
