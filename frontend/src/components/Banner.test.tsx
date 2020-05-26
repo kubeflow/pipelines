@@ -53,7 +53,7 @@ describe('Banner', () => {
   });
 
   it('shows troubleshooting link instructed by prop', () => {
-    const tree = shallow(<Banner message='Some message' showTroubleshootingGuideLink={true} />);
+    const tree = shallow(<Banner message='Some message' mode='error' showTroubleshootingGuideLink={true} />);
     expect(tree).toMatchInlineSnapshot(`
       <div
         className="flex banner mode"
@@ -76,6 +76,27 @@ describe('Banner', () => {
             Troubleshooting guide
           </a>
         </div>
+      </div>
+    `);
+  });
+
+  it('does not show troubleshooting link if warning', () => {
+    const tree = shallow(<Banner message='Some message' mode='warning' showTroubleshootingGuideLink={true} />);
+    expect(tree).toMatchInlineSnapshot(`
+      <div
+        className="flex banner mode"
+      >
+        <div
+          className="message"
+        >
+          <pure(WarningIcon)
+            className="icon"
+          />
+          Some message
+        </div>
+        <div
+          className="flex"
+        />
       </div>
     `);
   });
