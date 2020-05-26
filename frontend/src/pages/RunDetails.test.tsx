@@ -1091,9 +1091,10 @@ describe('RunDetails', () => {
           >
             <Banner
               additionalInfo="getting logs failed"
-              message="Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption"
+              message="Failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption. Use Stackdriver Kubernetes Monitoring to view them."
               mode="warning"
               refresh={[Function]}
+              showTroubleshootingGuideLink={false}
             />
             <div
               className=""
@@ -1140,9 +1141,10 @@ describe('RunDetails', () => {
           >
             <Banner
               additionalInfo="getting logs failed"
-              message="Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption"
+              message="Failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption."
               mode="warning"
               refresh={[Function]}
+              showTroubleshootingGuideLink={false}
             />
           </div>
         </div>
@@ -1216,7 +1218,7 @@ describe('RunDetails', () => {
       expect(tree.state()).toMatchObject({
         logsBannerAdditionalInfo: 'getting logs failed',
         logsBannerMessage:
-          'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
+          'Failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption.',
         logsBannerMode: 'warning',
       });
 

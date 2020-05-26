@@ -473,6 +473,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                           message={this.state.logsBannerMessage}
                                           mode={this.state.logsBannerMode}
                                           additionalInfo={this.state.logsBannerAdditionalInfo}
+                                          showTroubleshootingGuideLink={false}
                                           refresh={this._loadSelectedNodeLogs.bind(this)}
                                         />
                                       </React.Fragment>
@@ -881,21 +882,26 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       return;
     }
     this.setStateSafe({ sidepanelBusy: true });
+
     try {
-      const logs = await Apis.getPodLogs(
+      selectedNodeDetails.logs = await Apis.getPodLogs(
         selectedNodeDetails.id,
         this.state.workflow?.metadata?.namespace,
       );
-      selectedNodeDetails.logs = logs;
+
       this.setStateSafe({
         logsBannerAdditionalInfo: '',
         logsBannerMessage: '',
         selectedNodeDetails,
       });
     } catch (err) {
+      let logsBannerMessage =
+        'Failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption.'
+      logsBannerMessage += this.props.gkeMetadata.projectId ?
+        ' Use Stackdriver Kubernetes Monitoring to view them.' : ''
+
       this.setStateSafe({
-        logsBannerMessage:
-          'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
+        logsBannerMessage,
         logsBannerAdditionalInfo: await errorToMessage(err),
         logsBannerMode: 'warning',
       });
