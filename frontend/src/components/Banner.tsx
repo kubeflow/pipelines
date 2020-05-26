@@ -121,7 +121,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
           {this.props.message}
         </div>
         <div className={commonCss.flex}>
-          {this.props.showTroubleshootingGuideLink && (
+          {this.props.mode === 'error' && this.props.showTroubleshootingGuideLink && (
             <a
               className={css.troubleShootingLink}
               href='https://www.kubeflow.org/docs/pipelines/troubleshooting'
