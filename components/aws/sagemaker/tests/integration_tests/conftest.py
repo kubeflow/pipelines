@@ -87,6 +87,7 @@ def kfp_client():
     kfp_installed_namespace = utils.get_kfp_namespace()
     return kfp.Client(namespace=kfp_installed_namespace)
 
+
 def get_experiment_id(kfp_client):
     exp_name = datetime.now().strftime("%Y-%m-%d-%H-%M")
     try:
@@ -94,6 +95,7 @@ def get_experiment_id(kfp_client):
     except ValueError:
         experiment = kfp_client.create_experiment(name=exp_name)
     return experiment.id
+
 
 @pytest.fixture(scope="session")
 def experiment_id(kfp_client, tmp_path_factory, worker_id):
