@@ -1,0 +1,175 @@
+name: Catboost train classifier
+description: |-
+  Train a CatBoost classifier model.
+
+      Args:
+          training_data_path: Path for the training data in CSV format.
+          model_path: Output path for the trained model in binary CatBoostClassifier format.
+          starting_model_path: Path for the existing trained model to start from.
+          label_column: Column containing the label data.
+
+          loss_function: The metric to use in training and also selector of the machine learning
+              problem to solve. Default = 'Logloss'
+          num_iterations: Number of trees to add to the ensemble.
+          learning_rate: Step size shrinkage used in update to prevents overfitting.
+              Default value is selected automatically for binary classification with other parameters set to default.
+              In all other cases default is 0.03.
+          depth: Depth of a tree. All trees are the same depth. Default = 6
+          random_seed: Random number seed. Default = 0
+
+          cat_features: A list of Categorical features (indices or names).
+          text_features: A list of Text features (indices or names).
+
+      Outputs:
+          model: Trained model in binary CatBoostClassifier format.
+
+      Annotations:
+          author: Alexey Volkov <alexey.volkov@ark-kun.com>
+inputs:
+- {name: training_data, type: CSV}
+- {name: starting_model, type: CatBoostClassifierModel, optional: true}
+- {name: label_column, type: Integer, default: '0', optional: true}
+- {name: loss_function, type: String, default: Logloss, optional: true}
+- {name: num_iterations, type: Integer, default: '500', optional: true}
+- {name: learning_rate, type: Float, optional: true}
+- {name: depth, type: Integer, default: '6', optional: true}
+- {name: random_seed, type: Integer, default: '0', optional: true}
+- {name: cat_features, type: JsonArray, optional: true}
+- {name: text_features, type: JsonArray, optional: true}
+outputs:
+- {name: model, type: CatBoostClassifierModel}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'catboost==0.22' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
+      --no-warn-script-location 'catboost==0.22' --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - "def _make_parent_dirs_and_return_path(file_path: str):\n    import os\n   \
+      \ os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return file_path\n\
+      \ndef catboost_train_classifier(\n    training_data_path,\n    model_path,\n\
+      \    starting_model_path = None,\n    label_column = 0,\n\n    loss_function\
+      \ = 'Logloss',\n    num_iterations = 500,\n    learning_rate = None,\n    depth\
+      \ = 6,\n    random_seed = 0,\n\n    cat_features = None,\n    text_features\
+      \ = None,\n):\n    '''Train a CatBoost classifier model.\n\n    Args:\n    \
+      \    training_data_path: Path for the training data in CSV format.\n       \
+      \ model_path: Output path for the trained model in binary CatBoostClassifier\
+      \ format.\n        starting_model_path: Path for the existing trained model\
+      \ to start from.\n        label_column: Column containing the label data.\n\n\
+      \        loss_function: The metric to use in training and also selector of the\
+      \ machine learning\n            problem to solve. Default = 'Logloss'\n    \
+      \    num_iterations: Number of trees to add to the ensemble.\n        learning_rate:\
+      \ Step size shrinkage used in update to prevents overfitting.\n            Default\
+      \ value is selected automatically for binary classification with other parameters\
+      \ set to default.\n            In all other cases default is 0.03.\n       \
+      \ depth: Depth of a tree. All trees are the same depth. Default = 6\n      \
+      \  random_seed: Random number seed. Default = 0\n\n        cat_features: A list\
+      \ of Categorical features (indices or names).\n        text_features: A list\
+      \ of Text features (indices or names).\n\n    Outputs:\n        model: Trained\
+      \ model in binary CatBoostClassifier format.\n\n    Annotations:\n        author:\
+      \ Alexey Volkov <alexey.volkov@ark-kun.com>\n    '''\n    import tempfile\n\
+      \    from pathlib import Path\n\n    from catboost import CatBoostClassifier,\
+      \ Pool\n\n    column_descriptions = {label_column, 'Label'}\n    column_description_path\
+      \ = tempfile.NamedTemporaryFile(delete=False).name\n    with open(column_description_path,\
+      \ 'w') as column_description_file:\n        for idx, kind in column_descriptions.items():\n\
+      \            column_description_file.write('{}\\t{}\\n'.format(idx, kind))\n\
+      \n    train_data = Pool(\n        training_data_path,\n        column_description=column_description_path,\n\
+      \    )\n\n    model = CatBoostClassifier(\n        iterations=num_iterations,\n\
+      \        depth=depth,\n        learning_rate=learning_rate,\n        loss_function=loss_function,\n\
+      \        verbose=True,\n    )\n\n    model.fit(\n        train_data,\n     \
+      \   train_labels=None,\n        cat_features=cat_features,\n        text_features=text_features,\
+      \         \n        init_model=starting_model_path,\n        #verbose=False,\n\
+      \        plot=True,\n    )\n    Path(model_path).parent.mkdir(parents=True,\
+      \ exist_ok=True)\n    model.save_model(model_path)\n\nimport json\nimport argparse\n\
+      _parser = argparse.ArgumentParser(prog='Catboost train classifier', description=\"\
+      Train a CatBoost classifier model.\\n\\n    Args:\\n        training_data_path:\
+      \ Path for the training data in CSV format.\\n        model_path: Output path\
+      \ for the trained model in binary CatBoostClassifier format.\\n        starting_model_path:\
+      \ Path for the existing trained model to start from.\\n        label_column:\
+      \ Column containing the label data.\\n\\n        loss_function: The metric to\
+      \ use in training and also selector of the machine learning\\n            problem\
+      \ to solve. Default = 'Logloss'\\n        num_iterations: Number of trees to\
+      \ add to the ensemble.\\n        learning_rate: Step size shrinkage used in\
+      \ update to prevents overfitting.\\n            Default value is selected automatically\
+      \ for binary classification with other parameters set to default.\\n       \
+      \     In all other cases default is 0.03.\\n        depth: Depth of a tree.\
+      \ All trees are the same depth. Default = 6\\n        random_seed: Random number\
+      \ seed. Default = 0\\n\\n        cat_features: A list of Categorical features\
+      \ (indices or names).\\n        text_features: A list of Text features (indices\
+      \ or names).\\n\\n    Outputs:\\n        model: Trained model in binary CatBoostClassifier\
+      \ format.\\n\\n    Annotations:\\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>\"\
+      )\n_parser.add_argument(\"--training-data\", dest=\"training_data_path\", type=str,\
+      \ required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--starting-model\"\
+      , dest=\"starting_model_path\", type=str, required=False, default=argparse.SUPPRESS)\n\
+      _parser.add_argument(\"--label-column\", dest=\"label_column\", type=int, required=False,\
+      \ default=argparse.SUPPRESS)\n_parser.add_argument(\"--loss-function\", dest=\"\
+      loss_function\", type=str, required=False, default=argparse.SUPPRESS)\n_parser.add_argument(\"\
+      --num-iterations\", dest=\"num_iterations\", type=int, required=False, default=argparse.SUPPRESS)\n\
+      _parser.add_argument(\"--learning-rate\", dest=\"learning_rate\", type=float,\
+      \ required=False, default=argparse.SUPPRESS)\n_parser.add_argument(\"--depth\"\
+      , dest=\"depth\", type=int, required=False, default=argparse.SUPPRESS)\n_parser.add_argument(\"\
+      --random-seed\", dest=\"random_seed\", type=int, required=False, default=argparse.SUPPRESS)\n\
+      _parser.add_argument(\"--cat-features\", dest=\"cat_features\", type=json.loads,\
+      \ required=False, default=argparse.SUPPRESS)\n_parser.add_argument(\"--text-features\"\
+      , dest=\"text_features\", type=json.loads, required=False, default=argparse.SUPPRESS)\n\
+      _parser.add_argument(\"--model\", dest=\"model_path\", type=_make_parent_dirs_and_return_path,\
+      \ required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\
+      _output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = catboost_train_classifier(**_parsed_args)\n\
+      \n_output_serializers = [\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n\
+      \    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n\
+      \        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+    args:
+    - --training-data
+    - {inputPath: training_data}
+    - if:
+        cond: {isPresent: starting_model}
+        then:
+        - --starting-model
+        - {inputPath: starting_model}
+    - if:
+        cond: {isPresent: label_column}
+        then:
+        - --label-column
+        - {inputValue: label_column}
+    - if:
+        cond: {isPresent: loss_function}
+        then:
+        - --loss-function
+        - {inputValue: loss_function}
+    - if:
+        cond: {isPresent: num_iterations}
+        then:
+        - --num-iterations
+        - {inputValue: num_iterations}
+    - if:
+        cond: {isPresent: learning_rate}
+        then:
+        - --learning-rate
+        - {inputValue: learning_rate}
+    - if:
+        cond: {isPresent: depth}
+        then:
+        - --depth
+        - {inputValue: depth}
+    - if:
+        cond: {isPresent: random_seed}
+        then:
+        - --random-seed
+        - {inputValue: random_seed}
+    - if:
+        cond: {isPresent: cat_features}
+        then:
+        - --cat-features
+        - {inputValue: cat_features}
+    - if:
+        cond: {isPresent: text_features}
+        then:
+        - --text-features
+        - {inputValue: text_features}
+    - --model
+    - {outputPath: model}
