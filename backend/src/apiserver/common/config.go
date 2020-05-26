@@ -27,6 +27,8 @@ const (
 	PodNamespace                        string = "POD_NAMESPACE"
 	CacheEnabled                        string = "CacheEnabled"
 	DefaultPipelineRunnerServiceAccount string = "DefaultPipelineRunnerServiceAccount"
+	KubeflowUserIDHeader                string = "KUBEFLOW_USERID_HEADER"
+	KubeflowUserIDPrefix                string = "KUBEFLOW_USERID_PREFIX"
 )
 
 func GetStringConfig(configName string) string {
@@ -87,4 +89,12 @@ func GetBoolFromStringWithDefault(value string, defaultValue bool) bool {
 
 func IsCacheEnabled() string {
 	return GetStringConfigWithDefault(CacheEnabled, "true")
+}
+
+func GetKubeflowUserIDHeader() string {
+	return GetStringConfigWithDefault(KubeflowUserIDHeader, GoogleIAPUserIdentityHeader)
+}
+
+func GetKubeflowUserIDPrefix() string {
+	return GetStringConfigWithDefault(KubeflowUserIDPrefix, GoogleIAPUserIdentityPrefix)
 }

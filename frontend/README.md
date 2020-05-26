@@ -112,7 +112,7 @@ To understand more what prettier is: [What is Prettier](https://prettier.io/docs
   },
   ```
   Also, vscode builtin trailing whitespace [conflicts with jest inline snapshot](https://github.com/Microsoft/vscode/issues/52711), so recommend disabling it.
-- For others, refer to https://prettier.io/docs/en/editors.html
+- For others, refer to https://prettier.io/docs/en/editors.html.
 
 ### Format Code Manually
 

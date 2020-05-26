@@ -129,7 +129,7 @@ def _fix_component_uri(uri: str) -> str:
 
 def _load_component_spec_from_file(path) -> ComponentSpec:
     with open(path, 'rb') as component_stream:
-        return _load_component_spec_from_yaml_or_zip_stream(component_stream)
+        return _load_component_spec_from_yaml_or_zip_bytes(component_stream.read())
 
 
 def _load_component_spec_from_url(url: str):
@@ -148,33 +148,30 @@ _COMPONENT_FILE_NAME_IN_ARCHIVE = 'component.yaml'
 
 
 def _load_component_spec_from_yaml_or_zip_bytes(data: bytes):
-    import io
-    component_stream = io.BytesIO(data)
-    return _load_component_spec_from_yaml_or_zip_stream(component_stream)
+    '''Loads component spec from binary data.
 
-
-def _load_component_spec_from_yaml_or_zip_stream(stream) -> ComponentSpec:
-    '''Loads component spec from a stream.
-
-    The stream can be YAML or a zip file with a component.yaml file inside.
+    The data can be a YAML file or a zip file with a component.yaml file inside.
     '''
     import zipfile
-    stream.seek(0)
+    import io
+    stream = io.BytesIO(data)
     if zipfile.is_zipfile(stream):
         stream.seek(0)
         with zipfile.ZipFile(stream) as zip_obj:
-            with zip_obj.open(_COMPONENT_FILE_NAME_IN_ARCHIVE) as component_stream:
-                return _load_component_spec_from_component_text(
-                    text_or_file=component_stream,
-                )
-    else:
-        stream.seek(0)
-        return _load_component_spec_from_component_text(stream)
+            data = zip_obj.read(_COMPONENT_FILE_NAME_IN_ARCHIVE)
+    return _load_component_spec_from_component_text(data)
 
 
-def _load_component_spec_from_component_text(text_or_file) -> ComponentSpec:
-    component_dict = load_yaml(text_or_file)
+def _load_component_spec_from_component_text(text) -> ComponentSpec:
+    component_dict = load_yaml(text)
     component_spec = ComponentSpec.from_dict(component_dict)
+
+    # Calculating hash digest for the component
+    import hashlib
+    data = text if isinstance(text, bytes) else text.encode('utf-8')
+    digest = hashlib.sha256(data).hexdigest()
+    component_spec._digest = digest
+
     return component_spec
 
 
@@ -287,6 +284,13 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
         component_ref = ComponentReference(spec=component_spec, url=component_filename)
     else:
         component_ref.spec = component_spec
+    
+    digest = getattr(component_spec, '_digest', None)
+    # TODO: Calculate the digest if missing
+    if digest:
+        # TODO: Report possible digest conflicts
+        component_ref.digest = digest
+
 
     def create_task_from_component_and_arguments(pythonic_arguments):
         arguments = {

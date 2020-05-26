@@ -112,8 +112,9 @@ def extract_pipelineparams_from_any(payload) -> List['PipelineParam']:
   # dict
   if isinstance(payload, dict):
     pipeline_params = []
-    for item in payload.values():
-      pipeline_params += extract_pipelineparams_from_any(item)
+    for key, value in payload.items():
+      pipeline_params += extract_pipelineparams_from_any(key)
+      pipeline_params += extract_pipelineparams_from_any(value)
     return list(set(pipeline_params))
 
   # k8s OpenAPI object

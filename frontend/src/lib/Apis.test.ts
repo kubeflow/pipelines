@@ -135,6 +135,32 @@ describe('Apis', () => {
     });
   });
 
+  it('buildReadFileUrl', () => {
+    expect(
+      Apis.buildReadFileUrl(
+        {
+          bucket: 'testbucket',
+          key: 'testkey',
+          source: StorageService.GCS,
+        },
+        'testnamespace',
+        255,
+      ),
+    ).toEqual(
+      'artifacts/get?source=gcs&namespace=testnamespace&peek=255&bucket=testbucket&key=testkey',
+    );
+  });
+
+  it('buildArtifactUrl', () => {
+    expect(
+      Apis.buildArtifactUrl({
+        bucket: 'testbucket',
+        key: 'testkey',
+        source: StorageService.GCS,
+      }),
+    ).toEqual('gcs://testbucket/testkey');
+  });
+
   it('getTensorboardApp', async () => {
     const spy = fetchSpy(
       JSON.stringify({ podAddress: 'http://some/address', tfVersion: '1.14.0' }),

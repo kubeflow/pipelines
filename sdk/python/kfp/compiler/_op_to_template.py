@@ -59,7 +59,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     # dict
     if isinstance(obj, dict):
         return {
-            key: _process_obj(value, map_to_tmpl_var)
+            _process_obj(key, map_to_tmpl_var): _process_obj(value, map_to_tmpl_var)
             for key, value in obj.items()
         }
 
@@ -155,7 +155,7 @@ def _outputs_to_json(op: BaseOp,
     else:
         value_from_key = "path"
     output_parameters = []
-    for param in outputs.values():
+    for param in set(outputs.values()):  # set() dedupes output references
         output_parameters.append({
             'name': param.full_name,
             'valueFrom': {
@@ -276,6 +276,9 @@ def _op_to_template(op: BaseOp):
 
     if isinstance(op, dsl.ContainerOp) and op._metadata:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)
+
+    if hasattr(op, '_component_ref'):
+        template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_ref'] = json.dumps(op._component_ref.to_dict(), sort_keys=True)
 
     if isinstance(op, dsl.ContainerOp) and op.execution_options:
         if op.execution_options.caching_strategy.max_cache_staleness:

@@ -11,9 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import * as os from 'os';
-import * as fs from 'fs';
-import * as path from 'path';
 import { PassThrough } from 'stream';
 import express from 'express';
 
@@ -27,6 +24,7 @@ import { loadConfigs } from './configs';
 import * as minioHelper from './minio-helper';
 import { TEST_ONLY as K8S_TEST_EXPORT } from './k8s-helper';
 import { Server } from 'http';
+import { commonSetup } from './integration-tests/test-helper';
 
 jest.mock('minio');
 jest.mock('node-fetch');
@@ -38,48 +36,17 @@ jest.mock('./minio-helper');
 
 const mockedFetch: jest.Mock = fetch as any;
 
-beforeEach(() => {
-  const consoleInfoSpy = jest.spyOn(global.console, 'info');
-  consoleInfoSpy.mockImplementation(() => null);
-  const consoleLogSpy = jest.spyOn(global.console, 'log');
-  consoleLogSpy.mockImplementation(() => null);
-});
-
-afterEach(() => {
-  jest.restoreAllMocks();
-  jest.resetAllMocks();
-});
-
 describe('UIServer apis', () => {
   let app: UIServer;
-  const indexHtmlPath = path.resolve(os.tmpdir(), 'index.html');
-  const argv = ['node', 'dist/server.js', os.tmpdir(), '3000'];
-  const buildDate = new Date().toISOString();
+  const tagName = '1.0.0';
   const commitHash = 'abcdefg';
-  const indexHtmlContent = `
-<html>
-<head>
-  <script>
-  window.KFP_FLAGS.DEPLOYMENT=null
-  </script>
-  <script id="kubeflow-client-placeholder"></script>
-</head>
-</html>`;
-
-  beforeAll(() => {
-    fs.writeFileSync(path.resolve(__dirname, 'BUILD_DATE'), buildDate);
-    fs.writeFileSync(path.resolve(__dirname, 'COMMIT_HASH'), commitHash);
-    fs.writeFileSync(indexHtmlPath, indexHtmlContent);
-  });
-
-  afterAll(() => {
-    fs.unlinkSync(path.resolve(__dirname, 'BUILD_DATE'));
-    fs.unlinkSync(path.resolve(__dirname, 'COMMIT_HASH'));
-    fs.unlinkSync(indexHtmlPath);
-  });
+  const { argv, buildDate, indexHtmlContent } = commonSetup({ tagName, commitHash });
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    const consoleInfoSpy = jest.spyOn(global.console, 'info');
+    consoleInfoSpy.mockImplementation(() => null);
+    const consoleLogSpy = jest.spyOn(global.console, 'log');
+    consoleLogSpy.mockImplementation(() => null);
   });
 
   afterEach(() => {
@@ -157,6 +124,7 @@ describe('UIServer apis', () => {
             apiServerReady: false,
             buildDate,
             frontendCommitHash: commitHash,
+            frontendTagName: tagName,
           },
           done,
         );
@@ -167,6 +135,7 @@ describe('UIServer apis', () => {
         json: () =>
           Promise.resolve({
             commit_sha: 'commit_sha',
+            tag_name: '1.0.0',
           }),
       }));
 
@@ -178,9 +147,11 @@ describe('UIServer apis', () => {
           200,
           {
             apiServerCommitHash: 'commit_sha',
+            apiServerTagName: '1.0.0',
             apiServerReady: true,
             buildDate,
             frontendCommitHash: commitHash,
+            frontendTagName: tagName,
           },
           done,
         );
@@ -710,15 +681,26 @@ describe('UIServer apis', () => {
           .expect(200, done);
       });
 
-      it('authorizes user requests from KFP auth api', done => {
-        app = new UIServer(loadConfigs(argv, { ENABLE_AUTHZ: 'true' }));
-        const appKfpApi = express();
+      function setupMockKfpApiService({ port = 3001 }: { port?: number } = {}) {
         const receivedHeaders: any[] = [];
-        appKfpApi.get('/apis/v1beta1/auth', (req, res) => {
-          receivedHeaders.push(req.headers);
-          res.status(200).send('{}'); // Authorized
-        });
-        kfpApiServer = appKfpApi.listen(3001);
+        kfpApiServer = express()
+          .get('/apis/v1beta1/auth', (req, res) => {
+            receivedHeaders.push(req.headers);
+            res.status(200).send('{}'); // Authorized
+          })
+          .listen(port);
+        return { receivedHeaders, host: 'localhost', port };
+      }
+
+      it('authorizes user requests from KFP auth api', done => {
+        const { receivedHeaders, host, port } = setupMockKfpApiService();
+        app = new UIServer(
+          loadConfigs(argv, {
+            ENABLE_AUTHZ: 'true',
+            ML_PIPELINE_SERVICE_PORT: `${port}`,
+            ML_PIPELINE_SERVICE_HOST: host,
+          }),
+        );
         k8sGetCustomObjectSpy.mockImplementation(() =>
           Promise.resolve(newGetTensorboardResponse()),
         );
@@ -741,20 +723,51 @@ describe('UIServer apis', () => {
           });
       });
 
+      it('uses configured KUBEFLOW_USERID_HEADER for user identity', done => {
+        const { receivedHeaders, host, port } = setupMockKfpApiService();
+        app = new UIServer(
+          loadConfigs(argv, {
+            ENABLE_AUTHZ: 'true',
+            KUBEFLOW_USERID_HEADER: 'x-kubeflow-userid',
+            ML_PIPELINE_SERVICE_PORT: `${port}`,
+            ML_PIPELINE_SERVICE_HOST: host,
+          }),
+        );
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(newGetTensorboardResponse()),
+        );
+        requests(app.start())
+          .get(`/apps/tensorboard?logdir=some-log-dir&namespace=test-ns`)
+          .set('x-kubeflow-userid', 'user@kubeflow.org')
+          .expect(200, err => {
+            expect(receivedHeaders).toHaveLength(1);
+            expect(receivedHeaders[0]).toHaveProperty('x-kubeflow-userid', 'user@kubeflow.org');
+            done(err);
+          });
+      });
+
       it('rejects user requests when KFP auth api rejected', done => {
         const errorSpy = jest.spyOn(console, 'error');
         errorSpy.mockImplementation();
-        app = new UIServer(loadConfigs(argv, { ENABLE_AUTHZ: 'true' }));
-        const appKfpApi = express();
-        appKfpApi.get('/apis/v1beta1/auth', (_, res) => {
-          res.status(400).send(
-            JSON.stringify({
-              error: 'User xxx is not unauthorized to list viewers',
-              details: ['unauthorized', 'callstack'],
-            }),
-          );
-        });
-        kfpApiServer = appKfpApi.listen(3001);
+
+        const apiServerPort = 3001;
+        kfpApiServer = express()
+          .get('/apis/v1beta1/auth', (_, res) => {
+            res.status(400).send(
+              JSON.stringify({
+                error: 'User xxx is not unauthorized to list viewers',
+                details: ['unauthorized', 'callstack'],
+              }),
+            );
+          })
+          .listen(apiServerPort);
+        app = new UIServer(
+          loadConfigs(argv, {
+            ENABLE_AUTHZ: 'true',
+            ML_PIPELINE_SERVICE_PORT: `${apiServerPort}`,
+            ML_PIPELINE_SERVICE_HOST: 'localhost',
+          }),
+        );
         k8sGetCustomObjectSpy.mockImplementation(() =>
           Promise.resolve(newGetTensorboardResponse()),
         );
@@ -1033,13 +1046,19 @@ describe('UIServer apis', () => {
     let kfpApiServer: Server;
 
     beforeEach(() => {
-      app = new UIServer(loadConfigs(argv, {}));
+      const kfpApiPort = 3001;
+      kfpApiServer = express()
+        .all('/*', (_, res) => {
+          res.status(200).send('KFP API is working');
+        })
+        .listen(kfpApiPort);
+      app = new UIServer(
+        loadConfigs(argv, {
+          ML_PIPELINE_SERVICE_PORT: `${kfpApiPort}`,
+          ML_PIPELINE_SERVICE_HOST: 'localhost',
+        }),
+      );
       request = requests(app.start());
-      const appKfpApi = express();
-      appKfpApi.all('/*', (_, res) => {
-        res.status(200).send('KFP API is working');
-      });
-      kfpApiServer = appKfpApi.listen(3001);
     });
 
     afterEach(() => {
