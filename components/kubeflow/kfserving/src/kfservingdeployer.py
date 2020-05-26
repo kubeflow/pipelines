@@ -36,17 +36,17 @@ from kfserving import V1alpha2InferenceService
 
 def EndpointSpec(framework, storage_uri):
     if framework == 'tensorflow':
-        return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(tensorflow=V1alpha2TensorflowSpec(storage_uri=storage_uri)))
+        return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(tensorflow=V1alpha2TensorflowSpec(storage_uri=storage_uri),  service_account_name=service_account))
     elif framework == 'pytorch':
-        return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(pytorch=V1alpha2PyTorchSpec(storage_uri=storage_uri)))
+        return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(pytorch=V1alpha2PyTorchSpec(storage_uri=storage_uri), service_account_name=service_account))
     elif framework == 'sklearn':
-        return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(sklearn=V1alpha2SKLearnSpec(storage_uri=storage_uri)))
+        return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(sklearn=V1alpha2SKLearnSpec(storage_uri=storage_uri), service_account_name=service_account))
     elif framework == 'xgboost':
-        return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(xgboost=V1alpha2XGBoostSpec(storage_uri=storage_uri)))
+        return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(xgboost=V1alpha2XGBoostSpec(storage_uri=storage_uri), service_account_name=service_account))
     elif framework == 'onnx':
-        return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(onnx=V1alpha2ONNXSpec(storage_uri=storage_uri)))
+        return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(onnx=V1alpha2ONNXSpec(storage_uri=storage_uri), service_account_name=service_account))
     elif framework == 'tensorrt':
-        return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(tensorrt=V1alpha2TensorRTSpec(storage_uri=storage_uri)))
+        return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(tensorrt=V1alpha2TensorRTSpec(storage_uri=storage_uri), service_account_name=service_account))
     else:
         raise("Error: No matching framework: " + framework)
 
@@ -76,7 +76,7 @@ def InferenceService(metadata, default_model_spec, canary_model_spec=None, canar
                                                                canary_traffic_percent=canary_model_traffic))
 
 
-def deploy_model(action, model_name, default_model_uri, canary_model_uri, canary_model_traffic, namespace, framework, default_custom_model_spec, canary_custom_model_spec, autoscaling_target=0):
+def deploy_model(action, model_name, default_model_uri, canary_model_uri, canary_model_traffic, namespace, framework, default_custom_model_spec, canary_custom_model_spec, service_account, autoscaling_target=0):
     if int(autoscaling_target) != 0:
         annotations = {"autoscaling.knative.dev/target": str(autoscaling_target)}
     else:
@@ -130,7 +130,8 @@ if __name__ == "__main__":
     parser.add_argument('--canary-custom-model-spec', type=json.loads, help='Custom runtime canary custom model container spec', default={})
     parser.add_argument('--kfserving-endpoint', type=str, help='kfserving remote deployer api endpoint', default='')
     parser.add_argument('--autoscaling-target', type=str, help='Autoscaling target number', default='0')
-    parser.add_argument('--output_path', type=str, help='Path to store URI output')
+    parser.add_argument("--service-account", type=str, help="Service account containing s3 credentials", default="")
+    parser.add_argument('--output-path', type=str, help='Path to store URI output')
     args = parser.parse_args()
 
     url = re.compile(r"https?://")
@@ -147,6 +148,7 @@ if __name__ == "__main__":
     canary_custom_model_spec = args.canary_custom_model_spec
     kfserving_endpoint = url.sub('', args.kfserving_endpoint)
     autoscaling_target = int(args.autoscaling_target)
+    service_account = args.service_account
 
     if kfserving_endpoint:
         formData = {
@@ -159,7 +161,8 @@ if __name__ == "__main__":
             "framework": framework,
             "default_custom_model_spec": default_custom_model_spec,
             "canary_custom_model_spec": canary_custom_model_spec,
-            "autoscaling_target": autoscaling_target
+            "autoscaling_target": autoscaling_target,
+            "service_account": service_account
             }
         response = requests.post("http://" + kfserving_endpoint + "/deploy-model", json=formData)
         model_status = response.json()
@@ -174,7 +177,8 @@ if __name__ == "__main__":
             framework=framework,
             default_custom_model_spec=default_custom_model_spec,
             canary_custom_model_spec=canary_custom_model_spec,
-            autoscaling_target=autoscaling_target
+            autoscaling_target=autoscaling_target,
+            service_account=service_account
         )
     print(model_status)
     try:
