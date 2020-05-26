@@ -331,7 +331,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 	if err != nil {
 		if s.db.IsDuplicateError(err) {
 			tx.Rollback()
-			return nil, util.NewInvalidInputError(
+			return nil, util.NewAlreadyExistError(
 				"Failed to create a new pipeline. The name %v already exist. Please specify a new name.", p.Name)
 		}
 		tx.Rollback()
@@ -342,7 +342,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 	if err != nil {
 		if s.db.IsDuplicateError(err) {
 			tx.Rollback()
-			return nil, util.NewInvalidInputError(
+			return nil, util.NewAlreadyExistError(
 				`Failed to create a new pipeline version. The name %v already
 				exist. Please specify a new name.`, p.DefaultVersion.Name)
 		}
@@ -500,7 +500,7 @@ func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion) (*model.
 	if err != nil {
 		tx.Rollback()
 		if s.db.IsDuplicateError(err) {
-			return nil, util.NewInvalidInputError(
+			return nil, util.NewAlreadyExistError(
 				"Failed to create a new pipeline version. The name %v already exist. Please specify a new name.", v.Name)
 		}
 		return nil, util.NewInternalServerError(err, "Failed to add version to pipeline version table: %v",
