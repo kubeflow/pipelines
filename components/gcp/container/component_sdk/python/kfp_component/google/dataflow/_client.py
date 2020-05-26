@@ -21,7 +21,11 @@ class DataflowClient:
 
     def launch_template(self, project_id, gcs_path, location, 
         validate_only, launch_parameters):
+<<<<<<< HEAD
         return self._df.projects().locations().templates().launch(
+=======
+        return self._df.projects().templates().locations().launch(
+>>>>>>> Update _client.py
             projectId = project_id,
             gcsPath = gcs_path,
             location = location,
