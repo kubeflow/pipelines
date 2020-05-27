@@ -46,7 +46,7 @@ def catboost_train_classifier(
 
     from catboost import CatBoostClassifier, Pool
 
-    column_descriptions = {label_column, 'Label'}
+    column_descriptions = {label_column: 'Label'}
     column_description_path = tempfile.NamedTemporaryFile(delete=False).name
     with open(column_description_path, 'w') as column_description_file:
         for idx, kind in column_descriptions.items():
@@ -55,6 +55,8 @@ def catboost_train_classifier(
     train_data = Pool(
         training_data_path,
         column_description=column_description_path,
+        has_header=True,
+        delimiter=',',
     )
 
     model = CatBoostClassifier(
@@ -67,21 +69,20 @@ def catboost_train_classifier(
 
     model.fit(
         train_data,
-        train_labels=None,
         cat_features=cat_features,
         text_features=text_features,         
         init_model=starting_model_path,
         #verbose=False,
-        plot=True,
+        #plot=True,
     )
     Path(model_path).parent.mkdir(parents=True, exist_ok=True)
     model.save_model(model_path)
 
 
 if __name__ == '__main__':
-    create_component_from_func(
+    catboost_train_classifier_op = create_component_from_func(
         catboost_train_classifier,
         output_component_file='component.yaml',
         base_image='python:3.7',
-        packages_to_install=['catboost==0.22']
+        packages_to_install=['catboost==0.23']
     )
