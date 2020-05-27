@@ -26,6 +26,7 @@ import tempfile
 import unittest
 import yaml
 
+from kfp import components
 from kfp.dsl._component import component
 from kfp.dsl import ContainerOp, pipeline
 from kfp.dsl.types import Integer, InconsistentTypeException
@@ -39,6 +40,10 @@ def some_op():
       image='busybox',
       command=['sleep 1'],
   )
+
+_TEST_GCS_DOWNLOAD_COMPONENT_URL = 'https://raw.githubusercontent.com/kubeflow/'\
+                                   'pipelines/master/components/google-cloud/'\
+                                   'storage/download/component.yaml'
 
 
 class TestCompiler(unittest.TestCase):
@@ -711,6 +716,26 @@ implementation:
       container = template.get('container', None)
       if container:
         self.assertEqual(template['retryStrategy']['limit'], 5)
+        
+  def test_oob_component_label(self):
+    gcs_download_op = components.load_component_from_url(
+        _TEST_GCS_DOWNLOAD_COMPONENT_URL)
+    
+    @dsl.pipeline(name='some_pipeline')
+    def some_pipeline():
+      _download_task = gcs_download_op('gs://some_bucket/some_dir/some_file')
+      
+    workflow_dict = compiler.Compiler()._compile(some_pipeline)
+    
+    found_download_task = False
+    for template in workflow_dict['spec']['templates']:
+      if template['name'] == 'download-from-gcs':
+        found_download_task = True
+        self.assertEqual(
+            template['metadata']['labels'][
+                'pipelines.kubeflow.org/component_name'],
+            'gcs_download')
+    self.assertTrue(found_download_task, 'download task not found in workflow.')
   
   def test_image_pull_policy(self):
     def some_op():

@@ -27,7 +27,7 @@ from kfp.dsl import _for_loop
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
 from ._op_to_template import _op_to_template
-from ._default_transformers import add_pod_env, add_pod_labels, get_default_telemetry_labels
+from ._default_transformers import add_pod_env, add_pod_labels, add_name_for_oob_components, get_default_telemetry_labels
 
 from ..components.structures import InputSpec
 from ..components._yaml_utils import dump_yaml
@@ -836,6 +836,7 @@ class Compiler(object):
     if allow_telemetry:
       pod_labels = get_default_telemetry_labels()
       op_transformers.append(add_pod_labels(pod_labels))
+      op_transformers.append(add_name_for_oob_components())
 
     op_transformers.extend(pipeline_conf.op_transformers)
 
