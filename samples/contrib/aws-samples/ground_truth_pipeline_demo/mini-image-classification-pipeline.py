@@ -33,7 +33,7 @@ channelObj = {
     name='Ground Truth image classification test pipeline',
     description='SageMaker Ground Truth job test'
 )
-def ground_truth_test(region='us-west-2',
+def ground_truth_test(region='us-east-1',
     team_name='ground-truth-demo-team',
     team_description='Team for mini image classification labeling job',
     user_pool='',

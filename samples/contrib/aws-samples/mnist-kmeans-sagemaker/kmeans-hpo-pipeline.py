@@ -41,7 +41,7 @@ channelObjList.append(copy.deepcopy(channelObj))
 )
 def hpo_test(region='us-east-1',
     hpo_job_name='HPO-kmeans-sample',
-    image='',
+    image='382416733822.dkr.ecr.us-east-1.amazonaws.com/kmeans:1',
     algorithm_name='K-Means',
     training_input_mode='File',
     metric_definitions={},
