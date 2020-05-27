@@ -338,6 +338,7 @@ func (s *UpgradeTests) VerifyJobs() {
 				Name: "hello-world.yaml", Relationship: job_model.APIRelationshipCREATOR,
 			},
 		},
+		ServiceAccount: "pipeline-runner",
 		MaxConcurrency: 10,
 		NoCatchup:      true,
 		Enabled:        true,
@@ -376,9 +377,10 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 				Name: "hello-world.yaml", Relationship: run_model.APIRelationshipCREATOR,
 			},
 		},
-		CreatedAt:   runDetail.Run.CreatedAt,
-		ScheduledAt: runDetail.Run.ScheduledAt,
-		FinishedAt:  runDetail.Run.FinishedAt,
+		ServiceAccount: "pipeline-runner",
+		CreatedAt:      runDetail.Run.CreatedAt,
+		ScheduledAt:    runDetail.Run.ScheduledAt,
+		FinishedAt:     runDetail.Run.FinishedAt,
 	}
 	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
 	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
