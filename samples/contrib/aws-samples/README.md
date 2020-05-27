@@ -114,7 +114,7 @@ There are two ways you can give them access to SageMaker.
       ```
    2. Use the stored `aws-secret` in pipeline code by adding this line to each component in your pipeline `.apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))`   
       [Kubeflow Document](https://www.kubeflow.org/docs/aws/pipeline/)  
-      [Example Code](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/simple_train_pipeline/training-pipeline.py#L76) (uncomment this line)
+      [Example Code](https://github.com/kubeflow/pipelines/blob/7d94de1baa20ac8660a8abfa589475de1bd54364/samples/contrib/aws-samples/simple_train_pipeline/training-pipeline.py#L79) (uncomment this line)
 
 ## Inputs to the pipeline
 
