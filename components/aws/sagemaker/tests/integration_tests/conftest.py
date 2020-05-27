@@ -36,15 +36,22 @@ def pytest_addoption(parser):
         help="Cluster namespace where kubeflow pipelines is installed",
     )
     parser.addoption(
-        "--fsx-subnet", required=False, help="The subnet in which FSx is installed"
+        "--fsx-subnet",
+        required=False,
+        help="The subnet in which FSx is installed",
+        default="",
     )
     parser.addoption(
         "--fsx-security-group",
         required=False,
         help="The security group SageMaker should use when running the FSx test",
+        default="",
     )
     parser.addoption(
-        "--fsx-id", required=False, help="The file system ID of the FSx instance"
+        "--fsx-id",
+        required=False,
+        help="The file system ID of the FSx instance",
+        default="",
     )
 
 
@@ -78,19 +85,19 @@ def kfp_namespace(request):
     return request.config.getoption("--kfp-namespace")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def fsx_subnet(request):
     os.environ["FSX_SUBNET"] = request.config.getoption("--fsx-subnet")
     return request.config.getoption("--fsx-subnet")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def fsx_security_group(request):
     os.environ["FSX_SECURITY_GROUP"] = request.config.getoption("--fsx-security-group")
     return request.config.getoption("--fsx-security-group")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def fsx_id(request):
     os.environ["FSX_ID"] = request.config.getoption("--fsx-id")
     return request.config.getoption("--fsx-id")
