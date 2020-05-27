@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 import argparse
 import logging
 from pathlib2 import Path
@@ -54,7 +55,7 @@ def create_parser():
 
 def main(argv=None):
   parser = create_parser()
-  args = parser.parse_args()
+  args = parser.parse_args(argv)
 
   logging.getLogger().setLevel(logging.INFO)
   client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
@@ -64,10 +65,11 @@ def main(argv=None):
   _utils.wait_for_transform_job(client, batch_job_name)
 
   Path(args.output_location_file).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.output_location_file).write_text(unicode(args.output_location))
+  with open(args.output_location_file, 'w') as f:
+    f.write(unicode(args.output_location))
 
   logging.info('Batch Transformation creation completed.')
 
 
 if __name__== "__main__":
-  main()
+  main(sys.argv[1:])
