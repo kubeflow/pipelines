@@ -17,7 +17,7 @@ outputs:
 - {name: Table, description: 'Result type depends on format. CSV and TSV have header.'}
 implementation:
   container:
-    image: alpine
+    image: curlimages/curl
     command:
     - sh
     - -c
