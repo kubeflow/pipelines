@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 import argparse
 import logging
 
@@ -53,7 +54,7 @@ def create_parser():
 
 def main(argv=None):
   parser = create_parser()
-  args = parser.parse_args()
+  args = parser.parse_args(argv)
 
   logging.getLogger().setLevel(logging.INFO)
   client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
@@ -72,4 +73,4 @@ def main(argv=None):
 
 
 if __name__== "__main__":
-  main()
+  main(sys.argv[1:])

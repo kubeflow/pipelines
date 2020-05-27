@@ -127,7 +127,7 @@ class HyperparameterTestCase(unittest.TestCase):
                                                     'RecordWrapperType': 'None', 
                                                     'InputMode': 'File'}], 
                                'OutputDataConfig': {'KmsKeyId': '', 'S3OutputPath': 'test-output-location'}, 
-                               'ResourceConfig': {'InstanceType': 'ml.m4.xlarge', 'InstanceCount': 1, 'VolumeSizeInGB': 1, 'VolumeKmsKeyId': ''}, 
+                               'ResourceConfig': {'InstanceType': 'ml.m4.xlarge', 'InstanceCount': 1, 'VolumeSizeInGB': 30, 'VolumeKmsKeyId': ''},
                                'StoppingCondition': {'MaxRuntimeInSeconds': 86400}, 
                                'EnableNetworkIsolation': True, 
                                'EnableInterContainerTrafficEncryption': False, 
@@ -327,12 +327,6 @@ class HyperparameterTestCase(unittest.TestCase):
     response = _utils.create_hyperparameter_tuning_job_request(vars(args))
     self.assertIn({'Key': 'key1', 'Value': 'val1'}, response['Tags'])
     self.assertIn({'Key': 'key2', 'Value': 'val2'}, response['Tags'])
-
-  def test_invalid_instance_type(self):
-    invalid_instance_args = required_args + ['--instance_type', 'invalid-instance']
-
-    with self.assertRaises(SystemExit):
-      self.parser.parse_args(invalid_instance_args)
 
   def test_valid_hyperparameters(self):
     hyperparameters_str = '{"hp1": "val1", "hp2": "val2", "hp3": "val3"}'

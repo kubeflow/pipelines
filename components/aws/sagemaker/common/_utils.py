@@ -254,21 +254,17 @@ def create_model_request(args):
         else:
             request['PrimaryContainer'].pop('ContainerHostname')
 
-        if (args['image'] or args['model_artifact_url']) and args['model_package']:
-            logging.error("Please specify an image AND model artifact url, OR a model package name.")
-            raise Exception("Could not make create model request.")
-        elif args['model_package']:
+        if args['model_package']:
             request['PrimaryContainer']['ModelPackageName'] = args['model_package']
             request['PrimaryContainer'].pop('Image')
             request['PrimaryContainer'].pop('ModelDataUrl')
+        elif args['image'] and args['model_artifact_url']:
+            request['PrimaryContainer']['Image'] = args['image']
+            request['PrimaryContainer']['ModelDataUrl'] = args['model_artifact_url']
+            request['PrimaryContainer'].pop('ModelPackageName')
         else:
-            if args['image'] and args['model_artifact_url']:
-                request['PrimaryContainer']['Image'] = args['image']
-                request['PrimaryContainer']['ModelDataUrl'] = args['model_artifact_url']
-                request['PrimaryContainer'].pop('ModelPackageName')
-            else:
-                logging.error("Please specify an image AND model artifact url.")
-                raise Exception("Could not make create model request.")
+            logging.error("Please specify an image AND model artifact url, OR a model package name.")
+            raise Exception("Could not make create model request.")
 
     request['ExecutionRoleArn'] = args['role']
     request['EnableNetworkIsolation'] = args['network_isolation']
@@ -296,6 +292,10 @@ def create_endpoint_config_request(args):
     with open(os.path.join(__cwd__, 'endpoint_config.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
 
+    if not args['model_name_1']:
+        logging.error("Must specify at least one model (model name) to host.")
+        raise Exception("Could not create endpoint config.")
+
     endpoint_config_name = args['endpoint_config_name'] if args['endpoint_config_name'] else 'EndpointConfig' + args['model_name_1'][args['model_name_1'].index('-'):]
     request['EndpointConfigName'] = endpoint_config_name
 
@@ -303,10 +303,6 @@ def create_endpoint_config_request(args):
         request['KmsKeyId'] = args['resource_encryption_key']
     else:
         request.pop('KmsKeyId')
-
-    if not args['model_name_1']:
-        logging.error("Must specify at least one model (model name) to host.")
-        raise Exception("Could not create endpoint config.")
 
     for i in range(len(request['ProductionVariants']), 0, -1):
         if args['model_name_' + str(i)]:
@@ -377,14 +373,14 @@ def wait_for_endpoint_creation(client, endpoint_name):
   finally:
     resp = client.describe_endpoint(EndpointName=endpoint_name)
     status = resp['EndpointStatus']
-    logging.info("Endpoint Arn: " + resp['EndpointArn'])
-    logging.info("Create endpoint ended with status: " + status)
 
     if status != 'InService':
-      message = client.describe_endpoint(EndpointName=endpoint_name)['FailureReason']
+      message = resp['FailureReason']
       logging.info('Create endpoint failed with the following error: {}'.format(message))
       raise Exception('Endpoint creation did not succeed')
 
+    logging.info("Endpoint Arn: " + resp['EndpointArn'])
+    logging.info("Create endpoint ended with status: " + status)
 
 def create_transform_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_transform_job
@@ -462,7 +458,7 @@ def create_transform_job(client, args):
       raise Exception(e.response['Error']['Message'])
 
 
-def wait_for_transform_job(client, batch_job_name):
+def wait_for_transform_job(client, batch_job_name, poll_interval=30):
   ### Wait until the job finishes
   while(True):
     response = client.describe_transform_job(TransformJobName=batch_job_name)
@@ -475,7 +471,7 @@ def wait_for_transform_job(client, batch_job_name):
       logging.info('Transform failed with the following error: {}'.format(message))
       raise Exception('Transform job failed')
     logging.info("Transform job is still in status: " + status)
-    time.sleep(30)
+    time.sleep(poll_interval)
 
 
 def create_hyperparameter_tuning_job_request(args):
@@ -809,7 +805,7 @@ def create_labeling_job(client, args):
         raise Exception(e.response['Error']['Message'])
 
 
-def wait_for_labeling_job(client, labeling_job_name):
+def wait_for_labeling_job(client, labeling_job_name, poll_interval=30):
     ### Wait until the job finishes
     status = 'InProgress'
     while(status == 'InProgress'):
@@ -820,7 +816,7 @@ def wait_for_labeling_job(client, labeling_job_name):
             logging.info('Labeling failed with the following error: {}'.format(message))
             raise Exception('Labeling job failed')
         logging.info("Labeling job is still in status: " + status)
-        time.sleep(30)
+        time.sleep(poll_interval)
 
     if status == 'Completed':
         logging.info("Labeling job ended with status: " + status)
