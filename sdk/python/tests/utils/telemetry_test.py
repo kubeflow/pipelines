@@ -17,21 +17,21 @@ from kfp.utils import telemetry
 
 import unittest
 
-_TEST_CUSTOM_URI = 'https://raw.githubusercontent.com/my_org/my_repo/master/'\
+_TEST_CUSTOM_URI = 'https://raw.githubusercontent.com/my_org/my_repo/master/' \
                    'component.yaml'
 
-_TEST_OOB_COMPONENT_URI = 'https://raw.githubusercontent.com/kubeflow/'\
-                          'pipelines/master/components/gcp/dataflow/'\
+_TEST_OOB_COMPONENT_URI = 'https://raw.githubusercontent.com/kubeflow/' \
+                          'pipelines/master/components/gcp/dataflow/' \
                           'launch_python/component.yaml'
 
 
 class TelemetryTest(unittest.TestCase):
-
+  
   def testOobUri(self):
     self.assertEqual(
         telemetry.get_component_name(_TEST_OOB_COMPONENT_URI),
         'dataflow_launch_python'
     )
-
+  
   def testCustomUriBypassing(self):
     self.assertIsNone(telemetry.get_component_name(_TEST_CUSTOM_URI))
