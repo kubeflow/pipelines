@@ -49,9 +49,11 @@ func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest
 }
 
 func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*api.Job, error) {
-	err := s.canAccessJob(ctx, request.Id)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+	if !common.IsMultiUserSharedReadMode() {
+		err := s.canAccessJob(ctx, request.Id)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize the request.")
+		}
 	}
 
 	job, err := s.resourceManager.GetJob(request.Id)
@@ -73,7 +75,7 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
 
-	if common.IsMultiUserMode() {
+	if common.IsMultiUserMode() && !common.IsMultiUserSharedReadMode() {
 		refKey := filterContext.ReferenceKey
 		if refKey == nil {
 			return nil, util.NewInvalidInputError("ListJobs must filter by resource reference in multi-user mode.")

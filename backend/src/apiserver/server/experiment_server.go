@@ -37,9 +37,11 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *api.Cr
 
 func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetExperimentRequest) (
 	*api.Experiment, error) {
-	err := s.canAccessExperiment(ctx, request.Id)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+	if !common.IsMultiUserSharedReadMode() {
+		err := s.canAccessExperiment(ctx, request.Id)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize the request.")
+		}
 	}
 
 	experiment, err := s.resourceManager.GetExperiment(request.Id)
@@ -63,7 +65,7 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 	}
 
 	refKey := filterContext.ReferenceKey
-	if common.IsMultiUserMode() {
+	if common.IsMultiUserMode() && !common.IsMultiUserSharedReadMode() {
 		if refKey == nil || refKey.Type != common.Namespace {
 			return nil, util.NewInvalidInputError("Invalid resource references for experiment. ListExperiment requires filtering by namespace.")
 		}
@@ -75,7 +77,7 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to authorize with API resource references")
 		}
-	} else {
+	} else if !common.IsMultiUserMode() {
 		if refKey != nil && refKey.Type == common.Namespace && len(refKey.ID) > 0 {
 			return nil, util.NewInvalidInputError("In single-user mode, ListExperiment cannot filter by namespace.")
 		}
