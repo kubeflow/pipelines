@@ -13,12 +13,20 @@
 # limitations under the License.
 
 from typing import Callable, Dict, Optional, Text
+
+from kfp.utils import telemetry
 from ..dsl._container_op import BaseOp, ContainerOp
 
 # Pod label indicating the SDK type from which the pipeline is
 # generated. By default it's set to kfp.
 _SDK_ENV_LABEL = 'pipelines.kubeflow.org/pipeline-sdk-type'
 _SDK_ENV_DEFAULT = 'kfp'
+
+# Key for component ref annotation.
+_COMPONENT_REF_ANNOTATION_KEY = 'pipelines.kubeflow.org/component_ref'
+
+# Key for component name pod label.
+_COMPONENT_NAME_LABEL_KEY = 'pipelines.kubeflow.org/component_name'
 
 
 def get_default_telemetry_labels() -> Dict[Text, Text]:
@@ -68,3 +76,21 @@ def add_pod_labels(labels: Optional[Dict[Text, Text]] = None) -> Callable:
         return task
 
     return _add_pod_labels
+
+
+def add_name_for_oob_components() -> Callable:
+    """Adds the OOB component name if applicable."""
+    
+    def _add_name_for_oob_components(task):
+        # Detect the component origin uri in component_ref if exists, and
+        # attach the OOB component name as a pod label.
+        if hasattr(task, 'pod_annotation'):
+            component_ref = task.pod_annotation.get(_COMPONENT_REF_ANNOTATION_KEY)
+            if component_ref:
+                origin_uri = component_ref.get('url')
+                component_name = telemetry.get_component_name(origin_uri)
+                task.add_pod_label(_COMPONENT_NAME_LABEL_KEY, component_name)
+            
+        return task
+    
+    return _add_name_for_oob_components
