@@ -26,6 +26,11 @@ function create_fsx_security_group() {
 
 function cleanup_fsx_security_group() {
   if [ ! -z "${FSX_SECURITY_GROUP_ID}" ]; then
+    # You must remove any self-referencing ingress rules before deleting a SG
+    aws ec2 revoke-security-group-ingress --region "${REGION}" \
+      --group-id "${FSX_SECURITY_GROUP_ID}" --protocol tcp --port 988 \
+      --source-group "${FSX_SECURITY_GROUP_ID}"
+
     aws ec2 delete-security-group --group-id "${FSX_SECURITY_GROUP_ID}" --region "${REGION}"
   fi
 }
