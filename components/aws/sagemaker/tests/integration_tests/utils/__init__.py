@@ -82,6 +82,8 @@ def replace_placeholders(input_filename, output_filename):
     with open(input_filename, "r") as f:
         filedata = f.read()
         for replace_key, replace_value in variables_to_replace.items():
+            if replace_value is None:
+                continue
             filedata = filedata.replace(replace_key, replace_value)
 
     with open(output_filename, "w") as f:
