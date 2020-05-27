@@ -97,7 +97,7 @@ trap cleanup EXIT
 set -e
 
 function launch_eks() {
-  EKS_CLUSTER_NAME="${DEPLOY_NAME}-eks-cluster"
+  export EKS_CLUSTER_NAME="${DEPLOY_NAME}-eks-cluster"
 
   echo "[Creating EKS] Launching EKS cluster $EKS_CLUSTER_NAME"
 
@@ -182,8 +182,9 @@ else
 
   if [[ "${SKIP_FSX_TESTS}" == "false" ]]; then
     create_fsx_security_group
-    create_fsx_instance
+    create_fsx_instance &
   fi
+  wait
 fi
 
 generate_iam_role_name
