@@ -62,7 +62,7 @@ function create_fsx_instance() {
 
   echo "[Creating FSx] File system now available"
 
-  export FSX_ID="${fs_id}"
+  FSX_ID="${fs_id}"
 
   return 0
 }

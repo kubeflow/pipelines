@@ -97,8 +97,6 @@ trap cleanup EXIT
 set -e
 
 function launch_eks() {
-  export EKS_CLUSTER_NAME="${DEPLOY_NAME}-eks-cluster"
-
   echo "[Creating EKS] Launching EKS cluster $EKS_CLUSTER_NAME"
 
   eksctl_args=( --managed --nodes "${EKS_NODE_COUNT}" --node-type=c5.xlarge --timeout=30m --region "${REGION}" --auto-kubeconfig --version "${EKS_CLUSTER_VERSION}" )
@@ -167,11 +165,12 @@ function cleanup_kfp() {
 
 if [[ -z "${EKS_EXISTING_CLUSTER}" ]]; then
   # Launch all of these in parallel to reduce start-up time
+  EKS_CLUSTER_NAME="${DEPLOY_NAME}-eks-cluster"
   launch_eks &
 
   if [[ "${SKIP_FSX_TESTS}" == "false" ]]; then
     create_fsx_security_group
-    create_fsx_instance &
+    create_fsx_instance
   fi
 
   wait
@@ -182,7 +181,7 @@ else
 
   if [[ "${SKIP_FSX_TESTS}" == "false" ]]; then
     create_fsx_security_group
-    create_fsx_instance &
+    create_fsx_instance
   fi
   wait
 fi
