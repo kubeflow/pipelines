@@ -57,7 +57,7 @@ function create_fsx_instance() {
 
   if [[ "${fs_status}" != "AVAILABLE" ]]; then
     echo "[Creating FSx] FSx cluster never reached state 'Available'"
-    return 1
+    exit 1
   fi
 
   echo "[Creating FSx] File system now available"
