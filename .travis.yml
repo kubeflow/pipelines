@@ -39,6 +39,11 @@ matrix:
         # Visualization test dependencies
         - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
         - pip3 install -r requirements-test.txt
+        # Using Argo to lint all compiled workflows
+        - export LOCAL_BIN="${HOME}/.local/bin"
+        - mkdir -p "$LOCAL_BIN"
+        - export PATH="${PATH}:$LOCAL_BIN" # Unnecessary - Travis already has it in PATH
+        - wget --quiet -O "${LOCAL_BIN}/argo" https://github.com/argoproj/argo/releases/download/v2.3.0/argo-linux-amd64 && chmod +x "${LOCAL_BIN}/argo"
       script: &1 # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - python3 -m pip install -e .
