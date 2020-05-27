@@ -49,11 +49,11 @@ steps:
     )
     for image in "${images[@]}"
     do
-      FROM_IMAGE="gcr.io/$PROJECT_ID/$image"
-      TARGET_IMAGE="gcr.io/ml-pipeline/$image:$TAG_NAME"
-      docker pull $FROM_IMAGE
-      docker tag $FROM_IMAGE $TARGET_IMAGE
-      docker push $TARGET_IMAGE
+      from_image="gcr.io/$PROJECT_ID/$image:$COMMIT_SHA"
+      target_image="gcr.io/ml-pipeline/$image:$TAG_NAME"
+      docker pull $from_image
+      docker tag $from_image $target_image
+      docker push $target_image
     done
 
 # Pull and retag the images for the pipeline system
