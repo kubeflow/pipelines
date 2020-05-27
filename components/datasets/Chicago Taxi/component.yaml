@@ -30,9 +30,9 @@ implementation:
       format="$4"
       mkdir -p "$(dirname "$output_path")"
       curl --get 'https://data.cityofchicago.org/resource/wrvz-psew.'"${format}" \
-          --data-urlencode '$limit=${limit}' \
-          --data-urlencode '$where=${where}' \
-          --data-urlencode '$select=${select}' \
+          --data-urlencode '$limit='"${limit}" \
+          --data-urlencode '$where='"${where}" \
+          --data-urlencode '$select='"${select}" \
           | tr -d '"' > "$output_path"  # Removing unneeded quotes around all numbers
     - {outputPath: Table}
     - {inputValue: Select}
