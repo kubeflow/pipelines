@@ -40,4 +40,17 @@ ENV KFP_NAMESPACE="kubeflow"
 
 COPY ./sagemaker/ .
 
+# copy sample pipelines from GitHub
+RUN mkdir ./tests/integration_tests/resources/definition/sample_pipelines
+RUN wget -O ./tests/integration_tests/resources/definition/sample_pipelines/training-pipeline.py \
+         https://raw.githubusercontent.com/akartsky/pipelines/integ_for_sample/samples/contrib/aws-samples/simple_train_pipeline/training-pipeline.py
+RUN wget -O ./tests/integration_tests/resources/definition/sample_pipelines/kmeans-hpo-pipeline.py \
+         https://raw.githubusercontent.com/kubeflow/pipelines/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/kmeans-hpo-pipeline.py
+RUN wget -O ./tests/integration_tests/resources/definition/sample_pipelines/mnist-classification-pipeline.py \
+         https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py
+RUN wget -O ./tests/integration_tests/resources/definition/sample_pipelines/mnist-classification-pipeline.py \
+         https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py
+RUN wget -O ./tests/integration_tests/resources/definition/sample_pipelines/mini-image-classification-pipeline.py \
+         https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/ground_truth_pipeline_demo/mini-image-classification-pipeline.py
+
 ENTRYPOINT [ "/bin/bash", "./tests/integration_tests/scripts/run_integration_tests" ]
