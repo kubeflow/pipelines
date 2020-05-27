@@ -52,5 +52,17 @@ spec:
                "--mysql_config_password=$(DBCONFIG_PASSWORD)"
                ]
         ports:
-        - name: md-backendapi
+        - name: grpc-api
           containerPort: 8080
+        livenessProbe:
+          tcpSocket:
+            port: grpc-api
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        readinessProbe:
+          tcpSocket:
+            port: grpc-api
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2

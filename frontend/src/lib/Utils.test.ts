@@ -241,7 +241,7 @@ describe('Utils', () => {
   describe('generateMinioArtifactUrl', () => {
     it('handles minio:// URIs', () => {
       expect(generateMinioArtifactUrl('minio://my-bucket/a/b/c')).toBe(
-        'artifacts/get?source=minio&bucket=my-bucket&key=a/b/c',
+        'artifacts/get?source=minio&bucket=my-bucket&key=a%2Fb%2Fc',
       );
     });
 

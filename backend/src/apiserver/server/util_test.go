@@ -338,7 +338,7 @@ func TestValidatePipelineSpec_ParameterTooLong(t *testing.T) {
 }
 
 func TestGetUserIdentity(t *testing.T) {
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	userIdentity, err := getUserIdentity(ctx)
 	assert.Nil(t, err)
@@ -352,7 +352,7 @@ func TestCanAccessNamespaceInResourceReferences_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	references := []*api.ResourceReference{
 		{
@@ -373,7 +373,7 @@ func TestCanAccessNamespaceInResourceReferences_Authorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	references := []*api.ResourceReference{
 		{
@@ -393,7 +393,7 @@ func TestCanAccessExperimentInResourceReferences_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	references := []*api.ResourceReference{
 		{
@@ -414,7 +414,7 @@ func TestCanAccessExperiemntInResourceReferences_Authorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	references := []*api.ResourceReference{
 		{

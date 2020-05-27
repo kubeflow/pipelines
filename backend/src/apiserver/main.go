@@ -74,12 +74,10 @@ func main() {
 // A custom http request header matcher to pass on the user identity
 // Reference: https://github.com/grpc-ecosystem/grpc-gateway/blob/master/docs/_docs/customizingyourgateway.md#mapping-from-http-request-headers-to-grpc-client-metadata
 func grpcCustomMatcher(key string) (string, bool) {
-	switch strings.ToLower(key) {
-	case common.GoogleIAPUserIdentityHeader:
+	if strings.EqualFold(key, common.GetKubeflowUserIDHeader()) {
 		return strings.ToLower(key), true
-	default:
-		return strings.ToLower(key), false
 	}
+	return strings.ToLower(key), false
 }
 
 func startRpcServer(resourceManager *resource.ResourceManager) {
@@ -138,7 +136,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	topMux.HandleFunc("/apis/v1beta1/pipelines/upload", pipelineUploadServer.UploadPipeline)
 	topMux.HandleFunc("/apis/v1beta1/pipelines/upload_version", pipelineUploadServer.UploadPipelineVersion)
 	topMux.HandleFunc("/apis/v1beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfig("COMMIT_SHA")+`"}`)
+		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfigWithDefault("COMMIT_SHA", "unknown")+`", "tag_name":"`+common.GetStringConfigWithDefault("TAG_NAME", "unknown")+`"}`)
 	})
 
 	topMux.Handle("/apis/", mux)

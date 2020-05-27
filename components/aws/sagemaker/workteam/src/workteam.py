@@ -19,13 +19,13 @@ def create_parser():
   parser = argparse.ArgumentParser(description='SageMaker Hyperparameter Tuning Job')
   _utils.add_default_client_arguments(parser)
   
-  parser.add_argument('--team_name', type=str.strip, required=True, help='The name of your work team.')
-  parser.add_argument('--description', type=str.strip, required=True, help='A description of the work team.')
-  parser.add_argument('--user_pool', type=str.strip, required=False, help='An identifier for a user pool. The user pool must be in the same region as the service that you are calling.', default='')
-  parser.add_argument('--user_groups', type=str.strip, required=False, help='A list of identifiers for user groups separated by commas.', default='')
-  parser.add_argument('--client_id', type=str.strip, required=False, help='An identifier for an application client. You must create the app client ID using Amazon Cognito.', default='')
-  parser.add_argument('--sns_topic', type=str.strip, required=False, help='The ARN for the SNS topic to which notifications should be published.', default='')
-  parser.add_argument('--tags', type=_utils.str_to_json_dict, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
+  parser.add_argument('--team_name', type=str, required=True, help='The name of your work team.')
+  parser.add_argument('--description', type=str, required=True, help='A description of the work team.')
+  parser.add_argument('--user_pool', type=str, required=False, help='An identifier for a user pool. The user pool must be in the same region as the service that you are calling.', default='')
+  parser.add_argument('--user_groups', type=str, required=False, help='A list of identifiers for user groups separated by commas.', default='')
+  parser.add_argument('--client_id', type=str, required=False, help='An identifier for an application client. You must create the app client ID using Amazon Cognito.', default='')
+  parser.add_argument('--sns_topic', type=str, required=False, help='The ARN for the SNS topic to which notifications should be published.', default='')
+  parser.add_argument('--tags', type=_utils.yaml_or_json_str, required=False, help='An array of key-value pairs, to categorize AWS resources.', default={})
 
   return parser
 

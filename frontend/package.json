@@ -110,6 +110,7 @@
       "!src/index.tsx",
       "!src/CSSReset.tsx"
     ],
+    "globalSetup": "./global-setup.js",
     "snapshotSerializers": [
       "./src/__serializers__/mock-function",
       "snapshot-diff/serializer.js",

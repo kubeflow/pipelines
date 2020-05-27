@@ -5,6 +5,7 @@ set -e
 REMOTE_REPOSITORY="amazon/aws-sagemaker-kfp-components"
 DRYRUN="true"
 FULL_VERSION_TAG=""
+DOCKER_CONFIG_PATH=${DOCKER_CONFIG_PATH:-"/root/.docker"}
 
 while getopts ":d:v:" opt; do
 	case ${opt} in
@@ -64,13 +65,13 @@ echo "Tagged image with ${MAJOR_VERSION_IMAGE}"
 
 # Push to the remote repository
 if [ "${DRYRUN}" == "false" ]; then
-  docker push "${FULL_VERSION_IMAGE}"
+  docker --config "$DOCKER_CONFIG_PATH" push "${FULL_VERSION_IMAGE}"
   echo "Successfully pushed tag ${FULL_VERSION_IMAGE} to Docker Hub"
 
-	docker push "${MINOR_VERSION_IMAGE}"
+	docker --config "$DOCKER_CONFIG_PATH" push "${MINOR_VERSION_IMAGE}"
   echo "Successfully pushed tag ${MINOR_VERSION_IMAGE} to Docker Hub"
 
-	docker push "${MAJOR_VERSION_IMAGE}"
+	docker --config "$DOCKER_CONFIG_PATH" push "${MAJOR_VERSION_IMAGE}"
   echo "Successfully pushed tag ${MAJOR_VERSION_IMAGE} to Docker Hub"
 else
   echo "Dry run detected. Not pushing images."

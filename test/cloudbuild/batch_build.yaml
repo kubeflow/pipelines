@@ -12,7 +12,7 @@ steps:
   - id: "frontend"
     name: "gcr.io/cloud-builders/docker"
     args:
-      ["build", "-t", "$_GCR_BASE/frontend", "-f", "frontend/Dockerfile", "."]
+      ["build", "-t", "$_GCR_BASE/frontend", "-f", "frontend/Dockerfile", '--build-arg', 'COMMIT_HASH=abcdefg', '--build-arg', 'TAG_NAME=test', "."]
     waitFor: ["-"]
   - id: "viewer-crd-controller"
     name: "gcr.io/cloud-builders/docker"
