@@ -733,8 +733,11 @@ implementation:
         found_download_task = True
         self.assertEqual(
             template['metadata']['labels'][
-                'pipelines.kubeflow.org/component_name'],
-            'gcs_download')
+                'pipelines.kubeflow.org/component_origin_path'],
+            'google-cloud.storage.download')
+        self.assertIsNotNone(
+            template['metadata']['labels'].get(
+                'pipelines.kubeflow.org/component_digest'))
     self.assertTrue(found_download_task, 'download task not found in workflow.')
   
   def test_image_pull_policy(self):

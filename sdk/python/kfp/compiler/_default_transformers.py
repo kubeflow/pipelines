@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 from typing import Callable, Dict, Optional, Text
 
-from kfp.utils import telemetry
 from ..dsl._container_op import BaseOp, ContainerOp
 
 # Pod label indicating the SDK type from which the pipeline is
@@ -22,11 +22,11 @@ from ..dsl._container_op import BaseOp, ContainerOp
 _SDK_ENV_LABEL = 'pipelines.kubeflow.org/pipeline-sdk-type'
 _SDK_ENV_DEFAULT = 'kfp'
 
-# Key for component ref annotation.
-_COMPONENT_REF_ANNOTATION_KEY = 'pipelines.kubeflow.org/component_ref'
+# Key for component origin path pod label.
+_COMPONENT_PATH_LABEL_KEY = 'pipelines.kubeflow.org/component_origin_path'
 
-# Key for component name pod label.
-_COMPONENT_NAME_LABEL_KEY = 'pipelines.kubeflow.org/component_name'
+# Key for component spec digest pod label.
+_COMPONENT_DIGEST_LABEL_KEY = 'pipelines.kubeflow.org/component_digest'
 
 
 def get_default_telemetry_labels() -> Dict[Text, Text]:
@@ -78,18 +78,38 @@ def add_pod_labels(labels: Optional[Dict[Text, Text]] = None) -> Callable:
     return _add_pod_labels
 
 
+def _remove_suffix(string: Text, suffix: Text) -> Text:
+    """Removes the suffix from a string."""
+    if suffix and string.endswith(suffix):
+        return string[:-len(suffix)]
+    else:
+        return string
+
+
 def add_name_for_oob_components() -> Callable:
     """Adds the OOB component name if applicable."""
     
     def _add_name_for_oob_components(task):
         # Detect the component origin uri in component_ref if exists, and
         # attach the OOB component name as a pod label.
-        if hasattr(task, '_component_ref'):
-            component_ref = task._component_ref.to_dict()
-            origin_uri = component_ref.get('url')
-            if origin_uri:
-                component_name = telemetry.get_component_name(origin_uri)
-                task.add_pod_label(_COMPONENT_NAME_LABEL_KEY, component_name)
+        component_ref = getattr(task, '_component_ref', None)
+        if component_ref:
+            if component_ref.url:
+                origin_path = _remove_suffix(
+                    component_ref.url, 'component.yaml').rstrip('/')
+                # Only include KFP OOB components.
+                if origin_path.startswith(
+                    'https://raw.githubusercontent.com/kubeflow/pipelines'):
+                    origin_path = origin_path.split('/', 7)[-1]
+                else:
+                    return task
+                # Clean the label to comply with the k8s label convention.
+                origin_path = re.sub('[^-a-z0-9A-Z_.]', '.', origin_path)
+                origin_path_label = origin_path[-63:].strip('-_.')
+                task.add_pod_label(_COMPONENT_PATH_LABEL_KEY, origin_path_label)
+            if component_ref.digest:
+                task.add_pod_label(
+                    _COMPONENT_DIGEST_LABEL_KEY, component_ref.digest)
             
         return task
     
