@@ -35,7 +35,7 @@ from kfserving import V1alpha2InferenceServiceSpec
 from kfserving import V1alpha2InferenceService
 
 
-def EndpointSpec(framework, storage_uri):
+def EndpointSpec(framework, storage_uri, service_account):
     if framework == "tensorflow":
         return V1alpha2EndpointSpec(
             predictor=V1alpha2PredictorSpec(
@@ -82,7 +82,7 @@ def EndpointSpec(framework, storage_uri):
         raise ("Error: No matching framework: " + framework)
 
 
-def customEndpointSpec(custom_model_spec):
+def customEndpointSpec(custom_model_spec, service_account):
     env = (
         [
             client.V1EnvVar(name=i["name"], value=i["value"])
@@ -108,7 +108,8 @@ def customEndpointSpec(custom_model_spec):
     )
     return V1alpha2EndpointSpec(
         predictor=V1alpha2PredictorSpec(
-            custom=V1alpha2CustomSpec(container=containerSpec)
+            custom=V1alpha2CustomSpec(container=containerSpec),
+            service_account_name=service_account,
         )
     )
 
@@ -151,7 +152,7 @@ def deploy_model(
 
     # Create Default deployment if default model uri is provided.
     if framework != "custom" and default_model_uri:
-        default_model_spec = EndpointSpec(framework, default_model_uri)
+        default_model_spec = EndpointSpec(framework, default_model_uri, service_account)
     elif framework == "custom" and default_custom_model_spec:
         default_model_spec = customEndpointSpec(default_custom_model_spec)
 
