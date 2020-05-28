@@ -87,8 +87,9 @@ def add_name_for_oob_components() -> Callable:
         if hasattr(task, '_component_ref'):
             component_ref = task._component_ref.to_dict()
             origin_uri = component_ref.get('url')
-            component_name = telemetry.get_component_name(origin_uri)
-            task.add_pod_label(_COMPONENT_NAME_LABEL_KEY, component_name)
+            if origin_uri:
+                component_name = telemetry.get_component_name(origin_uri)
+                task.add_pod_label(_COMPONENT_NAME_LABEL_KEY, component_name)
             
         return task
     
