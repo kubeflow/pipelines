@@ -154,16 +154,20 @@ def deploy_model(
     if framework != "custom" and default_model_uri:
         default_model_spec = EndpointSpec(framework, default_model_uri, service_account)
     elif framework == "custom" and default_custom_model_spec:
-        default_model_spec = customEndpointSpec(default_custom_model_spec)
+        default_model_spec = customEndpointSpec(
+            default_custom_model_spec, service_account
+        )
 
     # Create Canary deployment if canary model uri is provided.
     if framework != "custom" and canary_model_uri:
-        canary_model_spec = EndpointSpec(framework, canary_model_uri)
+        canary_model_spec = EndpointSpec(framework, canary_model_uri, service_account)
         kfsvc = InferenceService(
             metadata, default_model_spec, canary_model_spec, canary_model_traffic
         )
     elif framework == "custom" and canary_custom_model_spec:
-        canary_model_spec = customEndpointSpec(canary_custom_model_spec)
+        canary_model_spec = customEndpointSpec(
+            canary_custom_model_spec, service_account
+        )
         kfsvc = InferenceService(
             metadata, default_model_spec, canary_model_spec, canary_model_traffic
         )
