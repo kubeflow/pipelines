@@ -42,8 +42,9 @@ def some_op():
   )
 
 _TEST_GCS_DOWNLOAD_COMPONENT_URL = 'https://raw.githubusercontent.com/kubeflow/'\
-                                   'pipelines/master/components/google-cloud/'\
-                                   'storage/download/component.yaml'
+                                   'pipelines/2dac60c400ad8767b452649d08f328df'\
+                                   'af230f96/components/google-cloud/storage/'\
+                                   'download/component.yaml'
 
 
 class TestCompiler(unittest.TestCase):
@@ -729,7 +730,7 @@ implementation:
     
     found_download_task = False
     for template in workflow_dict['spec']['templates']:
-      if template['name'] == 'download-from-gcs':
+      if template.get('container', None):
         found_download_task = True
         self.assertEqual(
             template['metadata']['labels'][
