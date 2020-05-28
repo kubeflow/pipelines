@@ -22,7 +22,7 @@ REQUIRES = [
     "six>=1.10",
     "urllib3>=1.23"
 ]
-    
+
 {{#asyncio}}
 REQUIRES.append("aiohttp")
 {{/asyncio}}
@@ -34,7 +34,9 @@ setup(
     name=NAME,
     version=VERSION,
     description="{{appName}}",
+    author="google",
     author_email="{{infoEmail}}",
+    license="Apache 2.0",
     url="{{packageUrl}}",
     keywords=["Swagger", "{{appName}}"],
     install_requires=REQUIRES,
