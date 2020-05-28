@@ -36,7 +36,6 @@ REQUIRES = [
     'click',
     'Deprecated',
     'strip-hints',
-    'frozendict>=1,<2',
 ]
 
 
