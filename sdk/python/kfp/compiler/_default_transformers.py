@@ -22,11 +22,15 @@ from ..dsl._container_op import BaseOp, ContainerOp
 _SDK_ENV_LABEL = 'pipelines.kubeflow.org/pipeline-sdk-type'
 _SDK_ENV_DEFAULT = 'kfp'
 
+# Common prefix of KFP OOB components url paths.
+_OOB_COMPONENT_PATH_PREFIX = 'https://raw.githubusercontent.com/kubeflow/'\
+                             'pipelines'
+
 # Key for component origin path pod label.
-_COMPONENT_PATH_LABEL_KEY = 'pipelines.kubeflow.org/component_origin_path'
+COMPONENT_PATH_LABEL_KEY = 'pipelines.kubeflow.org/component_origin_path'
 
 # Key for component spec digest pod label.
-_COMPONENT_DIGEST_LABEL_KEY = 'pipelines.kubeflow.org/component_digest'
+COMPONENT_DIGEST_LABEL_KEY = 'pipelines.kubeflow.org/component_digest'
 
 
 def get_default_telemetry_labels() -> Dict[Text, Text]:
@@ -98,18 +102,17 @@ def add_name_for_oob_components() -> Callable:
                 origin_path = _remove_suffix(
                     component_ref.url, 'component.yaml').rstrip('/')
                 # Only include KFP OOB components.
-                if origin_path.startswith(
-                    'https://raw.githubusercontent.com/kubeflow/pipelines'):
+                if origin_path.startswith(_OOB_COMPONENT_PATH_PREFIX):
                     origin_path = origin_path.split('/', 7)[-1]
                 else:
                     return task
                 # Clean the label to comply with the k8s label convention.
                 origin_path = re.sub('[^-a-z0-9A-Z_.]', '.', origin_path)
                 origin_path_label = origin_path[-63:].strip('-_.')
-                task.add_pod_label(_COMPONENT_PATH_LABEL_KEY, origin_path_label)
+                task.add_pod_label(COMPONENT_PATH_LABEL_KEY, origin_path_label)
             if component_ref.digest:
                 task.add_pod_label(
-                    _COMPONENT_DIGEST_LABEL_KEY, component_ref.digest)
+                    COMPONENT_DIGEST_LABEL_KEY, component_ref.digest)
             
         return task
     

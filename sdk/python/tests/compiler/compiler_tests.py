@@ -27,6 +27,7 @@ import unittest
 import yaml
 
 from kfp import components
+from kfp.compiler._default_transformers import COMPONENT_DIGEST_LABEL_KEY, COMPONENT_PATH_LABEL_KEY
 from kfp.dsl._component import component
 from kfp.dsl import ContainerOp, pipeline
 from kfp.dsl.types import Integer, InconsistentTypeException
@@ -733,12 +734,10 @@ implementation:
       if template.get('container', None):
         found_download_task = True
         self.assertEqual(
-            template['metadata']['labels'][
-                'pipelines.kubeflow.org/component_origin_path'],
+            template['metadata']['labels'][COMPONENT_PATH_LABEL_KEY],
             'google-cloud.storage.download')
         self.assertIsNotNone(
-            template['metadata']['labels'].get(
-                'pipelines.kubeflow.org/component_digest'))
+            template['metadata']['labels'].get(COMPONENT_DIGEST_LABEL_KEY))
     self.assertTrue(found_download_task, 'download task not found in workflow.')
   
   def test_image_pull_policy(self):
