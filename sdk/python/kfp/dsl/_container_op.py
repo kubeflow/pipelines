@@ -700,7 +700,7 @@ class BaseOp(object):
         Args:
           name: the name of the op. It does not have to be unique within a pipeline
               because the pipeline will generates a unique new name in case of conflicts.
-          init_containers: the list of `InitContainer` objects describing the InitContainer
+          init_containers: the list of `UserContainer` objects describing the InitContainer
                     to deploy before the `main` container.
           sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy
                     together with the `main` container.
@@ -886,7 +886,7 @@ class BaseOp(object):
         """Add a init container to the Op.
 
         Args:
-          init_container: InitContainer object.
+          init_container: UserContainer object.
         """
 
         self.init_containers.append(init_container)
@@ -939,7 +939,7 @@ class ContainerOp(BaseOp):
             op = dsl.ContainerOp(name='foo', 
                                 image='busybox:%s' % tag,
                                 # pass in init_container list
-                                init_containers=[dsl.InitContainer('print', 'busybox:latest', command='echo "hello"')],
+                                init_containers=[dsl.UserContainer('print', 'busybox:latest', command='echo "hello"')],
                                 # pass in sidecars list
                                 sidecars=[dsl.Sidecar('print', 'busybox:latest', command='echo "hello"')],
                                 # pass in k8s container kwargs
@@ -986,7 +986,7 @@ class ContainerOp(BaseOp):
           arguments: the arguments of the command. The command can include "%s" and supply
               a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
               At container run time the argument will be 'echo param_value'.
-          init_containers: the list of `InitContainer` objects describing the InitContainer
+          init_containers: the list of `UserContainer` objects describing the InitContainer
                     to deploy before the `main` container.
           sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy
                     together with the `main` container.
