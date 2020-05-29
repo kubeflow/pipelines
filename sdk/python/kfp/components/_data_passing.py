@@ -83,7 +83,7 @@ def _serialize_json(obj) -> str:
             return obj.to_struct()
         else:
             raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
-    return json.dumps(obj, default=default_serializer)
+    return json.dumps(obj, default=default_serializer, sort_keys=True)
 
 
 def _serialize_base64_pickle(obj) -> str:
