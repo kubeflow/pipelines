@@ -555,10 +555,13 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     arg_parse_code_lines = list(definitions) + arg_parse_code_lines
 
-    arg_parse_code_lines.extend([
+    arg_parse_code_lines.append(
         '_parsed_args = vars(_parser.parse_args())',
-        '_output_files = _parsed_args.pop("_output_paths", [])',
-    ])
+    )
+    if outputs_passed_through_func_return_tuple:
+        arg_parse_code_lines.append(
+            '_output_files = _parsed_args.pop("_output_paths", [])',
+        )
 
     # Putting singular return values in a list to be "zipped" with the serializers and output paths
     outputs_to_list_code = ''
@@ -573,17 +576,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     output_serialization_code = ''.join('    {},\n'.format(s) for s in output_serialization_expression_strings)
 
-    full_source = \
-'''\
-{pre_func_code}
-
-{extra_code}
-
-{func_code}
-
-{arg_parse_code}
-
-_outputs = {func_name}(**_parsed_args)
+    full_output_handling_code = '''
 
 {outputs_to_list_code}
 
@@ -600,14 +593,31 @@ for idx, output_file in enumerate(_output_files):
     with open(output_file, 'w') as f:
         f.write(_output_serializers[idx](_outputs[idx]))
 '''.format(
+        output_serialization_code=output_serialization_code,
+        outputs_to_list_code=outputs_to_list_code,
+    )
+
+    full_source = \
+'''\
+{pre_func_code}
+
+{extra_code}
+
+{func_code}
+
+{arg_parse_code}
+
+_outputs = {func_name}(**_parsed_args)
+'''.format(
         func_name=func.__name__,
         func_code=func_code,
         pre_func_code=pre_func_code,
         extra_code=extra_code,
         arg_parse_code='\n'.join(arg_parse_code_lines),
-        output_serialization_code=output_serialization_code,
-        outputs_to_list_code=outputs_to_list_code,
     )
+
+    if outputs_passed_through_func_return_tuple:
+        full_source += full_output_handling_code
 
     #Removing consecutive blank lines
     import re
