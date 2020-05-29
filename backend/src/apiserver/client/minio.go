@@ -52,6 +52,8 @@ func CreateMinioClient(minioServiceHost string,
 	secure bool,
 	region string,
 	forceV2Signature bool) (*minio.Client, error) {
+	var err error
+	var minioClient *minio.Client
 
 	endpoint := joinHostPort(minioServiceHost, minioServicePort)
 	cred := createCredentialProvidersChain(endpoint, accessKey, secretKey)
@@ -62,7 +64,7 @@ func CreateMinioClient(minioServiceHost string,
 			secure)
 
 	} else {
-		minioClient, err := minio.NewWithCredentials(endpoint,
+		minioClient, err = minio.NewWithCredentials(endpoint,
 			cred,
 			secure,
 			region)
