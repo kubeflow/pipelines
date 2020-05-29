@@ -43,16 +43,8 @@ fi
 
 pushd "$(dirname "$0")"
 
-DIR=$(mktemp -d)
-
-swagger_file=$(mktemp)
-
-echo "Merging all Swagger API definitions to $swagger_file."
-jq -s '
-    reduce .[] as $item ({}; . * $item) |
-    .info.title = "KF Pipelines API" |
-    .info.description = "Generated python client for the KF Pipelines server API"
-' ./swagger/{run,job,pipeline,experiment,pipeline.upload}.swagger.json > "$swagger_file"
+DIR="$(pwd)/python_http_client/kfp_server_api"
+swagger_file="$(pwd)/swagger/kfp_api_single_file.swagger.json"
 
 echo "Generating python code from swagger json in $DIR."
 java -jar "$codegen_file" generate -l python -i "$swagger_file" -o "$DIR" -c <(echo '{
