@@ -2,6 +2,7 @@ package integration
 
 import (
 	"io/ioutil"
+	"sort"
 	"testing"
 	"time"
 
@@ -60,12 +61,8 @@ func (s *UpgradeTests) TestPrepare() {
 func (s *UpgradeTests) TestVerify() {
 	s.VerifyExperiments()
 	s.VerifyPipelines()
-	// TODO(jingzhang36): temporarily comment out the verification of runs and
-	// jobs since this PR changes the API response and hence a diff between the
-	// response from previous release and that from this PR is expected.
-	// Will put them back after the next release is cut.
-	// s.VerifyRuns()
-	// s.VerifyJobs()
+	s.VerifyRuns()
+	s.VerifyJobs()
 }
 
 // Check the namespace have ML job installed and ready
@@ -341,6 +338,7 @@ func (s *UpgradeTests) VerifyJobs() {
 				Name: "hello-world.yaml", Relationship: job_model.APIRelationshipCREATOR,
 			},
 		},
+		ServiceAccount: "pipeline-runner",
 		MaxConcurrency: 10,
 		NoCatchup:      true,
 		Enabled:        true,
@@ -350,6 +348,8 @@ func (s *UpgradeTests) VerifyJobs() {
 		Trigger:        &job_model.APITrigger{},
 	}
 
+	sort.Sort(JobResourceReferenceSorter(job.ResourceReferences))
+	sort.Sort(JobResourceReferenceSorter(expectedJob.ResourceReferences))
 	assert.Equal(t, expectedJob, job)
 }
 
@@ -377,10 +377,13 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 				Name: "hello-world.yaml", Relationship: run_model.APIRelationshipCREATOR,
 			},
 		},
-		CreatedAt:   runDetail.Run.CreatedAt,
-		ScheduledAt: runDetail.Run.ScheduledAt,
-		FinishedAt:  runDetail.Run.FinishedAt,
+		ServiceAccount: "pipeline-runner",
+		CreatedAt:      runDetail.Run.CreatedAt,
+		ScheduledAt:    runDetail.Run.ScheduledAt,
+		FinishedAt:     runDetail.Run.FinishedAt,
 	}
+	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
