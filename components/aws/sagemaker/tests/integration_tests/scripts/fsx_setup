@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+# Helper script that provides a set of methods to configure VPC, EFS and FSx
+# ready for the full suite of integration tests.
+
+function create_fsx_security_group() {
+  echo "[Creating FSx Security Group] Creating security group"
+
+  IFS=',' read -r -a subnets_list <<< "$EKS_PRIVATE_SUBNETS"
+  local vpc_id="$(aws ec2 describe-subnets --subnet-ids "${subnets_list[0]}" \
+    --output text --query "Subnets[0].VpcId" --region ${REGION})"
+
+  local fsx_security_group="${DEPLOY_NAME}-fsx-sg"
+  FSX_SECURITY_GROUP_ID="$(aws ec2 create-security-group --region "${REGION}" \
+    --vpc-id ${vpc_id} \
+    --description "Security group for FSx in ${DEPLOY_NAME}" \
+    --group-name "${fsx_security_group}" --output text --query "GroupId")"
+
+  # Open FSx port to internal security group
+  aws ec2 authorize-security-group-ingress \
+    --region "${REGION}" --group-id "${FSX_SECURITY_GROUP_ID}" \
+    --protocol tcp --port 988 --source-group "${FSX_SECURITY_GROUP_ID}"
+
+  echo "[Creating FSx Security Group] Created security group ${FSX_SECURITY_GROUP_ID}"
+}
+
+function cleanup_fsx_security_group() {
+  if [ ! -z "${FSX_SECURITY_GROUP_ID}" ]; then
+    # You must remove any self-referencing ingress rules before deleting a SG
+    aws ec2 revoke-security-group-ingress --region "${REGION}" \
+      --group-id "${FSX_SECURITY_GROUP_ID}" --protocol tcp --port 988 \
+      --source-group "${FSX_SECURITY_GROUP_ID}"
+
+    aws ec2 delete-security-group --group-id "${FSX_SECURITY_GROUP_ID}" --region "${REGION}"
+  fi
+}
+
+# Creates a new FSX LUSTRE instance and automatically imports the data set from S3.
+function create_fsx_instance() {
+  echo "[Creating FSx] Creating file system"
+  IFS=',' read -r -a subnets_list <<< "$EKS_PRIVATE_SUBNETS"
+
+  local fs_id=$(aws fsx create-file-system \
+    --file-system-type LUSTRE \
+    --lustre-configuration ImportPath=s3://${S3_DATA_BUCKET}/mnist_kmeans_example \
+    --storage-capacity 1200 \
+    --subnet-ids "${subnets_list[0]}" \
+    --security-group-ids "${FSX_SECURITY_GROUP_ID}" \
+    --tags Key="Name",Value=fsx-integ-lustre \
+    --region "${REGION}" \
+    --output text \
+    --query "FileSystem.FileSystemId")
+
+  echo "[Creating FSx] Waiting for file system to be in state AVAILABLE"
+
+  local fs_status="CREATING"
+  until [[ "${fs_status}" != "CREATING" ]]; do
+    fs_status="$(aws fsx describe-file-systems --region "${REGION}" --file-system-id ${fs_id} --output text --query "FileSystems[0].Lifecycle")"
+    sleep 10
+  done
+  aws fsx --region "${REGION}" describe-file-systems --file-system-id ${fs_id}
+
+  if [[ "${fs_status}" != "AVAILABLE" ]]; then
+    echo "[Creating FSx] FSx cluster never reached state 'Available'"
+    exit 1
+  fi
+
+  FSX_ID="${fs_id}"
+
+  echo "[Creating FSx] File system now available as ${FSX_ID}"
+
+  return 0
+}
+
+function delete_fsx_instance() {
+  if [ ! -z "${FSX_ID}" ]; then
+    aws fsx delete-file-system --file-system-id "${FSX_ID}" --region "${REGION}"
+  fi
+}

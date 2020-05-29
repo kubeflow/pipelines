@@ -9,6 +9,7 @@ usage(){
 }
 
 cwd=$(dirname $(realpath $0))
+source "$cwd"/fsx_setup
 
 ### Input parameters
 DEPLOY_NAME="sagemaker-kfp-"$(date '+%Y-%m-%d-%H-%M-%S')"" # The name given to the entire deployment (tagging all resources)
@@ -29,6 +30,8 @@ KFP_SERVICE_ACCOUNT=${KFP_SERVICE_ACCOUNT:-"pipeline-runner"}
 PYTEST_MARKER=${PYTEST_MARKER:-""}
 S3_DATA_BUCKET=${S3_DATA_BUCKET:-""}
 SAGEMAKER_EXECUTION_ROLE_ARN=${SAGEMAKER_EXECUTION_ROLE_ARN:-""}
+
+SKIP_FSX_TESTS=${SKIP_FSX_TESTS:-"false"}
 
 while getopts ":n:r:s:" opt; do
   case $opt in
@@ -65,11 +68,24 @@ if [ "$S3_DATA_BUCKET" == "" ]; then
   exit 1
 fi
 
+if [[ "$SKIP_FSX_TESTS" == "false" && "$EKS_PRIVATE_SUBNETS" == "" ]]; then
+  echo "Missing EKS private subnets"
+  usage
+  exit 1
+fi
+
 function cleanup() {
   set +e
 
   cleanup_kfp
   delete_generated_role
+
+  if [[ "${SKIP_FSX_TESTS}" == "false" ]]; then
+    delete_fsx_instance
+    # Sleep in order for the security group to detach before attempting to delete it
+    sleep 15s
+    cleanup_fsx_security_group
+  fi
 
   if [[ -z "${EKS_EXISTING_CLUSTER}" ]]; then
     delete_eks
@@ -81,8 +97,6 @@ trap cleanup EXIT
 set -e
 
 function launch_eks() {
-  EKS_CLUSTER_NAME="${DEPLOY_NAME}-eks-cluster"
-
   echo "[Creating EKS] Launching EKS cluster $EKS_CLUSTER_NAME"
 
   eksctl_args=( --managed --nodes "${EKS_NODE_COUNT}" --node-type=c5.xlarge --timeout=30m --region "${REGION}" --auto-kubeconfig --version "${EKS_CLUSTER_VERSION}" )
@@ -150,11 +164,26 @@ function cleanup_kfp() {
 }
 
 if [[ -z "${EKS_EXISTING_CLUSTER}" ]]; then
-  launch_eks
+  # Launch all of these in parallel to reduce start-up time
+  EKS_CLUSTER_NAME="${DEPLOY_NAME}-eks-cluster"
+  launch_eks &
+
+  if [[ "${SKIP_FSX_TESTS}" == "false" ]]; then
+    create_fsx_security_group
+    create_fsx_instance
+  fi
+
+  wait
 else
   aws eks update-kubeconfig --name "${EKS_EXISTING_CLUSTER}" --region "$REGION"
   EKS_CLUSTER_NAME="${EKS_EXISTING_CLUSTER}"
   DEPLOY_NAME="${EKS_EXISTING_CLUSTER}"
+
+  if [[ "${SKIP_FSX_TESTS}" == "false" ]]; then
+    create_fsx_security_group
+    create_fsx_instance
+  fi
+  wait
 fi
 
 generate_iam_role_name
@@ -163,6 +192,15 @@ install_kfp
 install_generated_role
 
 pytest_args=( --region "${REGION}" --role-arn "${SAGEMAKER_EXECUTION_ROLE_ARN}" --s3-data-bucket "${S3_DATA_BUCKET}" --minio-service-port "${MINIO_LOCAL_PORT}" --kfp-namespace "${KFP_NAMESPACE}" )
+
+if [[ "${SKIP_FSX_TESTS}" == "true" ]]; then
+  pytest_args+=( -m "not fsx_test" )
+else
+  # Get the VPC arguments for the FSx test
+  IFS=',' read -r -a private_subnets <<< "$EKS_PRIVATE_SUBNETS"
+  pytest_args+=( --fsx-subnet "${private_subnets[0]}" --fsx-security-group "${FSX_SECURITY_GROUP_ID}" --fsx-id "${FSX_ID}" )
+fi
+
 [ ! -z "${PYTEST_MARKER}" ] && pytest_args+=( -m "${PYTEST_MARKER}" )
 
 cd tests/integration_tests && python -m pytest "${pytest_args[@]}" --junitxml ./integration_tests.log -n $(nproc)

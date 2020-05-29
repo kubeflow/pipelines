@@ -25,6 +25,8 @@ def training_pipeline(
     spot_instance="",
     max_wait_time="",
     checkpoint_config="{}",
+    vpc_security_group_ids="",
+    vpc_subnets="",
     role="",
 ):
     sagemaker_train_op(
@@ -45,6 +47,8 @@ def training_pipeline(
         spot_instance=spot_instance,
         max_wait_time=max_wait_time,
         checkpoint_config=checkpoint_config,
+        vpc_security_group_ids=vpc_security_group_ids,
+        vpc_subnets=vpc_subnets,
         role=role,
     )
 
