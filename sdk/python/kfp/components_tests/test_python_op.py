@@ -257,11 +257,12 @@ class PythonOpTestCase(unittest.TestCase):
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
     def test_func_to_container_op_with_imported_func2(self):
-        from .test_data.module2_which_depends_on_module1 import module2_func_with_deps as module2_func_with_deps
-        func = module2_func_with_deps
+        from .test_data import module1
+        from .test_data import module2_which_depends_on_module1
+        func = module2_which_depends_on_module1.module2_func_with_deps
         op = comp.func_to_container_op(func, use_code_pickling=True, modules_to_capture=[
-            'tests.components.test_data.module1',
-            'tests.components.test_data.module2_which_depends_on_module1'
+            module1.__name__, # '*.components_tests.test_data.module1'
+            func.__module__,  # '*.components_tests.test_data.module2_which_depends_on_module1'
         ])
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
