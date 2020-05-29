@@ -34,11 +34,11 @@ if [ -z "$VERSION" ]; then
     exit 1
 fi
 
-codegen_file=/tmp/swagger-codegen-cli.jar
-# Browse all versions in: https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.7/
-codegen_uri=https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.7/swagger-codegen-cli-2.4.7.jar
+codegen_file=/tmp/openapi-generator-cli.jar
+# Browse all versions in: https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/
+codegen_uri="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/4.3.1/openapi-generator-cli-4.3.1.jar"
 if ! [ -f "$codegen_file" ]; then
-    wget --no-verbose "$codegen_uri" -O "$codegen_file"
+    curl -L "$codegen_uri" -o "$codegen_file"
 fi
 
 pushd "$(dirname "$0")"
@@ -47,7 +47,7 @@ DIR="$(pwd)/python_http_client/kfp_server_api"
 swagger_file="$(pwd)/swagger/kfp_api_single_file.swagger.json"
 
 echo "Generating python code from swagger json in $DIR."
-java -jar "$codegen_file" generate -l python -i "$swagger_file" -o "$DIR" -c <(echo '{
+java -jar "$codegen_file" generate -g python -i "$swagger_file" -o "$DIR" -c <(echo '{
     "packageName": "kfp_server_api",
     "projectName": "kfp-server-api",
     "packageVersion": "'"$VERSION"'",
