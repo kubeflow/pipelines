@@ -997,7 +997,18 @@ def _validate_workflow(workflow: dict):
         '''Internal compiler error: Found unresolved PipelineParam.
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.'''
     )
+  
+  has_working_argo_lint = False
+  try:
+    has_working_argo_lint = _run_argo_lint('')
+  except:
+    pass
+  
+  if has_working_argo_lint:
+    _run_argo_lint(yaml_text)
 
+
+def _run_argo_lint(yaml_text: str):
   # Running Argo lint if available
   import shutil
   import subprocess
@@ -1010,3 +1021,5 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
 Error: {}'''.format(result.stderr.decode('utf-8'))
       )
+    return True
+  return False
