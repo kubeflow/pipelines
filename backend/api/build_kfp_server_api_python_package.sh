@@ -63,4 +63,6 @@ echo "Run the following commands to update the package on PyPI"
 echo "python3 -m pip install twine"
 echo "python3 -m twine upload --username kubeflow-pipelines $DIR/dist/*"
 
+echo "Please also push local changes to github.com/kubeflow/pipelines"
+
 popd
