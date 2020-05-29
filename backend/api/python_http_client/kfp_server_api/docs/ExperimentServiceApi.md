@@ -1,0 +1,336 @@
+# kfp_server_api.ExperimentServiceApi
+
+All URIs are relative to *http://localhost*
+
+Method | HTTP request | Description
+------------- | ------------- | -------------
+[**archive_experiment**](ExperimentServiceApi.md#archive_experiment) | **POST** /apis/v1beta1/experiments/{id}:archive | Archive an experiment.
+[**create_experiment**](ExperimentServiceApi.md#create_experiment) | **POST** /apis/v1beta1/experiments | Create a new experiment.
+[**delete_experiment**](ExperimentServiceApi.md#delete_experiment) | **DELETE** /apis/v1beta1/experiments/{id} | Delete an experiment.
+[**get_experiment**](ExperimentServiceApi.md#get_experiment) | **GET** /apis/v1beta1/experiments/{id} | Find a specific experiment by ID.
+[**list_experiment**](ExperimentServiceApi.md#list_experiment) | **GET** /apis/v1beta1/experiments | Find all experiments.
+[**unarchive_experiment**](ExperimentServiceApi.md#unarchive_experiment) | **POST** /apis/v1beta1/experiments/{id}:unarchive | Restore an archived experiment.
+
+
+# **archive_experiment**
+> object archive_experiment(id)
+
+Archive an experiment.
+
+### Example
+```python
+from __future__ import print_function
+import time
+import kfp_server_api
+from kfp_server_api.rest import ApiException
+from pprint import pprint
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration()
+configuration.api_key['authorization'] = 'YOUR_API_KEY'
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
+
+# create an instance of the API class
+api_instance = kfp_server_api.ExperimentServiceApi(kfp_server_api.ApiClient(configuration))
+id = 'id_example' # str | 
+
+try:
+    # Archive an experiment.
+    api_response = api_instance.archive_experiment(id)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling ExperimentServiceApi->archive_experiment: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **str**|  | 
+
+### Return type
+
+**object**
+
+### Authorization
+
+[Bearer](../README.md#Bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **create_experiment**
+> ApiExperiment create_experiment(body)
+
+Create a new experiment.
+
+### Example
+```python
+from __future__ import print_function
+import time
+import kfp_server_api
+from kfp_server_api.rest import ApiException
+from pprint import pprint
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration()
+configuration.api_key['authorization'] = 'YOUR_API_KEY'
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
+
+# create an instance of the API class
+api_instance = kfp_server_api.ExperimentServiceApi(kfp_server_api.ApiClient(configuration))
+body = kfp_server_api.ApiExperiment() # ApiExperiment | The experiment to be created.
+
+try:
+    # Create a new experiment.
+    api_response = api_instance.create_experiment(body)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling ExperimentServiceApi->create_experiment: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **body** | [**ApiExperiment**](ApiExperiment.md)| The experiment to be created. | 
+
+### Return type
+
+[**ApiExperiment**](ApiExperiment.md)
+
+### Authorization
+
+[Bearer](../README.md#Bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **delete_experiment**
+> object delete_experiment(id)
+
+Delete an experiment.
+
+### Example
+```python
+from __future__ import print_function
+import time
+import kfp_server_api
+from kfp_server_api.rest import ApiException
+from pprint import pprint
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration()
+configuration.api_key['authorization'] = 'YOUR_API_KEY'
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
+
+# create an instance of the API class
+api_instance = kfp_server_api.ExperimentServiceApi(kfp_server_api.ApiClient(configuration))
+id = 'id_example' # str | The ID of the experiment to be deleted.
+
+try:
+    # Delete an experiment.
+    api_response = api_instance.delete_experiment(id)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling ExperimentServiceApi->delete_experiment: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **str**| The ID of the experiment to be deleted. | 
+
+### Return type
+
+**object**
+
+### Authorization
+
+[Bearer](../README.md#Bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **get_experiment**
+> ApiExperiment get_experiment(id)
+
+Find a specific experiment by ID.
+
+### Example
+```python
+from __future__ import print_function
+import time
+import kfp_server_api
+from kfp_server_api.rest import ApiException
+from pprint import pprint
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration()
+configuration.api_key['authorization'] = 'YOUR_API_KEY'
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
+
+# create an instance of the API class
+api_instance = kfp_server_api.ExperimentServiceApi(kfp_server_api.ApiClient(configuration))
+id = 'id_example' # str | The ID of the experiment to be retrieved.
+
+try:
+    # Find a specific experiment by ID.
+    api_response = api_instance.get_experiment(id)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling ExperimentServiceApi->get_experiment: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **str**| The ID of the experiment to be retrieved. | 
+
+### Return type
+
+[**ApiExperiment**](ApiExperiment.md)
+
+### Authorization
+
+[Bearer](../README.md#Bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **list_experiment**
+> ApiListExperimentsResponse list_experiment(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
+
+Find all experiments.
+
+### Example
+```python
+from __future__ import print_function
+import time
+import kfp_server_api
+from kfp_server_api.rest import ApiException
+from pprint import pprint
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration()
+configuration.api_key['authorization'] = 'YOUR_API_KEY'
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
+
+# create an instance of the API class
+api_instance = kfp_server_api.ExperimentServiceApi(kfp_server_api.ApiClient(configuration))
+page_token = 'page_token_example' # str |  (optional)
+page_size = 56 # int |  (optional)
+sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default. (optional)
+filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). (optional)
+resource_reference_key_type = 'UNKNOWN_RESOURCE_TYPE' # str | The type of the resource that referred to. (optional) (default to UNKNOWN_RESOURCE_TYPE)
+resource_reference_key_id = 'resource_reference_key_id_example' # str | The ID of the resource that referred to. (optional)
+
+try:
+    # Find all experiments.
+    api_response = api_instance.list_experiment(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling ExperimentServiceApi->list_experiment: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **page_token** | **str**|  | [optional] 
+ **page_size** | **int**|  | [optional] 
+ **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default. | [optional] 
+ **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). | [optional] 
+ **resource_reference_key_type** | **str**| The type of the resource that referred to. | [optional] [default to UNKNOWN_RESOURCE_TYPE]
+ **resource_reference_key_id** | **str**| The ID of the resource that referred to. | [optional] 
+
+### Return type
+
+[**ApiListExperimentsResponse**](ApiListExperimentsResponse.md)
+
+### Authorization
+
+[Bearer](../README.md#Bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **unarchive_experiment**
+> object unarchive_experiment(id)
+
+Restore an archived experiment.
+
+### Example
+```python
+from __future__ import print_function
+import time
+import kfp_server_api
+from kfp_server_api.rest import ApiException
+from pprint import pprint
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration()
+configuration.api_key['authorization'] = 'YOUR_API_KEY'
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
+
+# create an instance of the API class
+api_instance = kfp_server_api.ExperimentServiceApi(kfp_server_api.ApiClient(configuration))
+id = 'id_example' # str | 
+
+try:
+    # Restore an archived experiment.
+    api_response = api_instance.unarchive_experiment(id)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling ExperimentServiceApi->unarchive_experiment: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **str**|  | 
+
+### Return type
+
+**object**
+
+### Authorization
+
+[Bearer](../README.md#Bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
