@@ -26,7 +26,9 @@ def compile_and_run_pipeline(
 
 def wait_for_job_completion(client, run_id, timeout, status_to_check):
     response = client.wait_for_run_completion(run_id, timeout)
-    status = response.run.status.lower() == status_to_check
+    status = None
+    if response.run.status:
+       status = response.run.status.lower() == status_to_check
     return status
 
 
@@ -36,8 +38,9 @@ def wait_for_job_status(client, run_id, timeout, status_to_check="succeeded"):
     else:
         time.sleep(timeout)
         response = client.get_run(run_id)
-        status = response.run.status.lower() == status_to_check
-
+        status = None
+        if response.run.status:
+           status = response.run.status.lower() == status_to_check
     return status
 
 
