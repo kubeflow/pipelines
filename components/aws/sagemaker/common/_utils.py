@@ -862,7 +862,7 @@ def enable_spot_instance_support(training_job_config, args):
         del training_job_config['CheckpointConfig']
 
 def create_processing_job_request(args):
-    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_training_job
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_processing_job
     with open(os.path.join(__cwd__, 'process.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
 
@@ -898,7 +898,6 @@ def create_processing_job_request(args):
     else:
         logging.error("Must specify at least one input channel.")
         raise Exception('Could not create job request')
-
 
     ### Update output channels, must have at least one specified
     if len(args['output_config']) > 0:
