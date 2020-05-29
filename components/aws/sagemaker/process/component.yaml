@@ -91,7 +91,7 @@ implementation:
     image: redbackthomson/aws-kubeflow-sagemaker:latest
     command: ['python3']
     args: [
-      train.py,
+      process.py,
       --region, {inputValue: region},
       --endpoint_url, {inputValue: endpoint_url},
       --job_name, {inputValue: job_name},
