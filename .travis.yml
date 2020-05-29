@@ -48,9 +48,7 @@ matrix:
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - python3 -m pip install -e .
         - cd $TRAVIS_BUILD_DIR # Changing the current directory to the repo root for correct coverall paths
-        - coverage run --source=kfp --append sdk/python/tests/dsl/main.py
-        - coverage run --source=kfp --append sdk/python/tests/compiler/main.py
-        - coverage run --source=kfp --append -m unittest discover --verbose --start-dir sdk/python/tests --top-level-directory=sdk/python
+        - coverage run --source=kfp --append -m unittest discover --verbose --start-dir sdk/python --pattern '*test*.py'
         #- coveralls
 
         # Test against TFX
