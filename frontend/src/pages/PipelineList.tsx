@@ -35,6 +35,7 @@ import { commonCss, padding } from '../Css';
 import { formatDateString, errorToMessage } from '../lib/Utils';
 import { Description } from '../components/Description';
 import produce from 'immer';
+import Tooltip from '@material-ui/core/Tooltip';
 
 interface DisplayPipeline extends ApiPipeline {
   expandState?: ExpandState;
@@ -192,13 +193,15 @@ class PipelineList extends Page<{}, PipelineListState> {
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Link
-        onClick={e => e.stopPropagation()}
-        className={commonCss.link}
-        to={RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId, props.id)}
-      >
-        {props.value}
-      </Link>
+      <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
+        <Link
+          onClick={e => e.stopPropagation()}
+          className={commonCss.link}
+          to={RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId, props.id)}
+        >
+          {props.value || ''}
+        </Link>
+      </Tooltip>
     );
   };
 

@@ -38,7 +38,7 @@ import (
 
 var viewer *Reconciler
 
-const tensorflowImage = "tensorflow/tensorflow:dummy"
+const tensorflowImage = "potentially_custom_tensorflow:dummy"
 
 func TestMain(m *testing.M) {
 	viewerV1beta1.AddToScheme(scheme.Scheme)
@@ -359,6 +359,7 @@ func TestReconcile_EachViewerCreatesAService(t *testing.T) {
 			}},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{corev1.ServicePort{
+				Name:       "http",
 				Protocol:   corev1.ProtocolTCP,
 				Port:       int32(80),
 				TargetPort: intstr.IntOrString{IntVal: viewerTargetPort},

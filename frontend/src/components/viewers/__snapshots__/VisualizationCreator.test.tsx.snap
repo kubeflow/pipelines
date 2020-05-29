@@ -56,7 +56,7 @@ exports[`VisualizationCreator disables all select and input fields when busy 1`]
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
-  <Component
+  <Input
     disabled={true}
     label="Source"
     onChange={[Function]}
@@ -129,7 +129,7 @@ exports[`VisualizationCreator does not render an Editor component if a visualiza
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
-  <Component
+  <Input
     disabled={false}
     label="Source"
     onChange={[Function]}
@@ -205,7 +205,7 @@ exports[`VisualizationCreator renders an Editor component if a visualization typ
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
-  <Component
+  <Input
     disabled={false}
     label="Source"
     onChange={[Function]}
@@ -326,7 +326,7 @@ exports[`VisualizationCreator renders component when all parameters in config ar
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
-  <Component
+  <Input
     disabled={false}
     label="Source"
     onChange={[Function]}
@@ -399,7 +399,7 @@ exports[`VisualizationCreator renders component when empty config is provided 1`
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
-  <Component
+  <Input
     disabled={false}
     label="Source"
     onChange={[Function]}
@@ -472,7 +472,7 @@ exports[`VisualizationCreator renders component when isBusy is not provided 1`] 
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
-  <Component
+  <Input
     disabled={false}
     label="Source"
     onChange={[Function]}
@@ -545,7 +545,7 @@ exports[`VisualizationCreator renders component when onGenerate is not provided 
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
-  <Component
+  <Input
     disabled={false}
     label="Source"
     onChange={[Function]}
@@ -624,7 +624,7 @@ exports[`VisualizationCreator renders the custom type when it is allowed 1`] = `
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
-  <Component
+  <Input
     disabled={false}
     label="Source"
     onChange={[Function]}
@@ -698,7 +698,7 @@ exports[`VisualizationCreator renders the provided arguments 1`] = `
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
-  <Component
+  <Input
     disabled={false}
     label="Source"
     onChange={[Function]}
@@ -820,7 +820,7 @@ exports[`VisualizationCreator renders the selected visualization type 1`] = `
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
-  <Component
+  <Input
     disabled={false}
     label="Source"
     onChange={[Function]}
@@ -942,7 +942,7 @@ exports[`VisualizationCreator renders two Editor components if the CUSTOM visual
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
-  <Component
+  <Input
     disabled={false}
     label="Source"
     onChange={[Function]}

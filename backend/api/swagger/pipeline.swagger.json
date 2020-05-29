@@ -353,7 +353,7 @@
     },
     "/apis/v1beta1/pipelines/{id}/templates": {
       "get": {
-        "summary": "Get a YAML template for the selected pipeline.",
+        "summary": "Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.",
         "operationId": "GetTemplate",
         "responses": {
           "200": {

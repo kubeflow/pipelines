@@ -112,11 +112,25 @@ def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(effect='NoS
       node_affinity = V1NodeAffinity(required_during_scheduling_ignored_during_execution=
                         V1NodeSelector(node_selector_terms=[node_selector_term]))
     else:
-      node_affinity = V1NodeAffinity(preferred_during_scheduling_ignored_during_execution=
+      node_affinity = V1NodeAffinity(preferred_during_scheduling_ignored_during_execution=[
                         V1PreferredSchedulingTerm(preference=node_selector_term,
-                                                  weight=50))
+                                                  weight=50)
+      ])
     affinity = V1Affinity(node_affinity=node_affinity)
     task.add_affinity(affinity=affinity)
     return task
 
   return _set_preemptible
+
+def add_gpu_toleration(toleration: V1Toleration = V1Toleration(
+    effect='NoSchedule', key='nvidia.com/gpu', operator='Equal', value='true')):
+    """An operator that configures the GKE GPU nodes in a container op.
+
+    Args:
+      toleration {V1Toleration} -- toleration to pods, default is the nvidia.com/gpu label.
+    """
+
+    def _set_toleration(task):
+        task.add_toleration(toleration)
+
+    return _set_toleration

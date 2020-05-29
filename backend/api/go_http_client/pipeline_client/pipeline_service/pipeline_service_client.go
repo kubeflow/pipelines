@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -242,7 +242,7 @@ func (a *Client) GetPipelineVersionTemplate(params *GetPipelineVersionTemplatePa
 }
 
 /*
-GetTemplate gets a y a m l template for the selected pipeline
+GetTemplate returns a single y a m l template that contains the description parameters and metadata associated with the pipeline provided
 */
 func (a *Client) GetTemplate(params *GetTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*GetTemplateOK, error) {
 	// TODO: Validate the params before sending

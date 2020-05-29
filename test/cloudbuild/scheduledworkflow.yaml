@@ -1,0 +1,8 @@
+steps:
+  - id: "scheduledworkflow"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      ["build", "-t", "$_GCR_BASE/scheduledworkflow", "-f", "backend/Dockerfile.scheduledworkflow", "."]
+images:
+  - "$_GCR_BASE/scheduledworkflow"
+timeout: 1800s # 30min

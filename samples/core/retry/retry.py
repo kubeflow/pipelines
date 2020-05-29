@@ -24,7 +24,7 @@ def random_failure_op(exit_codes):
         name='random_failure',
         image='python:alpine3.6',
         command=['python', '-c'],
-        arguments=['import random; import sys; exit_code = random.choice(sys.argv[1].split(",")); print(exit_code); sys.exit(exit_code)', exit_codes]
+        arguments=['import random; import sys; exit_code = int(random.choice(sys.argv[1].split(","))); print(exit_code); sys.exit(exit_code)', exit_codes]
     )
 
 

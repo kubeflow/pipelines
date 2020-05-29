@@ -16,7 +16,7 @@ import kfp
 from kfp.dsl import Pipeline, PipelineParam, ContainerOp, pipeline
 from kfp.dsl._metadata import _extract_pipeline_metadata
 from kfp.dsl.types import GCSPath, Integer
-from kfp.components._structures import ComponentSpec, InputSpec
+from kfp.components.structures import ComponentSpec, InputSpec
 import unittest
 
 

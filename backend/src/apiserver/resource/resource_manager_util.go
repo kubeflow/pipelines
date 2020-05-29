@@ -16,6 +16,7 @@ package resource
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -24,11 +25,13 @@ import (
 	"github.com/argoproj/argo/workflow/common"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	servercommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func toCRDTrigger(apiTrigger *api.Trigger) *scheduledworkflow.Trigger {
@@ -179,5 +182,86 @@ func deletePods(k8sCoreClient client.KubernetesCoreInterface, podsToDelete []str
 			return util.NewInternalServerError(err, "Failed to delete pods.")
 		}
 	}
+	return nil
+}
+
+// Mutate default values of specified pipeline spec.
+// Args:
+//  text: (part of) pipeline file in string.
+func PatchPipelineDefaultParameter(text string) (string, error) {
+	defaultBucket := servercommon.GetStringConfig(DefaultBucketNameEnvVar)
+	projectId := servercommon.GetStringConfig(ProjectIDEnvVar)
+	toPatch := map[string]string{
+		"{{kfp-default-bucket}}": defaultBucket,
+		"{{kfp-project-id}}":     projectId,
+	}
+	for key, value := range toPatch {
+		text = strings.Replace(text, key, value, -1)
+	}
+	return text, nil
+}
+
+// Patch the system-specified default parameters if available.
+func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run) error {
+	// Patch the default value to workflow spec.
+	if servercommon.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
+		patchedSlice := make([]wfv1.Parameter, 0)
+		for _, currentParam := range workflow.Spec.Arguments.Parameters {
+			if currentParam.Value != nil {
+				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
+				if err != nil {
+					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+				}
+				patchedSlice = append(patchedSlice, wfv1.Parameter{
+					Name:  currentParam.Name,
+					Value: util.StringPointer(desiredValue),
+				})
+			} else if currentParam.Default != nil {
+				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Default)
+				if err != nil {
+					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+				}
+				patchedSlice = append(patchedSlice, wfv1.Parameter{
+					Name:  currentParam.Name,
+					Value: util.StringPointer(desiredValue),
+				})
+			}
+		}
+		workflow.Spec.Arguments.Parameters = patchedSlice
+
+		// Patched the default value to apiRun
+		for _, param := range apiRun.PipelineSpec.Parameters {
+			var err error
+			param.Value, err = PatchPipelineDefaultParameter(param.Value)
+			if err != nil {
+				return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			}
+		}
+	}
+	return nil
+}
+
+// Convert PipelineId in PipelineSpec to the pipeline's default pipeline version.
+// This is for legacy usage of pipeline id to create run. The standard way to
+// create run is by specifying the pipeline version.
+func ConvertPipelineIdToDefaultPipelineVersion(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) error {
+	if pipelineSpec.GetPipelineId() == "" {
+		return nil
+	}
+	// If there is already a pipeline version in resource references, don't convert pipeline id.
+	for _, reference := range *resourceReferences {
+		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION && reference.Relationship == api.Relationship_CREATOR {
+			return nil
+		}
+	}
+	pipeline, err := r.pipelineStore.GetPipelineWithStatus(pipelineSpec.GetPipelineId(), model.PipelineReady)
+	if err != nil {
+		return util.Wrap(err, "Failed to find the specified pipeline")
+	}
+	// Add default pipeline version to resource references
+	*resourceReferences = append(*resourceReferences, &api.ResourceReference{
+		Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: pipeline.DefaultVersionId},
+		Relationship: api.Relationship_CREATOR,
+	})
 	return nil
 }

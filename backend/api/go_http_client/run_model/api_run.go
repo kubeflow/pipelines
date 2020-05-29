@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -73,6 +73,9 @@ type APIRun struct {
 	// v.s. created_at is the current time.
 	// Format: date-time
 	ScheduledAt strfmt.DateTime `json:"scheduled_at,omitempty"`
+
+	// Optional input field. Specify which Kubernetes service account this run uses.
+	ServiceAccount string `json:"service_account,omitempty"`
 
 	// Output. The status of the run.
 	// One of [Pending, Running, Succeeded, Skipped, Failed, Error]

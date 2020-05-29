@@ -12,19 +12,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { Handler } from 'express';
+import * as k8sHelper from '../k8s-helper';
 import fetch from 'node-fetch';
+import { GkeMetadataConfigs } from '../configs';
 
-export const clusterNameHandler: Handler = async (_, res) => {
+const disabledHandler: Handler = async (_, res) => {
+  res.status(500).send('GKE metadata endpoints are disabled.');
+};
+
+export const getClusterNameHandler = (options: GkeMetadataConfigs) => {
+  if (options.disabled) {
+    return disabledHandler;
+  }
+  return clusterNameHandler;
+};
+
+const clusterNameHandler: Handler = async (_, res) => {
   const response = await fetch(
     'http://metadata/computeMetadata/v1/instance/attributes/cluster-name',
     { headers: { 'Metadata-Flavor': 'Google' } },
   );
+  if (!response.ok) {
+    res.status(500).send('Failed fetching GKE cluster name');
+    return;
+  }
   res.send(await response.text());
 };
 
-export const projectIdHandler: Handler = async (_, res) => {
+export const getProjectIdHandler = (options: GkeMetadataConfigs) => {
+  if (options.disabled) {
+    return disabledHandler;
+  }
+  return projectIdHandler;
+};
+
+const projectIdHandler: Handler = async (_, res) => {
   const response = await fetch('http://metadata/computeMetadata/v1/project/project-id', {
     headers: { 'Metadata-Flavor': 'Google' },
   });
+  if (!response.ok) {
+    res.status(500).send('Failed fetching GKE project id');
+    return;
+  }
   res.send(await response.text());
 };

@@ -15,6 +15,8 @@
 package util
 
 import (
+	"strings"
+
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
@@ -22,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
-	"strings"
 )
 
 // Workflow is a type to help manipulate Workflow objects.
@@ -115,8 +116,8 @@ func isScheduledWorkflow(reference metav1.OwnerReference) bool {
 	}
 
 	if reference.APIVersion == gvk.GroupVersion().String() &&
-			reference.Kind == gvk.Kind &&
-			reference.UID != "" {
+		reference.Kind == gvk.Kind &&
+		reference.UID != "" {
 		return true
 	}
 	return false
@@ -199,6 +200,21 @@ func (w *Workflow) SetAnnotationsToAllTemplates(key string, value string) {
 	}
 }
 
+// SetLabels sets labels on all templates in a Workflow
+func (w *Workflow) SetLabelsToAllTemplates(key string, value string) {
+	if len(w.Spec.Templates) == 0 {
+		return
+	}
+	for index, _ := range w.Spec.Templates {
+		if w.Spec.Templates[index].Metadata.Labels == nil {
+			w.Spec.Templates[index].Metadata.Labels = make(map[string]string)
+		}
+		if w.Spec.Templates[index].Metadata.Labels[key] != value {
+			w.Spec.Templates[index].Metadata.Labels[key] = value
+		}
+	}
+}
+
 // SetOwnerReferences sets owner references on a Workflow.
 func (w *Workflow) SetOwnerReferences(schedule *swfapi.ScheduledWorkflow) {
 	w.OwnerReferences = []metav1.OwnerReference{
@@ -215,6 +231,13 @@ func (w *Workflow) SetLabels(key string, value string) {
 		w.Labels = make(map[string]string)
 	}
 	w.Labels[key] = value
+}
+
+func (w *Workflow) SetAnnotations(key string, value string) {
+	if w.Annotations == nil {
+		w.Annotations = make(map[string]string)
+	}
+	w.Annotations[key] = value
 }
 
 func (w *Workflow) ReplaceUID(id string) error {

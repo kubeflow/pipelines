@@ -7,7 +7,7 @@ class CreateJobOp(ResourceOp):
 
     Example:
 
-        import kfp.dsl.databricks as databricks
+        import databricks
 
         databricks.CreateJobOp(
             name="createjob",
@@ -241,7 +241,8 @@ class CreateJobOp(ResourceOp):
             ValueError: if the file name doesn't exist.
         """
 
-        spec = json.loads(open(file_name).read())
+        with open(file_name) as json_file:
+            spec = json.loads(json_file.read())
         return cls(name=name, k8s_name=k8s_name, job_name=job_name, spec=spec)
 
     @property
@@ -257,7 +258,7 @@ class DeleteJobOp(ResourceOp):
 
     Example:
 
-        import kfp.dsl.databricks as databricks
+        import databricks
 
         databricks.DeleteJobOp(
             name = "deletejob",

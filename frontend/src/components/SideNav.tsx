@@ -14,28 +14,30 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import Button from '@material-ui/core/Button';
+import IconButton from '@material-ui/core/IconButton';
+import Tooltip from '@material-ui/core/Tooltip';
 import ArchiveIcon from '@material-ui/icons/Archive';
 import ArtifactsIcon from '@material-ui/icons/BubbleChart';
-import Button from '@material-ui/core/Button';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
-import ExecutionsIcon from '@material-ui/icons/PlayArrow';
-import ExperimentsIcon from '../icons/experiments';
-import IconButton from '@material-ui/core/IconButton';
 import JupyterhubIcon from '@material-ui/icons/Code';
-import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import DescriptionIcon from '@material-ui/icons/Description';
+import OpenInNewIcon from '@material-ui/icons/OpenInNew';
+import ExecutionsIcon from '@material-ui/icons/PlayArrow';
+import * as React from 'react';
+import { RouterProps } from 'react-router';
+import { Link } from 'react-router-dom';
+import { classes, stylesheet } from 'typestyle';
+import { ExternalLinks, RoutePage, RoutePrefix } from '../components/Router';
+import { commonCss, fontsize } from '../Css';
+import ExperimentsIcon from '../icons/experiments';
 import GitHubIcon from '../icons/GitHub-Mark-120px-plus.png';
 import PipelinesIcon from '../icons/pipelines';
-import Tooltip from '@material-ui/core/Tooltip';
 import { Apis } from '../lib/Apis';
-import { Link } from 'react-router-dom';
+import { Deployments, KFP_FLAGS } from '../lib/Flags';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
-import { RoutePage, RoutePrefix, ExternalLinks } from '../components/Router';
-import { RouterProps } from 'react-router';
-import { classes, stylesheet } from 'typestyle';
-import { fontsize, commonCss } from '../Css';
 import { logger } from '../lib/Utils';
+import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
 
 export const sideNavColors = {
   bg: '#f8fafb',
@@ -55,8 +57,10 @@ export const css = stylesheet({
     color: sideNavColors.fgActive + ' !important',
   },
   button: {
-    '&:hover': {
-      backgroundColor: sideNavColors.hover,
+    $nest: {
+      '&::hover': {
+        backgroundColor: sideNavColors.hover,
+      },
     },
     borderRadius: 0,
     color: sideNavColors.fgDefault,
@@ -132,11 +136,15 @@ export const css = stylesheet({
     opacity: 0,
     transition: 'opacity 0s',
     transitionDelay: '0s',
+    // guarantees info doesn't affect layout when hidden
+    overflow: 'hidden',
+    height: 0,
   },
   infoVisible: {
     opacity: 'initial',
     transition: 'opacity 0.2s',
     transitionDelay: '0.3s',
+    overflow: 'hidden',
   },
   label: {
     fontSize: fontsize.base,
@@ -172,26 +180,25 @@ interface DisplayBuildInfo {
   commitHash: string;
   commitUrl: string;
   date: string;
+  tagName: string;
 }
 
 interface SideNavProps extends RouterProps {
   page: string;
 }
 
-interface GkeMetadata {
-  clusterName: string;
-  projectId: string;
+interface SideNavInternalProps extends SideNavProps {
+  gkeMetadata: GkeMetadata;
 }
 
 interface SideNavState {
   displayBuildInfo?: DisplayBuildInfo;
-  gkeMetadata?: GkeMetadata;
   collapsed: boolean;
   jupyterHubAvailable: boolean;
   manualCollapseState: boolean;
 }
 
-export default class SideNav extends React.Component<SideNavProps, SideNavState> {
+export class SideNav extends React.Component<SideNavInternalProps, SideNavState> {
   private _isMounted = true;
   private readonly _AUTO_COLLAPSE_WIDTH = 800;
   private readonly _HUB_ADDRESS = '/hub/';
@@ -216,32 +223,24 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
     async function fetchBuildInfo() {
       const buildInfo = await Apis.getBuildInfo();
       const commitHash = buildInfo.apiServerCommitHash || buildInfo.frontendCommitHash || '';
+      const tagName = buildInfo.apiServerTagName || buildInfo.frontendTagName || '';
       return {
+        tagName: tagName || 'unknown',
         commitHash: commitHash ? commitHash.substring(0, 7) : 'unknown',
         commitUrl:
-          'https://www.github.com/kubeflow/pipelines' + (commitHash ? `/commit/${commitHash}` : ''),
-        date: buildInfo.buildDate ? new Date(buildInfo.buildDate).toLocaleDateString() : 'unknown',
+          'https://www.github.com/kubeflow/pipelines' +
+          (commitHash && commitHash !== 'unknown' ? `/commit/${commitHash}` : ''),
+        date: buildInfo.buildDate
+          ? new Date(buildInfo.buildDate).toLocaleDateString('en-US')
+          : 'unknown',
       };
     }
-    async function fetchGkeMetadata() {
-      const [clusterName, projectId] = await Promise.all([
-        Apis.getClusterName(),
-        Apis.getProjectId(),
-      ]);
-      return { clusterName, projectId };
-    }
-    const [displayBuildInfo, gkeMetadata] = await Promise.all([
-      fetchBuildInfo().catch(err => {
-        logger.error('Failed to retrieve build info', err);
-        return undefined;
-      }),
-      fetchGkeMetadata().catch(err => {
-        logger.error('Failed to retrieve GKE metadata', err);
-        return undefined;
-      }),
-    ]);
+    const displayBuildInfo = await fetchBuildInfo().catch(err => {
+      logger.error('Failed to retrieve build info', err);
+      return undefined;
+    });
 
-    this.setStateSafe({ displayBuildInfo, gkeMetadata });
+    this.setStateSafe({ displayBuildInfo });
   }
 
   public componentWillUnmount(): void {
@@ -250,7 +249,8 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
 
   public render(): JSX.Element {
     const page = this.props.page;
-    const { collapsed, displayBuildInfo, gkeMetadata } = this.state;
+    const { collapsed, displayBuildInfo } = this.state;
+    const { gkeMetadata } = this.props;
     const iconColor = {
       active: sideNavColors.fgActive,
       inactive: sideNavColors.fgDefault,
@@ -267,6 +267,39 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
         )}
       >
         <div style={{ flexGrow: 1 }}>
+          {KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE && (
+            <>
+              <div
+                className={classes(
+                  css.indicator,
+                  !page.startsWith(RoutePage.START) && css.indicatorHidden,
+                )}
+              />
+              <Tooltip
+                title={'Getting Started'}
+                enterDelay={300}
+                placement={'right-start'}
+                disableFocusListener={!collapsed}
+                disableHoverListener={!collapsed}
+                disableTouchListener={!collapsed}
+              >
+                <Link id='gettingStartedBtn' to={RoutePage.START} className={commonCss.unstyled}>
+                  <Button
+                    className={classes(
+                      css.button,
+                      page.startsWith(RoutePage.START) && css.active,
+                      collapsed && css.collapsedButton,
+                    )}
+                  >
+                    <DescriptionIcon style={{ width: 20, height: 20 }} />
+                    <span className={classes(collapsed && css.collapsedLabel, css.label)}>
+                      Getting Started
+                    </span>
+                  </Button>
+                </Link>
+              </Tooltip>
+            </>
+          )}
           <div
             className={classes(
               css.indicator,
@@ -405,6 +438,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
                 href={this._HUB_ADDRESS}
                 className={commonCss.unstyled}
                 target='_blank'
+                rel='noopener'
               >
                 <Button className={classes(css.button, collapsed && css.collapsedButton)}>
                   <JupyterhubIcon style={{ height: 20, width: 20 }} />
@@ -418,7 +452,11 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
           )}
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
           <div
-            className={classes(css.indicator, page !== RoutePage.ARCHIVE && css.indicatorHidden)}
+            className={classes(
+              css.indicator,
+              ![RoutePage.ARCHIVED_RUNS, RoutePage.ARCHIVED_EXPERIMENTS].includes(page) &&
+                css.indicatorHidden,
+            )}
           />
           <Tooltip
             title={'Archive'}
@@ -428,11 +466,12 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link id='archiveBtn' to={RoutePage.ARCHIVE} className={commonCss.unstyled}>
+            <Link id='archiveBtn' to={RoutePage.ARCHIVED_RUNS} className={commonCss.unstyled}>
               <Button
                 className={classes(
                   css.button,
-                  page === RoutePage.ARCHIVE && css.active,
+                  (page === RoutePage.ARCHIVED_RUNS || page === RoutePage.ARCHIVED_EXPERIMENTS) &&
+                    css.active,
                   collapsed && css.collapsedButton,
                 )}
               >
@@ -453,7 +492,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
             to={ExternalLinks.GITHUB}
             collapsed={collapsed}
             icon={className => (
-              <img src={GitHubIcon} className={classes(className, css.iconImage)} />
+              <img src={GitHubIcon} className={classes(className, css.iconImage)} alt='Github' />
             )}
           />
           <ExternalUri
@@ -464,6 +503,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
               <img
                 src='https://www.gstatic.com/aihub/aihub_favicon.png'
                 className={classes(className, css.iconImage)}
+                alt='AI Hub'
               />
             )}
           />
@@ -476,7 +516,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
           </IconButton>
         </div>
         <div className={collapsed ? css.infoHidden : css.infoVisible}>
-          {gkeMetadata && (
+          {gkeMetadata.clusterName && gkeMetadata.projectId && (
             <Tooltip
               title={`Cluster name: ${gkeMetadata.clusterName}, Project ID: ${gkeMetadata.projectId}`}
               enterDelay={300}
@@ -487,6 +527,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
                 <a
                   href={`https://console.cloud.google.com/kubernetes/list?project=${gkeMetadata.projectId}&filter=name:${gkeMetadata.clusterName}`}
                   className={classes(css.link, commonCss.unstyled)}
+                  rel='noopener'
                   target='_blank'
                 >
                   {gkeMetadata.clusterName}
@@ -496,22 +537,35 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
           )}
           {displayBuildInfo && (
             <Tooltip
-              title={'Build date: ' + displayBuildInfo.date}
+              title={`Build date: ${displayBuildInfo.date}, Commit hash: ${displayBuildInfo.commitHash}`}
               enterDelay={300}
               placement={'top-start'}
             >
               <div className={css.envMetadata}>
-                <span>Build commit: </span>
+                <span>Version: </span>
                 <a
                   href={displayBuildInfo.commitUrl}
                   className={classes(css.link, commonCss.unstyled)}
+                  rel='noopener'
                   target='_blank'
                 >
-                  {displayBuildInfo.commitHash}
+                  {displayBuildInfo.tagName}
                 </a>
               </div>
             </Tooltip>
           )}
+          <Tooltip title='Report an Issue' enterDelay={300} placement={'top-start'}>
+            <div className={css.envMetadata}>
+              <a
+                href='https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md'
+                className={classes(css.link, commonCss.unstyled)}
+                rel='noopener'
+                target='_blank'
+              >
+                Report an Issue
+              </a>
+            </div>
+          </Tooltip>
         </div>
       </div>
     );
@@ -590,3 +644,9 @@ const ExternalUri: React.FC<ExternalUriProps> = ({ title, to, collapsed, icon })
     </a>
   </Tooltip>
 );
+
+const EnhancedSideNav: React.FC<SideNavProps> = props => {
+  const gkeMetadata = React.useContext(GkeMetadataContext);
+  return <SideNav {...props} gkeMetadata={gkeMetadata} />;
+};
+export default EnhancedSideNav;

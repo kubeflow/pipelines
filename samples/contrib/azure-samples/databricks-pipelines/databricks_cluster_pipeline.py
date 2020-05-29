@@ -52,4 +52,6 @@ def calc_pipeline(cluster_name="test-cluster", run_name="test-run", parameter="1
     delete_cluster_task.after(delete_run_task)
 
 if __name__ == "__main__":
-    compiler.Compiler().compile(calc_pipeline, __file__ + ".tar.gz")
+    compiler.Compiler()._create_and_write_workflow(
+        pipeline_func=calc_pipeline,
+        package_path=__file__ + ".tar.gz")

@@ -13,11 +13,11 @@
 # limitations under the License.
 
 __all__ = [
-    'type_to_type_name',
-    'type_name_to_type',
-    'type_to_deserializer',
-    'type_name_to_deserializer',
-    'type_name_to_serializer',
+    'get_canonical_type_struct_for_type',
+    'get_canonical_type_for_type_struct',
+    'get_deserializer_code_for_type',
+    'get_deserializer_code_for_type_struct',
+    'get_serializer_func_for_type_struct',
 ]
 
 
@@ -121,6 +121,41 @@ type_name_to_type = {type_name: converter.types[0] for converter in _converters 
 type_to_deserializer = {typ: (converter.deserializer_code, converter.definitions) for converter in _converters for typ in converter.types}
 type_name_to_deserializer = {type_name: (converter.deserializer_code, converter.definitions) for converter in _converters for type_name in converter.type_names}
 type_name_to_serializer = {type_name: converter.serializer for converter in _converters for type_name in converter.type_names}
+
+
+def get_canonical_type_struct_for_type(typ) -> str:
+    try:
+        return type_to_type_name.get(typ, None)
+    except:
+        return None
+
+
+def get_canonical_type_for_type_struct(type_struct) -> str:
+    try:
+        return type_name_to_type.get(type_struct, None)
+    except:
+        return None
+
+
+def get_deserializer_code_for_type(typ) -> str:
+    try:
+        return type_name_to_deserializer.get(get_canonical_type_struct_for_type[typ], None)
+    except:
+        return None
+
+
+def get_deserializer_code_for_type_struct(type_struct) -> str:
+    try:
+        return type_name_to_deserializer.get(type_struct, None)
+    except:
+        return None
+
+
+def get_serializer_func_for_type_struct(type_struct) -> str:
+    try:
+        return type_name_to_serializer.get(type_struct, None)
+    except:
+        return None
 
 
 def serialize_value(value, type_name: str) -> str:

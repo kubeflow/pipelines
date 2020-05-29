@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ func (a *Client) CreateVisualization(params *CreateVisualizationParams, authInfo
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "CreateVisualization",
 		Method:             "POST",
-		PathPattern:        "/apis/v1beta1/visualizations",
+		PathPattern:        "/apis/v1beta1/visualizations/{namespace}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

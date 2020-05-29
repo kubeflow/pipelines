@@ -36,7 +36,7 @@ class TestCreateJobOp(unittest.TestCase):
                 }
             )
 
-        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
+        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._create_workflow(my_pipeline))
 
     def test_databricks_create_job_with_new_cluster_and_spark_jar_task(self):
         def my_pipeline():
@@ -89,7 +89,7 @@ class TestCreateJobOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_create_job_with_new_cluster_and_spark_python_task(self):
         def my_pipeline():
@@ -138,7 +138,7 @@ class TestCreateJobOp(unittest.TestCase):
             )
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_create_job_with_new_cluster_and_spark_submit_task(self):
         def my_pipeline():
@@ -178,7 +178,7 @@ class TestCreateJobOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_create_job_with_existing_cluster_and_notebook_task(self):
         def my_pipeline():
@@ -212,7 +212,7 @@ class TestCreateJobOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_create_job_with_spec(self):
         def my_pipeline():
@@ -251,7 +251,7 @@ class TestCreateJobOp(unittest.TestCase):
 
             self.assert_res(res, spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_create_job_with_spec_and_extra_args(self):
         def my_pipeline():
@@ -310,7 +310,7 @@ class TestCreateJobOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_create_job_with_json_spec(self):
         def my_pipeline():
@@ -380,7 +380,7 @@ class TestCreateJobOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def test_databricks_create_job_with_json_file_spec(self):
         def my_pipeline():
@@ -424,7 +424,7 @@ class TestCreateJobOp(unittest.TestCase):
 
             self.assert_res(res, expected_spec)
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
     def assert_res(self, res, expected_spec):
         self.assertEqual(res.name, "createjob")
@@ -466,7 +466,7 @@ class TestDeleteJobOp(unittest.TestCase):
                 name="deletejob"
             )
 
-        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._compile(my_pipeline))
+        self.assertRaises(ValueError, lambda: kfp.compiler.Compiler()._create_workflow(my_pipeline))
 
     def test_databricks_delete_job(self):
         def my_pipeline():
@@ -488,7 +488,7 @@ class TestDeleteJobOp(unittest.TestCase):
             self.assertEqual(res.k8s_resource["kind"], "Djob")
             self.assertEqual(res.k8s_resource["metadata"]["name"], "test-job")
 
-        kfp.compiler.Compiler()._compile(my_pipeline)
+        kfp.compiler.Compiler()._create_workflow(my_pipeline)
 
 if __name__ == '__main__':
     unittest.main()

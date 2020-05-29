@@ -30,8 +30,8 @@ GENERATED_GO_PROTO_FILES="${BAZEL_BINDIR}/backend/api/api_generated_go_sources/s
 # TODO this script should be able to be run from anywhere, not just within .../backend/api/
 
 # Delete currently generated code.
-rm -r -f go_http_client/*
-rm -r -f go_client/*
+rm -r -f ${DIR}/go_http_client/*
+rm -r -f ${DIR}/go_client/*
 
 # Build required tools.
 bazel build @com_github_mbrukman_autogen//:autogen_tool
@@ -51,7 +51,7 @@ done
 
 # Generate and copy back into source tree .swagger.json files.
 bazel build //backend/api:api_swagger
-cp ${BAZEL_BINDIR}/backend/api/*.swagger.json swagger
+cp ${BAZEL_BINDIR}/backend/api/*.swagger.json ${DIR}/swagger
 
 jq -s '
     reduce .[] as $item ({}; . * $item) |
@@ -67,7 +67,7 @@ ${SWAGGER_CMD} generate client \
   --principal models.Principal \
   -c job_client \
   -m job_model \
-  -t go_http_client
+  -t ${DIR}/go_http_client
 
 ${SWAGGER_CMD} generate client \
   -f ${DIR}/swagger/run.swagger.json \
@@ -75,7 +75,7 @@ ${SWAGGER_CMD} generate client \
   --principal models.Principal \
   -c run_client \
   -m run_model \
-  -t go_http_client
+  -t ${DIR}/go_http_client
 
 ${SWAGGER_CMD} generate client \
   -f ${DIR}/swagger/experiment.swagger.json \
@@ -83,7 +83,7 @@ ${SWAGGER_CMD} generate client \
   --principal models.Principal \
   -c experiment_client \
   -m experiment_model \
-  -t go_http_client
+  -t ${DIR}/go_http_client
 
 ${SWAGGER_CMD} generate client \
   -f ${DIR}/swagger/pipeline.upload.swagger.json \
@@ -91,7 +91,7 @@ ${SWAGGER_CMD} generate client \
   --principal models.Principal \
   -c pipeline_upload_client \
   -m pipeline_upload_model \
-  -t go_http_client
+  -t ${DIR}/go_http_client
 
 ${SWAGGER_CMD} generate client \
   -f ${DIR}/swagger/pipeline.swagger.json \
@@ -99,7 +99,7 @@ ${SWAGGER_CMD} generate client \
   --principal models.Principal \
   -c pipeline_client \
   -m pipeline_model \
-  -t go_http_client
+  -t ${DIR}/go_http_client
 
 ${SWAGGER_CMD} generate client \
   -f ${DIR}/swagger/visualization.swagger.json \
@@ -107,7 +107,7 @@ ${SWAGGER_CMD} generate client \
   --principal models.Principal \
   -c visualization_client \
   -m visualization_model \
-  -t go_http_client
+  -t ${DIR}/go_http_client
 
 # Hack to fix an issue with go-swagger
 # See https://github.com/go-swagger/go-swagger/issues/1381 for details.

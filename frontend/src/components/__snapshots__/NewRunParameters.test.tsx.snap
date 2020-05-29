@@ -1,6 +1,58 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`NewRunParameters does not display any text fields if there are parameters 1`] = `
+exports[`NewRunParameters clicking the open editor button for json parameters displays an editor 1`] = `
+<Editor
+  cursorStart={1}
+  editorProps={Object {}}
+  enableBasicAutocompletion={false}
+  enableLiveAutocompletion={false}
+  enableSnippets={false}
+  focus={false}
+  fontSize={12}
+  height="500px"
+  highlightActiveLine={true}
+  maxLines={20}
+  minLines={3}
+  mode="json"
+  name="brace-editor"
+  navigateToFileEnd={true}
+  onChange={[Function]}
+  onLoad={null}
+  onPaste={null}
+  onScroll={null}
+  placeholder={null}
+  readOnly={false}
+  scrollMargin={
+    Array [
+      0,
+      0,
+      0,
+      0,
+    ]
+  }
+  setOptions={Object {}}
+  showGutter={true}
+  showPrintMargin={true}
+  style={Object {}}
+  tabSize={4}
+  theme="github"
+  value="{\\"test\\":\\"value\\"}"
+  width="100%"
+  wrapEnabled={false}
+>
+  <div
+    id="brace-editor"
+    style={
+      Object {
+        "height": "500px",
+        "width": "100%",
+      }
+    }
+  />
+</Editor>
+`;
+
+exports[`NewRunParameters does not display any text fields if there are no parameters 1`] = `
 <div>
   <div
     className="header"
@@ -24,21 +76,16 @@ exports[`NewRunParameters shows parameters 1`] = `
     Specify parameters required by the pipeline
   </div>
   <div>
-    <TextField
-      className="textField"
+    <ParamEditor
       id="newRunPipelineParam0"
       key="0"
-      label="testParam"
       onChange={[Function]}
-      required={false}
-      select={false}
-      style={
+      param={
         Object {
-          "maxWidth": 600,
+          "name": "testParam",
+          "value": "testVal",
         }
       }
-      value="testVal"
-      variant="outlined"
     />
   </div>
 </div>

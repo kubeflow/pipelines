@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as express from 'express';
-import * as proxy from 'http-proxy-middleware';
+import express from 'express';
+import proxy from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
 
 export function _extractUrlFromReferer(proxyPrefix: string, referer = ''): string {
@@ -70,14 +70,14 @@ export default (app: express.Application, apisPrefix: string) => {
     proxyPrefix + '*',
     proxy({
       changeOrigin: true,
-      logLevel: 'debug',
+      logLevel: process.env.NODE_ENV === 'test' ? 'warn' : 'debug',
       target: 'http://127.0.0.1',
 
       router: (req: any) => {
         return _routePathWithReferer(proxyPrefix, req.path, req.headers.referer as string);
       },
 
-      pathRewrite: (_, req: any) => {
+      pathRewrite: (_: any, req: any) => {
         return _rewritePath(proxyPrefix, req.path, req.query);
       },
     }),

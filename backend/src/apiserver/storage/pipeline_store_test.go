@@ -17,6 +17,7 @@ package storage
 import (
 	"testing"
 
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -99,6 +100,52 @@ func TestListPipelines_FilterOutNotReady(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 2, total_size)
+	assert.Equal(t, pipelinesExpected, pipelines)
+}
+
+func TestListPipelines_WithFilter(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore.CreatePipeline(createPipeline("pipeline_foo"))
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.CreatePipeline(createPipeline("pipeline_bar"))
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+
+	expectedPipeline1 := &model.Pipeline{
+		UUID:             fakeUUID,
+		CreatedAtInSec:   1,
+		Name:             "pipeline_foo",
+		Parameters:       `[{"Name": "param1"}]`,
+		Status:           model.PipelineReady,
+		DefaultVersionId: fakeUUID,
+		DefaultVersion: &model.PipelineVersion{
+			UUID:           fakeUUID,
+			CreatedAtInSec: 1,
+			Name:           "pipeline_foo",
+			Parameters:     `[{"Name": "param1"}]`,
+			PipelineId:     fakeUUID,
+			Status:         model.PipelineVersionReady,
+		}}
+	pipelinesExpected := []*model.Pipeline{expectedPipeline1}
+
+	filterProto := &api.Filter{
+		Predicates: []*api.Predicate{
+			&api.Predicate{
+				Key:   "name",
+				Op:    api.Predicate_IS_SUBSTRING,
+				Value: &api.Predicate_StringValue{StringValue: "pipeline_f"},
+			},
+		},
+	}
+	opts, err := list.NewOptions(&model.Pipeline{}, 10, "id", filterProto)
+	assert.Nil(t, err)
+
+	pipelines, totalSize, nextPageToken, err := pipelineStore.ListPipelines(opts)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, pipelinesExpected, pipelines)
 }
 

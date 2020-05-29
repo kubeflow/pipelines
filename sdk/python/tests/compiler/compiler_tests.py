@@ -152,7 +152,7 @@ class TestCompiler(unittest.TestCase):
       self.maxDiff = None
       self.assertEqual(golden_output, compiler._op_to_template._op_to_template(op))
       self.assertEqual(res_output, compiler._op_to_template._op_to_template(res))
-    
+
     kfp.compiler.Compiler()._compile(my_pipeline)
 
   def _get_yaml_from_zip(self, zip_file):
@@ -177,6 +177,11 @@ class TestCompiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, 'basic.yaml'), 'r') as f:
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(package_path)
+
+      for workflow in golden, compiled:
+        del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.maxDiff = None
       # Comment next line for generating golden yaml.
@@ -205,8 +210,7 @@ class TestCompiler(unittest.TestCase):
         golden = yaml.safe_load(f)
 
       for workflow in golden, compiled_workflow:
-        annotations = workflow['metadata']['annotations']
-        del annotations['pipelines.kubeflow.org/pipeline_spec']
+        del workflow['metadata']
 
       self.assertEqual(golden, compiled_workflow)
     finally:
@@ -232,8 +236,9 @@ class TestCompiler(unittest.TestCase):
       compiled = self._get_yaml_from_zip(compose_package_path)
 
       for workflow in golden, compiled:
-        annotations = workflow['metadata']['annotations']
-        del annotations['pipelines.kubeflow.org/pipeline_spec']
+        del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.maxDiff = None
       # Comment next line for generating golden yaml.
@@ -263,8 +268,9 @@ class TestCompiler(unittest.TestCase):
       compiled = self._get_yaml_from_zip(target_zip)
 
       for workflow in golden, compiled:
-        annotations = workflow['metadata']['annotations']
-        del annotations['pipelines.kubeflow.org/pipeline_spec']
+        del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -285,8 +291,9 @@ class TestCompiler(unittest.TestCase):
       compiled = self._get_yaml_from_zip(target_zip)
 
       for workflow in golden, compiled:
-        annotations = workflow['metadata']['annotations']
-        del annotations['pipelines.kubeflow.org/pipeline_spec']
+        del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -306,8 +313,9 @@ class TestCompiler(unittest.TestCase):
       compiled = self._get_yaml_from_tar(target_tar)
 
       for workflow in golden, compiled:
-        annotations = workflow['metadata']['annotations']
-        del annotations['pipelines.kubeflow.org/pipeline_spec']
+        del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -327,10 +335,11 @@ class TestCompiler(unittest.TestCase):
 
       with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
         compiled = yaml.safe_load(f)
-      
+
       for workflow in golden, compiled:
-        annotations = workflow['metadata']['annotations']
-        del annotations['pipelines.kubeflow.org/pipeline_spec']
+        del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -354,14 +363,15 @@ class TestCompiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
         compiled = yaml.safe_load(f)
 
+      for workflow in golden, compiled:
+        del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
+
       self.maxDiff = None
       self.assertEqual(golden, compiled)
     finally:
       shutil.rmtree(tmpdir)
-
-  def test_py_compile_artifact_location(self):
-    """Test configurable artifact location pipeline."""
-    self._test_py_compile_yaml('artifact_location')
 
   def test_py_compile_basic(self):
     """Test basic sequential pipeline."""
@@ -644,6 +654,25 @@ implementation:
     template = workflow_dict['spec']['templates'][0]
     self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'], 'Custom name')
 
+  def test_set_parallelism(self):
+    """Test a pipeline with parallelism limits."""
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      some_op()
+      some_op()
+      dsl.get_pipeline_conf().set_parallelism(1)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']['parallelism'], 1)
+
   def test_set_ttl_seconds_after_finished(self):
     """Test a pipeline with ttl after finished."""
     def some_op():
@@ -682,6 +711,93 @@ implementation:
       container = template.get('container', None)
       if container:
         self.assertEqual(template['retryStrategy']['limit'], 5)
+  
+  def test_image_pull_policy(self):
+    def some_op():
+      return dsl.ContainerOp(
+          name='sleep',
+          image='busybox',
+          command=['sleep 1'],
+      )
+
+    @dsl.pipeline(name='some_pipeline')
+    def some_pipeline():
+      task1 = some_op()
+      task2 = some_op()
+      task3 = some_op()
+
+      dsl.get_pipeline_conf().set_image_pull_policy(policy="Always")
+    workflow_dict = compiler.Compiler()._compile(some_pipeline)
+    for template in workflow_dict['spec']['templates']:
+      container = template.get('container', None)
+      if container:
+        self.assertEqual(template['container']['imagePullPolicy'], "Always")
+
+  
+  def test_image_pull_policy_step_spec(self):
+    def some_op():
+      return dsl.ContainerOp(
+          name='sleep',
+          image='busybox',
+          command=['sleep 1'],
+      )
+
+    def some_other_op():
+      return dsl.ContainerOp(
+          name='other',
+          image='busybox',
+          command=['sleep 1'],
+      )
+
+    @dsl.pipeline(name='some_pipeline')
+    def some_pipeline():
+      task1 = some_op()
+      task2 = some_op()
+      task3 = some_other_op().set_image_pull_policy("IfNotPresent")
+
+      dsl.get_pipeline_conf().set_image_pull_policy(policy="Always")
+    workflow_dict = compiler.Compiler()._compile(some_pipeline)
+    for template in workflow_dict['spec']['templates']:
+      container = template.get('container', None)
+      if container:
+        if template['name' ] == "other":
+          self.assertEqual(template['container']['imagePullPolicy'], "IfNotPresent")
+        elif template['name' ] == "sleep":
+          self.assertEqual(template['container']['imagePullPolicy'], "Always")
+
+  def test_image_pull_policy_invalid_setting(self):
+    def some_op():
+      return dsl.ContainerOp(
+          name='sleep',
+          image='busybox',
+          command=['sleep 1'],
+      )
+
+    with self.assertRaises(ValueError):
+      @dsl.pipeline(name='some_pipeline')
+      def some_pipeline():
+        task1 = some_op()
+        task2 = some_op()
+        dsl.get_pipeline_conf().set_image_pull_policy(policy="Alwayss")
+
+      workflow_dict = compiler.Compiler()._compile(some_pipeline)
+
+  def test_set_default_pod_node_selector(self):
+    """Test a pipeline with node selector."""
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().set_default_pod_node_selector(label_name="cloud.google.com/gke-accelerator", value="nvidia-tesla-p4")
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']['nodeSelector'], {"cloud.google.com/gke-accelerator":"nvidia-tesla-p4"})
 
   def test_container_op_output_error_when_no_or_multiple_outputs(self):
 
@@ -751,11 +867,11 @@ implementation:
               name="foo-bar-cm",
               namespace="default"
           )
-        )        
+        )
         # delete the config map in k8s
         dsl.ResourceOp(
-          name="delete-config-map", 
-          action="delete", 
+          name="delete-config-map",
+          action="delete",
           k8s_resource=config_map
         )
 
@@ -783,6 +899,9 @@ implementation:
   def test_withparam_lightweight_out(self):
     self._test_py_compile_yaml('loop_over_lightweight_output')
 
+  def test_parallelfor_item_argument_resolving(self):
+    self._test_py_compile_yaml('parallelfor_item_argument_resolving')
+
   def test_py_input_artifact_raw_value(self):
     """Test pipeline input_artifact_raw_value."""
     self._test_py_compile_yaml('input_artifact_raw_value')
@@ -798,3 +917,12 @@ implementation:
     template_names = set(template['name'] for template in workflow_dict['spec']['templates'])
     self.assertGreater(len(template_names), 1)
     self.assertEqual(template_names, {'some-name', 'some-name-2'})
+
+  def test_set_execution_options_caching_strategy(self):
+    def some_pipeline():
+      task = some_op()
+      task.execution_options.caching_strategy.max_cache_staleness = "P30D"
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    template = workflow_dict['spec']['templates'][0]
+    self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/max_cache_staleness'], "P30D")

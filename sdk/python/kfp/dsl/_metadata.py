@@ -15,7 +15,7 @@
 import warnings
 from .types import BaseType, _check_valid_type_dict
 from ..components._data_passing import serialize_value
-from ..components._structures import ComponentSpec, InputSpec, OutputSpec
+from ..components.structures import ComponentSpec, InputSpec, OutputSpec
 
 
 def _annotation_to_typemeta(annotation):

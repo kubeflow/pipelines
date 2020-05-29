@@ -21,8 +21,10 @@ type Job struct {
 	DisplayName        string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
 	Name               string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
 	Namespace          string `gorm:"column:Namespace; not null;"`
+	ServiceAccount     string `gorm:"column:ServiceAccount; not null;"`
 	Description        string `gorm:"column:Description; not null"`
 	MaxConcurrency     int64  `gorm:"column:MaxConcurrency;not null"`
+	NoCatchup          bool   `gorm:"column:NoCatchup; not null"`
 	CreatedAtInSec     int64  `gorm:"column:CreatedAtInSec; not null"` /* The time this record is stored in DB*/
 	UpdatedAtInSec     int64  `gorm:"column:UpdatedAtInSec; not null"`
 	Enabled            bool   `gorm:"column:Enabled; not null"`

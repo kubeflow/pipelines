@@ -565,7 +565,7 @@
     },
     "/apis/v1beta1/jobs/{id}/disable": {
       "post": {
-        "summary": "Disable a job.",
+        "summary": "Stops a job and all its associated runs. The job is not deleted.",
         "operationId": "DisableJob",
         "responses": {
           "200": {
@@ -597,7 +597,7 @@
     },
     "/apis/v1beta1/jobs/{id}/enable": {
       "post": {
-        "summary": "Enable a job.",
+        "summary": "Restarts a job that was previously stopped. All runs associated with the job will continue.",
         "operationId": "EnableJob",
         "responses": {
           "200": {
@@ -965,7 +965,7 @@
     },
     "/apis/v1beta1/pipelines/{id}/templates": {
       "get": {
-        "summary": "Get a YAML template for the selected pipeline.",
+        "summary": "Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.",
         "operationId": "GetTemplate",
         "responses": {
           "200": {
@@ -1036,6 +1036,29 @@
           {
             "name": "filter",
             "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/\nblob/master/backend/api/filter.proto)).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "resource_reference_key.type",
+            "description": "The type of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "UNKNOWN_RESOURCE_TYPE",
+              "EXPERIMENT",
+              "JOB",
+              "PIPELINE",
+              "PIPELINE_VERSION",
+              "NAMESPACE"
+            ],
+            "default": "UNKNOWN_RESOURCE_TYPE"
+          },
+          {
+            "name": "resource_reference_key.id",
+            "description": "The ID of the resource that referred to.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -1140,6 +1163,68 @@
         ]
       }
     },
+    "/apis/v1beta1/experiments/{id}:archive": {
+      "post": {
+        "summary": "Archive an experiment.",
+        "operationId": "ArchiveExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      }
+    },
+    "/apis/v1beta1/experiments/{id}:unarchive": {
+      "post": {
+        "summary": "Restore an archived experiment.",
+        "operationId": "UnarchiveExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      }
+    },
     "/apis/v1beta1/pipelines/upload": {
       "post": {
         "operationId": "UploadPipeline",
@@ -1173,6 +1258,61 @@
           },
           {
             "name": "name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineUploadService"
+        ]
+      }
+    },
+    "/apis/v1beta1/pipelines/upload_version": {
+      "post": {
+        "operationId": "UploadPipelineVersion",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiPipelineVersion"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "uploadfile",
+            "in": "formData",
+            "required": true,
+            "type": "file",
+            "description": "The pipeline to upload. Maximum size of 32MB is supported."
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pipelineid",
             "in": "query",
             "required": false,
             "type": "string"
@@ -1422,6 +1562,10 @@
           },
           "description": "Optional input field. Specify which resource this run belongs to."
         },
+        "service_account": {
+          "type": "string",
+          "description": "Optional input field. Specify which Kubernetes service account this run uses."
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -1574,7 +1718,11 @@
           "items": {
             "$ref": "#/definitions/apiResourceReference"
           },
-          "description": "Optional input field. Specify which resource this run belongs to."
+          "description": "Optional input field. Specify which resource this job belongs to."
+        },
+        "service_account": {
+          "type": "string",
+          "description": "Optional input field. Specify which Kubernetes service account this job uses."
         },
         "max_concurrency": {
           "type": "string",
@@ -1610,6 +1758,11 @@
           "type": "boolean",
           "format": "boolean",
           "description": "Input. Whether the job is enabled or not."
+        },
+        "no_catchup": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Optional input field. Whether the job should catch up if behind schedule.\nIf true, the job will only schedule the latest interval if behind schedule.\nIf false, the job will catch up on each past interval."
         }
       }
     },
@@ -1799,6 +1952,15 @@
         }
       }
     },
+    "ExperimentStorageState": {
+      "type": "string",
+      "enum": [
+        "STORAGESTATE_UNSPECIFIED",
+        "STORAGESTATE_AVAILABLE",
+        "STORAGESTATE_ARCHIVED"
+      ],
+      "default": "STORAGESTATE_UNSPECIFIED"
+    },
     "apiExperiment": {
       "type": "object",
       "properties": {
@@ -1818,6 +1980,16 @@
           "type": "string",
           "format": "date-time",
           "description": "Output. The time that the experiment created."
+        },
+        "resource_references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceReference"
+          },
+          "description": "Optional input field. Specify which resource this run belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
+        },
+        "storage_state": {
+          "$ref": "#/definitions/ExperimentStorageState"
         }
       }
     },

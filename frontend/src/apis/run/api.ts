@@ -347,6 +347,12 @@ export interface ApiRun {
    */
   resource_references?: Array<ApiResourceReference>;
   /**
+   * Optional input field. Specify which Kubernetes service account this run uses.
+   * @type {string}
+   * @memberof ApiRun
+   */
+  service_account?: string;
+  /**
    * Output. The time that the run created.
    * @type {Date}
    * @memberof ApiRun
@@ -1486,10 +1492,12 @@ export const RunServiceApiFactory = function(
      * @throws {RequiredError}
      */
     readArtifact(run_id: string, node_id: string, artifact_name: string, options?: any) {
-      return RunServiceApiFp(configuration).readArtifact(run_id, node_id, artifact_name, options)(
-        fetch,
-        basePath,
-      );
+      return RunServiceApiFp(configuration).readArtifact(
+        run_id,
+        node_id,
+        artifact_name,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
@@ -1500,10 +1508,11 @@ export const RunServiceApiFactory = function(
      * @throws {RequiredError}
      */
     reportRunMetrics(run_id: string, body: ApiReportRunMetricsRequest, options?: any) {
-      return RunServiceApiFp(configuration).reportRunMetrics(run_id, body, options)(
-        fetch,
-        basePath,
-      );
+      return RunServiceApiFp(configuration).reportRunMetrics(
+        run_id,
+        body,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
@@ -1661,10 +1670,11 @@ export class RunServiceApi extends BaseAPI {
    * @memberof RunServiceApi
    */
   public reportRunMetrics(run_id: string, body: ApiReportRunMetricsRequest, options?: any) {
-    return RunServiceApiFp(this.configuration).reportRunMetrics(run_id, body, options)(
-      this.fetch,
-      this.basePath,
-    );
+    return RunServiceApiFp(this.configuration).reportRunMetrics(
+      run_id,
+      body,
+      options,
+    )(this.fetch, this.basePath);
   }
 
   /**

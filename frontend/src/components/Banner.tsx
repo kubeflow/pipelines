@@ -42,6 +42,9 @@ export const css = stylesheet({
     maxHeight: '32px',
     minWidth: '75px',
   },
+  detailsButton: {
+    backgroundColor: color.background,
+  },
   icon: {
     height: '18px',
     padding: spacing.units(-4),
@@ -54,12 +57,19 @@ export const css = stylesheet({
   refreshButton: {
     backgroundColor: color.background,
   },
+  troubleShootingLink: {
+    alignItems: 'center',
+    color: color.theme,
+    fontWeight: 'bold',
+    padding: spacing.units(-4),
+  },
 });
 
 export interface BannerProps {
   additionalInfo?: string;
   message?: string;
   mode?: Mode;
+  showTroubleshootingGuideLink?: boolean;
   refresh?: () => void;
 }
 
@@ -111,8 +121,19 @@ class Banner extends React.Component<BannerProps, BannerState> {
           {this.props.message}
         </div>
         <div className={commonCss.flex}>
+          {this.props.showTroubleshootingGuideLink && (
+            <a
+              className={css.troubleShootingLink}
+              href='https://www.kubeflow.org/docs/pipelines/troubleshooting'
+            >
+              Troubleshooting guide
+            </a>
+          )}
           {this.props.additionalInfo && (
-            <Button className={css.button} onClick={this._showAdditionalInfo.bind(this)}>
+            <Button
+              className={classes(css.button, css.detailsButton)}
+              onClick={this._showAdditionalInfo.bind(this)}
+            >
               Details
             </Button>
           )}

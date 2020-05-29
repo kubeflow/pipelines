@@ -14,57 +14,95 @@
  * limitations under the License.
  */
 
-import React, { Component } from 'react';
-import { Page } from './Page';
-import { ToolbarProps } from '../components/Toolbar';
-import { RoutePage, RouteParams, RoutePageFactory } from '../components/Router';
-import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding } from '../Css';
-import { CircularProgress } from '@material-ui/core';
-import { titleCase, getResourceProperty, serviceErrorToString, logger } from '../lib/Utils';
-import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
-import { Execution, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
-import { Apis, ExecutionProperties, ArtifactProperties } from '../lib/Apis';
 import {
+  Api,
+  ArtifactCustomProperties,
+  ArtifactProperties,
+  ArtifactType,
+  Event,
+  Execution,
+  ExecutionCustomProperties,
+  ExecutionProperties,
+  GetArtifactsByIDRequest,
   GetExecutionsByIDRequest,
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
-  GetArtifactsByIDRequest,
-} from '../generated/src/apis/metadata/metadata_store_service_pb';
-import { EventTypes, getArtifactTypeMap } from '../lib/MetadataUtils';
-import { Event } from '../generated/src/apis/metadata/metadata_store_pb';
+  getArtifactTypes,
+  getResourceProperty,
+  logger,
+  ExecutionType,
+} from '@kubeflow/frontend';
+import { CircularProgress } from '@material-ui/core';
+import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
+import { classes, stylesheet } from 'typestyle';
+import { Page, PageErrorHandler } from './Page';
+import { ToolbarProps } from '../components/Toolbar';
+import { RoutePage, RouteParams, RoutePageFactory } from '../components/Router';
+import { commonCss, padding } from '../Css';
+import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
+import { serviceErrorToString } from '../lib/Utils';
+import { GetExecutionTypesByIDRequest } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 
 type ArtifactIdList = number[];
 
 interface ExecutionDetailsState {
   execution?: Execution;
-  events?: Record<EventTypes, ArtifactIdList>;
+  executionType?: ExecutionType;
+  events?: Record<Event.Type, ArtifactIdList>;
   artifactTypeMap?: Map<number, ArtifactType>;
 }
 
 export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
-  constructor(props: {}) {
-    super(props);
-    this.state = {};
-    this.load = this.load.bind(this);
+  public state: ExecutionDetailsState = {};
+
+  private get id(): number {
+    return parseInt(this.props.match.params[RouteParams.ID], 10);
   }
+
+  public render(): JSX.Element {
+    return (
+      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+        <ExecutionDetailsContent
+          key={this.id}
+          id={this.id}
+          onError={this.showPageError.bind(this)}
+          onTitleUpdate={title =>
+            this.props.updateToolbar({
+              pageTitle: title,
+            })
+          }
+        />
+      </div>
+    );
+  }
+
+  public getInitialToolbarState(): ToolbarProps {
+    return {
+      actions: {},
+      breadcrumbs: [{ displayName: 'Executions', href: RoutePage.EXECUTIONS }],
+      pageTitle: `${this.id} details`,
+    };
+  }
+
+  public async refresh(): Promise<void> {
+    // do nothing
+  }
+}
+
+interface ExecutionDetailsContentProps {
+  id: number;
+  onError: PageErrorHandler;
+  onTitleUpdate: (title: string) => void;
+}
+export class ExecutionDetailsContent extends Component<
+  ExecutionDetailsContentProps,
+  ExecutionDetailsState
+> {
+  public state: ExecutionDetailsState = {};
 
   private get fullTypeName(): string {
-    return this.props.match.params[RouteParams.EXECUTION_TYPE] || '';
-  }
-
-  private get properTypeName(): string {
-    const parts = this.fullTypeName.split('/');
-    if (!parts.length) {
-      return '';
-    }
-
-    return titleCase(parts[parts.length - 1]);
-  }
-
-  private get id(): string {
-    return this.props.match.params[RouteParams.ID];
+    return this.state.executionType?.getName() || '';
   }
 
   public async componentDidMount(): Promise<void> {
@@ -77,11 +115,11 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
     }
 
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div>
         {
           <ResourceInfo
             resourceType={ResourceType.EXECUTION}
-            typeName={this.properTypeName}
+            typeName={this.fullTypeName}
             resource={this.state.execution}
           />
         }
@@ -113,30 +151,32 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
     return {
       actions: {},
       breadcrumbs: [{ displayName: 'Executions', href: RoutePage.EXECUTIONS }],
-      pageTitle: `${this.properTypeName} ${this.id} details`,
+      pageTitle: `Execution #${this.props.id} details`,
     };
   }
 
-  public async refresh(): Promise<void> {
-    return this.load();
-  }
+  private refresh = async (): Promise<void> => {
+    await this.load();
+  };
 
-  private async load(): Promise<void> {
+  private load = async (): Promise<void> => {
+    const metadataStoreServiceClient = Api.getInstance().metadataStoreService;
+
     // this runs parallelly because it's not a critical resource
-    getArtifactTypeMap()
+    getArtifactTypes(metadataStoreServiceClient)
       .then(artifactTypeMap => {
         this.setState({
           artifactTypeMap,
         });
       })
       .catch(err => {
-        this.showPageError('Failed to fetch artifact types', err);
+        this.props.onError('Failed to fetch artifact types', err, 'warning', this.refresh);
       });
 
-    const numberId = parseInt(this.id, 10);
+    const numberId = this.props.id;
     if (isNaN(numberId) || numberId < 0) {
-      const error = new Error(`Invalid execution id: ${this.id}`);
-      this.showPageError(error.message, error);
+      const error = new Error(`Invalid execution id: ${this.props.id}`);
+      this.props.onError(error.message, error, 'error', this.refresh);
       return;
     }
 
@@ -145,52 +185,87 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
     const getEventsRequest = new GetEventsByExecutionIDsRequest();
     getEventsRequest.setExecutionIdsList([numberId]);
 
-    const [executionResponse, eventResponse] = await Promise.all([
-      Apis.getMetadataServicePromiseClient().getExecutionsByID(getExecutionsRequest),
-      Apis.getMetadataServicePromiseClient().getEventsByExecutionIDs(getEventsRequest),
-    ]);
+    try {
+      const [executionResponse, eventResponse] = await Promise.all([
+        metadataStoreServiceClient.getExecutionsByID(getExecutionsRequest),
+        metadataStoreServiceClient.getEventsByExecutionIDs(getEventsRequest),
+      ]);
 
-    if (eventResponse.error) {
-      this.showPageError(serviceErrorToString(eventResponse.error));
-      // events data is optional, no need to skip the following
-    }
-    if (executionResponse.error) {
-      this.showPageError(serviceErrorToString(executionResponse.error));
-      return;
-    }
-    if (!executionResponse.response || !executionResponse.response.getExecutionsList().length) {
-      this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
-      return;
-    }
-    if (executionResponse.response.getExecutionsList().length > 1) {
-      this.showPageError(`Found multiple executions with ID: ${this.id}`);
-      return;
-    }
+      if (!executionResponse.getExecutionsList().length) {
+        this.props.onError(
+          `No execution identified by id: ${this.props.id}`,
+          undefined,
+          'error',
+          this.refresh,
+        );
+        return;
+      }
 
-    const execution = executionResponse.response.getExecutionsList()[0];
-    const executionName = getResourceProperty(execution, ExecutionProperties.COMPONENT_ID);
-    this.props.updateToolbar({
-      pageTitle: executionName ? executionName.toString() : '',
-    });
+      if (executionResponse.getExecutionsList().length > 1) {
+        this.props.onError(
+          `Found multiple executions with ID: ${this.props.id}`,
+          undefined,
+          'error',
+          this.refresh,
+        );
+        return;
+      }
 
-    const events = parseEventsByType(eventResponse.response);
+      const execution = executionResponse.getExecutionsList()[0];
+      const executionName =
+        getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
+        getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true);
+      this.props.onTitleUpdate(executionName ? executionName.toString() : '');
 
-    this.setState({
-      events,
-      execution,
-    });
-  }
+      const typeRequest = new GetExecutionTypesByIDRequest();
+      typeRequest.setTypeIdsList([execution.getTypeId()]);
+      const typeResponse = await metadataStoreServiceClient.getExecutionTypesByID(typeRequest);
+      const types = typeResponse.getExecutionTypesList();
+      let executionType: ExecutionType | undefined;
+      if (!types || types.length === 0) {
+        this.props.onError(
+          `Cannot find execution type with id: ${execution.getTypeId()}`,
+          undefined,
+          'error',
+          this.refresh,
+        );
+        return;
+      } else if (types.length > 1) {
+        this.props.onError(
+          `More than one execution type found with id: ${execution.getTypeId()}`,
+          undefined,
+          'error',
+          this.refresh,
+        );
+        return;
+      } else {
+        executionType = types[0];
+      }
+
+      const events = parseEventsByType(eventResponse);
+
+      this.setState({
+        events,
+        execution,
+        executionType,
+      });
+    } catch (err) {
+      this.props.onError(serviceErrorToString(err), err, 'error', this.refresh);
+    }
+  };
 }
 
 function parseEventsByType(
   response: GetEventsByExecutionIDsResponse | null,
-): Record<EventTypes, ArtifactIdList> {
-  const events: Record<EventTypes, ArtifactIdList> = {
+): Record<Event.Type, ArtifactIdList> {
+  const events: Record<Event.Type, ArtifactIdList> = {
     [Event.Type.UNKNOWN]: [],
     [Event.Type.DECLARED_INPUT]: [],
     [Event.Type.INPUT]: [],
     [Event.Type.DECLARED_OUTPUT]: [],
     [Event.Type.OUTPUT]: [],
+    [Event.Type.INTERNAL_INPUT]: [],
+    [Event.Type.INTERNAL_OUTPUT]: [],
   };
 
   if (!response) {
@@ -236,31 +311,32 @@ class SectionIO extends Component<
     // loads extra metadata about artifacts
     const request = new GetArtifactsByIDRequest();
     request.setArtifactIdsList(this.props.artifactIds);
-    const { error, response } = await Apis.getMetadataServicePromiseClient().getArtifactsByID(
-      request,
-    );
-    if (error || !response) {
+
+    try {
+      const response = await Api.getInstance().metadataStoreService.getArtifactsByID(request);
+
+      const artifactDataMap = {};
+      response.getArtifactsList().forEach(artifact => {
+        const id = artifact.getId();
+        if (!id) {
+          logger.error('Artifact has empty id', artifact.toObject());
+          return;
+        }
+        artifactDataMap[id] = {
+          id,
+          name: (getResourceProperty(artifact, ArtifactProperties.NAME) ||
+            getResourceProperty(artifact, ArtifactCustomProperties.NAME, true) ||
+            '') as string, // TODO: assert name is string
+          typeId: artifact.getTypeId(),
+          uri: artifact.getUri() || '',
+        };
+      });
+      this.setState({
+        artifactDataMap,
+      });
+    } catch (err) {
       return;
     }
-
-    const artifactDataMap = {};
-    response.getArtifactsList().forEach(artifact => {
-      const id = artifact.getId();
-      if (!id) {
-        logger.error('Artifact has empty id', artifact.toObject());
-        return;
-      }
-      const data: ArtifactInfo = {
-        id,
-        name: (getResourceProperty(artifact, ArtifactProperties.NAME) || '') as string, // TODO: assert name is string
-        typeId: artifact.getTypeId(),
-        uri: artifact.getUri() || '',
-      };
-      artifactDataMap[id] = data;
-    });
-    this.setState({
-      artifactDataMap,
-    });
   }
 
   public render(): JSX.Element | null {
@@ -314,15 +390,23 @@ const ArtifactRow: React.FC<{ id: number; name: string; type?: string; uri: stri
 }) => (
   <tr>
     <td className={css.tableCell}>
-      {type && id ? (
-        <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(type, id)}>
+      {id ? (
+        <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(id)}>
           {id}
         </Link>
       ) : (
         id
       )}
     </td>
-    <td className={css.tableCell}>{name}</td>
+    <td className={css.tableCell}>
+      {id ? (
+        <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(id)}>
+          {name}
+        </Link>
+      ) : (
+        name
+      )}
+    </td>
     <td className={css.tableCell}>{type}</td>
     <td className={css.tableCell}>{uri}</td>
   </tr>

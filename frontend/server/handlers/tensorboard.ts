@@ -13,91 +13,146 @@
 // limitations under the License.
 import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper';
+import { ViewerTensorboardConfig } from '../configs';
+import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth';
+import { parseError } from '../utils';
+import { AuthorizeFn } from '../helpers/auth';
 
-/**
- * A handler which retrieve the endpoint for a tensorboard instance. The
- * handler expects a query string `logdir`.
- */
-export const getTensorboardHandler: Handler = async (req, res) => {
-  if (!k8sHelper.isInCluster) {
-    res.status(500).send('Cannot talk to Kubernetes master');
-    return;
-  }
-
-  if (!req.query.logdir) {
-    res.status(404).send('logdir argument is required');
-    return;
-  }
-
-  const logdir = decodeURIComponent(req.query.logdir);
-
-  try {
-    res.send(await k8sHelper.getTensorboardInstance(logdir));
-  } catch (err) {
-    res.status(500).send('Failed to list Tensorboard pods: ' + JSON.stringify(err));
-  }
-};
-
-/**
- * Returns a handler which will create a tensorboard viewer CRD, waits for the
- * tensorboard instance to be ready, and return the endpoint to the instance.
- * The handler expects the following query strings in the request:
- * - `logdir`
- * - `tfversion`
- * @param podTemplateSpec Custom pod template specification to be applied on the
- * tensorboard pod.
- */
-export function getCreateTensorboardHandler(podTemplateSpec?: object): Handler {
-  return async (req, res) => {
-    if (!k8sHelper.isInCluster) {
-      res.status(500).send('Cannot talk to Kubernetes master');
+export const getTensorboardHandlers = (
+  tensorboardConfig: ViewerTensorboardConfig,
+  authorizeFn: AuthorizeFn,
+): { get: Handler; create: Handler; delete: Handler } => {
+  /**
+   * A handler which retrieve the endpoint for a tensorboard instance. The
+   * handler expects a query string `logdir`.
+   */
+  const get: Handler = async (req, res) => {
+    const { logdir, namespace } = req.query;
+    if (!logdir) {
+      res.status(400).send('logdir argument is required');
       return;
     }
-
-    if (!req.query.logdir) {
-      res.status(404).send('logdir argument is required');
+    if (!namespace) {
+      res.status(400).send('namespace argument is required');
       return;
     }
-
-    if (!req.query.tfversion) {
-      res.status(404).send('tensorflow version argument is required');
-      return;
-    }
-
-    const logdir = decodeURIComponent(req.query.logdir);
-    const tfversion = decodeURIComponent(req.query.tfversion);
 
     try {
-      await k8sHelper.newTensorboardInstance(logdir, tfversion, podTemplateSpec);
-      const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(logdir, 60 * 1000);
-      res.send(tensorboardAddress);
+      const authError = await authorizeFn(
+        {
+          verb: AuthorizeRequestVerb.GET,
+          resources: AuthorizeRequestResources.VIEWERS,
+          namespace,
+        },
+        req,
+      );
+      if (authError) {
+        res.status(401).send(authError.message);
+        return;
+      }
+      res.send(await k8sHelper.getTensorboardInstance(logdir, namespace));
     } catch (err) {
-      res.status(500).send('Failed to start Tensorboard app: ' + JSON.stringify(err));
+      const details = await parseError(err);
+      console.error(`Failed to list Tensorboard pods: ${details.message}`, details.additionalInfo);
+      res.status(500).send(`Failed to list Tensorboard pods: ${details.message}`);
     }
   };
-}
 
-/**
- * A handler that deletes a tensorboard viewer. The handler expects query string
- * `logdir` in the request.
- */
-export const deleteTensorboardHandler: Handler = async (req, res) => {
-  if (!k8sHelper.isInCluster) {
-    res.status(500).send('Cannot talk to Kubernetes master');
-    return;
-  }
+  /**
+   * A handler which will create a tensorboard viewer CRD, waits for the
+   * tensorboard instance to be ready, and return the endpoint to the instance.
+   * The handler expects the following query strings in the request:
+   * - `logdir`
+   * - `tfversion`
+   */
+  const create: Handler = async (req, res) => {
+    const { logdir, namespace, tfversion } = req.query;
+    if (!logdir) {
+      res.status(400).send('logdir argument is required');
+      return;
+    }
+    if (!namespace) {
+      res.status(400).send('namespace argument is required');
+      return;
+    }
+    if (!tfversion) {
+      res.status(400).send('tfversion (tensorflow version) argument is required');
+      return;
+    }
 
-  if (!req.query.logdir) {
-    res.status(404).send('logdir argument is required');
-    return;
-  }
+    try {
+      const authError = await authorizeFn(
+        {
+          verb: AuthorizeRequestVerb.CREATE,
+          resources: AuthorizeRequestResources.VIEWERS,
+          namespace,
+        },
+        req,
+      );
+      if (authError) {
+        res.status(401).send(authError.message);
+        return;
+      }
+      await k8sHelper.newTensorboardInstance(
+        logdir,
+        namespace,
+        tensorboardConfig.tfImageName,
+        tfversion,
+        tensorboardConfig.podTemplateSpec,
+      );
+      const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(
+        logdir,
+        namespace,
+        60 * 1000,
+      );
+      res.send(tensorboardAddress);
+    } catch (err) {
+      const details = await parseError(err);
+      console.error(`Failed to start Tensorboard app: ${details.message}`, details.additionalInfo);
+      res.status(500).send(`Failed to start Tensorboard app: ${details.message}`);
+    }
+  };
 
-  const logdir = decodeURIComponent(req.query.logdir);
+  /**
+   * A handler that deletes a tensorboard viewer. The handler expects query string
+   * `logdir` in the request.
+   */
+  const deleteHandler: Handler = async (req, res) => {
+    const { logdir, namespace } = req.query;
+    if (!logdir) {
+      res.status(400).send('logdir argument is required');
+      return;
+    }
+    if (!namespace) {
+      res.status(400).send('namespace argument is required');
+      return;
+    }
 
-  try {
-    await k8sHelper.deleteTensorboardInstance(logdir);
-    res.send('Tensorboard deleted.');
-  } catch (err) {
-    res.status(500).send('Failed to delete Tensorboard app: ' + JSON.stringify(err));
-  }
+    try {
+      const authError = await authorizeFn(
+        {
+          verb: AuthorizeRequestVerb.DELETE,
+          resources: AuthorizeRequestResources.VIEWERS,
+          namespace,
+        },
+        req,
+      );
+      if (authError) {
+        res.status(401).send(authError.message);
+        return;
+      }
+      await k8sHelper.deleteTensorboardInstance(logdir, namespace);
+      res.send('Tensorboard deleted.');
+    } catch (err) {
+      const details = await parseError(err);
+      console.error(`Failed to delete Tensorboard app: ${details.message}`, details.additionalInfo);
+      res.status(500).send(`Failed to delete Tensorboard app: ${details.message}`);
+    }
+  };
+
+  return {
+    get,
+    create,
+    delete: deleteHandler,
+  };
 };

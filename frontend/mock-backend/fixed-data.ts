@@ -113,6 +113,13 @@ const pipelines: ApiPipeline[] = [
     name: 'Markdown description',
     parameters: [],
   },
+  {
+    created_at: new Date('2020-01-22T20:59:23.000Z'),
+    description: 'A pipeline with a long name',
+    id: '9fbe3bd6-a01f-11e8-98d0-529269fb1462',
+    name: 'A pipeline with a very very very very very very very long name',
+    parameters: [],
+  },
 ];
 
 pipelines.push(...generateNPipelines());
@@ -277,6 +284,11 @@ const experiments: ApiExperiment[] = [
       'This experiment also has a very long description, which should overflow the container card.',
     id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
     name: 'Experiment Number 2',
+  },
+  {
+    description: 'This experiment has a very very very long name',
+    id: 'z4d4f8c6-ce9c-4200-a92e-c48ec759b733',
+    name: 'Experiment with a very very very very very very very very very very very very long name',
   },
 ];
 

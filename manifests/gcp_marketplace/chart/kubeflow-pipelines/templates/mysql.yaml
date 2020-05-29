@@ -16,7 +16,7 @@ spec:
     app.kubernetes.io/name: {{ .Release.Name }}
 ---
 {{ if .Values.managedstorage.enabled }}
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cloudsqlproxy
@@ -43,7 +43,8 @@ spec:
                     "-dir=/cloudsql",
             # Replace with your own CloudSQL instance ID
                     "-instances={{ .Values.managedstorage.cloudsqlInstanceConnectionName }}=tcp:0.0.0.0:3306",
-                    "-credential_file=/credentials/application_default_credentials.json",
+            # System workload uses GCE default service account or Workload Identity's service account
+            #       "-credential_file=/credentials/application_default_credentials.json",
                     "term_timeout=10s"]
           # set term_timeout if require graceful handling of shutdown
           # NOTE: proxy will stop accepting new connections; only wait on existing connections
@@ -93,7 +94,7 @@ spec:
     requests:
       storage: 20Gi
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql

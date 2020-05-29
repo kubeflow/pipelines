@@ -1,2 +1,4 @@
 pip install --upgrade ..
-python3 -m unittest discover --verbose
+pip install coverage
+coverage run -m unittest discover --verbose
+coverage report

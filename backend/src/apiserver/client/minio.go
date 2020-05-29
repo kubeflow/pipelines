@@ -16,32 +16,56 @@ package client
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	minio "github.com/minio/minio-go"
+	credentials "github.com/minio/minio-go/pkg/credentials"
 	"github.com/pkg/errors"
 )
+
+// createCredentialProvidersChain creates a chained providers credential for a minio client
+func createCredentialProvidersChain(endpoint, accessKey, secretKey string) *credentials.Credentials {
+	// first try with static api key
+	if accessKey != "" && secretKey != "" {
+		return credentials.NewStaticV4(accessKey, secretKey, "")
+	}
+	// otherwise use a chained provider: minioEnv -> awsEnv -> IAM
+	providers := []credentials.Provider{
+		&credentials.EnvMinio{},
+		&credentials.EnvAWS{},
+		&credentials.IAM{
+			Client: &http.Client{
+				Transport: http.DefaultTransport,
+			},
+		},
+	}
+	return credentials.New(&credentials.Chain{Providers: providers})
+}
 
 func CreateMinioClient(minioServiceHost string,
 	minioServicePort string,
 	accessKey string,
 	secretKey string,
+	secure bool,
+	region string,
 	forceV2Signature bool) (*minio.Client, error) {
-	var minioClient *minio.Client
-	var err error
+
+	endpoint := joinHostPort(minioServiceHost, minioServicePort)
+	cred := createCredentialProvidersChain(endpoint, accessKey, secretKey)
 	if forceV2Signature {
-		minioClient, err = minio.NewV2(fmt.Sprintf("%s:%s", minioServiceHost, minioServicePort),
+		minioClient, err = minio.NewV2(endpoint,
 			accessKey,
 			secretKey,
-			false /* Secure connection */)
+			secure)
 
 	} else {
-		minioClient, err = minio.New(fmt.Sprintf("%s:%s", minioServiceHost, minioServicePort),
-			accessKey,
-			secretKey,
-			false /* Secure connection */)
+		minioClient, err := minio.NewWithCredentials(endpoint,
+			cred,
+			secure,
+			region)
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error while creating minio client: %+v", err)
@@ -53,6 +77,8 @@ func CreateMinioClientOrFatal(minioServiceHost string,
 	minioServicePort string,
 	accessKey string,
 	secretKey string,
+	secure bool,
+	region string,
 	initConnectionTimeout time.Duration,
 	forceV2Signature bool) *minio.Client {
 	var minioClient *minio.Client
@@ -62,6 +88,8 @@ func CreateMinioClientOrFatal(minioServiceHost string,
 			minioServicePort,
 			accessKey,
 			secretKey,
+			secure,
+			region,
 			forceV2Signature)
 		if err != nil {
 			return err
@@ -75,4 +103,14 @@ func CreateMinioClientOrFatal(minioServiceHost string,
 		glog.Fatalf("Failed to create Minio client. Error: %v", err)
 	}
 	return minioClient
+}
+
+// joinHostPort combines host and port into a network address of the form "host:port".
+//
+// An empty port value results in "host" instead of "host:" (which net.JoinHostPort would return)
+func joinHostPort(host, port string) string {
+	if port == "" {
+		return host
+	}
+	return fmt.Sprintf("%s:%s", host, port)
 }

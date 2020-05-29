@@ -28,6 +28,7 @@ class Commands(enum.Enum):
   GET_SECRETS = 5
   GET_SERVICES = 6
   GET_KUBECTL_VERSION = 7
+  GET_CONFIG_MAPS = 8
 
 
 _command_string = {
@@ -38,6 +39,7 @@ _command_string = {
     Commands.GET_SECRETS: 'get secrets',
     Commands.GET_SERVICES: 'get services',
     Commands.GET_KUBECTL_VERSION: 'version',
+    Commands.GET_CONFIG_MAPS: 'get configmaps',
 }
 
 
