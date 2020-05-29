@@ -1,5 +1,6 @@
 # JobMode
 
+Required input.   - DISABLED: The job won't schedule any run if disabled.
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------

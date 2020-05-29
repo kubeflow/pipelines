@@ -22,29 +22,47 @@ Method | HTTP request | Description
 Archive a run.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.RunServiceApi(kfp_server_api.ApiClient(configuration))
-id = 'id_example' # str | 
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.RunServiceApi(api_client)
+    id = 'id_example' # str | 
 
-try:
-    # Archive a run.
-    api_response = api_instance.archive_run(id)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling RunServiceApi->archive_run: %s\n" % e)
+    try:
+        # Archive a run.
+        api_response = api_instance.archive_run(id)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling RunServiceApi->archive_run: %s\n" % e)
 ```
 
 ### Parameters
@@ -63,8 +81,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -74,29 +98,47 @@ Name | Type | Description  | Notes
 Create a new run.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.RunServiceApi(kfp_server_api.ApiClient(configuration))
-body = kfp_server_api.ApiRun() # ApiRun | 
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.RunServiceApi(api_client)
+    body = kfp_server_api.ApiRun() # ApiRun | 
 
-try:
-    # Create a new run.
-    api_response = api_instance.create_run(body)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling RunServiceApi->create_run: %s\n" % e)
+    try:
+        # Create a new run.
+        api_response = api_instance.create_run(body)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling RunServiceApi->create_run: %s\n" % e)
 ```
 
 ### Parameters
@@ -118,6 +160,12 @@ Name | Type | Description  | Notes
  - **Content-Type**: application/json
  - **Accept**: application/json
 
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
+
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **delete_run**
@@ -126,29 +174,47 @@ Name | Type | Description  | Notes
 Delete a run.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.RunServiceApi(kfp_server_api.ApiClient(configuration))
-id = 'id_example' # str | 
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.RunServiceApi(api_client)
+    id = 'id_example' # str | 
 
-try:
-    # Delete a run.
-    api_response = api_instance.delete_run(id)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling RunServiceApi->delete_run: %s\n" % e)
+    try:
+        # Delete a run.
+        api_response = api_instance.delete_run(id)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling RunServiceApi->delete_run: %s\n" % e)
 ```
 
 ### Parameters
@@ -167,8 +233,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -178,29 +250,47 @@ Name | Type | Description  | Notes
 Find a specific run by ID.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.RunServiceApi(kfp_server_api.ApiClient(configuration))
-run_id = 'run_id_example' # str | 
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.RunServiceApi(api_client)
+    run_id = 'run_id_example' # str | 
 
-try:
-    # Find a specific run by ID.
-    api_response = api_instance.get_run(run_id)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling RunServiceApi->get_run: %s\n" % e)
+    try:
+        # Find a specific run by ID.
+        api_response = api_instance.get_run(run_id)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling RunServiceApi->get_run: %s\n" % e)
 ```
 
 ### Parameters
@@ -219,8 +309,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -230,34 +326,52 @@ Name | Type | Description  | Notes
 Find all runs.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.RunServiceApi(kfp_server_api.ApiClient(configuration))
-page_token = 'page_token_example' # str |  (optional)
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.RunServiceApi(api_client)
+    page_token = 'page_token_example' # str |  (optional)
 page_size = 56 # int |  (optional)
 sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" (Example, \"name asc\" or \"id des\"). Ascending by default. (optional)
-resource_reference_key_type = 'UNKNOWN_RESOURCE_TYPE' # str | The type of the resource that referred to. (optional) (default to UNKNOWN_RESOURCE_TYPE)
+resource_reference_key_type = 'UNKNOWN_RESOURCE_TYPE' # str | The type of the resource that referred to. (optional) (default to 'UNKNOWN_RESOURCE_TYPE')
 resource_reference_key_id = 'resource_reference_key_id_example' # str | The ID of the resource that referred to. (optional)
 filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). (optional)
 
-try:
-    # Find all runs.
-    api_response = api_instance.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling RunServiceApi->list_runs: %s\n" % e)
+    try:
+        # Find all runs.
+        api_response = api_instance.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling RunServiceApi->list_runs: %s\n" % e)
 ```
 
 ### Parameters
@@ -267,7 +381,7 @@ Name | Type | Description  | Notes
  **page_token** | **str**|  | [optional] 
  **page_size** | **int**|  | [optional] 
  **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; (Example, \&quot;name asc\&quot; or \&quot;id des\&quot;). Ascending by default. | [optional] 
- **resource_reference_key_type** | **str**| The type of the resource that referred to. | [optional] [default to UNKNOWN_RESOURCE_TYPE]
+ **resource_reference_key_type** | **str**| The type of the resource that referred to. | [optional] [default to &#39;UNKNOWN_RESOURCE_TYPE&#39;]
  **resource_reference_key_id** | **str**| The ID of the resource that referred to. | [optional] 
  **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). | [optional] 
 
@@ -281,8 +395,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -292,31 +412,49 @@ Name | Type | Description  | Notes
 Find a run's artifact data.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.RunServiceApi(kfp_server_api.ApiClient(configuration))
-run_id = 'run_id_example' # str | The ID of the run.
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.RunServiceApi(api_client)
+    run_id = 'run_id_example' # str | The ID of the run.
 node_id = 'node_id_example' # str | The ID of the running node.
 artifact_name = 'artifact_name_example' # str | The name of the artifact.
 
-try:
-    # Find a run's artifact data.
-    api_response = api_instance.read_artifact(run_id, node_id, artifact_name)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling RunServiceApi->read_artifact: %s\n" % e)
+    try:
+        # Find a run's artifact data.
+        api_response = api_instance.read_artifact(run_id, node_id, artifact_name)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling RunServiceApi->read_artifact: %s\n" % e)
 ```
 
 ### Parameters
@@ -337,8 +475,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -348,30 +492,48 @@ Name | Type | Description  | Notes
 ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.RunServiceApi(kfp_server_api.ApiClient(configuration))
-run_id = 'run_id_example' # str | Required. The parent run ID of the metric.
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.RunServiceApi(api_client)
+    run_id = 'run_id_example' # str | Required. The parent run ID of the metric.
 body = kfp_server_api.ApiReportRunMetricsRequest() # ApiReportRunMetricsRequest | 
 
-try:
-    # ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.
-    api_response = api_instance.report_run_metrics(run_id, body)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling RunServiceApi->report_run_metrics: %s\n" % e)
+    try:
+        # ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.
+        api_response = api_instance.report_run_metrics(run_id, body)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling RunServiceApi->report_run_metrics: %s\n" % e)
 ```
 
 ### Parameters
@@ -394,6 +556,12 @@ Name | Type | Description  | Notes
  - **Content-Type**: application/json
  - **Accept**: application/json
 
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
+
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **retry_run**
@@ -402,29 +570,47 @@ Name | Type | Description  | Notes
 Re-initiate a failed or terminated run.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.RunServiceApi(kfp_server_api.ApiClient(configuration))
-run_id = 'run_id_example' # str | 
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.RunServiceApi(api_client)
+    run_id = 'run_id_example' # str | 
 
-try:
-    # Re-initiate a failed or terminated run.
-    api_response = api_instance.retry_run(run_id)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling RunServiceApi->retry_run: %s\n" % e)
+    try:
+        # Re-initiate a failed or terminated run.
+        api_response = api_instance.retry_run(run_id)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling RunServiceApi->retry_run: %s\n" % e)
 ```
 
 ### Parameters
@@ -443,8 +629,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -454,29 +646,47 @@ Name | Type | Description  | Notes
 Terminate an active run.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.RunServiceApi(kfp_server_api.ApiClient(configuration))
-run_id = 'run_id_example' # str | 
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.RunServiceApi(api_client)
+    run_id = 'run_id_example' # str | 
 
-try:
-    # Terminate an active run.
-    api_response = api_instance.terminate_run(run_id)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling RunServiceApi->terminate_run: %s\n" % e)
+    try:
+        # Terminate an active run.
+        api_response = api_instance.terminate_run(run_id)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling RunServiceApi->terminate_run: %s\n" % e)
 ```
 
 ### Parameters
@@ -495,8 +705,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -506,29 +722,47 @@ Name | Type | Description  | Notes
 Restore an archived run.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.RunServiceApi(kfp_server_api.ApiClient(configuration))
-id = 'id_example' # str | 
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.RunServiceApi(api_client)
+    id = 'id_example' # str | 
 
-try:
-    # Restore an archived run.
-    api_response = api_instance.unarchive_run(id)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling RunServiceApi->unarchive_run: %s\n" % e)
+    try:
+        # Restore an archived run.
+        api_response = api_instance.unarchive_run(id)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling RunServiceApi->unarchive_run: %s\n" % e)
 ```
 
 ### Parameters
@@ -547,8 +781,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

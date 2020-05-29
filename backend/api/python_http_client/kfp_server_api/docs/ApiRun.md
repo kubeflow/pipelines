@@ -7,7 +7,7 @@ Name | Type | Description | Notes
 **name** | **str** | Required input field. Name provided by user, or auto generated if run is created by scheduled job. Not unique. | [optional] 
 **storage_state** | [**RunStorageState**](RunStorageState.md) |  | [optional] 
 **description** | **str** |  | [optional] 
-**pipeline_spec** | [**ApiPipelineSpec**](ApiPipelineSpec.md) | Required input field. Describing what the pipeline manifest and parameters to use for the run. | [optional] 
+**pipeline_spec** | [**ApiPipelineSpec**](ApiPipelineSpec.md) |  | [optional] 
 **resource_references** | [**list[ApiResourceReference]**](ApiResourceReference.md) | Optional input field. Specify which resource this run belongs to. | [optional] 
 **service_account** | **str** | Optional input field. Specify which Kubernetes service account this run uses. | [optional] 
 **created_at** | **datetime** | Output. The time that the run created. | [optional] 

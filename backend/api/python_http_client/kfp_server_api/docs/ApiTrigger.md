@@ -1,5 +1,6 @@
 # ApiTrigger
 
+Trigger defines what starts a pipeline run.
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------

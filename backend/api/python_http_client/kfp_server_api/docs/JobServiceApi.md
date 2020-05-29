@@ -18,29 +18,47 @@ Method | HTTP request | Description
 Create a new job.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.JobServiceApi(kfp_server_api.ApiClient(configuration))
-body = kfp_server_api.ApiJob() # ApiJob | The job to be created
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.JobServiceApi(api_client)
+    body = kfp_server_api.ApiJob() # ApiJob | The job to be created
 
-try:
-    # Create a new job.
-    api_response = api_instance.create_job(body)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling JobServiceApi->create_job: %s\n" % e)
+    try:
+        # Create a new job.
+        api_response = api_instance.create_job(body)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling JobServiceApi->create_job: %s\n" % e)
 ```
 
 ### Parameters
@@ -62,6 +80,12 @@ Name | Type | Description  | Notes
  - **Content-Type**: application/json
  - **Accept**: application/json
 
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
+
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **delete_job**
@@ -70,29 +94,47 @@ Name | Type | Description  | Notes
 Delete a job.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.JobServiceApi(kfp_server_api.ApiClient(configuration))
-id = 'id_example' # str | The ID of the job to be deleted
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.JobServiceApi(api_client)
+    id = 'id_example' # str | The ID of the job to be deleted
 
-try:
-    # Delete a job.
-    api_response = api_instance.delete_job(id)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling JobServiceApi->delete_job: %s\n" % e)
+    try:
+        # Delete a job.
+        api_response = api_instance.delete_job(id)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling JobServiceApi->delete_job: %s\n" % e)
 ```
 
 ### Parameters
@@ -111,8 +153,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -122,29 +170,47 @@ Name | Type | Description  | Notes
 Stops a job and all its associated runs. The job is not deleted.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.JobServiceApi(kfp_server_api.ApiClient(configuration))
-id = 'id_example' # str | The ID of the job to be disabled
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.JobServiceApi(api_client)
+    id = 'id_example' # str | The ID of the job to be disabled
 
-try:
-    # Stops a job and all its associated runs. The job is not deleted.
-    api_response = api_instance.disable_job(id)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling JobServiceApi->disable_job: %s\n" % e)
+    try:
+        # Stops a job and all its associated runs. The job is not deleted.
+        api_response = api_instance.disable_job(id)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling JobServiceApi->disable_job: %s\n" % e)
 ```
 
 ### Parameters
@@ -163,8 +229,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -174,29 +246,47 @@ Name | Type | Description  | Notes
 Restarts a job that was previously stopped. All runs associated with the job will continue.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.JobServiceApi(kfp_server_api.ApiClient(configuration))
-id = 'id_example' # str | The ID of the job to be enabled
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.JobServiceApi(api_client)
+    id = 'id_example' # str | The ID of the job to be enabled
 
-try:
-    # Restarts a job that was previously stopped. All runs associated with the job will continue.
-    api_response = api_instance.enable_job(id)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling JobServiceApi->enable_job: %s\n" % e)
+    try:
+        # Restarts a job that was previously stopped. All runs associated with the job will continue.
+        api_response = api_instance.enable_job(id)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling JobServiceApi->enable_job: %s\n" % e)
 ```
 
 ### Parameters
@@ -215,8 +305,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -226,29 +322,47 @@ Name | Type | Description  | Notes
 Find a specific job by ID.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.JobServiceApi(kfp_server_api.ApiClient(configuration))
-id = 'id_example' # str | The ID of the job to be retrieved
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.JobServiceApi(api_client)
+    id = 'id_example' # str | The ID of the job to be retrieved
 
-try:
-    # Find a specific job by ID.
-    api_response = api_instance.get_job(id)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling JobServiceApi->get_job: %s\n" % e)
+    try:
+        # Find a specific job by ID.
+        api_response = api_instance.get_job(id)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling JobServiceApi->get_job: %s\n" % e)
 ```
 
 ### Parameters
@@ -267,8 +381,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -278,34 +398,52 @@ Name | Type | Description  | Notes
 Find all jobs.
 
 ### Example
+
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
 import kfp_server_api
 from kfp_server_api.rest import ApiException
 from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration()
-configuration.api_key['authorization'] = 'YOUR_API_KEY'
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
 # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
-# create an instance of the API class
-api_instance = kfp_server_api.JobServiceApi(kfp_server_api.ApiClient(configuration))
-page_token = 'page_token_example' # str |  (optional)
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.JobServiceApi(api_client)
+    page_token = 'page_token_example' # str |  (optional)
 page_size = 56 # int |  (optional)
 sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name des\". Ascending by default. (optional)
-resource_reference_key_type = 'UNKNOWN_RESOURCE_TYPE' # str | The type of the resource that referred to. (optional) (default to UNKNOWN_RESOURCE_TYPE)
+resource_reference_key_type = 'UNKNOWN_RESOURCE_TYPE' # str | The type of the resource that referred to. (optional) (default to 'UNKNOWN_RESOURCE_TYPE')
 resource_reference_key_id = 'resource_reference_key_id_example' # str | The ID of the resource that referred to. (optional)
 filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). (optional)
 
-try:
-    # Find all jobs.
-    api_response = api_instance.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling JobServiceApi->list_jobs: %s\n" % e)
+    try:
+        # Find all jobs.
+        api_response = api_instance.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling JobServiceApi->list_jobs: %s\n" % e)
 ```
 
 ### Parameters
@@ -315,7 +453,7 @@ Name | Type | Description  | Notes
  **page_token** | **str**|  | [optional] 
  **page_size** | **int**|  | [optional] 
  **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default. | [optional] 
- **resource_reference_key_type** | **str**| The type of the resource that referred to. | [optional] [default to UNKNOWN_RESOURCE_TYPE]
+ **resource_reference_key_type** | **str**| The type of the resource that referred to. | [optional] [default to &#39;UNKNOWN_RESOURCE_TYPE&#39;]
  **resource_reference_key_id** | **str**| The ID of the resource that referred to. | [optional] 
  **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). | [optional] 
 
@@ -329,8 +467,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

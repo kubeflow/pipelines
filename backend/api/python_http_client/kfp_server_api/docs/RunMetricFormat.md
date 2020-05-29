@@ -1,5 +1,6 @@
 # RunMetricFormat
 
+ - UNSPECIFIED: Default value if not present.  - RAW: Display value as its raw format.  - PERCENTAGE: Display value in percentage format.
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------

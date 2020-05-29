@@ -8,7 +8,7 @@ Name | Type | Description | Notes
 **name** | **str** | Optional input field. Pipeline name provided by user. If not specified, file name is used as pipeline name. | [optional] 
 **description** | **str** | Optional input field. Describing the purpose of the job. | [optional] 
 **parameters** | [**list[ApiParameter]**](ApiParameter.md) | Output. The input parameters for this pipeline. TODO(jingzhang36): replace this parameters field with the parameters field inside PipelineVersion when all usage of the former has been changed to use the latter. | [optional] 
-**url** | [**ApiUrl**](ApiUrl.md) | The URL to the source of the pipeline. This is required when creating the pipeine through CreatePipeline API. TODO(jingzhang36): replace this url field with the code_source_urls field inside PipelineVersion when all usage of the former has been changed to use the latter. | [optional] 
+**url** | [**ApiUrl**](ApiUrl.md) |  | [optional] 
 **error** | **str** | In case any error happens retrieving a pipeline field, only pipeline ID and the error message is returned. Client has the flexibility of choosing how to handle error. This is especially useful during listing call. | [optional] 
 **default_version** | [**ApiPipelineVersion**](ApiPipelineVersion.md) |  | [optional] 
 

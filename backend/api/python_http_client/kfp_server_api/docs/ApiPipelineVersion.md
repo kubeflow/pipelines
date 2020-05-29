@@ -8,7 +8,7 @@ Name | Type | Description | Notes
 **created_at** | **datetime** | Output. The time this pipeline version is created. | [optional] 
 **parameters** | [**list[ApiParameter]**](ApiParameter.md) | Output. The input parameters for this pipeline. | [optional] 
 **code_source_url** | **str** | Input. Optional. Pipeline version code source. | [optional] 
-**package_url** | [**ApiUrl**](ApiUrl.md) | Input. Required. Pipeline version package url. Whe calling CreatePipelineVersion API method, need to provide one package file location. | [optional] 
+**package_url** | [**ApiUrl**](ApiUrl.md) |  | [optional] 
 **resource_references** | [**list[ApiResourceReference]**](ApiResourceReference.md) | Input. Required. E.g., specify which pipeline this pipeline version belongs to. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
