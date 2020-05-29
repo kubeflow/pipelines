@@ -43,7 +43,7 @@ fi
 
 pushd "$(dirname "$0")"
 
-DIR="$(pwd)/python_http_client/kfp_server_api"
+DIR="$(pwd)/python_http_client"
 swagger_file="$(pwd)/swagger/kfp_api_single_file.swagger.json"
 
 echo "Generating python code from swagger json in $DIR."
