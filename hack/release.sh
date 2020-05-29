@@ -21,7 +21,7 @@ BRANCH=$2
 REPO=kubeflow/pipelines
 
 if [[ -z "$BRANCH" || -z "$TAG_NAME" ]]; then
-  echo "Usage: release-branch.sh <release-tag> <release-branch>" >&2
+  echo "Usage: release.sh <release-tag> <release-branch>" >&2
   exit 1
 fi
 
@@ -37,10 +37,12 @@ git checkout "$BRANCH"
 # Checking-in the component changes
 git add --all
 git commit --message "Updated version to $TAG_NAME"
+git tag -a "$TAG_NAME" -m "Kubeflow Pipelines $TAG_NAME release"
 
 # Pushing the changes upstream
-read -p "Do you want to push the branch to upstream? [y|n]"
+read -p "Do you want to push the version change and tag $TAG_NAME tag to upstream? [y|n]"
 if [ "$REPLY" != "y" ]; then
    exit
 fi
 git push --set-upstream origin "$BRANCH"
+git push origin "$TAG_NAME"
