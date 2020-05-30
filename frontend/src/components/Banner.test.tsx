@@ -35,6 +35,15 @@ describe('Banner', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('uses info mode when instructed', () => {
+    const tree = shallow(<Banner message={'Some message'} mode={'info'} />);
+    expect(tree.find('.icon').at(0)).toMatchInlineSnapshot(`
+      <pure(InfoIcon)
+        className="icon"
+      />
+    `);
+  });
+
   it('shows "Details" button and has dialog when there is additional info', () => {
     const tree = shallow(<Banner message={'Some message'} additionalInfo={'More info'} />);
     expect(tree).toMatchSnapshot();
@@ -52,8 +61,23 @@ describe('Banner', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('does not show "Refresh" button if mode is "info"', () => {
+    const tree = shallow(
+      <Banner
+        message={'Some message'}
+        mode={'info'}
+        refresh={() => {
+          /* do nothing */
+        }}
+      />,
+    );
+    expect(tree.find('WithStyles(Button).refreshButton').at(0)).toMatchInlineSnapshot(`null`);
+  });
+
   it('shows troubleshooting link instructed by prop', () => {
-    const tree = shallow(<Banner message='Some message' mode='error' showTroubleshootingGuideLink={true} />);
+    const tree = shallow(
+      <Banner message='Some message' mode='error' showTroubleshootingGuideLink={true} />,
+    );
     expect(tree).toMatchInlineSnapshot(`
       <div
         className="flex banner mode"
@@ -81,7 +105,9 @@ describe('Banner', () => {
   });
 
   it('does not show troubleshooting link if warning', () => {
-    const tree = shallow(<Banner message='Some message' mode='warning' showTroubleshootingGuideLink={true} />);
+    const tree = shallow(
+      <Banner message='Some message' mode='warning' showTroubleshootingGuideLink={true} />,
+    );
     expect(tree).toMatchInlineSnapshot(`
       <div
         className="flex banner mode"
