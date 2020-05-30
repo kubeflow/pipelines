@@ -18,6 +18,24 @@ exports[`Banner defaults to error mode 1`] = `
 </div>
 `;
 
+exports[`Banner does not show "Refresh" button if mode is "info" 1`] = `
+<div
+  className="flex banner mode"
+>
+  <div
+    className="message"
+  >
+    <pure(InfoIcon)
+      className="icon"
+    />
+    Some message
+  </div>
+  <div
+    className="flex"
+  />
+</div>
+`;
+
 exports[`Banner shows "Details" button and has dialog when there is additional info 1`] = `
 <div
   className="flex banner mode"
@@ -97,6 +115,24 @@ exports[`Banner uses error mode when instructed 1`] = `
     className="message"
   >
     <pure(ErrorIcon)
+      className="icon"
+    />
+    Some message
+  </div>
+  <div
+    className="flex"
+  />
+</div>
+`;
+
+exports[`Banner uses info mode when instructed 1`] = `
+<div
+  className="flex banner mode"
+>
+  <div
+    className="message"
+  >
+    <pure(InfoIcon)
       className="icon"
     />
     Some message
