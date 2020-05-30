@@ -14,7 +14,7 @@
 import collections
 import re
 import warnings
-from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
+from typing import Any, Dict, List, NamedTuple, TypeVar, Union, Callable, Optional, Sequence
 
 from kubernetes.client import V1Toleration, V1Affinity
 from kubernetes.client.models import (
@@ -687,7 +687,7 @@ class BaseOp(object):
     # in the compilation process to generate the DAGs and task io parameters.
     attrs_with_pipelineparams = [
         'node_selector', 'volumes', 'pod_annotations', 'pod_labels',
-        'num_retries', 'init_containers', 'sidecars', 'tolerations'
+        'init_containers', 'sidecars', 'tolerations'
     ]
 
     def __init__(self,
@@ -734,7 +734,7 @@ class BaseOp(object):
         self.affinity = {}
         self.pod_annotations = {}
         self.pod_labels = {}
-        self.num_retries = 0
+        self._node_retry_strategy = None
         self.timeout = 0
         self.init_containers = init_containers or []
         self.sidecars = sidecars or []
@@ -869,7 +869,26 @@ class BaseOp(object):
           num_retries: Number of times to retry on failures.
         """
 
-        self.num_retries = num_retries
+        self.set_retry_strategy(num_retries=num_retries)
+        return self
+
+    def set_retry_strategy(
+        self,
+        num_retries: int = 0,
+        retry_on_error: bool = False,
+        retry_on_failure: bool = False,
+        backoff_duration: str = None,
+        backoff_factor: float = None,
+        backoff_max_duration: str = None,
+    ):
+        self._node_retry_strategy = RetryStrategy(
+            num_retries=num_retries,
+            retry_on_error=retry_on_error,
+            retry_on_failure=retry_on_failure,
+            backoff_duration=backoff_duration,
+            backoff_factor=backoff_factor,
+            backoff_max_duration=backoff_max_duration,
+        )
         return self
 
     def set_timeout(self, seconds: int):
@@ -1212,3 +1231,13 @@ class _MultipleOutputsError:
 
     def __str__(self):
         _MultipleOutputsError.raise_error()
+
+        
+RetryStrategy = NamedTuple('RetryStrategy', [
+    ('num_retries', int),
+    ('retry_on_error', bool),
+    ('retry_on_failure', bool),
+    ('backoff_duration', str),
+    ('backoff_factor', float),
+    ('backoff_max_duration', str),
+])

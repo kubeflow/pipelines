@@ -250,8 +250,38 @@ def _op_to_template(op: BaseOp):
         if processed_op.pod_labels:
             template['metadata']['labels'] = processed_op.pod_labels
     # retries
-    if processed_op.num_retries:
-        template['retryStrategy'] = {'limit': processed_op.num_retries}
+    if processed_op._node_retry_strategy:
+        retry_strategy = op._node_retry_strategy
+        retry_strategy_dict = {}
+
+        if retry_strategy.num_retries:
+            retry_strategy_dict['limit'] = retry_strategy.num_retries
+
+        backoff_dict = {}
+        if retry_strategy.backoff_duration:
+            backoff_dict['duration'] = retry_strategy.backoff_duration
+        if retry_strategy.backoff_factor:
+            backoff_dict['factor'] = retry_strategy.backoff_factor
+        if retry_strategy.backoff_max_duration:
+            backoff_dict['maxDuration'] = retry_strategy.backoff_max_duration
+        if backoff_dict:
+            retry_strategy_dict['backoff'] = backoff_dict
+
+        if retry_strategy.retry_on_error:
+            if retry_strategy.retry_on_failure:
+                retry_policy = 'Both' # Argo's constant
+            else:
+                retry_policy = 'OnError' # Argo's constant
+        else:
+            if retry_strategy.retry_on_failure:
+                retry_policy = 'OnFailure' # Argo's constant
+            else:
+                retry_policy = None
+        if retry_policy:
+            retry_strategy_dict['retryPolicy'] = retry_policy
+
+        if retry_strategy_dict:
+            template['retryStrategy'] = retry_strategy_dict
 
     # timeout
     if processed_op.timeout:
