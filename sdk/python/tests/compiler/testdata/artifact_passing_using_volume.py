@@ -19,17 +19,15 @@ def artifact_passing_pipeline():
     kfp.dsl.get_pipeline_conf().data_passing_method = volume_based_data_passing_method
 
 
-from kubernetes.client.models import V1Volume, V1PersistentVolumeClaim, V1PersistentVolumeClaimVolumeSource
+from kubernetes.client.models import V1Volume, V1PersistentVolumeClaimVolumeSource
 from kfp.dsl import data_passing_methods
 
 
 volume_based_data_passing_method = data_passing_methods.KubernetesVolume(
     volume=V1Volume(
         name='data',
-        persistent_volume_claim=V1PersistentVolumeClaim(
-            spec=V1PersistentVolumeClaimVolumeSource(
-                claim_name='data-volume',
-            ),
+        persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
+            claim_name='data-volume',
         ),
     ),
     path_prefix='artifact_data/',
