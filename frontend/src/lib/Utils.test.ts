@@ -19,6 +19,7 @@ import {
   enabledDisplayString,
   formatDateString,
   generateMinioArtifactUrl,
+  generateS3ArtifactUrl,
   getRunDuration,
   getRunDurationFromWorkflow,
   logger,
@@ -251,6 +252,14 @@ describe('Utils', () => {
 
     it('handles broken minio URIs', () => {
       expect(generateMinioArtifactUrl('ZZZ://my-bucket/a/b/c')).toBe(undefined);
+    });
+  });
+
+  describe('generateS3ArtifactUrl', () => {
+    it('handles s3:// URIs', () => {
+      expect(generateS3ArtifactUrl('s3://my-bucket/a/b/c')).toBe(
+        'artifacts/get?source=s3&bucket=my-bucket&key=a%2Fb%2Fc',
+      );
     });
   });
 });

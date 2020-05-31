@@ -328,6 +328,26 @@ export function generateMinioArtifactUrl(minioUri: string, peek?: number): strin
   return generateArtifactUrl('minio', matches[1], matches[2], peek);
 }
 
+const S3_URI_PREFIX = 's3://';
+/**
+ * Generates an HTTPS API URL from s3:// uri
+ *
+ * @param s3Uri S3 uri that starts with s3://, like s3://ml-pipeline/path/file
+ * @returns A URL that leads to the artifact data. Returns undefined when s3Uri is not valid.
+ */
+export function generateS3ArtifactUrl(s3Uri: string): string | undefined {
+  if (!s3Uri.startsWith(S3_URI_PREFIX)) {
+    return undefined;
+  }
+
+  // eslint-disable-next-line no-useless-escape
+  const matches = s3Uri.match(/^s3:\/\/([^\/]+)\/(.+)$/);
+  if (matches == null) {
+    return undefined;
+  }
+  return generateArtifactUrl('s3', matches[1], matches[2]);
+}
+
 export function buildQuery(queriesMap: { [key: string]: string | number | undefined }): string {
   const queryContent = Object.entries(queriesMap)
     .filter((entry): entry is [string, string | number] => entry[1] != null)
