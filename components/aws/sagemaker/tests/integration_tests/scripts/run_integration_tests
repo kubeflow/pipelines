@@ -110,7 +110,7 @@ function install_kfp() {
 
   echo "[Installing KFP] Port-forwarding Minio"
 
-  kubectl wait --for=condition=ready -n "${KFP_NAMESPACE}" pod -l app=minio --timeout=5m
+  # kubectl wait --for=condition=ready -n "${KFP_NAMESPACE}" pod -l app=minio --timeout=5m
   kubectl port-forward -n kubeflow svc/minio-service $MINIO_LOCAL_PORT:9000 &
   MINIO_PID=$!
 
