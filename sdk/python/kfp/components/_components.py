@@ -169,6 +169,7 @@ def _load_component_spec_from_component_text(text) -> ComponentSpec:
     # Calculating hash digest for the component
     import hashlib
     data = text if isinstance(text, bytes) else text.encode('utf-8')
+    data = data.replace(b'\r\n', b'\n')  # Normalizing line endings
     digest = hashlib.sha256(data).hexdigest()
     component_spec._digest = digest
 
