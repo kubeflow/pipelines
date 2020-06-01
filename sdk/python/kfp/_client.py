@@ -532,12 +532,10 @@ class Client(object):
     #TODO: Check arguments against the pipeline function
     pipeline_name = pipeline_func.__name__
     run_name = run_name or pipeline_name + ' ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
-    try:
-      (_, pipeline_package_path) = tempfile.mkstemp(suffix='.zip')
+    with tempfile.TemporaryDirectory() as tmpdir:
+      pipeline_package_path = os.path.join(tmpdir, 'pipeline.yaml')
       compiler.Compiler().compile(pipeline_func, pipeline_package_path, pipeline_conf=pipeline_conf)
       return self.create_run_from_pipeline_package(pipeline_package_path, arguments, run_name, experiment_name, namespace)
-    finally:
-      os.remove(pipeline_package_path)
 
   def create_run_from_pipeline_package(self, pipeline_file: str, arguments: Mapping[str, str], run_name=None, experiment_name=None, namespace=None):
     '''Runs pipeline on KFP-enabled Kubernetes cluster.
