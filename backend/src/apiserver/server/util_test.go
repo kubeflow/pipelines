@@ -345,6 +345,34 @@ func TestGetUserIdentity(t *testing.T) {
 	assert.Equal(t, "user@google.com", userIdentity)
 }
 
+func TestGetUserIdentityError(t *testing.T) {
+	md := metadata.New(map[string]string{"no-identity-header": "user"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	_, err := getUserIdentity(ctx)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Request header error: there is no user identity header.")
+}
+
+func TestGetUserIdentityFromHeaderGoogle(t *testing.T) {
+	userIdentity, err := getUserIdentityFromHeader(common.GoogleIAPUserIdentityPrefix+"user@google.com", common.GoogleIAPUserIdentityPrefix)
+	assert.Nil(t, err)
+	assert.Equal(t, "user@google.com", userIdentity)
+}
+
+func TestGetUserIdentityFromHeaderNonGoogle(t *testing.T) {
+	prefix := ""
+	userIdentity, err := getUserIdentityFromHeader(prefix+"user", prefix)
+	assert.Nil(t, err)
+	assert.Equal(t, "user", userIdentity)
+}
+
+func TestGetUserIdentityFromHeaderError(t *testing.T) {
+	prefix := "expected-prefix"
+	_, err := getUserIdentityFromHeader("user", prefix)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Request header error: user identity value is incorrectly formatted")
+}
+
 func TestCanAccessNamespaceInResourceReferences_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
