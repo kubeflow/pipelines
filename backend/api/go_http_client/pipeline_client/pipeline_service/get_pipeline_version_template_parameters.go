@@ -75,7 +75,10 @@ for the get pipeline version template operation typically these are written to a
 */
 type GetPipelineVersionTemplateParams struct {
 
-	/*VersionID*/
+	/*VersionID
+	  The ID of the pipeline version whose template is to be retrieved.
+
+	*/
 	VersionID string
 
 	timeout    time.Duration

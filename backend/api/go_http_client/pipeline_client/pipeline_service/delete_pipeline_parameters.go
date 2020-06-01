@@ -75,7 +75,10 @@ for the delete pipeline operation typically these are written to a http.Request
 */
 type DeletePipelineParams struct {
 
-	/*ID*/
+	/*ID
+	  The ID of the pipeline to be deleted.
+
+	*/
 	ID string
 
 	timeout    time.Duration

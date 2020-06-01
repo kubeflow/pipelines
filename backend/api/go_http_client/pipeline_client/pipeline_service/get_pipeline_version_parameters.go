@@ -75,7 +75,10 @@ for the get pipeline version operation typically these are written to a http.Req
 */
 type GetPipelineVersionParams struct {
 
-	/*VersionID*/
+	/*VersionID
+	  The ID of the pipeline version to be retrieved.
+
+	*/
 	VersionID string
 
 	timeout    time.Duration

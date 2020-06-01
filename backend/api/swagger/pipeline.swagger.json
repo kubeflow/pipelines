@@ -17,6 +17,7 @@
   "paths": {
     "/apis/v1beta1/pipeline_versions": {
       "get": {
+        "summary": "Lists all pipeline versions of a given pipeline.",
         "operationId": "ListPipelineVersions",
         "responses": {
           "200": {
@@ -58,6 +59,7 @@
           },
           {
             "name": "page_size",
+            "description": "The number of pipeline versions to be listed per page. If there are more\npipeline versions than this number, the response message will contain a\nnextPageToken field you can use to fetch the next page.",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -65,6 +67,7 @@
           },
           {
             "name": "page_token",
+            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListPipelineVersions call or can be omitted when fetching the first page.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -89,6 +92,7 @@
         ]
       },
       "post": {
+        "summary": "Adds a pipeline version to the specified pipeline.",
         "operationId": "CreatePipelineVersion",
         "responses": {
           "200": {
@@ -122,6 +126,7 @@
     },
     "/apis/v1beta1/pipeline_versions/{version_id}": {
       "get": {
+        "summary": "Gets a pipeline version by pipeline version ID.",
         "operationId": "GetPipelineVersion",
         "responses": {
           "200": {
@@ -140,6 +145,7 @@
         "parameters": [
           {
             "name": "version_id",
+            "description": "The ID of the pipeline version to be retrieved.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -150,6 +156,7 @@
         ]
       },
       "delete": {
+        "summary": "Deletes a pipeline version by pipeline version ID. If the deleted pipeline\nversion is the default pipeline version, the pipeline's default version\nchanges to the pipeline's most recent pipeline version. If there are no\nremaining pipeline versions, the pipeline will have no default version.\nExamines the run_service_api.ipynb notebook to learn more about creating a\nrun using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).",
         "operationId": "DeletePipelineVersion",
         "responses": {
           "200": {
@@ -168,6 +175,7 @@
         "parameters": [
           {
             "name": "version_id",
+            "description": "The ID of the pipeline version to be deleted.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -180,6 +188,7 @@
     },
     "/apis/v1beta1/pipeline_versions/{version_id}/templates": {
       "get": {
+        "summary": "Returns a YAML template that contains the specified pipeline version's description, parameters and metadata.",
         "operationId": "GetPipelineVersionTemplate",
         "responses": {
           "200": {
@@ -198,6 +207,7 @@
         "parameters": [
           {
             "name": "version_id",
+            "description": "The ID of the pipeline version whose template is to be retrieved.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -210,7 +220,7 @@
     },
     "/apis/v1beta1/pipelines": {
       "get": {
-        "summary": "Find all pipelines.",
+        "summary": "Finds all pipelines.",
         "operationId": "ListPipelines",
         "responses": {
           "200": {
@@ -229,12 +239,14 @@
         "parameters": [
           {
             "name": "page_token",
+            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListPipelines call.",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
             "name": "page_size",
+            "description": "The number of pipelines to be listed per page. If there are more pipelines\nthan this number, the response message will contain a valid value in the\nnextPageToken field.",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -260,7 +272,7 @@
         ]
       },
       "post": {
-        "summary": "Add a pipeline.",
+        "summary": "Creates a pipeline.",
         "operationId": "CreatePipeline",
         "responses": {
           "200": {
@@ -293,7 +305,7 @@
     },
     "/apis/v1beta1/pipelines/{id}": {
       "get": {
-        "summary": "Find a specific pipeline by ID.",
+        "summary": "Finds a specific pipeline by ID.",
         "operationId": "GetPipeline",
         "responses": {
           "200": {
@@ -312,6 +324,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the pipeline to be retrieved.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -322,7 +335,7 @@
         ]
       },
       "delete": {
-        "summary": "Delete a pipeline.",
+        "summary": "Deletes a pipeline and its pipeline versions.",
         "operationId": "DeletePipeline",
         "responses": {
           "200": {
@@ -341,6 +354,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the pipeline to be deleted.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -372,6 +386,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the pipeline whose template is to be retrieved.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -388,7 +403,8 @@
       "type": "object",
       "properties": {
         "template": {
-          "type": "string"
+          "type": "string",
+          "description": "The template of the pipeline specified in a GetTemplate request, or of a\npipeline version specified in a GetPipelinesVersionTemplate request."
         }
       }
     },
@@ -402,11 +418,13 @@
           }
         },
         "next_page_token": {
-          "type": "string"
+          "type": "string",
+          "description": "The token to list the next page of pipeline versions."
         },
         "total_size": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "The total number of pipeline versions for the given query."
         }
       }
     },
@@ -421,10 +439,12 @@
         },
         "total_size": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "The total number of pipelines for the given query."
         },
         "next_page_token": {
-          "type": "string"
+          "type": "string",
+          "description": "The token to list the next page of pipelines."
         }
       }
     },
@@ -593,7 +613,8 @@
       "type": "object",
       "properties": {
         "pipeline_url": {
-          "type": "string"
+          "type": "string",
+          "description": "URL of the pipeline definition or the pipeline version definition."
         }
       }
     },

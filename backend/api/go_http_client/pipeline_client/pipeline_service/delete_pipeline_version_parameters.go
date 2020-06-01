@@ -75,7 +75,10 @@ for the delete pipeline version operation typically these are written to a http.
 */
 type DeletePipelineVersionParams struct {
 
-	/*VersionID*/
+	/*VersionID
+	  The ID of the pipeline version to be deleted.
+
+	*/
 	VersionID string
 
 	timeout    time.Duration

@@ -63,7 +63,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 
 
 service JobService {
-  //Create a new job.
+  // Creates a new job.
   rpc CreateJob(CreateJobRequest) returns (Job) {
     option (google.api.http) = {
       post: "/apis/v1beta1/jobs"
@@ -71,35 +71,35 @@ service JobService {
     };
   }
 
-  //Find a specific job by ID.
+  // Finds a specific job by ID.
   rpc GetJob(GetJobRequest) returns (Job) {
     option (google.api.http) = {
       get: "/apis/v1beta1/jobs/{id}"
     };
   }
 
-  //Find all jobs.
+  // Finds all jobs.
   rpc ListJobs(ListJobsRequest) returns (ListJobsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/jobs"
     };
   }
 
-  //Restarts a job that was previously stopped. All runs associated with the job will continue.
+  // Restarts a job that was previously stopped. All runs associated with the job will continue.
   rpc EnableJob(EnableJobRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/jobs/{id}/enable"
     };
   }
 
-  //Stops a job and all its associated runs. The job is not deleted.
+  // Stops a job and all its associated runs. The job is not deleted.
   rpc DisableJob(DisableJobRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/jobs/{id}/disable"
     };
   }
 
-  //Delete a job.
+  // Deletes a job.
   rpc DeleteJob(DeleteJobRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/jobs/{id}"
@@ -118,7 +118,14 @@ message GetJobRequest {
 }
 
 message ListJobsRequest {
+  // A page token to request the next page of results. The token is acquried
+  // from the nextPageToken field of the response from the previous
+  // ListJobs call or can be omitted when fetching the first page.
   string page_token = 1;
+
+  // The number of jobs to be listed per page. If there are more jobs than this
+  // number, the response message will contain a nextPageToken field you can use
+  // to fetch the next page.
   int32 page_size = 2;
 
   // Can be format of "field_name", "field_name asc" or "field_name des".
@@ -139,7 +146,11 @@ message ListJobsRequest {
 message ListJobsResponse {
   // A list of jobs returned.
   repeated Job jobs = 1;
+
+  // The total number of jobs for the given query.
   int32 total_size = 3;
+
+  // The token to list the next page of jobs.
   string next_page_token = 2;
 }
 
