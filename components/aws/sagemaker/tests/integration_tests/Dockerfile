@@ -24,7 +24,7 @@ RUN curl -sSL -o /usr/local/bin/argo https://github.com/argoproj/argo/releases/d
  && chmod +x /usr/local/bin/argo
 
 # Copy conda environment early to avoid cache busting
-COPY ./sagemaker/tests/integration_tests/environment.yml environment.yml
+COPY ./components/aws/sagemaker/tests/integration_tests/environment.yml environment.yml
 
 # Create conda environment for running tests and set as start-up environment
 RUN conda env create -f environment.yml
@@ -38,19 +38,7 @@ ENV S3_DATA_BUCKET="kfp-test-data"
 ENV MINIO_LOCAL_PORT=9000
 ENV KFP_NAMESPACE="kubeflow"
 
-COPY ./sagemaker/ .
+RUN mkdir kfp_repo
+COPY ./ ./kfp_repo/
 
-# copy sample pipelines from GitHub
-RUN mkdir ./tests/integration_tests/resources/definition/sample_pipelines
-RUN wget -O ./tests/integration_tests/resources/definition/sample_pipelines/training-pipeline.py \
-         https://raw.githubusercontent.com/akartsky/pipelines/integ_for_sample/samples/contrib/aws-samples/simple_train_pipeline/training-pipeline.py
-RUN wget -O ./tests/integration_tests/resources/definition/sample_pipelines/kmeans-hpo-pipeline.py \
-         https://raw.githubusercontent.com/kubeflow/pipelines/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/kmeans-hpo-pipeline.py
-RUN wget -O ./tests/integration_tests/resources/definition/sample_pipelines/mnist-classification-pipeline.py \
-         https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py
-RUN wget -O ./tests/integration_tests/resources/definition/sample_pipelines/mnist-classification-pipeline.py \
-         https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py
-RUN wget -O ./tests/integration_tests/resources/definition/sample_pipelines/mini-image-classification-pipeline.py \
-         https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/ground_truth_pipeline_demo/mini-image-classification-pipeline.py
-
-ENTRYPOINT [ "/bin/bash", "./tests/integration_tests/scripts/run_integration_tests" ]
+ENTRYPOINT [ "/bin/bash", "./kfp_repo/components/aws/sagemaker/tests/integration_tests/scripts/run_integration_tests" ]

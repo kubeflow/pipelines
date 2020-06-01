@@ -5,12 +5,17 @@
 
 import kfp
 import json
+import os
 import copy
 from kfp import components
 from kfp import dsl
 from kfp.aws import use_aws_secret
 
-sagemaker_train_op = components.load_component_from_url('https://raw.githubusercontent.com/akartsky/pipelines/integ_for_sample/components/aws/sagemaker/train/component.yaml')
+
+cur_file_dir = os.path.dirname(__file__)
+components_dir = os.path.join(cur_file_dir, '../../../../components/aws/sagemaker/')
+
+sagemaker_train_op = components.load_component_from_file(components_dir + '/train/component.yaml')
 
 channelObjList = []
 
