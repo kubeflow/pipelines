@@ -59,7 +59,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service ExperimentService {
-  //Create a new experiment.
+  // Creates a new experiment.
   rpc CreateExperiment(CreateExperimentRequest) returns (Experiment) {
     option (google.api.http) = {
       post: "/apis/v1beta1/experiments"
@@ -67,35 +67,38 @@ service ExperimentService {
     };
   }
 
-  //Find a specific experiment by ID.
+  // Finds a specific experiment by ID.
   rpc GetExperiment(GetExperimentRequest) returns (Experiment) {
     option (google.api.http) = {
       get: "/apis/v1beta1/experiments/{id}"
     };
   }
 
-  //Find all experiments.
+  // Finds all experiments. Supports pagination, and sorting on certain fields.
   rpc ListExperiment(ListExperimentsRequest) returns (ListExperimentsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/experiments"
     };
   }
 
-  //Delete an experiment.
+  // Deletes an experiment without deleting the experiment's runs and jobs. To
+  // avoid unexpected behaviors, delete an experiment's runs and jobs before
+  // deleting the experiment.
   rpc DeleteExperiment(DeleteExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/experiments/{id}"
     };
   }
 
-  //Archive an experiment.
+  // Archives an experiment and the experiment's runs and jobs.
   rpc ArchiveExperiment(ArchiveExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/experiments/{id}:archive"
     };
   }
 
-  //Restore an archived experiment.
+  // Restores an archived experiment. The experiment's archived runs and jobs
+  // will stay archived.
   rpc UnarchiveExperiment(UnarchiveExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/experiments/{id}:unarchive"
@@ -114,7 +117,14 @@ message GetExperimentRequest {
 }
 
 message ListExperimentsRequest {
+  // A page token to request the next page of results. The token is acquried
+  // from the nextPageToken field of the response from the previous
+  // ListExperiment call or can be omitted when fetching the first page.
   string page_token = 1;
+
+  // The number of experiments to be listed per page. If there are more
+  // experiments than this number, the response message will contain a
+  // nextPageToken field you can use to fetch the next page.
   int32 page_size = 2;
 
   // Can be format of "field_name", "field_name asc" or "field_name des"
@@ -171,13 +181,16 @@ message Experiment {
     STORAGESTATE_ARCHIVED = 2;
   }
 
+  // Output. Specifies whether this experiment is in archived or available state.
   StorageState storage_state = 6;
 }
 
 message ArchiveExperimentRequest {
+  // The ID of the experiment to be archived.
   string id = 1;
 }
 
 message UnarchiveExperimentRequest {
+  // The ID of the experiment to be restored.
   string id = 1;
 }

@@ -95,9 +95,19 @@ type ListExperimentParams struct {
 
 	*/
 	Filter *string
-	/*PageSize*/
+	/*PageSize
+	  The number of experiments to be listed per page. If there are more
+	experiments than this number, the response message will contain a
+	nextPageToken field you can use to fetch the next page.
+
+	*/
 	PageSize *int32
-	/*PageToken*/
+	/*PageToken
+	  A page token to request the next page of results. The token is acquried
+	from the nextPageToken field of the response from the previous
+	ListExperiment call or can be omitted when fetching the first page.
+
+	*/
 	PageToken *string
 	/*ResourceReferenceKeyID
 	  The ID of the resource that referred to.

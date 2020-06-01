@@ -75,7 +75,10 @@ for the unarchive run operation typically these are written to a http.Request
 */
 type UnarchiveRunParams struct {
 
-	/*ID*/
+	/*ID
+	  The ID of the run to be restored.
+
+	*/
 	ID string
 
 	timeout    time.Duration
