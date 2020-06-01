@@ -12,7 +12,8 @@ from utils import sagemaker_utils
     [
         pytest.param(
             "resources/config/simple-mnist-training", marks=pytest.mark.canary_test
-        )
+        ),
+        pytest.param("resources/config/fsx-mnist-training", marks=pytest.mark.fsx_test),
     ],
 )
 def test_trainingjob(

@@ -75,7 +75,10 @@ for the retry run operation typically these are written to a http.Request
 */
 type RetryRunParams struct {
 
-	/*RunID*/
+	/*RunID
+	  The ID of the run to be retried.
+
+	*/
 	RunID string
 
 	timeout    time.Duration

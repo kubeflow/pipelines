@@ -17,7 +17,7 @@
   "paths": {
     "/apis/v1beta1/jobs": {
       "get": {
-        "summary": "Find all jobs.",
+        "summary": "Finds all jobs.",
         "operationId": "ListJobs",
         "responses": {
           "200": {
@@ -36,12 +36,14 @@
         "parameters": [
           {
             "name": "page_token",
+            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListJobs call or can be omitted when fetching the first page.",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
             "name": "page_size",
+            "description": "The number of jobs to be listed per page. If there are more jobs than this\nnumber, the response message will contain a nextPageToken field you can use\nto fetch the next page.",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -90,7 +92,7 @@
         ]
       },
       "post": {
-        "summary": "Create a new job.",
+        "summary": "Creates a new job.",
         "operationId": "CreateJob",
         "responses": {
           "200": {
@@ -124,7 +126,7 @@
     },
     "/apis/v1beta1/jobs/{id}": {
       "get": {
-        "summary": "Find a specific job by ID.",
+        "summary": "Finds a specific job by ID.",
         "operationId": "GetJob",
         "responses": {
           "200": {
@@ -154,7 +156,7 @@
         ]
       },
       "delete": {
-        "summary": "Delete a job.",
+        "summary": "Deletes a job.",
         "operationId": "DeleteJob",
         "responses": {
           "200": {
@@ -364,10 +366,12 @@
         },
         "total_size": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "The total number of jobs for the given query."
         },
         "next_page_token": {
-          "type": "string"
+          "type": "string",
+          "description": "The token to list the next page of jobs."
         }
       }
     },

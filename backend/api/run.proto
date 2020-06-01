@@ -61,7 +61,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 
 
 service RunService {
-  //Create a new run.
+  // Creates a new run.
   rpc CreateRun(CreateRunRequest) returns (RunDetail) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs"
@@ -69,35 +69,35 @@ service RunService {
     };
   }
 
-  //Find a specific run by ID.
+  // Finds a specific run by ID.
   rpc GetRun(GetRunRequest) returns (RunDetail) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs/{run_id}"
     };
   }
 
-  //Find all runs.
+  // Finds all runs.
   rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs"
     };
   }
 
-  //Archive a run.
+  // Archives a run.
   rpc ArchiveRun(ArchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{id}:archive"
     };
   }
 
-  //Restore an archived run.
+  // Restores an archived run.
   rpc UnarchiveRun(UnarchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{id}:unarchive"
     };
   }
 
-  //Delete a run.
+  // Deletes a run.
   rpc DeleteRun(DeleteRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/runs/{id}"
@@ -116,21 +116,21 @@ service RunService {
     };
   }
 
-  //Find a run's artifact data.
+  // Finds a run's artifact data.
   rpc ReadArtifact(ReadArtifactRequest) returns (ReadArtifactResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
     };
   }
 
-  //Terminate an active run.
+  // Terminates an active run.
   rpc TerminateRun(TerminateRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{run_id}/terminate"
     };
   }
 
-  //Re-initiate a failed or terminated run.
+  // Re-initiates a failed or terminated run.
   rpc RetryRun(RetryRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{run_id}/retry"
@@ -143,12 +143,21 @@ message CreateRunRequest {
 }
 
 message GetRunRequest {
+  // The ID of the run to be retrieved.
   string run_id = 1;
 }
 
 message ListRunsRequest {
+  // A page token to request the next page of results. The token is acquried
+  // from the nextPageToken field of the response from the previous
+  // ListRuns call or can be omitted when fetching the first page.
   string page_token = 1;
+
+  // The number of runs to be listed per page. If there are more runs than this
+  // number, the response message will contain a nextPageToken field you can use
+  // to fetch the next page.
   int32 page_size = 2;
+
   // Can be format of "field_name", "field_name asc" or "field_name des"
   // (Example, "name asc" or "id des"). Ascending by default.
   string sort_by = 3;
@@ -165,28 +174,37 @@ message ListRunsRequest {
 }
 
 message TerminateRunRequest {
+  // The ID of the run to be terminated.
   string run_id = 1;
 }
 
 message RetryRunRequest {
+  // The ID of the run to be retried.
   string run_id = 1;
 }
 
 message ListRunsResponse {
   repeated Run runs = 1;
+
+  // The total number of runs for the given query.
   int32 total_size = 3;
+
+  // The token to list the next page of runs.
   string next_page_token = 2;
 }
 
 message ArchiveRunRequest {
+  // The ID of the run to be archived.
   string id = 1;
 }
 
 message UnarchiveRunRequest {
+  // The ID of the run to be restored.
   string id = 1;
 }
 
 message DeleteRunRequest {
+  // The ID of the run to be deleted.
   string id = 1;
 }
 
@@ -203,6 +221,7 @@ message Run {
     STORAGESTATE_ARCHIVED = 1;
   }
 
+  // Output. Specify whether this run is in archived or available mode.
   StorageState storage_state = 10;
 
   // Optional input field. Describing the purpose of the run
@@ -213,6 +232,8 @@ message Run {
   PipelineSpec pipeline_spec = 4;
 
   // Optional input field. Specify which resource this run belongs to.
+  // When creating a run from a particular pipeline version, the pipeline
+  // version can be specified here.
   repeated ResourceReference resource_references = 5;
 
   // Optional input field. Specify which Kubernetes service account this run uses.

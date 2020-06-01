@@ -61,7 +61,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service PipelineService {
-  //Add a pipeline.
+  // Creates a pipeline.
   rpc CreatePipeline(CreatePipelineRequest) returns (Pipeline) {
     option (google.api.http) = {
       post: "/apis/v1beta1/pipelines"
@@ -69,34 +69,35 @@ service PipelineService {
     };
   }
 
-  //Find a specific pipeline by ID.
+  // Finds a specific pipeline by ID.
   rpc GetPipeline(GetPipelineRequest) returns (Pipeline) {
     option (google.api.http) = {
       get: "/apis/v1beta1/pipelines/{id}"
     };
   }
 
-  //Find all pipelines.
+  // Finds all pipelines.
   rpc ListPipelines(ListPipelinesRequest) returns (ListPipelinesResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/pipelines"
     };
   }
 
-  //Delete a pipeline.
+  // Deletes a pipeline and its pipeline versions.
   rpc DeletePipeline(DeletePipelineRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/pipelines/{id}"
     };
   }
 
-  //Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
+  // Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
   rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/pipelines/{id}/templates"
     };
   }
 
+  // Adds a pipeline version to the specified pipeline.
   rpc CreatePipelineVersion(CreatePipelineVersionRequest)
       returns (PipelineVersion) {
     option (google.api.http) = {
@@ -105,12 +106,14 @@ service PipelineService {
     };
   }
 
+  // Gets a pipeline version by pipeline version ID.
   rpc GetPipelineVersion(GetPipelineVersionRequest) returns (PipelineVersion) {
     option (google.api.http) = {
       get: "/apis/v1beta1/pipeline_versions/{version_id}"
     };
   }
 
+  // Lists all pipeline versions of a given pipeline.
   rpc ListPipelineVersions(ListPipelineVersionsRequest)
       returns (ListPipelineVersionsResponse) {
     option (google.api.http) = {
@@ -118,6 +121,12 @@ service PipelineService {
     };
   }
 
+  // Deletes a pipeline version by pipeline version ID. If the deleted pipeline
+  // version is the default pipeline version, the pipeline's default version
+  // changes to the pipeline's most recent pipeline version. If there are no
+  // remaining pipeline versions, the pipeline will have no default version.
+  // Examines the run_service_api.ipynb notebook to learn more about creating a
+  // run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).
   rpc DeletePipelineVersion(DeletePipelineVersionRequest)
       returns (google.protobuf.Empty) {
     option (google.api.http) = {
@@ -125,6 +134,7 @@ service PipelineService {
     };
   }
 
+  // Returns a YAML template that contains the specified pipeline version's description, parameters and metadata.
   rpc GetPipelineVersionTemplate(GetPipelineVersionTemplateRequest) returns (GetTemplateResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/pipeline_versions/{version_id}/templates"
@@ -133,6 +143,7 @@ service PipelineService {
 }
 
 message Url {
+  // URL of the pipeline definition or the pipeline version definition.
   string pipeline_url = 1;
 }
 
@@ -144,12 +155,21 @@ message CreatePipelineRequest {
 }
 
 message GetPipelineRequest {
+  // The ID of the pipeline to be retrieved.
   string id = 1;
 }
 
 message ListPipelinesRequest {
+  // A page token to request the next page of results. The token is acquried
+  // from the nextPageToken field of the response from the previous
+  // ListPipelines call.
   string page_token = 1;
+
+  // The number of pipelines to be listed per page. If there are more pipelines
+  // than this number, the response message will contain a valid value in the
+  // nextPageToken field.
   int32 page_size = 2;
+
   // Can be format of "field_name", "field_name asc" or "field_name des"
   // Ascending by default.
   string sort_by = 3;
@@ -162,23 +182,32 @@ message ListPipelinesRequest {
 
 message ListPipelinesResponse {
   repeated Pipeline pipelines = 1;
+
+  // The total number of pipelines for the given query.
   int32 total_size = 3;
+
+  // The token to list the next page of pipelines.
   string next_page_token = 2;
 }
 
 message DeletePipelineRequest {
+  // The ID of the pipeline to be deleted.
   string id = 1;
 }
 
 message GetTemplateRequest {
+  // The ID of the pipeline whose template is to be retrieved.
   string id = 1;
 }
 
 message GetTemplateResponse {
+  // The template of the pipeline specified in a GetTemplate request, or of a
+  // pipeline version specified in a GetPipelinesVersionTemplate request.
   string template = 1;
 }
 
 message GetPipelineVersionTemplateRequest {
+  // The ID of the pipeline version whose template is to be retrieved.
   string version_id = 1;
 }
 
@@ -189,13 +218,22 @@ message CreatePipelineVersionRequest {
 }
 
 message GetPipelineVersionRequest {
+  // The ID of the pipeline version to be retrieved.
   string version_id = 1;
 }
 
 message ListPipelineVersionsRequest {
   // ResourceKey specifies the pipeline whose versions are to be listed.
   ResourceKey resource_key = 1;
+
+  // The number of pipeline versions to be listed per page. If there are more
+  // pipeline versions than this number, the response message will contain a
+  // nextPageToken field you can use to fetch the next page.
   int32 page_size = 2;
+
+  // A page token to request the next page of results. The token is acquried
+  // from the nextPageToken field of the response from the previous
+  // ListPipelineVersions call or can be omitted when fetching the first page.
   string page_token = 3;
 
   // Can be format of "field_name", "field_name asc" or "field_name des"
@@ -208,11 +246,16 @@ message ListPipelineVersionsRequest {
 
 message ListPipelineVersionsResponse {
   repeated PipelineVersion versions = 1;
+
+  // The token to list the next page of pipeline versions.
   string next_page_token = 2;
+
+  // The total number of pipeline versions for the given query.
   int32 total_size = 3;
 }
 
 message DeletePipelineVersionRequest {
+  // The ID of the pipeline version to be deleted.
   string version_id = 1;
 }
 

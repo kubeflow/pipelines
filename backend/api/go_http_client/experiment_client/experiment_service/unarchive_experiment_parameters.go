@@ -75,7 +75,10 @@ for the unarchive experiment operation typically these are written to a http.Req
 */
 type UnarchiveExperimentParams struct {
 
-	/*ID*/
+	/*ID
+	  The ID of the experiment to be restored.
+
+	*/
 	ID string
 
 	timeout    time.Duration
