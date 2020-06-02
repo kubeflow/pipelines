@@ -43,7 +43,7 @@ def echo_op(text):
     name='Exit Handler',
     description='Downloads a message and prints it. The exit handler will run after the pipeline finishes (successfully or not).'
 )
-def download_and_print(url='gs://ml-pipeline-playground/shakespeare1.txt'):
+def download_and_print(url='gs://ml-pipeline/shakespeare/shakespeare1.txt'):
     """A sample pipeline showing exit handler."""
 
     exit_task = echo_op('exit!')
