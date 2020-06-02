@@ -57,11 +57,12 @@ def test_workteamjob(
     )
 
     outputs = {"sagemaker-private-workforce": ["workteam_arn"]}
-    output_files = minio_utils.artifact_download_iterator(
-        workflow_json, outputs, download_dir
-    )
 
-    try:
+    try: 
+        output_files = minio_utils.artifact_download_iterator(
+            workflow_json, outputs, download_dir
+        )
+
         response = sagemaker_utils.describe_workteam(sagemaker_client, workteam_name)
 
         # Verify WorkTeam was created in SageMaker
