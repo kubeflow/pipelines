@@ -42,7 +42,7 @@ def echo_op(text):
     name='Sequential pipeline',
     description='A pipeline with two sequential steps.'
 )
-def sequential_pipeline(url='gs://ml-pipeline-playground/shakespeare1.txt'):
+def sequential_pipeline(url='gs://ml-pipeline/sample-data/shakespeare/shakespeare1.txt'):
     """A pipeline with two sequential steps."""
 
     download_task = gcs_download_op(url)
