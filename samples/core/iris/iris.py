@@ -53,17 +53,18 @@ _pipeline_name = 'iris_native_keras'
 # utility function is in iris_utils.py. Feel free to customize as needed.
 _data_root_param = data_types.RuntimeParameter(
     name='data-root',
-    default='gs://ml-pipeline-playground/iris/data',
+    default='gs://ml-pipeline/sample-data/iris/data',
     ptype=Text,
 )
 
 # Python module file to inject customized logic into the TFX components. The
 # Transform and Trainer both require user-defined functions to run successfully.
 # This file is fork from https://github.com/tensorflow/tfx/blob/master/tfx/examples/iris/iris_utils_native_keras.py
+# and baked into the TFX image used in the pipeline.
 _module_file_param = data_types.RuntimeParameter(
     name='module-file',
     default=
-    'gs://ml-pipeline-playground/iris/modules/iris_utils_native_keras.py',
+    '/tfx-src/tfx/examples/iris/iris_utils_native_keras.py',
     ptype=Text,
 )
 
