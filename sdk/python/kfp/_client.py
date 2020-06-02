@@ -291,7 +291,7 @@ class Client(object):
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
-      sort_by: can be '[field_name]', '[field_name] des'. For example, 'name des'.
+      sort_by: can be '[field_name]', '[field_name] des'. For example, 'name desc'.
       namespace: kubernetes namespace where the experiment was created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized.
@@ -370,7 +370,7 @@ class Client(object):
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
-      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+      sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
     Returns:
       A response object including a list of pipelines and next page token.
     """
@@ -582,7 +582,7 @@ class Client(object):
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
-      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+      sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
       experiment_id: experiment id to filter upon
       namespace: kubernetes namespace to filter upon.
         For single user deployment, leave it as None;
@@ -604,7 +604,7 @@ class Client(object):
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
-      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+      sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
       experiment_id: experiment id to filter upon
     Returns:
       A response object including a list of recurring_runs and next page token.
