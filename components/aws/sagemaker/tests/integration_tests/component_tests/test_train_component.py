@@ -10,11 +10,22 @@ from utils import sagemaker_utils
 @pytest.mark.parametrize(
     "test_file_dir",
     [
-        pytest.param("resources/config/simple-mnist-training", marks=pytest.mark.canary_test),
-        pytest.param("resources/config/spot-mnist-training", marks=pytest.mark.spot_test),
-        pytest.param("resources/config/fsx-mnist-training", marks=pytest.mark.fsx_test),
-        pytest.param("resources/config/sample-pipeline-training", marks=pytest.mark.sample_pipeline_training),
-        pytest.param("resources/config/spot-sample-pipeline-training", marks=pytest.mark.spot_sample_pipeline_training)
+        pytest.param(
+            "resources/config/simple-mnist-training",
+            marks=pytest.mark.canary_test
+        ),
+        pytest.param(
+            "resources/config/fsx-mnist-training",
+            marks=pytest.mark.fsx_test
+        ),
+        pytest.param(
+            "resources/config/sample-pipeline-training",
+            marks=pytest.mark.canary_test,
+        ),
+        pytest.param(
+            "resources/config/spot-sample-pipeline-training",
+            marks=pytest.mark.canary_test,
+        ),
     ],
 )
 def test_trainingjob(

@@ -5,6 +5,9 @@ ExpectedTrainingImage: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmea
 Arguments:
   region: ((REGION))
   image: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+  hyperparameters:
+    k: "10"
+    feature_dim: "784"
   channels:
     - ChannelName: train
       DataSource:
