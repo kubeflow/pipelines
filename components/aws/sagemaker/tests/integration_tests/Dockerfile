@@ -38,7 +38,7 @@ ENV S3_DATA_BUCKET="kfp-test-data"
 ENV MINIO_LOCAL_PORT=9000
 ENV KFP_NAMESPACE="kubeflow"
 
-RUN mkdir kfp_repo
-COPY ./ ./kfp_repo/
+RUN mkdir pipelines
+COPY ./ ./pipelines/
 
-ENTRYPOINT [ "/bin/bash", "./kfp_repo/components/aws/sagemaker/tests/integration_tests/scripts/run_integration_tests" ]
+ENTRYPOINT [ "/bin/bash", "./pipelines/components/aws/sagemaker/tests/integration_tests/scripts/run_integration_tests" ]
