@@ -53,6 +53,7 @@ inputs:
       for details.
     default: ''
     type: Dict
+outputs:
   - name: MLPipeline UI metadata
     type: UI metadata
 implementation:
