@@ -667,7 +667,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 resource_key_id = 'resource_key_id_example' # str | The ID of the resource that referred to. (optional)
 page_size = 56 # int | The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a nextPageToken field you can use to fetch the next page. (optional)
 page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelineVersions call or can be omitted when fetching the first page. (optional)
-sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default. (optional)
+sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" Ascending by default. (optional)
 filter = 'filter_example' # str | A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto). (optional)
 
     try:
@@ -686,7 +686,7 @@ Name | Type | Description  | Notes
  **resource_key_id** | **str**| The ID of the resource that referred to. | [optional] 
  **page_size** | **int**| The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a nextPageToken field you can use to fetch the next page. | [optional] 
  **page_token** | **str**| A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelineVersions call or can be omitted when fetching the first page. | [optional] 
- **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default. | [optional] 
+ **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default. | [optional] 
  **filter** | **str**| A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto). | [optional] 
 
 ### Return type
@@ -751,7 +751,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
     page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call. (optional)
 page_size = 56 # int | The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field. (optional)
-sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default. (optional)
+sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" Ascending by default. (optional)
 filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). (optional)
 
     try:
@@ -768,7 +768,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **page_token** | **str**| A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call. | [optional] 
  **page_size** | **int**| The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field. | [optional] 
- **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default. | [optional] 
+ **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default. | [optional] 
  **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). | [optional] 
 
 ### Return type

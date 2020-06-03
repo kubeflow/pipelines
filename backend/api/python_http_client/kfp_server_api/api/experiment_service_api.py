@@ -500,7 +500,7 @@ class ExperimentServiceApi(object):
         :param async_req bool: execute request asynchronously
         :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
         :param int page_size: The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
-        :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default.
+        :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" Ascending by default.
         :param str filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
         :param str resource_reference_key_type: The type of the resource that referred to.
         :param str resource_reference_key_id: The ID of the resource that referred to.
@@ -529,7 +529,7 @@ class ExperimentServiceApi(object):
         :param async_req bool: execute request asynchronously
         :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
         :param int page_size: The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
-        :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default.
+        :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" Ascending by default.
         :param str filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
         :param str resource_reference_key_type: The type of the resource that referred to.
         :param str resource_reference_key_id: The ID of the resource that referred to.
