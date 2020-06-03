@@ -20,6 +20,6 @@ Arguments:
       InputMode: File
   spot_instance: "True"
   checkpoint_config:
-    S3Uri: s3://((DATA_BUCKET))/train-checkpoints
+    S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/train-checkpoints
   model_artifact_path: s3://((DATA_BUCKET))/mnist_kmeans_example/output
   role: ((ROLE_ARN))
