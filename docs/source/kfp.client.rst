@@ -45,3 +45,12 @@ kfp.Client().pipeline_uploads
     :members:
     :undoc-members:
     :show-inheritance:
+
+kfp.Client().models
+-----------------------------
+
+.. automodule:: kfp_server_api.models
+    :members:
+    :undoc-members:
+    :imported-members:
+
