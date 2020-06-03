@@ -170,7 +170,7 @@ message ListPipelinesRequest {
   // nextPageToken field.
   int32 page_size = 2;
 
-  // Can be format of "field_name", "field_name asc" or "field_name des"
+  // Can be format of "field_name", "field_name asc" or "field_name desc"
   // Ascending by default.
   string sort_by = 3;
 
@@ -236,7 +236,7 @@ message ListPipelineVersionsRequest {
   // ListPipelineVersions call or can be omitted when fetching the first page.
   string page_token = 3;
 
-  // Can be format of "field_name", "field_name asc" or "field_name des"
+  // Can be format of "field_name", "field_name asc" or "field_name desc"
   // Ascending by default.
   string sort_by = 4;
   // A base-64 encoded, JSON-serialized Filter protocol buffer (see
