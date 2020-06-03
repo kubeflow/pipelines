@@ -56,6 +56,9 @@ java -jar "$codegen_file" generate -g python -i "$swagger_file" -o "$DIR" -c <(e
     "packageUrl": "https://github.com/kubeflow/pipelines"
 }')
 
+echo "Copying LICENSE to $DIR"
+cp "$(pwd)/../../LICENSE" "$DIR"
+
 echo "Building the python package in $DIR."
 pushd "$DIR"
 python3 setup.py --quiet sdist
