@@ -35,17 +35,18 @@ from tfx.proto import pusher_pb2
 from tfx.proto import trainer_pb2
 
 # Define pipeline params used for pipeline execution.
-# Path to the module file, should be a GCS path.
+# Path to the module file, should be a GCS path,
+# or a module file baked in the docker image used by the pipeline.
 _taxi_module_file_param = data_types.RuntimeParameter(
     name='module-file',
-    default='gs://ml-pipeline-playground/tfx_taxi_simple/modules/taxi_utils.py',
+    default='/tfx-src/tfx/examples/chicago_taxi_pipeline/taxi_utils.py',
     ptype=Text,
 )
 
 # Path to the CSV data file, under which their should be a data.csv file.
 _data_root_param = data_types.RuntimeParameter(
     name='data-root',
-    default='gs://ml-pipeline-playground/tfx_taxi_simple/data',
+    default='gs://ml-pipeline/sample-data/chicago-taxi/data',
     ptype=Text,
 )
 

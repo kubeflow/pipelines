@@ -291,7 +291,7 @@ class Client(object):
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
-      sort_by: can be '[field_name]', '[field_name] des'. For example, 'name des'.
+      sort_by: can be '[field_name]', '[field_name] des'. For example, 'name desc'.
       namespace: kubernetes namespace where the experiment was created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized.
@@ -370,7 +370,7 @@ class Client(object):
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
-      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+      sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
     Returns:
       A response object including a list of pipelines and next page token.
     """
@@ -532,12 +532,10 @@ class Client(object):
     #TODO: Check arguments against the pipeline function
     pipeline_name = pipeline_func.__name__
     run_name = run_name or pipeline_name + ' ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
-    try:
-      (_, pipeline_package_path) = tempfile.mkstemp(suffix='.zip')
+    with tempfile.TemporaryDirectory() as tmpdir:
+      pipeline_package_path = os.path.join(tmpdir, 'pipeline.yaml')
       compiler.Compiler().compile(pipeline_func, pipeline_package_path, pipeline_conf=pipeline_conf)
       return self.create_run_from_pipeline_package(pipeline_package_path, arguments, run_name, experiment_name, namespace)
-    finally:
-      os.remove(pipeline_package_path)
 
   def create_run_from_pipeline_package(self, pipeline_file: str, arguments: Mapping[str, str], run_name=None, experiment_name=None, namespace=None):
     '''Runs pipeline on KFP-enabled Kubernetes cluster.
@@ -584,7 +582,7 @@ class Client(object):
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
-      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+      sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
       experiment_id: experiment id to filter upon
       namespace: kubernetes namespace to filter upon.
         For single user deployment, leave it as None;
@@ -606,7 +604,7 @@ class Client(object):
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
-      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+      sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
       experiment_id: experiment id to filter upon
     Returns:
       A response object including a list of recurring_runs and next page token.

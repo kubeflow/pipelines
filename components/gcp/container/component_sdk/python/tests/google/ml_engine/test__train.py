@@ -21,7 +21,7 @@ from kfp_component.google.ml_engine import train
 CREATE_JOB_MODULE = 'kfp_component.google.ml_engine._train'
 
 @mock.patch(CREATE_JOB_MODULE + '.create_job')
-class TestCreateTraingingJob(unittest.TestCase):
+class TestCreateTrainingJob(unittest.TestCase):
 
     def test_train_succeed(self, mock_create_job):
         train('proj-1', 'mock.module', ['gs://test/package'],
@@ -29,7 +29,8 @@ class TestCreateTraingingJob(unittest.TestCase):
             training_input={
                 'runtimeVersion': '1.10',
                 'pythonVersion': '2.7'
-            }, job_id_prefix='job-', master_image_uri='tensorflow:latest',
+            }, job_id_prefix='job-', job_id='job-1',
+            master_image_uri='tensorflow:latest',
             worker_image_uri='debian:latest')
         
         mock_create_job.assert_called_with('proj-1', {
@@ -48,4 +49,4 @@ class TestCreateTraingingJob(unittest.TestCase):
                     'imageUri': 'debian:latest'
                 }
             }
-        }, 'job-', 30)
+        }, 'job-', 'job-1', 30)
