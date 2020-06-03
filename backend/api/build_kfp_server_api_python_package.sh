@@ -43,8 +43,9 @@ fi
 
 pushd "$(dirname "$0")"
 
-DIR="$(pwd)/python_http_client"
-swagger_file="$(pwd)/swagger/kfp_api_single_file.swagger.json"
+CURRENT_DIR="$(pwd)"
+DIR="$CURRENT_DIR/python_http_client"
+swagger_file="$CURRENT_DIR/swagger/kfp_api_single_file.swagger.json"
 
 echo "Removing old content in DIR first."
 rm -rf "$DIR"
@@ -57,12 +58,20 @@ java -jar "$codegen_file" generate -g python -i "$swagger_file" -o "$DIR" -c <(e
 }')
 
 echo "Copying LICENSE to $DIR"
-cp "$(pwd)/../../LICENSE" "$DIR"
+cp "$CURRENT_DIR/../../LICENSE" "$DIR"
 
 echo "Building the python package in $DIR."
 pushd "$DIR"
 python3 setup.py --quiet sdist
 popd
+
+echo "Adding license header for generated python files in $DIR."
+# Note: requires running `./generate_api.sh` first that builds this autogen_tool
+# AUTOGEN_CMD="$CURRENT_DIR/../../bazel-bin/external/com_github_mbrukman_autogen/autogen_tool"
+# find ${DIR}/ -name "*.py" -exec ${AUTOGEN_CMD} -i --no-tlc -c "Google LLC" -l apache {} \;
+
+go get -u github.com/google/addlicense
+addlicense "$DIR"
 
 echo "Run the following commands to update the package on PyPI"
 echo "python3 -m pip install twine"
