@@ -17,7 +17,7 @@
 name: Bigquery - Query
 description: |
   A Kubeflow Pipeline component to submit a query to Google Cloud Bigquery 
-  service and dump outputs to new table. 
+  service and dump outputs to new table.
 metadata:
   labels:
     add-pod-env: 'true'
