@@ -88,6 +88,7 @@ class ApiListRunsResponse(object):
     def total_size(self):
         """Gets the total_size of this ApiListRunsResponse.  # noqa: E501
 
+        The total number of runs for the given query.  # noqa: E501
 
         :return: The total_size of this ApiListRunsResponse.  # noqa: E501
         :rtype: int
@@ -98,6 +99,7 @@ class ApiListRunsResponse(object):
     def total_size(self, total_size):
         """Sets the total_size of this ApiListRunsResponse.
 
+        The total number of runs for the given query.  # noqa: E501
 
         :param total_size: The total_size of this ApiListRunsResponse.  # noqa: E501
         :type: int
@@ -109,6 +111,7 @@ class ApiListRunsResponse(object):
     def next_page_token(self):
         """Gets the next_page_token of this ApiListRunsResponse.  # noqa: E501
 
+        The token to list the next page of runs.  # noqa: E501
 
         :return: The next_page_token of this ApiListRunsResponse.  # noqa: E501
         :rtype: str
@@ -119,6 +122,7 @@ class ApiListRunsResponse(object):
     def next_page_token(self, next_page_token):
         """Sets the next_page_token of this ApiListRunsResponse.
 
+        The token to list the next page of runs.  # noqa: E501
 
         :param next_page_token: The next_page_token of this ApiListRunsResponse.  # noqa: E501
         :type: str

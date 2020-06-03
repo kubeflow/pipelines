@@ -4,18 +4,18 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**archive_experiment**](ExperimentServiceApi.md#archive_experiment) | **POST** /apis/v1beta1/experiments/{id}:archive | Archive an experiment.
-[**create_experiment**](ExperimentServiceApi.md#create_experiment) | **POST** /apis/v1beta1/experiments | Create a new experiment.
-[**delete_experiment**](ExperimentServiceApi.md#delete_experiment) | **DELETE** /apis/v1beta1/experiments/{id} | Delete an experiment.
-[**get_experiment**](ExperimentServiceApi.md#get_experiment) | **GET** /apis/v1beta1/experiments/{id} | Find a specific experiment by ID.
-[**list_experiment**](ExperimentServiceApi.md#list_experiment) | **GET** /apis/v1beta1/experiments | Find all experiments.
-[**unarchive_experiment**](ExperimentServiceApi.md#unarchive_experiment) | **POST** /apis/v1beta1/experiments/{id}:unarchive | Restore an archived experiment.
+[**archive_experiment**](ExperimentServiceApi.md#archive_experiment) | **POST** /apis/v1beta1/experiments/{id}:archive | Archives an experiment and the experiment&#39;s runs and jobs.
+[**create_experiment**](ExperimentServiceApi.md#create_experiment) | **POST** /apis/v1beta1/experiments | Creates a new experiment.
+[**delete_experiment**](ExperimentServiceApi.md#delete_experiment) | **DELETE** /apis/v1beta1/experiments/{id} | Deletes an experiment without deleting the experiment&#39;s runs and jobs. To avoid unexpected behaviors, delete an experiment&#39;s runs and jobs before deleting the experiment.
+[**get_experiment**](ExperimentServiceApi.md#get_experiment) | **GET** /apis/v1beta1/experiments/{id} | Finds a specific experiment by ID.
+[**list_experiment**](ExperimentServiceApi.md#list_experiment) | **GET** /apis/v1beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
+[**unarchive_experiment**](ExperimentServiceApi.md#unarchive_experiment) | **POST** /apis/v1beta1/experiments/{id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and jobs will stay archived.
 
 
 # **archive_experiment**
 > object archive_experiment(id)
 
-Archive an experiment.
+Archives an experiment and the experiment's runs and jobs.
 
 ### Example
 
@@ -51,10 +51,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
-    id = 'id_example' # str | 
+    id = 'id_example' # str | The ID of the experiment to be archived.
 
     try:
-        # Archive an experiment.
+        # Archives an experiment and the experiment's runs and jobs.
         api_response = api_instance.archive_experiment(id)
         pprint(api_response)
     except ApiException as e:
@@ -65,7 +65,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **id** | **str**|  | 
+ **id** | **str**| The ID of the experiment to be archived. | 
 
 ### Return type
 
@@ -91,7 +91,7 @@ Name | Type | Description  | Notes
 # **create_experiment**
 > ApiExperiment create_experiment(body)
 
-Create a new experiment.
+Creates a new experiment.
 
 ### Example
 
@@ -130,7 +130,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     body = kfp_server_api.ApiExperiment() # ApiExperiment | The experiment to be created.
 
     try:
-        # Create a new experiment.
+        # Creates a new experiment.
         api_response = api_instance.create_experiment(body)
         pprint(api_response)
     except ApiException as e:
@@ -167,7 +167,7 @@ Name | Type | Description  | Notes
 # **delete_experiment**
 > object delete_experiment(id)
 
-Delete an experiment.
+Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.
 
 ### Example
 
@@ -206,7 +206,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     id = 'id_example' # str | The ID of the experiment to be deleted.
 
     try:
-        # Delete an experiment.
+        # Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.
         api_response = api_instance.delete_experiment(id)
         pprint(api_response)
     except ApiException as e:
@@ -243,7 +243,7 @@ Name | Type | Description  | Notes
 # **get_experiment**
 > ApiExperiment get_experiment(id)
 
-Find a specific experiment by ID.
+Finds a specific experiment by ID.
 
 ### Example
 
@@ -282,7 +282,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     id = 'id_example' # str | The ID of the experiment to be retrieved.
 
     try:
-        # Find a specific experiment by ID.
+        # Finds a specific experiment by ID.
         api_response = api_instance.get_experiment(id)
         pprint(api_response)
     except ApiException as e:
@@ -319,7 +319,7 @@ Name | Type | Description  | Notes
 # **list_experiment**
 > ApiListExperimentsResponse list_experiment(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
 
-Find all experiments.
+Finds all experiments. Supports pagination, and sorting on certain fields.
 
 ### Example
 
@@ -355,15 +355,15 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
-    page_token = 'page_token_example' # str |  (optional)
-page_size = 56 # int |  (optional)
+    page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page. (optional)
+page_size = 56 # int | The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page. (optional)
 sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default. (optional)
 filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). (optional)
 resource_reference_key_type = 'UNKNOWN_RESOURCE_TYPE' # str | The type of the resource that referred to. (optional) (default to 'UNKNOWN_RESOURCE_TYPE')
 resource_reference_key_id = 'resource_reference_key_id_example' # str | The ID of the resource that referred to. (optional)
 
     try:
-        # Find all experiments.
+        # Finds all experiments. Supports pagination, and sorting on certain fields.
         api_response = api_instance.list_experiment(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
         pprint(api_response)
     except ApiException as e:
@@ -374,8 +374,8 @@ resource_reference_key_id = 'resource_reference_key_id_example' # str | The ID o
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **page_token** | **str**|  | [optional] 
- **page_size** | **int**|  | [optional] 
+ **page_token** | **str**| A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page. | [optional] 
+ **page_size** | **int**| The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page. | [optional] 
  **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default. | [optional] 
  **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). | [optional] 
  **resource_reference_key_type** | **str**| The type of the resource that referred to. | [optional] [default to &#39;UNKNOWN_RESOURCE_TYPE&#39;]
@@ -405,7 +405,7 @@ Name | Type | Description  | Notes
 # **unarchive_experiment**
 > object unarchive_experiment(id)
 
-Restore an archived experiment.
+Restores an archived experiment. The experiment's archived runs and jobs will stay archived.
 
 ### Example
 
@@ -441,10 +441,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
-    id = 'id_example' # str | 
+    id = 'id_example' # str | The ID of the experiment to be restored.
 
     try:
-        # Restore an archived experiment.
+        # Restores an archived experiment. The experiment's archived runs and jobs will stay archived.
         api_response = api_instance.unarchive_experiment(id)
         pprint(api_response)
     except ApiException as e:
@@ -455,7 +455,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **id** | **str**|  | 
+ **id** | **str**| The ID of the experiment to be restored. | 
 
 ### Return type
 

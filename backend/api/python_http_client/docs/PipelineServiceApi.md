@@ -4,22 +4,22 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**create_pipeline**](PipelineServiceApi.md#create_pipeline) | **POST** /apis/v1beta1/pipelines | Add a pipeline.
-[**create_pipeline_version**](PipelineServiceApi.md#create_pipeline_version) | **POST** /apis/v1beta1/pipeline_versions | 
-[**delete_pipeline**](PipelineServiceApi.md#delete_pipeline) | **DELETE** /apis/v1beta1/pipelines/{id} | Delete a pipeline.
-[**delete_pipeline_version**](PipelineServiceApi.md#delete_pipeline_version) | **DELETE** /apis/v1beta1/pipeline_versions/{version_id} | 
-[**get_pipeline**](PipelineServiceApi.md#get_pipeline) | **GET** /apis/v1beta1/pipelines/{id} | Find a specific pipeline by ID.
-[**get_pipeline_version**](PipelineServiceApi.md#get_pipeline_version) | **GET** /apis/v1beta1/pipeline_versions/{version_id} | 
-[**get_pipeline_version_template**](PipelineServiceApi.md#get_pipeline_version_template) | **GET** /apis/v1beta1/pipeline_versions/{version_id}/templates | 
+[**create_pipeline**](PipelineServiceApi.md#create_pipeline) | **POST** /apis/v1beta1/pipelines | Creates a pipeline.
+[**create_pipeline_version**](PipelineServiceApi.md#create_pipeline_version) | **POST** /apis/v1beta1/pipeline_versions | Adds a pipeline version to the specified pipeline.
+[**delete_pipeline**](PipelineServiceApi.md#delete_pipeline) | **DELETE** /apis/v1beta1/pipelines/{id} | Deletes a pipeline and its pipeline versions.
+[**delete_pipeline_version**](PipelineServiceApi.md#delete_pipeline_version) | **DELETE** /apis/v1beta1/pipeline_versions/{version_id} | Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline&#39;s default version changes to the pipeline&#39;s most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).
+[**get_pipeline**](PipelineServiceApi.md#get_pipeline) | **GET** /apis/v1beta1/pipelines/{id} | Finds a specific pipeline by ID.
+[**get_pipeline_version**](PipelineServiceApi.md#get_pipeline_version) | **GET** /apis/v1beta1/pipeline_versions/{version_id} | Gets a pipeline version by pipeline version ID.
+[**get_pipeline_version_template**](PipelineServiceApi.md#get_pipeline_version_template) | **GET** /apis/v1beta1/pipeline_versions/{version_id}/templates | Returns a YAML template that contains the specified pipeline version&#39;s description, parameters and metadata.
 [**get_template**](PipelineServiceApi.md#get_template) | **GET** /apis/v1beta1/pipelines/{id}/templates | Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
-[**list_pipeline_versions**](PipelineServiceApi.md#list_pipeline_versions) | **GET** /apis/v1beta1/pipeline_versions | 
-[**list_pipelines**](PipelineServiceApi.md#list_pipelines) | **GET** /apis/v1beta1/pipelines | Find all pipelines.
+[**list_pipeline_versions**](PipelineServiceApi.md#list_pipeline_versions) | **GET** /apis/v1beta1/pipeline_versions | Lists all pipeline versions of a given pipeline.
+[**list_pipelines**](PipelineServiceApi.md#list_pipelines) | **GET** /apis/v1beta1/pipelines | Finds all pipelines.
 
 
 # **create_pipeline**
 > ApiPipeline create_pipeline(body)
 
-Add a pipeline.
+Creates a pipeline.
 
 ### Example
 
@@ -58,7 +58,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     body = kfp_server_api.ApiPipeline() # ApiPipeline | 
 
     try:
-        # Add a pipeline.
+        # Creates a pipeline.
         api_response = api_instance.create_pipeline(body)
         pprint(api_response)
     except ApiException as e:
@@ -95,7 +95,7 @@ Name | Type | Description  | Notes
 # **create_pipeline_version**
 > ApiPipelineVersion create_pipeline_version(body)
 
-
+Adds a pipeline version to the specified pipeline.
 
 ### Example
 
@@ -134,6 +134,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     body = kfp_server_api.ApiPipelineVersion() # ApiPipelineVersion | ResourceReference inside PipelineVersion specifies the pipeline that this version belongs to.
 
     try:
+        # Adds a pipeline version to the specified pipeline.
         api_response = api_instance.create_pipeline_version(body)
         pprint(api_response)
     except ApiException as e:
@@ -170,7 +171,7 @@ Name | Type | Description  | Notes
 # **delete_pipeline**
 > object delete_pipeline(id)
 
-Delete a pipeline.
+Deletes a pipeline and its pipeline versions.
 
 ### Example
 
@@ -206,10 +207,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    id = 'id_example' # str | 
+    id = 'id_example' # str | The ID of the pipeline to be deleted.
 
     try:
-        # Delete a pipeline.
+        # Deletes a pipeline and its pipeline versions.
         api_response = api_instance.delete_pipeline(id)
         pprint(api_response)
     except ApiException as e:
@@ -220,7 +221,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **id** | **str**|  | 
+ **id** | **str**| The ID of the pipeline to be deleted. | 
 
 ### Return type
 
@@ -246,7 +247,7 @@ Name | Type | Description  | Notes
 # **delete_pipeline_version**
 > object delete_pipeline_version(version_id)
 
-
+Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline's default version changes to the pipeline's most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).
 
 ### Example
 
@@ -282,9 +283,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    version_id = 'version_id_example' # str | 
+    version_id = 'version_id_example' # str | The ID of the pipeline version to be deleted.
 
     try:
+        # Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline's default version changes to the pipeline's most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).
         api_response = api_instance.delete_pipeline_version(version_id)
         pprint(api_response)
     except ApiException as e:
@@ -295,7 +297,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **version_id** | **str**|  | 
+ **version_id** | **str**| The ID of the pipeline version to be deleted. | 
 
 ### Return type
 
@@ -321,7 +323,7 @@ Name | Type | Description  | Notes
 # **get_pipeline**
 > ApiPipeline get_pipeline(id)
 
-Find a specific pipeline by ID.
+Finds a specific pipeline by ID.
 
 ### Example
 
@@ -357,10 +359,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    id = 'id_example' # str | 
+    id = 'id_example' # str | The ID of the pipeline to be retrieved.
 
     try:
-        # Find a specific pipeline by ID.
+        # Finds a specific pipeline by ID.
         api_response = api_instance.get_pipeline(id)
         pprint(api_response)
     except ApiException as e:
@@ -371,7 +373,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **id** | **str**|  | 
+ **id** | **str**| The ID of the pipeline to be retrieved. | 
 
 ### Return type
 
@@ -397,7 +399,7 @@ Name | Type | Description  | Notes
 # **get_pipeline_version**
 > ApiPipelineVersion get_pipeline_version(version_id)
 
-
+Gets a pipeline version by pipeline version ID.
 
 ### Example
 
@@ -433,9 +435,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    version_id = 'version_id_example' # str | 
+    version_id = 'version_id_example' # str | The ID of the pipeline version to be retrieved.
 
     try:
+        # Gets a pipeline version by pipeline version ID.
         api_response = api_instance.get_pipeline_version(version_id)
         pprint(api_response)
     except ApiException as e:
@@ -446,7 +449,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **version_id** | **str**|  | 
+ **version_id** | **str**| The ID of the pipeline version to be retrieved. | 
 
 ### Return type
 
@@ -472,7 +475,7 @@ Name | Type | Description  | Notes
 # **get_pipeline_version_template**
 > ApiGetTemplateResponse get_pipeline_version_template(version_id)
 
-
+Returns a YAML template that contains the specified pipeline version's description, parameters and metadata.
 
 ### Example
 
@@ -508,9 +511,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    version_id = 'version_id_example' # str | 
+    version_id = 'version_id_example' # str | The ID of the pipeline version whose template is to be retrieved.
 
     try:
+        # Returns a YAML template that contains the specified pipeline version's description, parameters and metadata.
         api_response = api_instance.get_pipeline_version_template(version_id)
         pprint(api_response)
     except ApiException as e:
@@ -521,7 +525,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **version_id** | **str**|  | 
+ **version_id** | **str**| The ID of the pipeline version whose template is to be retrieved. | 
 
 ### Return type
 
@@ -583,7 +587,7 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    id = 'id_example' # str | 
+    id = 'id_example' # str | The ID of the pipeline whose template is to be retrieved.
 
     try:
         # Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
@@ -597,7 +601,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **id** | **str**|  | 
+ **id** | **str**| The ID of the pipeline whose template is to be retrieved. | 
 
 ### Return type
 
@@ -623,7 +627,7 @@ Name | Type | Description  | Notes
 # **list_pipeline_versions**
 > ApiListPipelineVersionsResponse list_pipeline_versions(resource_key_type=resource_key_type, resource_key_id=resource_key_id, page_size=page_size, page_token=page_token, sort_by=sort_by, filter=filter)
 
-
+Lists all pipeline versions of a given pipeline.
 
 ### Example
 
@@ -661,12 +665,13 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
     resource_key_type = 'UNKNOWN_RESOURCE_TYPE' # str | The type of the resource that referred to. (optional) (default to 'UNKNOWN_RESOURCE_TYPE')
 resource_key_id = 'resource_key_id_example' # str | The ID of the resource that referred to. (optional)
-page_size = 56 # int |  (optional)
-page_token = 'page_token_example' # str |  (optional)
+page_size = 56 # int | The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a nextPageToken field you can use to fetch the next page. (optional)
+page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelineVersions call or can be omitted when fetching the first page. (optional)
 sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default. (optional)
 filter = 'filter_example' # str | A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto). (optional)
 
     try:
+        # Lists all pipeline versions of a given pipeline.
         api_response = api_instance.list_pipeline_versions(resource_key_type=resource_key_type, resource_key_id=resource_key_id, page_size=page_size, page_token=page_token, sort_by=sort_by, filter=filter)
         pprint(api_response)
     except ApiException as e:
@@ -679,8 +684,8 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **resource_key_type** | **str**| The type of the resource that referred to. | [optional] [default to &#39;UNKNOWN_RESOURCE_TYPE&#39;]
  **resource_key_id** | **str**| The ID of the resource that referred to. | [optional] 
- **page_size** | **int**|  | [optional] 
- **page_token** | **str**|  | [optional] 
+ **page_size** | **int**| The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a nextPageToken field you can use to fetch the next page. | [optional] 
+ **page_token** | **str**| A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelineVersions call or can be omitted when fetching the first page. | [optional] 
  **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default. | [optional] 
  **filter** | **str**| A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto). | [optional] 
 
@@ -708,7 +713,7 @@ Name | Type | Description  | Notes
 # **list_pipelines**
 > ApiListPipelinesResponse list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
 
-Find all pipelines.
+Finds all pipelines.
 
 ### Example
 
@@ -744,13 +749,13 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    page_token = 'page_token_example' # str |  (optional)
-page_size = 56 # int |  (optional)
+    page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call. (optional)
+page_size = 56 # int | The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field. (optional)
 sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default. (optional)
 filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). (optional)
 
     try:
-        # Find all pipelines.
+        # Finds all pipelines.
         api_response = api_instance.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
         pprint(api_response)
     except ApiException as e:
@@ -761,8 +766,8 @@ filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **page_token** | **str**|  | [optional] 
- **page_size** | **int**|  | [optional] 
+ **page_token** | **str**| A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call. | [optional] 
+ **page_size** | **int**| The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field. | [optional] 
  **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default. | [optional] 
  **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). | [optional] 
 

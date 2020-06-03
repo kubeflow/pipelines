@@ -4,22 +4,22 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**archive_run**](RunServiceApi.md#archive_run) | **POST** /apis/v1beta1/runs/{id}:archive | Archive a run.
-[**create_run**](RunServiceApi.md#create_run) | **POST** /apis/v1beta1/runs | Create a new run.
-[**delete_run**](RunServiceApi.md#delete_run) | **DELETE** /apis/v1beta1/runs/{id} | Delete a run.
-[**get_run**](RunServiceApi.md#get_run) | **GET** /apis/v1beta1/runs/{run_id} | Find a specific run by ID.
-[**list_runs**](RunServiceApi.md#list_runs) | **GET** /apis/v1beta1/runs | Find all runs.
-[**read_artifact**](RunServiceApi.md#read_artifact) | **GET** /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read | Find a run&#39;s artifact data.
+[**archive_run**](RunServiceApi.md#archive_run) | **POST** /apis/v1beta1/runs/{id}:archive | Archives a run.
+[**create_run**](RunServiceApi.md#create_run) | **POST** /apis/v1beta1/runs | Creates a new run.
+[**delete_run**](RunServiceApi.md#delete_run) | **DELETE** /apis/v1beta1/runs/{id} | Deletes a run.
+[**get_run**](RunServiceApi.md#get_run) | **GET** /apis/v1beta1/runs/{run_id} | Finds a specific run by ID.
+[**list_runs**](RunServiceApi.md#list_runs) | **GET** /apis/v1beta1/runs | Finds all runs.
+[**read_artifact**](RunServiceApi.md#read_artifact) | **GET** /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read | Finds a run&#39;s artifact data.
 [**report_run_metrics**](RunServiceApi.md#report_run_metrics) | **POST** /apis/v1beta1/runs/{run_id}:reportMetrics | ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.
-[**retry_run**](RunServiceApi.md#retry_run) | **POST** /apis/v1beta1/runs/{run_id}/retry | Re-initiate a failed or terminated run.
-[**terminate_run**](RunServiceApi.md#terminate_run) | **POST** /apis/v1beta1/runs/{run_id}/terminate | Terminate an active run.
-[**unarchive_run**](RunServiceApi.md#unarchive_run) | **POST** /apis/v1beta1/runs/{id}:unarchive | Restore an archived run.
+[**retry_run**](RunServiceApi.md#retry_run) | **POST** /apis/v1beta1/runs/{run_id}/retry | Re-initiates a failed or terminated run.
+[**terminate_run**](RunServiceApi.md#terminate_run) | **POST** /apis/v1beta1/runs/{run_id}/terminate | Terminates an active run.
+[**unarchive_run**](RunServiceApi.md#unarchive_run) | **POST** /apis/v1beta1/runs/{id}:unarchive | Restores an archived run.
 
 
 # **archive_run**
 > object archive_run(id)
 
-Archive a run.
+Archives a run.
 
 ### Example
 
@@ -55,10 +55,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
-    id = 'id_example' # str | 
+    id = 'id_example' # str | The ID of the run to be archived.
 
     try:
-        # Archive a run.
+        # Archives a run.
         api_response = api_instance.archive_run(id)
         pprint(api_response)
     except ApiException as e:
@@ -69,7 +69,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **id** | **str**|  | 
+ **id** | **str**| The ID of the run to be archived. | 
 
 ### Return type
 
@@ -95,7 +95,7 @@ Name | Type | Description  | Notes
 # **create_run**
 > ApiRunDetail create_run(body)
 
-Create a new run.
+Creates a new run.
 
 ### Example
 
@@ -134,7 +134,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     body = kfp_server_api.ApiRun() # ApiRun | 
 
     try:
-        # Create a new run.
+        # Creates a new run.
         api_response = api_instance.create_run(body)
         pprint(api_response)
     except ApiException as e:
@@ -171,7 +171,7 @@ Name | Type | Description  | Notes
 # **delete_run**
 > object delete_run(id)
 
-Delete a run.
+Deletes a run.
 
 ### Example
 
@@ -207,10 +207,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
-    id = 'id_example' # str | 
+    id = 'id_example' # str | The ID of the run to be deleted.
 
     try:
-        # Delete a run.
+        # Deletes a run.
         api_response = api_instance.delete_run(id)
         pprint(api_response)
     except ApiException as e:
@@ -221,7 +221,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **id** | **str**|  | 
+ **id** | **str**| The ID of the run to be deleted. | 
 
 ### Return type
 
@@ -247,7 +247,7 @@ Name | Type | Description  | Notes
 # **get_run**
 > ApiRunDetail get_run(run_id)
 
-Find a specific run by ID.
+Finds a specific run by ID.
 
 ### Example
 
@@ -283,10 +283,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
-    run_id = 'run_id_example' # str | 
+    run_id = 'run_id_example' # str | The ID of the run to be retrieved.
 
     try:
-        # Find a specific run by ID.
+        # Finds a specific run by ID.
         api_response = api_instance.get_run(run_id)
         pprint(api_response)
     except ApiException as e:
@@ -297,7 +297,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**|  | 
+ **run_id** | **str**| The ID of the run to be retrieved. | 
 
 ### Return type
 
@@ -323,7 +323,7 @@ Name | Type | Description  | Notes
 # **list_runs**
 > ApiListRunsResponse list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
 
-Find all runs.
+Finds all runs.
 
 ### Example
 
@@ -359,15 +359,15 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
-    page_token = 'page_token_example' # str |  (optional)
-page_size = 56 # int |  (optional)
+    page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page. (optional)
+page_size = 56 # int | The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. (optional)
 sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" (Example, \"name asc\" or \"id des\"). Ascending by default. (optional)
 resource_reference_key_type = 'UNKNOWN_RESOURCE_TYPE' # str | The type of the resource that referred to. (optional) (default to 'UNKNOWN_RESOURCE_TYPE')
 resource_reference_key_id = 'resource_reference_key_id_example' # str | The ID of the resource that referred to. (optional)
 filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). (optional)
 
     try:
-        # Find all runs.
+        # Finds all runs.
         api_response = api_instance.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
         pprint(api_response)
     except ApiException as e:
@@ -378,8 +378,8 @@ filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **page_token** | **str**|  | [optional] 
- **page_size** | **int**|  | [optional] 
+ **page_token** | **str**| A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page. | [optional] 
+ **page_size** | **int**| The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. | [optional] 
  **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; (Example, \&quot;name asc\&quot; or \&quot;id des\&quot;). Ascending by default. | [optional] 
  **resource_reference_key_type** | **str**| The type of the resource that referred to. | [optional] [default to &#39;UNKNOWN_RESOURCE_TYPE&#39;]
  **resource_reference_key_id** | **str**| The ID of the resource that referred to. | [optional] 
@@ -409,7 +409,7 @@ Name | Type | Description  | Notes
 # **read_artifact**
 > ApiReadArtifactResponse read_artifact(run_id, node_id, artifact_name)
 
-Find a run's artifact data.
+Finds a run's artifact data.
 
 ### Example
 
@@ -450,7 +450,7 @@ node_id = 'node_id_example' # str | The ID of the running node.
 artifact_name = 'artifact_name_example' # str | The name of the artifact.
 
     try:
-        # Find a run's artifact data.
+        # Finds a run's artifact data.
         api_response = api_instance.read_artifact(run_id, node_id, artifact_name)
         pprint(api_response)
     except ApiException as e:
@@ -567,7 +567,7 @@ Name | Type | Description  | Notes
 # **retry_run**
 > object retry_run(run_id)
 
-Re-initiate a failed or terminated run.
+Re-initiates a failed or terminated run.
 
 ### Example
 
@@ -603,10 +603,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
-    run_id = 'run_id_example' # str | 
+    run_id = 'run_id_example' # str | The ID of the run to be retried.
 
     try:
-        # Re-initiate a failed or terminated run.
+        # Re-initiates a failed or terminated run.
         api_response = api_instance.retry_run(run_id)
         pprint(api_response)
     except ApiException as e:
@@ -617,7 +617,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**|  | 
+ **run_id** | **str**| The ID of the run to be retried. | 
 
 ### Return type
 
@@ -643,7 +643,7 @@ Name | Type | Description  | Notes
 # **terminate_run**
 > object terminate_run(run_id)
 
-Terminate an active run.
+Terminates an active run.
 
 ### Example
 
@@ -679,10 +679,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
-    run_id = 'run_id_example' # str | 
+    run_id = 'run_id_example' # str | The ID of the run to be terminated.
 
     try:
-        # Terminate an active run.
+        # Terminates an active run.
         api_response = api_instance.terminate_run(run_id)
         pprint(api_response)
     except ApiException as e:
@@ -693,7 +693,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**|  | 
+ **run_id** | **str**| The ID of the run to be terminated. | 
 
 ### Return type
 
@@ -719,7 +719,7 @@ Name | Type | Description  | Notes
 # **unarchive_run**
 > object unarchive_run(id)
 
-Restore an archived run.
+Restores an archived run.
 
 ### Example
 
@@ -755,10 +755,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
-    id = 'id_example' # str | 
+    id = 'id_example' # str | The ID of the run to be restored.
 
     try:
-        # Restore an archived run.
+        # Restores an archived run.
         api_response = api_instance.unarchive_run(id)
         pprint(api_response)
     except ApiException as e:
@@ -769,7 +769,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **id** | **str**|  | 
+ **id** | **str**| The ID of the run to be restored. | 
 
 ### Return type
 

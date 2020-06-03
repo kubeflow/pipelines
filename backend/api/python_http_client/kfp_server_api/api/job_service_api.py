@@ -38,7 +38,7 @@ class JobServiceApi(object):
         self.api_client = api_client
 
     def create_job(self, body, **kwargs):  # noqa: E501
-        """Create a new job.  # noqa: E501
+        """Creates a new job.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -62,7 +62,7 @@ class JobServiceApi(object):
         return self.create_job_with_http_info(body, **kwargs)  # noqa: E501
 
     def create_job_with_http_info(self, body, **kwargs):  # noqa: E501
-        """Create a new job.  # noqa: E501
+        """Creates a new job.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -154,7 +154,7 @@ class JobServiceApi(object):
             collection_formats=collection_formats)
 
     def delete_job(self, id, **kwargs):  # noqa: E501
-        """Delete a job.  # noqa: E501
+        """Deletes a job.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -178,7 +178,7 @@ class JobServiceApi(object):
         return self.delete_job_with_http_info(id, **kwargs)  # noqa: E501
 
     def delete_job_with_http_info(self, id, **kwargs):  # noqa: E501
-        """Delete a job.  # noqa: E501
+        """Deletes a job.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -490,7 +490,7 @@ class JobServiceApi(object):
             collection_formats=collection_formats)
 
     def get_job(self, id, **kwargs):  # noqa: E501
-        """Find a specific job by ID.  # noqa: E501
+        """Finds a specific job by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -514,7 +514,7 @@ class JobServiceApi(object):
         return self.get_job_with_http_info(id, **kwargs)  # noqa: E501
 
     def get_job_with_http_info(self, id, **kwargs):  # noqa: E501
-        """Find a specific job by ID.  # noqa: E501
+        """Finds a specific job by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -602,7 +602,7 @@ class JobServiceApi(object):
             collection_formats=collection_formats)
 
     def list_jobs(self, **kwargs):  # noqa: E501
-        """Find all jobs.  # noqa: E501
+        """Finds all jobs.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -610,8 +610,8 @@ class JobServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str page_token:
-        :param int page_size:
+        :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListJobs call or can be omitted when fetching the first page.
+        :param int page_size: The number of jobs to be listed per page. If there are more jobs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
         :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\". Ascending by default.
         :param str resource_reference_key_type: The type of the resource that referred to.
         :param str resource_reference_key_id: The ID of the resource that referred to.
@@ -631,7 +631,7 @@ class JobServiceApi(object):
         return self.list_jobs_with_http_info(**kwargs)  # noqa: E501
 
     def list_jobs_with_http_info(self, **kwargs):  # noqa: E501
-        """Find all jobs.  # noqa: E501
+        """Finds all jobs.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -639,8 +639,8 @@ class JobServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str page_token:
-        :param int page_size:
+        :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListJobs call or can be omitted when fetching the first page.
+        :param int page_size: The number of jobs to be listed per page. If there are more jobs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
         :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\". Ascending by default.
         :param str resource_reference_key_type: The type of the resource that referred to.
         :param str resource_reference_key_id: The ID of the resource that referred to.

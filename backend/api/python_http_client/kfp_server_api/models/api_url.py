@@ -57,6 +57,7 @@ class ApiUrl(object):
     def pipeline_url(self):
         """Gets the pipeline_url of this ApiUrl.  # noqa: E501
 
+        URL of the pipeline definition or the pipeline version definition.  # noqa: E501
 
         :return: The pipeline_url of this ApiUrl.  # noqa: E501
         :rtype: str
@@ -67,6 +68,7 @@ class ApiUrl(object):
     def pipeline_url(self, pipeline_url):
         """Sets the pipeline_url of this ApiUrl.
 
+        URL of the pipeline definition or the pipeline version definition.  # noqa: E501
 
         :param pipeline_url: The pipeline_url of this ApiUrl.  # noqa: E501
         :type: str

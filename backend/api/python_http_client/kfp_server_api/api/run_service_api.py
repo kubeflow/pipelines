@@ -38,7 +38,7 @@ class RunServiceApi(object):
         self.api_client = api_client
 
     def archive_run(self, id, **kwargs):  # noqa: E501
-        """Archive a run.  # noqa: E501
+        """Archives a run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -46,7 +46,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the run to be archived. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -62,7 +62,7 @@ class RunServiceApi(object):
         return self.archive_run_with_http_info(id, **kwargs)  # noqa: E501
 
     def archive_run_with_http_info(self, id, **kwargs):  # noqa: E501
-        """Archive a run.  # noqa: E501
+        """Archives a run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -70,7 +70,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the run to be archived. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -150,7 +150,7 @@ class RunServiceApi(object):
             collection_formats=collection_formats)
 
     def create_run(self, body, **kwargs):  # noqa: E501
-        """Create a new run.  # noqa: E501
+        """Creates a new run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -174,7 +174,7 @@ class RunServiceApi(object):
         return self.create_run_with_http_info(body, **kwargs)  # noqa: E501
 
     def create_run_with_http_info(self, body, **kwargs):  # noqa: E501
-        """Create a new run.  # noqa: E501
+        """Creates a new run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -266,7 +266,7 @@ class RunServiceApi(object):
             collection_formats=collection_formats)
 
     def delete_run(self, id, **kwargs):  # noqa: E501
-        """Delete a run.  # noqa: E501
+        """Deletes a run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -274,7 +274,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the run to be deleted. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -290,7 +290,7 @@ class RunServiceApi(object):
         return self.delete_run_with_http_info(id, **kwargs)  # noqa: E501
 
     def delete_run_with_http_info(self, id, **kwargs):  # noqa: E501
-        """Delete a run.  # noqa: E501
+        """Deletes a run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -298,7 +298,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the run to be deleted. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -378,7 +378,7 @@ class RunServiceApi(object):
             collection_formats=collection_formats)
 
     def get_run(self, run_id, **kwargs):  # noqa: E501
-        """Find a specific run by ID.  # noqa: E501
+        """Finds a specific run by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -386,7 +386,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str run_id: (required)
+        :param str run_id: The ID of the run to be retrieved. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -402,7 +402,7 @@ class RunServiceApi(object):
         return self.get_run_with_http_info(run_id, **kwargs)  # noqa: E501
 
     def get_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
-        """Find a specific run by ID.  # noqa: E501
+        """Finds a specific run by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -410,7 +410,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str run_id: (required)
+        :param str run_id: The ID of the run to be retrieved. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -490,7 +490,7 @@ class RunServiceApi(object):
             collection_formats=collection_formats)
 
     def list_runs(self, **kwargs):  # noqa: E501
-        """Find all runs.  # noqa: E501
+        """Finds all runs.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -498,8 +498,8 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str page_token:
-        :param int page_size:
+        :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
+        :param int page_size: The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
         :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" (Example, \"name asc\" or \"id des\"). Ascending by default.
         :param str resource_reference_key_type: The type of the resource that referred to.
         :param str resource_reference_key_id: The ID of the resource that referred to.
@@ -519,7 +519,7 @@ class RunServiceApi(object):
         return self.list_runs_with_http_info(**kwargs)  # noqa: E501
 
     def list_runs_with_http_info(self, **kwargs):  # noqa: E501
-        """Find all runs.  # noqa: E501
+        """Finds all runs.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -527,8 +527,8 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str page_token:
-        :param int page_size:
+        :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
+        :param int page_size: The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
         :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" (Example, \"name asc\" or \"id des\"). Ascending by default.
         :param str resource_reference_key_type: The type of the resource that referred to.
         :param str resource_reference_key_id: The ID of the resource that referred to.
@@ -623,7 +623,7 @@ class RunServiceApi(object):
             collection_formats=collection_formats)
 
     def read_artifact(self, run_id, node_id, artifact_name, **kwargs):  # noqa: E501
-        """Find a run's artifact data.  # noqa: E501
+        """Finds a run's artifact data.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -649,7 +649,7 @@ class RunServiceApi(object):
         return self.read_artifact_with_http_info(run_id, node_id, artifact_name, **kwargs)  # noqa: E501
 
     def read_artifact_with_http_info(self, run_id, node_id, artifact_name, **kwargs):  # noqa: E501
-        """Find a run's artifact data.  # noqa: E501
+        """Finds a run's artifact data.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -878,7 +878,7 @@ class RunServiceApi(object):
             collection_formats=collection_formats)
 
     def retry_run(self, run_id, **kwargs):  # noqa: E501
-        """Re-initiate a failed or terminated run.  # noqa: E501
+        """Re-initiates a failed or terminated run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -886,7 +886,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str run_id: (required)
+        :param str run_id: The ID of the run to be retried. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -902,7 +902,7 @@ class RunServiceApi(object):
         return self.retry_run_with_http_info(run_id, **kwargs)  # noqa: E501
 
     def retry_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
-        """Re-initiate a failed or terminated run.  # noqa: E501
+        """Re-initiates a failed or terminated run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -910,7 +910,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str run_id: (required)
+        :param str run_id: The ID of the run to be retried. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -990,7 +990,7 @@ class RunServiceApi(object):
             collection_formats=collection_formats)
 
     def terminate_run(self, run_id, **kwargs):  # noqa: E501
-        """Terminate an active run.  # noqa: E501
+        """Terminates an active run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -998,7 +998,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str run_id: (required)
+        :param str run_id: The ID of the run to be terminated. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -1014,7 +1014,7 @@ class RunServiceApi(object):
         return self.terminate_run_with_http_info(run_id, **kwargs)  # noqa: E501
 
     def terminate_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
-        """Terminate an active run.  # noqa: E501
+        """Terminates an active run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -1022,7 +1022,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str run_id: (required)
+        :param str run_id: The ID of the run to be terminated. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -1102,7 +1102,7 @@ class RunServiceApi(object):
             collection_formats=collection_formats)
 
     def unarchive_run(self, id, **kwargs):  # noqa: E501
-        """Restore an archived run.  # noqa: E501
+        """Restores an archived run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -1110,7 +1110,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the run to be restored. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -1126,7 +1126,7 @@ class RunServiceApi(object):
         return self.unarchive_run_with_http_info(id, **kwargs)  # noqa: E501
 
     def unarchive_run_with_http_info(self, id, **kwargs):  # noqa: E501
-        """Restore an archived run.  # noqa: E501
+        """Restores an archived run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -1134,7 +1134,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the run to be restored. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will

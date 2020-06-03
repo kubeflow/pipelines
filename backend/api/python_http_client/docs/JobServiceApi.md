@@ -4,18 +4,18 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**create_job**](JobServiceApi.md#create_job) | **POST** /apis/v1beta1/jobs | Create a new job.
-[**delete_job**](JobServiceApi.md#delete_job) | **DELETE** /apis/v1beta1/jobs/{id} | Delete a job.
+[**create_job**](JobServiceApi.md#create_job) | **POST** /apis/v1beta1/jobs | Creates a new job.
+[**delete_job**](JobServiceApi.md#delete_job) | **DELETE** /apis/v1beta1/jobs/{id} | Deletes a job.
 [**disable_job**](JobServiceApi.md#disable_job) | **POST** /apis/v1beta1/jobs/{id}/disable | Stops a job and all its associated runs. The job is not deleted.
 [**enable_job**](JobServiceApi.md#enable_job) | **POST** /apis/v1beta1/jobs/{id}/enable | Restarts a job that was previously stopped. All runs associated with the job will continue.
-[**get_job**](JobServiceApi.md#get_job) | **GET** /apis/v1beta1/jobs/{id} | Find a specific job by ID.
-[**list_jobs**](JobServiceApi.md#list_jobs) | **GET** /apis/v1beta1/jobs | Find all jobs.
+[**get_job**](JobServiceApi.md#get_job) | **GET** /apis/v1beta1/jobs/{id} | Finds a specific job by ID.
+[**list_jobs**](JobServiceApi.md#list_jobs) | **GET** /apis/v1beta1/jobs | Finds all jobs.
 
 
 # **create_job**
 > ApiJob create_job(body)
 
-Create a new job.
+Creates a new job.
 
 ### Example
 
@@ -54,7 +54,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     body = kfp_server_api.ApiJob() # ApiJob | The job to be created
 
     try:
-        # Create a new job.
+        # Creates a new job.
         api_response = api_instance.create_job(body)
         pprint(api_response)
     except ApiException as e:
@@ -91,7 +91,7 @@ Name | Type | Description  | Notes
 # **delete_job**
 > object delete_job(id)
 
-Delete a job.
+Deletes a job.
 
 ### Example
 
@@ -130,7 +130,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     id = 'id_example' # str | The ID of the job to be deleted
 
     try:
-        # Delete a job.
+        # Deletes a job.
         api_response = api_instance.delete_job(id)
         pprint(api_response)
     except ApiException as e:
@@ -319,7 +319,7 @@ Name | Type | Description  | Notes
 # **get_job**
 > ApiJob get_job(id)
 
-Find a specific job by ID.
+Finds a specific job by ID.
 
 ### Example
 
@@ -358,7 +358,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     id = 'id_example' # str | The ID of the job to be retrieved
 
     try:
-        # Find a specific job by ID.
+        # Finds a specific job by ID.
         api_response = api_instance.get_job(id)
         pprint(api_response)
     except ApiException as e:
@@ -395,7 +395,7 @@ Name | Type | Description  | Notes
 # **list_jobs**
 > ApiListJobsResponse list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
 
-Find all jobs.
+Finds all jobs.
 
 ### Example
 
@@ -431,15 +431,15 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.JobServiceApi(api_client)
-    page_token = 'page_token_example' # str |  (optional)
-page_size = 56 # int |  (optional)
+    page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListJobs call or can be omitted when fetching the first page. (optional)
+page_size = 56 # int | The number of jobs to be listed per page. If there are more jobs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. (optional)
 sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name des\". Ascending by default. (optional)
 resource_reference_key_type = 'UNKNOWN_RESOURCE_TYPE' # str | The type of the resource that referred to. (optional) (default to 'UNKNOWN_RESOURCE_TYPE')
 resource_reference_key_id = 'resource_reference_key_id_example' # str | The ID of the resource that referred to. (optional)
 filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)). (optional)
 
     try:
-        # Find all jobs.
+        # Finds all jobs.
         api_response = api_instance.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
         pprint(api_response)
     except ApiException as e:
@@ -450,8 +450,8 @@ filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **page_token** | **str**|  | [optional] 
- **page_size** | **int**|  | [optional] 
+ **page_token** | **str**| A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListJobs call or can be omitted when fetching the first page. | [optional] 
+ **page_size** | **int**| The number of jobs to be listed per page. If there are more jobs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. | [optional] 
  **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default. | [optional] 
  **resource_reference_key_type** | **str**| The type of the resource that referred to. | [optional] [default to &#39;UNKNOWN_RESOURCE_TYPE&#39;]
  **resource_reference_key_id** | **str**| The ID of the resource that referred to. | [optional] 

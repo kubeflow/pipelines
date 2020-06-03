@@ -57,6 +57,7 @@ class ApiGetTemplateResponse(object):
     def template(self):
         """Gets the template of this ApiGetTemplateResponse.  # noqa: E501
 
+        The template of the pipeline specified in a GetTemplate request, or of a pipeline version specified in a GetPipelinesVersionTemplate request.  # noqa: E501
 
         :return: The template of this ApiGetTemplateResponse.  # noqa: E501
         :rtype: str
@@ -67,6 +68,7 @@ class ApiGetTemplateResponse(object):
     def template(self, template):
         """Sets the template of this ApiGetTemplateResponse.
 
+        The template of the pipeline specified in a GetTemplate request, or of a pipeline version specified in a GetPipelinesVersionTemplate request.  # noqa: E501
 
         :param template: The template of this ApiGetTemplateResponse.  # noqa: E501
         :type: str

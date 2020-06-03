@@ -32,14 +32,14 @@ class TestJobServiceApi(unittest.TestCase):
     def test_create_job(self):
         """Test case for create_job
 
-        Create a new job.  # noqa: E501
+        Creates a new job.  # noqa: E501
         """
         pass
 
     def test_delete_job(self):
         """Test case for delete_job
 
-        Delete a job.  # noqa: E501
+        Deletes a job.  # noqa: E501
         """
         pass
 
@@ -60,14 +60,14 @@ class TestJobServiceApi(unittest.TestCase):
     def test_get_job(self):
         """Test case for get_job
 
-        Find a specific job by ID.  # noqa: E501
+        Finds a specific job by ID.  # noqa: E501
         """
         pass
 
     def test_list_jobs(self):
         """Test case for list_jobs
 
-        Find all jobs.  # noqa: E501
+        Finds all jobs.  # noqa: E501
         """
         pass
 

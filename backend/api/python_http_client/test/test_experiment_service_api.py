@@ -32,42 +32,42 @@ class TestExperimentServiceApi(unittest.TestCase):
     def test_archive_experiment(self):
         """Test case for archive_experiment
 
-        Archive an experiment.  # noqa: E501
+        Archives an experiment and the experiment's runs and jobs.  # noqa: E501
         """
         pass
 
     def test_create_experiment(self):
         """Test case for create_experiment
 
-        Create a new experiment.  # noqa: E501
+        Creates a new experiment.  # noqa: E501
         """
         pass
 
     def test_delete_experiment(self):
         """Test case for delete_experiment
 
-        Delete an experiment.  # noqa: E501
+        Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.  # noqa: E501
         """
         pass
 
     def test_get_experiment(self):
         """Test case for get_experiment
 
-        Find a specific experiment by ID.  # noqa: E501
+        Finds a specific experiment by ID.  # noqa: E501
         """
         pass
 
     def test_list_experiment(self):
         """Test case for list_experiment
 
-        Find all experiments.  # noqa: E501
+        Finds all experiments. Supports pagination, and sorting on certain fields.  # noqa: E501
         """
         pass
 
     def test_unarchive_experiment(self):
         """Test case for unarchive_experiment
 
-        Restore an archived experiment.  # noqa: E501
+        Restores an archived experiment. The experiment's archived runs and jobs will stay archived.  # noqa: E501
         """
         pass
 

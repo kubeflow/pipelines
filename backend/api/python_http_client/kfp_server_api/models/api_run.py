@@ -226,7 +226,7 @@ class ApiRun(object):
     def resource_references(self):
         """Gets the resource_references of this ApiRun.  # noqa: E501
 
-        Optional input field. Specify which resource this run belongs to.  # noqa: E501
+        Optional input field. Specify which resource this run belongs to. When creating a run from a particular pipeline version, the pipeline version can be specified here.  # noqa: E501
 
         :return: The resource_references of this ApiRun.  # noqa: E501
         :rtype: list[ApiResourceReference]
@@ -237,7 +237,7 @@ class ApiRun(object):
     def resource_references(self, resource_references):
         """Sets the resource_references of this ApiRun.
 
-        Optional input field. Specify which resource this run belongs to.  # noqa: E501
+        Optional input field. Specify which resource this run belongs to. When creating a run from a particular pipeline version, the pipeline version can be specified here.  # noqa: E501
 
         :param resource_references: The resource_references of this ApiRun.  # noqa: E501
         :type: list[ApiResourceReference]

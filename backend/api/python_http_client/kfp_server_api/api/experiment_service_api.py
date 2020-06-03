@@ -38,7 +38,7 @@ class ExperimentServiceApi(object):
         self.api_client = api_client
 
     def archive_experiment(self, id, **kwargs):  # noqa: E501
-        """Archive an experiment.  # noqa: E501
+        """Archives an experiment and the experiment's runs and jobs.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -46,7 +46,7 @@ class ExperimentServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the experiment to be archived. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -62,7 +62,7 @@ class ExperimentServiceApi(object):
         return self.archive_experiment_with_http_info(id, **kwargs)  # noqa: E501
 
     def archive_experiment_with_http_info(self, id, **kwargs):  # noqa: E501
-        """Archive an experiment.  # noqa: E501
+        """Archives an experiment and the experiment's runs and jobs.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -70,7 +70,7 @@ class ExperimentServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the experiment to be archived. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -150,7 +150,7 @@ class ExperimentServiceApi(object):
             collection_formats=collection_formats)
 
     def create_experiment(self, body, **kwargs):  # noqa: E501
-        """Create a new experiment.  # noqa: E501
+        """Creates a new experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -174,7 +174,7 @@ class ExperimentServiceApi(object):
         return self.create_experiment_with_http_info(body, **kwargs)  # noqa: E501
 
     def create_experiment_with_http_info(self, body, **kwargs):  # noqa: E501
-        """Create a new experiment.  # noqa: E501
+        """Creates a new experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -266,7 +266,7 @@ class ExperimentServiceApi(object):
             collection_formats=collection_formats)
 
     def delete_experiment(self, id, **kwargs):  # noqa: E501
-        """Delete an experiment.  # noqa: E501
+        """Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -290,7 +290,7 @@ class ExperimentServiceApi(object):
         return self.delete_experiment_with_http_info(id, **kwargs)  # noqa: E501
 
     def delete_experiment_with_http_info(self, id, **kwargs):  # noqa: E501
-        """Delete an experiment.  # noqa: E501
+        """Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -378,7 +378,7 @@ class ExperimentServiceApi(object):
             collection_formats=collection_formats)
 
     def get_experiment(self, id, **kwargs):  # noqa: E501
-        """Find a specific experiment by ID.  # noqa: E501
+        """Finds a specific experiment by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -402,7 +402,7 @@ class ExperimentServiceApi(object):
         return self.get_experiment_with_http_info(id, **kwargs)  # noqa: E501
 
     def get_experiment_with_http_info(self, id, **kwargs):  # noqa: E501
-        """Find a specific experiment by ID.  # noqa: E501
+        """Finds a specific experiment by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -490,7 +490,7 @@ class ExperimentServiceApi(object):
             collection_formats=collection_formats)
 
     def list_experiment(self, **kwargs):  # noqa: E501
-        """Find all experiments.  # noqa: E501
+        """Finds all experiments. Supports pagination, and sorting on certain fields.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -498,8 +498,8 @@ class ExperimentServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str page_token:
-        :param int page_size:
+        :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
+        :param int page_size: The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
         :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default.
         :param str filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
         :param str resource_reference_key_type: The type of the resource that referred to.
@@ -519,7 +519,7 @@ class ExperimentServiceApi(object):
         return self.list_experiment_with_http_info(**kwargs)  # noqa: E501
 
     def list_experiment_with_http_info(self, **kwargs):  # noqa: E501
-        """Find all experiments.  # noqa: E501
+        """Finds all experiments. Supports pagination, and sorting on certain fields.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -527,8 +527,8 @@ class ExperimentServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str page_token:
-        :param int page_size:
+        :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
+        :param int page_size: The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
         :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default.
         :param str filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
         :param str resource_reference_key_type: The type of the resource that referred to.
@@ -623,7 +623,7 @@ class ExperimentServiceApi(object):
             collection_formats=collection_formats)
 
     def unarchive_experiment(self, id, **kwargs):  # noqa: E501
-        """Restore an archived experiment.  # noqa: E501
+        """Restores an archived experiment. The experiment's archived runs and jobs will stay archived.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -631,7 +631,7 @@ class ExperimentServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the experiment to be restored. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -647,7 +647,7 @@ class ExperimentServiceApi(object):
         return self.unarchive_experiment_with_http_info(id, **kwargs)  # noqa: E501
 
     def unarchive_experiment_with_http_info(self, id, **kwargs):  # noqa: E501
-        """Restore an archived experiment.  # noqa: E501
+        """Restores an archived experiment. The experiment's archived runs and jobs will stay archived.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -655,7 +655,7 @@ class ExperimentServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the experiment to be restored. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will

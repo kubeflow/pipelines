@@ -38,7 +38,7 @@ class PipelineServiceApi(object):
         self.api_client = api_client
 
     def create_pipeline(self, body, **kwargs):  # noqa: E501
-        """Add a pipeline.  # noqa: E501
+        """Creates a pipeline.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -62,7 +62,7 @@ class PipelineServiceApi(object):
         return self.create_pipeline_with_http_info(body, **kwargs)  # noqa: E501
 
     def create_pipeline_with_http_info(self, body, **kwargs):  # noqa: E501
-        """Add a pipeline.  # noqa: E501
+        """Creates a pipeline.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -154,7 +154,7 @@ class PipelineServiceApi(object):
             collection_formats=collection_formats)
 
     def create_pipeline_version(self, body, **kwargs):  # noqa: E501
-        """create_pipeline_version  # noqa: E501
+        """Adds a pipeline version to the specified pipeline.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -178,7 +178,7 @@ class PipelineServiceApi(object):
         return self.create_pipeline_version_with_http_info(body, **kwargs)  # noqa: E501
 
     def create_pipeline_version_with_http_info(self, body, **kwargs):  # noqa: E501
-        """create_pipeline_version  # noqa: E501
+        """Adds a pipeline version to the specified pipeline.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -270,7 +270,7 @@ class PipelineServiceApi(object):
             collection_formats=collection_formats)
 
     def delete_pipeline(self, id, **kwargs):  # noqa: E501
-        """Delete a pipeline.  # noqa: E501
+        """Deletes a pipeline and its pipeline versions.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -278,7 +278,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the pipeline to be deleted. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -294,7 +294,7 @@ class PipelineServiceApi(object):
         return self.delete_pipeline_with_http_info(id, **kwargs)  # noqa: E501
 
     def delete_pipeline_with_http_info(self, id, **kwargs):  # noqa: E501
-        """Delete a pipeline.  # noqa: E501
+        """Deletes a pipeline and its pipeline versions.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -302,7 +302,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the pipeline to be deleted. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -382,7 +382,7 @@ class PipelineServiceApi(object):
             collection_formats=collection_formats)
 
     def delete_pipeline_version(self, version_id, **kwargs):  # noqa: E501
-        """delete_pipeline_version  # noqa: E501
+        """Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline's default version changes to the pipeline's most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -390,7 +390,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str version_id: (required)
+        :param str version_id: The ID of the pipeline version to be deleted. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -406,7 +406,7 @@ class PipelineServiceApi(object):
         return self.delete_pipeline_version_with_http_info(version_id, **kwargs)  # noqa: E501
 
     def delete_pipeline_version_with_http_info(self, version_id, **kwargs):  # noqa: E501
-        """delete_pipeline_version  # noqa: E501
+        """Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline's default version changes to the pipeline's most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -414,7 +414,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str version_id: (required)
+        :param str version_id: The ID of the pipeline version to be deleted. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -494,7 +494,7 @@ class PipelineServiceApi(object):
             collection_formats=collection_formats)
 
     def get_pipeline(self, id, **kwargs):  # noqa: E501
-        """Find a specific pipeline by ID.  # noqa: E501
+        """Finds a specific pipeline by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -502,7 +502,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the pipeline to be retrieved. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -518,7 +518,7 @@ class PipelineServiceApi(object):
         return self.get_pipeline_with_http_info(id, **kwargs)  # noqa: E501
 
     def get_pipeline_with_http_info(self, id, **kwargs):  # noqa: E501
-        """Find a specific pipeline by ID.  # noqa: E501
+        """Finds a specific pipeline by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -526,7 +526,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the pipeline to be retrieved. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -606,7 +606,7 @@ class PipelineServiceApi(object):
             collection_formats=collection_formats)
 
     def get_pipeline_version(self, version_id, **kwargs):  # noqa: E501
-        """get_pipeline_version  # noqa: E501
+        """Gets a pipeline version by pipeline version ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -614,7 +614,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str version_id: (required)
+        :param str version_id: The ID of the pipeline version to be retrieved. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -630,7 +630,7 @@ class PipelineServiceApi(object):
         return self.get_pipeline_version_with_http_info(version_id, **kwargs)  # noqa: E501
 
     def get_pipeline_version_with_http_info(self, version_id, **kwargs):  # noqa: E501
-        """get_pipeline_version  # noqa: E501
+        """Gets a pipeline version by pipeline version ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -638,7 +638,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str version_id: (required)
+        :param str version_id: The ID of the pipeline version to be retrieved. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -718,7 +718,7 @@ class PipelineServiceApi(object):
             collection_formats=collection_formats)
 
     def get_pipeline_version_template(self, version_id, **kwargs):  # noqa: E501
-        """get_pipeline_version_template  # noqa: E501
+        """Returns a YAML template that contains the specified pipeline version's description, parameters and metadata.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -726,7 +726,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str version_id: (required)
+        :param str version_id: The ID of the pipeline version whose template is to be retrieved. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -742,7 +742,7 @@ class PipelineServiceApi(object):
         return self.get_pipeline_version_template_with_http_info(version_id, **kwargs)  # noqa: E501
 
     def get_pipeline_version_template_with_http_info(self, version_id, **kwargs):  # noqa: E501
-        """get_pipeline_version_template  # noqa: E501
+        """Returns a YAML template that contains the specified pipeline version's description, parameters and metadata.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -750,7 +750,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str version_id: (required)
+        :param str version_id: The ID of the pipeline version whose template is to be retrieved. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -838,7 +838,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the pipeline whose template is to be retrieved. (required)
         :param _preload_content: if False, the urllib3.HTTPResponse object will
                                  be returned without reading/decoding response
                                  data. Default is True.
@@ -862,7 +862,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str id: (required)
+        :param str id: The ID of the pipeline whose template is to be retrieved. (required)
         :param _return_http_data_only: response data without head status code
                                        and headers
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -942,7 +942,7 @@ class PipelineServiceApi(object):
             collection_formats=collection_formats)
 
     def list_pipeline_versions(self, **kwargs):  # noqa: E501
-        """list_pipeline_versions  # noqa: E501
+        """Lists all pipeline versions of a given pipeline.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -952,8 +952,8 @@ class PipelineServiceApi(object):
         :param async_req bool: execute request asynchronously
         :param str resource_key_type: The type of the resource that referred to.
         :param str resource_key_id: The ID of the resource that referred to.
-        :param int page_size:
-        :param str page_token:
+        :param int page_size: The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+        :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelineVersions call or can be omitted when fetching the first page.
         :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default.
         :param str filter: A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -971,7 +971,7 @@ class PipelineServiceApi(object):
         return self.list_pipeline_versions_with_http_info(**kwargs)  # noqa: E501
 
     def list_pipeline_versions_with_http_info(self, **kwargs):  # noqa: E501
-        """list_pipeline_versions  # noqa: E501
+        """Lists all pipeline versions of a given pipeline.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -981,8 +981,8 @@ class PipelineServiceApi(object):
         :param async_req bool: execute request asynchronously
         :param str resource_key_type: The type of the resource that referred to.
         :param str resource_key_id: The ID of the resource that referred to.
-        :param int page_size:
-        :param str page_token:
+        :param int page_size: The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+        :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelineVersions call or can be omitted when fetching the first page.
         :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default.
         :param str filter: A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
         :param _return_http_data_only: response data without head status code
@@ -1075,7 +1075,7 @@ class PipelineServiceApi(object):
             collection_formats=collection_formats)
 
     def list_pipelines(self, **kwargs):  # noqa: E501
-        """Find all pipelines.  # noqa: E501
+        """Finds all pipelines.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -1083,8 +1083,8 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str page_token:
-        :param int page_size:
+        :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call.
+        :param int page_size: The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field.
         :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default.
         :param str filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -1102,7 +1102,7 @@ class PipelineServiceApi(object):
         return self.list_pipelines_with_http_info(**kwargs)  # noqa: E501
 
     def list_pipelines_with_http_info(self, **kwargs):  # noqa: E501
-        """Find all pipelines.  # noqa: E501
+        """Finds all pipelines.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -1110,8 +1110,8 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param async_req bool: execute request asynchronously
-        :param str page_token:
-        :param int page_size:
+        :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call.
+        :param int page_size: The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field.
         :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default.
         :param str filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
         :param _return_http_data_only: response data without head status code

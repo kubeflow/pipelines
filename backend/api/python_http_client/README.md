@@ -79,10 +79,10 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
-    id = 'id_example' # str | 
+    id = 'id_example' # str | The ID of the experiment to be archived.
 
     try:
-        # Archive an experiment.
+        # Archives an experiment and the experiment's runs and jobs.
         api_response = api_instance.archive_experiment(id)
         pprint(api_response)
     except ApiException as e:
@@ -96,40 +96,40 @@ All URIs are relative to *http://localhost*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*ExperimentServiceApi* | [**archive_experiment**](docs/ExperimentServiceApi.md#archive_experiment) | **POST** /apis/v1beta1/experiments/{id}:archive | Archive an experiment.
-*ExperimentServiceApi* | [**create_experiment**](docs/ExperimentServiceApi.md#create_experiment) | **POST** /apis/v1beta1/experiments | Create a new experiment.
-*ExperimentServiceApi* | [**delete_experiment**](docs/ExperimentServiceApi.md#delete_experiment) | **DELETE** /apis/v1beta1/experiments/{id} | Delete an experiment.
-*ExperimentServiceApi* | [**get_experiment**](docs/ExperimentServiceApi.md#get_experiment) | **GET** /apis/v1beta1/experiments/{id} | Find a specific experiment by ID.
-*ExperimentServiceApi* | [**list_experiment**](docs/ExperimentServiceApi.md#list_experiment) | **GET** /apis/v1beta1/experiments | Find all experiments.
-*ExperimentServiceApi* | [**unarchive_experiment**](docs/ExperimentServiceApi.md#unarchive_experiment) | **POST** /apis/v1beta1/experiments/{id}:unarchive | Restore an archived experiment.
-*JobServiceApi* | [**create_job**](docs/JobServiceApi.md#create_job) | **POST** /apis/v1beta1/jobs | Create a new job.
-*JobServiceApi* | [**delete_job**](docs/JobServiceApi.md#delete_job) | **DELETE** /apis/v1beta1/jobs/{id} | Delete a job.
+*ExperimentServiceApi* | [**archive_experiment**](docs/ExperimentServiceApi.md#archive_experiment) | **POST** /apis/v1beta1/experiments/{id}:archive | Archives an experiment and the experiment&#39;s runs and jobs.
+*ExperimentServiceApi* | [**create_experiment**](docs/ExperimentServiceApi.md#create_experiment) | **POST** /apis/v1beta1/experiments | Creates a new experiment.
+*ExperimentServiceApi* | [**delete_experiment**](docs/ExperimentServiceApi.md#delete_experiment) | **DELETE** /apis/v1beta1/experiments/{id} | Deletes an experiment without deleting the experiment&#39;s runs and jobs. To avoid unexpected behaviors, delete an experiment&#39;s runs and jobs before deleting the experiment.
+*ExperimentServiceApi* | [**get_experiment**](docs/ExperimentServiceApi.md#get_experiment) | **GET** /apis/v1beta1/experiments/{id} | Finds a specific experiment by ID.
+*ExperimentServiceApi* | [**list_experiment**](docs/ExperimentServiceApi.md#list_experiment) | **GET** /apis/v1beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
+*ExperimentServiceApi* | [**unarchive_experiment**](docs/ExperimentServiceApi.md#unarchive_experiment) | **POST** /apis/v1beta1/experiments/{id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and jobs will stay archived.
+*JobServiceApi* | [**create_job**](docs/JobServiceApi.md#create_job) | **POST** /apis/v1beta1/jobs | Creates a new job.
+*JobServiceApi* | [**delete_job**](docs/JobServiceApi.md#delete_job) | **DELETE** /apis/v1beta1/jobs/{id} | Deletes a job.
 *JobServiceApi* | [**disable_job**](docs/JobServiceApi.md#disable_job) | **POST** /apis/v1beta1/jobs/{id}/disable | Stops a job and all its associated runs. The job is not deleted.
 *JobServiceApi* | [**enable_job**](docs/JobServiceApi.md#enable_job) | **POST** /apis/v1beta1/jobs/{id}/enable | Restarts a job that was previously stopped. All runs associated with the job will continue.
-*JobServiceApi* | [**get_job**](docs/JobServiceApi.md#get_job) | **GET** /apis/v1beta1/jobs/{id} | Find a specific job by ID.
-*JobServiceApi* | [**list_jobs**](docs/JobServiceApi.md#list_jobs) | **GET** /apis/v1beta1/jobs | Find all jobs.
-*PipelineServiceApi* | [**create_pipeline**](docs/PipelineServiceApi.md#create_pipeline) | **POST** /apis/v1beta1/pipelines | Add a pipeline.
-*PipelineServiceApi* | [**create_pipeline_version**](docs/PipelineServiceApi.md#create_pipeline_version) | **POST** /apis/v1beta1/pipeline_versions | 
-*PipelineServiceApi* | [**delete_pipeline**](docs/PipelineServiceApi.md#delete_pipeline) | **DELETE** /apis/v1beta1/pipelines/{id} | Delete a pipeline.
-*PipelineServiceApi* | [**delete_pipeline_version**](docs/PipelineServiceApi.md#delete_pipeline_version) | **DELETE** /apis/v1beta1/pipeline_versions/{version_id} | 
-*PipelineServiceApi* | [**get_pipeline**](docs/PipelineServiceApi.md#get_pipeline) | **GET** /apis/v1beta1/pipelines/{id} | Find a specific pipeline by ID.
-*PipelineServiceApi* | [**get_pipeline_version**](docs/PipelineServiceApi.md#get_pipeline_version) | **GET** /apis/v1beta1/pipeline_versions/{version_id} | 
-*PipelineServiceApi* | [**get_pipeline_version_template**](docs/PipelineServiceApi.md#get_pipeline_version_template) | **GET** /apis/v1beta1/pipeline_versions/{version_id}/templates | 
+*JobServiceApi* | [**get_job**](docs/JobServiceApi.md#get_job) | **GET** /apis/v1beta1/jobs/{id} | Finds a specific job by ID.
+*JobServiceApi* | [**list_jobs**](docs/JobServiceApi.md#list_jobs) | **GET** /apis/v1beta1/jobs | Finds all jobs.
+*PipelineServiceApi* | [**create_pipeline**](docs/PipelineServiceApi.md#create_pipeline) | **POST** /apis/v1beta1/pipelines | Creates a pipeline.
+*PipelineServiceApi* | [**create_pipeline_version**](docs/PipelineServiceApi.md#create_pipeline_version) | **POST** /apis/v1beta1/pipeline_versions | Adds a pipeline version to the specified pipeline.
+*PipelineServiceApi* | [**delete_pipeline**](docs/PipelineServiceApi.md#delete_pipeline) | **DELETE** /apis/v1beta1/pipelines/{id} | Deletes a pipeline and its pipeline versions.
+*PipelineServiceApi* | [**delete_pipeline_version**](docs/PipelineServiceApi.md#delete_pipeline_version) | **DELETE** /apis/v1beta1/pipeline_versions/{version_id} | Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline&#39;s default version changes to the pipeline&#39;s most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).
+*PipelineServiceApi* | [**get_pipeline**](docs/PipelineServiceApi.md#get_pipeline) | **GET** /apis/v1beta1/pipelines/{id} | Finds a specific pipeline by ID.
+*PipelineServiceApi* | [**get_pipeline_version**](docs/PipelineServiceApi.md#get_pipeline_version) | **GET** /apis/v1beta1/pipeline_versions/{version_id} | Gets a pipeline version by pipeline version ID.
+*PipelineServiceApi* | [**get_pipeline_version_template**](docs/PipelineServiceApi.md#get_pipeline_version_template) | **GET** /apis/v1beta1/pipeline_versions/{version_id}/templates | Returns a YAML template that contains the specified pipeline version&#39;s description, parameters and metadata.
 *PipelineServiceApi* | [**get_template**](docs/PipelineServiceApi.md#get_template) | **GET** /apis/v1beta1/pipelines/{id}/templates | Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
-*PipelineServiceApi* | [**list_pipeline_versions**](docs/PipelineServiceApi.md#list_pipeline_versions) | **GET** /apis/v1beta1/pipeline_versions | 
-*PipelineServiceApi* | [**list_pipelines**](docs/PipelineServiceApi.md#list_pipelines) | **GET** /apis/v1beta1/pipelines | Find all pipelines.
+*PipelineServiceApi* | [**list_pipeline_versions**](docs/PipelineServiceApi.md#list_pipeline_versions) | **GET** /apis/v1beta1/pipeline_versions | Lists all pipeline versions of a given pipeline.
+*PipelineServiceApi* | [**list_pipelines**](docs/PipelineServiceApi.md#list_pipelines) | **GET** /apis/v1beta1/pipelines | Finds all pipelines.
 *PipelineUploadServiceApi* | [**upload_pipeline**](docs/PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v1beta1/pipelines/upload | 
 *PipelineUploadServiceApi* | [**upload_pipeline_version**](docs/PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v1beta1/pipelines/upload_version | 
-*RunServiceApi* | [**archive_run**](docs/RunServiceApi.md#archive_run) | **POST** /apis/v1beta1/runs/{id}:archive | Archive a run.
-*RunServiceApi* | [**create_run**](docs/RunServiceApi.md#create_run) | **POST** /apis/v1beta1/runs | Create a new run.
-*RunServiceApi* | [**delete_run**](docs/RunServiceApi.md#delete_run) | **DELETE** /apis/v1beta1/runs/{id} | Delete a run.
-*RunServiceApi* | [**get_run**](docs/RunServiceApi.md#get_run) | **GET** /apis/v1beta1/runs/{run_id} | Find a specific run by ID.
-*RunServiceApi* | [**list_runs**](docs/RunServiceApi.md#list_runs) | **GET** /apis/v1beta1/runs | Find all runs.
-*RunServiceApi* | [**read_artifact**](docs/RunServiceApi.md#read_artifact) | **GET** /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read | Find a run&#39;s artifact data.
+*RunServiceApi* | [**archive_run**](docs/RunServiceApi.md#archive_run) | **POST** /apis/v1beta1/runs/{id}:archive | Archives a run.
+*RunServiceApi* | [**create_run**](docs/RunServiceApi.md#create_run) | **POST** /apis/v1beta1/runs | Creates a new run.
+*RunServiceApi* | [**delete_run**](docs/RunServiceApi.md#delete_run) | **DELETE** /apis/v1beta1/runs/{id} | Deletes a run.
+*RunServiceApi* | [**get_run**](docs/RunServiceApi.md#get_run) | **GET** /apis/v1beta1/runs/{run_id} | Finds a specific run by ID.
+*RunServiceApi* | [**list_runs**](docs/RunServiceApi.md#list_runs) | **GET** /apis/v1beta1/runs | Finds all runs.
+*RunServiceApi* | [**read_artifact**](docs/RunServiceApi.md#read_artifact) | **GET** /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read | Finds a run&#39;s artifact data.
 *RunServiceApi* | [**report_run_metrics**](docs/RunServiceApi.md#report_run_metrics) | **POST** /apis/v1beta1/runs/{run_id}:reportMetrics | ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.
-*RunServiceApi* | [**retry_run**](docs/RunServiceApi.md#retry_run) | **POST** /apis/v1beta1/runs/{run_id}/retry | Re-initiate a failed or terminated run.
-*RunServiceApi* | [**terminate_run**](docs/RunServiceApi.md#terminate_run) | **POST** /apis/v1beta1/runs/{run_id}/terminate | Terminate an active run.
-*RunServiceApi* | [**unarchive_run**](docs/RunServiceApi.md#unarchive_run) | **POST** /apis/v1beta1/runs/{id}:unarchive | Restore an archived run.
+*RunServiceApi* | [**retry_run**](docs/RunServiceApi.md#retry_run) | **POST** /apis/v1beta1/runs/{run_id}/retry | Re-initiates a failed or terminated run.
+*RunServiceApi* | [**terminate_run**](docs/RunServiceApi.md#terminate_run) | **POST** /apis/v1beta1/runs/{run_id}/terminate | Terminates an active run.
+*RunServiceApi* | [**unarchive_run**](docs/RunServiceApi.md#unarchive_run) | **POST** /apis/v1beta1/runs/{id}:unarchive | Restores an archived run.
 
 
 ## Documentation For Models

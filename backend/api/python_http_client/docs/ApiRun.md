@@ -8,7 +8,7 @@ Name | Type | Description | Notes
 **storage_state** | [**RunStorageState**](RunStorageState.md) |  | [optional] 
 **description** | **str** |  | [optional] 
 **pipeline_spec** | [**ApiPipelineSpec**](ApiPipelineSpec.md) |  | [optional] 
-**resource_references** | [**list[ApiResourceReference]**](ApiResourceReference.md) | Optional input field. Specify which resource this run belongs to. | [optional] 
+**resource_references** | [**list[ApiResourceReference]**](ApiResourceReference.md) | Optional input field. Specify which resource this run belongs to. When creating a run from a particular pipeline version, the pipeline version can be specified here. | [optional] 
 **service_account** | **str** | Optional input field. Specify which Kubernetes service account this run uses. | [optional] 
 **created_at** | **datetime** | Output. The time that the run created. | [optional] 
 **scheduled_at** | **datetime** | Output. When this run is scheduled to run. This could be different from created_at. For example, if a run is from a backfilling job that was supposed to run 2 month ago, the scheduled_at is 2 month ago, v.s. created_at is the current time. | [optional] 

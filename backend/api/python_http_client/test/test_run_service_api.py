@@ -32,42 +32,42 @@ class TestRunServiceApi(unittest.TestCase):
     def test_archive_run(self):
         """Test case for archive_run
 
-        Archive a run.  # noqa: E501
+        Archives a run.  # noqa: E501
         """
         pass
 
     def test_create_run(self):
         """Test case for create_run
 
-        Create a new run.  # noqa: E501
+        Creates a new run.  # noqa: E501
         """
         pass
 
     def test_delete_run(self):
         """Test case for delete_run
 
-        Delete a run.  # noqa: E501
+        Deletes a run.  # noqa: E501
         """
         pass
 
     def test_get_run(self):
         """Test case for get_run
 
-        Find a specific run by ID.  # noqa: E501
+        Finds a specific run by ID.  # noqa: E501
         """
         pass
 
     def test_list_runs(self):
         """Test case for list_runs
 
-        Find all runs.  # noqa: E501
+        Finds all runs.  # noqa: E501
         """
         pass
 
     def test_read_artifact(self):
         """Test case for read_artifact
 
-        Find a run's artifact data.  # noqa: E501
+        Finds a run's artifact data.  # noqa: E501
         """
         pass
 
@@ -81,21 +81,21 @@ class TestRunServiceApi(unittest.TestCase):
     def test_retry_run(self):
         """Test case for retry_run
 
-        Re-initiate a failed or terminated run.  # noqa: E501
+        Re-initiates a failed or terminated run.  # noqa: E501
         """
         pass
 
     def test_terminate_run(self):
         """Test case for terminate_run
 
-        Terminate an active run.  # noqa: E501
+        Terminates an active run.  # noqa: E501
         """
         pass
 
     def test_unarchive_run(self):
         """Test case for unarchive_run
 
-        Restore an archived run.  # noqa: E501
+        Restores an archived run.  # noqa: E501
         """
         pass
 
