@@ -98,7 +98,7 @@ type ListPipelinesParams struct {
 	*/
 	PageToken *string
 	/*SortBy
-	  Can be format of "field_name", "field_name asc" or "field_name des"
+	  Can be format of "field_name", "field_name asc" or "field_name desc"
 	Ascending by default.
 
 	*/

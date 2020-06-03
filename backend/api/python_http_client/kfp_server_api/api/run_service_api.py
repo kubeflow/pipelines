@@ -500,7 +500,7 @@ class RunServiceApi(object):
         :param async_req bool: execute request asynchronously
         :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
         :param int page_size: The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
-        :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" (Example, \"name asc\" or \"id des\"). Ascending by default.
+        :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" (Example, \"name asc\" or \"id desc\"). Ascending by default.
         :param str resource_reference_key_type: The type of the resource that referred to.
         :param str resource_reference_key_id: The ID of the resource that referred to.
         :param str filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
@@ -529,7 +529,7 @@ class RunServiceApi(object):
         :param async_req bool: execute request asynchronously
         :param str page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
         :param int page_size: The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
-        :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" (Example, \"name asc\" or \"id des\"). Ascending by default.
+        :param str sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" (Example, \"name asc\" or \"id desc\"). Ascending by default.
         :param str resource_reference_key_type: The type of the resource that referred to.
         :param str resource_reference_key_id: The ID of the resource that referred to.
         :param str filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
