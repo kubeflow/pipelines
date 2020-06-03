@@ -17,7 +17,7 @@ phases:
 
   post_build:
     commands:
-      - docker cp integration-test-container:/kfp_repo/components/aws/sagemaker/tests/integration_tests/integration_tests.log /tmp/results.xml
+      - docker cp integration-test-container:/pipelines/components/aws/sagemaker/tests/integration_tests/integration_tests.log /tmp/results.xml
       - docker rm -f integration-test-container
 
 reports:

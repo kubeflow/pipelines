@@ -19,10 +19,6 @@ from utils import sagemaker_utils
             marks=pytest.mark.fsx_test
         ),
         pytest.param(
-            "resources/config/sample-pipeline-training",
-            marks=pytest.mark.canary_test,
-        ),
-        pytest.param(
             "resources/config/spot-sample-pipeline-training",
             marks=pytest.mark.canary_test,
         ),
