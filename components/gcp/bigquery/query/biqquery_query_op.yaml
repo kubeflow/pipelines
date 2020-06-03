@@ -67,8 +67,7 @@ implementation:
       --table_id, {inputValue: table_id},
       --dataset_location, {inputValue: dataset_location},
       --job_config, {inputValue: job_config},
+      --write_to_table False,
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
-    fileOutputs:
-      output_gcs_path: "{{output_kfp_path}}"

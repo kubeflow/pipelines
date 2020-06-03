@@ -25,7 +25,7 @@ from .. import common as gcp_common
 KFP_OUTPUT_PATH = '/tmp/kfp/output/'
 
 def query(query, project_id, dataset_id=None, table_id=None, 
-    output_gcs_path=None, dataset_location='US', job_config=None):
+    output_gcs_path=None, dataset_location='US', job_config=None, write_to_table="True"):
     """Submit a query to Bigquery service and dump outputs to Bigquery table or 
     a GCS blob.
     
@@ -59,8 +59,9 @@ def query(query, project_id, dataset_id=None, table_id=None,
         query_job = _get_job(client, job_id)
         table_ref = None
         if not query_job:
-            dataset_ref = _prepare_dataset_ref(client, dataset_id, output_gcs_path, 
-                dataset_location)
+            if eval(write_to_table): 
+                dataset_ref = _prepare_dataset_ref(client, dataset_id, 
+                    dataset_location)
             if dataset_ref:
                 if not table_id:
                     table_id = job_id
@@ -79,16 +80,37 @@ def query(query, project_id, dataset_id=None, table_id=None,
         _dump_outputs(query_job, output_gcs_path, table_ref)
         return query_job.to_api_repr()
 
+def create_table_from():
+    from google.cloud import bigquery
+
+    # TODO(developer): Construct a BigQuery client object.
+    client = bigquery.Client()
+
+    # TODO(developer): Set table_id to the ID of the destination table.
+    table_id = "your-project.your_dataset.your_table_name"
+
+    job_config = bigquery.QueryJobConfig(destination=table_id)
+
+    sql = """
+        SELECT corpus
+        FROM `bigquery-public-data.samples.shakespeare`
+        GROUP BY corpus;
+    """
+
+    # Start the query, passing in the extra configuration.
+    query_job = client.query(sql, job_config=job_config)  # Make an API request.
+    query_job.result()  # Wait for the job to complete.
+
+    print("Query results loaded to the table {}".format(table_id))
+
+
 def _get_job(client, job_id):
     try:
         return client.get_job(job_id)
     except exceptions.NotFound:
         return None
 
-def _prepare_dataset_ref(client, dataset_id, output_gcs_path, dataset_location):
-    if not output_gcs_path and not dataset_id:
-        return None
-    
+def _prepare_dataset_ref(client, dataset_id, dataset_location):
     if not dataset_id:
         dataset_id = 'kfp_tmp_dataset'
     dataset_ref = client.dataset(dataset_id)
