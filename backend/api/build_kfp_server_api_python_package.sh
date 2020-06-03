@@ -66,10 +66,6 @@ python3 setup.py --quiet sdist
 popd
 
 echo "Adding license header for generated python files in $DIR."
-# Note: requires running `./generate_api.sh` first that builds this autogen_tool
-# AUTOGEN_CMD="$CURRENT_DIR/../../bazel-bin/external/com_github_mbrukman_autogen/autogen_tool"
-# find ${DIR}/ -name "*.py" -exec ${AUTOGEN_CMD} -i --no-tlc -c "Google LLC" -l apache {} \;
-
 go get -u github.com/google/addlicense
 addlicense "$DIR"
 

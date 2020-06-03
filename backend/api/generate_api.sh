@@ -123,7 +123,7 @@ sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSe
 go generate ./...
 
 # Add license to files in go_http_client.
-find ${DIR}/go_http_client/ -name "*.go" -exec ${AUTOGEN_CMD} -i --no-code --no-tlc -c "Google LLC" -l apache {} \;
+find ${DIR}/go_http_client/ -name "*.go" -exec ${AUTOGEN_CMD} -i --no-tlc -c "Google LLC" -l apache {} \;
 
 # Finally, run gazelle to add BUILD files for the generated code.
 bazel run //:gazelle
