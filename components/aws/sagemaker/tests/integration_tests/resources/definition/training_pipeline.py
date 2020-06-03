@@ -1,7 +1,6 @@
 import kfp
 from kfp import components
 from kfp import dsl
-from kfp.aws import use_aws_secret
 
 sagemaker_train_op = components.load_component_from_file("../../train/component.yaml")
 
