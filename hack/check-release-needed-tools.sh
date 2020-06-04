@@ -27,6 +27,9 @@ which java || (echo "java not found in PATH" && exit 1)
 echo "bazel==0.24.0"
 which bazel || (echo "bazel not found in PATH" && exit 1)
 bazel version | grep 0.24.0 || (echo "bazel not 0.24.0 version" && exit 1)
+echo "python>3"
+which python || (echo "python not found in PATH" && exit 1)
+python -c "import setuptools" || (echo "setuptools should be installed in python" && exit 1)
 
 echo "All tools installed"
 echo "Please add another needed tools if above list is not complete"
