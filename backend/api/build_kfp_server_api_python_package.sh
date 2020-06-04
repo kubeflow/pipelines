@@ -43,8 +43,9 @@ fi
 
 pushd "$(dirname "$0")"
 
-DIR="$(pwd)/python_http_client"
-swagger_file="$(pwd)/swagger/kfp_api_single_file.swagger.json"
+CURRENT_DIR="$(pwd)"
+DIR="$CURRENT_DIR/python_http_client"
+swagger_file="$CURRENT_DIR/swagger/kfp_api_single_file.swagger.json"
 
 echo "Removing old content in DIR first."
 rm -rf "$DIR"
@@ -56,10 +57,17 @@ java -jar "$codegen_file" generate -g python -i "$swagger_file" -o "$DIR" -c <(e
     "packageUrl": "https://github.com/kubeflow/pipelines"
 }')
 
+echo "Copying LICENSE to $DIR"
+cp "$CURRENT_DIR/../../LICENSE" "$DIR"
+
 echo "Building the python package in $DIR."
 pushd "$DIR"
 python3 setup.py --quiet sdist
 popd
+
+echo "Adding license header for generated python files in $DIR."
+go get -u github.com/google/addlicense
+addlicense "$DIR"
 
 echo "Run the following commands to update the package on PyPI"
 echo "python3 -m pip install twine"
