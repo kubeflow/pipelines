@@ -132,3 +132,5 @@ find ${DIR}/go_http_client/ -name "*.go" -exec ${AUTOGEN_CMD} -i --no-tlc -c "Go
 
 # Finally, run gazelle to add BUILD files for the generated code.
 bazel run //:gazelle
+# HACK: remove unnecessary BUILD.bazels
+rm -f "$REPO_ROOT/sdk/python/kfp/components/structures/BUILD.bazel" "$REPO_ROOT/tools/metadatastore-upgrade/BUILD.bazel"
