@@ -182,7 +182,7 @@ class ComponentStore:
                     blob_hash = candidate['git_blob_hash']
                     if not self._git_blob_hash_to_data_db.exists(blob_hash):
                         logging.debug('Downloading component spec from "{}"'.format(component_url))
-                        response = requests.get(component_url)
+                        response = _get_request_session().get(component_url)
                         response.raise_for_status()
                         component_data = response.content
 
@@ -214,6 +214,22 @@ class ComponentStore:
                     )))
 
 
+def _get_request_session(max_retries: int = 3):
+    session = requests.Session()
+
+    retry_strategy = requests.packages.urllib3.util.retry.Retry(
+        total=max_retries,
+        backoff_factor=0.1,
+        status_forcelist=[413, 429, 500, 502, 503, 504],
+        method_whitelist=frozenset(['GET', 'POST']),
+    )
+
+    session.mount('https://', requests.adapters.HTTPAdapter(max_retries=retry_strategy))
+    session.mount('http://', requests.adapters.HTTPAdapter(max_retries=retry_strategy))
+
+    return session
+
+
 def _calculate_git_blob_hash(data: bytes) -> str:
     return hashlib.sha1(b'blob ' + str(len(data)).encode('utf-8') + b'\x00' + data).hexdigest()
 
@@ -228,7 +244,7 @@ def _list_candidate_component_uris_from_github_repo(url_search_prefix: str) -> I
         search_url = (
             'https://api.github.com/search/code?q=filename:{}+repo:{}/{}&page={}&per_page=1000'
         ).format(_COMPONENT_FILENAME, org, repo, page)
-        response = requests.get(search_url)
+        response = _get_request_session().get(search_url)
         response.raise_for_status()
         result = response.json()
         items = result['items']
