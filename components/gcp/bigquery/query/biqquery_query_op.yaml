@@ -61,14 +61,13 @@ implementation:
     image: gcr.io/ds-production-259110/ml-pipeline-gcp
     args: [
       --ui_metadata_path, {outputPath: MLPipeline UI metadata},
-      kfp_component.google.bigquery, query,
+      kfp_component.google.bigquery, query_only,
       --query, {inputValue: query},
       --project_id, {inputValue: project_id},
       --dataset_id, {inputValue: dataset_id},
       --table_id, {inputValue: table_id},
       --dataset_location, {inputValue: dataset_location},
       --job_config, {inputValue: job_config},
-      --write_to_table,
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"

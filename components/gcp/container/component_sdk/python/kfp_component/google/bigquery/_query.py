@@ -24,8 +24,47 @@ from .. import common as gcp_common
 # TODO(hongyes): make this path configurable as a environment variable
 KFP_OUTPUT_PATH = '/tmp/kfp/output/'
 
+
+def query_only(query, project_id, dataset_location='US', job_config=None):
+    """Submit a query to Bigquery service and dump outputs to Bigquery table or 
+    a GCS blob.
+    
+    Args:
+        query (str): The query used by Bigquery service to fetch the results.
+        project_id (str): The project to execute the query job.
+        dataset_id (str): The ID of the persistent dataset to keep the results
+            of the query. If the dataset does not exist, the operation will 
+            create a new one.
+        table_id (str): The ID of the table to keep the results of the query. If
+            absent, the operation will generate a random id for the table.
+        output_gcs_path (str): The GCS blob path to dump the query results to.
+        dataset_location (str): The location to create the dataset. Defaults to `US`.
+        job_config (dict): The full config spec for the query job.
+    Returns:
+        The API representation of the completed query job.
+    """
+    client = bigquery.Client(project=project_id, location=dataset_location)
+    if job_config:
+        job_config = bigquery.QueryJobConfig.from_api_repr(job_config)
+    else: 
+        job_id = None
+    def cancel():
+        if job_id:
+            client.cancel_job(job_id)
+    with KfpExecutionContext(on_cancel=cancel) as ctx:
+        job_id = 'query_' + ctx.context_id()
+        query_job = _get_job(client, job_id)
+        if not query_job:
+            query_job = client.query(query, job_config, job_id=job_id)
+        _display_job_link(project_id, job_id)
+        query_job.result() # Wait for query to finish
+        _dump_outputs(query_job)
+        return query_job.to_api_repr()
+
+
+
 def query(query, project_id, dataset_id=None, table_id=None, 
-    output_gcs_path=None, dataset_location='US', job_config=None, write_to_table="True"):
+    output_gcs_path=None, dataset_location='US', job_config=None):
     """Submit a query to Bigquery service and dump outputs to Bigquery table or 
     a GCS blob.
     
@@ -59,8 +98,7 @@ def query(query, project_id, dataset_id=None, table_id=None,
         query_job = _get_job(client, job_id)
         table_ref = None
         if not query_job:
-            if eval(write_to_table): 
-                dataset_ref = _prepare_dataset_ref(client, dataset_id, 
+            dataset_ref = _prepare_dataset_ref(client, dataset_id, 
                     dataset_location)
             if dataset_ref:
                 if not table_id:
