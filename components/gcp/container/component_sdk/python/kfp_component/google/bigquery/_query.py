@@ -44,10 +44,10 @@ def query_only(query, project_id, dataset_location='US', job_config=None):
         The API representation of the completed query job.
     """
     client = bigquery.Client(project=project_id, location=dataset_location)
-    if job_config:
+    if not job_config:
+        job_config = bigquery.QueryJobConfig()
+    else:
         job_config = bigquery.QueryJobConfig.from_api_repr(job_config)
-    else: 
-        job_id = None
     def cancel():
         if job_id:
             client.cancel_job(job_id)
@@ -58,7 +58,7 @@ def query_only(query, project_id, dataset_location='US', job_config=None):
             query_job = client.query(query, job_config, job_id=job_id)
         _display_job_link(project_id, job_id)
         query_job.result() # Wait for query to finish
-        _dump_outputs(query_job)
+        _dump_outputs(query_job, None, None)
         return query_job.to_api_repr()
 
 
