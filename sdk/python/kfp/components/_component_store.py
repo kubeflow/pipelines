@@ -188,7 +188,12 @@ class ComponentStore:
 
                         # Verifying the hash
                         received_data_hash = _calculate_git_blob_hash(component_data)
-                        assert received_data_hash.lower() == blob_hash.lower()
+                        if received_data_hash.lower() != blob_hash.lower():
+                            raise RuntimeError(
+                                'The downloaded component ({}) has incorrect hash: "{}" != "{}"'.format(
+                                    component_url, received_data_hash, blob_hash,
+                                )
+                            )
 
                         # Verifying that the component is loadable
                         try:
@@ -220,7 +225,9 @@ def _calculate_component_digest(data: bytes) -> str:
 def _list_candidate_component_uris_from_github_repo(url_search_prefix: str) -> Iterable[str]:
     (schema, _, host, org, repo, ref, path_prefix) = url_search_prefix.split('/', 6)
     for page in range(1, 999):
-        search_url = 'https://api.github.com/search/code?q=filename:{}+repo:{}/{}&page={}&per_page=1000'.format(_COMPONENT_FILENAME, org, repo, page)
+        search_url = (
+            'https://api.github.com/search/code?q=filename:{}+repo:{}/{}&page={}&per_page=1000'
+        ).format(_COMPONENT_FILENAME, org, repo, page)
         response = requests.get(search_url)
         response.raise_for_status()
         result = response.json()
@@ -230,8 +237,11 @@ def _list_candidate_component_uris_from_github_repo(url_search_prefix: str) -> I
         for item in items:
             html_url = item['html_url']
             # Constructing direct content URL
-            # There is an API (/repos/:owner/:repo/git/blobs/:file_sha) for getting the blob content, but it requires decoding the content.
-            raw_url = html_url.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/', 1)
+            # There is an API (/repos/:owner/:repo/git/blobs/:file_sha) for
+            # getting the blob content, but it requires decoding the content.
+            raw_url = html_url.replace(
+                'https://github.com/', 'https://raw.githubusercontent.com/'
+            ).replace('/blob/', '/', 1)
             if not raw_url.endswith(_COMPONENT_FILENAME):
                 # GitHub matches component_test.yaml when searching for filename:"component.yaml"
                 continue
