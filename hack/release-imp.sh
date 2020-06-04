@@ -27,6 +27,8 @@ if [[ -z "$TAG_NAME" ]]; then
   exit 1
 fi
 
+"$DIR/check-release-needed-tools.sh"
+
 "$REPO_ROOT/components/release-in-place.sh" $TAG_NAME
 "$REPO_ROOT/manifests/gcp_marketplace/hack/release.sh" $TAG_NAME
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" $TAG_NAME
