@@ -1,6 +1,6 @@
 #!/bin/bash -e
 #
-# Copyright 2018 Google LLC
+# Copyright 2018-2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,10 +27,11 @@
 # brew cask install caskroom/versions/java8
 # brew install jq
 
-VERSION="$1"
-
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+REPO_ROOT="$DIR/../.."
+VERSION="$(cat $REPO_ROOT/VERSION)"
 if [ -z "$VERSION" ]; then
-    echo "Usage: build_kfp_server_api_python_package.sh <version>"
+    echo "ERROR: $REPO_ROOT/VERSION is empty"
     exit 1
 fi
 

@@ -16,16 +16,22 @@
 
 set -ex
 
-TAG_NAME=$1
+echo "Usage: edit kubeflow/pipelines/VERSION to new version tag first, then run this script."
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+REPO_ROOT="$DIR/.."
+TAG_NAME="$(cat $REPO_ROOT/VERSION)"
 
 if [[ -z "$TAG_NAME" ]]; then
-  echo "Usage: release.sh <release-tag>" >&2
+  echo "ERROR: $REPO_ROOT/VERSION is empty" >&2
   exit 1
 fi
 
-"$DIR/../components/release-in-place.sh" $TAG_NAME
-"$DIR/../manifests/gcp_marketplace/hack/release.sh" $TAG_NAME
-"$DIR/../manifests/kustomize/hack/release.sh" $TAG_NAME
-"$DIR/../sdk/hack/release.sh" $TAG_NAME
-echo "$TAG_NAME" > "$DIR/../VERSION"
+"$DIR/check-release-needed-tools.sh"
+
+"$REPO_ROOT/components/release-in-place.sh" $TAG_NAME
+"$REPO_ROOT/manifests/gcp_marketplace/hack/release.sh" $TAG_NAME
+"$REPO_ROOT/manifests/kustomize/hack/release.sh" $TAG_NAME
+"$REPO_ROOT/sdk/hack/release.sh" $TAG_NAME
+"$REPO_ROOT/backend/api/generate_api.sh"
+"$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"
