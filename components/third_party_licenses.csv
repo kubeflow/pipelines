@@ -167,7 +167,7 @@ simplegeneric,https://opensource.org/licenses/ZPL-2.0,ZPL 2.1
 singledispatch,https://opensource.org/licenses/MIT,MIT
 tensorflow-model-analysis,https://github.com/tensorflow/model-analysis/blob/master/LICENSE,Apache 2.0
 terminado,https://raw.githubusercontent.com/jupyter/terminado/master/LICENSE,BSD
-wcwidth,https://raw.githubusercontent.com/jquast/wcwidth/master/LICENSE.txt,MIT
+wcwidth,https://raw.githubusercontent.com/jquast/wcwidth/master/LICENSE,MIT
 widgetsnbextension,https://raw.githubusercontent.com/jupyter-widgets/ipywidgets/master/widgetsnbextension/LICENSE,BSD
 pandas,https://raw.githubusercontent.com/pandas-dev/pandas/master/LICENSE,3-Clause BSD
 scikit-learn,https://raw.githubusercontent.com/scikit-learn/scikit-learn/master/COPYING,BSD
