@@ -1,6 +1,6 @@
-# export to new table. 
+# Export to file for next processing step in pipeline
 
-# Copyright 2018 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 name: Bigquery - Query
 description: |
   A Kubeflow Pipeline component to submit a query to Google Cloud Bigquery 
-  service and dump outputs to new table.
+  service. 
 metadata:
   labels:
     add-pod-env: 'true'
@@ -28,16 +28,6 @@ inputs:
   - name: project_id
     description: 'The project to execute the query job.'
     type: GCPProjectID
-  - name: dataset_id
-    description: 'The ID of the persistent dataset to keep the results of the query.'
-    default: ''
-    type: String
-  - name: table_id
-    description: >-
-      The ID of the table to keep the results of the query. If absent, the operation
-      will generate a random id for the table.
-    default: '' 
-    type: String
   - name: dataset_location
     description: 'The location to create the dataset. Defaults to `US`.'
     default: 'US'
@@ -49,21 +39,28 @@ inputs:
       for details.
     default: ''
     type: Dict
+  - name: output_filename
+    description: 'The output file name'
+    default: 'bq_results.csv'
+    type: String
 outputs:
   - name: MLPipeline UI metadata
     type: UI metadata
+  - name: table
+    description: 'The path to the result from BigQuery'
+    type: CSV
 implementation:
   container:
     image: gcr.io/ds-production-259110/ml-pipeline-gcp
     args: [
-      --ui_metadata_path, {outputPath: MLPipeline UI metadata},
+      --ui_metadata_path,   {outputPath: MLPipeline UI metadata},
       kfp_component.google.bigquery, query,
-      --query, {inputValue: query},
-      --project_id, {inputValue: project_id},
-      --dataset_id, {inputValue: dataset_id},
-      --table_id, {inputValue: table_id},
-      --dataset_location, {inputValue: dataset_location},
-      --job_config, {inputValue: job_config},
+      --query,              {inputValue: query},
+      --project_id,         {inputValue: project_id},
+      --output_path,        {outputPath: table},
+      --output_filename,    {inputValue: output_filename},
+      --dataset_location,   {inputValue: dataset_location},
+      --job_config,         {inputValue: job_config},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"

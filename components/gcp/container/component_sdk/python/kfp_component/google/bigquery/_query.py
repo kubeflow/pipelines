@@ -14,6 +14,7 @@
 
 import json
 import logging
+import os
 
 from google.cloud import bigquery
 from google.api_core import exceptions
@@ -25,40 +26,9 @@ from .. import common as gcp_common
 KFP_OUTPUT_PATH = '/tmp/kfp/output/'
 
 
-def query_only(query, project_id, dataset_location='US', job_config=None):
-    """Submit a query to Bigquery service and dump outputs to Bigquery table or 
-    a GCS blob.
-    
-    Args:
-        query (str): The query used by Bigquery service to fetch the results.
-        project_id (str): The project to execute the query job.
-        dataset_location (str): The dataset location.
-        job_config (dict): The full config spec for the query job.
-    Returns:
-        The API representation of the completed query job.
-    """
-    client = bigquery.Client(project=project_id, location=dataset_location)
-    if not job_config:
-        job_config = bigquery.QueryJobConfig()
-    else:
-        job_config = bigquery.QueryJobConfig.from_api_repr(job_config)
-    def cancel():
-        if job_id:
-            client.cancel_job(job_id)
-    with KfpExecutionContext(on_cancel=cancel) as ctx:
-        job_id = 'query_' + ctx.context_id()
-        query_job = _get_job(client, job_id)
-        if not query_job:
-            query_job = client.query(query, job_config, job_id=job_id)
-        _display_job_link(project_id, job_id)
-        query_job.result() # Wait for query to finish
-        _dump_outputs(query_job, None, None)
-        return query_job.to_api_repr()
-
-
-
 def query(query, project_id, dataset_id=None, table_id=None, 
-    output_gcs_path=None, dataset_location='US', job_config=None):
+    output_gcs_path=None, dataset_location='US', job_config=None,
+    output_path=None, output_filename=None):
     """Submit a query to Bigquery service and dump outputs to Bigquery table or 
     a GCS blob.
     
@@ -73,6 +43,8 @@ def query(query, project_id, dataset_id=None, table_id=None,
         output_gcs_path (str): The GCS blob path to dump the query results to.
         dataset_location (str): The location to create the dataset. Defaults to `US`.
         job_config (dict): The full config spec for the query job.
+        output_path (str): The path to where query result will be stored
+        output_filename (str): The name of the file where the results will be stored
     Returns:
         The API representation of the completed query job.
     """
@@ -92,8 +64,8 @@ def query(query, project_id, dataset_id=None, table_id=None,
         query_job = _get_job(client, job_id)
         table_ref = None
         if not query_job:
-            dataset_ref = _prepare_dataset_ref(client, dataset_id, output_gcs_path
-                    dataset_location)
+            dataset_ref = _prepare_dataset_ref(client, dataset_id, output_gcs_path, 
+                dataset_location)
             if dataset_ref:
                 if not table_id:
                     table_id = job_id
@@ -101,40 +73,23 @@ def query(query, project_id, dataset_id=None, table_id=None,
                 job_config.destination = table_ref
             query_job = client.query(query, job_config, job_id=job_id)
         _display_job_link(project_id, job_id)
-        query_job.result() # Wait for query to finish
-        if output_gcs_path:
-            job_id = 'extract_' + ctx.context_id()
-            extract_job = _get_job(client, job_id)
-            logging.info('Extracting data from table {} to {}.'.format(str(table_ref), output_gcs_path))
-            if not extract_job:
-                extract_job = client.extract_table(table_ref, output_gcs_path)
-            extract_job.result()  # Wait for export to finish
+        if output_path != None: #Write to local file
+            result = query_job.result()
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+            df = result.to_dataframe()
+            df.to_csv(os.path.join(output_path, output_filename))
+        else:
+            query_job.result() 
+            if output_gcs_path:
+                job_id = 'extract_' + ctx.context_id()
+                extract_job = _get_job(client, job_id)
+                logging.info('Extracting data from table {} to {}.'.format(str(table_ref), output_gcs_path))
+                if not extract_job:
+                    extract_job = client.extract_table(table_ref, output_gcs_path)
+                extract_job.result()  # Wait for export to finish
         _dump_outputs(query_job, output_gcs_path, table_ref)
         return query_job.to_api_repr()
-
-def create_table_from():
-    from google.cloud import bigquery
-
-    # TODO(developer): Construct a BigQuery client object.
-    client = bigquery.Client()
-
-    # TODO(developer): Set table_id to the ID of the destination table.
-    table_id = "your-project.your_dataset.your_table_name"
-
-    job_config = bigquery.QueryJobConfig(destination=table_id)
-
-    sql = """
-        SELECT corpus
-        FROM `bigquery-public-data.samples.shakespeare`
-        GROUP BY corpus;
-    """
-
-    # Start the query, passing in the extra configuration.
-    query_job = client.query(sql, job_config=job_config)  # Make an API request.
-    query_job.result()  # Wait for the job to complete.
-
-    print("Query results loaded to the table {}".format(table_id))
-
 
 def _get_job(client, job_id):
     try:
