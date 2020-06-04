@@ -92,8 +92,8 @@ def query(query, project_id, dataset_id=None, table_id=None,
         query_job = _get_job(client, job_id)
         table_ref = None
         if not query_job:
-            dataset_ref = _prepare_dataset_ref(client, dataset_id, output_gcs_path,
-                    dataset_location)
+            dataset_ref = _prepare_dataset_ref(client, dataset_id, output_gcs_path, 
+                 dataset_location)
             if dataset_ref:
                 if not table_id:
                     table_id = job_id
