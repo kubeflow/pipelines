@@ -56,14 +56,14 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA',
          '--build-arg', 'COMMIT_HASH=$COMMIT_SHA',
-         '--build-arg', 'TAG_NAME=$TAG_NAME',
+         '--build-arg', 'TAG_NAME=$(cat /workspace/VERSION)',
          '-f', '/workspace/frontend/Dockerfile', '/workspace']
   id:   'buildFrontend'
   waitFor: ['prepareFrontend']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA',
          '--build-arg', 'COMMIT_SHA=$COMMIT_SHA',
-         '--build-arg', 'TAG_NAME=$TAG_NAME',
+         '--build-arg', 'TAG_NAME=$(cat /workspace/VERSION)',
          '-f', '/workspace/backend/Dockerfile', '/workspace']
   id:   'buildApiServer'
   waitFor: ['copyPythonSDK']
@@ -229,7 +229,7 @@ steps:
     - |
       # Parse major minor version and save to a file for reusing in other steps.
       # e.g. 1.0.0-rc.1 and 1.0.1 are parsed as 1.0
-      echo $TAG_NAME | sed -e "s#\([0-9]\+[.][0-9]\+\)[.].*#\1#" > /workspace/mm.ver
+      cat /workspace/VERSION | sed -e "s#\([0-9]\+[.][0-9]\+\)[.].*#\1#" > /workspace/mm.ver
 
 # Tag for Hosted - Tag to hosted folder with MKP friendly name
 - id:   'tagForHosted'
