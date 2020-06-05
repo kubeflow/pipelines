@@ -48,23 +48,28 @@ steps:
   waitFor: ['preparePythonComponentSDK']
 
 # Build the pipeline system images
-- name: 'debian'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'sed -i -e "s/ARG DATE/ENV DATE \"$(date -u)\"/" /workspace/frontend/Dockerfile']
-  id:   'prepareFrontend'
-  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA',
-         '--build-arg', 'COMMIT_HASH=$COMMIT_SHA',
-         '--build-arg', 'TAG_NAME=$TAG_NAME',
-         '-f', '/workspace/frontend/Dockerfile', '/workspace']
+  entrypoint: /bin/bash
+  args:
+    - -ceux
+    - |
+      sed -i -e "s/ARG DATE/ENV DATE \"$(date -u)\"/" /workspace/frontend/Dockerfile
+      docker build -t gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA \
+        --build-arg COMMIT_HASH=$COMMIT_SHA \
+        --build-arg TAG_NAME="$(cat /workspace/VERSION)" \
+        -f /workspace/frontend/Dockerfile \
+        /workspace
   id:   'buildFrontend'
-  waitFor: ['prepareFrontend']
+  waitFor: ['-']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA',
-         '--build-arg', 'COMMIT_SHA=$COMMIT_SHA',
-         '--build-arg', 'TAG_NAME=$TAG_NAME',
-         '-f', '/workspace/backend/Dockerfile', '/workspace']
+  entrypoint: /bin/bash
+  args:
+    - -ceux
+    - |
+      docker build -t gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA \
+        --build-arg COMMIT_SHA=$COMMIT_SHA \
+        --build-arg TAG_NAME="$(cat /workspace/VERSION)" \
+        -f /workspace/backend/Dockerfile /workspace
   id:   'buildApiServer'
   waitFor: ['copyPythonSDK']
 
@@ -228,7 +233,8 @@ steps:
     - -ceux
     - |
       # Parse major minor version and save to a file for reusing in other steps.
-      cat /workspace/VERSION | sed -e "s#[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)#\1.\2#" > /workspace/mm.ver
+      # e.g. 1.0.0-rc.1 and 1.0.1 are parsed as 1.0
+      cat /workspace/VERSION | sed -e "s#\([0-9]\+[.][0-9]\+\)[.].*#\1#" > /workspace/mm.ver
 
 # Tag for Hosted - Tag to hosted folder with MKP friendly name
 - id:   'tagForHosted'
