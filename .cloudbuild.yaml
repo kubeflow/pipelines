@@ -56,7 +56,7 @@ steps:
       sed -i -e "s/ARG DATE/ENV DATE \"$(date -u)\"/" /workspace/frontend/Dockerfile
       docker build -t gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA \
         --build-arg COMMIT_HASH=$COMMIT_SHA \
-        --build-arg TAG_NAME=$(cat /workspace/VERSION) \
+        --build-arg TAG_NAME="$(cat /workspace/VERSION)" \
         -f /workspace/frontend/Dockerfile \
         /workspace
   id:   'buildFrontend'
@@ -68,7 +68,7 @@ steps:
     - |
       docker build -t gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA \
         --build-arg COMMIT_SHA=$COMMIT_SHA \
-        --build-arg TAG_NAME=$(cat /workspace/VERSION) \
+        --build-arg TAG_NAME="$(cat /workspace/VERSION)" \
         -f /workspace/backend/Dockerfile /workspace
   id:   'buildApiServer'
   waitFor: ['copyPythonSDK']
