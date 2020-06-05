@@ -2,20 +2,26 @@
 
 
 import kfp
+import os
 import json
 import copy
 from kfp import components
 from kfp import dsl
 
-sagemaker_hpo_op = components.load_component_from_file("../../../../components/aws/sagemaker/hyperparameter_tuning/component.yaml")
-sagemaker_process_op = components.load_component_from_file("../../../../components/aws/sagemaker/process/component.yaml")
-sagemaker_train_op = components.load_component_from_file("../../../../components/aws/sagemaker/train/component.yaml")
-sagemaker_model_op = components.load_component_from_file("../../../../components/aws/sagemaker/model/component.yaml")
-sagemaker_deploy_op = components.load_component_from_file("../../../../components/aws/sagemaker/deploy/component.yaml")
-sagemaker_batch_transform_op = components.load_component_from_file("../../../../components/aws/sagemaker/batch_transform/component.yaml")
+
+cur_file_dir = os.path.dirname(__file__)
+components_dir = os.path.join(cur_file_dir, '../../../../components/aws/sagemaker/')
+
+sagemaker_process_op = components.load_component_from_file(components_dir + '/process/component.yaml')
+sagemaker_hpo_op = components.load_component_from_file(components_dir + '/hyperparameter_tuning/component.yaml')
+sagemaker_train_op = components.load_component_from_file(components_dir + '/train/component.yaml')
+sagemaker_model_op = components.load_component_from_file(components_dir + '/model/component.yaml')
+sagemaker_deploy_op = components.load_component_from_file(components_dir + '/deploy/component.yaml')
+sagemaker_batch_transform_op = components.load_component_from_file(components_dir + '/batch_transform/component.yaml')
+
 
 # Update this to match the name of your bucket
-my_bucket_name = "my-bucket"
+my_bucket_name = "temp-bucket3-kalamadi"
 
 
 def processing_input(input_name, s3_uri, local_path):
@@ -60,15 +66,15 @@ def training_input(input_name, s3_uri):
 
 hpoChannels = [
     training_input(
-        "train", f"s3://{my_bucket_name}/mnist_kmeans_example/input/train_data"
+        "train", f"s3://{my_bucket_name}/mnist_kmeans_example/train_data"
     ),
     training_input(
-        "test", f"s3://{my_bucket_name}/mnist_kmeans_example/input/test_data"
+        "test", f"s3://{my_bucket_name}/mnist_kmeans_example/test_data"
     ),
 ]
 trainChannels = [
     training_input(
-        "train", f"s3://{my_bucket_name}/mnist_kmeans_example/input/train_data"
+        "train", f"s3://{my_bucket_name}/mnist_kmeans_example/train_data"
     )
 ]
 
@@ -109,17 +115,17 @@ def mnist_classification(
     process_output_config=[
         processing_output(
             "train_data",
-            f"s3://{my_bucket_name}/mnist_kmeans_example/input/",
+            f"s3://{my_bucket_name}/mnist_kmeans_example/",
             "/opt/ml/processing/output_train/",
         ),
         processing_output(
             "test_data",
-            f"s3://{my_bucket_name}/mnist_kmeans_example/input/",
+            f"s3://{my_bucket_name}/mnist_kmeans_example/",
             "/opt/ml/processing/output_test/",
         ),
         processing_output(
             "valid_data",
-            f"s3://{my_bucket_name}/mnist_kmeans_example/input/",
+            f"s3://{my_bucket_name}/mnist_kmeans_example/",
             "/opt/ml/processing/output_valid/",
         ),
     ],
@@ -141,7 +147,7 @@ def mnist_classification(
     hpo_spot_instance=False,
     hpo_max_wait_time=3600,
     hpo_checkpoint_config={},
-    hpo_max_num_jobs=9,
+    hpo_max_num_jobs=3,
     hpo_max_parallel_jobs=3,
     # Training inputs
     train_image="382416733822.dkr.ecr.us-east-1.amazonaws.com/kmeans:1",
@@ -157,7 +163,7 @@ def mnist_classification(
     batch_transform_data_type="S3Prefix",
     batch_transform_content_type="text/csv",
     batch_transform_compression_type="None",
-    batch_transform_ouput=f"s3://{my_bucket_name}/mnist_kmeans_example/output",
+    batch_transform_output=f"s3://{my_bucket_name}/mnist_kmeans_example/output",
     batch_transform_max_concurrent=4,
     batch_transform_max_payload=6,
     batch_strategy="MultiRecord",
@@ -255,7 +261,7 @@ def mnist_classification(
         content_type=batch_transform_content_type,
         split_type=batch_transform_split_type,
         compression_type=batch_transform_compression_type,
-        output_location=batch_transform_ouput,
+        output_location=batch_transform_output,
     )
 
 

@@ -1,0 +1,75 @@
+PipelineDefinition: ../../../../../samples/contrib/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py
+TestName: sample-pipeline-mnist
+Timeout: 3600
+ExpectedTrainingImage: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+Arguments:
+  region: ((REGION))
+  role_arn: ((ROLE_ARN))
+  instance_type: ml.m4.2xlarge
+  instance_count: 1
+  process_image: 763104351884.dkr.ecr.((REGION)).amazonaws.com/pytorch-training:1.5.0-cpu-py36-ubuntu16.04
+  process_input_config:
+    - InputName: mnist_tar
+      S3Input:
+        S3Uri: s3://sagemaker-sample-data-((REGION))/algorithms/kmeans/mnist/mnist.pkl.gz
+        LocalPath: /opt/ml/processing/input
+        S3DataType: S3Prefix
+        S3InputMode: File
+        S3CompressionType: None
+    - InputName: source_code
+      S3Input:
+        S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/processing_code/kmeans_preprocessing.py
+        LocalPath: /opt/ml/processing/code
+        S3DataType: S3Prefix
+        S3InputMode: File
+        S3CompressionType: None
+  process_output_config:
+    - OutputName: train_data
+      S3Output:
+        S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/
+        LocalPath: /opt/ml/processing/output_train/
+        S3UploadMode: EndOfJob
+    - OutputName: test_data
+      S3Output:
+        S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/
+        LocalPath: /opt/ml/processing/output_test/
+        S3UploadMode: EndOfJob
+    - OutputName: valid_data
+      S3Output:
+        S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/
+        LocalPath: /opt/ml/processing/output_valid/
+        S3UploadMode: EndOfJob
+  hpo_channels:
+    - ChannelName: train
+      DataSource:
+        S3DataSource:
+          S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/train_data
+          S3DataType: S3Prefix
+          S3DataDistributionType: FullyReplicated
+      CompressionType: None
+      RecordWrapperType: None
+      InputMode: File
+    - ChannelName: test
+      DataSource:
+        S3DataSource:
+          S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/test_data
+          S3DataType: S3Prefix
+          S3DataDistributionType: FullyReplicated
+      CompressionType: None
+      RecordWrapperType: None
+      InputMode: File
+  train_image: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+  train_channels:
+    - ChannelName: train
+      DataSource:
+        S3DataSource:
+          S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/train_data
+          S3DataType: S3Prefix
+          S3DataDistributionType: FullyReplicated
+      CompressionType: None
+      RecordWrapperType: None
+      InputMode: File
+  train_output_location: s3://((DATA_BUCKET))/mnist_kmeans_example/output
+  batch_transform_input: s3://((DATA_BUCKET))/mnist_kmeans_example/input
+  batch_transform_output: s3://((DATA_BUCKET))/mnist_kmeans_example/output
+
