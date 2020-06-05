@@ -195,7 +195,6 @@ def pipeline(
         worker_image_uri=worker_image_uri, 
         training_input=training_input, 
         job_id_prefix=job_id_prefix, 
-        job_id=job_id,
         wait_interval=wait_interval)
 ```
 
