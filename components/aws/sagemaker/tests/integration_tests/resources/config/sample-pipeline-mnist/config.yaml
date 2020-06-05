@@ -1,0 +1,41 @@
+PipelineDefinition: ../../../../../samples/contrib/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py
+TestName: sample-pipeline-mnist
+Timeout: 3600
+ExpectedTrainingImage: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+Arguments:
+  region: ((REGION))
+  image: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+  hpo_channels:
+    - ChannelName: train
+      DataSource:
+        S3DataSource:
+          S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/train_data
+          S3DataType: S3Prefix
+          S3DataDistributionType: FullyReplicated
+      CompressionType: None
+      RecordWrapperType: None
+      InputMode: File
+    - ChannelName: test
+      DataSource:
+        S3DataSource:
+          S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/test_data
+          S3DataType: S3Prefix
+          S3DataDistributionType: FullyReplicated
+      CompressionType: None
+      RecordWrapperType: None
+      InputMode: File
+  train_channels:
+    - ChannelName: train
+      DataSource:
+        S3DataSource:
+          S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/train_data
+          S3DataType: S3Prefix
+          S3DataDistributionType: FullyReplicated
+      CompressionType: None
+      RecordWrapperType: None
+      InputMode: File
+  batch_transform_input: s3://((DATA_BUCKET))/mnist_kmeans_example/input
+  output_location: s3://((DATA_BUCKET))/mnist_kmeans_example/output
+  instance_type: ml.m5.xlarge
+  instance_count: 1
+  role_arn: ((ROLE_ARN))

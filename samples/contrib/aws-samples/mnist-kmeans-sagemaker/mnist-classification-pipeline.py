@@ -2,17 +2,21 @@
 
 
 import kfp
+import os
 import json
 import copy
 from kfp import components
 from kfp import dsl
 from kfp.aws import use_aws_secret
 
-sagemaker_hpo_op = components.load_component_from_file('../../../../components/aws/sagemaker/hyperparameter_tuning/component.yaml')
-sagemaker_train_op = components.load_component_from_file('../../../../components/aws/sagemaker/train/component.yaml')
-sagemaker_model_op = components.load_component_from_file('../../../../components/aws/sagemaker/model/component.yaml')
-sagemaker_deploy_op = components.load_component_from_file('../../../../components/aws/sagemaker/deploy/component.yaml')
-sagemaker_batch_transform_op = components.load_component_from_file('../../../../components/aws/sagemaker/batch_transform/component.yaml')
+cur_file_dir = os.path.dirname(__file__)
+components_dir = os.path.join(cur_file_dir, '../../../../components/aws/sagemaker/')
+
+sagemaker_hpo_op = components.load_component_from_file(components_dir + '/hyperparameter_tuning/component.yaml')
+sagemaker_train_op = components.load_component_from_file(components_dir + '/train/component.yaml')
+sagemaker_model_op = components.load_component_from_file(components_dir + '/model/component.yaml')
+sagemaker_deploy_op = components.load_component_from_file(components_dir + '/deploy/component.yaml')
+sagemaker_batch_transform_op = components.load_component_from_file(components_dir + '/batch_transform/component.yaml')
 
 
 hpoChannels = []
