@@ -698,7 +698,12 @@ def create_labeling_job_request(args):
     request['OutputConfig']['S3OutputPath'] = args['output_location']
     request['OutputConfig']['KmsKeyId'] = args['output_encryption_key']
     request['RoleArn'] = args['role']
-    request['LabelCategoryConfigS3Uri'] = args['label_category_config']
+    
+    ### Update or pop label category config s3 uri
+    if not args['label_category_config']:
+        request.pop('LabelCategoryConfigS3Uri')
+    else:
+        request['LabelCategoryConfigS3Uri'] = args['label_category_config']
 
     ### Update or pop stopping conditions
     if not args['max_human_labeled_objects'] and not args['max_percent_objects']:
