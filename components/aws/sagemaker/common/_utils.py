@@ -668,9 +668,15 @@ def create_labeling_job_request(args):
     algorithm_arn_map = {'us-west-2': '081040173940',
               'us-east-1': '432418664414',
               'us-east-2': '266458841044',
+              'ca-central-1': '918755190332',
               'eu-west-1': '568282634449',
+              'eu-west-2': '487402164563',
+              'eu-central-1': '203001061592',
               'ap-northeast-1': '477331159723',
-              'ap-southeast-1': '454466003867'}
+              'ap-northeast-2': '845288260483',
+              'ap-south-1': '565803892007',
+              'ap-southeast-1': '377565633583',
+              'ap-southeast-2': '454466003867'}
 
     task_map = {'bounding box': 'BoundingBox',
               'image classification': 'ImageMultiClass',
