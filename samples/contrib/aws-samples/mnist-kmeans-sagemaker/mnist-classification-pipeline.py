@@ -84,7 +84,7 @@ def mnist_classification(region='us-east-1',
     batch_transform_data_type='S3Prefix',
     batch_transform_content_type='text/csv',
     batch_transform_compression_type='None',
-    batch_transform_ouput='s3://kubeflow-pipeline-data/mnist_kmeans_example/output',
+    batch_transform_output='s3://kubeflow-pipeline-data/mnist_kmeans_example/output',
     batch_transform_max_concurrent=4,
     batch_transform_max_payload=6,
     batch_strategy='MultiRecord',
@@ -173,7 +173,7 @@ def mnist_classification(region='us-east-1',
         content_type=batch_transform_content_type,
         split_type=batch_transform_split_type,
         compression_type=batch_transform_compression_type,
-        output_location=batch_transform_ouput
+        output_location=batch_transform_output
     )
 
 if __name__ == '__main__':

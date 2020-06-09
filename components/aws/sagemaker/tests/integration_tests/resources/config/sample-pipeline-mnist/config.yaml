@@ -2,6 +2,7 @@ PipelineDefinition: ../../../../../samples/contrib/aws-samples/mnist-kmeans-sage
 TestName: sample-pipeline-mnist
 Timeout: 3600
 ExpectedTrainingImage: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+ExpectedBTOutputFile: valid_data.csv.out
 Arguments:
   region: ((REGION))
   image: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
@@ -34,8 +35,9 @@ Arguments:
       CompressionType: None
       RecordWrapperType: None
       InputMode: File
-  batch_transform_input: s3://((DATA_BUCKET))/mnist_kmeans_example/input
   output_location: s3://((DATA_BUCKET))/mnist_kmeans_example/output
-  instance_type: ml.m5.xlarge
+  batch_transform_input: s3://((DATA_BUCKET))/mnist_kmeans_example/input
+  batch_transform_output: s3://((DATA_BUCKET))/mnist_kmeans_example/output
+  instance_type: ml.m4.2xlarge
   instance_count: 1
   role_arn: ((ROLE_ARN))

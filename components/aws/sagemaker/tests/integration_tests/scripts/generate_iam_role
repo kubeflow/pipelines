@@ -43,7 +43,7 @@ function create_namespaced_iam_role {
     echo "A role for this cluster and namespace already exists in this account, assuming sagemaker access and proceeding."
   else
     echo "IAM Role does not exist, creating a new Role for the cluster"
-    aws iam create-role --role-name ${ROLE_NAME} --assume-role-policy-document file://${trustfile} --output=text --query "Role.Arn"
+    aws iam create-role --role-name ${ROLE_NAME} --max-session-duration $((60*60*12)) --assume-role-policy-document file://${trustfile} --output=text --query "Role.Arn"
     aws iam attach-role-policy --role-name ${ROLE_NAME}  --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
   fi
 }

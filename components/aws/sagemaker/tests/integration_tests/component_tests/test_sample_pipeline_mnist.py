@@ -5,6 +5,7 @@ import utils
 from utils import kfp_client_utils
 from utils import minio_utils
 from utils import sagemaker_utils
+from utils import s3_utils
 
 
 @pytest.mark.parametrize(
@@ -14,7 +15,7 @@ from utils import sagemaker_utils
     ],
 )
 def test_trainingjob(
-    kfp_client, experiment_id, region, sagemaker_client, test_file_dir
+    kfp_client, experiment_id, region, sagemaker_client, s3_client, s3_data_bucket, test_file_dir
 ):
 
     download_dir = utils.mkdir(os.path.join(test_file_dir + "/generated"))
@@ -30,6 +31,7 @@ def test_trainingjob(
     test_params["Arguments"]["train_channels"] = json.dumps(
         test_params["Arguments"]["train_channels"]
     )
+
     _, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,
         experiment_id,
@@ -39,6 +41,8 @@ def test_trainingjob(
         test_params["TestName"],
         test_params["Timeout"],
     )
+
+    ########## Test Train Component ##########
 
     outputs = {
         "sagemaker-training-job": ["job_name", "model_artifact_url", "training_image"]
@@ -75,5 +79,60 @@ def test_trainingjob(
         assert test_params["ExpectedTrainingImage"] == training_image
     else:
         assert f"dkr.ecr.{region}.amazonaws.com" in training_image
+
+
+    ########## Test Deploy Component ##########
+
+    outputs = {"sagemaker-deploy-model": ["endpoint_name"]}
+
+    output_files = minio_utils.artifact_download_iterator(
+        workflow_json, outputs, download_dir
+    )
+
+    output_endpoint_name = utils.read_from_file_in_tar(
+        output_files["sagemaker-deploy-model"]["endpoint_name"], "endpoint_name.txt"
+    )
+    print(f"endpoint name: {output_endpoint_name}")
+
+    input_endpoint_name = "Endpoint-" + training_job_name.split("-", 1)[1]
+    # Verify output from pipeline is endpoint name
+    assert output_endpoint_name == input_endpoint_name
+
+    # Verify endpoint is running
+    assert (
+        sagemaker_utils.describe_endpoint(sagemaker_client, input_endpoint_name)[
+            "EndpointStatus"
+        ]
+        == "InService"
+    )
+
+    ########## Test Batch Transform Component ##########
+
+    outputs = {"sagemaker-batch-transformation": ["output_location"]}
+
+    output_files = minio_utils.artifact_download_iterator(
+        workflow_json, outputs, download_dir
+    )
+
+    input_job_name = "BatchTransform-" + training_job_name.split("-", 1)[1]
+    # Verify Job was successful on SageMaker
+    response = sagemaker_utils.describe_transform_job(sagemaker_client, input_job_name)
+    assert response["TransformJobStatus"] == "Completed"
+    assert response["TransformJobName"] == input_job_name
+
+    # Verify output location from pipeline matches job output and that the transformed file exists
+    output_location = utils.read_from_file_in_tar(
+        output_files["sagemaker-batch-transformation"]["output_location"], "data",
+    )
+    print(f"output location: {output_location}")
+    assert output_location == response["TransformOutput"]["S3OutputPath"]
+    # Get relative path of file in S3 bucket
+    # URI is following format s3://<bucket_name>/relative/path/to/file
+    # split below is to extract the part after bucket name
+    file_key = os.path.join(
+        "/".join(output_location.split("/")[3:]), test_params["ExpectedBTOutputFile"]
+    )
+    assert s3_utils.check_object_exists(s3_client, s3_data_bucket, file_key)
+
 
     utils.remove_dir(download_dir)
