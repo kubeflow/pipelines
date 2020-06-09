@@ -283,7 +283,7 @@ func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName
 
 // IsInFinalState whether the workflow is in a final state.
 func (w *Workflow) IsInFinalState() bool {
-	// Pending or running workflows are not considerred final.
+	// Workflows in the statuses other than pending or running are considered final.
 	if w.Status.Phase == workflowapi.NodeSucceeded || w.Status.Phase == workflowapi.NodeFailed || w.Status.Phase == workflowapi.NodeError || w.Status.Phase == workflowapi.NodeSkipped {
 		return true
 	}
