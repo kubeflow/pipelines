@@ -19,7 +19,7 @@ set -o pipefail
 
 usage()
 {
-    echo "usage: multiuser-test.sh
+    echo "usage: multiuser-tests.sh
     [--project              the gcp project. Default is ml-pipeline-test. Only used when platform is gcp.]
     [--workflow_file        the file name of the argo workflow to run]
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test]
