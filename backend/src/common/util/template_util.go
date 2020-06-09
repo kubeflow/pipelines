@@ -16,12 +16,10 @@ package util
 
 import (
 	"encoding/json"
-	"github.com/argoproj/argo/pkg/apis/workflow"
+
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	"github.com/argoproj/argo/server/auth"
-	"github.com/argoproj/argo/cmd/argo/commands/client"
 	"github.com/ghodss/yaml"
-	"github.com/argoproj/argo/workflow/validate"
+	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 )
 
 const (
@@ -59,15 +57,14 @@ func ValidateWorkflow(template []byte) (*v1alpha1.Workflow, error) {
 	if wf.Kind != argoK8sResource {
 		return nil, NewInvalidInputError("Unexpected resource type. Expected: %v. Received: %v", argoK8sResource, wf.Kind)
 	}
-	//[TODO] validate here
-	ctx, _ := client.NewAPIClient()
-	wfClient := auth.GetWfClient(ctx)
-	wftmplGetter := templateresolution.WrapWorkflowTemplateInterface(wfClient.ArgoprojV1alpha1().WorkflowTemplates(req.Namespace))
-	cwftmplGetter := templateresolution.WrapClusterWorkflowTemplateInterface(wfClient.ArgoprojV1alpha1().ClusterWorkflowTemplates())
-	_, err : = validate.ValidateWorkflow(wftmplGetter, cwftmplGetter, wf, validate.ValidateOpts{})
 	if err != nil {
 		return nil, NewInvalidInputError("Unvalid argo workflow resource.")
 	}
-
+	namespace, err := r.getNamespaceFromExperiment(apiRun.GetResourceReferences())
+	var client versioned.Interface = r.getWorkflowClient(namespace)
+	_, err := client.LintWorkflow(ctx, &workflowpkg.WorkflowLintRequest{Namespace: namespace, Workflow: &wf})
+	if err != nil {
+		return err
+	}
 	return &wf, nil
 }

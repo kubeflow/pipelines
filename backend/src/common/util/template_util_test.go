@@ -49,5 +49,11 @@ func TestGetParameters_ParametersTooLong(t *testing.T) {
 }
 
 func TestValidateWorkflow(t *testing.T) {
-	assert.Equal(true, true)
+	testWorkflow := `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+`
+	testWorkflowByte := []byte(testWorkflow)
+	_, err := ValidateWorkflow(testWorkflowByte)
+	assert.Equal(err, nil)
 }
