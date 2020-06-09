@@ -13,6 +13,7 @@
 import sys
 import argparse
 import logging
+import json
 
 from common import _utils
 
@@ -54,8 +55,13 @@ def main(argv=None):
   logging.info('Job request submitted. Waiting for completion...')
   _utils.wait_for_processing_job(client, job_name)
 
+  outputs = _utils.get_processing_job_outputs(client, job_name)
+
   with open('/tmp/job_name.txt', 'w') as f:
     f.write(job_name)
+
+  with open('/tmp/output_artifacts.txt', 'w') as f:
+    f.write(json.dumps(outputs))
 
   logging.info('Job completed.')
 

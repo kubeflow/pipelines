@@ -86,6 +86,7 @@ inputs:
     type: JsonObject
 outputs:
   - {name: job_name,              description: 'Processing job name'}
+  - {name: output_artifacts,      description: 'A dictionary containing the output S3 artifacts'}
 implementation:
   container:
     image: redbackthomson/aws-kubeflow-sagemaker:latest
@@ -116,3 +117,4 @@ implementation:
     ]
     fileOutputs:
       job_name: /tmp/job_name.txt
+      output_artifacts: /tmp/output_artifacts.txt

@@ -208,3 +208,29 @@ class ProcessTestCase(unittest.TestCase):
     response = _utils.create_processing_job_request(vars(args))
     self.assertIn({'Key': 'key1', 'Value': 'val1'}, response['Tags'])
     self.assertIn({'Key': 'key2', 'Value': 'val2'}, response['Tags'])
+
+  def test_get_processing_job_output(self):
+    mock_client = MagicMock()
+    mock_client.describe_processing_job.return_value = {
+      'ProcessingOutputConfig': {
+        'Outputs': [{
+            'OutputName': 'train',
+            'S3Output': {
+              'S3Uri': 's3://train'
+            }
+          },{
+            'OutputName': 'valid',
+            'S3Output': {
+              'S3Uri': 's3://valid'
+            }
+          }
+        ]
+      }
+    }
+
+    response = _utils.get_processing_job_outputs(mock_client, 'processing-job')
+
+    self.assertIn('train', response)
+    self.assertIn('valid', response)
+    self.assertEqual(response['train'], 's3://train')
+    self.assertEqual(response['valid'], 's3://valid')

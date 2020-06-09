@@ -955,6 +955,15 @@ def wait_for_processing_job(client, processing_job_name, poll_interval=30):
     logging.info("Processing job is still in status: " + status)
     time.sleep(poll_interval)
 
+def get_processing_job_outputs(client, processing_job_name):
+    """Map the S3 outputs of a processing job to a dictionary object."""
+    response = client.describe_processing_job(ProcessingJobName=processing_job_name)
+    outputs = {}
+    for output in response['ProcessingOutputConfig']['Outputs']:
+        outputs[output['OutputName']] = output['S3Output']['S3Uri']
+
+    return outputs
+
 
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):
   return ''.join(random.choice(chars) for _ in range(size))

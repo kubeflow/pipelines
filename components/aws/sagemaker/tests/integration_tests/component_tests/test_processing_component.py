@@ -43,9 +43,9 @@ def test_processingjob(
 
     for index, output in enumerate(test_params["Arguments"]["output_config"]):
         if "S3Output" in output:
-            test_params["Arguments"]["output_config"][index]["S3Output"]["S3Uri"] = os.path.join(
-                output["S3Output"]["S3Uri"], input_job_name
-            )
+            test_params["Arguments"]["output_config"][index]["S3Output"][
+                "S3Uri"
+            ] = os.path.join(output["S3Output"]["S3Uri"], input_job_name)
 
     _, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,
@@ -57,7 +57,7 @@ def test_processingjob(
         test_params["Timeout"],
     )
 
-    outputs = {"sagemaker-processing-job": ["job_name"]}
+    outputs = {"sagemaker-processing-job": ["job_name", "output_artifacts"]}
     output_files = minio_utils.artifact_download_iterator(
         workflow_json, outputs, download_dir
     )
@@ -73,23 +73,17 @@ def test_processingjob(
     assert process_response["ProcessingJobStatus"] == "Completed"
     assert process_response["ProcessingJobArn"].split("/")[1] == input_job_name
 
-    # # Verify model artifacts output was generated from this run
-    # model_artifact_url = utils.read_from_file_in_tar(
-    #     output_files["sagemaker-training-job"]["model_artifact_url"],
-    #     "model_artifact_url.txt",
-    # )
-    # print(f"model_artifact_url: {model_artifact_url}")
-    # assert model_artifact_url == train_response["ModelArtifacts"]["S3ModelArtifacts"]
-    # assert training_job_name in model_artifact_url
+    # Verify processing job produced the correct outputs
+    processing_outputs = json.loads(
+        utils.read_from_file_in_tar(
+            output_files["sagemaker-processing-job"]["output_artifacts"],
+            "output_artifacts.txt",
+        )
+    )
+    print(f"processing job outputs: {json.dumps(processing_outputs, indent = 2)}")
+    assert processing_outputs is not None
 
-    # # Verify training image output is an ECR image
-    # training_image = utils.read_from_file_in_tar(
-    #     output_files["sagemaker-training-job"]["training_image"], "training_image.txt",
-    # )
-    # print(f"Training image used: {training_image}")
-    # if "ExpectedTrainingImage" in test_params.keys():
-    #     assert test_params["ExpectedTrainingImage"] == training_image
-    # else:
-    #     assert f"dkr.ecr.{region}.amazonaws.com" in training_image
+    for output in process_response["ProcessingOutputConfig"]["Outputs"]:
+        assert processing_outputs[output["OutputName"]] == output["S3Output"]["S3Uri"]
 
     utils.remove_dir(download_dir)
