@@ -65,7 +65,7 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 	}
 
 	refKey := filterContext.ReferenceKey
-	if common.IsMultiUserMode() && !common.IsMultiUserSharedReadMode() {
+	if common.IsMultiUserMode() {
 		if refKey == nil || refKey.Type != common.Namespace {
 			return nil, util.NewInvalidInputError("Invalid resource references for experiment. ListExperiment requires filtering by namespace.")
 		}
@@ -77,7 +77,7 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to authorize with API resource references")
 		}
-	} else if !common.IsMultiUserMode() {
+	} else {
 		if refKey != nil && refKey.Type == common.Namespace && len(refKey.ID) > 0 {
 			return nil, util.NewInvalidInputError("In single-user mode, ListExperiment cannot filter by namespace.")
 		}

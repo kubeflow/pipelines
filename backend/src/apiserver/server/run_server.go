@@ -72,7 +72,7 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
 
-	if common.IsMultiUserMode() && !common.IsMultiUserSharedReadMode() {
+	if common.IsMultiUserMode() {
 		refKey := filterContext.ReferenceKey
 		if refKey == nil {
 			return nil, util.NewInvalidInputError("ListRuns must filter by resource reference in multi-user mode.")

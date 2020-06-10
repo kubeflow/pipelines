@@ -75,7 +75,7 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
 
-	if common.IsMultiUserMode() && !common.IsMultiUserSharedReadMode() {
+	if common.IsMultiUserMode() {
 		refKey := filterContext.ReferenceKey
 		if refKey == nil {
 			return nil, util.NewInvalidInputError("ListJobs must filter by resource reference in multi-user mode.")
