@@ -59,13 +59,14 @@ It may not produce the best cherry pick PR title, you can edit the title after c
 
 ### Option - git cherry-pick
 * Find the commit you want to cherry pick on master as $COMMIT_SHA.
+* Find the active release branch name $BRANCH, e.g. release-1.0
 *
     ```bash
-    git co release-1.0
+    git co $BRANCH
     git co -b <cherry-pick-pr-branch-name>
     git cherry-pick $COMMIT_SHA
     ```
 * Resolve merge conflicts if any
 * `git push origin HEAD`
-* create a PR and remember to update PR's destination branch to `release-1.0`
+* create a PR and remember to update PR's destination branch to `$BRANCH`
 * Ask the same OWNERS that would normally need to approve this PR
