@@ -93,7 +93,7 @@ def print_logs_for_job(region, job_name, log_grp):
     )['logStreams']
 
     for log_stream in log_streams:
-        logging.info('\n***** ' + log_stream['logStreamName'] + '*****\n')
+        logging.info('\n***** ' + log_stream['logStreamName'] + ' *****\n')
         response = client.get_log_events(
             logGroupName=log_grp,
             logStreamName=log_stream['logStreamName']
