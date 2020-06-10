@@ -12,7 +12,7 @@ ProcessingResources:
     VolumeKmsKeyId: ''
 NetworkConfig:
   EnableInterContainerTrafficEncryption: False
-  EnableNetworkIsolation: True
+  EnableNetworkIsolation: False
   VpcConfig:
     SecurityGroupIds: []
     Subnets: []

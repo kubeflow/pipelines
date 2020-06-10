@@ -914,8 +914,12 @@ def create_processing_job_request(args):
     ### Update cluster config resources
     request['ProcessingResources']['ClusterConfig']['InstanceType'] = args['instance_type']
     request['ProcessingResources']['ClusterConfig']['InstanceCount'] = args['instance_count']
-    request['ProcessingResources']['ClusterConfig']['VolumeKmsKeyId'] = args['resource_encryption_key']
     request['ProcessingResources']['ClusterConfig']['VolumeSizeInGB'] = args['volume_size']
+
+    if args['resource_encryption_key']:
+        request['ProcessingResources']['ClusterConfig']['VolumeKmsKeyId'] = args['resource_encryption_key']
+    else:
+        request['ProcessingResources']['ClusterConfig'].pop('VolumeKmsKeyId')
 
     if args['max_run_time']:
         request['StoppingCondition']['MaxRuntimeInSeconds'] = args['max_run_time']
