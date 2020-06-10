@@ -62,7 +62,7 @@ def main(argv=None):
   except:
     raise
   finally:
-    _utils.print_logs_for_job(args.region, endpoint_name, '/aws/sagemaker/Endpoints')
+    _utils.print_logs_for_job(args.region, '', '/aws/sagemaker/Endpoints/' + endpoint_name)
 
   with open('/tmp/endpoint_name.txt', 'w') as f:
     f.write(endpoint_name)

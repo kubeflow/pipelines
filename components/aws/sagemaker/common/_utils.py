@@ -84,12 +84,12 @@ def get_component_version():
 
 def print_logs_for_job(region, job_name, log_grp):
     """Gets the cloudwatch logs for sagemaker jobs"""
-    logging.info('\n******************** Cloudwatch logs for the job ' + job_name + ' ********************\n')
+    logging.info('\n******************** Cloudwatch logs for ' + log_grp + '/' + job_name + ' ********************\n')
     client = boto3.client('logs', region_name=region)
 
     log_streams = client.describe_log_streams(
         logGroupName=log_grp,
-        logStreamNamePrefix=job_name
+        logStreamNamePrefix=job_name or 'variant-name'
     )['logStreams']
 
     for log_stream in log_streams:
