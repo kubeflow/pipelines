@@ -111,8 +111,9 @@ def add_name_for_oob_components() -> Callable:
                 origin_path_label = origin_path[-63:].strip('-_.')
                 task.add_pod_label(COMPONENT_PATH_LABEL_KEY, origin_path_label)
             if component_ref.digest:
+                # We can only preserve the first 63 digits of the digest.
                 task.add_pod_label(
-                    COMPONENT_DIGEST_LABEL_KEY, component_ref.digest)
+                    COMPONENT_DIGEST_LABEL_KEY, component_ref.digest[:63])
             
         return task
     
