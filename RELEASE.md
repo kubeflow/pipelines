@@ -50,3 +50,22 @@ WIP: this document is still incomplete.
     TODO: we should have an automation KFP cluster, and the waiting and submiting second cloudbuild task should be automated.
 1. Release `kfp-server-api` and `kfp` python packages on pypi.
 1. Create a github release using `$VERSION` git tag, fill in the description.
+
+## Cherry picking PRs to release branch
+
+### Option - Kubeflow cherry_pick_pull.sh helper
+Kubeflow has a cherry pick helper script: https://github.com/kubeflow/kubeflow/blob/master/hack/cherry-picks.md
+It may not produce the best cherry pick PR title, you can edit the title after cherry picking.
+
+### Option - git cherry-pick
+* Find the commit you want to cherry pick on master as $COMMIT_SHA.
+*
+    ```bash
+    git co release-1.0
+    git co -b <cherry-pick-pr-branch-name>
+    git cherry-pick $COMMIT_SHA
+    ```
+* Resolve merge conflicts if any
+* `git push origin HEAD`
+* create a PR and remember to update PR's destination branch to `release-1.0`
+* Ask the same OWNERS that would normally need to approve this PR
