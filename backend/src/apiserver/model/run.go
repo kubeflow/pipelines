@@ -77,6 +77,7 @@ var runAPIToModelFieldMap = map[string]string{
 	"description":   "Description",
 	"scheduled_at":  "ScheduledAtInSec",
 	"storage_state": "StorageState",
+	"status":        "Conditions",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Run.
