@@ -73,7 +73,7 @@ def get_component_version():
     component_version = 'NULL'
 
     # Get license file using known common directory
-    license_file_path = os.path.abspath(os.path.join(__cwd__, '../THIRD-PARTY-LICENSES.txt'))
+    license_file_path = os.path.abspath(os.path.join(__cwd__, '../../THIRD-PARTY-LICENSES.txt'))
     with open(license_file_path, 'r') as license_file:
         version_match = re.search('Amazon SageMaker Components for Kubeflow Pipelines; version (([0-9]+[.])+[0-9]+)',
                         license_file.readline())
@@ -81,6 +81,27 @@ def get_component_version():
             component_version = version_match.group(1)
 
     return component_version
+
+def print_logs_for_job(region, job_name, log_grp):
+    """Gets the cloudwatch logs for sagemaker jobs"""
+    logging.info('\n******************** Cloudwatch logs for the job ' + job_name + ' ********************\n')
+    client = boto3.client('logs', region_name=region)
+
+    log_streams = client.describe_log_streams(
+        logGroupName=log_grp,
+        logStreamNamePrefix=job_name
+    )['logStreams']
+
+    for log_stream in log_streams:
+        logging.info('\n***** ' + log_stream['logStreamName'] + '*****\n')
+        response = client.get_log_events(
+            logGroupName=log_grp,
+            logStreamName=log_stream['logStreamName']
+        )
+        for event in response['events']:
+            logging.info(event['message'])
+
+    logging.info('\n******************** End of Cloudwatch logs for the job ' + job_name + ' ********************\n')
 
 
 def get_sagemaker_client(region, endpoint_url=None):

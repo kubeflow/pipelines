@@ -29,7 +29,7 @@ channelObj = {
 }
 
 channelObj['ChannelName'] = 'train'
-channelObj['DataSource']['S3DataSource']['S3Uri'] = 's3://kubeflow-pipeline-data/mnist_kmeans_example/data'
+channelObj['DataSource']['S3DataSource']['S3Uri'] = 's3://temp-bucket3-kalamadi/mnist_kmeans_example/data'
 channelObjList.append(copy.deepcopy(channelObj))
 
 
@@ -38,9 +38,9 @@ channelObjList.append(copy.deepcopy(channelObj))
     description='SageMaker training job test'
 )
 def training(
-        region='us-east-1',
+        region='us-west-2',
         endpoint_url='',
-        image='382416733822.dkr.ecr.us-east-1.amazonaws.com/kmeans:1',
+        image='174872318107.dkr.ecr.us-west-2.amazonaws.com/kmeans:1',
         training_input_mode='File',
         hyperparameters={"k": "10", "feature_dim": "784"},
         channels=channelObjList,
@@ -48,14 +48,14 @@ def training(
         instance_count=1,
         volume_size=50,
         max_run_time=3600,
-        model_artifact_path='s3://kubeflow-pipeline-data/mnist_kmeans_example/data',
+        model_artifact_path='s3://temp-bucket3-kalamadi/mnist_kmeans_example/data',
         output_encryption_key='',
         network_isolation=True,
         traffic_encryption=False,
         spot_instance=False,
         max_wait_time=3600,
         checkpoint_config={},
-        role=''
+        role='arn:aws:iam::169544399729:role/m-sagemaker-kfp-role'
         ):
     training = sagemaker_train_op(
         region=region,
