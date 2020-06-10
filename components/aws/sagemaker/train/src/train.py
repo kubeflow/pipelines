@@ -62,8 +62,8 @@ def main(argv=None):
   logging.info('Job request submitted. Waiting for completion...')
   try:
     _utils.wait_for_training_job(client, job_name)
-  except Exception as e:
-    logging.info(e)
+  except:
+    raise
   finally:
     _utils.print_logs_for_job(args.region, job_name, '/aws/sagemaker/TrainingJobs')
 

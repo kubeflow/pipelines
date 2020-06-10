@@ -13,6 +13,7 @@
 import argparse
 import logging
 import json
+import sys
 
 from common import _utils
 
@@ -70,7 +71,14 @@ def main(argv=None):
   logging.info('Submitting HyperParameter Tuning Job request to SageMaker...')
   hpo_job_name = _utils.create_hyperparameter_tuning_job(client, vars(args))
   logging.info('HyperParameter Tuning Job request submitted. Waiting for completion...')
-  _utils.wait_for_hyperparameter_training_job(client, hpo_job_name)
+
+  try:
+    _utils.wait_for_hyperparameter_training_job(client, hpo_job_name)
+  except:
+    raise
+  finally:
+    _utils.print_logs_for_job(args.region, hpo_job_name, '/aws/sagemaker/TrainingJobs')
+
   best_job, best_hyperparameters = _utils.get_best_training_job_and_hyperparameters(client, hpo_job_name)
   model_artifact_url = _utils.get_model_artifacts_from_job(client, best_job)
   image = _utils.get_image_from_job(client, best_job)

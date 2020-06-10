@@ -55,7 +55,14 @@ def main(argv=None):
   logging.info('Submitting Endpoint request to SageMaker...')
   endpoint_name = _utils.deploy_model(client, vars(args))
   logging.info('Endpoint creation request submitted. Waiting for completion...')
-  _utils.wait_for_endpoint_creation(client, endpoint_name)
+
+
+  try:
+    _utils.wait_for_endpoint_creation(client, endpoint_name)
+  except:
+    raise
+  finally:
+    _utils.print_logs_for_job(args.region, endpoint_name, '/aws/sagemaker/Endpoints')
 
   with open('/tmp/endpoint_name.txt', 'w') as f:
     f.write(endpoint_name)
