@@ -923,6 +923,8 @@ def create_processing_job_request(args):
 
     if args['max_run_time']:
         request['StoppingCondition']['MaxRuntimeInSeconds'] = args['max_run_time']
+    else:
+        request['StoppingCondition']['MaxRuntimeInSeconds'].pop('max_run_time')
 
     request['Environment'] = args['environment']
 
