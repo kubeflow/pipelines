@@ -6,7 +6,7 @@ x-google-marketplace:
     releaseNote: >-
       Based on 0.5.1 version.
     releaseTypes:
-      - Feature
+    - Feature
     recommended: false
   managedUpdates:
     kalmSupported: false
@@ -87,12 +87,12 @@ x-google-marketplace:
           type: FULL
   deployerServiceAccount:
     roles:
-      - type: ClusterRole        # This is a cluster-wide ClusterRole
-        rulesType: CUSTOM        # We specify our own custom RBAC roles
-        rules:
-          - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io']
-            resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings']
-            verbs: ['*']
+    - type: ClusterRole # This is a cluster-wide ClusterRole
+      rulesType: CUSTOM # We specify our own custom RBAC roles
+      rules:
+      - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io']
+        resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings']
+        verbs: ['*']
   clusterConstraints:
     resources:
     - replicas: 3
@@ -105,8 +105,7 @@ x-google-marketplace:
     gcp:
       nodes:
         requiredOauthScopes:
-          - https://www.googleapis.com/auth/cloud-platform
-
+        - https://www.googleapis.com/auth/cloud-platform
 properties:
   name:
     type: string
@@ -161,8 +160,6 @@ properties:
       If the prefix specified is same as an old deployment in the past,
       the deployment will recover from an old deployment.
       If this not specified, the app instance name will be used.
-
 required:
-  - name
-  - namespace
-
+- name
+- namespace
