@@ -29,22 +29,24 @@ func TestAddStatusFilterToSelect(t *testing.T) {
 	listableOptions, err := list.NewOptions(listable, 10, "name", protoFilter)
 	assert.Nil(t, err)
 	sqlBuilder := sq.Select("*").From("run_details")
-	sql, _, err := listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
+	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
 	assert.Nil(t, err)
 	assert.Contains(t, sql, "WHERE Conditions = ?") // filtering on status, aka Conditions in db
+	fmt.Println(args)
 
 	notEqualProtoFilter := &api.Filter{}
 	notEqualProtoFilter.Predicates = []*api.Predicate{
 		{
 			Key:   "status",
 			Op:    api.Predicate_NOT_EQUALS,
-			Value: &api.Predicate_StringValue{StringValue: "Succeeded"},
+			Value: &api.Predicate_StringValue{StringValue: "somevalue"},
 		},
 	}
 	listableOptions, err = list.NewOptions(listable, 10, "name", protoFilter)
 	assert.Nil(t, err)
 	sqlBuilder = sq.Select("*").From("run_details")
-	sql, _, err = listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
+	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
 	assert.Nil(t, err)
 	fmt.Println(sql)
+	fmt.Println(args)
 }
