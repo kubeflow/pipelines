@@ -24,6 +24,7 @@ go_test(
     srcs = [
         "pipeline_version_test.go",
         "resource_reference_test.go",
+        "run_test.go",
     ],
     embed = [":go_default_library"],
     importpath = "github.com/kubeflow/pipelines/backend/src/apiserver/model",
