@@ -1,0 +1,32 @@
+name: Upload to GCS
+inputs:
+- {name: Data}
+- {name: GCS path, type: GCSPath}
+- {name: Parallel composite upload threshold, default: '150M'}
+- {name: Delete, type: Boolean, default: False}
+- {name: Recurse, type: Boolean, default: True}
+outputs:
+- {name: GCS path, type: GCSPath}
+implementation:
+    container:
+        image: google/cloud-sdk
+        command:
+        - sh
+        - -ex
+        - -c
+        - |
+            [ -z "$3" ] || flags="-o GSUtil:parallel_composite_upload_threshold=$3"
+            [ "$4" = True ] && rsync_flags=-d || true
+            [ "$5" = False ] || rsync_flags="$rsync_flags -r"
+            if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+                gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+            fi
+            gsutil -m $flags rsync $rsync_flags "$0" "$1"
+            mkdir -p "$(dirname "$2")"
+            echo "$1" > "$2"
+        - inputPath: Data
+        - inputValue: GCS path
+        - outputPath: GCS path
+        - inputValue: Parallel composite upload threshold
+        - inputValue: Delete
+        - inputValue: Recurse
