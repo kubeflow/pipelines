@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
@@ -31,4 +32,19 @@ func TestAddStatusFilterToSelect(t *testing.T) {
 	sql, _, err := listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
 	assert.Nil(t, err)
 	assert.Contains(t, sql, "WHERE Conditions = ?") // filtering on status, aka Conditions in db
+
+	notEqualProtoFilter := &api.Filter{}
+	notEqualProtoFilter.Predicates = []*api.Predicate{
+		{
+			Key:   "status",
+			Op:    api.Predicate_NOT_EQUALS,
+			Value: &api.Predicate_StringValue{StringValue: "Succeeded"},
+		},
+	}
+	listableOptions, err = list.NewOptions(listable, 10, "name", protoFilter)
+	assert.Nil(t, err)
+	sqlBuilder = sq.Select("*").From("run_details")
+	sql, _, err = listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
+	assert.Nil(t, err)
+	fmt.Println(sql)
 }
