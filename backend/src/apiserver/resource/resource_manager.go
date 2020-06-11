@@ -225,7 +225,7 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 
 func (r *ResourceManager) CreatePipeline(name string, description string, pipelineFile []byte) (*model.Pipeline, error) {
 	// Extract the parameter from the pipeline
-	params, err := util.GetParameters(pipelineFile) //[TODO] here the validation is done
+	params, err := util.GetParameters(pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}

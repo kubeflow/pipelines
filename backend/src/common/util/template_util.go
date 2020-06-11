@@ -18,8 +18,8 @@ import (
 	"encoding/json"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	validate "github.com/argoproj/argo/workflow/validate"
 	"github.com/ghodss/yaml"
-	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 )
 
 const (
@@ -60,11 +60,9 @@ func ValidateWorkflow(template []byte) (*v1alpha1.Workflow, error) {
 	if err != nil {
 		return nil, NewInvalidInputError("Unvalid argo workflow resource.")
 	}
-	namespace, err := r.getNamespaceFromExperiment(apiRun.GetResourceReferences())
-	var client versioned.Interface = r.getWorkflowClient(namespace)
-	_, err := client.LintWorkflow(ctx, &workflowpkg.WorkflowLintRequest{Namespace: namespace, Workflow: &wf})
+	err = validate.ValidateWorkflow(&wf, validate.ValidateOpts{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	return &wf, nil
 }
