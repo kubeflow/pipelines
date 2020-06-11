@@ -17,7 +17,7 @@
 set -ex
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+REPO_ROOT="$DIR/.."
 
-echo "This formatting script uses yq, it can be downloaded at https://github.com/mikefarah/yq/releases/tag/3.3.0"
-yq w -i "$DIR/../schema.yaml" "**"
-yq w -i "$DIR/../chart/kubeflow-pipelines/templates/application.yaml" "**"
+"$REPO_ROOT/manifests/gcp_marketplace/hack/format.sh"
+"$REPO_ROOT/manifests/kustomize/hack/format.sh"
