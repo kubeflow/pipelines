@@ -19,5 +19,5 @@ set -ex
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 echo "This formatting script uses yq, it can be downloaded at https://github.com/mikefarah/yq/releases/tag/3.3.0"
-yq w -i "$DIR/../base/kustomization.yaml" .
-yq w -i "$DIR/../env/gcp/inverse-proxy/kustomization.yaml" .
+yq w -i "$DIR/../base/kustomization.yaml" '**'
+yq w -i "$DIR/../env/gcp/inverse-proxy/kustomization.yaml" '**'

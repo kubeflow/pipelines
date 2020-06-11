@@ -102,4 +102,3 @@ vars:
     fieldpath: data.bucketName
 configurations:
 - params.yaml
-'':

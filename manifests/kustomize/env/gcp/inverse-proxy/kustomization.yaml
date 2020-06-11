@@ -9,4 +9,3 @@ resources:
 - proxy-role.yaml
 - proxy-rolebinding.yaml
 - proxy-sa.yaml
-'':
