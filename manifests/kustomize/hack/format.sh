@@ -18,6 +18,12 @@ set -ex
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
+function format_yaml {
+    local path=$1
+    local tmp=$(mktemp)
+    yq r "$path" > "$tmp"
+    cp "$tmp" "$path"
+}
 echo "This formatting script uses yq, it can be downloaded at https://github.com/mikefarah/yq/releases/tag/3.3.0"
-yq w -i "$DIR/../base/kustomization.yaml" "**"
-yq w -i "$DIR/../env/gcp/inverse-proxy/kustomization.yaml" "**"
+format_yaml "$DIR/../base/kustomization.yaml"
+format_yaml "$DIR/../env/gcp/inverse-proxy/kustomization.yaml"
