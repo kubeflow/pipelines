@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	"github.com/argoproj/argo/workflow/validate"
+	validate "github.com/argoproj/argo/workflow/validate"
 	"github.com/ghodss/yaml"
 )
 
@@ -60,7 +60,7 @@ func ValidateWorkflow(template []byte) (*v1alpha1.Workflow, error) {
 	if err != nil {
 		return nil, NewInvalidInputError("Unvalid argo workflow resource.")
 	}
-	err = ValidateWorkflow(&wf, validate.ValidateOpts{})
+	err = validate.ValidateWorkflow(&wf, validate.ValidateOpts{})
 	if err != nil {
 		return nil, err
 	}
