@@ -942,6 +942,8 @@ def create_processing_job(client, args):
       client.create_processing_job(**request)
       processing_job_name = request['ProcessingJobName']
       logging.info("Created Processing Job with name: " + processing_job_name)
+      logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/ProcessingJobs;prefix={};streamFilter=typeLogStreamPrefix"
+        .format(args['region'], args['region'], processing_job_name))
       return processing_job_name
   except ClientError as e:
       raise Exception(e.response['Error']['Message'])
