@@ -1,6 +1,11 @@
 This directory contains code for the components that comprise the Kubeflow
 Pipelines backend.
 
+
+## Bazel
+
+There are some [know issues](https://github.com/kubeflow/pipelines/issues/3942) with the latest version of Bazel and the kubeflow pipelines repo, therefore use version 0.24.1 or older. 
+
 ## Building & Testing
 
 All components can be built using [Bazel](https://bazel.build/). To build
