@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
@@ -31,7 +30,5 @@ func TestAddStatusFilterToSelect(t *testing.T) {
 	sqlBuilder := sq.Select("*").From("run_details")
 	sql, _, err := listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
 	assert.Nil(t, err)
-	fmt.Println(sql)
-	// assert.Contains(t, sql, "pipeline_versions.Name") // sorting field
-	// assert.Contains(t, sql, "pipeline_versions.UUID") // primary key field
+	assert.Contains(t, sql, "WHERE Conditions = ?") // filtering on status, aka Conditions in db
 }
