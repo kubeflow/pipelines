@@ -47,13 +47,3 @@ func TestGetParameters_ParametersTooLong(t *testing.T) {
 	_, err := GetParameters(templateBytes)
 	assert.Equal(t, codes.InvalidArgument, err.(*UserError).ExternalStatusCode())
 }
-
-func TestValidateWorkflow(t *testing.T) {
-	testWorkflow := `
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-`
-	testWorkflowByte := []byte(testWorkflow)
-	_, err := ValidateWorkflow(testWorkflowByte)
-	assert.Equal(err, nil)
-}
