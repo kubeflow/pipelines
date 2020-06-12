@@ -7,10 +7,9 @@ env:
 phases:
   build:
     commands:
-      - cd components/aws
-      - docker build . -f ./sagemaker/tests/integration_tests/Dockerfile -t amazon/integration-test-image --quiet
+      - docker build . -f ./components/aws/sagemaker/tests/integration_tests/Dockerfile -t amazon/integration-test-image --quiet
 
-      - cd sagemaker/codebuild/scripts && export CONTAINER_VARIABLE_ARGUMENTS="$(./construct_environment_array.sh)"
+      - cd components/aws/sagemaker/codebuild/scripts && export CONTAINER_VARIABLE_ARGUMENTS="$(./construct_environment_array.sh)"
 
       # Run the container and copy the results to /tmp
       # Passes all listed host environment variables through to the container
@@ -18,7 +17,7 @@ phases:
 
   post_build:
     commands:
-      - docker cp integration-test-container:/tests/integration_tests/integration_tests.log /tmp/results.xml
+      - docker cp integration-test-container:/pipelines/components/aws/sagemaker/tests/integration_tests/integration_tests.log /tmp/results.xml
       - docker rm -f integration-test-container
 
 reports:
