@@ -203,4 +203,6 @@ fi
 
 [ ! -z "${PYTEST_MARKER}" ] && pytest_args+=( -m "${PYTEST_MARKER}" )
 
-cd tests/integration_tests && python -m pytest "${pytest_args[@]}" --junitxml ./integration_tests.log -n $(nproc)
+DIR_THIS_FILE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+cd $DIR_THIS_FILE/../ && python -m pytest "${pytest_args[@]}" --junitxml ./integration_tests.log -n $(nproc)
