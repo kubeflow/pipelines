@@ -772,7 +772,6 @@ class Compiler(object):
   ) -> Dict[Text, Any]:
     """ Internal implementation of create_workflow."""
     params_list = params_list or []
-    argspec = inspect.getfullargspec(pipeline_func)
 
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
@@ -793,7 +792,8 @@ class Compiler(object):
       raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
     args_list = []
-    for arg_name in argspec.args:
+    signature = inspect.signature(pipeline_func)
+    for arg_name in signature.parameters:
       arg_type = None
       for input in pipeline_meta.inputs or []:
         if arg_name == input.name:
