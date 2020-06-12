@@ -112,6 +112,9 @@ echo "upgrade test preparation workflow completed"
 time source "${DIR}/check-build-image-status.sh"
 echo "KFP images built"
 
+echo "Upgrading Metadata store"
+time go run "${DIR}/../tools/metadatastore-upgrade/main.go" "--new_image_tag=0.22.1"
+
 time source "${DIR}/deploy-pipeline-lite.sh"
 echo "KFP standalone of commit ${COMMIT_SHA} deployed"
 
