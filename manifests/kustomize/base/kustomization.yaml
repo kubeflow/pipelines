@@ -37,7 +37,7 @@ secretGenerator:
 - name: mysql-secret
   env: params-db-secret.env
 vars:
-- name: NAMESPACE
+- name: kfp-namespace
   objref:
     kind: Deployment
     apiVersion: apps/v1

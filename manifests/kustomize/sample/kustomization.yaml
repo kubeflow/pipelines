@@ -23,7 +23,7 @@ secretGenerator:
     behavior: merge
 
 # !!! If you want to customize the namespace,
-# please also update sample/params.env and sample/cluster-scoped-resources/params.env
+# please also update sample/cluster-scoped-resources/kustomization.yaml's namespace field to the same value
 namespace: kubeflow
 
 #### Customization ###
