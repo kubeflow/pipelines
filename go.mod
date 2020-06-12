@@ -5,9 +5,15 @@ require (
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f
 	github.com/argoproj/argo v2.3.0+incompatible
+<<<<<<< HEAD
 	github.com/argoproj/pkg v0.0.0-20200424003221-9b858eff18a1
 	github.com/cenkalti/backoff v2.0.0+incompatible
 	github.com/colinmarc/hdfs v1.1.4-0.20180805212432-9746310a4d31 // indirect
+=======
+	github.com/argoproj/pkg v0.0.0-20200424003221-9b858eff18a1 // indirect
+	github.com/cenkalti/backoff v2.0.0+incompatible
+	github.com/colinmarc/hdfs v1.1.4-0.20180805212432-9746310a4d31 
+>>>>>>> b00b3cdbd5c9245c77b4d1c8b180a155cd708e8d
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
 	github.com/docker/spdystream v0.0.0-20170912183627-bc6354cbbc29 // indirect
 	github.com/elazarl/goproxy v0.0.0-20181111060418-2ce16c963a8a // indirect
@@ -83,7 +89,14 @@ require (
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.39.3 // indirect
+<<<<<<< HEAD
 	gopkg.in/jcmturner/goidentity.v2 v2.0.0 // indirect
+=======
+	gopkg.in/jcmturner/aescts.v1 v1.0.1 // indirect
+	gopkg.in/jcmturner/dnsutils.v1 v1.0.1 // indirect
+	gopkg.in/jcmturner/gokrb5.v5 v5.3.0 // indirect
+	gopkg.in/jcmturner/rpc.v0 v0.0.2 // indirect
+>>>>>>> b00b3cdbd5c9245c77b4d1c8b180a155cd708e8d
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0-20180712090710-2d6f90ab1293
 	k8s.io/apiextensions-apiserver v0.0.0-20190103235604-e7617803aceb // indirect
