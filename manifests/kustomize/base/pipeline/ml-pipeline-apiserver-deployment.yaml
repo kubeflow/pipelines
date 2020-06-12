@@ -22,7 +22,10 @@ spec:
         - name: OBJECTSTORECONFIG_SECURE
           value: "false"
         - name: OBJECTSTORECONFIG_BUCKETNAME
-          value: $(BUCKET_NAME)
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: bucketName
         - name: DBCONFIG_USER
           valueFrom:
             secretKeyRef:
