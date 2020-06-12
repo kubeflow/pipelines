@@ -21,7 +21,7 @@ class DataflowClient:
 
     def launch_template(self, project_id, gcs_path, location, 
         validate_only, launch_parameters):
-        return self._df.projects().templates().launch(
+        return self._df.projects().locations().templates().launch(
             projectId = project_id,
             gcsPath = gcs_path,
             location = location,
