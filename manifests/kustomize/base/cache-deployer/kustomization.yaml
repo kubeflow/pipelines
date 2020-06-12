@@ -5,5 +5,3 @@ resources:
   - cache-deployer-role.yaml
   - cache-deployer-rolebinding.yaml
   - cache-deployer-deployment.yaml
-  - cluster-scoped/cache-deployer-sa.yaml
-  
