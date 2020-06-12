@@ -892,12 +892,11 @@ def create_processing_job_request(args):
     request['NetworkConfig']['EnableNetworkIsolation'] = args['network_isolation']
     request['NetworkConfig']['EnableInterContainerTrafficEncryption'] = args['traffic_encryption']
 
-    ### Update input channels, must have at least one specified
-    if len(args['input_config']) > 0:
+    ### Update input channels, not a required field
+    if args['input_config']:
         request['ProcessingInputs'] = args['input_config']
     else:
-        logging.error("Must specify at least one input channel.")
-        raise Exception('Could not create job request')
+        request.pop('ProcessingInputs')
 
     ### Update output channels, must have at least one specified
     if len(args['output_config']) > 0:

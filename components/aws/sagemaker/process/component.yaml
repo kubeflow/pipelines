@@ -50,12 +50,12 @@ inputs:
     type: JsonArray
   - name: output_config
     description: 'Parameters that specify Amazon S3 outputs for a processing job.'
-    default: '{}'
-    type: JsonObject
+    default: '[]'
+    type: JsonArray
   - name: input_config
     description: 'Parameters that specify Amazon S3 inputs for a processing job.'
-    default: '{}'
-    type: JsonObject
+    default: '[]'
+    type: JsonArray
   - name: output_encryption_key
     description: 'The AWS KMS key that Amazon SageMaker uses to encrypt the processing artifacts.'
     default: ''
