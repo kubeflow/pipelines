@@ -25,10 +25,12 @@ import (
 )
 
 func TestGetParameters(t *testing.T) {
+
 	template := v1alpha1.Workflow{
 		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 		Spec: v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{
 			Parameters: []v1alpha1.Parameter{{Name: "name1", Value: StringPointer("value1")}}}}}
+
 	templateBytes, _ := yaml.Marshal(template)
 	paramString, err := GetParameters(templateBytes)
 	assert.Nil(t, err)
@@ -46,8 +48,4 @@ func TestGetParameters_ParametersTooLong(t *testing.T) {
 	templateBytes, _ := yaml.Marshal(template)
 	_, err := GetParameters(templateBytes)
 	assert.Equal(t, codes.InvalidArgument, err.(*UserError).ExternalStatusCode())
-}
-
-func TestValidateWorkflow(t *testing.T) {
-	assert.Equal(true, true)
 }
