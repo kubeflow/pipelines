@@ -741,7 +741,7 @@ func TestCreateRun_WithOldestRunDeleted(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	// Create the first and the second run, named "run1" and "run2" respectively.
+	// Create the first and the second workflows, named "workflow1" and "workflow2" respectively.
 	nowTime := time.Now()
 	workflowForRun1 := util.NewWorkflow(testWorkflow.DeepCopy())
 	workflowForRun1.Name = "workflow1"
@@ -792,7 +792,7 @@ func TestCreateRun_WithOldestRunDeleted(t *testing.T) {
 	assert.Equal(t, 2, len(runs), "Run count is not as expected")
 	assert.Equal(t, 2, store.ArgoClientFake.GetWorkflowCount(), "Workflow count is not as expected.")
 
-	// Create the third run and will end up with the first run being deleted.
+	// Create the third workflow and will end up with the oldest workflow being deleted.
 	workflowForRun3 := util.NewWorkflow(testWorkflow.DeepCopy())
 	workflowForRun3.Name = "workflow3"
 	workflowForRun3.CreationTimestamp = v1.NewTime(nowTime.Add(2))
