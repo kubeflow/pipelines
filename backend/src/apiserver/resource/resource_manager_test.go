@@ -24,6 +24,7 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -717,6 +718,112 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 	_, err := manager.CreateRun(apiRun)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "database is closed")
+}
+
+func TestCreateRun_WithOldestRunDeleted(t *testing.T) {
+	// Set maximum number of allowed workflows to be 2.
+	*maximumNumberOfWorkflowCRDs = 2
+
+	// Create resource manager and an experiment.
+	uuid := util.NewUUIDGenerator()
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch(), uuid)
+	manager := NewResourceManager(store)
+	assert.Nil(t, err)
+	defer store.Close()
+	experiment, err := manager.CreateExperiment(&api.Experiment{
+		Name: "e1",
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns1"},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	})
+	assert.Nil(t, err)
+
+	// Create the first and the second run, named "run1" and "run2" respectively.
+	nowTime := time.Now()
+	workflowForRun1 := util.NewWorkflow(testWorkflow.DeepCopy())
+	workflowForRun1.Name = "workflow1"
+	workflowForRun1.CreationTimestamp = v1.NewTime(nowTime)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: workflowForRun1.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+		ServiceAccount: "sa1",
+	}
+	_, err = manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+	workflowForRun2 := util.NewWorkflow(testWorkflow.DeepCopy())
+	workflowForRun2.Name = "workflow2"
+	workflowForRun2.CreationTimestamp = v1.NewTime(nowTime.Add(1))
+	apiRun = &api.Run{
+		Name: "run2",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: workflowForRun2.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+		ServiceAccount: "sa1",
+	}
+	_, err = manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+
+	// Expect two runs and two workflows.
+	opts, err := list.NewOptions(&model.Run{}, 2, "", nil)
+	runs, _, _, _ := manager.ListRuns(&common.FilterContext{}, opts)
+	assert.Equal(t, 2, len(runs), "Run count is not as expected")
+	assert.Equal(t, 2, store.ArgoClientFake.GetWorkflowCount(), "Workflow count is not as expected.")
+
+	// Create the third run and will end up with the first run being deleted.
+	workflowForRun3 := util.NewWorkflow(testWorkflow.DeepCopy())
+	workflowForRun3.Name = "workflow3"
+	workflowForRun3.CreationTimestamp = v1.NewTime(nowTime.Add(2))
+	apiRun = &api.Run{
+		Name: "run3",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: workflowForRun3.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+		ServiceAccount: "sa1",
+	}
+	_, err = manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+
+	// Expect two runs and two workflows. Moreover, workflow1 is replaced by workflow3.
+	opts, err = list.NewOptions(&model.Run{}, 2, "", nil)
+	runs, _, _, _ = manager.ListRuns(&common.FilterContext{}, opts)
+	assert.Equal(t, 2, len(runs), "Run count is not as expected")
+	assert.Equal(t, 2, store.ArgoClientFake.GetWorkflowCount(), "Workflow count is not as expected.")
+	retrievedWorkflows, err := store.ArgoClientFake.GetWorkflows()
+	for _, wf := range retrievedWorkflows.Items {
+		assert.Contains(t, [2]string{"workflow2", "workflow3"}, wf.Name)
+	}
 }
 
 func TestDeleteRun(t *testing.T) {
@@ -1468,9 +1575,12 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 }
 
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing.T) {
+	// One run and one workflow are created.
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
-	// report workflow
+	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount())
+
+	// Report workflow will delete the above added workflow because it is in a persisted final state.
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      run.Name,
@@ -1480,8 +1590,10 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
 	})
+	workflow.Name = testWorkflow.Name
 	err := manager.ReportWorkflowResource(workflow)
 	assert.Nil(t, err)
+	assert.Equal(t, 0, store.ArgoClientFake.GetWorkflowCount())
 }
 
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFailed(t *testing.T) {

@@ -16,6 +16,7 @@ package resource
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"strconv"
 
@@ -43,6 +44,12 @@ const (
 	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
 	ProjectIDEnvVar                     = "PROJECT_ID"
 	DefaultBucketNameEnvVar             = "BUCKET_NAME"
+)
+
+var (
+	// https://github.com/kubernetes/enhancements/blob/master/keps/sig-api-machinery/20180415-crds-to-ga.md#scale-targets-for-ga
+	maximumNumberOfWorkflowCRDs = flag.Int("max_num_workflows", 500,
+		"Maximum number of workflows allowed within the namespace before the controller starts deleting the oldest one. Should be > 0")
 )
 
 type ClientManagerInterface interface {
@@ -378,6 +385,22 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, err
 	}
 
+	// Check if the number of workflow CRDs is already over the specified threshold. If yes, delete the oldest workflow in the persisted final state.
+	// The cleanup of excessive workflows here is just a best-effort attempt, since we have Persistent Agent to do garbage collection.
+	fmt.Printf("create workflow %+v\n", workflow.Name)
+	workflows, err := r.getWorkflowClient(namespace).List(v1.ListOptions{})
+	if err == nil && workflows != nil && workflows.Items != nil && len(workflows.Items) >= *maximumNumberOfWorkflowCRDs {
+		oldest := &workflows.Items[0]
+		for i := range workflows.Items {
+			fmt.Printf("existing workflow: %+v\n", workflows.Items[i].Name)
+			if workflows.Items[i].CreationTimestamp.Time.Before(oldest.CreationTimestamp.Time) && util.NewWorkflow(&workflows.Items[i]).PersistedFinalState() {
+				oldest = &workflows.Items[i]
+			}
+		}
+		fmt.Printf("delete workflow: %+v\n", oldest.Name)
+		r.getWorkflowClient(namespace).Delete(oldest.Name, &v1.DeleteOptions{})
+	}
+
 	// Create argo workflow CRD resource
 	newWorkflow, err := r.getWorkflowClient(namespace).Create(workflow.Get())
 	if err != nil {
@@ -699,6 +722,8 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		err := r.getWorkflowClient(workflow.Namespace).Delete(workflow.Name, &v1.DeleteOptions{})
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
+		} else {
+			return nil
 		}
 	}
 

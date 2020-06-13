@@ -15,9 +15,11 @@
 package client
 
 import (
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	argoprojv1alpha1 "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type FakeArgoClient struct {
@@ -37,6 +39,10 @@ func (c *FakeArgoClient) Workflow(namespace string) argoprojv1alpha1.WorkflowInt
 
 func (c *FakeArgoClient) GetWorkflowCount() int {
 	return len(c.workflowClientFake.workflows)
+}
+
+func (c *FakeArgoClient) GetWorkflows() (*v1alpha1.WorkflowList, error) {
+	return c.workflowClientFake.List(v1.ListOptions{})
 }
 
 func (c *FakeArgoClient) GetWorkflowKeys() map[string]bool {
