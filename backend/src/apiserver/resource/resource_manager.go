@@ -227,9 +227,6 @@ func (r *ResourceManager) CreatePipeline(name string, description string, pipeli
 	// Extract the parameter from the pipeline
 	params, err := util.GetParameters(pipelineFile)
 	if err != nil {
-		return nil, err
-	}
-	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
 
