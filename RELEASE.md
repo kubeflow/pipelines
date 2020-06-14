@@ -4,6 +4,7 @@ WIP: this document is still incomplete.
 
 ## Common Prerequisites
 
+* OS: Linux (MacOS not supported yet due to different behavior of sed)
 * Permissions needed
     * Can create a branch in github.com/kubeflow/pipelines
 * Tools that should be in your `$PATH`

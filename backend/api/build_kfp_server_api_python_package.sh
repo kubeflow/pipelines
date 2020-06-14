@@ -52,7 +52,7 @@ echo "Removing old content in DIR first."
 rm -rf "$DIR"
 
 echo "Generating python code from swagger json in $DIR."
-java -jar "$codegen_file" generate -g python -i "$swagger_file" -o "$DIR" -c <(echo '{
+java -jar "$codegen_file" generate -g python -t "$CURRENT_DIR/python_http_client_template" -i "$swagger_file" -o "$DIR" -c <(echo '{
     "packageName": "kfp_server_api",
     "packageVersion": "'"$VERSION"'",
     "packageUrl": "https://github.com/kubeflow/pipelines"
