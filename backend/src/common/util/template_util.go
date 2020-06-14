@@ -30,7 +30,7 @@ const (
 func GetParameters(template []byte) (string, error) {
 	wf, err := ValidateWorkflow(template)
 	if err != nil {
-		return "", err //Wrap(err, "Failed to get parameters from the workflow")
+		return "", Wrap(err, "Failed to get parameters from the workflow")
 	}
 	if wf.Spec.Arguments.Parameters == nil {
 		return "[]", nil
