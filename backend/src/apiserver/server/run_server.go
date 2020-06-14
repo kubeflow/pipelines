@@ -48,9 +48,11 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 }
 
 func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*api.RunDetail, error) {
-	err := s.canAccessRun(ctx, request.RunId)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+	if !common.IsMultiUserSharedReadMode() {
+		err := s.canAccessRun(ctx, request.RunId)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize the request.")
+		}
 	}
 	run, err := s.resourceManager.GetRun(request.RunId)
 	if err != nil {

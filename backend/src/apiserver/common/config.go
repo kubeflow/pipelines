@@ -24,6 +24,7 @@ import (
 
 const (
 	MultiUserMode                       string = "MULTIUSER"
+	MultiUserModeSharedReadAccess       string = "MULTIUSER_SHARED_READ"
 	PodNamespace                        string = "POD_NAMESPACE"
 	CacheEnabled                        string = "CacheEnabled"
 	DefaultPipelineRunnerServiceAccount string = "DefaultPipelineRunnerServiceAccount"
@@ -73,6 +74,10 @@ func GetDurationConfig(configName string) time.Duration {
 
 func IsMultiUserMode() bool {
 	return GetBoolConfigWithDefault(MultiUserMode, false)
+}
+
+func IsMultiUserSharedReadMode() bool {
+	return GetBoolConfigWithDefault(MultiUserModeSharedReadAccess, false)
 }
 
 func GetPodNamespace() string {

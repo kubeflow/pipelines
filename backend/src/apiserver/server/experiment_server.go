@@ -37,9 +37,11 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *api.Cr
 
 func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetExperimentRequest) (
 	*api.Experiment, error) {
-	err := s.canAccessExperiment(ctx, request.Id)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+	if !common.IsMultiUserSharedReadMode() {
+		err := s.canAccessExperiment(ctx, request.Id)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize the request.")
+		}
 	}
 
 	experiment, err := s.resourceManager.GetExperiment(request.Id)
