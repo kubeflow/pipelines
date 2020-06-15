@@ -1,6 +1,6 @@
 from kfp.components import InputPath, OutputPath, create_component_from_func
 
-def catboost_predict_class(
+def catboost_predict_classes(
     data_path: InputPath('CSV'),
     model_path: InputPath('CatBoostClassifierModel'),
     predictions_path: OutputPath(),
@@ -48,8 +48,8 @@ def catboost_predict_class(
 
 
 if __name__ == '__main__':
-    create_component_from_func(
-        catboost_predict_class,
+    catboost_predict_classes_op = create_component_from_func(
+        catboost_predict_classes,
         output_component_file='component.yaml',
         base_image='python:3.7',
         packages_to_install=['catboost==0.22']

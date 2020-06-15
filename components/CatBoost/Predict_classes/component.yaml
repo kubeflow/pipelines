@@ -1,4 +1,4 @@
-name: Catboost predict class
+name: Catboost predict classes
 description: |-
   Predict classes using the CatBoost classifier model.
 
@@ -37,7 +37,7 @@ implementation:
           os.makedirs(os.path.dirname(file_path), exist_ok=True)
           return file_path
 
-      def catboost_predict_class(
+      def catboost_predict_classes(
           data_path,
           model_path,
           predictions_path,
@@ -84,14 +84,14 @@ implementation:
           numpy.savetxt(predictions_path, predictions)
 
       import argparse
-      _parser = argparse.ArgumentParser(prog='Catboost predict class', description='Predict classes using the CatBoost classifier model.\n\n    Args:\n        data_path: Path for the data in CSV format.\n        model_path: Path for the trained model in binary CatBoostClassifier format.\n        label_column: Column containing the label data.\n        predictions_path: Output path for the predictions.\n\n    Outputs:\n        predictions: Class predictions in text format.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')
+      _parser = argparse.ArgumentParser(prog='Catboost predict classes', description='Predict classes using the CatBoost classifier model.\n\n    Args:\n        data_path: Path for the data in CSV format.\n        model_path: Path for the trained model in binary CatBoostClassifier format.\n        label_column: Column containing the label data.\n        predictions_path: Output path for the predictions.\n\n    Outputs:\n        predictions: Class predictions in text format.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')
       _parser.add_argument("--data", dest="data_path", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--model", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--label-column", dest="label_column", type=int, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--predictions", dest="predictions_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parsed_args = vars(_parser.parse_args())
 
-      _outputs = catboost_predict_class(**_parsed_args)
+      _outputs = catboost_predict_classes(**_parsed_args)
     args:
     - --data
     - {inputPath: data}
