@@ -397,11 +397,11 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 						oldestIndex = i
 					}
 				}
-				if oldestIndex >= 0 {
-					r.getWorkflowClient(namespace).Delete(workflows.Items[oldestIndex].Name, &v1.DeleteOptions{})
-				} else {
-					return nil, util.NewInternalServerError(err, "Maximum number of %d workflows have been reached.", *maximumNumberOfWorkflowCRDs)
-				}
+			}
+			if oldestIndex >= 0 {
+				r.getWorkflowClient(namespace).Delete(workflows.Items[oldestIndex].Name, &v1.DeleteOptions{})
+			} else {
+				return nil, util.NewInternalServerError(err, "Maximum number of %d workflows have been reached.", *maximumNumberOfWorkflowCRDs)
 			}
 		}
 	}
