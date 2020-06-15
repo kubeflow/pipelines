@@ -30,6 +30,10 @@ func NewFakeArgoClient() *FakeArgoClient {
 	return &FakeArgoClient{NewWorkflowClientFake()}
 }
 
+func (c *FakeArgoClient) GetWorkflowClient() *FakeWorkflowClient {
+	return c.workflowClientFake
+}
+
 func (c *FakeArgoClient) Workflow(namespace string) argoprojv1alpha1.WorkflowInterface {
 	if len(namespace) == 0 {
 		panic(util.NewResourceNotFoundError("Namespace", namespace))
