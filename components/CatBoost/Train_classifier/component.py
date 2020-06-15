@@ -8,7 +8,7 @@ def catboost_train_classifier(
 
     loss_function: str = 'Logloss',
     num_iterations: int = 500,
-    learning_rate : float = None,
+    learning_rate: float = None,
     depth: int = 6,
     random_seed: int = 0,
 
@@ -64,13 +64,14 @@ def catboost_train_classifier(
         depth=depth,
         learning_rate=learning_rate,
         loss_function=loss_function,
+        random_seed=random_seed,
         verbose=True,
     )
 
     model.fit(
         train_data,
         cat_features=cat_features,
-        text_features=text_features,         
+        text_features=text_features,
         init_model=starting_model_path,
         #verbose=False,
         #plot=True,
