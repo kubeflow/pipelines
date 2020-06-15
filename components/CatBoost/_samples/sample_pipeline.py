@@ -13,20 +13,22 @@ catboost_to_onnx_op = components.load_component_from_url('https://raw.githubuser
 
 
 def catboost_pipeline():
-    get_training_data_task = chicago_taxi_dataset_op(
+    training_data = chicago_taxi_dataset_op(
         where='trip_start_timestamp >= "2019-01-01" AND trip_start_timestamp < "2019-02-01"',
         select='tips,trip_seconds,trip_miles,pickup_community_area,dropoff_community_area,fare,tolls,extras,trip_total',
         limit=10000,
-    )
-    
+    ).output
+
+    evaluation_data = training_data
+
     catboost_train_regression_task = catboost_train_regression_op(
-        training_data=get_training_data_task.output,
+        training_data=training_data,
         label_column=0,
         num_iterations=200,
     )
     
     catboost_predict_values_op(
-        data=get_training_data_task.output,
+        data=evaluation_data,
         model=catboost_train_classifier_task.outputs['model'],
         label_column=0,
     )
@@ -35,19 +37,19 @@ def catboost_pipeline():
     catboost_to_onnx_op(catboost_train_regression_task.outputs['model'])
 
     catboost_train_classifier_task = catboost_train_classifier_op(
-        training_data=get_training_data_task.output,
+        training_data=training_data,
         label_column=0,
         num_iterations=200,
     )
     
     catboost_predict_classes_op(
-        data=get_training_data_task.output,
+        data=evaluation_data,
         model=catboost_train_task.outputs['model'],
         label_column=0,
     )
     
     catboost_predict_class_probabilities_op(
-        data=get_training_data_task.output,
+        data=evaluation_data,
         model=catboost_train_task.outputs['model'],
         label_column=0,
     )
