@@ -2,7 +2,7 @@ from kfp.components import InputPath, OutputPath, create_component_from_func
 
 def Pandas_Transform_DataFrame_in_CSV_format(
     table_path: InputPath('CSV'),
-    output_table_path: OutputPath('CSV'),
+    transformed_table_path: OutputPath('CSV'),
     transform_code: 'PythonCode',
 ):
     '''Transform DataFrame loaded from a CSV file.
@@ -17,7 +17,7 @@ def Pandas_Transform_DataFrame_in_CSV_format(
             - `df.insert(0, "is_positive", df["X"] > 0)`
 
     Outputs:
-        output_data: Transformed table.
+        transformed_table: Transformed table.
 
     Annotations:
         author: Alexey Volkov <alexey.volkov@ark-kun.com>
@@ -29,7 +29,7 @@ def Pandas_Transform_DataFrame_in_CSV_format(
     )
     exec(transform_code)
     df.to_csv(
-        output_table_path,
+        transformed_table_path,
         index=False,
     )
 

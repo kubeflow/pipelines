@@ -14,7 +14,7 @@ def Pandas_Transform_DataFrame_in_ApacheParquet_format(
             Example: `df['prod'] = df['X'] * df['Y']` or `df = df[['X', 'prod']]`
 
     Outputs:
-        output_table: Transformed DataFrame.
+        transformed_table: Transformed DataFrame.
 
     Annotations:
         author: Alexey Volkov <alexey.volkov@ark-kun.com>

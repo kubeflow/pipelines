@@ -12,7 +12,7 @@ description: |-
               - `df.insert(0, "is_positive", df["X"] > 0)`
 
       Outputs:
-          output_data: Transformed table.
+          transformed_table: Transformed table.
 
       Annotations:
           author: Alexey Volkov <alexey.volkov@ark-kun.com>
@@ -20,7 +20,7 @@ inputs:
 - {name: table, type: CSV}
 - {name: transform_code, type: PythonCode}
 outputs:
-- {name: output_table, type: CSV}
+- {name: transformed_table, type: CSV}
 implementation:
   container:
     image: python:3.7
@@ -41,7 +41,7 @@ implementation:
 
       def Pandas_Transform_DataFrame_in_CSV_format(
           table_path,
-          output_table_path,
+          transformed_table_path,
           transform_code,
       ):
           '''Transform DataFrame loaded from a CSV file.
@@ -56,7 +56,7 @@ implementation:
                   - `df.insert(0, "is_positive", df["X"] > 0)`
 
           Outputs:
-              output_data: Transformed table.
+              transformed_table: Transformed table.
 
           Annotations:
               author: Alexey Volkov <alexey.volkov@ark-kun.com>
@@ -68,15 +68,15 @@ implementation:
           )
           exec(transform_code)
           df.to_csv(
-              output_table_path,
+              transformed_table_path,
               index=False,
           )
 
       import argparse
-      _parser = argparse.ArgumentParser(prog='Pandas Transform DataFrame in CSV format', description='Transform DataFrame loaded from a CSV file.\n\n    Inputs:\n        table: Table to transform.\n        transform_code: Transformation code. Code is written in Python and can consist of multiple lines.\n            The DataFrame variable is called "df".\n            Examples:\n            - `df[\'prod\'] = df[\'X\'] * df[\'Y\']`\n            - `df = df[[\'X\', \'prod\']]`\n            - `df.insert(0, "is_positive", df["X"] > 0)`\n\n    Outputs:\n        output_data: Transformed table.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')
+      _parser = argparse.ArgumentParser(prog='Pandas Transform DataFrame in CSV format', description='Transform DataFrame loaded from a CSV file.\n\n    Inputs:\n        table: Table to transform.\n        transform_code: Transformation code. Code is written in Python and can consist of multiple lines.\n            The DataFrame variable is called "df".\n            Examples:\n            - `df[\'prod\'] = df[\'X\'] * df[\'Y\']`\n            - `df = df[[\'X\', \'prod\']]`\n            - `df.insert(0, "is_positive", df["X"] > 0)`\n\n    Outputs:\n        transformed_table: Transformed table.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')
       _parser.add_argument("--table", dest="table_path", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--transform-code", dest="transform_code", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-table", dest="output_table_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--transformed-table", dest="transformed_table_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parsed_args = vars(_parser.parse_args())
 
       _outputs = Pandas_Transform_DataFrame_in_CSV_format(**_parsed_args)
@@ -85,5 +85,5 @@ implementation:
     - {inputPath: table}
     - --transform-code
     - {inputValue: transform_code}
-    - --output-table
-    - {outputPath: output_table}
+    - --transformed-table
+    - {outputPath: transformed_table}
