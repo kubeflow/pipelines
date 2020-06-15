@@ -745,6 +745,7 @@ func TestCreateRun_WithOldestRunDeleted(t *testing.T) {
 	nowTime := time.Now()
 	workflowForRun1 := util.NewWorkflow(testWorkflow.DeepCopy())
 	workflowForRun1.Name = "workflow1"
+	workflowForRun1.ObjectMeta.Labels[util.LabelKeyWorkflowPersistedFinalState] = "true"
 	workflowForRun1.CreationTimestamp = v1.NewTime(nowTime)
 	apiRun := &api.Run{
 		Name: "run1",
@@ -766,6 +767,7 @@ func TestCreateRun_WithOldestRunDeleted(t *testing.T) {
 	assert.Nil(t, err)
 	workflowForRun2 := util.NewWorkflow(testWorkflow.DeepCopy())
 	workflowForRun2.Name = "workflow2"
+	workflowForRun2.ObjectMeta.Labels[util.LabelKeyWorkflowPersistedFinalState] = "true"
 	workflowForRun2.CreationTimestamp = v1.NewTime(nowTime.Add(1))
 	apiRun = &api.Run{
 		Name: "run2",
