@@ -389,13 +389,16 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// The cleanup of excessive workflows here is just a best-effort attempt, since we have Persistent Agent to do garbage collection.
 	workflows, err := r.getWorkflowClient(namespace).List(v1.ListOptions{})
 	if err == nil && workflows != nil && workflows.Items != nil && len(workflows.Items) >= *maximumNumberOfWorkflowCRDs {
-		oldest := &workflows.Items[0]
+		oldestIndex := -1
 		for i := range workflows.Items {
-			if workflows.Items[i].CreationTimestamp.Time.Before(oldest.CreationTimestamp.Time) && util.NewWorkflow(&workflows.Items[i]).PersistedFinalState() {
-				oldest = &workflows.Items[i]
+			if util.NewWorkflow(&workflows.Items[i]).PersistedFinalState() {
+				if oldestIndex < 0 || oldestIndex >= 0 && workflows.Items[i].CreationTimestamp.Time.Before(workflows.Items[oldestIndex].CreationTimestamp.Time) {
+					oldestIndex = i
 			}
 		}
-		r.getWorkflowClient(namespace).Delete(oldest.Name, &v1.DeleteOptions{})
+		if oldestIndex >= 0 {
+			r.getWorkflowClient(namespace).Delete(workflows.Items[oldestIndex].Name, &v1.DeleteOptions{})
+		}
 	}
 
 	// Create argo workflow CRD resource
