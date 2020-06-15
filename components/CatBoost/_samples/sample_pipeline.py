@@ -11,6 +11,8 @@ catboost_predict_class_probabilities_op = components.load_component_from_url('ht
 catboost_to_apple_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/470a5ba3/components/CatBoost/convert_CatBoostModel_to_AppleCoreMLModel/component.yaml')
 catboost_to_onnx_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/470a5ba3/components/CatBoost/convert_CatBoostModel_to_ONNX/component.yaml')
 
+convert_csv_to_apache_parquet_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/d737c448723b9f541a3543012b4414c17b2eab5c/components/_converters/ApacheParquet/from_CSV/component.yaml')
+pandas_transform_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/fbd7bb6844c69977298c539a6d485ea68422848a/components/pandas/Transform_DataFrame/in_ApacheParquet_format/component.yaml')
 
 def catboost_pipeline():
     training_data = chicago_taxi_dataset_op(
@@ -35,6 +37,12 @@ def catboost_pipeline():
 
     catboost_to_apple_op(catboost_train_regression_task.outputs['model'])
     catboost_to_onnx_op(catboost_train_regression_task.outputs['model'])
+
+    training_data_in_parquet = convert_csv_to_apache_parquet_op(training_data).output
+    training_data_for_classification = pandas_transform_op(
+        dataframe=training_data_in_parquet,
+        transform_code='''df["was_tipped"] = df["tips"] > 0''',
+    ).output
 
     catboost_train_classifier_task = catboost_train_classifier_op(
         training_data=training_data,
