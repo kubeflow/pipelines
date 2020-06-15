@@ -9,7 +9,8 @@ description: |-
           label_column: Column containing the label data.
 
           loss_function: The metric to use in training and also selector of the machine learning
-              problem to solve. Default = 'Logloss'
+              problem to solve. Default = 'RMSE'. Possible values:
+              'RMSE', 'MAE', 'Quantile:alpha=value', 'LogLinQuantile:alpha=value', 'Poisson', 'MAPE', 'Lq:q=value'
           num_iterations: Number of trees to add to the ensemble.
           learning_rate: Step size shrinkage used in update to prevents overfitting.
               Default value is selected automatically for binary classification with other parameters set to default.
@@ -29,7 +30,7 @@ inputs:
 - {name: training_data, type: CSV}
 - {name: starting_model, type: CatBoostModel, optional: true}
 - {name: label_column, type: Integer, default: '0', optional: true}
-- {name: loss_function, type: String, default: Logloss, optional: true}
+- {name: loss_function, type: String, default: RMSE, optional: true}
 - {name: num_iterations, type: Integer, default: '500', optional: true}
 - {name: learning_rate, type: Float, optional: true}
 - {name: depth, type: Integer, default: '6', optional: true}
@@ -62,7 +63,7 @@ implementation:
           starting_model_path = None,
           label_column = 0,
 
-          loss_function = 'Logloss',
+          loss_function = 'RMSE',
           num_iterations = 500,
           learning_rate = None,
           depth = 6,
@@ -81,7 +82,8 @@ implementation:
               label_column: Column containing the label data.
 
               loss_function: The metric to use in training and also selector of the machine learning
-                  problem to solve. Default = 'Logloss'
+                  problem to solve. Default = 'RMSE'. Possible values:
+                  'RMSE', 'MAE', 'Quantile:alpha=value', 'LogLinQuantile:alpha=value', 'Poisson', 'MAPE', 'Lq:q=value'
               num_iterations: Number of trees to add to the ensemble.
               learning_rate: Step size shrinkage used in update to prevents overfitting.
                   Default value is selected automatically for binary classification with other parameters set to default.
@@ -138,7 +140,7 @@ implementation:
 
       import json
       import argparse
-      _parser = argparse.ArgumentParser(prog='Catboost train regression', description="Train a CatBoost classifier model.\n\n    Args:\n        training_data_path: Path for the training data in CSV format.\n        model_path: Output path for the trained model in binary CatBoostModel format.\n        starting_model_path: Path for the existing trained model to start from.\n        label_column: Column containing the label data.\n\n        loss_function: The metric to use in training and also selector of the machine learning\n            problem to solve. Default = 'Logloss'\n        num_iterations: Number of trees to add to the ensemble.\n        learning_rate: Step size shrinkage used in update to prevents overfitting.\n            Default value is selected automatically for binary classification with other parameters set to default.\n            In all other cases default is 0.03.\n        depth: Depth of a tree. All trees are the same depth. Default = 6\n        random_seed: Random number seed. Default = 0\n\n        cat_features: A list of Categorical features (indices or names).\n        additional_training_options: A dictionary with additional options to pass to CatBoostRegressor\n\n    Outputs:\n        model: Trained model in binary CatBoostModel format.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>")
+      _parser = argparse.ArgumentParser(prog='Catboost train regression', description="Train a CatBoost classifier model.\n\n    Args:\n        training_data_path: Path for the training data in CSV format.\n        model_path: Output path for the trained model in binary CatBoostModel format.\n        starting_model_path: Path for the existing trained model to start from.\n        label_column: Column containing the label data.\n\n        loss_function: The metric to use in training and also selector of the machine learning\n            problem to solve. Default = 'RMSE'. Possible values:\n            'RMSE', 'MAE', 'Quantile:alpha=value', 'LogLinQuantile:alpha=value', 'Poisson', 'MAPE', 'Lq:q=value'\n        num_iterations: Number of trees to add to the ensemble.\n        learning_rate: Step size shrinkage used in update to prevents overfitting.\n            Default value is selected automatically for binary classification with other parameters set to default.\n            In all other cases default is 0.03.\n        depth: Depth of a tree. All trees are the same depth. Default = 6\n        random_seed: Random number seed. Default = 0\n\n        cat_features: A list of Categorical features (indices or names).\n        additional_training_options: A dictionary with additional options to pass to CatBoostRegressor\n\n    Outputs:\n        model: Trained model in binary CatBoostModel format.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>")
       _parser.add_argument("--training-data", dest="training_data_path", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--starting-model", dest="starting_model_path", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--label-column", dest="label_column", type=int, required=False, default=argparse.SUPPRESS)

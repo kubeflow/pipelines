@@ -6,7 +6,7 @@ def catboost_train_regression(
     starting_model_path: InputPath('CatBoostModel') = None,
     label_column: int = 0,
 
-    loss_function: str = 'Logloss',
+    loss_function: str = 'RMSE',
     num_iterations: int = 500,
     learning_rate: float = None,
     depth: int = 6,
@@ -25,7 +25,8 @@ def catboost_train_regression(
         label_column: Column containing the label data.
 
         loss_function: The metric to use in training and also selector of the machine learning
-            problem to solve. Default = 'Logloss'
+            problem to solve. Default = 'RMSE'. Possible values:
+            'RMSE', 'MAE', 'Quantile:alpha=value', 'LogLinQuantile:alpha=value', 'Poisson', 'MAPE', 'Lq:q=value'
         num_iterations: Number of trees to add to the ensemble.
         learning_rate: Step size shrinkage used in update to prevents overfitting.
             Default value is selected automatically for binary classification with other parameters set to default.
