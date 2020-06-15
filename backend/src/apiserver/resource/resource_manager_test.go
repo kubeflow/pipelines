@@ -720,9 +720,11 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 	assert.Contains(t, err.Error(), "database is closed")
 }
 
-func TestCreateRun_WithOldestRunDeleted(t *testing.T) {
-	// Set maximum number of allowed workflows to be 2.
-	*maximumNumberOfWorkflowCRDs = 2
+// In this test, we simulate the scenerio when the 4th workflow is being created
+// and a maximum of 3 workflows are allowed.
+func TestCreateRun_WithOldestPersistedFinalWorkflowDeleted(t *testing.T) {
+	// Set maximum number of allowed workflows to be 3.
+	*maximumNumberOfWorkflowCRDs = 3
 
 	// Create resource manager and an experiment.
 	uuid := util.NewUUIDGenerator()
@@ -741,7 +743,7 @@ func TestCreateRun_WithOldestRunDeleted(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	// Create the first and the second workflows, named "workflow1" and "workflow2" respectively.
+	// Create three workflows, named "workflow1", "workflow2" and "workflow3" respectively.
 	nowTime := time.Now()
 	workflowForRun1 := util.NewWorkflow(testWorkflow.DeepCopy())
 	workflowForRun1.Name = "workflow1"
@@ -785,16 +787,6 @@ func TestCreateRun_WithOldestRunDeleted(t *testing.T) {
 	}
 	_, err = manager.CreateRun(apiRun)
 	assert.Nil(t, err)
-	AddWorkflowLabel(store.ArgoClientFake.GetWorkflowClient(), workflowForRun1.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
-	AddWorkflowLabel(store.ArgoClientFake.GetWorkflowClient(), workflowForRun2.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
-
-	// Expect two runs and two workflows.
-	opts, err := list.NewOptions(&model.Run{}, 2, "", nil)
-	runs, _, _, _ := manager.ListRuns(&common.FilterContext{}, opts)
-	assert.Equal(t, 2, len(runs), "Run count is not as expected")
-	assert.Equal(t, 2, store.ArgoClientFake.GetWorkflowCount(), "Workflow count is not as expected.")
-
-	// Create the third workflow and will end up with the oldest workflow being deleted.
 	workflowForRun3 := util.NewWorkflow(testWorkflow.DeepCopy())
 	workflowForRun3.Name = "workflow3"
 	workflowForRun3.CreationTimestamp = v1.NewTime(nowTime.Add(2))
@@ -817,14 +809,50 @@ func TestCreateRun_WithOldestRunDeleted(t *testing.T) {
 	_, err = manager.CreateRun(apiRun)
 	assert.Nil(t, err)
 
-	// Expect two runs and two workflows. Moreover, workflow1 is replaced by workflow3.
-	opts, err = list.NewOptions(&model.Run{}, 2, "", nil)
+	// Workflow2 and workflow 3 are marked as persisted final while workflow1 is not.
+	AddWorkflowLabel(store.ArgoClientFake.GetWorkflowClient(), workflowForRun2.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
+	AddWorkflowLabel(store.ArgoClientFake.GetWorkflowClient(), workflowForRun3.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
+
+	// Expect three runs and three workflows.
+	opts, err := list.NewOptions(&model.Run{}, 3, "", nil)
+	runs, _, _, _ := manager.ListRuns(&common.FilterContext{}, opts)
+	assert.Equal(t, 3, len(runs), "Run count is not as expected")
+	assert.Equal(t, 3, store.ArgoClientFake.GetWorkflowCount(), "Workflow count is not as expected.")
+
+	// Create the forth workflow and will end up with the oldest workflow being deleted.
+	workflowForRun4 := util.NewWorkflow(testWorkflow.DeepCopy())
+	workflowForRun4.Name = "workflow4"
+	workflowForRun4.CreationTimestamp = v1.NewTime(nowTime.Add(3))
+	apiRun = &api.Run{
+		Name: "run4",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: workflowForRun4.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+		ServiceAccount: "sa1",
+	}
+	_, err = manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+
+	// Out of workflow1, workflow2 and workflow3, workflow2 is removed to make
+	// space for workflow4 because, in spite of the fact that workflow1 is older
+	// than workflow2, workflow1 is not in a persisted final state. Instead,
+	// workflow2 is the oldest one with a persisted final state.
+	opts, err = list.NewOptions(&model.Run{}, 3, "", nil)
 	runs, _, _, _ = manager.ListRuns(&common.FilterContext{}, opts)
-	assert.Equal(t, 2, len(runs), "Run count is not as expected")
-	assert.Equal(t, 2, store.ArgoClientFake.GetWorkflowCount(), "Workflow count is not as expected.")
+	assert.Equal(t, 3, len(runs), "Run count is not as expected")
+	assert.Equal(t, 3, store.ArgoClientFake.GetWorkflowCount(), "Workflow count is not as expected.")
 	retrievedWorkflows, err := store.ArgoClientFake.GetWorkflows()
 	for _, wf := range retrievedWorkflows.Items {
-		assert.Contains(t, [2]string{"workflow2", "workflow3"}, wf.Name)
+		assert.Contains(t, [3]string{"workflow1", "workflow3", "workflow4"}, wf.Name)
 	}
 }
 
