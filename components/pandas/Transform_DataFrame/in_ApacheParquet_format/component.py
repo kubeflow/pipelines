@@ -1,32 +1,30 @@
 from kfp.components import InputPath, OutputPath, create_component_from_func
 
 def Pandas_Transform_DataFrame_in_ApacheParquet_format(
-    dataframe_path: InputPath('ApacheParquet'),
-    output_dataframe_path: OutputPath('ApacheParquet'),
+    table_path: InputPath('ApacheParquet'),
+    transformed_table_path: OutputPath('ApacheParquet'),
     transform_code: 'PythonCode',
 ):
     '''Transform DataFrame loaded from an ApacheParquet file.
 
     Inputs:
-        dataframe: DataFrame to transform.
+        table: DataFrame to transform.
         transform_code: Transformation code. Code is written in Python and can consist of multiple lines.
             The DataFrame variable is called "df".
             Example: `df['prod'] = df['X'] * df['Y']` or `df = df[['X', 'prod']]`
 
     Outputs:
-        output_dataframe: Transformed DataFrame.
+        output_table: Transformed DataFrame.
 
     Annotations:
         author: Alexey Volkov <alexey.volkov@ark-kun.com>
     '''
-    import pandas  # This import can be used in the transformation code
-    import pyarrow
+    import pandas
     from pyarrow import parquet
 
-    df = parquet.read_pandas(dataframe_path).to_pandas()
+    df = pandas.read_parquet(table_path)
     exec(transform_code)
-    table = pyarrow.Table.from_pandas(df)
-    parquet.write_table(table, output_dataframe_path)
+    df.to_parquet(transformed_table_path)
 
 
 if __name__ == '__main__':
@@ -35,7 +33,7 @@ if __name__ == '__main__':
         output_component_file='component.yaml',
         base_image='python:3.7',
         packages_to_install=[
-            'pyarrow==0.14.1',
             'pandas==1.0.4',
+            'pyarrow==0.14.1',
         ],
     )
