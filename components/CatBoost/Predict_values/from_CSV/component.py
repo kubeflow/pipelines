@@ -38,6 +38,8 @@ def catboost_predict_values(
     eval_data = Pool(
         data_path,
         column_description=column_description_path,
+        has_header=True,
+        delimiter=',',
     )
 
     model = CatBoost()
