@@ -1,0 +1,82 @@
+name: Pandas Transform DataFrame in ApacheParquet format
+description: |-
+  Transform DataFrame loaded from an ApacheParquet file.
+
+      Inputs:
+          dataframe: DataFrame to transform.
+          transform_code: Transformation code. Code is written in Python and can consist of multiple lines.
+              The DataFrame variable is called "df".
+              Example: `df['prod'] = df['X'] * df['Y']` or `df = df[['X', 'prod']]`
+
+      Outputs:
+          output_dataframe: Transformed DataFrame.
+
+      Annotations:
+          author: Alexey Volkov <alexey.volkov@ark-kun.com>
+inputs:
+- {name: dataframe, type: ApacheParquet}
+- {name: transform_code, type: PythonCode}
+outputs:
+- {name: output_dataframe, type: ApacheParquet}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pyarrow==0.14.1' 'pandas==1.0.4' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'pyarrow==0.14.1' 'pandas==1.0.4'
+      --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def Pandas_Transform_DataFrame_in_ApacheParquet_format(
+          dataframe_path,
+          output_dataframe_path,
+          transform_code,
+      ):
+          '''Transform DataFrame loaded from an ApacheParquet file.
+
+          Inputs:
+              dataframe: DataFrame to transform.
+              transform_code: Transformation code. Code is written in Python and can consist of multiple lines.
+                  The DataFrame variable is called "df".
+                  Example: `df['prod'] = df['X'] * df['Y']` or `df = df[['X', 'prod']]`
+
+          Outputs:
+              output_dataframe: Transformed DataFrame.
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          '''
+          import pandas  # This import can be used in the transformation code
+          import pyarrow
+          from pyarrow import parquet
+
+          df = parquet.read_pandas(dataframe_path).to_pandas()
+          exec(transform_code)
+          table = pyarrow.Table.from_pandas(df)
+          parquet.write_table(table, output_dataframe_path)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Pandas Transform DataFrame in ApacheParquet format', description='Transform DataFrame loaded from an ApacheParquet file.\n\n    Inputs:\n        dataframe: DataFrame to transform.\n        transform_code: Transformation code. Code is written in Python and can consist of multiple lines.\n            The DataFrame variable is called "df".\n            Example: `df[\'prod\'] = df[\'X\'] * df[\'Y\']` or `df = df[[\'X\', \'prod\']]`\n\n    Outputs:\n        output_dataframe: Transformed DataFrame.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')
+      _parser.add_argument("--dataframe", dest="dataframe_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--transform-code", dest="transform_code", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-dataframe", dest="output_dataframe_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = Pandas_Transform_DataFrame_in_ApacheParquet_format(**_parsed_args)
+    args:
+    - --dataframe
+    - {inputPath: dataframe}
+    - --transform-code
+    - {inputValue: transform_code}
+    - --output-dataframe
+    - {outputPath: output_dataframe}
