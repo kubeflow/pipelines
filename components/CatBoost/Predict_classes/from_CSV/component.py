@@ -2,7 +2,7 @@ from kfp.components import InputPath, OutputPath, create_component_from_func
 
 def catboost_predict_classes(
     data_path: InputPath('CSV'),
-    model_path: InputPath('CatBoostClassifierModel'),
+    model_path: InputPath('CatBoostModel'),
     predictions_path: OutputPath(),
 
     label_column: int = None,
@@ -11,7 +11,7 @@ def catboost_predict_classes(
 
     Args:
         data_path: Path for the data in CSV format.
-        model_path: Path for the trained model in binary CatBoostClassifier format.
+        model_path: Path for the trained model in binary CatBoostModel format.
         label_column: Column containing the label data.
         predictions_path: Output path for the predictions.
 
