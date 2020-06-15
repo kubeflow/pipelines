@@ -46,7 +46,7 @@ def catboost_predict_classes(
     model.load_model(model_path)
 
     predictions = model.predict(eval_data)
-    numpy.savetxt(predictions_path, predictions)
+    numpy.savetxt(predictions_path, predictions, fmt='%s')
 
 
 if __name__ == '__main__':

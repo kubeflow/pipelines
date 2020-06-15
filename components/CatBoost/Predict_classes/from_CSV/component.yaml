@@ -83,7 +83,7 @@ implementation:
           model.load_model(model_path)
 
           predictions = model.predict(eval_data)
-          numpy.savetxt(predictions_path, predictions)
+          numpy.savetxt(predictions_path, predictions, fmt='%s')
 
       import argparse
       _parser = argparse.ArgumentParser(prog='Catboost predict classes', description='Predict classes using the CatBoost classifier model.\n\n    Args:\n        data_path: Path for the data in CSV format.\n        model_path: Path for the trained model in binary CatBoostModel format.\n        label_column: Column containing the label data.\n        predictions_path: Output path for the predictions.\n\n    Outputs:\n        predictions: Class predictions in text format.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')
