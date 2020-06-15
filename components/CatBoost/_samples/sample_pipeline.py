@@ -31,8 +31,8 @@ def catboost_pipeline():
         label_column=0,
     )
 
-    catboost_to_apple_op(catboost_train_classifier_task.outputs['model'])
-    catboost_to_onnx_op(catboost_train_classifier_task.outputs['model'])
+    catboost_to_apple_op(catboost_train_regression_task.outputs['model'])
+    catboost_to_onnx_op(catboost_train_regression_task.outputs['model'])
 
     catboost_train_classifier_task = catboost_train_classifier_op(
         training_data=get_training_data_task.output,
