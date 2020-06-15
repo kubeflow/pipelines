@@ -1,7 +1,7 @@
 from kfp.components import InputPath, OutputPath, create_component_from_func
 
 def convert_CatBoostModel_to_ONNX(
-    model_path: InputPath('CatBoostClassifierModel'),
+    model_path: InputPath('CatBoostModel'),
     converted_model_path: OutputPath('ONNX'),
 ):
     '''Convert CatBoost model to ONNX format.

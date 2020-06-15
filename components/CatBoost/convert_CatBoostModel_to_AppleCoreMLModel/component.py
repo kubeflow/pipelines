@@ -1,7 +1,7 @@
 from kfp.components import InputPath, OutputPath, create_component_from_func
 
 def convert_CatBoostModel_to_AppleCoreMLModel(
-    model_path: InputPath('CatBoostClassifierModel'),
+    model_path: InputPath('CatBoostModel'),
     converted_model_path: OutputPath('AppleCoreMLModel'),
 ):
     '''Convert CatBoost model to Apple CoreML format.
@@ -20,7 +20,12 @@ def convert_CatBoostModel_to_AppleCoreMLModel(
 
     model = CatBoost()
     model.load_model(model_path)
-    model.save_model(converted_model_path, format="coreml", export_parameters={'prediction_type': 'probability'})
+    model.save_model(
+        converted_model_path,
+        format="coreml",
+        # export_parameters={'prediction_type': 'probability'},
+        # export_parameters={'prediction_type': 'raw'},
+    )
 
 
 if __name__ == '__main__':
