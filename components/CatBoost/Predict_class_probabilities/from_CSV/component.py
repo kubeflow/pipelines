@@ -45,7 +45,7 @@ def catboost_predict_class_probabilities(
     model = CatBoost()
     model.load_model(model_path)
 
-    predictions = model.predict(eval_data, prediction_type='Probabilities')
+    predictions = model.predict(eval_data, prediction_type='Probability')
     numpy.savetxt(predictions_path, predictions)
 
 
