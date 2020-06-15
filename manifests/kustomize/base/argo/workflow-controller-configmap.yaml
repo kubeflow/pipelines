@@ -10,7 +10,7 @@ data:
     artifactRepository:
     {
         s3: {
-            bucket: $(BUCKET_NAME),
+            bucket: $(kfp-artifact-bucket-name),
             keyPrefix: artifacts,
             endpoint: minio-service.$(kfp-namespace):9000,
             insecure: true,
