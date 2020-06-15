@@ -2,8 +2,8 @@ from kfp.components import InputPath, OutputPath, create_component_from_func
 
 def catboost_train_classifier(
     training_data_path: InputPath('CSV'),
-    model_path: OutputPath('CatBoostClassifierModel'),
-    starting_model_path: InputPath('CatBoostClassifierModel') = None,
+    model_path: OutputPath('CatBoostModel'),
+    starting_model_path: InputPath('CatBoostModel') = None,
     label_column: int = 0,
 
     loss_function: str = 'Logloss',
@@ -21,7 +21,7 @@ def catboost_train_classifier(
 
     Args:
         training_data_path: Path for the training data in CSV format.
-        model_path: Output path for the trained model in binary CatBoostClassifier format.
+        model_path: Output path for the trained model in binary CatBoostModel format.
         starting_model_path: Path for the existing trained model to start from.
         label_column: Column containing the label data.
 
@@ -39,7 +39,7 @@ def catboost_train_classifier(
         additional_training_options: A dictionary with additional options to pass to CatBoostClassifier
 
     Outputs:
-        model: Trained model in binary CatBoostClassifier format.
+        model: Trained model in binary CatBoostModel format.
 
     Annotations:
         author: Alexey Volkov <alexey.volkov@ark-kun.com>
