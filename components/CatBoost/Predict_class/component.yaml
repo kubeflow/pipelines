@@ -59,13 +59,12 @@ implementation:
               author: Alexey Volkov <alexey.volkov@ark-kun.com>
           '''
           import tempfile
-          from pathlib import Path
 
           from catboost import CatBoostClassifier, Pool
           import numpy
 
           if label_column:
-              column_descriptions = {label_column, 'Label'}
+              column_descriptions = {label_column: 'Label'}
               column_description_path = tempfile.NamedTemporaryFile(delete=False).name
               with open(column_description_path, 'w') as column_description_file:
                   for idx, kind in column_descriptions.items():
@@ -91,22 +90,8 @@ implementation:
       _parser.add_argument("--label-column", dest="label_column", type=int, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--predictions", dest="predictions_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parsed_args = vars(_parser.parse_args())
-      _output_files = _parsed_args.pop("_output_paths", [])
 
       _outputs = catboost_predict_class(**_parsed_args)
-
-      _output_serializers = [
-
-      ]
-
-      import os
-      for idx, output_file in enumerate(_output_files):
-          try:
-              os.makedirs(os.path.dirname(output_file))
-          except OSError:
-              pass
-          with open(output_file, 'w') as f:
-              f.write(_output_serializers[idx](_outputs[idx]))
     args:
     - --data
     - {inputPath: data}

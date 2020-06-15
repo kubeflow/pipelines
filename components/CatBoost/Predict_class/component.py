@@ -22,13 +22,12 @@ def catboost_predict_class(
         author: Alexey Volkov <alexey.volkov@ark-kun.com>
     '''
     import tempfile
-    from pathlib import Path
 
     from catboost import CatBoostClassifier, Pool
     import numpy
 
     if label_column:
-        column_descriptions = {label_column, 'Label'}
+        column_descriptions = {label_column: 'Label'}
         column_description_path = tempfile.NamedTemporaryFile(delete=False).name
         with open(column_description_path, 'w') as column_description_file:
             for idx, kind in column_descriptions.items():
