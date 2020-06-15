@@ -48,8 +48,8 @@ const (
 
 var (
 	// https://github.com/kubernetes/enhancements/blob/master/keps/sig-api-machinery/20180415-crds-to-ga.md#scale-targets-for-ga
-	maximumNumberOfWorkflowCRDs = flag.Int("max_num_workflows", 500,
-		"Maximum number of workflows allowed within the namespace before the controller starts deleting the oldest one. Should be > 0")
+	maximumNumberOfWorkflowCRDs = flag.Int("max_num_workflows", 0,
+		"Maximum number of workflows allowed within the namespace before the controller starts deleting the oldest one. 0 or negative value means no limit. Recommended value is 500.")
 )
 
 type ClientManagerInterface interface {
@@ -386,18 +386,23 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	// Check if the number of workflow CRDs is already over the specified threshold. If yes, delete the oldest workflow in the persisted final state.
-	// The cleanup of excessive workflows here is just a best-effort attempt, since we have Persistent Agent to do garbage collection.
-	workflows, err := r.getWorkflowClient(namespace).List(v1.ListOptions{})
-	if err == nil && workflows != nil && workflows.Items != nil && len(workflows.Items) >= *maximumNumberOfWorkflowCRDs {
-		oldestIndex := -1
-		for i := range workflows.Items {
-			if util.NewWorkflow(&workflows.Items[i]).PersistedFinalState() {
-				if oldestIndex < 0 || oldestIndex >= 0 && workflows.Items[i].CreationTimestamp.Time.Before(workflows.Items[oldestIndex].CreationTimestamp.Time) {
-					oldestIndex = i
+	// In addition, if flag maximumNumberOfWorkflowCRDs is 0 or negative, no enforcement of maximum amount of workflows.
+	if *maximumNumberOfWorkflowCRDs > 0 {
+		workflows, err := r.getWorkflowClient(namespace).List(v1.ListOptions{})
+		if err == nil && workflows != nil && workflows.Items != nil && len(workflows.Items) >= *maximumNumberOfWorkflowCRDs {
+			oldestIndex := -1
+			for i := range workflows.Items {
+				if util.NewWorkflow(&workflows.Items[i]).PersistedFinalState() {
+					if oldestIndex < 0 || oldestIndex >= 0 && workflows.Items[i].CreationTimestamp.Time.Before(workflows.Items[oldestIndex].CreationTimestamp.Time) {
+						oldestIndex = i
+					}
+				}
+				if oldestIndex >= 0 {
+					r.getWorkflowClient(namespace).Delete(workflows.Items[oldestIndex].Name, &v1.DeleteOptions{})
+				} else {
+					return nil, util.NewInternalServerError(err, "Maximum number of %d workflows have been reached.", *maximumNumberOfWorkflowCRDs)
+				}
 			}
-		}
-		if oldestIndex >= 0 {
-			r.getWorkflowClient(namespace).Delete(workflows.Items[oldestIndex].Name, &v1.DeleteOptions{})
 		}
 	}
 
