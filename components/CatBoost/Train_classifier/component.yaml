@@ -19,6 +19,7 @@ description: |-
 
           cat_features: A list of Categorical features (indices or names).
           text_features: A list of Text features (indices or names).
+          additional_training_options: A dictionary with additional options to pass to CatBoostRegressor
 
       Outputs:
           model: Trained model in binary CatBoostClassifier format.
@@ -36,6 +37,7 @@ inputs:
 - {name: random_seed, type: Integer, default: '0', optional: true}
 - {name: cat_features, type: JsonArray, optional: true}
 - {name: text_features, type: JsonArray, optional: true}
+- {name: additional_training_options, type: JsonObject, default: '{}', optional: true}
 outputs:
 - {name: model, type: CatBoostClassifierModel}
 implementation:
@@ -70,6 +72,8 @@ implementation:
 
           cat_features = None,
           text_features = None,
+
+          additional_training_options = {},
       ):
           '''Train a CatBoost classifier model.
 
@@ -90,6 +94,7 @@ implementation:
 
               cat_features: A list of Categorical features (indices or names).
               text_features: A list of Text features (indices or names).
+              additional_training_options: A dictionary with additional options to pass to CatBoostRegressor
 
           Outputs:
               model: Trained model in binary CatBoostClassifier format.
@@ -122,6 +127,7 @@ implementation:
               loss_function=loss_function,
               random_seed=random_seed,
               verbose=True,
+              **additional_training_options,
           )
 
           model.fit(
@@ -137,7 +143,7 @@ implementation:
 
       import json
       import argparse
-      _parser = argparse.ArgumentParser(prog='Catboost train classifier', description="Train a CatBoost classifier model.\n\n    Args:\n        training_data_path: Path for the training data in CSV format.\n        model_path: Output path for the trained model in binary CatBoostClassifier format.\n        starting_model_path: Path for the existing trained model to start from.\n        label_column: Column containing the label data.\n\n        loss_function: The metric to use in training and also selector of the machine learning\n            problem to solve. Default = 'Logloss'\n        num_iterations: Number of trees to add to the ensemble.\n        learning_rate: Step size shrinkage used in update to prevents overfitting.\n            Default value is selected automatically for binary classification with other parameters set to default.\n            In all other cases default is 0.03.\n        depth: Depth of a tree. All trees are the same depth. Default = 6\n        random_seed: Random number seed. Default = 0\n\n        cat_features: A list of Categorical features (indices or names).\n        text_features: A list of Text features (indices or names).\n\n    Outputs:\n        model: Trained model in binary CatBoostClassifier format.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>")
+      _parser = argparse.ArgumentParser(prog='Catboost train classifier', description="Train a CatBoost classifier model.\n\n    Args:\n        training_data_path: Path for the training data in CSV format.\n        model_path: Output path for the trained model in binary CatBoostClassifier format.\n        starting_model_path: Path for the existing trained model to start from.\n        label_column: Column containing the label data.\n\n        loss_function: The metric to use in training and also selector of the machine learning\n            problem to solve. Default = 'Logloss'\n        num_iterations: Number of trees to add to the ensemble.\n        learning_rate: Step size shrinkage used in update to prevents overfitting.\n            Default value is selected automatically for binary classification with other parameters set to default.\n            In all other cases default is 0.03.\n        depth: Depth of a tree. All trees are the same depth. Default = 6\n        random_seed: Random number seed. Default = 0\n\n        cat_features: A list of Categorical features (indices or names).\n        text_features: A list of Text features (indices or names).\n        additional_training_options: A dictionary with additional options to pass to CatBoostRegressor\n\n    Outputs:\n        model: Trained model in binary CatBoostClassifier format.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>")
       _parser.add_argument("--training-data", dest="training_data_path", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--starting-model", dest="starting_model_path", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--label-column", dest="label_column", type=int, required=False, default=argparse.SUPPRESS)
@@ -148,6 +154,7 @@ implementation:
       _parser.add_argument("--random-seed", dest="random_seed", type=int, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--cat-features", dest="cat_features", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--text-features", dest="text_features", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--additional-training-options", dest="additional_training_options", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--model", dest="model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parsed_args = vars(_parser.parse_args())
 
@@ -200,5 +207,10 @@ implementation:
         then:
         - --text-features
         - {inputValue: text_features}
+    - if:
+        cond: {isPresent: additional_training_options}
+        then:
+        - --additional-training-options
+        - {inputValue: additional_training_options}
     - --model
     - {outputPath: model}

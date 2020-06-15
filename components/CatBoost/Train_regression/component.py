@@ -13,7 +13,8 @@ def catboost_train_regression(
     random_seed: int = 0,
 
     cat_features: list = None,
-    # text_features: list = None,
+
+    additional_training_options: dict = {},
 ):
     '''Train a CatBoost classifier model.
 
@@ -33,7 +34,7 @@ def catboost_train_regression(
         random_seed: Random number seed. Default = 0
 
         cat_features: A list of Categorical features (indices or names).
-        # text_features: A list of Text features (indices or names).
+        additional_training_options: A dictionary with additional options to pass to CatBoostRegressor
 
     Outputs:
         model: Trained model in binary CatBoostModel format.
@@ -66,12 +67,12 @@ def catboost_train_regression(
         loss_function=loss_function,
         random_seed=random_seed,
         verbose=True,
+        **additional_training_options,
     )
 
     model.fit(
         train_data,
         cat_features=cat_features,
-        #text_features=text_features,         
         init_model=starting_model_path,
         #verbose=False,
         #plot=True,

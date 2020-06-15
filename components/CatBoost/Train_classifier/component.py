@@ -14,6 +14,8 @@ def catboost_train_classifier(
 
     cat_features: list = None,
     text_features: list = None,
+
+    additional_training_options: dict = {},
 ):
     '''Train a CatBoost classifier model.
 
@@ -34,6 +36,7 @@ def catboost_train_classifier(
 
         cat_features: A list of Categorical features (indices or names).
         text_features: A list of Text features (indices or names).
+        additional_training_options: A dictionary with additional options to pass to CatBoostClassifier
 
     Outputs:
         model: Trained model in binary CatBoostClassifier format.
@@ -66,6 +69,7 @@ def catboost_train_classifier(
         loss_function=loss_function,
         random_seed=random_seed,
         verbose=True,
+        **additional_training_options,
     )
 
     model.fit(
