@@ -11,7 +11,10 @@ def Pandas_Transform_DataFrame_in_ApacheParquet_format(
         table: DataFrame to transform.
         transform_code: Transformation code. Code is written in Python and can consist of multiple lines.
             The DataFrame variable is called "df".
-            Example: `df['prod'] = df['X'] * df['Y']` or `df = df[['X', 'prod']]`
+            Examples:
+            - `df['prod'] = df['X'] * df['Y']`
+            - `df = df[['X', 'prod']]`
+            - `df.insert(0, "is_positive", df["X"] > 0)`
 
     Outputs:
         transformed_table: Transformed DataFrame.
