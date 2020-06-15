@@ -2,14 +2,14 @@ import kfp
 from kfp import components
 
 
-chicago_taxi_dataset_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/ce4ce20a/components/datasets/Chicago_Taxi_Trips/component.yaml')
-catboost_train_classifier_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/ce4ce20a/components/CatBoost/Train_classifier/component.yaml')
-catboost_train_regression_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/ce4ce20a/components/CatBoost/Train_regression/component.yaml')
-catboost_predict_classes_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/ce4ce20a/components/CatBoost/Predict_classes/component.yaml')
-catboost_predict_values_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/ce4ce20a/components/CatBoost/Predict_values/component.yaml')
-catboost_predict_class_probabilities_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/ce4ce20a/components/CatBoost/Predict_class_probabilities/component.yaml')
-catboost_to_apple_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/ce4ce20a/components/CatBoost/convert_CatBoostModel_to_AppleCoreMLModel/component.yaml')
-catboost_to_onnx_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/ce4ce20a/components/CatBoost/convert_CatBoostModel_to_ONNX/component.yaml')
+chicago_taxi_dataset_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/470a5ba3/components/datasets/Chicago_Taxi_Trips/component.yaml')
+catboost_train_classifier_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/470a5ba3/components/CatBoost/Train_classifier/from_CSV/component.yaml')
+catboost_train_regression_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/470a5ba3/components/CatBoost/Train_regression/from_CSV/component.yaml')
+catboost_predict_classes_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/470a5ba3/components/CatBoost/Predict_classes/from_CSV/component.yaml')
+catboost_predict_values_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/470a5ba3/components/CatBoost/Predict_values/from_CSV/component.yaml')
+catboost_predict_class_probabilities_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/470a5ba3/components/CatBoost/Predict_class_probabilities/from_CSV/component.yaml')
+catboost_to_apple_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/470a5ba3/components/CatBoost/convert_CatBoostModel_to_AppleCoreMLModel/component.yaml')
+catboost_to_onnx_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/470a5ba3/components/CatBoost/convert_CatBoostModel_to_ONNX/component.yaml')
 
 
 def catboost_pipeline():
