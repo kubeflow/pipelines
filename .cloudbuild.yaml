@@ -293,4 +293,4 @@ images:
 timeout: '3600s'
 options:
  diskSizeGb: 300
- machineType: 'E2_HIGHCPU_8'
+ machineType: 'N1_HIGHCPU_8'

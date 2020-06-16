@@ -15,7 +15,7 @@ steps:
      
 timeout: '3600s'
 options:
-  machineType: E2_HIGHCPU_8
+  machineType: N1_HIGHCPU_8
 
 substitutions:
   _DEPLOYER_VERSION: ''
