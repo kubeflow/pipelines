@@ -772,7 +772,6 @@ class Compiler(object):
   ) -> Dict[Text, Any]:
     """ Internal implementation of create_workflow."""
     params_list = params_list or []
-    argspec = inspect.getfullargspec(pipeline_func)
 
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
@@ -793,7 +792,8 @@ class Compiler(object):
       raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
     args_list = []
-    for arg_name in argspec.args:
+    signature = inspect.signature(pipeline_func)
+    for arg_name in signature.parameters:
       arg_type = None
       for input in pipeline_meta.inputs or []:
         if arg_name == input.name:
@@ -812,11 +812,10 @@ class Compiler(object):
     # Fill in the default values.
     args_list_with_defaults = []
     if pipeline_meta.inputs:
-      args_list_with_defaults = [dsl.PipelineParam(sanitize_k8s_name(arg_name, True))
-                                 for arg_name in argspec.args]
-      if argspec.defaults:
-        for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
-          arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
+      args_list_with_defaults = [
+        dsl.PipelineParam(sanitize_k8s_name(input_spec.name, True), value=input_spec.default)
+        for input_spec in pipeline_meta.inputs
+      ]
     elif params_list:
       # Or, if args are provided by params_list, fill in pipeline_meta.
       for param in params_list:

@@ -158,8 +158,8 @@ message ListRunsRequest {
   // to fetch the next page.
   int32 page_size = 2;
 
-  // Can be format of "field_name", "field_name asc" or "field_name des"
-  // (Example, "name asc" or "id des"). Ascending by default.
+  // Can be format of "field_name", "field_name asc" or "field_name desc"
+  // (Example, "name asc" or "id desc"). Ascending by default.
   string sort_by = 3;
 
   // What resource reference to filter on.

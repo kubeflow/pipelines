@@ -120,8 +120,8 @@ type ListRunsParams struct {
 	*/
 	ResourceReferenceKeyType *string
 	/*SortBy
-	  Can be format of "field_name", "field_name asc" or "field_name des"
-	(Example, "name asc" or "id des"). Ascending by default.
+	  Can be format of "field_name", "field_name asc" or "field_name desc"
+	(Example, "name asc" or "id desc"). Ascending by default.
 
 	*/
 	SortBy *string

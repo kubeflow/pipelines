@@ -10,7 +10,7 @@ jsonschema>=3.0.1
 kubernetes>=8.0.0, <12.0.0
 
 # kfp.Client
-kfp-server-api>=0.2.5, <0.4.0  #Update the upper version whenever a new version of the kfp-server-api package is released. Update the lower version when there is a breaking change in kfp-server-api, or kfp sdk depends on new api changes in kfp-server-api.
+kfp-server-api>=0.2.5, <2.0.0
 
 # kfp.Client GCP auth
 google-cloud-storage>=1.13.0

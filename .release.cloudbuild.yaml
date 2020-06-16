@@ -22,7 +22,40 @@ steps:
     - -ceux
     - |
       # Parse major minor version and save to a file for reusing in other steps.
-      echo $TAG_NAME | sed -e "s#[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)#\1.\2#" > /workspace/mm.ver
+      # e.g. 1.0.0-rc.1 and 1.0.1 are parsed as 1.0
+      echo $TAG_NAME | sed -e "s#\([0-9]\+[.][0-9]\+\)[.].*#\1#" > /workspace/mm.ver
+
+# Pull and retag images for pipeline components
+- id: 'retagComponentImages'
+  name: 'gcr.io/cloud-builders/docker'
+  entrypoint: bash
+  waitFor: ['-']
+  args:
+  - -ceux
+  - |
+    images=(
+      "ml-pipeline-kubeflow-deployer"
+      "ml-pipeline-kubeflow-tf-trainer"
+      "ml-pipeline-kubeflow-tf-trainer-gpu"
+      "ml-pipeline-kubeflow-tfjob"
+      "ml-pipeline-dataproc-analyze"
+      "ml-pipeline-dataproc-create-cluster"
+      "ml-pipeline-dataproc-delete-cluster"
+      "ml-pipeline-dataproc-predict"
+      "ml-pipeline-dataproc-transform"
+      "ml-pipeline-dataproc-train"
+      "ml-pipeline-local-confusion-matrix"
+      "ml-pipeline-local-roc"
+      "ml-pipeline-gcp"
+    )
+    for image in "${images[@]}"
+    do
+      from_image="gcr.io/$PROJECT_ID/$image:$COMMIT_SHA"
+      target_image="gcr.io/ml-pipeline/$image:$TAG_NAME"
+      docker pull $from_image
+      docker tag $from_image $target_image
+      docker push $target_image
+    done
 
 # Pull and retag the images for the pipeline system
 - name: 'gcr.io/cloud-builders/docker'

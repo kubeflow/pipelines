@@ -51,7 +51,7 @@
           },
           {
             "name": "sort_by",
-            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\".\nAscending by default.",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\".\nAscending by default.",
             "in": "query",
             "required": false,
             "type": "string"
