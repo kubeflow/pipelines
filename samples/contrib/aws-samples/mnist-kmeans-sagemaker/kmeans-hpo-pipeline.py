@@ -3,12 +3,15 @@
 
 import kfp
 import json
+import os
 import copy
 from kfp import components
 from kfp import dsl
 from kfp.aws import use_aws_secret
 
-sagemaker_hpo_op = components.load_component_from_file('../../../../components/aws/sagemaker/hyperparameter_tuning/component.yaml')
+
+components_dir = os.path.join(os.path.dirname(__file__), '../../../../components/aws/sagemaker/')
+sagemaker_hpo_op = components.load_component_from_file(os.path.join(components_dir, 'hyperparameter_tuning/component.yaml'))
 
 
 channelObjList = []
@@ -40,7 +43,7 @@ channelObjList.append(copy.deepcopy(channelObj))
     description='SageMaker hyperparameter tuning job test'
 )
 def hpo_test(region='us-east-1',
-    hpo_job_name='HPO-kmeans-sample',
+    job_name='HPO-kmeans-sample',
     image='',
     algorithm_name='K-Means',
     training_input_mode='File',
@@ -81,7 +84,7 @@ def hpo_test(region='us-east-1',
     training = sagemaker_hpo_op(
         region=region,
         endpoint_url=endpoint_url,
-        job_name=hpo_job_name,
+        job_name=job_name,
         image=image,
         training_input_mode=training_input_mode,
         algorithm_name=algorithm_name,

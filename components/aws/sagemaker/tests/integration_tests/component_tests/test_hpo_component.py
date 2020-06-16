@@ -10,7 +10,12 @@ from utils import sagemaker_utils
 
 @pytest.mark.parametrize(
     "test_file_dir",
-    [pytest.param("resources/config/kmeans-mnist-hpo", marks=pytest.mark.canary_test)],
+    [
+        pytest.param(
+            "resources/config/kmeans-mnist-hpo", marks=pytest.mark.canary_test
+        ),
+        "resources/config/aws-samples-hpo-spot-training",
+    ],
 )
 def test_hyperparameter_tuning(
     kfp_client, experiment_id, region, sagemaker_client, test_file_dir
@@ -23,19 +28,10 @@ def test_hyperparameter_tuning(
             os.path.join(download_dir, "config.yaml"),
         )
     )
-
-    test_params["Arguments"]["channels"] = json.dumps(
-        test_params["Arguments"]["channels"]
-    )
-    test_params["Arguments"]["static_parameters"] = json.dumps(
-        test_params["Arguments"]["static_parameters"]
-    )
-    test_params["Arguments"]["integer_parameters"] = json.dumps(
-        test_params["Arguments"]["integer_parameters"]
-    )
-    test_params["Arguments"]["categorical_parameters"] = json.dumps(
-        test_params["Arguments"]["categorical_parameters"]
-    )
+    if "job_name" in test_params["Arguments"]:
+        test_params["Arguments"]["job_name"] = (
+            utils.generate_random_string(5) + "-" + test_params["Arguments"]["job_name"]
+        )
 
     _, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,
@@ -68,6 +64,8 @@ def test_hyperparameter_tuning(
     print(f"HPO job name: {hpo_job_name}")
     hpo_response = sagemaker_utils.describe_hpo_job(sagemaker_client, hpo_job_name)
     assert hpo_response["HyperParameterTuningJobStatus"] == "Completed"
+    if "job_name" in test_params["Arguments"]:
+        assert hpo_response["HyperParameterTuningJobName"] == hpo_job_name
 
     # Verify training image output is an ECR image
     training_image = utils.read_from_file_in_tar(

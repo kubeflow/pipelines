@@ -1,11 +1,9 @@
 import pytest
 import os
-import json
 import utils
 from utils import kfp_client_utils
 from utils import sagemaker_utils
 from test_workteam_component import create_workteamjob
-import time
 
 
 @pytest.mark.parametrize(

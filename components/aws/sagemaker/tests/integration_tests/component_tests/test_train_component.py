@@ -1,6 +1,5 @@
 import pytest
 import os
-import json
 import utils
 from utils import kfp_client_utils
 from utils import minio_utils
@@ -33,12 +32,6 @@ def test_trainingjob(
         )
     )
 
-    test_params["Arguments"]["hyperparameters"] = json.dumps(
-        test_params["Arguments"]["hyperparameters"]
-    )
-    test_params["Arguments"]["channels"] = json.dumps(
-        test_params["Arguments"]["channels"]
-    )
     _, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,
         experiment_id,

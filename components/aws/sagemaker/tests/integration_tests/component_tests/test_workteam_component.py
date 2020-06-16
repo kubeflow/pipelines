@@ -1,6 +1,5 @@
 import pytest
 import os
-import json
 import utils
 from utils import kfp_client_utils
 from utils import sagemaker_utils
@@ -58,7 +57,7 @@ def test_workteamjob(
 
     outputs = {"sagemaker-private-workforce": ["workteam_arn"]}
 
-    try: 
+    try:
         output_files = minio_utils.artifact_download_iterator(
             workflow_json, outputs, download_dir
         )
