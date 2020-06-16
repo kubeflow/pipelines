@@ -4,6 +4,4 @@ kind: Kustomization
 resources:
   - cache-deployer-role.yaml
   - cache-deployer-rolebinding.yaml
-  - cache-deployer-sa.yaml
   - cache-deployer-deployment.yaml
-  
