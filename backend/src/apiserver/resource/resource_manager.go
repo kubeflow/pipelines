@@ -35,7 +35,6 @@ import (
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -127,26 +126,6 @@ func (r *ResourceManager) CreateExperiment(apiExperiment *api.Experiment) (*mode
 }
 
 func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment, error) {
-	experiment, err := r.GetExperiment(experimentId)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get experiment 1.")
-	}
-	namespace := experiment.Namespace
-	if len(namespace) == 0 {
-		if common.IsMultiUserMode() {
-			return nil, util.NewInternalServerError(err, "Failed to get experiment 2.")
-		} else {
-			namespace = common.GetPodNamespace()
-		}
-	}
-	selectPersistedFinalWorkflows := map[string]string{util.LabelKeyWorkflowPersistedFinalState: "true"}
-	workflows, err := r.getWorkflowClient(namespace).List(v1.ListOptions{
-		LabelSelector: labels.Set(selectPersistedFinalWorkflows).String(),
-	})
-	fmt.Printf("# of filtered workflows %+v\n", len(workflows.Items))
-	workflows, err = r.getWorkflowClient(namespace).List(v1.ListOptions{})
-	fmt.Printf("# of all workflows %+v\n", len(workflows.Items))
-
 	return r.experimentStore.GetExperiment(experimentId)
 }
 
