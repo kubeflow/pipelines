@@ -61,9 +61,9 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
     ```bash
     git checkout $BRANCH
     git pull upstream
-    cd backend/api
+    cd backend/api/python_http_client
     python3 setup.py --quiet sdist
-    python3 -m twine upload --username kubeflow-pipelines python_http_client/dist/*
+    python3 -m twine upload --username kubeflow-pipelines dist/*
     ```
 1. Release `kfp` python packages to PyPI.
     ```bash
