@@ -8,12 +8,9 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - pods
   - pods/log
   verbs:
-  - create
   - get
-  - list
 - apiGroups:
   - ""
   resources:
