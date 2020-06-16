@@ -18,5 +18,6 @@ dependencies:
     - kfp==0.5.*
     - minio==5.0.10
     - sagemaker==1.56.*
+    - ruamel.yaml==0.16.*
       
       
