@@ -724,7 +724,7 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 // and a maximum of 3 workflows are allowed.
 func TestCreateRun_WithOldestPersistedFinalWorkflowDeleted(t *testing.T) {
 	// Set maximum number of allowed workflows to be 3.
-	*maximumNumberOfWorkflowCRDs = 3
+	*maximumNumberOfPersistedFinalWorkflows = 3
 
 	// Create resource manager and an experiment.
 	uuid := util.NewUUIDGenerator()

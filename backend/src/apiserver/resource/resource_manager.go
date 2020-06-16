@@ -48,8 +48,8 @@ const (
 
 var (
 	// https://github.com/kubernetes/enhancements/blob/master/keps/sig-api-machinery/20180415-crds-to-ga.md#scale-targets-for-ga
-	maximumNumberOfWorkflowCRDs = flag.Int("max_num_workflows", 0,
-		"Maximum number of workflows allowed within the namespace before the controller starts deleting the oldest one. 0 or negative value means no limit. Recommended value is 500.")
+	maximumNumberOfPersistedFinalWorkflows = flag.Int("max_num_persisted_final_workflows", 0,
+		"Maximum number of persisted final workflows allowed within the namespace before the controller starts deleting the oldest one. 0 or negative value means no limit. Recommended value is 500.")
 )
 
 type ClientManagerInterface interface {
@@ -386,10 +386,10 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	// Check if the number of workflow CRDs is already over the specified threshold. If yes, delete the oldest workflow in the persisted final state.
-	// In addition, if flag maximumNumberOfWorkflowCRDs is 0 or negative, no enforcement of maximum amount of workflows.
-	if *maximumNumberOfWorkflowCRDs > 0 {
+	// In addition, if flag maximumNumberOfPersistedFinalWorkflows is 0 or negative, no enforcement of maximum amount of workflows.
+	if *maximumNumberOfPersistedFinalWorkflows > 0 {
 		workflows, err := r.getWorkflowClient(namespace).List(v1.ListOptions{})
-		if err == nil && workflows != nil && workflows.Items != nil && len(workflows.Items) >= *maximumNumberOfWorkflowCRDs {
+		if err == nil && workflows != nil && workflows.Items != nil && len(workflows.Items) >= *maximumNumberOfPersistedFinalWorkflows {
 			oldestIndex := -1
 			for i := range workflows.Items {
 				if util.NewWorkflow(&workflows.Items[i]).PersistedFinalState() {
@@ -401,7 +401,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 			if oldestIndex >= 0 {
 				r.getWorkflowClient(namespace).Delete(workflows.Items[oldestIndex].Name, &v1.DeleteOptions{})
 			} else {
-				return nil, util.NewInternalServerError(err, "Maximum number of %d workflows have been reached.", *maximumNumberOfWorkflowCRDs)
+				return nil, util.NewInternalServerError(err, "Maximum number of %d workflows have been reached.", *maximumNumberOfPersistedFinalWorkflows)
 			}
 		}
 	}
