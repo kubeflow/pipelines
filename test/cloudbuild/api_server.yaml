@@ -4,6 +4,6 @@ steps:
   args: ['build', '-t', '$_GCR_BASE/api-server', '-f', 'backend/Dockerfile', '--build-arg', 'COMMIT_SHA=abcdefg', '--build-arg', 'TAG_NAME=1.0-dev', '.']
 timeout: 1800s # 30min
 options:
-  machineType: N1_HIGHCPU_8 # This is cpu intensive, use a better machine.
+  machineType: E2_HIGHCPU_8 # This is cpu intensive, use a better machine.
 images:
 - '$_GCR_BASE/api-server'
