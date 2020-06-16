@@ -92,7 +92,8 @@ python3 -m pip install kfp kfp-server-api --upgrade
 See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
 </pre>
 
-Use this template for prereleases (release candidates)
+Use this template for prereleases (release candidates) and please check the
+`This is a prerelease` checkbox in the Github release UI.
 <pre>
 To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/).
 
