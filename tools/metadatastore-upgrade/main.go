@@ -61,6 +61,9 @@ func updateDeployment(deploymentsClient v1.DeploymentInterface, image string, co
 			return err
 		}
 
+		// Give some time for the update to be completed.
+		time.Sleep(5 * time.Second)
+
 		result, err = deploymentsClient.Get(mlMetadataDeployment, metav1.GetOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to get latest version of deployment after update: %v", err)
@@ -69,11 +72,12 @@ func updateDeployment(deploymentsClient v1.DeploymentInterface, image string, co
 		waitTime := 0
 		updateSuccessful := false
 		for waitTime < maxWaitTime && !updateSuccessful {
-			if *result.Spec.Replicas != result.Status.ReadyReplicas {
+			if *result.Spec.Replicas == result.Status.Replicas &&
+				*result.Spec.Replicas == result.Status.ReadyReplicas {
+				updateSuccessful = true
+			} else {
 				time.Sleep(time.Second)
 				waitTime++
-			} else {
-				updateSuccessful = true
 			}
 		}
 
@@ -132,7 +136,7 @@ func main() {
 			log.Printf("Upgrade cleanup failed: %v. \nLikely MetadataStore is in a functioning state but needs verifcation.", err)
 		}
 	} else {
-			log.Fatalf("Upgrade attempt failed. MetadataStore deployment in the cluster needs attention.", err)
+		log.Fatalf("Upgrade attempt failed. MetadataStore deployment in the cluster needs attention.", err)
 	}
 	log.Printf("Upgrade complete")
 }

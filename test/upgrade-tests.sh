@@ -24,6 +24,7 @@ usage()
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
     [--timeout              timeout of the tests in seconds. Default is 1800 seconds. ]
+    [--metadata_store_upgrade_image_tag   new_image_tag flag to be passed to Metadata Store upgrade tool.]
     [-h help]"
 }
 
@@ -33,6 +34,8 @@ TEST_RESULT_BUCKET=ml-pipeline-test
 TIMEOUT_SECONDS=2700 # 45 minutes
 NAMESPACE=kubeflow
 WORKFLOW_FILE=e2e_test_gke_v2.yaml
+# Needs to match the metadata grpc server image tag in HEAD.
+METADATA_STORE_UPGRADE_IMAGE_TAG=0.22.1
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -69,6 +72,7 @@ COMMIT_SHA="$(git rev-parse HEAD)"
 GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${COMMIT_SHA}
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${COMMIT_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+PIPELINES_TOOL_DIR="${DIR}/../tools"
 LATEST_RELEASED_TAG=$(git tag --sort=v:refname | tail -1)
 
 # Configure `time` command output format.
@@ -113,7 +117,9 @@ time source "${DIR}/check-build-image-status.sh"
 echo "KFP images built"
 
 echo "Upgrading Metadata store"
-time go run "${DIR}/../tools/metadatastore-upgrade/main.go" "--new_image_tag=0.22.1"
+pushd "${PIPELINES_TOOL_DIR}"
+time go run "${PIPELINES_TOOL_DIR}/metadatastore-upgrade/main.go" "--new_image_tag=0.22.1" "--namespace=${NAMESPACE}"
+popd
 
 time source "${DIR}/deploy-pipeline-lite.sh"
 echo "KFP standalone of commit ${COMMIT_SHA} deployed"
