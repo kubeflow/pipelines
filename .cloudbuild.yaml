@@ -206,7 +206,7 @@ steps:
 
 # Pull third_party images
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.21.1']
+  args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1']
   id:   'pullMetadataServer'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance']
