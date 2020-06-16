@@ -77,7 +77,8 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
 
     The username is "kubeflow-pipelines"
 
-1. Create a github release using `$VERSION` git tag, fill in the description.
+1. Create a github release using `$VERSION` git tag and title `Version $VERSION`,
+fill in the description.
 
 Use this template for public releases
 <pre>
