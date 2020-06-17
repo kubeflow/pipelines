@@ -278,7 +278,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         experimentIdMask={experiment.id}
         onError={() => null}
         {...this.props}
-        disablePaging={true}
+        disablePaging={false}
         selectedIds={this.state.selectedIds}
         noFilterBox={true}
         storageState={RunStorageState.AVAILABLE}
