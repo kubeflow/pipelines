@@ -4,6 +4,12 @@ The version of the AWS SageMaker Components is determined by the docker image ta
 Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components
 
 ---------------------------------------------
+**Change log for version 0.4.1**
+- Fix breaking bug in HPO component
+
+> Pull requests : [#4010](https://github.com/kubeflow/pipelines/pull/4010)
+
+
 **Change log for version 0.4.0**
 - Add new component for SageMaker Processing Jobs
 
