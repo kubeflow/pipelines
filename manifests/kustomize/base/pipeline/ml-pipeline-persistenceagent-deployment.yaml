@@ -19,6 +19,10 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          # If you want a different TTL_SECONDS_AFTER_WORKFLOW_FINISH than the
+          # default 1 day, please specify it here as demonstrated below.
+          # - name: TTL_SECONDS_AFTER_WORKFLOW_FINISH
+          #   value: "172800"
         image: gcr.io/ml-pipeline/persistenceagent:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-persistenceagent
