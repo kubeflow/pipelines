@@ -50,6 +50,7 @@ class ProcessTestCase(unittest.TestCase):
 
     # Set some static returns
     process._utils.create_processing_job.return_value = 'job-name'
+    process._utils.get_processing_job_outputs.return_value = mock_outputs = {'val1': 's3://1', 'val2': 's3://2'}
 
     with patch('builtins.open', mock_open()) as file_open:
       process.main(required_args)
@@ -61,10 +62,12 @@ class ProcessTestCase(unittest.TestCase):
     # Check the file outputs
     file_open.assert_has_calls([
       call('/tmp/job_name.txt', 'w'),
+      call('/tmp/output_artifacts.txt', 'w')
     ], any_order=True)
 
     file_open().write.assert_has_calls([
       call('job-name'),
+      call(json.dumps(mock_outputs))
     ], any_order=False) # Must be in the same order as called
 
   def test_create_processing_job(self):
@@ -108,7 +111,6 @@ class ProcessTestCase(unittest.TestCase):
           "InstanceType": "ml.m4.xlarge",
           "InstanceCount": 1,
           "VolumeSizeInGB": 30,
-          "VolumeKmsKeyId": "",
         }
       },
       RoleArn="arn:aws:iam::123456789012:user/Development/product_1234/*",
