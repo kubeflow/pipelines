@@ -56,7 +56,7 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
 
     TODO: we should have an automation KFP cluster, and the waiting and submiting
     `release-on-tag` cloudbuild task should be automatically waited.
-1. Refer to internal doc for getting password of kubeflow-pipelines user in PyPI.
+1. Search "PyPI" in internal doc for getting password of kubeflow-pipelines user.
 1. Release `kfp-server-api` python packages to PyPI.
     ```bash
     git checkout $BRANCH
