@@ -35,7 +35,7 @@ tags | Key-value pairs to categorize AWS resources | Yes | Dict | | {} |
 Notes:
 * You can find more information about how container entrypoint and arguments are used at the [Build Your Own Processing Container](https://docs.aws.amazon.com/sagemaker/latest/dg/build-your-own-processing-container.html#byoc-run-image) documentation.
 * Each key and value in the `environment` parameter string to string map can have length of up to 1024. SageMaker supports up to 16 entries in the map.
-* The format for the `input_config` field is:
+* The format for the [`input_config`](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_ProcessingInput.html) field is:
 ```
 [
   {
@@ -51,7 +51,7 @@ Notes:
   },
 ]
 ```
-* The format for the `output_config` field is:
+* The format for the [`output_config`](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_ProcessingS3Output.html) field is:
 ```
 [
   {
@@ -69,7 +69,7 @@ Notes:
 Name | Description
 :--- | :----------
 job_name | Processing job name
-output_artifacts | A dictionary mapping output name to output S3 URI
+output_artifacts | A dictionary mapping with `output_config` `OutputName` as the key and `S3Uri` as the value
 
 ## Requirements
 * [Kubeflow pipelines SDK](https://www.kubeflow.org/docs/pipelines/sdk/install-sdk/)
