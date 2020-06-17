@@ -699,6 +699,7 @@ def create_labeling_job_request(args):
     request['OutputConfig']['KmsKeyId'] = args['output_encryption_key']
     request['RoleArn'] = args['role']
     
+    ### Update or pop label category config s3 uri
     if not args['label_category_config']:
         request.pop('LabelCategoryConfigS3Uri')
     else:
