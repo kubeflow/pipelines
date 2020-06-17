@@ -177,7 +177,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
         experimentIdMask={experiment.id}
         onError={() => null}
         {...this.props}
-        disablePaging={false}
+        disablePaging={true}
         noFilterBox={true}
         storageState={
           this.props.storageState === ExperimentStorageState.ARCHIVED
