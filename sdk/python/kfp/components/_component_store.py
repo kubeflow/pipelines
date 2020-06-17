@@ -19,9 +19,10 @@ _COMPONENT_FILENAME = 'component.yaml'
 
 
 class ComponentStore:
-    def __init__(self, local_search_paths=None, url_search_prefixes=None):
+    def __init__(self, local_search_paths=None, url_search_prefixes=None, auth=None):
         self.local_search_paths = local_search_paths or ['.']
         self.url_search_prefixes = url_search_prefixes or []
+        self._auth = auth
 
         self._component_file_name = 'component.yaml'
         self._digests_subpath = 'versions/sha256'
@@ -32,7 +33,7 @@ class ComponentStore:
         self._url_to_info_db = KeyValueStore(cache_dir=cache_base_dir / 'url_to_info')
 
     def load_component_from_url(self, url):
-        return comp.load_component_from_url(url)
+        return comp.load_component_from_url(url=url, auth=self._auth)
 
     def load_component_from_file(self, path):
         return comp.load_component_from_file(path)
@@ -86,7 +87,7 @@ class ComponentStore:
 
         component_ref = copy.copy(component_ref)
         if component_ref.url:
-            component_ref.spec = comp._load_component_spec_from_url(component_ref.url)
+            component_ref.spec = comp._load_component_spec_from_url(url=component_ref.url, auth=self._auth)
             return component_ref
 
         name = component_ref.name
@@ -126,7 +127,7 @@ class ComponentStore:
             url = url_search_prefix + path_suffix
             tried_locations.append(url)
             try:
-                response = requests.get(url) #Does not throw exceptions on bad status, but throws on dead domains and malformed URLs. Should we log those cases?
+                response = requests.get(url, auth=self._auth) #Does not throw exceptions on bad status, but throws on dead domains and malformed URLs. Should we log those cases?
                 response.raise_for_status()
             except:
                 continue
@@ -172,7 +173,7 @@ class ComponentStore:
         for url_search_prefix in self.url_search_prefixes:
             if url_search_prefix.startswith('https://raw.githubusercontent.com/'):
                 logging.info('Searching for components in "{}"'.format(url_search_prefix))
-                for candidate in _list_candidate_component_uris_from_github_repo(url_search_prefix):
+                for candidate in _list_candidate_component_uris_from_github_repo(url_search_prefix, auth=self._auth):
                     component_url = candidate['url']
                     if self._url_to_info_db.exists(component_url):
                         continue
@@ -182,7 +183,7 @@ class ComponentStore:
                     blob_hash = candidate['git_blob_hash']
                     if not self._git_blob_hash_to_data_db.exists(blob_hash):
                         logging.debug('Downloading component spec from "{}"'.format(component_url))
-                        response = _get_request_session().get(component_url)
+                        response = _get_request_session().get(component_url, auth=self._auth)
                         response.raise_for_status()
                         component_data = response.content
 
@@ -238,13 +239,13 @@ def _calculate_component_digest(data: bytes) -> str:
     return hashlib.sha256(data.replace(b'\r\n', b'\n')).hexdigest()
 
 
-def _list_candidate_component_uris_from_github_repo(url_search_prefix: str) -> Iterable[str]:
+def _list_candidate_component_uris_from_github_repo(url_search_prefix: str, auth=None) -> Iterable[str]:
     (schema, _, host, org, repo, ref, path_prefix) = url_search_prefix.split('/', 6)
     for page in range(1, 999):
         search_url = (
             'https://api.github.com/search/code?q=filename:{}+repo:{}/{}&page={}&per_page=1000'
         ).format(_COMPONENT_FILENAME, org, repo, page)
-        response = _get_request_session().get(search_url)
+        response = _get_request_session().get(search_url, auth=auth)
         response.raise_for_status()
         result = response.json()
         items = result['items']
