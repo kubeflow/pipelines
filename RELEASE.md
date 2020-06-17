@@ -45,11 +45,65 @@ WIP: this document is still incomplete.
     TODO: this script should also regenerate
     * changelog
     * python api client
-1. Wait and make sure the cloudbuild job that builds all images in gcr.io/ml-pipeline-test succeeded for above commit. Then submit the second cloudbuild job that copies these images to gcr.io/ml-pipeline.
+1. View related cloudbuild jobs' statuses by clicking the latest commit's status icon
+in the release branch. The page will look like https://github.com/kubeflow/pipelines/runs/775788343.
+1. Wait and make sure the `build-each-commit` cloudbuild job that builds all images
+in gcr.io/ml-pipeline-test succeeded. If it fails, please click "View more details on Google Cloud Build" and then "Retry".
+1. Select the `release-on-tag` cloudbuild job that copies built images and artifacts to
+public image registry and gcs bucket. This job should have already failed because
+artifacts haven't been built. Now, please click "View more details on Google Cloud Build"
+and then "Retry", because after waiting for previous step, artifacts are now ready.
 
-    TODO: we should have an automation KFP cluster, and the waiting and submiting second cloudbuild task should be automated.
-1. Release `kfp-server-api` and `kfp` python packages on pypi.
-1. Create a github release using `$VERSION` git tag, fill in the description.
+    TODO: we should have an automation KFP cluster, and the waiting and submiting
+    `release-on-tag` cloudbuild task should be automatically waited.
+1. Search "PyPI" in internal doc for getting password of kubeflow-pipelines user.
+1. Release `kfp-server-api` python packages to PyPI.
+    ```bash
+    git checkout $BRANCH
+    git pull upstream
+    cd backend/api/python_http_client
+    python3 setup.py --quiet sdist
+    python3 -m twine upload --username kubeflow-pipelines dist/*
+    ```
+1. Release `kfp` python packages to PyPI.
+    ```bash
+    export TAG_NAME=0.2.2
+    pip3 install twine --user
+    gsutil cp gs://ml-pipeline/release/$TAG_NAME/kfp.tar.gz kfp-$TAG_NAME.tar.gz
+    python3 -m twine upload --username kubeflow-pipelines kfp-$TAG_NAME.tar.gz
+    ```
+
+    !!! The file name must contain the version (you might need to rename the file). See https://github.com/kubeflow/pipelines/issues/1292
+
+    The username is "kubeflow-pipelines"
+
+1. Create a github release using `$VERSION` git tag and title `Version $VERSION`,
+fill in the description.
+
+Use this template for public releases
+<pre>
+To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
+
+Install python SDK (python 3.5 above) by running:
+```
+python3 -m pip install kfp kfp-server-api --upgrade
+```
+
+See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+</pre>
+
+Use this template for prereleases (release candidates) and please check the
+`This is a prerelease` checkbox in the Github release UI.
+<pre>
+To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/).
+
+Install python SDK (python 3.5 above) by running:
+```
+python3 -m pip install kfp kfp-server-api --pre --upgrade
+```
+
+See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+</pre>
 
 ## Cherry picking PRs to release branch
 
