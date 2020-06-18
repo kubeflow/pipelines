@@ -46,16 +46,20 @@ inputs:
 outputs:
   - name: MLPipeline UI metadata
     type: UI metadata
+  - name: output_path
+    description: 'The path to the result from BigQuery'
+    type: outputPath
 implementation:
   container:
     image: gcr.io/ds-production-259110/ml-pipeline-gcp
     args: [
-      --ui_metadata_path, {outputPath: MLPipeline UI metadata},
+      --ui_metadata_path,   {outputPath: MLPipeline UI metadata},
       kfp_component.google.bigquery, query_only,
-      --query, {inputValue: query},
-      --project_id, {inputValue: project_id},
-      --dataset_location, {inputValue: dataset_location},
-      --job_config, {inputValue: job_config},
+      --query,              {inputValue: query},
+      --project_id,         {inputValue: project_id},
+      --dataset_location,   {inputValue: dataset_location},
+      --job_config,         {inputValue: job_config},
+      --output_path,        {outputPath: output_path},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
