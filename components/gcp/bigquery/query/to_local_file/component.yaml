@@ -42,7 +42,7 @@ inputs:
 outputs:
   - name: MLPipeline UI metadata
     type: UI metadata
-  - name: kfp_path
+  - name: output_path
     description: 'The path to the result from BigQuery'
 implementation:
   container:
@@ -52,9 +52,9 @@ implementation:
       kfp_component.google.bigquery, query_only,
       --query,              {inputValue: query},
       --project_id,         {inputValue: project_id},
+      --output_path,        {outputPath: output_path},
       --dataset_location,   {inputValue: dataset_location},
       --job_config,         {inputValue: job_config},
-      --output_path,        {outputPath: kfp_path},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
