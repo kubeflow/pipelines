@@ -92,8 +92,8 @@ docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA:$MM_VER
 
 # 3rd-party images
-docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.21.1 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$SEM_VER
-docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.21.1 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$MM_VER
+docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$SEM_VER
+docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$MM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$MM_VER
 
