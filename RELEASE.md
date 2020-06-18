@@ -107,6 +107,17 @@ See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG
 
 ## Cherry picking PRs to release branch
 
+### Option - cherrypick-approved label
+* When OWNERS approve PRs, they should add the `cherrypick-approved` label to it.
+* Periodically or before release, release manager should search all merged PRs with
+    `cherrypick-approved` label, but no `cherrypicked` label using
+    [this link](https://github.com/kubeflow/pipelines/pulls?q=is%3Apr+label%3Acherrypick-approved+-label%3Acherrypicked+is%3Aclosed+)
+* Use the git cherry-pick option to pick these PR commits into the release branch
+in a batch and add `cherrypicked` label to these PRs.
+
+    NOTE: if there are merge conflicts for a PR, ask the PR author or area OWNER to create a PR by themselves following other two options.
+* `git push upstream release-$VERSION` directly to the release branch.
+
 ### Option - git cherry-pick
 * Find the commit you want to cherry pick on master as $COMMIT_SHA.
 * Find the active release branch name $BRANCH, e.g. release-1.0
