@@ -26,4 +26,5 @@ fi
 
 echo "This release script uses yq, it can be downloaded at https://github.com/mikefarah/yq/releases/tag/3.3.0"
 yq w -i "$DIR/../schema.yaml" "x-google-marketplace.publishedVersion" "$TAG_NAME"
+yq w -i "$DIR/../schema.yaml" "x-google-marketplace.publishedVersionMetadata.releaseNote" "Based on $TAG_NAME version."
 yq w -i "$DIR/../chart/kubeflow-pipelines/templates/application.yaml" "spec.descriptor.version" "$TAG_NAME"
