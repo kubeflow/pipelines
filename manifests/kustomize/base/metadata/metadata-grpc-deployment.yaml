@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: container
-        image: gcr.io/tfx-oss-public/ml_metadata_store_server:0.21.1
+        image: gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1
         env:
         - name: DBCONFIG_USER
           valueFrom:
@@ -49,7 +49,8 @@ spec:
                "--mysql_config_host=$(MYSQL_HOST)",
                "--mysql_config_port=$(MYSQL_PORT)",
                "--mysql_config_user=$(DBCONFIG_USER)",
-               "--mysql_config_password=$(DBCONFIG_PASSWORD)"
+               "--mysql_config_password=$(DBCONFIG_PASSWORD)",
+               "--enable_database_upgrade=true"
                ]
         ports:
         - name: grpc-api
