@@ -514,6 +514,8 @@ spec:
         - env:
             - name: NAMESPACE
               value: {{ .Release.Namespace }}
+            - name: TTL_SECONDS_AFTER_WORKFLOW_FINISH
+              value: "86400"
           image: {{ .Values.images.persistenceagent }}
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-persistenceagent
