@@ -61,6 +61,7 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   kustomize edit set image gcr.io/ml-pipeline/metadata-writer=${GCR_IMAGE_BASE_DIR}/metadata-writer:${GCR_IMAGE_TAG}
   kustomize edit set image gcr.io/ml-pipeline/cache-server=${GCR_IMAGE_BASE_DIR}/cache-server:${GCR_IMAGE_TAG}
   kustomize edit set image gcr.io/ml-pipeline/cache-deployer=${GCR_IMAGE_BASE_DIR}/cache-deployer:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/metadata-envoy=${GCR_IMAGE_BASE_DIR}/metadata-envoy:${GCR_IMAGE_TAG}
   cat kustomization.yaml
 
   kubectl apply -k .

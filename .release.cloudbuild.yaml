@@ -381,6 +381,14 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA']
   id:   'pullMetadataEnvoy'
+- id:   'tagMetadataEnvoyVersionNumber'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA', 'gcr.io/ml-pipeline/metadata-envoy:$TAG_NAME']
+  waitFor: ['pullMetadataEnvoy']
+- id:   'tagMetadataEnvoyCommitSHA'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA', 'gcr.io/ml-pipeline/metadata-envoy:$COMMIT_SHA']
+  waitFor: ['pullMetadataEnvoy']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/metadataenvoy:$TAG_NAME']
   id:   'tagMetadataEnvoyForMarketplace'
@@ -398,8 +406,8 @@ steps:
   - |
     docker tag gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA gcr.io/ml-pipeline/google/pipelines/metadataenvoy:$(cat /workspace/mm.ver)
     docker tag gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA gcr.io/ml-pipeline/google/pipelines-test/metadataenvoy:$(cat /workspace/mm.ver)
-    docker push gcr.io/ml-pipeline/google/pipelines/metadataenvoy:$(cat /workspace/mm.ver)
-    docker push gcr.io/ml-pipeline/google/pipelines-test/metadataenvoy:$(cat /workspace/mm.ver)
+    docker push gcr.io/ml-pipeline/google/pipelines/metadata-envoy:$(cat /workspace/mm.ver)
+    docker push gcr.io/ml-pipeline/google/pipelines-test/metadata-envoy:$(cat /workspace/mm.ver)
 
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance']
@@ -598,6 +606,8 @@ images:
 - 'gcr.io/ml-pipeline/inverse-proxy-agent:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/visualization-server:$TAG_NAME'
 - 'gcr.io/ml-pipeline/visualization-server:$COMMIT_SHA'
+- 'gcr.io/ml-pipeline/metadata-envoy:$TAG_NAME'
+- 'gcr.io/ml-pipeline/metadata-envoy:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/metadata-writer:$TAG_NAME'
 - 'gcr.io/ml-pipeline/metadata-writer:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/cache-server:$TAG_NAME'
