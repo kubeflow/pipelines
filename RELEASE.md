@@ -114,7 +114,7 @@ https://github.com/kubeflow/website/blob/master/layouts/shortcodes/pipelines/lat
    ```
    echo -n 1.0.0 > layouts/shortcodes/pipelines/latest-version.html
    ```
-   and create a PR to update the version.
+   and create a PR to update the version, e.g. https://github.com/kubeflow/website/pull/1942.
 
 
 ## Cherry picking PRs to release branch
