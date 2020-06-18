@@ -56,8 +56,8 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, ver
     if not run_name:
         run_name = experiment_name
 
-    if not package_file and not pipeline_id:
-        print('You must provide one of [package_file, pipeline_id].')
+    if not package_file and not pipeline_id and not version:
+        print('You must provide one of [package_file, pipeline_id, version].')
         sys.exit(1)
 
     arg_dict = dict(arg.split('=') for arg in args)
