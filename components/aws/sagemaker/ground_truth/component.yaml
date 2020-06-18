@@ -119,7 +119,7 @@ outputs:
   - {name: active_learning_model_arn, description: 'The ARN for the most recent Amazon SageMaker model trained as part of automated data labeling.'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.3.1
+    image: amazon/aws-sagemaker-kfp-components:0.4.1
     command: ['python3']
     args: [
       ground_truth.py,

@@ -861,6 +861,116 @@ def enable_spot_instance_support(training_job_config, args):
         del training_job_config['StoppingCondition']['MaxWaitTimeInSeconds']
         del training_job_config['CheckpointConfig']
 
+def create_processing_job_request(args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_processing_job
+    with open(os.path.join(__cwd__, 'process.template.yaml'), 'r') as f:
+        request = yaml.safe_load(f)
+
+    job_name = args['job_name'] if args['job_name'] else 'ProcessingJob-' + strftime("%Y%m%d%H%M%S", gmtime()) + '-' + id_generator()
+
+    request['ProcessingJobName'] = job_name
+    request['RoleArn'] = args['role']
+
+    ### Update processing container settings
+    request['AppSpecification']['ImageUri'] = args['image']
+
+    if args['container_entrypoint']:
+        request['AppSpecification']['ContainerEntrypoint'] = args['container_entrypoint']
+    else:
+        request['AppSpecification'].pop('ContainerEntrypoint')
+    if args['container_arguments']:
+        request['AppSpecification']['ContainerArguments'] = args['container_arguments']
+    else:
+        request['AppSpecification'].pop('ContainerArguments')
+
+    ### Update or pop VPC configs
+    if args['vpc_security_group_ids'] and args['vpc_subnets']:
+        request['NetworkConfig']['VpcConfig']['SecurityGroupIds'] = args['vpc_security_group_ids'].split(',')
+        request['NetworkConfig']['VpcConfig']['Subnets'] = args['vpc_subnets'].split(',')
+    else:
+        request['NetworkConfig'].pop('VpcConfig')
+    request['NetworkConfig']['EnableNetworkIsolation'] = args['network_isolation']
+    request['NetworkConfig']['EnableInterContainerTrafficEncryption'] = args['traffic_encryption']
+
+    ### Update input channels, not a required field
+    if args['input_config']:
+        request['ProcessingInputs'] = args['input_config']
+    else:
+        request.pop('ProcessingInputs')
+
+    ### Update output channels, must have at least one specified
+    if len(args['output_config']) > 0:
+        request['ProcessingOutputConfig']['Outputs'] = args['output_config']
+    else:
+        logging.error("Must specify at least one output channel.")
+        raise Exception('Could not create job request')
+
+    if args['output_encryption_key']:
+        request['ProcessingOutputConfig']['KmsKeyId'] = args['output_encryption_key']
+    else:
+        request['ProcessingOutputConfig'].pop('KmsKeyId')
+
+    ### Update cluster config resources
+    request['ProcessingResources']['ClusterConfig']['InstanceType'] = args['instance_type']
+    request['ProcessingResources']['ClusterConfig']['InstanceCount'] = args['instance_count']
+    request['ProcessingResources']['ClusterConfig']['VolumeSizeInGB'] = args['volume_size']
+
+    if args['resource_encryption_key']:
+        request['ProcessingResources']['ClusterConfig']['VolumeKmsKeyId'] = args['resource_encryption_key']
+    else:
+        request['ProcessingResources']['ClusterConfig'].pop('VolumeKmsKeyId')
+
+    if args['max_run_time']:
+        request['StoppingCondition']['MaxRuntimeInSeconds'] = args['max_run_time']
+    else:
+        request['StoppingCondition']['MaxRuntimeInSeconds'].pop('max_run_time')
+
+    request['Environment'] = args['environment']
+
+    ### Update tags
+    for key, val in args['tags'].items():
+        request['Tags'].append({'Key': key, 'Value': val})
+
+    return request
+
+
+def create_processing_job(client, args):
+  """Create a SageMaker processing job."""
+  request = create_processing_job_request(args)
+  try:
+      client.create_processing_job(**request)
+      processing_job_name = request['ProcessingJobName']
+      logging.info("Created Processing Job with name: " + processing_job_name)
+      logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/ProcessingJobs;prefix={};streamFilter=typeLogStreamPrefix"
+        .format(args['region'], args['region'], processing_job_name))
+      return processing_job_name
+  except ClientError as e:
+      raise Exception(e.response['Error']['Message'])
+
+
+def wait_for_processing_job(client, processing_job_name, poll_interval=30):
+  while(True):
+    response = client.describe_processing_job(ProcessingJobName=processing_job_name)
+    status = response['ProcessingJobStatus']
+    if status == 'Completed':
+      logging.info("Processing job ended with status: " + status)
+      break
+    if status == 'Failed':
+      message = response['FailureReason']
+      logging.info('Processing failed with the following error: {}'.format(message))
+      raise Exception('Processing job failed')
+    logging.info("Processing job is still in status: " + status)
+    time.sleep(poll_interval)
+
+def get_processing_job_outputs(client, processing_job_name):
+    """Map the S3 outputs of a processing job to a dictionary object."""
+    response = client.describe_processing_job(ProcessingJobName=processing_job_name)
+    outputs = {}
+    for output in response['ProcessingOutputConfig']['Outputs']:
+        outputs[output['OutputName']] = output['S3Output']['S3Uri']
+
+    return outputs
+
 
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):
   return ''.join(random.choice(chars) for _ in range(size))

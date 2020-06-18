@@ -68,7 +68,7 @@ else
   SHOULD_CLEANUP_CLUSTER=true
   # Machine type and cluster size is the same as kubeflow deployment to
   # easily compare performance. We can reduce usage later.
-  NODE_POOL_CONFIG_ARG="--num-nodes=2 --machine-type=n1-standard-8 \
+  NODE_POOL_CONFIG_ARG="--num-nodes=2 --machine-type=e2-standard-8 \
     --enable-autoscaling --max-nodes=8 --min-nodes=2"
   KUBERNETES_VERSION_ARG="--cluster-version=1.14"
   if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then

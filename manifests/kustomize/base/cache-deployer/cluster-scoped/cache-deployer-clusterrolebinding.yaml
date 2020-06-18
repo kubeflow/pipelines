@@ -9,4 +9,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kubeflow-pipelines-cache-deployer-sa
-  namespace: $(NAMESPACE)
+# namespace will be added by kustomize automatically according to the namespace field in kustomization.yaml
