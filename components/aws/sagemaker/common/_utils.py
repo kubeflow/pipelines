@@ -82,31 +82,29 @@ def get_component_version():
 
     return component_version
 
-def print_logs_for_job(region, job_name, log_grp):
-    """Gets the cloudwatch logs for sagemaker jobs"""
+
+def print_logs_for_job(cw_client, log_grp, job_name):
+    """Gets the CloudWatch logs for SageMaker jobs"""
     try:
-        logging.info('\n******************** Cloudwatch logs for ' + log_grp + ' ' + job_name + ' ********************\n')
-        client = boto3.client('logs', region_name=region)
+        logging.info('\n******************** CloudWatch logs for {} {} ********************\n'.format(log_grp, job_name))
 
-
-        log_streams = client.describe_log_streams(
+        log_streams = cw_client.describe_log_streams(
             logGroupName=log_grp,
             logStreamNamePrefix=job_name + '/'
         )['logStreams']
 
         for log_stream in log_streams:
-            logging.info('\n***** ' + log_stream['logStreamName'] + ' *****\n')
-            response = client.get_log_events(
+            logging.info('\n***** {} *****\n'.format(log_stream['logStreamName']))
+            response = cw_client.get_log_events(
                 logGroupName=log_grp,
                 logStreamName=log_stream['logStreamName']
             )
             for event in response['events']:
                 logging.info(event['message'])
 
-        logging.info('\n******************** End of Cloudwatch logs for the job ' + job_name + ' ********************\n')
+        logging.info('\n******************** End of CloudWatch logs for {} {} ********************\n'.format(log_grp, job_name))
     except Exception as e:
-        logging.info(e)
-
+        logging.error(e)
 
 
 def get_sagemaker_client(region, endpoint_url=None):
@@ -115,6 +113,11 @@ def get_sagemaker_client(region, endpoint_url=None):
         user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(get_component_version())
     )
     client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
+    return client
+
+
+def get_cloudwatch_client(region):
+    client = boto3.client('logs', region_name=region)
     return client
 
 

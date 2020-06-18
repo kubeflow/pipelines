@@ -65,7 +65,8 @@ def main(argv=None):
   except:
     raise
   finally:
-    _utils.print_logs_for_job(args.region, job_name, '/aws/sagemaker/TrainingJobs')
+    cw_client = _utils.get_cloudwatch_client(args.region)
+    _utils.print_logs_for_job(cw_client, '/aws/sagemaker/TrainingJobs', job_name)
 
   image = _utils.get_image_from_job(client, job_name)
   model_artifact_url = _utils.get_model_artifacts_from_job(client, job_name)

@@ -59,7 +59,8 @@ def main(argv=None):
   except:
     raise
   finally:
-    _utils.print_logs_for_job(args.region, job_name, '/aws/sagemaker/ProcessingJobs')
+    cw_client = _utils.get_cloudwatch_client(args.region)
+    _utils.print_logs_for_job(cw_client, '/aws/sagemaker/ProcessingJobs', job_name)
 
   outputs = _utils.get_processing_job_outputs(client, job_name)
 

@@ -68,7 +68,8 @@ def main(argv=None):
   except:
     raise
   finally:
-    _utils.print_logs_for_job(args.region, batch_job_name, '/aws/sagemaker/TransformJobs')
+    cw_client = _utils.get_cloudwatch_client(args.region)
+    _utils.print_logs_for_job(cw_client, '/aws/sagemaker/TransformJobs', batch_job_name)
 
   Path(args.output_location_file).parent.mkdir(parents=True, exist_ok=True)
   with open(args.output_location_file, 'w') as f:
