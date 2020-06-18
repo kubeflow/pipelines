@@ -578,23 +578,7 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
               <div
                 className="page"
                 data-testid="run-details-node-details"
-              >
-                <div
-                  className="page"
-                >
-                  <div
-                    className="pageOverflowHidden"
-                  >
-                    <LogViewer
-                      logLines={
-                        Array [
-                          "",
-                        ]
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
+              />
             </div>
           </SidePanel>
           <div

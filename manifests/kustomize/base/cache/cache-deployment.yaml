@@ -23,18 +23,18 @@ spec:
           - name: DBCONFIG_DB_NAME
             valueFrom:
               configMapKeyRef:
-                name: mysql-configmap
-                key: cache_db
+                name: pipeline-install-config
+                key: cacheDb
           - name: DBCONFIG_HOST_NAME
             valueFrom:
               configMapKeyRef:
-                name: mysql-configmap
-                key: host
+                name: pipeline-install-config
+                key: dbHost
           - name: DBCONFIG_PORT
             valueFrom:
               configMapKeyRef:
-                name: mysql-configmap
-                key: port
+                name: pipeline-install-config
+                key: dbPort
           - name: DBCONFIG_USER
             valueFrom:
               secretKeyRef:

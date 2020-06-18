@@ -6,7 +6,6 @@ bases:
   - inverse-proxy
   - minio-gcs-gateway
   - cloudsql-proxy
-  - gcp-default-config
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected
@@ -26,19 +25,3 @@ configMapGenerator:
   - name: pipeline-install-config
     env: params.env
     behavior: merge
-
-vars:
-  - name: GCP_PROJECT_ID
-    objref:
-      kind: ConfigMap
-      name: pipeline-install-config
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.gcsProjectId
-  - name: GCP_CLOUDSQL_INSTANCE_NAME
-    objref:
-      kind: ConfigMap
-      name: pipeline-install-config
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.gcsCloudSqlInstanceName
