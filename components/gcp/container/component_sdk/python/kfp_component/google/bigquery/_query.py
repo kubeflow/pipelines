@@ -58,8 +58,6 @@ def query_only(query, project_id, output_path, dataset_location='US', job_config
         _dump_outputs(query_job, output_path, None)
         return query_job.to_api_repr()
 
-
-
 def query(query, project_id, dataset_id=None, table_id=None, 
     output_gcs_path=None, dataset_location='US', job_config=None):
     """Submit a query to Bigquery service and dump outputs to Bigquery table or 
@@ -137,7 +135,6 @@ def create_table_from():
     query_job.result()  # Wait for the job to complete.
 
     print("Query results loaded to the table {}".format(table_id))
-
 
 def _get_job(client, job_id):
     try:

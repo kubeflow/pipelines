@@ -48,7 +48,6 @@ outputs:
     type: UI metadata
   - name: output_path
     description: 'The path to the result from BigQuery'
-    type: outputPath
 implementation:
   container:
     image: gcr.io/ds-production-259110/ml-pipeline-gcp
