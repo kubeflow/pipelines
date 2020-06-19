@@ -16,7 +16,10 @@
 
 set -ex
 
-echo "Usage: edit kubeflow/pipelines/VERSION to new version tag first, then run this script."
+echo "Usage: update kubeflow/pipelines/VERSION to new version tag by"
+echo "`echo -n "\$VERSION" > VERSION` first, then run this script."
+echo "Please use the above command to make sure the file doesn't have extra"
+echo "line endings."
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 REPO_ROOT="$DIR/.."
