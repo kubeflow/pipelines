@@ -60,7 +60,13 @@ def main(argv=None):
   logging.info('Submitting Training Job to SageMaker...')
   job_name = _utils.create_training_job(client, vars(args))
   logging.info('Job request submitted. Waiting for completion...')
-  _utils.wait_for_training_job(client, job_name)
+  try:
+    _utils.wait_for_training_job(client, job_name)
+  except:
+    raise
+  finally:
+    cw_client = _utils.get_cloudwatch_client(args.region)
+    _utils.print_logs_for_job(cw_client, '/aws/sagemaker/TrainingJobs', job_name)
 
   image = _utils.get_image_from_job(client, job_name)
   model_artifact_url = _utils.get_model_artifacts_from_job(client, job_name)
