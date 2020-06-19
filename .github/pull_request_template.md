@@ -1,11 +1,3 @@
-<!-- Which issue is related to this Pull Request? -->
-<!-- Write "Resolves #<issue-number>" to automatically close the issue when PR merged. -->
-Resolves #
-<!--
-or if the PR is only a part of an issue, write the following instead:
-Part of #<issue-number>
--->
-
 **Description of your changes:**
 
 
