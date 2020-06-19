@@ -83,12 +83,41 @@ def get_component_version():
     return component_version
 
 
+def print_logs_for_job(cw_client, log_grp, job_name):
+    """Gets the CloudWatch logs for SageMaker jobs"""
+    try:
+        logging.info('\n******************** CloudWatch logs for {} {} ********************\n'.format(log_grp, job_name))
+
+        log_streams = cw_client.describe_log_streams(
+            logGroupName=log_grp,
+            logStreamNamePrefix=job_name + '/'
+        )['logStreams']
+
+        for log_stream in log_streams:
+            logging.info('\n***** {} *****\n'.format(log_stream['logStreamName']))
+            response = cw_client.get_log_events(
+                logGroupName=log_grp,
+                logStreamName=log_stream['logStreamName']
+            )
+            for event in response['events']:
+                logging.info(event['message'])
+
+        logging.info('\n******************** End of CloudWatch logs for {} {} ********************\n'.format(log_grp, job_name))
+    except Exception as e:
+        logging.error(e)
+
+
 def get_sagemaker_client(region, endpoint_url=None):
     """Builds a client to the AWS SageMaker API."""
     session_config = botocore.config.Config(
         user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(get_component_version())
     )
     client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
+    return client
+
+
+def get_cloudwatch_client(region):
+    client = boto3.client('logs', region_name=region)
     return client
 
 
