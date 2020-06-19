@@ -80,30 +80,42 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
 1. Create a github release using `$VERSION` git tag and title `Version $VERSION`,
 fill in the description.
 
-Use this template for public releases
-<pre>
-To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
+   Use this template for public releases
+   <pre>
+   To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
 
-Install python SDK (python 3.5 above) by running:
-```
-python3 -m pip install kfp kfp-server-api --upgrade
-```
+   Install python SDK (python 3.5 above) by running:
+   ```
+   python3 -m pip install kfp kfp-server-api --upgrade
+   ```
 
-See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
-</pre>
+   See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+   </pre>
 
-Use this template for prereleases (release candidates) and please check the
-`This is a prerelease` checkbox in the Github release UI.
-<pre>
-To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/).
+   Use this template for prereleases (release candidates) and please check the
+   `This is a prerelease` checkbox in the Github release UI.
+   <pre>
+   To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/).
 
-Install python SDK (python 3.5 above) by running:
-```
-python3 -m pip install kfp kfp-server-api --pre --upgrade
-```
+   Install python SDK (python 3.5 above) by running:
+   ```
+   python3 -m pip install kfp kfp-server-api --pre --upgrade
+   ```
 
-See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
-</pre>
+   See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+   </pre>
+
+1. Create a PR to update version in kubeflow documentation website: 
+https://github.com/kubeflow/website/blob/master/layouts/shortcodes/pipelines/latest-version.html
+
+   Note, there **MUST NOT** be a line ending in the file. Editing on github always add a line ending
+   for you so you cannot create a PR on github UI.
+   Instead, you can checkout the repo locally and
+   ```
+   echo -n 1.0.0 > layouts/shortcodes/pipelines/latest-version.html
+   ```
+   and create a PR to update the version, e.g. https://github.com/kubeflow/website/pull/1942.
+
 
 ## Cherry picking PRs to release branch
 
