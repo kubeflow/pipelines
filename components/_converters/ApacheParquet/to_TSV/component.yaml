@@ -1,0 +1,63 @@
+name: Convert apache parquet to tsv
+description: |-
+  Converts Apache Parquet to TSV.
+
+      [Apache Parquet](https://parquet.apache.org/)
+
+      Annotations:
+          author: Alexey Volkov <alexey.volkov@ark-kun.com>
+inputs:
+- {name: data, type: ApacheParquet}
+outputs:
+- {name: output_data, type: TSV}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pyarrow==0.17.1' 'pandas==1.0.3' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'pyarrow==0.17.1' 'pandas==1.0.3'
+      --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def convert_apache_parquet_to_tsv(
+          data_path,
+          output_data_path,
+      ):
+          '''Converts Apache Parquet to TSV.
+
+          [Apache Parquet](https://parquet.apache.org/)
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          '''
+          from pyarrow import parquet
+
+          data_frame = parquet.read_pandas(data_path).to_pandas()
+          data_frame.to_csv(
+              output_data_path,
+              index=False,
+              sep='\t',
+          )
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Convert apache parquet to tsv', description='Converts Apache Parquet to TSV.\n\n    [Apache Parquet](https://parquet.apache.org/)\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')
+      _parser.add_argument("--data", dest="data_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-data", dest="output_data_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = convert_apache_parquet_to_tsv(**_parsed_args)
+    args:
+    - --data
+    - {inputPath: data}
+    - --output-data
+    - {outputPath: output_data}
