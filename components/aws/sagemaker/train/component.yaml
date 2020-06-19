@@ -104,7 +104,11 @@ outputs:
   - {name: training_image,        description: 'The registry path of the Docker image that contains the training algorithm'}
 implementation:
   container:
+<<<<<<< HEAD
     image: amazon/aws-sagemaker-kfp-components:0.5.0
+=======
+    image: amazon/aws-sagemaker-kfp-components:0.5.1
+>>>>>>> changes for patch release 0.5.1
     command: ['python3']
     args: [
       train.py,
