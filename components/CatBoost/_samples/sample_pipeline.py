@@ -36,7 +36,7 @@ def catboost_pipeline():
     regression_model = catboost_train_regression_task.outputs['model']
 
     catboost_train_classifier_task = catboost_train_classifier_op(
-        training_data=evaluation_data_for_classification_in_csv,
+        training_data=training_data_for_classification_in_csv,
         label_column=0,
         num_iterations=200,
     )
