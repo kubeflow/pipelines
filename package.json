@@ -3,8 +3,7 @@
   "private": true,
   "description": "kubeflow pipelines package that only helps with release tooling",
   "scripts": {
-    "release": "standard-version -t ''",
-    "changelog-issue-links": "sed -i.bak -e 's|\([ (ls]\)#\([0-9]\+\)|\1[\\#\2](https://github.com/kubeflow/pipelines/issues/\2)|g'"
+    "changelog": "standard-version -t ''"
   },
   "standard-version": {
     "header": "# Changelog\n",

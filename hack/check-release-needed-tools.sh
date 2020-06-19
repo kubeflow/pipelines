@@ -17,18 +17,21 @@
 set -e
 
 echo "The following tools are needed when releasing KFP:"
+echo "node==12"
+which node >/dev/null || (echo "node not found in PATH, recommend install via https://github.com/nvm-sh/nvm#installing-and-updating" && exit 1)
+node -v | grep v12 || (echo "node not v12.x version" && exit 1)
 echo "jq>=1.6"
-which jq || (echo "jq not found in PATH" && exit 1)
+which jq >/dev/null || (echo "jq not found in PATH" && exit 1)
 echo "yq>=3.3"
-which yq || (echo "yq not found in PATH" && exit 1)
+which yq >/dev/null || (echo "yq not found in PATH" && exit 1)
 yq -V | grep 3. || (echo "yq version 3.x should be used" && exit 1)
 echo "java>=8"
-which java || (echo "java not found in PATH" && exit 1)
+which java >/dev/null || (echo "java not found in PATH" && exit 1)
 echo "bazel==0.24.0"
-which bazel || (echo "bazel not found in PATH" && exit 1)
+which bazel >/dev/null || (echo "bazel not found in PATH" && exit 1)
 bazel version | grep 0.24.0 || (echo "bazel not 0.24.0 version" && exit 1)
 echo "python>3"
-which python || (echo "python not found in PATH" && exit 1)
+which python >/dev/null || (echo "python not found in PATH" && exit 1)
 python -c "import setuptools" || (echo "setuptools should be installed in python" && exit 1)
 
 echo "All tools installed"
