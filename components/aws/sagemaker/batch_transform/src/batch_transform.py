@@ -62,7 +62,14 @@ def main(argv=None):
   logging.info('Submitting Batch Transformation request to SageMaker...')
   batch_job_name = _utils.create_transform_job(client, vars(args))
   logging.info('Batch Job request submitted. Waiting for completion...')
-  _utils.wait_for_transform_job(client, batch_job_name)
+
+  try:
+    _utils.wait_for_transform_job(client, batch_job_name)
+  except:
+    raise
+  finally:
+    cw_client = _utils.get_cloudwatch_client(args.region)
+    _utils.print_logs_for_job(cw_client, '/aws/sagemaker/TransformJobs', batch_job_name)
 
   Path(args.output_location_file).parent.mkdir(parents=True, exist_ok=True)
   with open(args.output_location_file, 'w') as f:

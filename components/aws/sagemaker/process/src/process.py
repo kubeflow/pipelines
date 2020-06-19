@@ -53,7 +53,14 @@ def main(argv=None):
   logging.info('Submitting Processing Job to SageMaker...')
   job_name = _utils.create_processing_job(client, vars(args))
   logging.info('Job request submitted. Waiting for completion...')
-  _utils.wait_for_processing_job(client, job_name)
+
+  try:
+    _utils.wait_for_processing_job(client, job_name)
+  except:
+    raise
+  finally:
+    cw_client = _utils.get_cloudwatch_client(args.region)
+    _utils.print_logs_for_job(cw_client, '/aws/sagemaker/ProcessingJobs', job_name)
 
   outputs = _utils.get_processing_job_outputs(client, job_name)
 
