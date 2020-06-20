@@ -26,42 +26,6 @@ from .. import common as gcp_common
 KFP_OUTPUT_PATH = '/tmp/kfp/output/'
 
 
-def to_csv(query, project_id, output_path, output_filename, dataset_location='US', job_config=None):
-    """Submit a query to Bigquery service and dump outputs to Bigquery table or 
-    a GCS blob.
-    
-    Args:
-        query (str): The query used by Bigquery service to fetch the results.
-        project_id (str): The project to execute the query job.
-        output_path (str): The output path to where the query result is stored.
-        dataset_location (str): The dataset location.
-        job_config (dict): The full config spec for the query job.
-    Returns:
-        The API representation of the completed query job.
-    """
-    client = bigquery.Client(project=project_id, location=dataset_location)
-    if not job_config:
-        job_config = bigquery.QueryJobConfig()
-    else:
-        job_config = bigquery.QueryJobConfig.from_api_repr(job_config)
-    job_id = None
-    def cancel():
-        if job_id:
-            client.cancel_job(job_id)
-    with KfpExecutionContext(on_cancel=cancel) as ctx:
-        job_id = 'query_' + ctx.context_id()
-        query_job = _get_job(client, job_id)
-        if not query_job:
-            query_job = client.query(query, job_config, job_id=job_id)
-        _display_job_link(project_id, job_id)
-        result = query_job.result() # Wait for query to finish
-        df = result.to_dataframe()
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-        df.to_csv(os.path.join(output_path, output_filename))
-        _dump_outputs(query_job, output_path, None)
-        return query_job.to_api_repr()
-
 def query(query, project_id, dataset_id=None, table_id=None, 
     output_gcs_path=None, dataset_location='US', job_config=None,
     output_path=None, output_filename=None):
@@ -111,9 +75,11 @@ def query(query, project_id, dataset_id=None, table_id=None,
         _display_job_link(project_id, job_id)
         if output_path != None: #Write to local file
             result = query_job.result()
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
             df = result.to_dataframe()
             df.to_csv(os.path.join(output_path, output_filename))
-        else: 
+        else:
             query_job.result() 
             if output_gcs_path:
                 job_id = 'extract_' + ctx.context_id()
