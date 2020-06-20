@@ -47,7 +47,7 @@ outputs:
     type: CSV
 implementation:
   container:
-    image: gcr.io/ds-production-259110/ml-pipeline-gcp
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp
     args: [
       --ui_metadata_path,   {outputPath: MLPipeline UI metadata},
       kfp_component.google.bigquery, query,

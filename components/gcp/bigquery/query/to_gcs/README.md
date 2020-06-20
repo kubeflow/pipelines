@@ -11,7 +11,7 @@ GCP, BigQuery, Kubeflow, Pipeline
 
 # Summary
 
-A Kubeflow Pipeline component to submit a query to BigQuery and store the result in a Cloud Storage bucket.
+A Kubeflow Pipeline component to submit a query to BigQuery and store the result in table on BigQuery.
 
 
 # Details
@@ -20,8 +20,8 @@ A Kubeflow Pipeline component to submit a query to BigQuery and store the result
 ## Intended use
 
 Use this Kubeflow component to:
-*   Select training data by submitting a query to BigQuery.
-*   Output the training data into a Cloud Storage bucket as CSV files.
+*   Select data by submitting a query to BigQuery.
+*   Output the data into a table on BigQuery.
 
 
 ## Runtime arguments:
@@ -33,9 +33,9 @@ Use this Kubeflow component to:
 | project_id | The project ID of the Google Cloud Platform (GCP) project to use to execute the query. | No | GCPProjectID |  |  |
 | dataset_id | The ID of the persistent BigQuery dataset to store the results of the query. If the dataset does not exist, the operation will create a new one. | Yes | String |  | None |
 | table_id | The ID of the BigQuery table to store the results of the query. If the table ID is absent, the operation will generate a random ID for the table. | Yes | String |  | None |
-| output_gcs_path | The path to the Cloud Storage bucket to store the query output. | Yes | GCSPath |  | None |
 | dataset_location | The location where the dataset is created. Defaults to US. | Yes | String |  | US |
 | job_config | The full configuration specification for the query job. See [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) for details. | Yes | Dict | A JSONobject which has the same structure as [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) | None |
+
 ## Input data schema
 
 The input data is a BigQuery job containing a query that pulls data from various sources. 
@@ -46,6 +46,7 @@ The input data is a BigQuery job containing a query that pulls data from various
 Name | Description | Type
 :--- | :---------- | :---
 output_gcs_path | The path to the Cloud Storage bucket containing the query output in CSV format. | GCSPath
+
 
 ## Cautions & requirements
 
@@ -89,9 +90,7 @@ bigquery_query_op = comp.load_component_from_url(
 help(bigquery_query_op)
 ```
 
-### Sample
-
-Note: The following sample code works in IPython notebook or directly in Python code.
+### Query
 
 In this sample, we send a query to get the top questions from stackdriver public data and output the data to a Cloud Storage bucket. Here is the query:
 

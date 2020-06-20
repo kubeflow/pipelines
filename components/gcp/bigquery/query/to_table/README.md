@@ -82,9 +82,7 @@ bigquery_query_op = comp.load_component_from_url(
 help(bigquery_query_op)
 ```
 
-### Sample
-
-Note: The following sample code works in IPython notebook or directly in Python code.
+### Query
 
 In this sample, we send a query to get the top questions from stackdriver public data and write the result to a table.
 

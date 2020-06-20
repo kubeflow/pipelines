@@ -32,8 +32,6 @@ Use this Kubeflow component to:
 |----------|-------------|----------|-----------|-----------------|---------|
 | query | The query used by BigQuery to fetch the results. | No | String |  |  |
 | project_id | The project ID of the Google Cloud Platform (GCP) project to use to execute the query. | No | GCPProjectID |  |  |
-| dataset_id | The ID of the persistent BigQuery dataset to store the results of the query. If the dataset does not exist, the operation will create a new one. | Yes | String |  | None |
-| table_id | The ID of the BigQuery table to store the results of the query. If the table ID is absent, the operation will generate a random ID for the table. | Yes | String |  | None |
 | output_filename | The file name of the output file. | Yes | String |  | bq_results.csv |
 | job_config | The full configuration specification for the query job. See [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) for details. | Yes | Dict | A JSONobject which has the same structure as [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) | None |
 ## Input data schema
@@ -60,7 +58,7 @@ To use the component, the following requirements must be met:
 ## Detailed description
 This Kubeflow Pipeline component is used to:
 *   Submit a query to BigQuery.
-    *   The query results are extracted and stored as a csv file locally
+    *   The query results are extracted and stored as a csv file locally avilable for other kubeflow components. 
 
     Use the code below as an example of how to run your BigQuery job.
 
@@ -104,11 +102,11 @@ QUERY = 'SELECT * FROM `bigquery-public-data.stackoverflow.posts_questions` LIMI
 ```python
 # Required Parameters
 PROJECT_ID = '<Please put your project ID here>'
-GCS_WORKING_DIR = 'gs://<Please put your GCS path here>' # No ending slash
 ```
 
 
 ```python
+# Optional Parameters
 FILE_NAME = 'test.csv'
 ```
 
@@ -126,16 +124,11 @@ def pipeline(
     query=QUERY, 
     project_id = PROJECT_ID, 
     output_filename=FILE_NAME
-    dataset_location='US', 
     job_config=''
 ):
     bigquery_query_op(
         query=query, 
-        project_id=project_id, 
-        dataset_id=dataset_id, 
-        table_id=table_id, 
-        output_gcs_path=output_gcs_path, 
-        dataset_location=dataset_location, 
+        project_id=project_id,
         job_config=job_config)
 ```
 
@@ -166,17 +159,29 @@ run_name = pipeline_func.__name__ + ' run'
 run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arguments)
 ```
 
-#### Inspect the output
+#### Use the output in a pipeline
 
+Small example on how to use the output form the component, here `read_csv` any component of interest that can consume a csv file. 
 
-```python
-!gsutil cat OUTPUT_PATH
+```python 
+def pipeline(
+    query=QUERY, 
+    project_id = PROJECT_ID, 
+    job_config=''
+):
+    bq_out = bigquery_query(
+        query=query, 
+        project_id=project_id,
+        output_filename=FILE_NAME,   
+        job_config=job_config)
+    read_csv(input_path=bq_out.outputs["table"] + "/" + FILE_NAME)
 ```
+
+
 
 ## References
 * [Component python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/bigquery/_query.py)
 * [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
-* [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/bigquery/query/sample.ipynb)
 * [BigQuery query REST API](https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query)
 
 ## License
