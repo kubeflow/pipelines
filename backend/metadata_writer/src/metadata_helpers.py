@@ -379,13 +379,12 @@ def create_new_output_artifact(
     run_id: str = None,
     argo_artifact: dict = None,
 ) -> metadata_store_pb2.Artifact:
-    properties = {
+    custom_properties = {
         ARTIFACT_IO_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=output_name),
     }
-    custom_properties = {}
     if run_id:
-        properties[ARTIFACT_PIPELINE_NAME_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
-        properties[ARTIFACT_RUN_ID_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
+        custom_properties[ARTIFACT_PIPELINE_NAME_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
+        custom_properties[ARTIFACT_RUN_ID_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
     if argo_artifact:
         custom_properties[ARTIFACT_ARGO_ARTIFACT_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=json.dumps(argo_artifact, sort_keys=True))
     return create_new_artifact_event_and_attribution(
@@ -403,12 +402,6 @@ def create_new_output_artifact(
                 ),
             ]
         ),
-        properties=properties,
-        artifact_type_properties={
-            ARTIFACT_IO_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
-            ARTIFACT_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
-            ARTIFACT_RUN_ID_PROPERTY_NAME: metadata_store_pb2.STRING,
-        },
         custom_properties=custom_properties,
         #milliseconds_since_epoch=int(datetime.now(timezone.utc).timestamp() * 1000), # Happens automatically
     )

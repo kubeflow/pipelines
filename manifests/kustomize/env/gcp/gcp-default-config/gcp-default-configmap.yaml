@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: gcp-default-config
-data:
-  bucket_name: "$(BUCKET_NAME)"
-  has_default_bucket: "true"
-  project_id: "$(GCP_PROJECT_ID)"

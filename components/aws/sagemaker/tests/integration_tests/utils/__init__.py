@@ -2,7 +2,7 @@ import os
 import subprocess
 import pytest
 import tarfile
-import yaml
+from ruamel.yaml import YAML
 import random
 import string
 import shutil
@@ -93,7 +93,8 @@ def replace_placeholders(input_filename, output_filename):
 
 def load_params(file_name):
     with open(file_name, "r") as f:
-        return yaml.safe_load(f)
+        yaml = YAML(typ="safe")
+        return yaml.load(f)
 
 
 def generate_random_string(length):

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: container
-        image: gcr.io/tfx-oss-public/ml_metadata_store_server:0.21.1
+        image: gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1
         env:
         - name: DBCONFIG_USER
           valueFrom:
@@ -31,25 +31,26 @@ spec:
         - name: MYSQL_DATABASE
           valueFrom:
             configMapKeyRef:
-              name: mysql-configmap
-              key: mlmd_db
+              name: pipeline-install-config
+              key: mlmdDb
         - name: MYSQL_HOST
           valueFrom:
             configMapKeyRef:
-              name: mysql-configmap
-              key: host
+              name: pipeline-install-config
+              key: dbHost
         - name: MYSQL_PORT
           valueFrom:
             configMapKeyRef:
-              name: mysql-configmap
-              key: port
+              name: pipeline-install-config
+              key: dbPort
         command: ["/bin/metadata_store_server"]
         args: ["--grpc_port=8080",
                "--mysql_config_database=$(MYSQL_DATABASE)",
                "--mysql_config_host=$(MYSQL_HOST)",
                "--mysql_config_port=$(MYSQL_PORT)",
                "--mysql_config_user=$(DBCONFIG_USER)",
-               "--mysql_config_password=$(DBCONFIG_PASSWORD)"
+               "--mysql_config_password=$(DBCONFIG_PASSWORD)",
+               "--enable_database_upgrade=true"
                ]
         ports:
         - name: grpc-api

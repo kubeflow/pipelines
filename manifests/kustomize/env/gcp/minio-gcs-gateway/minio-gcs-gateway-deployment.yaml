@@ -23,6 +23,11 @@ spec:
             - gcs
             - $(GCP_PROJECT_ID)
           env:            
+            - name: GCP_PROJECT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: gcsProjectId
             - name: MINIO_ACCESS_KEY
               value: "minio"
             - name: MINIO_SECRET_KEY
