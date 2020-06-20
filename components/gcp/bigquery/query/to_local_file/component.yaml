@@ -57,7 +57,7 @@ implementation:
       --query,              {inputValue: query},
       --project_id,         {inputValue: project_id},
       --output_path,        {outputPath: output_path},
-      --output_filename     {inputValue: output_filename}
+      --output_filename,    {inputValue: output_filename},
       --dataset_location,   {inputValue: dataset_location},
       --job_config,         {inputValue: job_config},
     ]
