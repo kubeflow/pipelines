@@ -1,7 +1,6 @@
-
 # Name
 
-Gather training data by querying BigQuery 
+Gather data by querying BigQuery and save it in a CSV file. 
 
 
 # Labels
@@ -11,7 +10,7 @@ GCP, BigQuery, Kubeflow, Pipeline
 
 # Summary
 
-A Kubeflow Pipeline component to submit a query to BigQuery and store the result in a table in BigQuery
+A Kubeflow Pipeline component to submit a query to BigQuery and store the result in a csv file avialble for other components to utalize. 
 
 
 # Details
@@ -21,8 +20,10 @@ A Kubeflow Pipeline component to submit a query to BigQuery and store the result
 
 Use this Kubeflow component to:
 *   Select training data by submitting a query to BigQuery.
-*   Output the training data into a Cloud Storage bucket as CSV files.
+*   Output the training data into a CSV files.
 
+
+## Runtime arguments:
 
 ## Runtime arguments:
 
@@ -33,19 +34,19 @@ Use this Kubeflow component to:
 | project_id | The project ID of the Google Cloud Platform (GCP) project to use to execute the query. | No | GCPProjectID |  |  |
 | dataset_id | The ID of the persistent BigQuery dataset to store the results of the query. If the dataset does not exist, the operation will create a new one. | Yes | String |  | None |
 | table_id | The ID of the BigQuery table to store the results of the query. If the table ID is absent, the operation will generate a random ID for the table. | Yes | String |  | None |
-| output_gcs_path | The path to the Cloud Storage bucket to store the query output. | Yes | GCSPath |  | None |
-| dataset_location | The location where the dataset is created. Defaults to US. | Yes | String |  | US |
+| output_filename | The file name of the output file. | Yes | String |  | bq_results.csv |
 | job_config | The full configuration specification for the query job. See [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) for details. | Yes | Dict | A JSONobject which has the same structure as [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) | None |
 ## Input data schema
 
-The input data is a BigQuery job containing a query that pulls data f rom various sources. 
+The input data is a BigQuery job containing a query that pulls data from various sources. 
 
 
 ## Output:
 
 Name | Description | Type
 :--- | :---------- | :---
-output_gcs_path | The path to the Cloud Storage bucket containing the query output in CSV format. | GCSPath
+output_path | The path to the file containing the query output in CSV format. | OutputPath
+
 
 ## Cautions & requirements
 
@@ -59,12 +60,11 @@ To use the component, the following requirements must be met:
 ## Detailed description
 This Kubeflow Pipeline component is used to:
 *   Submit a query to BigQuery.
-    *   The query results are persisted in a dataset table in BigQuery.
-    *   An extract job is created in BigQuery to extract the data from the dataset table and output it to a Cloud Storage bucket as CSV files.
+    *   The query results are extracted and stored as a csv file locally
 
     Use the code below as an example of how to run your BigQuery job.
 
-### Sample
+## Sample
 
 Note: The following sample code works in an IPython notebook or directly in Python code.
 
@@ -85,15 +85,13 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 bigquery_query_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/gcp/bigquery/query/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/gcp/bigquery/query/to?gcs/component.yaml')
 help(bigquery_query_op)
 ```
 
-### Sample
+### Query
 
-Note: The following sample code works in IPython notebook or directly in Python code.
-
-In this sample, we send a query to get the top questions from stackdriver public data and output the data to a Cloud Storage bucket. Here is the query:
+In this sample, we send a query to get the top questions from stackdriver public data and output the data to CSV file which other components can access. Here is the query:
 
 
 ```python
@@ -111,9 +109,7 @@ GCS_WORKING_DIR = 'gs://<Please put your GCS path here>' # No ending slash
 
 
 ```python
-# Optional Parameters
-EXPERIMENT_NAME = 'Bigquery -Query'
-OUTPUT_PATH = '{}/bigquery/query/questions.csv'.format(GCS_WORKING_DIR)
+FILE_NAME = 'test.csv'
 ```
 
 #### Run the component as a single pipeline
@@ -129,9 +125,7 @@ import json
 def pipeline(
     query=QUERY, 
     project_id = PROJECT_ID, 
-    dataset_id='', 
-    table_id='', 
-    output_gcs_path=OUTPUT_PATH, 
+    output_filename=FILE_NAME
     dataset_location='US', 
     job_config=''
 ):

@@ -16,8 +16,8 @@
 
 name: Bigquery - Query
 description: |
-  A Kubeflow Pipeline component to submit a query to Google Cloud Bigquery 
-  service. 
+  A Kubeflow Pipeline component to submit a query to Google Cloud Bigquery and
+  store the results to a csv file. 
 metadata:
   labels:
     add-pod-env: 'true'
@@ -28,10 +28,6 @@ inputs:
   - name: project_id
     description: 'The project to execute the query job.'
     type: GCPProjectID
-  - name: dataset_location
-    description: 'The location to create the dataset. Defaults to `US`.'
-    default: 'US'
-    type: String
   - name: job_config
     description: >-
       The full config spec for the query job.See 
@@ -59,7 +55,6 @@ implementation:
       --project_id,         {inputValue: project_id},
       --output_path,        {outputPath: table},
       --output_filename,    {inputValue: output_filename},
-      --dataset_location,   {inputValue: dataset_location},
       --job_config,         {inputValue: job_config},
     ]
     env:

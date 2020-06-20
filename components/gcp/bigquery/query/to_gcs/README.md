@@ -1,7 +1,7 @@
 
 # Name
 
-Gather training data by querying BigQuery 
+Gather data by querying BigQuery and save it to GCS. 
 
 
 # Labels
@@ -11,7 +11,7 @@ GCP, BigQuery, Kubeflow, Pipeline
 
 # Summary
 
-A Kubeflow Pipeline component to submit a query to BigQuery and store the result in a table in BigQuery
+A Kubeflow Pipeline component to submit a query to BigQuery and store the result in a Cloud Storage bucket.
 
 
 # Details
@@ -38,7 +38,7 @@ Use this Kubeflow component to:
 | job_config | The full configuration specification for the query job. See [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) for details. | Yes | Dict | A JSONobject which has the same structure as [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) | None |
 ## Input data schema
 
-The input data is a BigQuery job containing a query that pulls data f rom various sources. 
+The input data is a BigQuery job containing a query that pulls data from various sources. 
 
 
 ## Output:
@@ -60,7 +60,7 @@ To use the component, the following requirements must be met:
 This Kubeflow Pipeline component is used to:
 *   Submit a query to BigQuery.
     *   The query results are persisted in a dataset table in BigQuery.
-    *   An extract job is created in BigQuery to extract the data from the dataset table and output it to a Cloud Storage bucket as CSV files.
+    *   The data is extracted localy and stored as a csv file. 
 
     Use the code below as an example of how to run your BigQuery job.
 
@@ -85,7 +85,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 bigquery_query_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/gcp/bigquery/query/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/gcp/bigquery/query/to?gcs/component.yaml')
 help(bigquery_query_op)
 ```
 
@@ -112,7 +112,7 @@ GCS_WORKING_DIR = 'gs://<Please put your GCS path here>' # No ending slash
 
 ```python
 # Optional Parameters
-EXPERIMENT_NAME = 'Bigquery -Query'
+EXPERIMENT_NAME = 'Bigquery-Query'
 OUTPUT_PATH = '{}/bigquery/query/questions.csv'.format(GCS_WORKING_DIR)
 ```
 
