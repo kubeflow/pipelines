@@ -54,7 +54,7 @@ def query_only(query, project_id, output_path, dataset_location='US', job_config
         _display_job_link(project_id, job_id)
         result = query_job.result() # Wait for query to finish
         df = result.to_dataframe()
-        df.to_csv(output_path)
+        df.to_csv(os.path.join(output_path))
         _dump_outputs(query_job, output_path, None)
         return query_job.to_api_repr()
 
