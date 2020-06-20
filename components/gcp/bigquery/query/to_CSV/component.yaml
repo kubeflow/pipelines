@@ -1,6 +1,6 @@
 # Export to file for next processing step in pipeline
 
-# Copyright 2018 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,8 +46,9 @@ inputs:
 outputs:
   - name: MLPipeline UI metadata
     type: UI metadata
-  - name: output_path
+  - name: table
     description: 'The path to the result from BigQuery'
+    type: CSV
 implementation:
   container:
     image: gcr.io/ds-production-259110/ml-pipeline-gcp
