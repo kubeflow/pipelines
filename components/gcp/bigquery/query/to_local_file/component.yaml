@@ -39,6 +39,10 @@ inputs:
       for details.
     default: ''
     type: Dict
+  - name: output_filename
+    description: 'The output file name'
+    default: 'bq_results.csv'
+    type: String
 outputs:
   - name: MLPipeline UI metadata
     type: UI metadata
@@ -53,6 +57,7 @@ implementation:
       --query,              {inputValue: query},
       --project_id,         {inputValue: project_id},
       --output_path,        {outputPath: output_path},
+      --output_filename     {inputValue: output_filename}
       --dataset_location,   {inputValue: dataset_location},
       --job_config,         {inputValue: job_config},
     ]

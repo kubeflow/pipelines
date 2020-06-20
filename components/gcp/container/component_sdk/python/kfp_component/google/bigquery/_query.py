@@ -14,6 +14,7 @@
 
 import json
 import logging
+import os
 
 from google.cloud import bigquery
 from google.api_core import exceptions
@@ -25,7 +26,7 @@ from .. import common as gcp_common
 KFP_OUTPUT_PATH = '/tmp/kfp/output/'
 
 
-def query_only(query, project_id, output_path, dataset_location='US', job_config=None):
+def query_only(query, project_id, output_path, output_filename, dataset_location='US', job_config=None):
     """Submit a query to Bigquery service and dump outputs to Bigquery table or 
     a GCS blob.
     
@@ -54,7 +55,9 @@ def query_only(query, project_id, output_path, dataset_location='US', job_config
         _display_job_link(project_id, job_id)
         result = query_job.result() # Wait for query to finish
         df = result.to_dataframe()
-        df.to_csv(os.path.join(output_path))
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        df.to_csv(os.path.join(output_path, output_filename))
         _dump_outputs(query_job, output_path, None)
         return query_job.to_api_repr()
 
