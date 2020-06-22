@@ -129,6 +129,8 @@ while True:
         k8s_api.list_namespaced_pod,
         namespace=namespace_to_watch,
         label_selector=ARGO_WORKFLOW_LABEL_KEY,
+        timeout_seconds=1800,  # Sometimes watch gets stuck
+        _request_timeout=2000,  # Sometimes HTTP GET gets stuck
     ):
         try:
             obj = event['object']
