@@ -99,7 +99,7 @@ class ApiRunMetric(object):
         Required. The user defined name of the metric. It must between 1 and 63 characters long and must conform to the following regular expression: `[a-z]([-a-z0-9]*[a-z0-9])?`.  # noqa: E501
 
         :param name: The name of this ApiRunMetric.  # noqa: E501
-        :type: str
+        :type name: str
         """
 
         self._name = name
@@ -122,7 +122,7 @@ class ApiRunMetric(object):
         Required. The runtime node ID which reports the metric. The node ID can be found in the RunDetail.workflow.Status. Metric with same (node_id, name) are considerd as duplicate. Only the first reporting will be recorded. Max length is 128.  # noqa: E501
 
         :param node_id: The node_id of this ApiRunMetric.  # noqa: E501
-        :type: str
+        :type node_id: str
         """
 
         self._node_id = node_id
@@ -145,7 +145,7 @@ class ApiRunMetric(object):
         The number value of the metric.  # noqa: E501
 
         :param number_value: The number_value of this ApiRunMetric.  # noqa: E501
-        :type: float
+        :type number_value: float
         """
 
         self._number_value = number_value
@@ -166,7 +166,7 @@ class ApiRunMetric(object):
 
 
         :param format: The format of this ApiRunMetric.  # noqa: E501
-        :type: RunMetricFormat
+        :type format: RunMetricFormat
         """
 
         self._format = format

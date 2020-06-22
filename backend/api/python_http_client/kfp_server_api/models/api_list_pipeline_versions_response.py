@@ -92,7 +92,7 @@ class ApiListPipelineVersionsResponse(object):
 
 
         :param versions: The versions of this ApiListPipelineVersionsResponse.  # noqa: E501
-        :type: list[ApiPipelineVersion]
+        :type versions: list[ApiPipelineVersion]
         """
 
         self._versions = versions
@@ -115,7 +115,7 @@ class ApiListPipelineVersionsResponse(object):
         The token to list the next page of pipeline versions.  # noqa: E501
 
         :param next_page_token: The next_page_token of this ApiListPipelineVersionsResponse.  # noqa: E501
-        :type: str
+        :type next_page_token: str
         """
 
         self._next_page_token = next_page_token
@@ -138,7 +138,7 @@ class ApiListPipelineVersionsResponse(object):
         The total number of pipeline versions for the given query.  # noqa: E501
 
         :param total_size: The total_size of this ApiListPipelineVersionsResponse.  # noqa: E501
-        :type: int
+        :type total_size: int
         """
 
         self._total_size = total_size
