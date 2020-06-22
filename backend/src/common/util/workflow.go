@@ -200,6 +200,21 @@ func (w *Workflow) SetAnnotationsToAllTemplates(key string, value string) {
 	}
 }
 
+// SetLabels sets labels on all templates in a Workflow
+func (w *Workflow) SetLabelsToAllTemplates(key string, value string) {
+	if len(w.Spec.Templates) == 0 {
+		return
+	}
+	for index, _ := range w.Spec.Templates {
+		if w.Spec.Templates[index].Metadata.Labels == nil {
+			w.Spec.Templates[index].Metadata.Labels = make(map[string]string)
+		}
+		if w.Spec.Templates[index].Metadata.Labels[key] != value {
+			w.Spec.Templates[index].Metadata.Labels[key] = value
+		}
+	}
+}
+
 // SetOwnerReferences sets owner references on a Workflow.
 func (w *Workflow) SetOwnerReferences(schedule *swfapi.ScheduledWorkflow) {
 	w.OwnerReferences = []metav1.OwnerReference{
@@ -268,7 +283,8 @@ func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName
 
 // IsInFinalState whether the workflow is in a final state.
 func (w *Workflow) IsInFinalState() bool {
-	if w.Status.Phase == workflowapi.NodeSucceeded || w.Status.Phase == workflowapi.NodeFailed {
+	// Workflows in the statuses other than pending or running are considered final.
+	if w.Status.Phase == workflowapi.NodeSucceeded || w.Status.Phase == workflowapi.NodeFailed || w.Status.Phase == workflowapi.NodeError || w.Status.Phase == workflowapi.NodeSkipped {
 		return true
 	}
 	return false

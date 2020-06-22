@@ -30,7 +30,7 @@ def gcs_download_op(url):
     )
 
 
-def echo_op(text, is_exit_handler=False):
+def echo_op(text):
     return dsl.ContainerOp(
         name='echo',
         image='library/bash:4.4.23',
@@ -43,7 +43,7 @@ def echo_op(text, is_exit_handler=False):
     name='Exit Handler',
     description='Downloads a message and prints it. The exit handler will run after the pipeline finishes (successfully or not).'
 )
-def download_and_print(url='gs://ml-pipeline-playground/shakespeare1.txt'):
+def download_and_print(url='gs://ml-pipeline/shakespeare/shakespeare1.txt'):
     """A sample pipeline showing exit handler."""
 
     exit_task = echo_op('exit!')

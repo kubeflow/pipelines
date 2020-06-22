@@ -31,7 +31,9 @@ if ! which kustomize; then
   # Download kustomize cli tool
   TOOL_DIR=${DIR}/bin
   mkdir -p ${TOOL_DIR}
-  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/v3.1.0/kustomize_3.1.0_linux_amd64 \
+  # Use 2.0.3 because we want it to be compatible with kubectl apply -k.
+  # The change in https://github.com/kubernetes-sigs/kustomize/blob/master/docs/v2.1.0.md#envs-field broke backward compatibility.
+  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/v2.0.3/kustomize_2.0.3_linux_amd64 \
     -O ${TOOL_DIR}/kustomize --no-verbose
   chmod +x ${TOOL_DIR}/kustomize
   PATH=${PATH}:${TOOL_DIR}
@@ -41,13 +43,12 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   echo "Deploying KFP in working directory..."
   KFP_MANIFEST_DIR=${DIR}/manifests
 
-  pushd ${KFP_MANIFEST_DIR}/crd
-  kustomize build . | kubectl apply -f -
+  pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
+  kubectl apply -k .
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
 
   pushd ${KFP_MANIFEST_DIR}/dev
-
   # This is the recommended approach to do this.
   # reference: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/eschewedFeatures.md#build-time-side-effects-from-cli-args-or-env-variables
   kustomize edit set image gcr.io/ml-pipeline/api-server=${GCR_IMAGE_BASE_DIR}/api-server:${GCR_IMAGE_TAG}
@@ -58,11 +59,11 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   kustomize edit set image gcr.io/ml-pipeline/visualization-server=${GCR_IMAGE_BASE_DIR}/visualization-server:${GCR_IMAGE_TAG}
   kustomize edit set image gcr.io/ml-pipeline/inverse-proxy-agent=${GCR_IMAGE_BASE_DIR}/inverse-proxy-agent:${GCR_IMAGE_TAG}
   kustomize edit set image gcr.io/ml-pipeline/metadata-writer=${GCR_IMAGE_BASE_DIR}/metadata-writer:${GCR_IMAGE_TAG}
-  kustomize edit set image gcr.io/ml-pipeline-test/cache-server=${GCR_IMAGE_BASE_DIR}/cache-server:${GCR_IMAGE_TAG}
-  kustomize edit set image gcr.io/ml-pipeline-test/cache-deployer=${GCR_IMAGE_BASE_DIR}/cache-deployer:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/cache-server=${GCR_IMAGE_BASE_DIR}/cache-server:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/cache-deployer=${GCR_IMAGE_BASE_DIR}/cache-deployer:${GCR_IMAGE_TAG}
   cat kustomization.yaml
 
-  kustomize build . | kubectl apply -f -
+  kubectl apply -k .
   popd
 else
   KFP_LATEST_RELEASE=$(git tag --sort=v:refname | tail -1)
@@ -71,13 +72,14 @@ else
   # temporarily checkout last release tag
   git checkout $KFP_LATEST_RELEASE
 
-  pushd ${KFP_MANIFEST_DIR}/crd
-  kustomize build . | kubectl apply -f -
+  pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
+  kubectl apply -k .
+
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
 
   pushd ${KFP_MANIFEST_DIR}/dev
-  kustomize build . | kubectl apply -f -
+  kubectl apply -k .
   popd
 
   # go back to previous commit
@@ -89,7 +91,7 @@ echo "Status of pods after kubectl apply"
 kubectl get pods -n ${NAMESPACE}
 
 # wait for all deployments to be successful
-# note, after we introduce statefulsets or daemonsets, we need to wait their rollout status here too
+# note, after we introduce statefulset and daemonsets, we need to wait their rollout status here too
 for deployment in $(kubectl get deployments -n ${NAMESPACE} -o name)
 do
   kubectl rollout status $deployment -n ${NAMESPACE}
@@ -102,19 +104,21 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   # Use static GSAs for testing, so we don't need to GC them.
   export SYSTEM_GSA="test-kfp-system"
   export USER_GSA="test-kfp-user"
-
-  # Workaround for flakiness from gcp-workload-identity-setup.sh:
-  # When two tests add iam policy bindings at the same time, one will fail because
-  # there could be two concurrent changes.
-  # Wait here randomly to reduce chance both scripts are run at the same time
-  # between tests. gcp-workload-identity-setup.sh is user facing, we'd better
-  # not add retry there. Also unless for testing scenario like this, it won't
-  # meet the concurrent change issue.
-  sleep $((RANDOM%30))
-  yes | PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
-    ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
-
   source "${DIR}/scripts/retry.sh"
+
+  function setup_workload_identity {
+    # Workaround for flakiness from gcp-workload-identity-setup.sh:
+    # When two tests add iam policy bindings at the same time, one will fail because
+    # there could be two concurrent changes.
+    # Wait here randomly to reduce chance both scripts are run at the same time
+    # between tests. Unless for testing scenario like this, it won't
+    # meet the concurrent change issue.
+    sleep $((RANDOM%30))
+    yes | PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
+      ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
+  }
+  retry setup_workload_identity
+
   retry gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$SYSTEM_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor"

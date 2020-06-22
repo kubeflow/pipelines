@@ -16,6 +16,7 @@ import json
 import hashlib
 import os
 import sys
+import re
 import kubernetes
 import yaml
 from time import sleep
@@ -81,11 +82,21 @@ def output_name_to_argo(name: str) -> str:
     import re
     return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).strip('-')
 
+def is_s3_endpoint(endpoint: str) -> bool:
+    return re.search('^.*s3.*amazonaws.com.*$', endpoint)
+
+def get_object_store_provider(endpoint: str) -> bool:
+    if is_s3_endpoint(endpoint):
+        return 's3'
+    else:
+        return 'minio'
 
 def argo_artifact_to_uri(artifact: dict) -> str:
+    # s3 here means s3 compatible object storage. not AWS S3.
     if 's3' in artifact:
         s3_artifact = artifact['s3']
-        return 'minio://{bucket}/{key}'.format(
+        return '{provider}://{bucket}/{key}'.format(
+            provider=get_object_store_provider(s3_artifact['endpoint']),
             bucket=s3_artifact.get('bucket', ''),
             key=s3_artifact.get('key', ''),
         )
@@ -118,12 +129,16 @@ while True:
         k8s_api.list_namespaced_pod,
         namespace=namespace_to_watch,
         label_selector=ARGO_WORKFLOW_LABEL_KEY,
+        timeout_seconds=1800,  # Sometimes watch gets stuck
+        _request_timeout=2000,  # Sometimes HTTP GET gets stuck
     ):
         try:
             obj = event['object']
             print('Kubernetes Pod event: ', event['type'], obj.metadata.name, obj.metadata.resource_version)
             if event['type'] == 'ERROR':
                 print(event)
+
+            pod_name = obj.metadata.name
 
             # Logging pod changes for debugging
             with open('/tmp/pod_' + obj.metadata.name + '_' + obj.metadata.resource_version, 'w') as f:
@@ -172,6 +187,7 @@ while True:
                     store=mlmd_store,
                     context_id=run_context.id,
                     execution_type_name=KFP_EXECUTION_TYPE_NAME_PREFIX + component_version,
+                    pod_name=pod_name,
                     pipeline_name=argo_workflow_name,
                     run_id=argo_workflow_name,
                     instance_id=component_name,
@@ -292,6 +308,7 @@ while True:
                             output_name=name,
                             #run_id='Context_' + str(context_id) + '_run',
                             run_id=argo_workflow_name,
+                            argo_artifact=art,
                         )
 
                         artifact_ids.append(dict(

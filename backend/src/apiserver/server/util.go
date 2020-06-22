@@ -275,6 +275,18 @@ func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, re
 	return &pipelineVersionId, nil
 }
 
+func getUserIdentityFromHeader(userIdentityHeader, prefix string) (string, error) {
+	if len(userIdentityHeader) > len(prefix) && userIdentityHeader[:len(prefix)] == prefix {
+		return userIdentityHeader[len(prefix):], nil
+	}
+	return "", util.NewBadRequestError(
+		errors.New("Request header error: user identity value is incorrectly formatted"),
+		"Request header error: user identity value is incorrectly formatted. Expected prefix '%s', but got the header '%s'",
+		prefix,
+		userIdentityHeader,
+	)
+}
+
 func getUserIdentity(ctx context.Context) (string, error) {
 	if ctx == nil {
 		return "", util.NewBadRequestError(errors.New("Request error: context is nil"), "Request error: context is nil.")
@@ -282,19 +294,47 @@ func getUserIdentity(ctx context.Context) (string, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	// If the request header contains the user identity, requests are authorized
 	// based on the namespace field in the request.
-	if userIdentityHeader, ok := md[common.GoogleIAPUserIdentityHeader]; ok {
+	if userIdentityHeader, ok := md[common.GetKubeflowUserIDHeader()]; ok {
 		if len(userIdentityHeader) != 1 {
 			return "", util.NewBadRequestError(errors.New("Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader))),
 				"Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader)))
 		}
-		userIdentityHeaderFields := strings.Split(userIdentityHeader[0], ":")
-		if len(userIdentityHeaderFields) != 2 {
-			return "", util.NewBadRequestError(errors.New("Request header error: user identity value is incorrectly formatted"),
-				"Request header error: user identity value is incorrectly formatted")
-		}
-		return userIdentityHeaderFields[1], nil
+		return getUserIdentityFromHeader(userIdentityHeader[0], common.GetKubeflowUserIDPrefix())
 	}
 	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."), "Request header error: there is no user identity header.")
+}
+
+func CanAccessExperiment(resourceManager *resource.ResourceManager, ctx context.Context, experimentID string) error {
+	if common.IsMultiUserMode() == false {
+		// Skip authz if not multi-user mode.
+		return nil
+	}
+
+	experiment, err := resourceManager.GetExperiment(experimentID)
+	if err != nil {
+		return util.NewBadRequestError(errors.New("Invalid experiment ID"), "Failed to get experiment.")
+	}
+	if len(experiment.Namespace) == 0 {
+		return util.NewInternalServerError(errors.New("Missing namespace"), "Experiment %v doesn't have a namespace.", experiment.Name)
+	}
+	err = isAuthorized(resourceManager, ctx, experiment.Namespace)
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize with API resource references")
+	}
+	return nil
+}
+
+func CanAccessExperimentInResourceReferences(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
+	if common.IsMultiUserMode() == false {
+		// Skip authz if not multi-user mode.
+		return nil
+	}
+
+	experimentID := common.GetExperimentIDFromAPIResourceReferences(resourceRefs)
+	if len(experimentID) == 0 {
+		return util.NewBadRequestError(errors.New("Missing experiment"), "Experiment is required for CreateRun/CreateJob.")
+	}
+	return CanAccessExperiment(resourceManager, ctx, experimentID)
 }
 
 func CanAccessNamespaceInResourceReferences(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
@@ -310,6 +350,22 @@ func CanAccessNamespaceInResourceReferences(resourceManager *resource.ResourceMa
 	err := isAuthorized(resourceManager, ctx, namespace)
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize with API resource references")
+	}
+	return nil
+}
+
+func CanAccessNamespace(resourceManager *resource.ResourceManager, ctx context.Context, namespace string) error {
+	if common.IsMultiUserMode() == false {
+		// Skip authz if not multi-user mode.
+		return nil
+	}
+
+	if len(namespace) == 0 {
+		return util.NewBadRequestError(errors.New("Namespace required for authorization."), "Namespace required for authorization.")
+	}
+	err := isAuthorized(resourceManager, ctx, namespace)
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize namespace")
 	}
 	return nil
 }

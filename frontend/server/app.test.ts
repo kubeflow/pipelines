@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019-2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,60 +11,42 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import * as os from 'os';
-import * as fs from 'fs';
-import * as path from 'path';
 import { PassThrough } from 'stream';
+import express from 'express';
 
 import fetch from 'node-fetch';
-import * as requests from 'supertest';
+import requests from 'supertest';
 import { Client as MinioClient } from 'minio';
 import { Storage as GCSStorage } from '@google-cloud/storage';
 
 import { UIServer } from './app';
 import { loadConfigs } from './configs';
 import * as minioHelper from './minio-helper';
-import * as k8sHelper from './k8s-helper';
+import { TEST_ONLY as K8S_TEST_EXPORT } from './k8s-helper';
+import { Server } from 'http';
+import { commonSetup } from './integration-tests/test-helper';
 
 jest.mock('minio');
 jest.mock('node-fetch');
 jest.mock('@google-cloud/storage');
 jest.mock('./minio-helper');
-jest.mock('./k8s-helper');
+
+// TODO: move sections of tests here to individual files in `frontend/server/integration-tests/`
+// for better organization and shorter/more focused tests.
 
 const mockedFetch: jest.Mock = fetch as any;
-const mockedK8sHelper: jest.Mock = k8sHelper as any;
 
 describe('UIServer apis', () => {
   let app: UIServer;
-  const indexHtmlPath = path.resolve(os.tmpdir(), 'index.html');
-  const argv = ['node', 'dist/server.js', os.tmpdir(), '3000'];
-  const buildDate = new Date().toISOString();
+  const tagName = '1.0.0';
   const commitHash = 'abcdefg';
-  const indexHtmlContent = `
-<html>
-<head>
-  <script>
-  window.KFP_FLAGS.DEPLOYMENT=null
-  </script>
-  <script id="kubeflow-client-placeholder"></script>
-</head>
-</html>`;
-
-  beforeAll(() => {
-    fs.writeFileSync(path.resolve(__dirname, 'BUILD_DATE'), buildDate);
-    fs.writeFileSync(path.resolve(__dirname, 'COMMIT_HASH'), commitHash);
-    fs.writeFileSync(indexHtmlPath, indexHtmlContent);
-  });
-
-  afterAll(() => {
-    fs.unlinkSync(path.resolve(__dirname, 'BUILD_DATE'));
-    fs.unlinkSync(path.resolve(__dirname, 'COMMIT_HASH'));
-    fs.unlinkSync(indexHtmlPath);
-  });
+  const { argv, buildDate, indexHtmlContent } = commonSetup({ tagName, commitHash });
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    const consoleInfoSpy = jest.spyOn(global.console, 'info');
+    consoleInfoSpy.mockImplementation(() => null);
+    const consoleLogSpy = jest.spyOn(global.console, 'log');
+    consoleLogSpy.mockImplementation(() => null);
   });
 
   afterEach(() => {
@@ -142,6 +124,7 @@ describe('UIServer apis', () => {
             apiServerReady: false,
             buildDate,
             frontendCommitHash: commitHash,
+            frontendTagName: tagName,
           },
           done,
         );
@@ -152,6 +135,7 @@ describe('UIServer apis', () => {
         json: () =>
           Promise.resolve({
             commit_sha: 'commit_sha',
+            tag_name: '1.0.0',
           }),
       }));
 
@@ -163,9 +147,11 @@ describe('UIServer apis', () => {
           200,
           {
             apiServerCommitHash: 'commit_sha',
+            apiServerTagName: '1.0.0',
             apiServerReady: true,
             buildDate,
             frontendCommitHash: commitHash,
+            frontendTagName: tagName,
           },
           done,
         );
@@ -176,10 +162,13 @@ describe('UIServer apis', () => {
     it('responds with a minio artifact if source=minio', done => {
       const artifactContent = 'hello world';
       const mockedMinioClient: jest.Mock = MinioClient as any;
-      const mockedGetTarObjectAsString: jest.Mock = minioHelper.getTarObjectAsString as any;
-      mockedGetTarObjectAsString.mockImplementationOnce(opt =>
+      const mockedGetObjectStream: jest.Mock = minioHelper.getObjectStream as any;
+      const objStream = new PassThrough();
+      objStream.end(artifactContent);
+
+      mockedGetObjectStream.mockImplementationOnce(opt =>
         opt.bucket === 'ml-pipeline' && opt.key === 'hello/world.txt'
-          ? Promise.resolve(artifactContent)
+          ? Promise.resolve(objStream)
           : Promise.reject('Unable to retrieve minio artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -239,7 +228,7 @@ describe('UIServer apis', () => {
         });
     });
 
-    it('responds with a s3 artifact if source=s3', done => {
+    it('responds with partial s3 artifact if peek=5 flag is set', done => {
       const artifactContent = 'hello world';
       const mockedMinioClient: jest.Mock = minioHelper.createMinioClient as any;
       const mockedGetObjectStream: jest.Mock = minioHelper.getObjectStream as any;
@@ -260,8 +249,8 @@ describe('UIServer apis', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
-        .expect(200, artifactContent, err => {
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
+        .expect(200, artifactContent.slice(0, 5), err => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
             endPoint: 's3.amazonaws.com',
@@ -275,7 +264,10 @@ describe('UIServer apis', () => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'http://foo.bar/ml-pipeline/hello/world.txt'
-          ? Promise.resolve({ buffer: () => Promise.resolve(artifactContent) })
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: new PassThrough().end(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -294,12 +286,42 @@ describe('UIServer apis', () => {
         });
     });
 
+    it('responds with partial http artifact if peek=5 flag is set', done => {
+      const artifactContent = 'hello world';
+      const mockedFetch: jest.Mock = fetch as any;
+      mockedFetch.mockImplementationOnce((url: string, opts: any) =>
+        url === 'http://foo.bar/ml-pipeline/hello/world.txt'
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: new PassThrough().end(artifactContent),
+            })
+          : Promise.reject('Unable to retrieve http artifact.'),
+      );
+      const configs = loadConfigs(argv, {
+        HTTP_BASE_URL: 'foo.bar/',
+      });
+      app = new UIServer(configs);
+
+      const request = requests(app.start());
+      request
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
+        .expect(200, artifactContent.slice(0, 5), err => {
+          expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello/world.txt', {
+            headers: {},
+          });
+          done(err);
+        });
+    });
+
     it('responds with a https artifact if source=https', done => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt' &&
         opts.headers.Authorization === 'someToken'
-          ? Promise.resolve({ buffer: () => Promise.resolve(artifactContent) })
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: new PassThrough().end(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -326,7 +348,10 @@ describe('UIServer apis', () => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt'
-          ? Promise.resolve({ buffer: () => Promise.resolve(artifactContent) })
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: new PassThrough().end(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -369,13 +394,30 @@ describe('UIServer apis', () => {
         .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(200, artifactContent + '\n', done);
     });
+
+    it('responds with a partial gcs artifact if peek=5 is set', done => {
+      const artifactContent = 'hello world';
+      const mockedGcsStorage: jest.Mock = GCSStorage as any;
+      const stream = new PassThrough();
+      stream.end(artifactContent);
+      mockedGcsStorage.mockImplementationOnce(() => ({
+        bucket: () => ({
+          getFiles: () =>
+            Promise.resolve([[{ name: 'hello/world.txt', createReadStream: () => stream }]]),
+        }),
+      }));
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const request = requests(app.start());
+      request
+        .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
+        .expect(200, artifactContent.slice(0, 5), done);
+    });
   });
 
   describe('/system', () => {
     describe('/cluster-name', () => {
-      beforeEach(() => {
-        mockedK8sHelper.isInCluster = true;
-      });
       it('responds with cluster name data from gke metadata', done => {
         mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
           url === 'http://metadata/computeMetadata/v1/instance/attributes/cluster-name'
@@ -411,10 +453,8 @@ describe('UIServer apis', () => {
           .expect(500, 'GKE metadata endpoints are disabled.', done);
       });
     });
+
     describe('/project-id', () => {
-      beforeEach(() => {
-        mockedK8sHelper.isInCluster = true;
-      });
       it('responds with project id data from gke metadata', done => {
         mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
           url === 'http://metadata/computeMetadata/v1/project/project-id'
@@ -446,25 +486,630 @@ describe('UIServer apis', () => {
     });
   });
 
-  // TODO: refractor k8s helper module so that api that interact with k8s can be
-  // mocked and tested. There is currently no way to mock k8s APIs as
-  // `k8s-helper.isInCluster` is a constant that is generated when the module is
-  // first loaded.
+  describe('/k8s/pod', () => {
+    let request: requests.SuperTest<requests.Test>;
+    beforeEach(() => {
+      app = new UIServer(loadConfigs(argv, {}));
+      request = requests(app.start());
+    });
 
-  // describe('/apps/tensorboard', () => {
+    it('asks for podname if not provided', done => {
+      request.get('/k8s/pod').expect(422, 'podname argument is required', done);
+    });
 
-  //   it('get a tensorboard url', done => {
-  //     const tensorboardUrl = 'http://tensorboard.view/abc';
-  //     const mockedGetTensorboardInstance: jest.Mock = getTensorboardInstance as any;
-  //     mockedGetTensorboardInstance.mockResolvedValueOnce(tensorboardUrl);
-  //     const configs = loadConfigs(argv, {});
-  //     app = new UIServer(configs);
+    it('asks for podnamespace if not provided', done => {
+      request
+        .get('/k8s/pod?podname=test-pod')
+        .expect(422, 'podnamespace argument is required', done);
+    });
 
-  //     const request = requests(app.start());
-  //     request.get('/apps/tensorboard?logdir=hello%2Fworld').expect(200, tensorboardUrl, done);
-  //   });
+    it('responds with pod info in JSON', done => {
+      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      readPodSpy.mockImplementation(() =>
+        Promise.resolve({
+          body: { kind: 'Pod' }, // only body is used
+        } as any),
+      );
+      request
+        .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
+        .expect(200, '{"kind":"Pod"}', err => {
+          expect(readPodSpy).toHaveBeenCalledWith('test-pod', 'test-ns');
+          done(err);
+        });
+    });
 
-  // });
+    it('responds with error when failed to retrieve pod info', done => {
+      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      readPodSpy.mockImplementation(() =>
+        Promise.reject({
+          body: {
+            message: 'pod not found',
+            code: 404,
+          },
+        } as any),
+      );
+      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+      request
+        .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
+        .expect(500, 'Could not get pod test-pod in namespace test-ns: pod not found', () => {
+          expect(spyError).toHaveBeenCalledTimes(1);
+          done();
+        });
+    });
+  });
 
+  describe('/k8s/pod/events', () => {
+    let request: requests.SuperTest<requests.Test>;
+    beforeEach(() => {
+      app = new UIServer(loadConfigs(argv, {}));
+      request = requests(app.start());
+    });
+
+    it('asks for podname if not provided', done => {
+      request.get('/k8s/pod/events').expect(422, 'podname argument is required', done);
+    });
+
+    it('asks for podnamespace if not provided', done => {
+      request
+        .get('/k8s/pod/events?podname=test-pod')
+        .expect(422, 'podnamespace argument is required', done);
+    });
+
+    it('responds with pod info in JSON', done => {
+      const listEventSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
+      listEventSpy.mockImplementation(() =>
+        Promise.resolve({
+          body: { kind: 'EventList' }, // only body is used
+        } as any),
+      );
+      request
+        .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
+        .expect(200, '{"kind":"EventList"}', err => {
+          expect(listEventSpy).toHaveBeenCalledWith(
+            'test-ns',
+            undefined,
+            undefined,
+            undefined,
+            'involvedObject.namespace=test-ns,involvedObject.name=test-pod,involvedObject.kind=Pod',
+          );
+          done(err);
+        });
+    });
+
+    it('responds with error when failed to retrieve pod info', done => {
+      const listEventSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
+      listEventSpy.mockImplementation(() =>
+        Promise.reject({
+          body: {
+            message: 'no events',
+            code: 404,
+          },
+        } as any),
+      );
+      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+      request
+        .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
+        .expect(
+          500,
+          'Error when listing pod events for pod "test-pod" in "test-ns" namespace: no events',
+          err => {
+            expect(spyError).toHaveBeenCalledTimes(1);
+            done(err);
+          },
+        );
+    });
+  });
+
+  describe('/apps/tensorboard', () => {
+    let k8sGetCustomObjectSpy: jest.SpyInstance;
+    let k8sDeleteCustomObjectSpy: jest.SpyInstance;
+    let k8sCreateCustomObjectSpy: jest.SpyInstance;
+    let kfpApiServer: Server;
+
+    function newGetTensorboardResponse({
+      name = 'viewer-example',
+      logDir = 'log-dir-example',
+      tensorflowImage = 'tensorflow:2.0.0',
+      type = 'tensorboard',
+    }: {
+      name?: string;
+      logDir?: string;
+      tensorflowImage?: string;
+      type?: string;
+    } = {}) {
+      return {
+        response: undefined as any, // unused
+        body: {
+          metadata: {
+            name,
+          },
+          spec: {
+            tensorboardSpec: { logDir, tensorflowImage },
+            type,
+          },
+        },
+      };
+    }
+
+    beforeEach(() => {
+      k8sGetCustomObjectSpy = jest.spyOn(
+        K8S_TEST_EXPORT.k8sV1CustomObjectClient,
+        'getNamespacedCustomObject',
+      );
+      k8sDeleteCustomObjectSpy = jest.spyOn(
+        K8S_TEST_EXPORT.k8sV1CustomObjectClient,
+        'deleteNamespacedCustomObject',
+      );
+      k8sCreateCustomObjectSpy = jest.spyOn(
+        K8S_TEST_EXPORT.k8sV1CustomObjectClient,
+        'createNamespacedCustomObject',
+      );
+    });
+
+    afterEach(() => {
+      if (kfpApiServer) {
+        kfpApiServer.close();
+      }
+    });
+
+    describe('get', () => {
+      it('requires logdir for get tensorboard', done => {
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .get('/apps/tensorboard')
+          .expect(400, 'logdir argument is required', done);
+      });
+
+      it('requires namespace for get tensorboard', done => {
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .get('/apps/tensorboard?logdir=some-log-dir')
+          .expect(400, 'namespace argument is required', done);
+      });
+
+      it('does not crash with a weird query', done => {
+        app = new UIServer(loadConfigs(argv, {}));
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(newGetTensorboardResponse()),
+        );
+        // The special case is that, decodeURIComponent('%2') throws an
+        // exception, so this can verify handler doesn't do extra
+        // decodeURIComponent on queries.
+        const weirdLogDir = encodeURIComponent('%2');
+        requests(app.start())
+          .get(`/apps/tensorboard?logdir=${weirdLogDir}&namespace=test-ns`)
+          .expect(200, done);
+      });
+
+      function setupMockKfpApiService({ port = 3001 }: { port?: number } = {}) {
+        const receivedHeaders: any[] = [];
+        kfpApiServer = express()
+          .get('/apis/v1beta1/auth', (req, res) => {
+            receivedHeaders.push(req.headers);
+            res.status(200).send('{}'); // Authorized
+          })
+          .listen(port);
+        return { receivedHeaders, host: 'localhost', port };
+      }
+
+      it('authorizes user requests from KFP auth api', done => {
+        const { receivedHeaders, host, port } = setupMockKfpApiService();
+        app = new UIServer(
+          loadConfigs(argv, {
+            ENABLE_AUTHZ: 'true',
+            ML_PIPELINE_SERVICE_PORT: `${port}`,
+            ML_PIPELINE_SERVICE_HOST: host,
+          }),
+        );
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(newGetTensorboardResponse()),
+        );
+        requests(app.start())
+          .get(`/apps/tensorboard?logdir=some-log-dir&namespace=test-ns`)
+          .set('x-goog-authenticated-user-email', 'accounts.google.com:user@google.com')
+          .expect(200, err => {
+            expect(receivedHeaders).toHaveLength(1);
+            expect(receivedHeaders[0]).toMatchInlineSnapshot(`
+              Object {
+                "accept": "*/*",
+                "accept-encoding": "gzip,deflate",
+                "connection": "close",
+                "host": "localhost:3001",
+                "user-agent": "node-fetch/1.0 (+https://github.com/bitinn/node-fetch)",
+                "x-goog-authenticated-user-email": "accounts.google.com:user@google.com",
+              }
+            `);
+            done(err);
+          });
+      });
+
+      it('uses configured KUBEFLOW_USERID_HEADER for user identity', done => {
+        const { receivedHeaders, host, port } = setupMockKfpApiService();
+        app = new UIServer(
+          loadConfigs(argv, {
+            ENABLE_AUTHZ: 'true',
+            KUBEFLOW_USERID_HEADER: 'x-kubeflow-userid',
+            ML_PIPELINE_SERVICE_PORT: `${port}`,
+            ML_PIPELINE_SERVICE_HOST: host,
+          }),
+        );
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(newGetTensorboardResponse()),
+        );
+        requests(app.start())
+          .get(`/apps/tensorboard?logdir=some-log-dir&namespace=test-ns`)
+          .set('x-kubeflow-userid', 'user@kubeflow.org')
+          .expect(200, err => {
+            expect(receivedHeaders).toHaveLength(1);
+            expect(receivedHeaders[0]).toHaveProperty('x-kubeflow-userid', 'user@kubeflow.org');
+            done(err);
+          });
+      });
+
+      it('rejects user requests when KFP auth api rejected', done => {
+        const errorSpy = jest.spyOn(console, 'error');
+        errorSpy.mockImplementation();
+
+        const apiServerPort = 3001;
+        kfpApiServer = express()
+          .get('/apis/v1beta1/auth', (_, res) => {
+            res.status(400).send(
+              JSON.stringify({
+                error: 'User xxx is not unauthorized to list viewers',
+                details: ['unauthorized', 'callstack'],
+              }),
+            );
+          })
+          .listen(apiServerPort);
+        app = new UIServer(
+          loadConfigs(argv, {
+            ENABLE_AUTHZ: 'true',
+            ML_PIPELINE_SERVICE_PORT: `${apiServerPort}`,
+            ML_PIPELINE_SERVICE_HOST: 'localhost',
+          }),
+        );
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(newGetTensorboardResponse()),
+        );
+        requests(app.start())
+          .get(`/apps/tensorboard?logdir=some-log-dir&namespace=test-ns`)
+          .expect(
+            401,
+            'User is not authorized to GET VIEWERS in namespace test-ns: User xxx is not unauthorized to list viewers',
+            err => {
+              expect(errorSpy).toHaveBeenCalledTimes(1);
+              expect(
+                errorSpy,
+              ).toHaveBeenCalledWith(
+                'User is not authorized to GET VIEWERS in namespace test-ns: User xxx is not unauthorized to list viewers',
+                ['unauthorized', 'callstack'],
+              );
+              done(err);
+            },
+          );
+      });
+
+      it('gets tensorboard url and version', done => {
+        app = new UIServer(loadConfigs(argv, {}));
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(
+            newGetTensorboardResponse({
+              name: 'viewer-abcdefg',
+              logDir: 'log-dir-1',
+              tensorflowImage: 'tensorflow:2.0.0',
+            }),
+          ),
+        );
+
+        requests(app.start())
+          .get(`/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns`)
+          .expect(
+            200,
+            JSON.stringify({
+              podAddress:
+                'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
+              tfVersion: '2.0.0',
+            }),
+            err => {
+              expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
+                              Array [
+                                "kubeflow.org",
+                                "v1beta1",
+                                "test-ns",
+                                "viewers",
+                                "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                              ]
+                          `);
+              done(err);
+            },
+          );
+      });
+    });
+
+    describe('post (create)', () => {
+      it('requires logdir', done => {
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .post('/apps/tensorboard')
+          .expect(400, 'logdir argument is required', done);
+      });
+
+      it('requires namespace', done => {
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .post('/apps/tensorboard?logdir=some-log-dir')
+          .expect(400, 'namespace argument is required', done);
+      });
+
+      it('requires tfversion', done => {
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .post('/apps/tensorboard?logdir=some-log-dir&namespace=test-ns')
+          .expect(400, 'tfversion (tensorflow version) argument is required', done);
+      });
+
+      it('creates tensorboard viewer custom object and waits for it', done => {
+        let getRequestCount = 0;
+        k8sGetCustomObjectSpy.mockImplementation(() => {
+          ++getRequestCount;
+          switch (getRequestCount) {
+            case 1:
+              return Promise.reject('Not found');
+            case 2:
+              return Promise.resolve(
+                newGetTensorboardResponse({
+                  name: 'viewer-abcdefg',
+                  logDir: 'log-dir-1',
+                  tensorflowImage: 'tensorflow:2.0.0',
+                }),
+              );
+            default:
+              throw new Error('only expected to be called twice in this test');
+          }
+        });
+        k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .post(
+            `/apps/tensorboard?logdir=${encodeURIComponent(
+              'log-dir-1',
+            )}&namespace=test-ns&tfversion=2.0.0`,
+          )
+          .expect(
+            200,
+            'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
+            err => {
+              expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
+                Array [
+                  "kubeflow.org",
+                  "v1beta1",
+                  "test-ns",
+                  "viewers",
+                  "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                ]
+              `);
+              expect(k8sCreateCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
+                Array [
+                  "kubeflow.org",
+                  "v1beta1",
+                  "test-ns",
+                  "viewers",
+                  Object {
+                    "apiVersion": "kubeflow.org/v1beta1",
+                    "kind": "Viewer",
+                    "metadata": Object {
+                      "name": "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                      "namespace": "test-ns",
+                    },
+                    "spec": Object {
+                      "podTemplateSpec": Object {
+                        "spec": Object {
+                          "containers": Array [
+                            Object {},
+                          ],
+                        },
+                      },
+                      "tensorboardSpec": Object {
+                        "logDir": "log-dir-1",
+                        "tensorflowImage": "tensorflow/tensorflow:2.0.0",
+                      },
+                      "type": "tensorboard",
+                    },
+                  },
+                ]
+              `);
+              expect(k8sGetCustomObjectSpy.mock.calls[1]).toMatchInlineSnapshot(`
+                Array [
+                  "kubeflow.org",
+                  "v1beta1",
+                  "test-ns",
+                  "viewers",
+                  "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                ]
+              `);
+              done(err);
+            },
+          );
+      });
+
+      it('returns error when there is an existing tensorboard with different version', done => {
+        const errorSpy = jest.spyOn(console, 'error');
+        errorSpy.mockImplementation();
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(
+            newGetTensorboardResponse({
+              name: 'viewer-abcdefg',
+              logDir: 'log-dir-1',
+              tensorflowImage: 'tensorflow:2.1.0',
+            }),
+          ),
+        );
+        k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .post(
+            `/apps/tensorboard?logdir=${encodeURIComponent(
+              'log-dir-1',
+            )}&namespace=test-ns&tfversion=2.0.0`,
+          )
+          .expect(
+            500,
+            `Failed to start Tensorboard app: There's already an existing tensorboard instance with a different version 2.1.0`,
+            err => {
+              expect(errorSpy).toHaveBeenCalledTimes(1);
+              done(err);
+            },
+          );
+      });
+
+      it('returns existing pod address if there is an existing tensorboard with the same version', done => {
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(
+            newGetTensorboardResponse({
+              name: 'viewer-abcdefg',
+              logDir: 'log-dir-1',
+              tensorflowImage: 'tensorflow:2.0.0',
+            }),
+          ),
+        );
+        k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .post(
+            `/apps/tensorboard?logdir=${encodeURIComponent(
+              'log-dir-1',
+            )}&namespace=test-ns&tfversion=2.0.0`,
+          )
+          .expect(
+            200,
+            'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
+            done,
+          );
+      });
+    });
+
+    describe('delete', () => {
+      it('requires logdir', done => {
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .delete('/apps/tensorboard')
+          .expect(400, 'logdir argument is required', done);
+      });
+
+      it('requires namespace', done => {
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .delete('/apps/tensorboard?logdir=some-log-dir')
+          .expect(400, 'namespace argument is required', done);
+      });
+
+      it('deletes tensorboard viewer custom object', done => {
+        k8sGetCustomObjectSpy.mockImplementation(() =>
+          Promise.resolve(
+            newGetTensorboardResponse({
+              name: 'viewer-abcdefg',
+              logDir: 'log-dir-1',
+              tensorflowImage: 'tensorflow:2.0.0',
+            }),
+          ),
+        );
+        k8sDeleteCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+        app = new UIServer(loadConfigs(argv, {}));
+        requests(app.start())
+          .delete(`/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns`)
+          .expect(200, 'Tensorboard deleted.', err => {
+            expect(k8sDeleteCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
+              Array [
+                "kubeflow.org",
+                "v1beta1",
+                "test-ns",
+                "viewers",
+                "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                V1DeleteOptions {},
+              ]
+            `);
+            done(err);
+          });
+      });
+    });
+  });
+
+  // TODO: Add integration tests for k8s helper related endpoints
   // describe('/k8s/pod/logs', () => {});
+
+  describe('/apis/v1beta1/', () => {
+    let request: requests.SuperTest<requests.Test>;
+    let kfpApiServer: Server;
+
+    beforeEach(() => {
+      const kfpApiPort = 3001;
+      kfpApiServer = express()
+        .all('/*', (_, res) => {
+          res.status(200).send('KFP API is working');
+        })
+        .listen(kfpApiPort);
+      app = new UIServer(
+        loadConfigs(argv, {
+          ML_PIPELINE_SERVICE_PORT: `${kfpApiPort}`,
+          ML_PIPELINE_SERVICE_HOST: 'localhost',
+        }),
+      );
+      request = requests(app.start());
+    });
+
+    afterEach(() => {
+      if (kfpApiServer) {
+        kfpApiServer.close();
+      }
+    });
+
+    it('rejects reportMetrics because it is not public kfp api', done => {
+      const runId = 'a-random-run-id';
+      request
+        .post(`/apis/v1beta1/runs/${runId}:reportMetrics`)
+        .expect(
+          403,
+          '/apis/v1beta1/runs/a-random-run-id:reportMetrics endpoint is not meant for external usage.',
+          done,
+        );
+    });
+
+    it('rejects reportWorkflow because it is not public kfp api', done => {
+      const workflowId = 'a-random-workflow-id';
+      request
+        .post(`/apis/v1beta1/workflows/${workflowId}`)
+        .expect(
+          403,
+          '/apis/v1beta1/workflows/a-random-workflow-id endpoint is not meant for external usage.',
+          done,
+        );
+    });
+
+    it('rejects reportScheduledWorkflow because it is not public kfp api', done => {
+      const swf = 'a-random-swf-id';
+      request
+        .post(`/apis/v1beta1/scheduledworkflows/${swf}`)
+        .expect(
+          403,
+          '/apis/v1beta1/scheduledworkflows/a-random-swf-id endpoint is not meant for external usage.',
+          done,
+        );
+    });
+
+    it('does not reject similar apis', done => {
+      request // use reportMetrics as runId to see if it can confuse route parsing
+        .post(`/apis/v1beta1/runs/xxx-reportMetrics:archive`)
+        .expect(200, 'KFP API is working', done);
+    });
+
+    it('proxies other run apis', done => {
+      request
+        .post(`/apis/v1beta1/runs/a-random-run-id:archive`)
+        .expect(200, 'KFP API is working', done);
+    });
+  });
 });

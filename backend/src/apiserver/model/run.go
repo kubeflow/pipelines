@@ -21,6 +21,7 @@ type Run struct {
 	Name               string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
 	StorageState       string `gorm:"column:StorageState; not null;"`
 	Namespace          string `gorm:"column:Namespace; not null;"`
+	ServiceAccount     string `gorm:"column:ServiceAccount; not null;"`
 	Description        string `gorm:"column:Description; not null;"`
 	CreatedAtInSec     int64  `gorm:"column:CreatedAtInSec; not null;"`
 	ScheduledAtInSec   int64  `gorm:"column:ScheduledAtInSec; default:0;"`
@@ -76,6 +77,7 @@ var runAPIToModelFieldMap = map[string]string{
 	"description":   "Description",
 	"scheduled_at":  "ScheduledAtInSec",
 	"storage_state": "StorageState",
+	"status":        "Conditions",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Run.

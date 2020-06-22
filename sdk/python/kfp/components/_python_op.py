@@ -17,8 +17,6 @@ __all__ = [
     'func_to_container_op',
     'func_to_component_text',
     'default_base_image_or_builder',
-    'get_default_base_image',
-    'set_default_base_image',
     'InputPath',
     'InputTextFile',
     'InputBinaryFile',
@@ -37,7 +35,6 @@ import inspect
 from pathlib import Path
 import typing
 from typing import Callable, Generic, List, TypeVar, Union
-from deprecated.sphinx import deprecated
 
 T = TypeVar('T')
 
@@ -99,19 +96,6 @@ def _parent_dirs_maker_that_returns_open_file(mode: str, encoding: str = None):
 
 #TODO: Replace this image name with another name once people decide what to replace it with.
 default_base_image_or_builder='tensorflow/tensorflow:1.13.2-py3'
-
-@deprecated(version='0.1.32', reason='Use the kfp.components.default_base_image_or_builder variable instead')
-def get_default_base_image() -> Union[str, Callable[[], str]]:
-    return default_base_image_or_builder
-
-
-@deprecated(version='0.1.32', reason='Use the kfp.components.default_base_image_or_builder variable instead')
-def set_default_base_image(image_or_factory: Union[str, Callable[[], str]]):
-    '''set_default_base_image sets the name of the container image that will be used for component creation when base_image is not specified.
-    Alternatively, the base image can also be set to a factory function that will be returning the image.
-    '''
-    global default_base_image_or_builder
-    default_base_image_or_builder = image_or_factory
 
 
 def _python_function_name_to_component_name(name):
@@ -193,16 +177,16 @@ import pickle
 
 def strip_type_hints(source_code: str) -> str:
     try:
-        return _strip_type_hints_using_strip_hints(source_code)
-    except Exception as ex:
-        print('Error when stripping type annotations: ' + str(ex))
-
-    try:        
         return _strip_type_hints_using_lib2to3(source_code)
     except Exception as ex:
         print('Error when stripping type annotations: ' + str(ex))
 
-    return source_code    
+    try:
+        return _strip_type_hints_using_strip_hints(source_code)
+    except Exception as ex:
+        print('Error when stripping type annotations: ' + str(ex))
+
+    return source_code
 
 
 def _strip_type_hints_using_strip_hints(source_code: str) -> str:
@@ -247,7 +231,7 @@ def _strip_type_hints_using_lib2to3(source_code: str) -> str:
         def get_fixers(self):
             return self._fixers, []
 
-    stripped_code = Refactor([StripAnnotations]).refactor_string(source_code, '')
+    stripped_code = str(Refactor([StripAnnotations]).refactor_string(source_code, ''))
     return stripped_code
 
 
@@ -317,8 +301,8 @@ def _extract_component_interface(func) -> ComponentSpec:
         if isinstance(parameter_annotation, (InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile)):
             passing_style = type(parameter_annotation)
             parameter_annotation = parameter_annotation.type
-            if parameter.default is not inspect.Parameter.empty:
-                raise ValueError('Default values for file inputs/outputs are not supported. If you need them for some reason, please create an issue and write about your usage scenario.')
+            if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
+                raise ValueError('Path inputs only support default values of None. Default values for outputs are not supported.')
             # Removing the "_path" and "_file" suffixes from the input/output names as the argument passed to the component needs to be the data itself, not local file path.
             # Problem: When accepting file inputs (outputs), the function inside the component receives file paths (or file streams), so it's natural to call the function parameter "something_file_path" (e.g. model_file_path or number_file_path).
             # But from the outside perspective, there are no files or paths - the actual data objects (or references to them) are passed in.
@@ -400,8 +384,9 @@ def _extract_component_interface(func) -> ComponentSpec:
         output_spec._passing_style = None
         outputs.append(output_spec)
 
-    #Component name and description are derived from the function's name and docstribng, but can be overridden by @python_component function decorator
-    #The decorator can set the _component_human_name and _component_description attributes. getattr is needed to prevent error when these attributes do not exist.
+    # Component name and description are derived from the function's name and docstring.
+    # The name can be overridden by setting setting func.__name__ attribute (of the legacy func._component_human_name attribute).
+    # The description can be overridden by setting the func.__doc__ attribute (or the legacy func._component_description attribute).
     component_name = getattr(func, '_component_human_name', None) or _python_function_name_to_component_name(func.__name__)
     description = getattr(func, '_component_description', None) or func.__doc__
     if description:
@@ -570,10 +555,13 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     arg_parse_code_lines = list(definitions) + arg_parse_code_lines
 
-    arg_parse_code_lines.extend([
+    arg_parse_code_lines.append(
         '_parsed_args = vars(_parser.parse_args())',
-        '_output_files = _parsed_args.pop("_output_paths", [])',
-    ])
+    )
+    if outputs_passed_through_func_return_tuple:
+        arg_parse_code_lines.append(
+            '_output_files = _parsed_args.pop("_output_paths", [])',
+        )
 
     # Putting singular return values in a list to be "zipped" with the serializers and output paths
     outputs_to_list_code = ''
@@ -588,17 +576,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     output_serialization_code = ''.join('    {},\n'.format(s) for s in output_serialization_expression_strings)
 
-    full_source = \
-'''\
-{pre_func_code}
-
-{extra_code}
-
-{func_code}
-
-{arg_parse_code}
-
-_outputs = {func_name}(**_parsed_args)
+    full_output_handling_code = '''
 
 {outputs_to_list_code}
 
@@ -615,14 +593,31 @@ for idx, output_file in enumerate(_output_files):
     with open(output_file, 'w') as f:
         f.write(_output_serializers[idx](_outputs[idx]))
 '''.format(
+        output_serialization_code=output_serialization_code,
+        outputs_to_list_code=outputs_to_list_code,
+    )
+
+    full_source = \
+'''\
+{pre_func_code}
+
+{extra_code}
+
+{func_code}
+
+{arg_parse_code}
+
+_outputs = {func_name}(**_parsed_args)
+'''.format(
         func_name=func.__name__,
         func_code=func_code,
         pre_func_code=pre_func_code,
         extra_code=extra_code,
         arg_parse_code='\n'.join(arg_parse_code_lines),
-        output_serialization_code=output_serialization_code,
-        outputs_to_list_code=outputs_to_list_code,
     )
+
+    if outputs_passed_through_func_return_tuple:
+        full_source += full_output_handling_code
 
     #Removing consecutive blank lines
     import re

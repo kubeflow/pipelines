@@ -232,9 +232,11 @@ describe('SideNav', () => {
   it('populates the display build information using the response from the healthz endpoint', async () => {
     const buildInfo = {
       apiServerCommitHash: '0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5',
+      apiServerTagName: '1.0.0',
       apiServerReady: true,
       buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
       frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
+      frontendTagName: '1.0.0-rc1',
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
@@ -243,6 +245,7 @@ describe('SideNav', () => {
     expect(tree).toMatchSnapshot();
 
     expect(tree.state('displayBuildInfo')).toEqual({
+      tagName: buildInfo.apiServerTagName,
       commitHash: buildInfo.apiServerCommitHash.substring(0, 7),
       commitUrl:
         'https://www.github.com/kubeflow/pipelines/commit/' + buildInfo.apiServerCommitHash,
@@ -306,12 +309,13 @@ describe('SideNav', () => {
     `);
   });
 
-  it('displays the frontend commit hash if the api server hash is not returned', async () => {
+  it('displays the frontend tag name if the api server hash is not returned', async () => {
     const buildInfo = {
       apiServerReady: true,
-      // No apiServerCommitHash
+      // No apiServerCommitHash or apiServerTagName
       buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
       frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
+      frontendTagName: '1.0.0',
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
@@ -321,6 +325,7 @@ describe('SideNav', () => {
     expect(tree.state('displayBuildInfo')).toEqual(
       expect.objectContaining({
         commitHash: buildInfo.frontendCommitHash.substring(0, 7),
+        tagName: buildInfo.frontendTagName,
       }),
     );
   });
@@ -345,7 +350,7 @@ describe('SideNav', () => {
     );
   });
 
-  it("displays 'unknown' if the frontend and api server commit hashes are not returned", async () => {
+  it("displays 'unknown' if the frontend and api server tag names/commit hashes are not returned", async () => {
     const buildInfo = {
       apiServerReady: true,
       // No apiServerCommitHash
@@ -360,6 +365,7 @@ describe('SideNav', () => {
     expect(tree.state('displayBuildInfo')).toEqual(
       expect.objectContaining({
         commitHash: 'unknown',
+        tagName: 'unknown',
       }),
     );
   });

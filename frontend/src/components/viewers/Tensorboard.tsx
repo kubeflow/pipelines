@@ -19,7 +19,7 @@ import BusyButton from '../../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
 import Viewer, { ViewerConfig } from './Viewer';
 import { Apis } from '../../lib/Apis';
-import { commonCss, padding } from '../../Css';
+import { commonCss, padding, color } from '../../Css';
 import InputLabel from '@material-ui/core/InputLabel';
 import Input from '@material-ui/core/Input';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -47,10 +47,17 @@ export const css = stylesheet({
   shortButton: {
     width: 50,
   },
+  warningText: {
+    color: color.warningText,
+  },
+  errorText: {
+    color: color.errorText,
+  },
 });
 
 export interface TensorboardViewerConfig extends ViewerConfig {
   url: string;
+  namespace: string;
 }
 
 interface TensorboardViewerProps {
@@ -66,6 +73,7 @@ interface TensorboardViewerState {
   tensorflowVersion: string;
   // When podAddress is not null, we need to further tell whether the TensorBoard pod is accessible or not
   tensorboardReady: boolean;
+  errorMessage?: string;
 }
 
 // TODO(jingzhang36): we'll later parse Tensorboard version from mlpipeline-ui-metadata.json file.
@@ -83,6 +91,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       podAddress: '',
       tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
       tensorboardReady: false,
+      errorMessage: undefined,
     };
   }
 
@@ -114,24 +123,16 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   };
 
   public render(): JSX.Element {
-    // Strip the protocol from the URL. This is a workaround for cloud shell
-    // incorrectly decoding the address and replacing the protocol's // with /.
-    // Pod address (after stripping protocol) is of the format
-    // <viewer_service_dns>.kubeflow.svc.cluster.local:6006/tensorboard/<viewer_name>/
-    // We use this pod address without encoding since encoded pod address failed to open the
-    // tensorboard instance on this pod.
-    // TODO: figure out why the encoded pod address failed to open the tensorboard.
-    const podAddress = this.state.podAddress.replace(/(^\w+:|^)\/\//, '');
-
     return (
       <div>
+        {this.state.errorMessage && <div className={css.errorText}>{this.state.errorMessage}</div>}
         {this.state.podAddress && (
           <div>
             <div
               className={padding(20, 'b')}
             >{`Tensorboard ${this.state.tensorflowVersion} is running for this output.`}</div>
             <a
-              href={'apis/v1beta1/_proxy/' + podAddress}
+              href={makeProxyUrl(this.state.podAddress)}
               target='_blank'
               rel='noopener noreferrer'
               className={commonCss.unstyled}
@@ -146,7 +147,9 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
               {this.state.tensorboardReady ? (
                 ``
               ) : (
-                <div>Tensorboard is starting, and you may need to wait for a few minutes.</div>
+                <div className={css.warningText}>
+                  Tensorboard is starting, and you may need to wait for a few minutes.
+                </div>
               )}
             </a>
 
@@ -250,6 +253,11 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     this.setState({ deleteDialogOpen: false });
   };
 
+  private _getNamespace(): string {
+    // TODO: We should probably check if all configs have the same namespace.
+    return this.props.configs[0]?.namespace || '';
+  }
+
   private _buildUrl(): string {
     const urls = this.props.configs.map(c => c.url).sort();
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
@@ -259,9 +267,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // If pod address is not null and tensorboard pod doesn't seem to be read, pull status again
     if (this.state.podAddress && !this.state.tensorboardReady) {
       // Remove protocol prefix bofore ":" from pod address if any.
-      Apis.isTensorboardPodReady(
-        'apis/v1beta1/_proxy/' + this.state.podAddress.replace(/(^\w+:|^)\/\//, ''),
-      ).then(ready => {
+      Apis.isTensorboardPodReady(makeProxyUrl(this.state.podAddress)).then(ready => {
         this.setState(({ tensorboardReady }) => ({ tensorboardReady: tensorboardReady || ready }));
       });
     }
@@ -269,42 +275,69 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
-      const { podAddress, tfVersion } = await Apis.getTensorboardApp(this._buildUrl());
-      if (podAddress) {
-        this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
-      } else {
-        // No existing pod
-        this.setState({ busy: false });
+      try {
+        const { podAddress, tfVersion } = await Apis.getTensorboardApp(
+          this._buildUrl(),
+          this._getNamespace(),
+        );
+        if (podAddress) {
+          this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
+        } else {
+          // No existing pod
+          this.setState({ busy: false });
+        }
+      } catch (err) {
+        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
       }
     });
   }
 
   private _startTensorboard = async () => {
-    this.setState({ busy: true }, async () => {
-      await Apis.startTensorboardApp(
-        encodeURIComponent(this._buildUrl()),
-        encodeURIComponent(this.state.tensorflowVersion),
-      );
-      this.setState({ busy: false, tensorboardReady: false }, () => {
-        this._checkTensorboardApp();
-      });
+    this.setState({ busy: true, errorMessage: undefined }, async () => {
+      try {
+        await Apis.startTensorboardApp(
+          this._buildUrl(),
+          this.state.tensorflowVersion,
+          this._getNamespace(),
+        );
+        this.setState({ busy: false, tensorboardReady: false }, () => {
+          this._checkTensorboardApp();
+        });
+      } catch (err) {
+        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+      }
     });
   };
 
   private _deleteTensorboard = async () => {
     // delete the already opened Tensorboard, clear the podAddress recorded in frontend,
     // and return to the select & start tensorboard page
-    this.setState({ busy: true }, async () => {
-      await Apis.deleteTensorboardApp(encodeURIComponent(this._buildUrl()));
-      this.setState({
-        busy: false,
-        deleteDialogOpen: false,
-        podAddress: '',
-        tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
-        tensorboardReady: false,
-      });
+    this.setState({ busy: true, errorMessage: undefined }, async () => {
+      try {
+        await Apis.deleteTensorboardApp(this._buildUrl(), this._getNamespace());
+        this.setState({
+          busy: false,
+          deleteDialogOpen: false,
+          podAddress: '',
+          tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
+          tensorboardReady: false,
+        });
+      } catch (err) {
+        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+      }
     });
   };
+}
+
+function makeProxyUrl(podAddress: string) {
+  // Strip the protocol from the URL. This is a workaround for cloud shell
+  // incorrectly decoding the address and replacing the protocol's // with /.
+  // Pod address (after stripping protocol) is of the format
+  // <viewer_service_dns>.kubeflow.svc.cluster.local:6006/tensorboard/<viewer_name>/
+  // We use this pod address without encoding since encoded pod address failed to open the
+  // tensorboard instance on this pod.
+  // TODO: figure out why the encoded pod address failed to open the tensorboard.
+  return 'apis/v1beta1/_proxy/' + podAddress.replace(/(^\w+:|^)\/\//, '');
 }
 
 export default TensorboardViewer;

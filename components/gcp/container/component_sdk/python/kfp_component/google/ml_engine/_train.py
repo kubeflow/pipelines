@@ -19,7 +19,7 @@ from ._create_job import create_job
 def train(project_id, python_module=None, package_uris=None, 
     region=None, args=None, job_dir=None, python_version=None, 
     runtime_version=None, master_image_uri=None, worker_image_uri=None, 
-    training_input=None, job_id_prefix=None, wait_interval=30):
+    training_input=None, job_id_prefix=None, job_id=None, wait_interval=30):
     """Creates a MLEngine training job.
 
     Args:
@@ -50,6 +50,8 @@ def train(project_id, python_module=None, package_uris=None,
             This image must be in Container Registry.
         training_input (dict): Input parameters to create a training job.
         job_id_prefix (str): the prefix of the generated job id.
+        job_id (str): the created job_id, takes precedence over generated job
+            id if set.
         wait_interval (int): optional wait interval between calls
             to get job status. Defaults to 30.
     """
@@ -80,4 +82,4 @@ def train(project_id, python_module=None, package_uris=None,
     job = {
         'trainingInput': training_input
     }
-    return create_job(project_id, job, job_id_prefix, wait_interval)
+    return create_job(project_id, job, job_id_prefix, job_id, wait_interval)

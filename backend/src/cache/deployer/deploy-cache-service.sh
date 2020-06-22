@@ -22,13 +22,49 @@ set -ex
 
 echo "Start deploying cache service to existing cluster:"
 
-NAMESPACE=${NAMESPACE_TO_WATCH:-default}
+NAMESPACE=${NAMESPACE_TO_WATCH:-kubeflow}
+MUTATING_WEBHOOK_CONFIGURATION_NAME="cache-webhook-${NAMESPACE}"
+WEBHOOK_SECRET_NAME=webhook-server-tls
+
+# This should fail if there are connectivity problems
+# Gotcha: Listing all objects requires list permission,
+# but when listing a single oblect kubecttl will fail if it's not found
+# unless --ignore-not-found is specified.
+kubectl get mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
+kubectl get secrets "${WEBHOOK_SECRET_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >cache_secret.txt
+
+webhook_config_exists=false
+if grep "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" -w <webhooks.txt; then
+    webhook_config_exists=true
+fi
+
+webhook_secret_exists=false
+if grep "${WEBHOOK_SECRET_NAME}" -w <cache_secret.txt; then
+    webhook_config_exists=true
+fi
+
+if [ "$webhook_config_exists" == "true" ] && [ "$webhook_config_exists" == "true" ]; then
+    echo "Webhook config and secret are already installed. Sleeping forever."
+    sleep infinity
+fi
+
+if [ "$webhook_config_exists" == "true" ]; then
+    echo "Warning: Webhook config exists, but the secret does not exist. Reinstalling."
+    kubectl delete mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" || true
+fi
+
+if [ "$webhook_secret_exists" == "true" ]; then
+    echo "Warning: Webhook secret exists, but the config does not exist. Reinstalling."
+    kubectl delete secrets "${WEBHOOK_SECRET_NAME}" --namespace "${NAMESPACE}" || true
+fi
+
+
 export CA_FILE="ca_cert"
 rm -f ${CA_FILE}
 touch ${CA_FILE}
 
 # Generate signed certificate for cache server.
-./webhook-create-signed-cert.sh --namespace "${NAMESPACE}" --cert_output_path "${CA_FILE}"
+./webhook-create-signed-cert.sh --namespace "${NAMESPACE}" --cert_output_path "${CA_FILE}" --secret "${WEBHOOK_SECRET_NAME}"
 echo "Signed certificate generated for cache server"
 
 # Patch CA_BUNDLE for MutatingWebhookConfiguration
@@ -38,3 +74,18 @@ echo "CA_BUNDLE patched successfully"
 # Create MutatingWebhookConfiguration
 cat ./cache-configmap-ca-bundle.yaml
 kubectl apply -f ./cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
+
+# TODO: Check whether we really need to check for the existence of the webhook
+# Usually the Kubernetes objects appear immediately. 
+while true; do 
+    # Should fail if there are connectivity problems
+    kubectl get mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
+
+    if grep "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" -w <webhooks.txt; then
+        echo "Webhook has been installed. Sleeping forever."
+        sleep infinity
+    else
+        echo "Webhook is not visible yet. Waiting a bit."
+        sleep 10s
+    fi    
+done

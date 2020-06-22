@@ -44,6 +44,33 @@ def upload(ctx, pipeline_name, package_file):
 
 @pipeline.command()
 @click.option(
+    "-p",
+    "--pipeline-id",
+    help="ID of the pipeline",
+    required=True
+)
+@click.option(
+    "-v",
+    "--pipeline-version",
+    help="Name of the pipeline version",
+    required=True
+)
+@click.argument("package-file")
+@click.pass_context
+def upload_version(ctx, package_file, pipeline_version, pipeline_id):
+    """Upload a version of the KFP pipeline"""
+    client = ctx.obj["client"]
+
+    version = client.pipeline_uploads.upload_pipeline_version(
+        package_file, name=pipeline_version, pipelineid=pipeline_id)
+    logging.info(
+        "The {} version of the pipeline {} has been submitted\n".format(
+            pipeline_version, pipeline_id))
+    _display_pipeline_version(version)
+
+
+@pipeline.command()
+@click.option(
     "--max-size",
     default=100,
     help="Max size of the listed pipelines."
@@ -65,6 +92,28 @@ def list(ctx, max_size):
 
 @pipeline.command()
 @click.argument("pipeline-id")
+@click.option(
+    "--max-size",
+    default=10,
+    help="Max size of the listed pipelines."
+)
+@click.pass_context
+def list_versions(ctx, pipeline_id, max_size):
+    """List versions of an uploaded KFP pipeline"""
+    client = ctx.obj["client"]
+
+    response = client.list_pipeline_versions(
+        pipeline_id=pipeline_id,
+        page_size=max_size,
+        sort_by="created_at desc"
+    )
+    if response.versions:
+        _print_pipeline_versions(response.versions)
+    else:
+        logging.info("No pipeline or version found")
+
+@pipeline.command()
+@click.argument("pipeline-id")
 @click.pass_context
 def get(ctx, pipeline_id):
     """Get detailed information about an uploaded KFP pipeline"""
@@ -82,7 +131,7 @@ def delete(ctx, pipeline_id):
     client = ctx.obj["client"]
 
     client.delete_pipeline(pipeline_id)
-    print(f"{pipeline_id} is deleted")
+    print("{} is deleted".format(pipeline_id))
 
 
 def _print_pipelines(pipelines):
@@ -92,6 +141,16 @@ def _print_pipelines(pipelines):
         pipeline.name,
         pipeline.created_at.isoformat()
     ] for pipeline in pipelines]
+    print(tabulate(data, headers=headers, tablefmt="grid"))
+
+
+def _print_pipeline_versions(versions):
+    headers = ["Version ID", "Version name", "Uploaded at"]
+    data = [[
+        version.id,
+        version.name,
+        version.created_at.isoformat()
+    ] for version in versions]
     print(tabulate(data, headers=headers, tablefmt="grid"))
 
 
@@ -110,3 +169,14 @@ def _display_pipeline(pipeline):
     headers = ["Parameter Name", "Default Value"]
     data = [[param.name, param.value] for param in pipeline.parameters]
     print(tabulate(data, headers=headers, tablefmt="grid"))
+
+
+def _display_pipeline_version(version):
+    print(tabulate([], headers=["Pipeline Version Details"]))
+    pipeline_id = version.resource_references[0].key.id
+    table = [
+        ["Pipeline ID", pipeline_id],
+        ["Version Name", version.name],
+        ["Uploaded at", version.created_at.isoformat()],
+    ]
+    print(tabulate(table, tablefmt="plain"))

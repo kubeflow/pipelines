@@ -25,6 +25,7 @@ usage()
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
     [--timeout              timeout of the tests in seconds. Default is 1800 seconds. ]
+    [--is_integration_test] if true, integration test cases will be invoked.
     [-h help]"
 }
 
@@ -34,6 +35,7 @@ TEST_RESULT_BUCKET=ml-pipeline-test
 TIMEOUT_SECONDS=2700 # 45 minutes
 NAMESPACE=kubeflow
 ENABLE_WORKLOAD_IDENTITY=true
+IS_INTEGRATION_TEST=false
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -54,6 +56,9 @@ while [ "$1" != "" ]; do
                                       ;;
              --timeout )              shift
                                       TIMEOUT_SECONDS=$1
+                                      ;;
+             --is_integration_test )  shift
+                                      IS_INTEGRATION_TEST=$1
                                       ;;
              -h | --help )            usage
                                       exit
@@ -108,6 +113,7 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 ${IMAGE_BUILDER_ARG} \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+-p is-integration-test="${IS_INTEGRATION_TEST}" \
 -n ${NAMESPACE} \
 --serviceaccount test-runner \
 -o name

@@ -26,14 +26,16 @@ import RecurringRunsManager from './RecurringRunsManager';
 import RunList from '../pages/RunList';
 import Toolbar, { ToolbarProps } from '../components/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
-import { ApiExperiment } from '../apis/experiment';
+import { ApiExperiment, ExperimentStorageState } from '../apis/experiment';
 import { Apis } from '../lib/Apis';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { RunStorageState } from '../apis/run';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
+import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
+import { Redirect } from 'react-router-dom';
 
 const css = stylesheet({
   card: {
@@ -106,7 +108,7 @@ interface ExperimentDetailsState {
   runListToolbarProps: ToolbarProps;
 }
 
-class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
+export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
@@ -124,6 +126,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           .compareRuns(() => this.state.selectedIds)
           .cloneRun(() => this.state.selectedIds, false)
           .archive(
+            'run',
             () => this.state.selectedIds,
             false,
             ids => this._selectionChanged(ids),
@@ -283,8 +286,19 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
       const pageTitle = experiment.name || this.props.match.params[RouteParams.experimentId];
 
+      // Update the Archive/Restore button based on the storage state of this experiment.
+      const buttons = new Buttons(
+        this.props,
+        this.refresh.bind(this),
+        this.getInitialToolbarState().actions,
+      );
+      const idGetter = () => (experiment.id ? [experiment.id] : []);
+      experiment.storage_state === ExperimentStorageState.ARCHIVED
+        ? buttons.restore('experiment', idGetter, true, () => this.refresh())
+        : buttons.archive('experiment', idGetter, true, () => this.refresh());
+      const actions = buttons.getToolbarActionMap();
       this.props.updateToolbar({
-        actions: this.props.toolbarProps.actions,
+        actions,
         breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
         pageTitle,
         pageTitleTooltip: pageTitle,
@@ -343,4 +357,15 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 }
 
-export default ExperimentDetails;
+const EnhancedExperimentDetails: React.FC<PageProps> = props => {
+  // When namespace changes, this experiment no longer belongs to new namespace.
+  // So we redirect to experiment list page instead.
+  const namespaceChanged = useNamespaceChangeEvent();
+  if (namespaceChanged) {
+    return <Redirect to={RoutePage.EXPERIMENTS} />;
+  }
+
+  return <ExperimentDetails {...props} />;
+};
+
+export default EnhancedExperimentDetails;

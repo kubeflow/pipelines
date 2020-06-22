@@ -26,7 +26,8 @@ from kfp_component.core import KfpExecutionContext
 from ._client import MLEngineClient
 from .. import common as gcp_common
 
-def create_job(project_id, job, job_id_prefix=None, wait_interval=30):
+def create_job(project_id, job, job_id_prefix=None, job_id=None,
+    wait_interval=30):
     """Creates a MLEngine job.
 
     Args:
@@ -34,6 +35,8 @@ def create_job(project_id, job, job_id_prefix=None, wait_interval=30):
         job: the payload of the job. Must have ``jobId`` 
             and ``trainingInput`` or ``predictionInput`.
         job_id_prefix: the prefix of the generated job id.
+        job_id: the created job_id, takes precedence over generated job
+            id if set.
         wait_interval: optional wait interval between calls
             to get job status. Defaults to 30.
 
@@ -42,15 +45,16 @@ def create_job(project_id, job, job_id_prefix=None, wait_interval=30):
         /tmp/kfp/output/ml_engine/job_id.txt: The ID of the created job.
         /tmp/kfp/output/ml_engine/job_dir.txt: The `jobDir` of the training job.
     """
-    return CreateJobOp(project_id, job, job_id_prefix,
-        wait_interval).execute_and_wait()
+    return CreateJobOp(project_id, job, job_id_prefix, job_id, wait_interval
+        ).execute_and_wait()
 
 class CreateJobOp:
-    def __init__(self, project_id, job, job_id_prefix=None, wait_interval=30):
+    def __init__(self,project_id, job, job_id_prefix=None, job_id=None,
+        wait_interval=30):
         self._ml = MLEngineClient()
         self._project_id = project_id
         self._job_id_prefix = job_id_prefix
-        self._job_id = None
+        self._job_id = job_id
         self._job = job
         self._wait_interval = wait_interval
     
@@ -61,7 +65,9 @@ class CreateJobOp:
             return wait_for_job_done(self._ml, self._project_id, self._job_id, self._wait_interval)
 
     def _set_job_id(self, context_id):
-        if self._job_id_prefix:
+        if self._job_id:
+            job_id = self._job_id
+        elif self._job_id_prefix:
             job_id = self._job_id_prefix + context_id[:16]
         else:
             job_id = 'job_' + context_id

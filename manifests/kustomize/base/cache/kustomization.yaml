@@ -4,3 +4,6 @@ kind: Kustomization
 resources:
   - cache-deployment.yaml
   - cache-service.yaml
+  - cache-role.yaml
+  - cache-rolebinding.yaml
+  - cache-sa.yaml

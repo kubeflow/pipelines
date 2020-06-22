@@ -149,6 +149,6 @@ export function diff({
   });
 }
 
-function formatHTML(html: string): string {
+export function formatHTML(html: string): string {
   return format(html, { parser: 'html' });
 }

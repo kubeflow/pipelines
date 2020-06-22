@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import tempfile
 import textwrap
 import unittest
 import kfp
-from kfp.components import load_component_from_text
+from pathlib import Path
+from kfp.components import load_component_from_text, create_component_from_func
 from kfp.dsl.types import InconsistentTypeException
 
 
@@ -24,7 +25,7 @@ class TestComponentBridge(unittest.TestCase):
     # Alternatively, we could use kfp.dsl.Pipleine().__enter__ and __exit__
     def setUp(self):
         self.old_container_task_constructor = kfp.components._components._container_task_constructor
-        kfp.components._components._container_task_constructor = kfp.components._dsl_bridge._create_container_op_from_component_and_arguments
+        kfp.components._components._container_task_constructor = kfp.dsl._component_bridge._create_container_op_from_component_and_arguments
 
     def tearDown(self):
         kfp.components._components._container_task_constructor = self.old_container_task_constructor
@@ -144,3 +145,70 @@ class TestComponentBridge(unittest.TestCase):
         task_factory_b = load_component_from_text(component_b)
         a_task = task_factory_a()
         b_task = task_factory_b(in1=a_task.outputs['out1'].ignore_type())
+
+    def test_end_to_end_python_component_pipeline_compilation(self):
+        import kfp.components as comp
+
+        #Defining the Python function
+        def add(a: float, b: float) -> float:
+            '''Returns sum of two arguments'''
+            return a + b
+
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            add_component_file = str(Path(temp_dir_name).joinpath('add.component.yaml'))
+
+            #Converting the function to a component. Instantiate it to create a pipeline task (ContaineOp instance)
+            add_op = comp.func_to_container_op(add, base_image='python:3.5', output_component_file=add_component_file)
+
+            #Checking that the component artifact is usable:
+            add_op2 = comp.load_component_from_file(add_component_file)
+
+            #Building the pipeline
+            @kfp.dsl.pipeline(
+                name='Calculation pipeline',
+                description='A pipeline that performs arithmetic calculations.'
+            )
+            def calc_pipeline(
+                a1,
+                a2='7',
+                a3='17',
+            ):
+                task_1 = add_op(a1, a2)
+                task_2 = add_op2(a1, a2)
+                task_3 = add_op(task_1.output, task_2.output)
+                task_4 = add_op2(task_3.output, a3)
+
+            #Compiling the pipleine:
+            pipeline_filename = str(Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz'))
+            kfp.compiler.Compiler().compile(calc_pipeline, pipeline_filename)
+
+    def test_handling_list_arguments_containing_pipelineparam(self):
+        '''Checks that lists containing PipelineParam can be properly serialized'''
+        def consume_list(list_param: list) -> int:
+            pass
+
+        import kfp
+        task_factory = create_component_from_func(consume_list)
+        task = task_factory([1, 2, 3, kfp.dsl.PipelineParam('aaa'), 4, 5, 6])
+
+        full_command_line = task.command + task.arguments
+        for arg in full_command_line:
+            self.assertNotIn('PipelineParam', arg)
+
+    def test_converted_outputs(self):
+        component_text = textwrap.dedent('''\
+            outputs:
+            - name: Output 1
+            implementation:
+                container:
+                    image: busybox
+                    command:
+                    - producer
+                    - {outputPath: Output 1}  # Outputs must be used in the implementation
+            '''
+        )
+        task_factory1 = load_component_from_text(component_text)
+        task1 = task_factory1()
+
+        self.assertSetEqual(set(task1.outputs.keys()), {'Output 1', 'output_1'})
+        self.assertIsNotNone(task1.output)

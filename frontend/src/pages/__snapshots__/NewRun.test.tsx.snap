@@ -148,13 +148,14 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -375,6 +376,31 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       disabled={true}
       label="Experiment"
       required={true}
+      value=""
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+       
+      <HelpButton
+        helpText={
+          <div>
+            Note, the service account needs
+             
+            <ExternalLink
+              href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
+            >
+              minimum permissions required by argo workflows
+            </ExternalLink>
+             
+            and extra permissions the specific task requires.
+          </div>
+        }
+      />
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
       value=""
       variant="outlined"
     />
@@ -643,13 +669,14 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -871,6 +898,31 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+       
+      <HelpButton
+        helpText={
+          <div>
+            Note, the service account needs
+             
+            <ExternalLink
+              href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
+            >
+              minimum permissions required by argo workflows
+            </ExternalLink>
+             
+            and extra permissions the specific task requires.
+          </div>
+        }
+      />
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
       variant="outlined"
     />
     <div
@@ -1138,13 +1190,14 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -1368,6 +1421,31 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       value="some mock experiment name"
       variant="outlined"
     />
+    <div>
+      This run will use the following Kubernetes service account.
+       
+      <HelpButton
+        helpText={
+          <div>
+            Note, the service account needs
+             
+            <ExternalLink
+              href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
+            >
+              minimum permissions required by argo workflows
+            </ExternalLink>
+             
+            and extra permissions the specific task requires.
+          </div>
+        }
+      />
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
     <div
       className="header"
     >
@@ -1404,6 +1482,13 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       Choose a method by which new runs will be triggered
     </div>
     <Trigger
+      initialProps={
+        Object {
+          "catchup": true,
+          "maxConcurrentRuns": undefined,
+          "trigger": undefined,
+        }
+      }
       onChange={[Function]}
     />
     <NewRunParameters
@@ -1644,13 +1729,14 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -1871,6 +1957,31 @@ exports[`NewRun changes title and form to default state if the new run is a one-
       disabled={true}
       label="Experiment"
       required={true}
+      value=""
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+       
+      <HelpButton
+        helpText={
+          <div>
+            Note, the service account needs
+             
+            <ExternalLink
+              href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
+            >
+              minimum permissions required by argo workflows
+            </ExternalLink>
+             
+            and extra permissions the specific task requires.
+          </div>
+        }
+      />
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
       value=""
       variant="outlined"
     />
@@ -2139,13 +2250,14 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -2366,6 +2478,31 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       disabled={true}
       label="Experiment"
       required={true}
+      value=""
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+       
+      <HelpButton
+        helpText={
+          <div>
+            Note, the service account needs
+             
+            <ExternalLink
+              href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
+            >
+              minimum permissions required by argo workflows
+            </ExternalLink>
+             
+            and extra permissions the specific task requires.
+          </div>
+        }
+      />
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
       value=""
       variant="outlined"
     />
@@ -2632,13 +2769,14 @@ exports[`NewRun renders the new run page 1`] = `
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -2860,6 +2998,31 @@ exports[`NewRun renders the new run page 1`] = `
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+       
+      <HelpButton
+        helpText={
+          <div>
+            Note, the service account needs
+             
+            <ExternalLink
+              href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
+            >
+              minimum permissions required by argo workflows
+            </ExternalLink>
+             
+            and extra permissions the specific task requires.
+          </div>
+        }
+      />
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
       variant="outlined"
     />
     <div
@@ -3127,13 +3290,14 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -3357,6 +3521,31 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       value=""
       variant="outlined"
     />
+    <div>
+      This run will use the following Kubernetes service account.
+       
+      <HelpButton
+        helpText={
+          <div>
+            Note, the service account needs
+             
+            <ExternalLink
+              href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
+            >
+              minimum permissions required by argo workflows
+            </ExternalLink>
+             
+            and extra permissions the specific task requires.
+          </div>
+        }
+      />
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
     <div
       className="header"
     >
@@ -3393,6 +3582,13 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       Choose a method by which new runs will be triggered
     </div>
     <Trigger
+      initialProps={
+        Object {
+          "catchup": true,
+          "maxConcurrentRuns": undefined,
+          "trigger": undefined,
+        }
+      }
       onChange={[Function]}
     />
     <NewRunParameters
@@ -3633,13 +3829,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -3861,6 +4058,31 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+       
+      <HelpButton
+        helpText={
+          <div>
+            Note, the service account needs
+             
+            <ExternalLink
+              href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
+            >
+              minimum permissions required by argo workflows
+            </ExternalLink>
+             
+            and extra permissions the specific task requires.
+          </div>
+        }
+      />
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
       variant="outlined"
     />
     <div
@@ -4128,13 +4350,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -4356,6 +4579,31 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+       
+      <HelpButton
+        helpText={
+          <div>
+            Note, the service account needs
+             
+            <ExternalLink
+              href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
+            >
+              minimum permissions required by argo workflows
+            </ExternalLink>
+             
+            and extra permissions the specific task requires.
+          </div>
+        }
+      />
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
       variant="outlined"
     />
     <div
@@ -4634,13 +4882,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -4862,6 +5111,31 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+       
+      <HelpButton
+        helpText={
+          <div>
+            Note, the service account needs
+             
+            <ExternalLink
+              href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
+            >
+              minimum permissions required by argo workflows
+            </ExternalLink>
+             
+            and extra permissions the specific task requires.
+          </div>
+        }
+      />
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
       variant="outlined"
     />
     <div
@@ -5129,13 +5403,14 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           columns={
             Array [
               Object {
-                "flex": 1,
+                "customRenderer": [Function],
+                "flex": 2,
                 "label": "Version name",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
-                "flex": 2,
+                "flex": 1,
                 "label": "Description",
               },
               Object {
@@ -5357,6 +5632,31 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
+    />
+    <div>
+      This run will use the following Kubernetes service account.
+       
+      <HelpButton
+        helpText={
+          <div>
+            Note, the service account needs
+             
+            <ExternalLink
+              href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
+            >
+              minimum permissions required by argo workflows
+            </ExternalLink>
+             
+            and extra permissions the specific task requires.
+          </div>
+        }
+      />
+    </div>
+    <Input
+      label="Service Account (Optional)"
+      onChange={[Function]}
+      value=""
       variant="outlined"
     />
     <div

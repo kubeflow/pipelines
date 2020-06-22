@@ -26,11 +26,12 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	servercommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func toCRDTrigger(apiTrigger *api.Trigger) *scheduledworkflow.Trigger {
@@ -206,14 +207,25 @@ func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run)
 	if servercommon.GetBoolConfigWithDefault(HasDefaultBucketEnvVar, false) {
 		patchedSlice := make([]wfv1.Parameter, 0)
 		for _, currentParam := range workflow.Spec.Arguments.Parameters {
-			desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
-			if err != nil {
-				return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			if currentParam.Value != nil {
+				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
+				if err != nil {
+					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+				}
+				patchedSlice = append(patchedSlice, wfv1.Parameter{
+					Name:  currentParam.Name,
+					Value: util.StringPointer(desiredValue),
+				})
+			} else if currentParam.Default != nil {
+				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Default)
+				if err != nil {
+					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+				}
+				patchedSlice = append(patchedSlice, wfv1.Parameter{
+					Name:  currentParam.Name,
+					Value: util.StringPointer(desiredValue),
+				})
 			}
-			patchedSlice = append(patchedSlice, wfv1.Parameter{
-				Name:  currentParam.Name,
-				Value: util.StringPointer(desiredValue),
-			})
 		}
 		workflow.Spec.Arguments.Parameters = patchedSlice
 
@@ -226,5 +238,30 @@ func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run)
 			}
 		}
 	}
+	return nil
+}
+
+// Convert PipelineId in PipelineSpec to the pipeline's default pipeline version.
+// This is for legacy usage of pipeline id to create run. The standard way to
+// create run is by specifying the pipeline version.
+func ConvertPipelineIdToDefaultPipelineVersion(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) error {
+	if pipelineSpec.GetPipelineId() == "" {
+		return nil
+	}
+	// If there is already a pipeline version in resource references, don't convert pipeline id.
+	for _, reference := range *resourceReferences {
+		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION && reference.Relationship == api.Relationship_CREATOR {
+			return nil
+		}
+	}
+	pipeline, err := r.pipelineStore.GetPipelineWithStatus(pipelineSpec.GetPipelineId(), model.PipelineReady)
+	if err != nil {
+		return util.Wrap(err, "Failed to find the specified pipeline")
+	}
+	// Add default pipeline version to resource references
+	*resourceReferences = append(*resourceReferences, &api.ResourceReference{
+		Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: pipeline.DefaultVersionId},
+		Relationship: api.Relationship_CREATOR,
+	})
 	return nil
 }

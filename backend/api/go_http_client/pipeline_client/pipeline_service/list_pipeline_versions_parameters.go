@@ -94,9 +94,19 @@ type ListPipelineVersionsParams struct {
 
 	*/
 	Filter *string
-	/*PageSize*/
+	/*PageSize
+	  The number of pipeline versions to be listed per page. If there are more
+	pipeline versions than this number, the response message will contain a
+	nextPageToken field you can use to fetch the next page.
+
+	*/
 	PageSize *int32
-	/*PageToken*/
+	/*PageToken
+	  A page token to request the next page of results. The token is acquried
+	from the nextPageToken field of the response from the previous
+	ListPipelineVersions call or can be omitted when fetching the first page.
+
+	*/
 	PageToken *string
 	/*ResourceKeyID
 	  The ID of the resource that referred to.
@@ -109,7 +119,7 @@ type ListPipelineVersionsParams struct {
 	*/
 	ResourceKeyType *string
 	/*SortBy
-	  Can be format of "field_name", "field_name asc" or "field_name des"
+	  Can be format of "field_name", "field_name asc" or "field_name desc"
 	Ascending by default.
 
 	*/

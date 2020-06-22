@@ -39,12 +39,10 @@ import (
 )
 
 const (
-	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
-	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
-	defaultServiceAccount                     = "default-editor"
-	HasDefaultBucketEnvVar                    = "HAS_DEFAULT_BUCKET"
-	ProjectIDEnvVar                           = "PROJECT_ID"
-	DefaultBucketNameEnvVar                   = "BUCKET_NAME"
+	defaultPipelineRunnerServiceAccount = "pipeline-runner"
+	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar                     = "PROJECT_ID"
+	DefaultBucketNameEnvVar             = "BUCKET_NAME"
 )
 
 type ClientManagerInterface interface {
@@ -57,7 +55,7 @@ type ClientManagerInterface interface {
 	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
 	ArgoClient() client.ArgoClientInterface
-	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
+	SwfClient() client.SwfClientInterface
 	KubernetesCoreClient() client.KubernetesCoreInterface
 	KFAMClient() client.KFAMClientInterface
 	Time() util.TimeInterface
@@ -65,38 +63,38 @@ type ClientManagerInterface interface {
 }
 
 type ResourceManager struct {
-	experimentStore         storage.ExperimentStoreInterface
-	pipelineStore           storage.PipelineStoreInterface
-	jobStore                storage.JobStoreInterface
-	runStore                storage.RunStoreInterface
-	resourceReferenceStore  storage.ResourceReferenceStoreInterface
-	dBStatusStore           storage.DBStatusStoreInterface
-	defaultExperimentStore  storage.DefaultExperimentStoreInterface
-	objectStore             storage.ObjectStoreInterface
-	argoClient              client.ArgoClientInterface
-	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
-	k8sCoreClient           client.KubernetesCoreInterface
-	kfamClient              client.KFAMClientInterface
-	time                    util.TimeInterface
-	uuid                    util.UUIDGeneratorInterface
+	experimentStore        storage.ExperimentStoreInterface
+	pipelineStore          storage.PipelineStoreInterface
+	jobStore               storage.JobStoreInterface
+	runStore               storage.RunStoreInterface
+	resourceReferenceStore storage.ResourceReferenceStoreInterface
+	dBStatusStore          storage.DBStatusStoreInterface
+	defaultExperimentStore storage.DefaultExperimentStoreInterface
+	objectStore            storage.ObjectStoreInterface
+	argoClient             client.ArgoClientInterface
+	swfClient              client.SwfClientInterface
+	k8sCoreClient          client.KubernetesCoreInterface
+	kfamClient             client.KFAMClientInterface
+	time                   util.TimeInterface
+	uuid                   util.UUIDGeneratorInterface
 }
 
 func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 	return &ResourceManager{
-		experimentStore:         clientManager.ExperimentStore(),
-		pipelineStore:           clientManager.PipelineStore(),
-		jobStore:                clientManager.JobStore(),
-		runStore:                clientManager.RunStore(),
-		resourceReferenceStore:  clientManager.ResourceReferenceStore(),
-		dBStatusStore:           clientManager.DBStatusStore(),
-		defaultExperimentStore:  clientManager.DefaultExperimentStore(),
-		objectStore:             clientManager.ObjectStore(),
-		argoClient:              clientManager.ArgoClient(),
-		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		k8sCoreClient:           clientManager.KubernetesCoreClient(),
-		kfamClient:              clientManager.KFAMClient(),
-		time:                    clientManager.Time(),
-		uuid:                    clientManager.UUID(),
+		experimentStore:        clientManager.ExperimentStore(),
+		pipelineStore:          clientManager.PipelineStore(),
+		jobStore:               clientManager.JobStore(),
+		runStore:               clientManager.RunStore(),
+		resourceReferenceStore: clientManager.ResourceReferenceStore(),
+		dBStatusStore:          clientManager.DBStatusStore(),
+		defaultExperimentStore: clientManager.DefaultExperimentStore(),
+		objectStore:            clientManager.ObjectStore(),
+		argoClient:             clientManager.ArgoClient(),
+		swfClient:              clientManager.SwfClient(),
+		k8sCoreClient:          clientManager.KubernetesCoreClient(),
+		kfamClient:             clientManager.KFAMClient(),
+		time:                   clientManager.Time(),
+		uuid:                   clientManager.UUID(),
 	}
 }
 
@@ -104,11 +102,19 @@ func (r *ResourceManager) getWorkflowClient(namespace string) workflowclient.Wor
 	return r.argoClient.Workflow(namespace)
 }
 
+func (r *ResourceManager) getScheduledWorkflowClient(namespace string) scheduledworkflowclient.ScheduledWorkflowInterface {
+	return r.swfClient.ScheduledWorkflow(namespace)
+}
+
 func (r *ResourceManager) GetTime() util.TimeInterface {
 	return r.time
 }
 
-func (r *ResourceManager) CreateExperiment(experiment *model.Experiment) (*model.Experiment, error) {
+func (r *ResourceManager) CreateExperiment(apiExperiment *api.Experiment) (*model.Experiment, error) {
+	experiment, err := r.ToModelExperiment(apiExperiment)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert experiment model")
+	}
 	return r.experimentStore.CreateExperiment(experiment)
 }
 
@@ -116,9 +122,9 @@ func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment,
 	return r.experimentStore.GetExperiment(experimentId)
 }
 
-func (r *ResourceManager) ListExperiments(opts *list.Options) (
+func (r *ResourceManager) ListExperiments(filterContext *common.FilterContext, opts *list.Options) (
 	experiments []*model.Experiment, total_size int, nextPageToken string, err error) {
-	return r.experimentStore.ListExperiments(opts)
+	return r.experimentStore.ListExperiments(filterContext, opts)
 }
 
 func (r *ResourceManager) DeleteExperiment(experimentID string) error {
@@ -127,6 +133,52 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 		return util.Wrap(err, "Delete experiment failed")
 	}
 	return r.experimentStore.DeleteExperiment(experimentID)
+}
+
+func (r *ResourceManager) ArchiveExperiment(experimentId string) error {
+	// To archive an experiment
+	// (1) update our persistent agent to disable CRDs of jobs in experiment
+	// (2) update database to
+	// (2.1) archive experiemnts
+	// (2.2) archive runs
+	// (2.3) disable jobs
+	opts, err := list.NewOptions(&model.Job{}, 50, "name", nil)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create list jobs options when archiving experiment. ")
+	}
+	for {
+		jobs, _, newToken, err := r.jobStore.ListJobs(&common.FilterContext{
+			ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: experimentId}}, opts)
+		if err != nil {
+			return util.NewInternalServerError(err,
+				"Failed to list jobs of to-be-archived experiment. expID: %v", experimentId)
+		}
+		for _, job := range jobs {
+			_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
+				job.Name,
+				types.MergePatchType,
+				[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(false))))
+			if err != nil {
+				return util.NewInternalServerError(err,
+					"Failed to disable job CRD. jobID: %v", job.UUID)
+			}
+		}
+		if newToken == "" {
+			break
+		} else {
+			opts, err = list.NewOptionsFromToken(newToken, 50)
+			if err != nil {
+				return util.NewInternalServerError(err,
+					"Failed to create list jobs options from page token when archiving experiment. ")
+			}
+		}
+	}
+	return r.experimentStore.ArchiveExperiment(experimentId)
+}
+
+func (r *ResourceManager) UnarchiveExperiment(experimentId string) error {
+	return r.experimentStore.UnarchiveExperiment(experimentId)
 }
 
 func (r *ResourceManager) ListPipelines(opts *list.Options) (
@@ -244,10 +296,15 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// Get workflow from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
+	// And the latter takes priority over the former
 	var workflowSpecManifestBytes []byte
-	workflowSpecManifestBytes, err := r.getWorkflowSpecBytes(apiRun.GetPipelineSpec())
+	err := ConvertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
 	if err != nil {
-		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiRun.GetResourceReferences())
+		return nil, util.Wrap(err, "Failed to find default version to create run with pipeline id.")
+	}
+	workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiRun.GetResourceReferences())
+	if err != nil {
+		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineSpec(apiRun.GetPipelineSpec())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 		}
@@ -270,20 +327,15 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 
-	multiuserMode := common.IsMultiUserMode()
-	if multiuserMode == true {
-		if len(workflow.Spec.ServiceAccountName) == 0 || workflow.Spec.ServiceAccountName == defaultPipelineRunnerServiceAccount {
-			// To reserve SDK backward compatibility, the backend currently replaces the serviceaccount in multi-user mode.
-			workflow.SetServiceAccount(defaultServiceAccount)
-		}
-	} else {
-		workflow.SetServiceAccount(r.getDefaultSA())
-	}
+	r.setDefaultServiceAccount(&workflow, apiRun.GetServiceAccount())
 
 	// Disable istio sidecar injection
-	if multiuserMode == true {
-		workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	}
+	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+	// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
+	// receive targeting pods. Since cache server only receives pods in step level, the resource manager here will set this global label flag
+	// on every single step/pod so the cache server can understand.
+	// TODO: Add run_level flag with similar logic by reading flag value from create_run api.
+	workflow.SetLabelsToAllTemplates(util.LabelKeyCacheEnabled, common.IsCacheEnabled())
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
 
@@ -312,27 +364,24 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		}
 	}
 
-	namespace := common.GetNamespaceFromAPIResourceReferences(apiRun.ResourceReferences)
-	if len(namespace) == 0 {
-		if multiuserMode {
-			return nil, util.NewInvalidInputError("Run should specify namespace")
-		} else {
-			namespace = common.GetPodNamespace()
-		}
-	}
-	// Create argo workflow CRD resource
-	newWorkflow, err := r.getWorkflowClient(namespace).Create(workflow.Get())
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
-	}
-
 	// Add a reference to the default experiment if run does not already have a containing experiment
 	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
 	if err != nil {
 		return nil, err
 	}
 	if ref != nil {
-		apiRun.ResourceReferences = append(apiRun.ResourceReferences, ref)
+		apiRun.ResourceReferences = append(apiRun.GetResourceReferences(), ref)
+	}
+
+	namespace, err := r.getNamespaceFromExperiment(apiRun.GetResourceReferences())
+	if err != nil {
+		return nil, err
+	}
+
+	// Create argo workflow CRD resource
+	newWorkflow, err := r.getWorkflowClient(namespace).Create(workflow.Get())
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
 	}
 
 	// Store run metadata into database
@@ -502,10 +551,15 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	// Get workflow from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
+	// And the latter takes priority over the former
 	var workflowSpecManifestBytes []byte
-	workflowSpecManifestBytes, err := r.getWorkflowSpecBytes(apiJob.GetPipelineSpec())
+	err := ConvertPipelineIdToDefaultPipelineVersion(apiJob.PipelineSpec, &apiJob.ResourceReferences, r)
 	if err != nil {
-		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiJob.GetResourceReferences())
+		return nil, util.Wrap(err, "Failed to find default version to create job with pipeline id.")
+	}
+	workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiJob.GetResourceReferences())
+	if err != nil {
+		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineSpec(apiJob.GetPipelineSpec())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 		}
@@ -523,14 +577,16 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
+
+	r.setDefaultServiceAccount(&workflow, apiJob.GetServiceAccount())
+
+	// Disable istio sidecar injection
+	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+
 	swfGeneratedName, err := toSWFCRDResourceGeneratedName(apiJob.Name)
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
-
-	// Set workflow to be run using default pipeline runner service account.
-	workflow.SetServiceAccount(r.getDefaultSA())
-
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: v1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
@@ -555,11 +611,6 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 		}
 	}
 
-	newScheduledWorkflow, err := r.scheduledWorkflowClient.Create(scheduledWorkflow)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
-	}
-
 	// Add a reference to the default experiment if run does not already have a containing experiment
 	ref, err := r.getDefaultExperimentIfNoExperiment(apiJob.GetResourceReferences())
 	if err != nil {
@@ -567,6 +618,16 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	}
 	if ref != nil {
 		apiJob.ResourceReferences = append(apiJob.GetResourceReferences(), ref)
+	}
+
+	namespace, err := r.getNamespaceFromExperiment(apiJob.GetResourceReferences())
+	if err != nil {
+		return nil, err
+	}
+
+	newScheduledWorkflow, err := r.getScheduledWorkflowClient(namespace).Create(scheduledWorkflow)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
 	}
 
 	job, err := r.ToModelJob(apiJob, util.NewScheduledWorkflow(newScheduledWorkflow), string(workflowSpecManifestBytes))
@@ -585,7 +646,8 @@ func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
 	if err != nil {
 		return util.Wrap(err, "Enable/Disable job failed")
 	}
-	_, err = r.scheduledWorkflowClient.Patch(
+
+	_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
 		job.Name,
 		types.MergePatchType,
 		[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(enabled))))
@@ -609,7 +671,8 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 	if err != nil {
 		return util.Wrap(err, "Delete job failed")
 	}
-	err = r.scheduledWorkflowClient.Delete(job.Name, &v1.DeleteOptions{})
+
+	err = r.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
 	if err != nil {
 		return util.NewInternalServerError(err, "Delete job CRD failed.")
 	}
@@ -746,7 +809,8 @@ func (r *ResourceManager) checkJobExist(jobID string) (*model.Job, error) {
 	if err != nil {
 		return nil, util.Wrap(err, "Check job exist failed")
 	}
-	scheduledWorkflow, err := r.scheduledWorkflowClient.Get(job.Name, v1.GetOptions{})
+
+	scheduledWorkflow, err := r.getScheduledWorkflowClient(job.Namespace).Get(job.Name, v1.GetOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Check job exist failed")
 	}
@@ -767,18 +831,8 @@ func (r *ResourceManager) checkRunExist(runID string) (*model.RunDetail, error) 
 	return runDetail, nil
 }
 
-func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, error) {
-	// TODO(jingzhang36): after FE is enabled to use pipeline version to create
-	// run, we'll only check for the raw manifest in pipeline_spec.
-	if spec.GetPipelineId() != "" {
-		var workflow util.Workflow
-		err := r.objectStore.GetFromYamlFile(&workflow, r.objectStore.GetPipelineKey(spec.GetPipelineId()))
-		if err != nil {
-			return nil, util.Wrap(err, "Get pipeline YAML failed.")
-		}
-
-		return []byte(workflow.ToStringForStore()), nil
-	} else if spec.GetWorkflowManifest() != "" {
+func (r *ResourceManager) getWorkflowSpecBytesFromPipelineSpec(spec *api.PipelineSpec) ([]byte, error) {
+	if spec.GetWorkflowManifest() != "" {
 		return []byte(spec.GetWorkflowManifest()), nil
 	}
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
@@ -817,7 +871,7 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	}
 
 	// Create default experiment
-	defaultExperiment := &model.Experiment{
+	defaultExperiment := &api.Experiment{
 		Name:        "Default",
 		Description: "All runs created without specifying an experiment will be grouped here.",
 	}
@@ -845,7 +899,13 @@ func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*api.R
 			return nil, nil
 		}
 	}
+	if common.IsMultiUserMode() {
+		return nil, util.NewInvalidInputError("Experiment is required in resource references.")
+	}
+	return r.getDefaultExperimentResourceReference(references)
+}
 
+func (r *ResourceManager) getDefaultExperimentResourceReference(references []*api.ResourceReference) (*api.ResourceReference, error) {
 	// Create reference to the default experiment
 	defaultExperimentId, err := r.GetDefaultExperimentId()
 	if err != nil {
@@ -913,7 +973,7 @@ func (r *ResourceManager) MarkSampleLoaded() error {
 }
 
 func (r *ResourceManager) getDefaultSA() string {
-	return common.GetStringConfigWithDefault(defaultPipelineRunnerServiceAccountEnvVar, defaultPipelineRunnerServiceAccount)
+	return common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccount, defaultPipelineRunnerServiceAccount)
 }
 
 func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte) (*model.PipelineVersion, error) {
@@ -1017,20 +1077,56 @@ func (r *ResourceManager) IsRequestAuthorized(userIdentity string, namespace str
 	return r.kfamClient.IsAuthorized(userIdentity, namespace)
 }
 
+func (r *ResourceManager) GetNamespaceFromExperimentID(experimentID string) (string, error) {
+	experiment, err := r.GetExperiment(experimentID)
+	if err != nil {
+		return "", util.Wrap(err, "Failed to get namespace from experiment ID.")
+	}
+	return experiment.Namespace, nil
+}
+
 func (r *ResourceManager) GetNamespaceFromRunID(runId string) (string, error) {
 	runDetail, err := r.GetRun(runId)
 	if err != nil {
 		return "", util.Wrap(err, "Failed to get namespace from run id.")
 	}
-	namespace := model.GetNamespaceFromModelResourceReferences(runDetail.ResourceReferences)
+	return runDetail.Namespace, nil
+}
+
+func (r *ResourceManager) GetNamespaceFromJobID(jobId string) (string, error) {
+	job, err := r.GetJob(jobId)
+	if err != nil {
+		return "", util.Wrap(err, "Failed to get namespace from Job ID.")
+	}
+	return job.Namespace, nil
+}
+
+func (r *ResourceManager) setDefaultServiceAccount(workflow *util.Workflow, serviceAccount string) {
+	if len(serviceAccount) > 0 {
+		workflow.SetServiceAccount(serviceAccount)
+		return
+	}
+	workflowServiceAccount := workflow.Spec.ServiceAccountName
+	if len(workflowServiceAccount) == 0 || workflowServiceAccount == defaultPipelineRunnerServiceAccount {
+		// To reserve SDK backward compatibility, the backend only replaces
+		// serviceaccount when it is empty or equal to default value set by SDK.
+		workflow.SetServiceAccount(r.getDefaultSA())
+	}
+}
+
+func (r *ResourceManager) getNamespaceFromExperiment(references []*api.ResourceReference) (string, error) {
+	experimentID := common.GetExperimentIDFromAPIResourceReferences(references)
+	experiment, err := r.GetExperiment(experimentID)
+	if err != nil {
+		return "", util.NewInternalServerError(err, "Failed to get experiment.")
+	}
+
+	namespace := experiment.Namespace
 	if len(namespace) == 0 {
 		if common.IsMultiUserMode() {
-			// All runs should have namespace in multi user mode.
-			return "", errors.New("Invalid db data: run doesn't have a namespace resource reference")
+			return "", util.NewInternalServerError(errors.New("Missing namespace"), "Experiment %v doesn't have a namespace.", experiment.Name)
 		} else {
-			// When db model doesn't have namespace stored (e.g. legacy runs), use
-			// pod namespace as default.
-			return common.GetPodNamespace(), nil
+			namespace = common.GetPodNamespace()
 		}
 	}
 	return namespace, nil

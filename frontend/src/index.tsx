@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
-import { init as initKfClient, NamespaceContextProvider } from './lib/KubeflowClient';
+import {
+  init as initKfClient,
+  NamespaceContextProvider,
+  NamespaceContext,
+} from './lib/KubeflowClient';
 import './CSSReset';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -55,7 +59,9 @@ ReactDOM.render(
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
     <NamespaceContextProvider>{app}</NamespaceContextProvider>
   ) : (
-    app
+    // Uncomment the following for namespace switch during development.
+    // <NamespaceContext.Provider value='your-namespace'>{app}</NamespaceContext.Provider>
+    <NamespaceContext.Provider value={undefined}>{app}</NamespaceContext.Provider>
   ),
   document.getElementById('root'),
 );

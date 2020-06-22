@@ -28,11 +28,6 @@ export const getClusterNameHandler = (options: GkeMetadataConfigs) => {
 };
 
 const clusterNameHandler: Handler = async (_, res) => {
-  if (!k8sHelper.isInCluster) {
-    res.status(500).send('Not running in Kubernetes cluster.');
-    return;
-  }
-
   const response = await fetch(
     'http://metadata/computeMetadata/v1/instance/attributes/cluster-name',
     { headers: { 'Metadata-Flavor': 'Google' } },
@@ -52,11 +47,6 @@ export const getProjectIdHandler = (options: GkeMetadataConfigs) => {
 };
 
 const projectIdHandler: Handler = async (_, res) => {
-  if (!k8sHelper.isInCluster) {
-    res.status(500).send('Not running in Kubernetes cluster.');
-    return;
-  }
-
   const response = await fetch('http://metadata/computeMetadata/v1/project/project-id', {
     headers: { 'Metadata-Flavor': 'Google' },
   });

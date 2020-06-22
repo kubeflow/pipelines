@@ -1,0 +1,6 @@
+boto3==1.12.33
+coverage==5.1
+pathlib2==2.3.5
+pytest==5.4.1
+pyyaml==5.3.1
+sagemaker==1.56.1

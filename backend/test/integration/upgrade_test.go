@@ -2,6 +2,7 @@ package integration
 
 import (
 	"io/ioutil"
+	"sort"
 	"testing"
 	"time"
 
@@ -74,9 +75,12 @@ func (s *UpgradeTests) SetupSuite() {
 		return
 	}
 
-	err := test.WaitForReady(*namespace, *initializeTimeout)
-	if err != nil {
-		glog.Exitf("Failed to initialize test. Error: %v", err)
+	var err error
+	if !*isDevMode {
+		err = test.WaitForReady(*namespace, *initializeTimeout)
+		if err != nil {
+			glog.Exitf("Failed to initialize test. Error: %v", err)
+		}
 	}
 	s.namespace = *namespace
 	clientConfig := test.GetClientConfig(*namespace)
@@ -170,6 +174,7 @@ func (s *UpgradeTests) VerifyExperiments() {
 	assert.NotEmpty(t, experiments[2].CreatedAt)
 }
 
+// TODO(jingzhang36): prepare pipeline versions.
 func (s *UpgradeTests) PreparePipelines() {
 	t := s.T()
 
@@ -329,7 +334,11 @@ func (s *UpgradeTests) VerifyJobs() {
 			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
 				Name: experiment.Name, Relationship: job_model.APIRelationshipOWNER,
 			},
+			{Key: &job_model.APIResourceKey{ID: pipeline.ID, Type: job_model.APIResourceTypePIPELINEVERSION},
+				Name: "hello-world.yaml", Relationship: job_model.APIRelationshipCREATOR,
+			},
 		},
+		ServiceAccount: "pipeline-runner",
 		MaxConcurrency: 10,
 		NoCatchup:      true,
 		Enabled:        true,
@@ -339,6 +348,8 @@ func (s *UpgradeTests) VerifyJobs() {
 		Trigger:        &job_model.APITrigger{},
 	}
 
+	sort.Sort(JobResourceReferenceSorter(job.ResourceReferences))
+	sort.Sort(JobResourceReferenceSorter(expectedJob.ResourceReferences))
 	assert.Equal(t, expectedJob, job)
 }
 
@@ -362,11 +373,17 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: runDetail.Run.ResourceReferences[0].Key.ID},
 				Name: "hello world experiment", Relationship: run_model.APIRelationshipOWNER,
 			},
+			{Key: &run_model.APIResourceKey{ID: runDetail.Run.PipelineSpec.PipelineID, Type: run_model.APIResourceTypePIPELINEVERSION},
+				Name: "hello-world.yaml", Relationship: run_model.APIRelationshipCREATOR,
+			},
 		},
-		CreatedAt:   runDetail.Run.CreatedAt,
-		ScheduledAt: runDetail.Run.ScheduledAt,
-		FinishedAt:  runDetail.Run.FinishedAt,
+		ServiceAccount: "pipeline-runner",
+		CreatedAt:      runDetail.Run.CreatedAt,
+		ScheduledAt:    runDetail.Run.ScheduledAt,
+		FinishedAt:     runDetail.Run.FinishedAt,
 	}
+	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 

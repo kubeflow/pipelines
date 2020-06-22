@@ -121,3 +121,16 @@ def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(effect='NoS
     return task
 
   return _set_preemptible
+
+def add_gpu_toleration(toleration: V1Toleration = V1Toleration(
+    effect='NoSchedule', key='nvidia.com/gpu', operator='Equal', value='true')):
+    """An operator that configures the GKE GPU nodes in a container op.
+
+    Args:
+      toleration {V1Toleration} -- toleration to pods, default is the nvidia.com/gpu label.
+    """
+
+    def _set_toleration(task):
+        task.add_toleration(toleration)
+
+    return _set_toleration

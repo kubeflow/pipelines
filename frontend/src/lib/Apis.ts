@@ -13,15 +13,16 @@
 // limitations under the License.
 
 import * as portableFetch from 'portable-fetch';
-import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { ExperimentServiceApi, FetchAPI } from '../apis/experiment';
 import { JobServiceApi } from '../apis/job';
-import { ApiPipeline, PipelineServiceApi, ApiPipelineVersion } from '../apis/pipeline';
+import { ApiPipeline, ApiPipelineVersion, PipelineServiceApi } from '../apis/pipeline';
 import { RunServiceApi } from '../apis/run';
 import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization';
+import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { PlotType } from '../components/viewers/Viewer';
 import * as Utils from './Utils';
 import { StoragePath } from './WorkflowParser';
+import { buildQuery } from './Utils';
 
 const v1beta1Prefix = 'apis/v1beta1';
 
@@ -35,10 +36,18 @@ export interface ListRequest {
 
 export interface BuildInfo {
   apiServerCommitHash?: string;
+  apiServerTagName?: string;
   apiServerReady?: boolean;
   buildDate?: string;
   frontendCommitHash?: string;
+  frontendTagName?: string;
 }
+
+// Hack types from https://github.com/microsoft/TypeScript/issues/1897#issuecomment-557057387
+export type JSONPrimitive = string | number | boolean | null;
+export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
+export type JSONObject = { [member: string]: JSONValue };
+export type JSONArray = JSONValue[];
 
 let customVisualizationsAllowed: boolean;
 
@@ -61,8 +70,12 @@ export class Apis {
 
   public static async buildPythonVisualizationConfig(
     visualizationData: ApiVisualization,
+    namespace?: string,
   ): Promise<HTMLViewerConfig> {
-    const visualization = await Apis.visualizationServiceApi.createVisualization(visualizationData);
+    const visualization = await Apis.visualizationServiceApi.createVisualization(
+      namespace || '',
+      visualizationData,
+    );
     if (visualization.html) {
       const htmlContent = visualization.html
         // Fixes issue with TFX components (and other iframe based
@@ -85,12 +98,34 @@ export class Apis {
   /**
    * Get pod logs
    */
-  public static getPodLogs(podName: string, podNamespace?: string): Promise<string> {
+  public static getPodLogs(podName: string, podNamespace: string): Promise<string> {
     let query = `k8s/pod/logs?podname=${encodeURIComponent(podName)}`;
     if (podNamespace) {
       query += `&podnamespace=${encodeURIComponent(podNamespace)}`;
     }
     return this._fetch(query);
+  }
+
+  /**
+   * Get pod info
+   */
+  public static async getPodInfo(podName: string, podNamespace: string): Promise<JSONObject> {
+    const query = `k8s/pod?podname=${encodeURIComponent(podName)}&podnamespace=${encodeURIComponent(
+      podNamespace,
+    )}`;
+    const podInfo = await this._fetch(query);
+    return JSON.parse(podInfo);
+  }
+
+  /**
+   * Get pod events
+   */
+  public static async getPodEvents(podName: string, podNamespace: string): Promise<JSONObject> {
+    const query = `k8s/pod/events?podname=${encodeURIComponent(
+      podName,
+    )}&podnamespace=${encodeURIComponent(podNamespace)}`;
+    const eventList = await this._fetch(query);
+    return JSON.parse(eventList);
   }
 
   public static get basePath(): string {
@@ -172,11 +207,28 @@ export class Apis {
   /**
    * Reads file from storage using server.
    */
-  public static readFile(path: StoragePath): Promise<string> {
-    return this._fetch(
-      'artifacts/get' +
-        `?source=${path.source}&bucket=${path.bucket}&key=${encodeURIComponent(path.key)}`,
-    );
+  public static readFile(path: StoragePath, namespace?: string, peek?: number): Promise<string> {
+    return this._fetch(this.buildReadFileUrl(path, namespace, peek));
+  }
+
+  /**
+   * Builds an url for the readFile API to retrieve a workflow artifact.
+   * @param props object describing the artifact (e.g. source, bucket, and key)
+   */
+  public static buildReadFileUrl(path: StoragePath, namespace?: string, peek?: number) {
+    const { source, ...rest } = path;
+    return `artifacts/get${buildQuery({ source: `${source}`, namespace, peek, ...rest })}`;
+  }
+
+  /**
+   * Builds an url to visually represents a workflow artifact location.
+   * @param param.source source of the artifact (e.g. minio, gcs, s3, http, or https)
+   * @param param.bucket name of the bucket with the artifact (or host for http/https)
+   * @param param.key key (i.e. path) of the artifact in the bucket
+   */
+  public static buildArtifactUrl({ source, bucket, key }: StoragePath) {
+    // TODO see https://github.com/kubeflow/pipelines/pull/3725
+    return `${source}://${bucket}/${key}`;
   }
 
   /**
@@ -184,20 +236,27 @@ export class Apis {
    */
   public static getTensorboardApp(
     logdir: string,
+    namespace: string,
   ): Promise<{ podAddress: string; tfVersion: string }> {
     return this._fetchAndParse<{ podAddress: string; tfVersion: string }>(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&namespace=${encodeURIComponent(
+        namespace,
+      )}`,
     );
   }
 
   /**
    * Starts a deployment and service for Tensorboard given the logdir
    */
-  public static startTensorboardApp(logdir: string, tfversion: string): Promise<string> {
+  public static startTensorboardApp(
+    logdir: string,
+    tfversion: string,
+    namespace: string,
+  ): Promise<string> {
     return this._fetch(
       `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(
         tfversion,
-      )}`,
+      )}&namespace=${encodeURIComponent(namespace)}`,
       undefined,
       undefined,
       { headers: { 'content-type': 'application/json' }, method: 'POST' },
@@ -215,9 +274,11 @@ export class Apis {
   /**
    * Delete a deployment and its service of the Tensorboard given the URL
    */
-  public static deleteTensorboardApp(logdir: string): Promise<string> {
+  public static deleteTensorboardApp(logdir: string, namespace: string): Promise<string> {
     return this._fetch(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&namespace=${encodeURIComponent(
+        namespace,
+      )}`,
       undefined,
       undefined,
       { method: 'DELETE' },
