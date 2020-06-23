@@ -20,7 +20,7 @@ keras-applications==1.0.8  # via tensorflow
 keras-preprocessing==1.1.0  # via tensorflow
 kubernetes==10.1.0        # via -r requirements.in (line 1)
 markdown==3.2.1           # via tensorboard
-ml-metadata==0.21.2       # via -r requirements.in (line 2)
+ml-metadata==0.22.0       # via -r requirements.in (line 2)
 numpy==1.18.2             # via h5py, keras-applications, keras-preprocessing, opt-einsum, scipy, tensorboard, tensorflow
 oauthlib==3.1.0           # via requests-oauthlib
 opt-einsum==3.2.0         # via tensorflow

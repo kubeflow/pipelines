@@ -59,7 +59,7 @@ outputs:
   - {name: model_name,          description: 'The model name Sagemaker created'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.4.1
+    image: amazon/aws-sagemaker-kfp-components:0.5.0
     command: ['python3']
     args: [
       create_model.py,

@@ -763,3 +763,16 @@ class Client(object):
       Exception if pipeline is not found.
     """
     return self._pipelines_api.delete_pipeline(id=pipeline_id)
+
+  def list_pipeline_versions(self, pipeline_id, page_token='', page_size=10, sort_by=''):
+    """Lists pipeline versions.
+    Args:
+      pipeline_id: id of the pipeline to list versions
+      page_token: token for starting of the page.
+      page_size: size of the page.
+      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+    Returns:
+      A response object including a list of versions and next page token.
+    """
+
+    return self._pipelines_api.list_pipeline_versions(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.PIPELINE, resource_key_id=pipeline_id)
