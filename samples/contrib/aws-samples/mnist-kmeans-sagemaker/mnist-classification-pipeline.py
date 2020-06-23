@@ -6,7 +6,6 @@ import json
 import copy
 from kfp import components
 from kfp import dsl
-from kfp.aws import use_aws_secret
 
 sagemaker_hpo_op = components.load_component_from_file("../../../../components/aws/sagemaker/hyperparameter_tuning/component.yaml")
 sagemaker_process_op = components.load_component_from_file("../../../../components/aws/sagemaker/process/component.yaml")
