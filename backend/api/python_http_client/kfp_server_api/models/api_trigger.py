@@ -87,7 +87,7 @@ class ApiTrigger(object):
 
 
         :param cron_schedule: The cron_schedule of this ApiTrigger.  # noqa: E501
-        :type: ApiCronSchedule
+        :type cron_schedule: ApiCronSchedule
         """
 
         self._cron_schedule = cron_schedule
@@ -108,7 +108,7 @@ class ApiTrigger(object):
 
 
         :param periodic_schedule: The periodic_schedule of this ApiTrigger.  # noqa: E501
-        :type: ApiPeriodicSchedule
+        :type periodic_schedule: ApiPeriodicSchedule
         """
 
         self._periodic_schedule = periodic_schedule
