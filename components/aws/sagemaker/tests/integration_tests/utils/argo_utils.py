@@ -2,7 +2,12 @@ import utils
 
 
 def print_workflow_logs(workflow_name):
-    output = utils.run_command(
-        f"argo logs {workflow_name} -n {utils.get_kfp_namespace()}"
-    )
+    output = get_workflow_logs(workflow_name)
     print(f"workflow logs:\n", output.decode())
+
+def find_in_logs(workflow_name, sub_str):
+    logs = get_workflow_logs(workflow_name).decode()
+    return logs.find(sub_str) >= 0
+
+def get_workflow_logs(workflow_name):
+    return utils.run_command(f"argo logs {workflow_name} -n {utils.get_kfp_namespace()}")
