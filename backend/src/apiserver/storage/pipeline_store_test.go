@@ -1232,25 +1232,46 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 		})
 
 	// Filter for name being equal to pipeline_version_1
-	filterProto := &api.Filter{
+	equalFilterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			&api.Predicate{
 				Key:   "name",
 				Op:    api.Predicate_EQUALS,
-				Value: &api.Predicate_StringValue{StringValue: "pipeline_f"},
+				Value: &api.Predicate_StringValue{StringValue: "pipeline_version_1"},
 			},
 		},
 	}
-	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", filterProto)
-	assert.Nil(t, err)
 
-	// Only return 1 pipeline version with filter.
+	// Filter for name prefix being pipeline_version
+	prefixFilterProto := &api.Filter{
+		Predicates: []*api.Predicate{
+			&api.Predicate{
+				Key:   "name",
+				Op:    api.Predicate_IS_SUBSTRING,
+				Value: &api.Predicate_StringValue{StringValue: "pipeline_version"},
+			},
+		},
+	}
+
+	// Only return 1 pipeline version with equal filter.
+	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", equalFilterProto)
+	assert.Nil(t, err)
 	_, totalSize, nextPageToken, err := pipelineStore.ListPipelineVersions(fakeUUID, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, totalSize)
 
 	// Return 2 pipeline version without filter.
+	opts, err = list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
+	assert.Nil(t, err)
+	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(fakeUUID, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, 2, totalSize)
+
+	// Return 2 pipeline version with prefix filter.
+	opts, err = list.NewOptions(&model.PipelineVersion{}, 10, "id", prefixFilterProto)
+	assert.Nil(t, err)
 	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(fakeUUID, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
