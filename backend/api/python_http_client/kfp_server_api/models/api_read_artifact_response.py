@@ -84,7 +84,7 @@ class ApiReadArtifactResponse(object):
         The bytes of the artifact content.  # noqa: E501
 
         :param data: The data of this ApiReadArtifactResponse.  # noqa: E501
-        :type: str
+        :type data: str
         """
         if (self.local_vars_configuration.client_side_validation and
                 data is not None and not re.search(r'^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$', data)):  # noqa: E501

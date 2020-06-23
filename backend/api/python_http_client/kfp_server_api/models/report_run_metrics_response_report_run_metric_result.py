@@ -99,7 +99,7 @@ class ReportRunMetricsResponseReportRunMetricResult(object):
         Output. The name of the metric.  # noqa: E501
 
         :param metric_name: The metric_name of this ReportRunMetricsResponseReportRunMetricResult.  # noqa: E501
-        :type: str
+        :type metric_name: str
         """
 
         self._metric_name = metric_name
@@ -122,7 +122,7 @@ class ReportRunMetricsResponseReportRunMetricResult(object):
         Output. The ID of the node which reports the metric.  # noqa: E501
 
         :param metric_node_id: The metric_node_id of this ReportRunMetricsResponseReportRunMetricResult.  # noqa: E501
-        :type: str
+        :type metric_node_id: str
         """
 
         self._metric_node_id = metric_node_id
@@ -143,7 +143,7 @@ class ReportRunMetricsResponseReportRunMetricResult(object):
 
 
         :param status: The status of this ReportRunMetricsResponseReportRunMetricResult.  # noqa: E501
-        :type: ReportRunMetricsResponseReportRunMetricResultStatus
+        :type status: ReportRunMetricsResponseReportRunMetricResultStatus
         """
 
         self._status = status
@@ -166,7 +166,7 @@ class ReportRunMetricsResponseReportRunMetricResult(object):
         Output. The detailed message of the error of the reporting.  # noqa: E501
 
         :param message: The message of this ReportRunMetricsResponseReportRunMetricResult.  # noqa: E501
-        :type: str
+        :type message: str
         """
 
         self._message = message

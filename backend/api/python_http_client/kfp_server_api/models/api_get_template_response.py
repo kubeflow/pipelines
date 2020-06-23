@@ -84,7 +84,7 @@ class ApiGetTemplateResponse(object):
         The template of the pipeline specified in a GetTemplate request, or of a pipeline version specified in a GetPipelinesVersionTemplate request.  # noqa: E501
 
         :param template: The template of this ApiGetTemplateResponse.  # noqa: E501
-        :type: str
+        :type template: str
         """
 
         self._template = template

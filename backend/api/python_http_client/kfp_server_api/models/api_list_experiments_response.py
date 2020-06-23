@@ -94,7 +94,7 @@ class ApiListExperimentsResponse(object):
         A list of experiments returned.  # noqa: E501
 
         :param experiments: The experiments of this ApiListExperimentsResponse.  # noqa: E501
-        :type: list[ApiExperiment]
+        :type experiments: list[ApiExperiment]
         """
 
         self._experiments = experiments
@@ -117,7 +117,7 @@ class ApiListExperimentsResponse(object):
         The total number of experiments for the given query.  # noqa: E501
 
         :param total_size: The total_size of this ApiListExperimentsResponse.  # noqa: E501
-        :type: int
+        :type total_size: int
         """
 
         self._total_size = total_size
@@ -140,7 +140,7 @@ class ApiListExperimentsResponse(object):
         The token to list the next page of experiments.  # noqa: E501
 
         :param next_page_token: The next_page_token of this ApiListExperimentsResponse.  # noqa: E501
-        :type: str
+        :type next_page_token: str
         """
 
         self._next_page_token = next_page_token

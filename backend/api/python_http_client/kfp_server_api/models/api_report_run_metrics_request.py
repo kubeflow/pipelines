@@ -89,7 +89,7 @@ class ApiReportRunMetricsRequest(object):
         Required. The parent run ID of the metric.  # noqa: E501
 
         :param run_id: The run_id of this ApiReportRunMetricsRequest.  # noqa: E501
-        :type: str
+        :type run_id: str
         """
 
         self._run_id = run_id
@@ -112,7 +112,7 @@ class ApiReportRunMetricsRequest(object):
         List of metrics to report.  # noqa: E501
 
         :param metrics: The metrics of this ApiReportRunMetricsRequest.  # noqa: E501
-        :type: list[ApiRunMetric]
+        :type metrics: list[ApiRunMetric]
         """
 
         self._metrics = metrics
