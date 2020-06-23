@@ -27,8 +27,10 @@ def Pandas_Transform_DataFrame_in_CSV_format(
     df = pandas.read_csv(
         table_path,
     )
-    exec(transform_code)
-    df.to_csv(
+    # The namespace is needed so that the code can replace `df`. For example df = df[['X']]
+    namespace = locals()
+    exec(transform_code, namespace)
+    namespace['df'].to_csv(
         transformed_table_path,
         index=False,
     )
