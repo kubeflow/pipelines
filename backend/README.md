@@ -4,7 +4,7 @@ Pipelines backend.
 
 ## Bazel
 
-There are some [know issues](https://github.com/kubeflow/pipelines/issues/3942) with the latest version of Bazel and the kubeflow pipelines repo, therefore use version 0.24.1 or older. 
+The supported Bazel version is 0.24.0. 
 
 ## Building & Testing
 
@@ -55,4 +55,3 @@ WORKSPACE go_repository rules using the following command: `bazel run
 dependencies. To update dependencies, edit [requirements.in](requirements.in)
 and run `./update_requirements.sh <requirements.in >requirements.txt` to update and pin the transitive
 dependencies.
-
