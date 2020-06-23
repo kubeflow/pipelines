@@ -31,7 +31,7 @@ git clone "git@github.com:${REPO}.git" "$clone_dir"
 cd "$clone_dir"
 git checkout "$BRANCH"
 
-echo "$TAG_NAME" > ./VERSION
+echo -n "$TAG_NAME" > ./VERSION
 # Run the release script in cloned repo
 "hack/release-imp.sh" $TAG_NAME
 
