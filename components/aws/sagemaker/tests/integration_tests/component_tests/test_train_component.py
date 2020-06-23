@@ -4,6 +4,7 @@ import utils
 from utils import kfp_client_utils
 from utils import minio_utils
 from utils import sagemaker_utils
+from utils import argo_utils
 
 
 @pytest.mark.parametrize(
@@ -77,5 +78,10 @@ def test_trainingjob(
         assert test_params["ExpectedTrainingImage"] == training_image
     else:
         assert f"dkr.ecr.{region}.amazonaws.com" in training_image
+
+    error_message = 'Error in fetching CloudWatch logs for SageMaker job'
+    if argo_utils.find_in_logs(workflow_json["metadata"]["name"], error_message):
+        print(error_message)
+        assert False
 
     utils.remove_dir(download_dir)

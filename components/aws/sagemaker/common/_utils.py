@@ -103,7 +103,10 @@ def print_logs_for_job(cw_client, log_grp, job_name):
                 logging.info(event['message'])
 
         logging.info('\n******************** End of CloudWatch logs for {} {} ********************\n'.format(log_grp, job_name))
+        raise Exception('Dummy exception to simulate CloudWatch failure')
     except Exception as e:
+        # this error message is used in integration tests
+        logging.error('Error in fetching CloudWatch logs for SageMaker job')
         logging.error(e)
 
 
