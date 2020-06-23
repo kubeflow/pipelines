@@ -1261,7 +1261,7 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, totalSize)
 
-	// Return 2 pipeline version without filter.
+	// Return 2 pipeline versions without filter.
 	opts, err = list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
 	assert.Nil(t, err)
 	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(fakeUUID, opts)
@@ -1269,7 +1269,7 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 2, totalSize)
 
-	// Return 2 pipeline version with prefix filter.
+	// Return 2 pipeline versions with prefix filter.
 	opts, err = list.NewOptions(&model.PipelineVersion{}, 10, "id", prefixFilterProto)
 	assert.Nil(t, err)
 	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(fakeUUID, opts)
