@@ -23,8 +23,9 @@ implementation:
     - sh
     - -c
     - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
-      'xgboost==1.0.2' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
-      --no-warn-script-location 'xgboost==1.0.2' --user) && "$0" "$@"
+      'xgboost==1.1.1' 'pandas==1.0.5' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'xgboost==1.1.1' 'pandas==1.0.5'
+      --user) && "$0" "$@"
     - python3
     - -u
     - -c
@@ -54,13 +55,19 @@ implementation:
           from pathlib import Path
 
           import numpy
+          import pandas
           import xgboost
 
-          csv_data_spec = data_path + '?format=csv'
-          # Only specifying the column if it's passed.
+          df = pandas.read_csv(
+              data_path,
+          )
+
           if label_column is not None:
-              csv_data_spec += '&label_column=' + str(label_column)
-          testing_data = xgboost.DMatrix(csv_data_spec)
+              df = df.drop(columns=[df.columns[label_column]])
+
+          testing_data = xgboost.DMatrix(
+              data=df,
+          )
 
           model = xgboost.Booster(model_file=model_path)
 
@@ -76,22 +83,8 @@ implementation:
       _parser.add_argument("--label-column", dest="label_column", type=int, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--predictions", dest="predictions_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parsed_args = vars(_parser.parse_args())
-      _output_files = _parsed_args.pop("_output_paths", [])
 
       _outputs = xgboost_predict(**_parsed_args)
-
-      _output_serializers = [
-
-      ]
-
-      import os
-      for idx, output_file in enumerate(_output_files):
-          try:
-              os.makedirs(os.path.dirname(output_file))
-          except OSError:
-              pass
-          with open(output_file, 'w') as f:
-              f.write(_output_serializers[idx](_outputs[idx]))
     args:
     - --data
     - {inputPath: data}
