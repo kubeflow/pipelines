@@ -20,13 +20,19 @@ def xgboost_predict(
     from pathlib import Path
 
     import numpy
+    import pandas
     import xgboost
 
-    csv_data_spec = data_path + '?format=csv'
-    # Only specifying the column if it's passed.
+    df = pandas.read_csv(
+        data_path,
+    )
+
     if label_column is not None:
-        csv_data_spec += '&label_column=' + str(label_column)
-    testing_data = xgboost.DMatrix(csv_data_spec)
+        df = df.drop(columns=[df.columns[label_column]])
+
+    testing_data = xgboost.DMatrix(
+        data=df,
+    )
 
     model = xgboost.Booster(model_file=model_path)
 
@@ -41,5 +47,8 @@ if __name__ == '__main__':
         xgboost_predict,
         output_component_file='component.yaml',
         base_image='python:3.7',
-        packages_to_install=['xgboost==1.0.2']
+        packages_to_install=[
+            'xgboost==1.1.1',
+            'pandas==1.0.5',
+        ]
     )
