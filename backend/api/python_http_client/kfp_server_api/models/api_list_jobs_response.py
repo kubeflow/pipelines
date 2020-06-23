@@ -94,7 +94,7 @@ class ApiListJobsResponse(object):
         A list of jobs returned.  # noqa: E501
 
         :param jobs: The jobs of this ApiListJobsResponse.  # noqa: E501
-        :type: list[ApiJob]
+        :type jobs: list[ApiJob]
         """
 
         self._jobs = jobs
@@ -117,7 +117,7 @@ class ApiListJobsResponse(object):
         The total number of jobs for the given query.  # noqa: E501
 
         :param total_size: The total_size of this ApiListJobsResponse.  # noqa: E501
-        :type: int
+        :type total_size: int
         """
 
         self._total_size = total_size
@@ -140,7 +140,7 @@ class ApiListJobsResponse(object):
         The token to list the next page of jobs.  # noqa: E501
 
         :param next_page_token: The next_page_token of this ApiListJobsResponse.  # noqa: E501
-        :type: str
+        :type next_page_token: str
         """
 
         self._next_page_token = next_page_token
