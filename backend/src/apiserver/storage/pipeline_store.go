@@ -603,7 +603,7 @@ func (s *PipelineStore) ListPipelineVersions(pipelineId string, opts *list.Optio
 	}
 
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-		return sqlBuilder.
+		return opts.AddFilterToSelect(sqlBuilder).
 			From("pipeline_versions").
 			Where(sq.And{sq.Eq{"PipelineId": pipelineId}, sq.Eq{"status": model.PipelineVersionReady}})
 	}
