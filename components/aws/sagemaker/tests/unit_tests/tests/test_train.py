@@ -1,13 +1,11 @@
-import json
 import unittest
 
 from unittest.mock import patch, call, Mock, MagicMock, mock_open
 from botocore.exceptions import ClientError
-from datetime import datetime
 
 from train.src import train
 from common import _utils
-from . import test_utils
+
 
 required_args = [
   '--region', 'us-west-2',
