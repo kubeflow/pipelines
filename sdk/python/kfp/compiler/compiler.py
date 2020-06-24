@@ -154,7 +154,7 @@ class Compiler(object):
     elif op2.name in opsgroup_groups:
       op2_groups = opsgroup_groups[op2.name]
     else:
-      raise ValueError(op1.name + ' does not exist.')
+      raise ValueError(op2.name + ' does not exist.')
 
     both_groups = [op1_groups, op2_groups]
     common_groups_len = sum(1 for x in zip(*both_groups) if x==(x[0],)*len(x))
