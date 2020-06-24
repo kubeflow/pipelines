@@ -4,3 +4,10 @@ kind: Kustomization
 resources:
 - minio-gcs-gateway-deployment.yaml
 - minio-gcs-gateway-service.yaml
+
+secretGenerator:
+- name: minio-artifact-secret
+  env: minio-artifact-secret.env
+generatorOptions:
+  # minio-artifact-secret needs to be referred by exact name
+  disableNameSuffixHash: true

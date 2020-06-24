@@ -29,8 +29,14 @@ spec:
                   name: pipeline-install-config
                   key: gcsProjectId
             - name: MINIO_ACCESS_KEY
-              value: "minio"
+              valueFrom:
+                secretKeyRef:
+                  name: minio-artifact-secret
+                  key: accesskey
             - name: MINIO_SECRET_KEY
-              value: "minio123"
+              valueFrom:
+                secretKeyRef:
+                  name: minio-artifact-secret
+                  key: secretkey
           ports:
             - containerPort: 9000
