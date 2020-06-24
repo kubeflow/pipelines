@@ -1,6 +1,6 @@
-The `mnist-classification-pipeline.py` sample runs a pipeline to train a classficiation model using Kmeans with MNIST dataset on SageMaker.  
-The `kmeans-hpo-pipeline.py` is a single component hyper parameter optimisation pipeline which has default values set to use Kmeans. 
+# MNIST Classification with KMeans
 
+The `mnist-classification-pipeline.py` sample runs a pipeline to train a classficiation model using Kmeans with MNIST dataset on SageMaker. This example was taken from an existing [SageMaker example](https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-python-sdk/1P_kmeans_highlevel/kmeans_mnist.ipynb) and modified to work with the Amazon SageMaker Components for Kubeflow Pipelines.
 
 ## Prerequisites 
 
