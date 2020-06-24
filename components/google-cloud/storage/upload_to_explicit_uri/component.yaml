@@ -2,6 +2,7 @@ name: Upload to GCS
 inputs:
 - {name: Data}
 - {name: GCS path, type: URI}
+- {name: GSUtil options, type: String, default: '-m'}
 outputs:
 - {name: GCS path, type: URI}
 implementation:
@@ -15,9 +16,10 @@ implementation:
             if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
                 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
             fi
-            gsutil cp -r "$0" "$1"
+            gsutil $3 cp -r "$0" "$1"
             mkdir -p "$(dirname "$2")"
             echo "$1" > "$2"
         - inputPath: Data
         - inputValue: GCS path
         - outputPath: GCS path
+        - inputValue: GSUtil options
