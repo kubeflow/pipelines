@@ -51,6 +51,16 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: dbPort
+        - name: OBJECTSTORECONFIG_ACCESSKEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-artifact-secret
+              key: accesskey
+        - name: OBJECTSTORECONFIG_SECRETACCESSKEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-artifact-secret
+              key: secretkey
         image: gcr.io/ml-pipeline/api-server:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server
