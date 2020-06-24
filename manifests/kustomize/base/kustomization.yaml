@@ -29,6 +29,8 @@ images:
   newTag: 0.5.1
 - name: gcr.io/ml-pipeline/cache-deployer
   newTag: 0.5.1
+- name: gcr.io/ml-pipeline/metadata-envoy
+  newTag: 0.5.1
 # Used by Kustomize
 configMapGenerator:
 - name: pipeline-install-config
