@@ -166,6 +166,11 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *api.
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 
+	//Ensure resourceKey has been set
+	if request.ResourceKey == nil {
+		return nil, util.NewInvalidInputError("ResourceKey must be set in the input")
+	}
+
 	pipelineVersions, total_size, nextPageToken, err :=
 		s.resourceManager.ListPipelineVersions(request.ResourceKey.Id, opts)
 	if err != nil {
