@@ -1,5 +1,21 @@
+#!/usr/bin/env python3
+# Copyright 2020 The Kubeflow Pipleines authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # This sample demonstrates continuous training using a train-eval-check recursive loop.
-# The main pipeline trains the initial model and then gradually trains the model some more until the model evaluation metrics are good enough.
+# The main pipeline trains the initial model and then gradually trains the model
+# some more until the model evaluation metrics are good enough.
 
 import kfp
 from kfp import components
@@ -62,7 +78,7 @@ def train_until_good_pipeline():
     # Preparing the true values
     true_values_table = pandas_transform_csv_op(
         table=training_data,
-        transform_code='''df = df[["tips"]]''',
+        transform_code='df = df[["tips"]]',
     ).output
     
     true_values = drop_header_op(true_values_table).output
