@@ -2,21 +2,15 @@
 
 ## Versioning policy
 
-Kubeflow Pipelines 1.0 is the first major release of Kubeflow Pipelines. The
-Kubeflow Pipelines versioning follows the conventional versioning policy. That
-is, the major version of Kubeflow Pipelines is incremented for API/feature changes that
-are new and not backward-compatible; and on the other hand, the minor version
-of Kubeflow Pipelines is incremented for API/feature changes that are new and
-backward-compatible.
+Kubeflow Pipelines 1.0 is the first major release of Kubeflow Pipelines. It follows the Kubeflow Pipelines [versioning policy](https://github.com/kubeflow/pipelines/blob/master/docs/releases/versioning-policy.md).
 
 ## Deployment options
 
-* [Standalone Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/standalone-deployment/),
-which allows users the maximum flexibility in configuring the Kubernetes
-clusters and a Kubeflow Pipelines instance.
+There are two available ways to [deployment Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/overview/).
 
-* [Google Cloud Marketplace Hosted Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/overview/#gcp-hosted-ml-pipelines),
-which minimizes the user effort in deploying a Kubeflow pipelines instance.
+* [Standalone Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/standalone-deployment/), which allows users the maximum flexibility in configuring the Kubernetes clusters and a Kubeflow Pipelines instance.
+
+* [AI Platform Pipelines](https://cloud.google.com/ai-platform/pipelines/docs), which minimizes the user effort in deploying a Kubeflow pipelines instance.
 
 ## Core features and APIs
 
@@ -39,7 +33,7 @@ for how to manage the Kubeflow Pipelines resources via the Kubeflow Pipelines cl
 
 ## Experimental features
 
-Experimental features are the enhanced functionalities available in Kubeflow Pipelines. They might be replaced or deprecated in the future due to the refactoring or redesign of Kubeflow Pipelines.
+Experimental features are the feature in the early phases of development and may change drastically in the future.
 
 * Visualization of output artifacts in two ways: [built-in visualization of selected artifact types](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations/) and [python based custom visualization](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations/).
 
