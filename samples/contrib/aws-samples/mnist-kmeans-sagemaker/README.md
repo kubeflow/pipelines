@@ -1,4 +1,4 @@
-The `mnist-classification-pipeline.py` sample runs a pipeline to train a classficiation model using Kmeans with MNIST dataset on Sagemaker.  
+The `mnist-classification-pipeline.py` sample runs a pipeline to train a classficiation model using Kmeans with MNIST dataset on SageMaker.  
 The `kmeans-hpo-pipeline.py` is a single component hyper parameter optimisation pipeline which has default values set to use Kmeans. 
 
 
@@ -28,7 +28,7 @@ You will have an model endpoint in service. Please remember to clean it up.
 
 ## Prediction
 
-Open Sagemaker [console](https://us-west-2.console.aws.amazon.com/sagemaker/home?region=us-west-2#/endpoints) and find your endpoint name, You can call endpoint in this way. Please check dataset section to get `train_set`.
+Open SageMaker [console](https://us-east-1.console.aws.amazon.com/sagemaker/home?region=us-east-1#/endpoints) and find your endpoint name, You can call endpoint in this way. Please check dataset section to get `train_set`.
 
 ```python
 import json
