@@ -94,8 +94,7 @@ def _parent_dirs_maker_that_returns_open_file(mode: str, encoding: str = None):
     return make_parent_dirs_and_return_path
 
 
-#TODO: Replace this image name with another name once people decide what to replace it with.
-default_base_image_or_builder='tensorflow/tensorflow:1.13.2-py3'
+default_base_image_or_builder='python:3.7'
 
 
 def _python_function_name_to_component_name(name):
@@ -410,7 +409,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     Args:
         func: Required. The function to be converted
-        base_image: Optional. Docker image to be used as a base image for the python component. Must have python 3.5+ installed. Default is tensorflow/tensorflow:1.11.0-py3
+        base_image: Optional. Docker image to be used as a base image for the python component. Must have python 3.5+ installed. Default is python:3.7
                     Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
         extra_code: Optional. Python source code that gets placed before the function code. Can be used as workaround to define types used in function signature.
         packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
@@ -665,7 +664,7 @@ def func_to_component_text(func, extra_code='', base_image: str = None, packages
 
     Args:
         func: The python function to convert
-        base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.13.2-py3
+        base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is python:3.7
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
         packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
