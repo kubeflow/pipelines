@@ -522,10 +522,10 @@ class Compiler(object):
     arguments = []
     for param_name, dependent_name in inputs[sub_group.name]:
       if is_recursive_subgroup:
-        for index, input in enumerate(sub_group.inputs):
+        for input_name, input in sub_group.arguments.items():
           if param_name == self._pipelineparam_full_name(input):
             break
-        referenced_input = sub_group.recursive_ref.inputs[index]
+        referenced_input = sub_group.recursive_ref.arguments[input_name]
         argument_name = self._pipelineparam_full_name(referenced_input)
       else:
         argument_name = param_name

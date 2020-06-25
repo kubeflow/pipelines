@@ -125,6 +125,7 @@ def graph_component(func):
     bound_arguments = signature.bind(*args, **kargs)
     graph_ops_group = Graph(func.__name__)
     graph_ops_group.inputs = list(bound_arguments.arguments.values())
+    graph_ops_group.arguments = bound_arguments.arguments
     for input in graph_ops_group.inputs:
       if not isinstance(input, PipelineParam):
         raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams.')
