@@ -49,7 +49,7 @@ def create_graph_component_from_pipeline_func(
         When called, the function will return a task object, corresponding to the graph component.
         To reference the outputs of the task, use task.outputs["Output name"].
 
-    Example:
+    Example::
 
         producer_op = load_component_from_file('producer/component.yaml')
         processor_op = load_component_from_file('processor/component.yaml')
