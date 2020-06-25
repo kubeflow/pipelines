@@ -849,6 +849,9 @@ class Compiler(object):
     from ._data_passing_rewriter import fix_big_data_passing
     workflow = fix_big_data_passing(workflow)
 
+    if pipeline_conf and pipeline_conf.data_passing_method != None:
+      workflow = pipeline_conf.data_passing_method(workflow)
+
     metadata = workflow.setdefault('metadata', {})
     annotations = metadata.setdefault('annotations', {})
 
