@@ -14,7 +14,7 @@ spec:
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-list-of-strings-Output}}"
+          - "{{inputs.parameters.produce-list-of-strings-output}}"
         command: 
           - python3
           - "-u"
@@ -27,24 +27,36 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
+              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-        image: "python:3.7"
+
+              _output_serializers = [
+
+              ]
+
+              import os
+              for idx, output_file in enumerate(_output_files):
+                  try:
+                      os.makedirs(os.path.dirname(output_file))
+                  except OSError:
+                      pass
+                  with open(output_file, 'w') as f:
+                      f.write(_output_serializers[idx](_outputs[idx]))
+        image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-strings-Output
+            name: produce-list-of-strings-output
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        annotations: 
+        annotations:
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume
     - 
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-list-of-strings-Output-loop-item}}"
+          - "{{inputs.parameters.produce-list-of-strings-output-loop-item}}"
         command: 
           - python3
           - "-u"
@@ -57,16 +69,28 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
+              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-        image: "python:3.7"
+
+              _output_serializers = [
+
+              ]
+
+              import os
+              for idx, output_file in enumerate(_output_files):
+                  try:
+                      os.makedirs(os.path.dirname(output_file))
+                  except OSError:
+                      pass
+                  with open(output_file, 'w') as f:
+                      f.write(_output_serializers[idx](_outputs[idx]))
+        image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-strings-Output-loop-item
+            name: produce-list-of-strings-output-loop-item
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-2
@@ -74,7 +98,7 @@ spec:
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-str-Output}}"
+          - "{{inputs.parameters.produce-str-output}}"
         command: 
           - python3
           - "-u"
@@ -87,16 +111,28 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
+              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-        image: "python:3.7"
+              
+              _output_serializers = [
+              
+              ]
+              
+              import os
+              for idx, output_file in enumerate(_output_files):
+                  try:
+                      os.makedirs(os.path.dirname(output_file))
+                  except OSError:
+                      pass
+                  with open(output_file, 'w') as f:
+                      f.write(_output_serializers[idx](_outputs[idx]))
+        image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
           - 
-            name: produce-str-Output
+            name: produce-str-output
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-3
@@ -104,7 +140,7 @@ spec:
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-list-of-ints-Output}}"
+          - "{{inputs.parameters.produce-list-of-ints-output}}"
         command: 
           - python3
           - "-u"
@@ -117,16 +153,28 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
+              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-        image: "python:3.7"
+              
+              _output_serializers = [
+              
+              ]
+              
+              import os
+              for idx, output_file in enumerate(_output_files):
+                  try:
+                      os.makedirs(os.path.dirname(output_file))
+                  except OSError:
+                      pass
+                  with open(output_file, 'w') as f:
+                      f.write(_output_serializers[idx](_outputs[idx]))
+        image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-ints-Output
+            name: produce-list-of-ints-output
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-4
@@ -134,7 +182,7 @@ spec:
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-list-of-ints-Output-loop-item}}"
+          - "{{inputs.parameters.produce-list-of-ints-output-loop-item}}"
         command: 
           - python3
           - "-u"
@@ -147,16 +195,28 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
+              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-        image: "python:3.7"
+              
+              _output_serializers = [
+              
+              ]
+              
+              import os
+              for idx, output_file in enumerate(_output_files):
+                  try:
+                      os.makedirs(os.path.dirname(output_file))
+                  except OSError:
+                      pass
+                  with open(output_file, 'w') as f:
+                      f.write(_output_serializers[idx](_outputs[idx]))
+        image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-ints-Output-loop-item
+            name: produce-list-of-ints-output-loop-item
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-5
@@ -164,7 +224,7 @@ spec:
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-list-of-dicts-Output}}"
+          - "{{inputs.parameters.produce-list-of-dicts-output}}"
         command: 
           - python3
           - "-u"
@@ -177,16 +237,28 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
+              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-        image: "python:3.7"
+              
+              _output_serializers = [
+              
+              ]
+              
+              import os
+              for idx, output_file in enumerate(_output_files):
+                  try:
+                      os.makedirs(os.path.dirname(output_file))
+                  except OSError:
+                      pass
+                  with open(output_file, 'w') as f:
+                      f.write(_output_serializers[idx](_outputs[idx]))
+        image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-dicts-Output
+            name: produce-list-of-dicts-output
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-6
@@ -194,7 +266,7 @@ spec:
       container: 
         args: 
           - "--param1"
-          - "{{inputs.parameters.produce-list-of-dicts-Output-loop-item-subvar-aaa}}"
+          - "{{inputs.parameters.produce-list-of-dicts-output-loop-item-subvar-aaa}}"
         command: 
           - python3
           - "-u"
@@ -207,16 +279,28 @@ spec:
               _parser = argparse.ArgumentParser(prog='Consume', description='')
               _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
               _parsed_args = vars(_parser.parse_args())
+              _output_files = _parsed_args.pop("_output_paths", [])
               
               _outputs = consume(**_parsed_args)
-        image: "python:3.7"
+              
+              _output_serializers = [
+              
+              ]
+              
+              import os
+              for idx, output_file in enumerate(_output_files):
+                  try:
+                      os.makedirs(os.path.dirname(output_file))
+                  except OSError:
+                      pass
+                  with open(output_file, 'w') as f:
+                      f.write(_output_serializers[idx](_outputs[idx]))
+        image: "tensorflow/tensorflow:1.13.2-py3"
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-dicts-Output-loop-item-subvar-aaa
+            name: produce-list-of-dicts-output-loop-item-subvar-aaa
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-7
@@ -227,34 +311,34 @@ spec:
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-strings-Output
-                  value: "{{inputs.parameters.produce-list-of-strings-Output}}"
+                  name: produce-list-of-strings-output
+                  value: "{{inputs.parameters.produce-list-of-strings-output}}"
             name: consume
             template: consume
           - 
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-strings-Output-loop-item
-                  value: "{{inputs.parameters.produce-list-of-strings-Output-loop-item}}"
+                  name: produce-list-of-strings-output-loop-item
+                  value: "{{inputs.parameters.produce-list-of-strings-output-loop-item}}"
             name: consume-2
             template: consume-2
           - 
             arguments: 
               parameters: 
                 - 
-                  name: produce-str-Output
-                  value: "{{inputs.parameters.produce-str-Output}}"
+                  name: produce-str-output
+                  value: "{{inputs.parameters.produce-str-output}}"
             name: consume-3
             template: consume-3
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-strings-Output
+            name: produce-list-of-strings-output
           - 
-            name: produce-list-of-strings-Output-loop-item
+            name: produce-list-of-strings-output-loop-item
           - 
-            name: produce-str-Output
+            name: produce-str-output
       name: for-loop-for-loop-00000001-1
     - 
       dag: 
@@ -263,24 +347,24 @@ spec:
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-ints-Output
-                  value: "{{inputs.parameters.produce-list-of-ints-Output}}"
+                  name: produce-list-of-ints-output
+                  value: "{{inputs.parameters.produce-list-of-ints-output}}"
             name: consume-4
             template: consume-4
           - 
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-ints-Output-loop-item
-                  value: "{{inputs.parameters.produce-list-of-ints-Output-loop-item}}"
+                  name: produce-list-of-ints-output-loop-item
+                  value: "{{inputs.parameters.produce-list-of-ints-output-loop-item}}"
             name: consume-5
             template: consume-5
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-ints-Output
+            name: produce-list-of-ints-output
           - 
-            name: produce-list-of-ints-Output-loop-item
+            name: produce-list-of-ints-output-loop-item
       name: for-loop-for-loop-00000002-2
     - 
       dag: 
@@ -289,24 +373,24 @@ spec:
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-dicts-Output
-                  value: "{{inputs.parameters.produce-list-of-dicts-Output}}"
+                  name: produce-list-of-dicts-output
+                  value: "{{inputs.parameters.produce-list-of-dicts-output}}"
             name: consume-6
             template: consume-6
           - 
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-dicts-Output-loop-item-subvar-aaa
-                  value: "{{inputs.parameters.produce-list-of-dicts-Output-loop-item-subvar-aaa}}"
+                  name: produce-list-of-dicts-output-loop-item-subvar-aaa
+                  value: "{{inputs.parameters.produce-list-of-dicts-output-loop-item-subvar-aaa}}"
             name: consume-7
             template: consume-7
       inputs: 
         parameters: 
           - 
-            name: produce-list-of-dicts-Output
+            name: produce-list-of-dicts-output
           - 
-            name: produce-list-of-dicts-Output-loop-item-subvar-aaa
+            name: produce-list-of-dicts-output-loop-item-subvar-aaa
       name: for-loop-for-loop-00000003-3
     - 
       dag: 
@@ -315,48 +399,48 @@ spec:
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-strings-Output
-                  value: "{{tasks.produce-list-of-strings.outputs.parameters.produce-list-of-strings-Output}}"
+                  name: produce-list-of-strings-output
+                  value: "{{tasks.produce-list-of-strings.outputs.parameters.produce-list-of-strings-output}}"
                 - 
-                  name: produce-list-of-strings-Output-loop-item
+                  name: produce-list-of-strings-output-loop-item
                   value: "{{item}}"
                 - 
-                  name: produce-str-Output
-                  value: "{{tasks.produce-str.outputs.parameters.produce-str-Output}}"
+                  name: produce-str-output
+                  value: "{{tasks.produce-str.outputs.parameters.produce-str-output}}"
             dependencies: 
               - produce-list-of-strings
               - produce-str
             name: for-loop-for-loop-00000001-1
             template: for-loop-for-loop-00000001-1
-            withParam: "{{tasks.produce-list-of-strings.outputs.parameters.produce-list-of-strings-Output}}"
+            withParam: "{{tasks.produce-list-of-strings.outputs.parameters.produce-list-of-strings-output}}"
           - 
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-ints-Output
-                  value: "{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-Output}}"
+                  name: produce-list-of-ints-output
+                  value: "{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-output}}"
                 - 
-                  name: produce-list-of-ints-Output-loop-item
+                  name: produce-list-of-ints-output-loop-item
                   value: "{{item}}"
             dependencies: 
               - produce-list-of-ints
             name: for-loop-for-loop-00000002-2
             template: for-loop-for-loop-00000002-2
-            withParam: "{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-Output}}"
+            withParam: "{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-output}}"
           - 
             arguments: 
               parameters: 
                 - 
-                  name: produce-list-of-dicts-Output
-                  value: "{{tasks.produce-list-of-dicts.outputs.parameters.produce-list-of-dicts-Output}}"
+                  name: produce-list-of-dicts-output
+                  value: "{{tasks.produce-list-of-dicts.outputs.parameters.produce-list-of-dicts-output}}"
                 - 
-                  name: produce-list-of-dicts-Output-loop-item-subvar-aaa
+                  name: produce-list-of-dicts-output-loop-item-subvar-aaa
                   value: "{{item.aaa}}"
             dependencies: 
               - produce-list-of-dicts
             name: for-loop-for-loop-00000003-3
             template: for-loop-for-loop-00000003-3
-            withParam: "{{tasks.produce-list-of-dicts.outputs.parameters.produce-list-of-dicts-Output}}"
+            withParam: "{{tasks.produce-list-of-dicts.outputs.parameters.produce-list-of-dicts-output}}"
           - 
             name: produce-list-of-dicts
             template: produce-list-of-dicts
@@ -380,7 +464,7 @@ spec:
           - "-u"
           - "-c"
           - |
-              def produce_list_of_dicts():
+              def produce_list_of_dicts()  :
                   return ([{"aaa": "aaa1", "bbb": "bbb1"}, {"aaa": "aaa2", "bbb": "bbb2"}],)
               
               def _serialize_json(obj) -> str:
@@ -392,7 +476,7 @@ spec:
                           return obj.to_struct()
                       else:
                           raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
-                  return json.dumps(obj, default=default_serializer, sort_keys=True)
+                  return json.dumps(obj, default=default_serializer)
               
               import argparse
               _parser = argparse.ArgumentParser(prog='Produce list of dicts', description='')
@@ -417,21 +501,19 @@ spec:
                       pass
                   with open(output_file, 'w') as f:
                       f.write(_output_serializers[idx](_outputs[idx]))
-        image: "python:3.7"
+        image: "tensorflow/tensorflow:1.13.2-py3"
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce list of dicts\", \"outputs\": [{\"name\": \"Output\", \"type\": \"JsonArray\"}]}"
       name: produce-list-of-dicts
       outputs: 
         artifacts: 
           - 
-            name: produce-list-of-dicts-Output
+            name: produce-list-of-dicts-output
             path: /tmp/outputs/Output/data
         parameters: 
           - 
-            name: produce-list-of-dicts-Output
+            name: produce-list-of-dicts-output
             valueFrom: 
               path: /tmp/outputs/Output/data
     - 
@@ -444,7 +526,7 @@ spec:
           - "-u"
           - "-c"
           - |
-              def produce_list_of_ints():
+              def produce_list_of_ints()  :
                   return ([1234567890, 987654321],)
               
               def _serialize_json(obj) -> str:
@@ -456,7 +538,7 @@ spec:
                           return obj.to_struct()
                       else:
                           raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
-                  return json.dumps(obj, default=default_serializer, sort_keys=True)
+                  return json.dumps(obj, default=default_serializer)
               
               import argparse
               _parser = argparse.ArgumentParser(prog='Produce list of ints', description='')
@@ -481,21 +563,19 @@ spec:
                       pass
                   with open(output_file, 'w') as f:
                       f.write(_output_serializers[idx](_outputs[idx]))
-        image: "python:3.7"
+        image: "tensorflow/tensorflow:1.13.2-py3"
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce list of ints\", \"outputs\": [{\"name\": \"Output\", \"type\": \"JsonArray\"}]}"
       name: produce-list-of-ints
       outputs: 
         artifacts: 
           - 
-            name: produce-list-of-ints-Output
+            name: produce-list-of-ints-output
             path: /tmp/outputs/Output/data
         parameters: 
           - 
-            name: produce-list-of-ints-Output
+            name: produce-list-of-ints-output
             valueFrom: 
               path: /tmp/outputs/Output/data
     - 
@@ -508,7 +588,7 @@ spec:
           - "-u"
           - "-c"
           - |
-              def produce_list_of_strings():
+              def produce_list_of_strings()  :
                   return (["a", "z"],)
               
               def _serialize_json(obj) -> str:
@@ -520,7 +600,7 @@ spec:
                           return obj.to_struct()
                       else:
                           raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
-                  return json.dumps(obj, default=default_serializer, sort_keys=True)
+                  return json.dumps(obj, default=default_serializer)
               
               import argparse
               _parser = argparse.ArgumentParser(prog='Produce list of strings', description='')
@@ -545,21 +625,19 @@ spec:
                       pass
                   with open(output_file, 'w') as f:
                       f.write(_output_serializers[idx](_outputs[idx]))
-        image: "python:3.7"
+        image: "tensorflow/tensorflow:1.13.2-py3"
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce list of strings\", \"outputs\": [{\"name\": \"Output\", \"type\": \"JsonArray\"}]}"
       name: produce-list-of-strings
       outputs: 
         artifacts: 
           - 
-            name: produce-list-of-strings-Output
+            name: produce-list-of-strings-output
             path: /tmp/outputs/Output/data
         parameters: 
           - 
-            name: produce-list-of-strings-Output
+            name: produce-list-of-strings-output
             valueFrom: 
               path: /tmp/outputs/Output/data
     - 
@@ -572,7 +650,7 @@ spec:
           - "-u"
           - "-c"
           - |
-              def produce_str():
+              def produce_str()  :
                   return "Hello"
               
               def _serialize_str(str_value: str) -> str:
@@ -603,20 +681,18 @@ spec:
                       pass
                   with open(output_file, 'w') as f:
                       f.write(_output_serializers[idx](_outputs[idx]))
-        image: "python:3.7"
+        image: "tensorflow/tensorflow:1.13.2-py3"
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce str\", \"outputs\": [{\"name\": \"Output\", \"type\": \"String\"}]}"
       name: produce-str
       outputs: 
         artifacts: 
           - 
-            name: produce-str-Output
+            name: produce-str-output
             path: /tmp/outputs/Output/data
         parameters: 
           - 
-            name: produce-str-Output
+            name: produce-str-output
             valueFrom: 
               path: /tmp/outputs/Output/data
