@@ -23,11 +23,14 @@ import warnings
 import yaml
 import zipfile
 import datetime
+import urllib.parse 
+from google.protobuf.json_format import MessageToJson
 from typing import Mapping, Callable
 
 import kfp
 import kfp_server_api
 
+from kfp import filter_pb2
 from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 
@@ -314,7 +317,17 @@ class Client(object):
       A response object including a list of experiments and next page token.
     """
     while True:
-        result = self.list_pipelines(page_size=page_size, page_token=page_token)
+
+        filterName = filter_pb2.Filter()
+        predicate = filter_pb2.Predicate() 
+        predicate.key="name"
+        predicate.op=1
+        predicate.string_value=name 
+        filterName.predicates.append(predicate)
+
+        result = self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, filter=urllib.parse.quote(MessageToJson(filterName)))
+        print(result)
+        print("NOW NOW NOW")
         for pl in result.pipelines:
             if pl.name == name:
                 return pl.id
