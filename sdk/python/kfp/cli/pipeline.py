@@ -47,7 +47,13 @@ def upload(ctx, pipeline_name, package_file):
     "-p",
     "--pipeline-id",
     help="ID of the pipeline",
-    required=True
+    required=False
+)
+@click.option(
+    "-n",
+    "--pipeline-name",
+    help="Name of pipeline",
+    required=False
 )
 @click.option(
     "-v",
@@ -57,10 +63,18 @@ def upload(ctx, pipeline_name, package_file):
 )
 @click.argument("package-file")
 @click.pass_context
-def upload_version(ctx, package_file, pipeline_version, pipeline_id):
+def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeline_name=None):
     """Upload a version of the KFP pipeline"""
     client = ctx.obj["client"]
-
+    if pipeline_id==None and pipeline_name==None: #[TODO] do this using click instead... 
+        logging.Warning("Need to suppy 'pipeline-name' or 'pipeline-id'")
+        return None
+    if pipeline_name!=None: 
+        pipeline_id = client.get_pipeline_id(name=pipeline_name)
+        if pipeline_id==None: 
+            logging.warning(f"Cant find a pipeline with name: {pipeline_name}")
+            return None
+    logging.info(f"The pipeline id is: {pipeline_id}")
     version = client.pipeline_uploads.upload_pipeline_version(
         package_file, name=pipeline_version, pipelineid=pipeline_id)
     logging.info(

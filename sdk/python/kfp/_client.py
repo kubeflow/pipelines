@@ -304,6 +304,25 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return experiment
 
+  def get_pipeline_id(self, name, page_token='', page_size=100):
+    """Returns the pipeline id if a pipeline with the name exsists.
+    Args:
+      name: pipeline name
+      page_token: token for starting of the page.
+      page_size: size of the page.
+    Returns:
+      A response object including a list of experiments and next page token.
+    """
+    while True:
+        result = self.list_pipelines(page_size=page_size, page_token=page_token)
+        for pl in result.pipelines:
+            if pl.name == name:
+                return pl.id
+        page_token = result.next_page_token
+        if not page_token:
+            break
+    return None
+
   def list_experiments(self, page_token='', page_size=10, sort_by='', namespace=None):
     """List experiments.
     Args:
