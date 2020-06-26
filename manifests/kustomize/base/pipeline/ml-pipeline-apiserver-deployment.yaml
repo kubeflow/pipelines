@@ -54,12 +54,12 @@ spec:
         - name: OBJECTSTORECONFIG_ACCESSKEY
           valueFrom:
             secretKeyRef:
-              name: minio-artifact-secret
+              name: mlpipeline-minio-artifact
               key: accesskey
         - name: OBJECTSTORECONFIG_SECRETACCESSKEY
           valueFrom:
             secretKeyRef:
-              name: minio-artifact-secret
+              name: mlpipeline-minio-artifact
               key: secretkey
         image: gcr.io/ml-pipeline/api-server:dummy
         imagePullPolicy: IfNotPresent
