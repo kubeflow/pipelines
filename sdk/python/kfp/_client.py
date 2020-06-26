@@ -82,7 +82,12 @@ KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME = 'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'
 class Client(object):
   """ API Client for KubeFlow Pipeline.
   """
-
+  jobs: kfp_server_api.api.job_service_api.JobServiceApi
+  runs: kfp_server_api.api.run_service_api.RunServiceApi
+  experiments: kfp_server_api.api.experiment_service_api.ExperimentServiceApi
+  pipelines: kfp_server_api.api.pipeline_service_api.PipelineServiceApi
+  pipeline_uploads: kfp_server_api.api.pipeline_upload_service_api.PipelineUploadServiceApi
+  
   # in-cluster DNS name of the pipeline service
   IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
