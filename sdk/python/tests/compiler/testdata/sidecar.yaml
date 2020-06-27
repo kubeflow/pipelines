@@ -43,13 +43,7 @@ spec:
       command:
       - sh
       - "-c"
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
   - name: echo
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     inputs:
       parameters:
       - name: download-downloaded

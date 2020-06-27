@@ -29,9 +29,6 @@ spec:
       value: '10'
   templates:
   - name: download
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     inputs:
       parameters:
       - name: sleep_ms
@@ -57,9 +54,6 @@ spec:
       args:
       - -text="hello world"
   - name: echo
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     inputs:
       parameters:
       - name: download-downloaded

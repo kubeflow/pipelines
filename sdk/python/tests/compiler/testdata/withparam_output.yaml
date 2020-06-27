@@ -33,9 +33,6 @@ spec:
       parameters:
       - name: my-out-cop0-out-loop-item
     name: my-in-cop1
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
   - container:
       args:
       - python -c "import json; import sys; json.dump([i for i in range(20, 31)],
@@ -45,9 +42,6 @@ spec:
       - -c
       image: python:alpine3.6
     name: my-out-cop0
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     outputs:
       artifacts:
       - name: my-out-cop0-out
@@ -67,9 +61,6 @@ spec:
       parameters:
       - name: my-out-cop0-out
     name: my-out-cop2
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
   - dag:
       tasks:
       - arguments:

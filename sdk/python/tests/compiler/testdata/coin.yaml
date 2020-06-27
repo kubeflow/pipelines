@@ -75,9 +75,6 @@ spec:
       - -c
       image: python:alpine3.6
     name: flip
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     outputs:
       artifacts:
       - name: flip-output
@@ -95,9 +92,6 @@ spec:
       - -c
       image: python:alpine3.6
     name: flip-again
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     outputs:
       artifacts:
       - name: flip-again-output
@@ -135,9 +129,6 @@ spec:
       parameters:
       - name: flip-again-output
     name: print1
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
   - container:
       command:
       - echo
@@ -147,6 +138,3 @@ spec:
       parameters:
       - name: flip-again-output
     name: print2
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp

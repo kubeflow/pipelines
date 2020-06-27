@@ -12,9 +12,6 @@ spec:
   serviceAccountName: pipeline-runner
   templates:
   - name: create-pvc
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     outputs:
       parameters:
       - name: create-pvc-manifest
@@ -45,9 +42,6 @@ spec:
       parameters:
       - name: create-pvc-name
     name: step1
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     volumes:
     - name: create-pvc
       persistentVolumeClaim:
@@ -66,9 +60,6 @@ spec:
       parameters:
       - name: create-pvc-name
     name: step2
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     volumes:
     - name: create-pvc
       persistentVolumeClaim:
@@ -87,9 +78,6 @@ spec:
       parameters:
       - name: create-pvc-name
     name: step3
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     volumes:
     - name: create-pvc
       persistentVolumeClaim:

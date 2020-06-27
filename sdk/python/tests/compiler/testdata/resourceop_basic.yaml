@@ -27,9 +27,6 @@ spec:
       parameters:
       - name: create-my-secret-name
     name: cop
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     volumes:
     - name: my-secret
       secret:
@@ -39,9 +36,6 @@ spec:
       - name: password
       - name: username
     name: create-my-secret
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     outputs:
       parameters:
       - name: create-my-secret-manifest
