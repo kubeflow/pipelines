@@ -30,9 +30,6 @@ spec:
       - -c
       image: python:alpine3.6
     name: random-failure
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
   - container:
       args:
       - import random; import sys; exit_code = random.choice([0,1]); print(exit_code);
@@ -42,6 +39,3 @@ spec:
       - -c
       image: python:alpine3.6
     name: random-failure-2
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp

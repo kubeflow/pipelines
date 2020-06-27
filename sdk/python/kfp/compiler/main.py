@@ -23,16 +23,6 @@ import sys
 import tempfile
 from deprecated.sphinx import deprecated
 
-def _str2bool(v):
-  if isinstance(v, bool):
-    return v
-  if v.lower() in ('yes', 'true', 't', 'y', '1'):
-    return True
-  elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-    return False
-  else:
-    raise argparse.ArgumentTypeError('Boolean value expected.')
-
 
 def parse_arguments():
   """Parse command line arguments."""
@@ -57,16 +47,12 @@ def parse_arguments():
   parser.add_argument('--disable-type-check',
                       action='store_true',
                       help='disable the type check, default is enabled.')
-  parser.add_argument('--disable-telemetry',
-                      action='store_true',
-                      help='disable adding telemetry labels, default is enabled.')
 
   args = parser.parse_args()
   return args
 
 
-def _compile_pipeline_function(
-    pipeline_funcs, function_name, output_path, type_check, allow_telemetry):
+def _compile_pipeline_function(pipeline_funcs, function_name, output_path, type_check):
   if len(pipeline_funcs) == 0:
     raise ValueError('A function with @dsl.pipeline decorator is required in the py file.')
 
@@ -82,8 +68,7 @@ def _compile_pipeline_function(
   else:
     pipeline_func = pipeline_funcs[0]
 
-  kfp.compiler.Compiler().compile(
-      pipeline_func, output_path, type_check, allow_telemetry=allow_telemetry)
+  kfp.compiler.Compiler().compile(pipeline_func, output_path, type_check)
 
 
 class PipelineCollectorContext():
@@ -105,31 +90,26 @@ class PipelineCollectorContext():
     Please switch to compiling pipeline files or functions.
     If you use this feature please create an issue in https://github.com/kubeflow/pipelines/issues .'''
 )
-def compile_package(
-    package_path, namespace, function_name, output_path, type_check, allow_telemetry):
+def compile_package(package_path, namespace, function_name, output_path, type_check):
   tmpdir = tempfile.mkdtemp()
   sys.path.insert(0, tmpdir)
   try:
     subprocess.check_call(['python3', '-m', 'pip', 'install', package_path, '-t', tmpdir])
     with PipelineCollectorContext() as pipeline_funcs:
       __import__(namespace)
-    _compile_pipeline_function(
-        pipeline_funcs, function_name, output_path, type_check,
-        allow_telemetry=allow_telemetry)
+    _compile_pipeline_function(pipeline_funcs, function_name, output_path, type_check)
   finally:
     del sys.path[0]
     shutil.rmtree(tmpdir)
 
 
-def compile_pyfile(pyfile, function_name, output_path, type_check, allow_telemetry):
+def compile_pyfile(pyfile, function_name, output_path, type_check):
   sys.path.insert(0, os.path.dirname(pyfile))
   try:
     filename = os.path.basename(pyfile)
     with PipelineCollectorContext() as pipeline_funcs:
       __import__(os.path.splitext(filename)[0])
-    _compile_pipeline_function(
-        pipeline_funcs, function_name, output_path, type_check,
-        allow_telemetry=allow_telemetry)
+    _compile_pipeline_function(pipeline_funcs, function_name, output_path, type_check)
   finally:
     del sys.path[0]
 
@@ -140,22 +120,9 @@ def main():
       (args.py is not None and args.package is not None)):
     raise ValueError('Either --py or --package is needed but not both.')
   if args.py:
-    compile_pyfile(
-        args.py,
-        args.function,
-        args.output,
-        not args.disable_type_check,
-        not args.disable_telemetry
-    )
+    compile_pyfile(args.py, args.function, args.output, not args.disable_type_check)
   else:
     if args.namespace is None:
       raise ValueError('--namespace is required for compiling packages.')
-    compile_package(
-        args.package,
-        args.namespace,
-        args.function,
-        args.output,
-        not args.disable_type_check,
-        not args.disable_telemetry
-    )
+    compile_package(args.package, args.namespace, args.function, args.output, not args.disable_type_check)
   

@@ -44,8 +44,6 @@
           - "name": |-
               produce-list-data_list-loop-item
       "metadata":
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         "annotations":
           "pipelines.kubeflow.org/component_spec": |-
             {"inputs": [{"name": "data"}], "name": "Consume data"}
@@ -106,8 +104,6 @@
         "image": |-
           busybox
       "metadata":
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         "annotations":
           "pipelines.kubeflow.org/component_spec": |-
             {"name": "Produce list", "outputs": [{"name": "data_list"}]}
