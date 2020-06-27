@@ -41,38 +41,6 @@ from kfp._auth import get_auth_token, get_gcp_access_token
 _GCP_ACCESS_TOKEN_TIMEOUT = datetime.timedelta(minutes=55)
 
 
-def _add_generated_apis(target_struct, api_module, api_client):
-  '''Initializes a hierarchical API object based on the generated API module.
-  PipelineServiceApi.create_pipeline becomes target_struct.pipelines.create_pipeline
-  '''
-  Struct = type('Struct', (), {})
-
-  def camel_case_to_snake_case(name):
-      import re
-      return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
-
-  for api_name in dir(api_module):
-      if not api_name.endswith('ServiceApi'):
-          continue
-
-      short_api_name = camel_case_to_snake_case(api_name[0:-len('ServiceApi')]) + 's'
-      api_struct = Struct()
-      setattr(target_struct, short_api_name, api_struct)
-      service_api = getattr(api_module.api, api_name)
-      initialized_service_api = service_api(api_client)
-      for member_name in dir(initialized_service_api):
-          if member_name.startswith('_') or member_name.endswith('_with_http_info'):
-              continue
-
-          bound_member = getattr(initialized_service_api, member_name)
-          setattr(api_struct, member_name, bound_member)
-  models_struct = Struct()
-  for member_name in dir(api_module.models):
-      if not member_name[0].islower():
-          setattr(models_struct, member_name, getattr(api_module.models, member_name))
-  target_struct.api_models = models_struct
-
-
 KF_PIPELINES_ENDPOINT_ENV = 'KF_PIPELINES_ENDPOINT'
 KF_PIPELINES_UI_ENDPOINT_ENV = 'KF_PIPELINES_UI_ENDPOINT'
 KF_PIPELINES_DEFAULT_EXPERIMENT_NAME = 'KF_PIPELINES_DEFAULT_EXPERIMENT_NAME'
@@ -116,12 +84,11 @@ class Client(object):
     # needed.
     self._existing_config = config
     api_client = kfp_server_api.api_client.ApiClient(config)
-    _add_generated_apis(self, kfp_server_api, api_client)
-    self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
-    self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
-    self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
-    self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
-    self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
+    self.jobs = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
+    self.runs = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
+    self.experiments = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
+    self.pipelines = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
+    self.pipeline_uploads = kfp_server_api.api.PipelineUploadServiceApi(api_client)
     self._load_context_setting_or_default()
 
   def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token):
@@ -294,7 +261,7 @@ class Client(object):
         name=name,
         description=description,
         resource_references=resource_references)
-      experiment = self._experiment_api.create_experiment(body=experiment)
+      experiment = self.experiments.create_experiment(body=experiment)
 
     if self._is_ipython():
       import IPython
@@ -317,7 +284,7 @@ class Client(object):
       A response object including a list of experiments and next page token.
     """
     namespace = namespace or self.get_user_namespace()
-    response = self._experiment_api.list_experiment(
+    response = self.experiments.list_experiment(
       page_token=page_token,
       page_size=page_size,
       sort_by=sort_by,
@@ -343,14 +310,14 @@ class Client(object):
     if experiment_id is None and experiment_name is None:
       raise ValueError('Either experiment_id or experiment_name is required')
     if experiment_id is not None:
-      return self._experiment_api.get_experiment(id=experiment_id)
+      return self.experiments.get_experiment(id=experiment_id)
     next_page_token = ''
     while next_page_token is not None:
       list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token, namespace=namespace)
       next_page_token = list_experiments_response.next_page_token
       for experiment in list_experiments_response.experiments:
         if experiment.name == experiment_name:
-          return self._experiment_api.get_experiment(id=experiment.id)
+          return self.experiments.get_experiment(id=experiment.id)
     raise ValueError('No experiment is found with name {}.'.format(experiment_name))
 
   def _extract_pipeline_yaml(self, package_file):
@@ -392,7 +359,7 @@ class Client(object):
     Returns:
       A response object including a list of pipelines and next page token.
     """
-    return self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by)
+    return self.pipelines.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by)
 
   def list_pipeline_versions(self, pipeline_id: str, page_token='', page_size=10, sort_by=''):
     """List all versions of a given pipeline.
@@ -404,7 +371,7 @@ class Client(object):
     Returns:
       A response object including a list of pipelines and next page token.
     """
-    return self._pipelines_api.list_pipeline_versions(
+    return self.pipelines.list_pipeline_versions(
         resource_key_type="PIPELINE",
         resource_key_id=pipeline_id,
         page_token=page_token,
@@ -438,7 +405,7 @@ class Client(object):
     run_body = kfp_server_api.models.ApiRun(
         pipeline_spec=job_config.spec, resource_references=job_config.resource_references, name=job_name)
 
-    response = self._run_api.create_run(body=run_body)
+    response = self.runs.create_run(body=run_body)
 
     if self._is_ipython():
       import IPython
@@ -504,7 +471,7 @@ class Client(object):
         no_catchup=no_catchup,
         trigger=trigger,
         max_concurrency=max_concurrency)
-    return self._job_api.create_job(body=job_body)
+    return self.jobs.create_job(body=job_body)
 
   def _create_job_config(self, experiment_id, params, pipeline_package_path, pipeline_id, version_id):
     """Create a JobConfig with spec and resource_references.
@@ -630,11 +597,11 @@ class Client(object):
     """
     namespace = namespace or self.get_user_namespace()
     if experiment_id is not None:
-      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
+      response = self.runs.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
     elif namespace:
-      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE, resource_reference_key_id=namespace)
+      response = self.runs.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE, resource_reference_key_id=namespace)
     else:
-      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
+      response = self.runs.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
 
   def list_recurring_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
@@ -648,9 +615,9 @@ class Client(object):
       A response object including a list of recurring_runs and next page token.
     """
     if experiment_id is not None:
-      response = self._job_api.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
+      response = self.jobs.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
     else:
-      response = self._job_api.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by)
+      response = self.jobs.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
 
   def get_recurring_run(self, job_id):
@@ -662,7 +629,7 @@ class Client(object):
     Throws:
       Exception if recurring_run is not found.
     """
-    return self._job_api.get_job(id=job_id)
+    return self.jobs.get_job(id=job_id)
 
 
   def get_run(self, run_id):
@@ -674,7 +641,7 @@ class Client(object):
     Throws:
       Exception if run is not found.
     """
-    return self._run_api.get_run(run_id=run_id)
+    return self.runs.get_run(run_id=run_id)
 
   def wait_for_run_completion(self, run_id, timeout):
     """Waits for a run to complete.
@@ -698,7 +665,7 @@ class Client(object):
         self._refresh_api_client_token()
         last_token_refresh_time = datetime.datetime.now()
         
-      get_run_response = self._run_api.get_run(run_id=run_id)
+      get_run_response = self.runs.get_run(run_id=run_id)
       status = get_run_response.run.status
       elapsed_time = (datetime.datetime.now() - start_time).seconds
       logging.info('Waiting for the job to complete...')
@@ -714,7 +681,7 @@ class Client(object):
     Returns:
       workflow: json workflow
     """
-    get_run_response = self._run_api.get_run(run_id=run_id)
+    get_run_response = self.runs.get_run(run_id=run_id)
     workflow = get_run_response.pipeline_runtime.workflow_manifest
     workflow_json = json.loads(workflow)
     return workflow_json
@@ -734,7 +701,7 @@ class Client(object):
       Server response object containing pipleine id and other information.
     """
 
-    response = self._upload_api.upload_pipeline(pipeline_package_path, name=pipeline_name, description=description)
+    response = self.pipeline_uploads.upload_pipeline(pipeline_package_path, name=pipeline_name, description=description)
     if self._is_ipython():
       import IPython
       html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
@@ -750,7 +717,7 @@ class Client(object):
     Throws:
       Exception if pipeline is not found.
     """
-    return self._pipelines_api.get_pipeline(id=pipeline_id)
+    return self.pipelines.get_pipeline(id=pipeline_id)
 
   def delete_pipeline(self, pipeline_id):
     """Delete pipeline.
@@ -762,7 +729,7 @@ class Client(object):
     Throws:
       Exception if pipeline is not found.
     """
-    return self._pipelines_api.delete_pipeline(id=pipeline_id)
+    return self.pipelines.delete_pipeline(id=pipeline_id)
 
   def list_pipeline_versions(self, pipeline_id, page_token='', page_size=10, sort_by=''):
     """Lists pipeline versions.
@@ -775,4 +742,4 @@ class Client(object):
       A response object including a list of versions and next page token.
     """
 
-    return self._pipelines_api.list_pipeline_versions(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.PIPELINE, resource_key_id=pipeline_id)
+    return self.pipelines.list_pipeline_versions(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.PIPELINE, resource_key_id=pipeline_id)
