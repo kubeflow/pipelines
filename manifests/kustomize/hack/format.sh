@@ -16,15 +16,15 @@
 
 set -ex
 
-TAG_NAME=$1
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-if [[ -z "$TAG_NAME" ]]; then
-  echo "Usage: release.sh <release-tag>" >&2
-  exit 1
-fi
-
-echo "This release script uses yq, it can be downloaded at https://github.com/mikefarah/yq/releases/tag/3.3.0"
+function format_yaml {
+    local path=$1
+    local tmp=$(mktemp)
+    yq r "$path" > "$tmp"
+    cp "$tmp" "$path"
+}
+echo "This formatting script uses yq, it can be downloaded at https://github.com/mikefarah/yq/releases/tag/3.3.0"
 kustomization_yamls_with_images=(
   "base/cache-deployer/kustomization.yaml"
   "base/cache/kustomization.yaml"
@@ -35,8 +35,5 @@ kustomization_yamls_with_images=(
 )
 for path in "${kustomization_yamls_with_images[@]}"
 do
-  yq w -i "$DIR/../$path" images[*].newTag "$TAG_NAME"
+  format_yaml "$DIR/../$path"
 done
-
-# Note, this only works in linux. TODO: make it MacOS sed compatible.
-sed -i.bak -e "s|appVersion=.\+|appVersion=$TAG_NAME|g" "$DIR/../base/params.env"
