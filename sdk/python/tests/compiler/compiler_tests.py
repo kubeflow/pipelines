@@ -929,3 +929,47 @@ implementation:
 
   def test_artifact_passing_using_volume(self):
     self._test_py_compile_yaml('artifact_passing_using_volume')
+
+  def test_recursive_argument_mapping(self):
+    # Verifying that the recursive call arguments are passed correctly when specified out of order
+    component_2_in_0_out_op = kfp.components.load_component_from_text('''
+inputs:
+- name: in1
+- name: in2
+implementation:
+  container:
+    image: busybox
+    command:
+    - echo
+    - inputValue: in1
+    - inputValue: in2
+    ''')
+
+    @dsl.graph_component
+    def subgraph(graph_in1, graph_in2):
+      component_2_in_0_out_op(
+        in1=graph_in1,
+        in2=graph_in2,
+      )
+      subgraph(
+        # Wrong order!
+        graph_in2=graph_in2,
+        graph_in1=graph_in1,
+      )
+    def some_pipeline(pipeline_in1, pipeline_in2):
+      subgraph(pipeline_in1, pipeline_in2)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    subgraph_template = [template for template in workflow_dict['spec']['templates'] if 'subgraph' in template['name']][0]
+    recursive_subgraph_task = [task for task in subgraph_template['dag']['tasks'] if 'subgraph' in task['name']][0]
+    for argument in recursive_subgraph_task['arguments']['parameters']:
+      if argument['name'].endswith('in1'):
+        self.assertTrue(
+          argument['value'].endswith('in1}}'),
+          'Wrong argument mapping: "{}" passed to "{}"'.format(argument['value'], argument['name']))
+      elif argument['name'].endswith('in2'):
+        self.assertTrue(
+          argument['value'].endswith('in2}}'),
+          'Wrong argument mapping: "{}" passed to "{}"'.format(argument['value'], argument['name']))
+      else:
+        self.fail('Unexpected input name: ' + argument['name'])
