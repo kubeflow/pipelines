@@ -158,32 +158,36 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
     !!! The file name must contain the version (you might need to rename the file). See https://github.com/kubeflow/pipelines/issues/1292
 
 1. Create a GitHub release using `$VERSION` git tag and title `Version $VERSION`,
-fill in the description.
+fill in the description. Detailed steps:
+   
+   1. [Draft a new release](https://github.com/kubeflow/pipelines/releases/new).
+   1. Typing in version tag field to search and select the "$VERSION" tag published in release instructions above.
+   Its format is like `X.Y.Z` or `X.Y.Z-rc.N`.
 
-   Use this template for public releases
-   <pre>
-   To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
+   1. Use this template for public releases
+       <pre>
+       To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
 
-   Install python SDK (python 3.5 above) by running:
-   ```
-   python3 -m pip install kfp kfp-server-api --upgrade
-   ```
+       Install python SDK (python 3.5 above) by running:
+       ```
+       python3 -m pip install kfp kfp-server-api --upgrade
+       ```
 
-   See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
-   </pre>
+       See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+       </pre>
 
-   Use this template for prereleases (release candidates) and please check the
-   `This is a prerelease` checkbox in the GitHub release UI.
-   <pre>
-   To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/).
+       Use this template for prereleases (release candidates) and please **check** the
+       `This is a prerelease` checkbox in the GitHub release UI.
+       <pre>
+       To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/).
 
-   Install python SDK (python 3.5 above) by running:
-   ```
-   python3 -m pip install kfp kfp-server-api --pre --upgrade
-   ```
+       Install python SDK (python 3.5 above) by running:
+       ```
+       python3 -m pip install kfp kfp-server-api --pre --upgrade
+       ```
 
-   See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
-   </pre>
+       See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+       </pre>
 
 1. Create a PR to update version in kubeflow documentation website: 
 https://github.com/kubeflow/website/blob/master/layouts/shortcodes/pipelines/latest-version.html
