@@ -35,8 +35,6 @@ spec:
           - 
             name: produce-list-of-strings-Output
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume
@@ -65,8 +63,6 @@ spec:
           - 
             name: produce-list-of-strings-Output-loop-item
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-2
@@ -95,8 +91,6 @@ spec:
           - 
             name: produce-str-Output
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-3
@@ -125,8 +119,6 @@ spec:
           - 
             name: produce-list-of-ints-Output
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-4
@@ -155,8 +147,6 @@ spec:
           - 
             name: produce-list-of-ints-Output-loop-item
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-5
@@ -185,8 +175,6 @@ spec:
           - 
             name: produce-list-of-dicts-Output
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-6
@@ -215,8 +203,6 @@ spec:
           - 
             name: produce-list-of-dicts-Output-loop-item-subvar-aaa
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-7
@@ -419,8 +405,6 @@ spec:
                       f.write(_output_serializers[idx](_outputs[idx]))
         image: "python:3.7"
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce list of dicts\", \"outputs\": [{\"name\": \"Output\", \"type\": \"JsonArray\"}]}"
       name: produce-list-of-dicts
@@ -483,8 +467,6 @@ spec:
                       f.write(_output_serializers[idx](_outputs[idx]))
         image: "python:3.7"
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce list of ints\", \"outputs\": [{\"name\": \"Output\", \"type\": \"JsonArray\"}]}"
       name: produce-list-of-ints
@@ -547,8 +529,6 @@ spec:
                       f.write(_output_serializers[idx](_outputs[idx]))
         image: "python:3.7"
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce list of strings\", \"outputs\": [{\"name\": \"Output\", \"type\": \"JsonArray\"}]}"
       name: produce-list-of-strings
@@ -605,8 +585,6 @@ spec:
                       f.write(_output_serializers[idx](_outputs[idx]))
         image: "python:3.7"
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce str\", \"outputs\": [{\"name\": \"Output\", \"type\": \"String\"}]}"
       name: produce-str
