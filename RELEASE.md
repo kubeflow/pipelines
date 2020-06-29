@@ -195,3 +195,20 @@ https://github.com/kubeflow/website/blob/master/layouts/shortcodes/pipelines/lat
    echo -n 1.0.0 > layouts/shortcodes/pipelines/latest-version.html
    ```
    and create a PR to update the version, e.g. https://github.com/kubeflow/website/pull/1942.
+
+## Scripts ./hack/release* implementation details
+
+The script `./hack/release-imp.sh` does the following:
+1. Generate `./CHANGELOG.md` using commit history.
+1. Regenerate open api specs based on proto files.
+1. Regenerate `kfp-server-api` python package.
+1. Update all version refs in this repo to `./VERSION` by calling each of the
+`./**/hack/release.sh` scripts. The individual scripts are responsible for updating
+version refs to their own folder.
+
+The script `./hack/release.sh` is a wrapper on top of `./hack/release-imp.sh`, it
+1. Clones github.com/kubeflow/pipelines repo to a temporary path.
+1. Checkout `release-$MINOR` branch.
+1. Runs `./hack/release-imp.sh`.
+1. Runs git commit and tag.
+1. After confirming with user input, pushes to upstream branch.
