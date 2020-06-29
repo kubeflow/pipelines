@@ -13,6 +13,7 @@
 import sys
 import argparse
 import logging
+from pathlib2 import Path
 
 from common import _utils
 
@@ -68,10 +69,11 @@ def main(argv=None):
 
   logging.info('Ground Truth Labeling Job completed.')
 
-  with open('/tmp/output_manifest_location.txt', 'w') as f:
-    f.write(output_manifest)
-  with open('/tmp/active_learning_model_arn.txt', 'w') as f:
-    f.write(active_learning_model_arn)
+  Path(args.output_manifest_location_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.output_manifest_location_output_path).write_text(json.dumps(output_manifest))
+
+  Path(args.active_learning_model_arn_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.active_learning_model_arn_output_path).write_text(json.dumps(active_learning_model_arn))
 
 
 if __name__== "__main__":
