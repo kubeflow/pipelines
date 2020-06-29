@@ -13,6 +13,7 @@
 import sys
 import argparse
 import logging
+from pathlib2 import Path
 
 from common import _utils
 
@@ -58,8 +59,8 @@ def main(argv=None):
   logging.info('Endpoint creation request submitted. Waiting for completion...')
   _utils.wait_for_endpoint_creation(client, endpoint_name)
 
-  with open('/tmp/endpoint_name.txt', 'w') as f:
-    f.write(endpoint_name)
+  Path(args.endpoint_name_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.endpoint_name_output_path).write_text(json.dumps(endpoint_name))
 
   logging.info('Endpoint creation completed.')
 

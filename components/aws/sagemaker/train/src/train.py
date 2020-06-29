@@ -13,6 +13,7 @@
 import sys
 import argparse
 import logging
+from pathlib2 import Path
 
 from common import _utils
 
@@ -78,12 +79,14 @@ def main(argv=None):
   model_artifact_url = _utils.get_model_artifacts_from_job(client, job_name)
   logging.info('Get model artifacts %s from training job %s.', model_artifact_url, job_name)
 
-  with open('/tmp/model_artifact_url.txt', 'w') as f:
-    f.write(model_artifact_url)
-  with open('/tmp/job_name.txt', 'w') as f:
-    f.write(job_name)
-  with open('/tmp/training_image.txt', 'w') as f:
-    f.write(image)
+  Path(args.model_artifact_url_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.model_artifact_url_output_path).write_text(json.dumps(model_artifact_url))
+
+  Path(args.job_name_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.job_name_output_path).write_text(json.dumps(job_name))
+
+  Path(args.training_image_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.training_image_output_path).write_text(json.dumps(image))
 
   logging.info('Job completed.')
 
