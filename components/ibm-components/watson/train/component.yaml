@@ -20,7 +20,7 @@ inputs:
   - {name: execution_command, description: 'Required. Execution command to start the model training.'}
   - {name: config,            description: 'Credential configfile is properly created.', default: 'secret_name'}
   - {name: framework,         description: 'ML/DL Model Framework', default: 'tensorflow'}
-  - {name: framework_version, description: 'Model Framework version', default: '1.14'}
+  - {name: framework_version, description: 'Model Framework version', default: '1.15'}
   - {name: runtime,           description: 'Model Code runtime language', default: 'python'}
   - {name: runtime_version,   description: 'Model Code runtime version', default: '3.6'}
   - {name: run_definition,    description: 'Name for the Watson Machine Learning training definition', default: 'python-tensorflow-definition'}
