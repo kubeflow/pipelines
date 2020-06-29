@@ -135,5 +135,3 @@ implementation:
       --endpoint_tags, {inputValue: endpoint_tags},
       --endpoint_name_output_path, {outputPath: endpoint_name}
     ]
-    fileOutputs:
-      endpoint_name: /tmp/endpoint_name.txt

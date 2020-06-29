@@ -79,5 +79,3 @@ implementation:
       --tags, {inputValue: tags},
       --model_name_output_path, {outputPath: model_name}
     ]
-    fileOutputs:
-      model_name: /tmp/model_name.txt

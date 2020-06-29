@@ -117,6 +117,3 @@ implementation:
       --job_name_output_path, {outputPath: job_name},
       --output_artifacts_output_path, {outputPath: output_artifacts}
     ]
-    fileOutputs:
-      job_name: /tmp/job_name.txt
-      output_artifacts: /tmp/output_artifacts.txt

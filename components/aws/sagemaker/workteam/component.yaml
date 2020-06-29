@@ -51,5 +51,3 @@ implementation:
       --tags, {inputValue: tags},
       --workteam_arn_output_path, {outputPath: workteam_arn}
     ]
-    fileOutputs:
-      workteam_arn: /tmp/workteam_arn.txt
