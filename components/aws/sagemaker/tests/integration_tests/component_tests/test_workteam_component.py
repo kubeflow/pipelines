@@ -17,7 +17,7 @@ def create_workteamjob(
         )
     )
 
-    # Get the account, region specific user_pool and client_id for the Sagemaker Workforce.
+    # Get the account, region specific user_pool and client_id for the SageMaker Workforce.
     (
         test_params["Arguments"]["user_pool"],
         test_params["Arguments"]["client_id"],

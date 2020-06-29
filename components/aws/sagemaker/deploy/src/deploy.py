@@ -43,6 +43,7 @@ def create_parser():
   parser.add_argument('--endpoint_config_tags', type=_utils.yaml_or_json_str, required=False, help='An array of key-value pairs, to categorize AWS resources.', default={})
   parser.add_argument('--endpoint_name', type=str, required=False, help='The name of the endpoint.', default='')
   parser.add_argument('--endpoint_tags', type=_utils.yaml_or_json_str, required=False, help='An array of key-value pairs, to categorize AWS resources.', default={})
+  parser.add_argument('--endpoint_name_output_path', type=str, default='/tmp/endpoint-name.json', help='Local output path for the file containing the name of the created endpoint.')
 
   return parser
 

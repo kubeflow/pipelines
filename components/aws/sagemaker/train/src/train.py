@@ -48,6 +48,12 @@ def create_parser():
 
   parser.add_argument('--tags', type=_utils.yaml_or_json_str, required=False, help='An array of key-value pairs, to categorize AWS resources.', default={})
 
+  ### Start outputs
+  parser.add_argument('--model_artifact_url_output_path', type=str, default='/tmp/model-artifact-url.json', help='Local output path for the file containing the model artifacts URL.')
+  parser.add_argument('--job_name_output_path', type=str, default='/tmp/job-name.json', help='Local output path for the file containing the training job name.')
+  parser.add_argument('--training_image_output_path', type=str, default='/tmp/training-image.json', help='Local output path for the file containing the registry path of the Docker image that contains the training algorithm.')
+  ### End outputs
+
   return parser
 
 def main(argv=None):

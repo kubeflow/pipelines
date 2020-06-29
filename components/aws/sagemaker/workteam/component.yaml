@@ -49,6 +49,7 @@ implementation:
       --client_id, {inputValue: client_id},
       --sns_topic, {inputValue: sns_topic},
       --tags, {inputValue: tags},
+      --workteam_arn_output_path, {outputPath: workteam_arn}
     ]
     fileOutputs:
       workteam_arn: /tmp/workteam_arn.txt
