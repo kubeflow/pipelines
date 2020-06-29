@@ -79,9 +79,9 @@ def test_trainingjob(
     else:
         assert f"dkr.ecr.{region}.amazonaws.com" in training_image
 
-    error_message = 'Error in fetching CloudWatch logs for SageMaker job'
-    if argo_utils.find_in_logs(workflow_json["metadata"]["name"], error_message):
-        print(error_message)
+    ERROR_MESSAGE = 'Error in fetching CloudWatch logs for SageMaker job'
+    if argo_utils.find_in_logs(workflow_json["metadata"]["name"], ERROR_MESSAGE):
+        print('Found the CloudWatch error message in the log output. Check SageMaker to see if the job has failed.')
         assert False
 
     utils.remove_dir(download_dir)
