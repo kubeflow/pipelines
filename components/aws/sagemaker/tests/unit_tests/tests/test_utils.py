@@ -10,9 +10,8 @@ from common import _utils
 class UtilsTestCase(unittest.TestCase):
     def test_cw_logging_successfully(self):
         mock_cw_client = MagicMock()
-        mock_cw_client.describe_log_streams = MagicMock(return_value={'logStreams': [{'logStreamName': 'logStream1'},
-                                                                                     {'logStreamName': 'logStream2'}]
-        })
+        mock_cw_client.describe_log_streams.return_value = {'logStreams': [{'logStreamName': 'logStream1'},
+                                                                           {'logStreamName': 'logStream2'}]}
 
         def my_get_log_events(logStreamName, **kwargs):
             if logStreamName =='logStream1':
@@ -23,7 +22,7 @@ class UtilsTestCase(unittest.TestCase):
                 return {'events': [{'message': 'fake log logStream2 line1'},
                                    {'message': 'fake log logStream2 line2'}
                                    ]}
-        mock_cw_client.get_log_events = MagicMock(side_effect=my_get_log_events)
+        mock_cw_client.get_log_events.side_effect = my_get_log_events
 
         with patch('logging.Logger.info') as infoLog:
             _utils.print_logs_for_job(mock_cw_client, '/aws/sagemaker/FakeJobs', 'fake_job_name')
@@ -34,6 +33,7 @@ class UtilsTestCase(unittest.TestCase):
                      call('fake log logStream2 line2')
                      ]
             infoLog.assert_has_calls(calls, any_order=True)
+
 
     def test_cw_logging_error(self):
         mock_cw_client = MagicMock()

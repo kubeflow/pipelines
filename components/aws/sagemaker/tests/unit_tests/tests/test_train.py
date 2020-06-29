@@ -44,6 +44,7 @@ class TrainTestCase(unittest.TestCase):
     # Check if correct requests were created and triggered
     train._utils.create_training_job.assert_called()
     train._utils.wait_for_training_job.assert_called()
+    train._utils.print_logs_for_job.assert_called()
 
     # Check the file outputs
     file_open.assert_has_calls([

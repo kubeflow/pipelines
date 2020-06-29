@@ -44,6 +44,8 @@ class BatchTransformTestCase(unittest.TestCase):
     # Check if correct requests were created and triggered
     batch_transform._utils.create_transform_job.assert_called()
     batch_transform._utils.wait_for_transform_job.assert_called()
+    batch_transform._utils.print_logs_for_job.assert_called()
+
 
     # Check the file outputs
     file_open.assert_has_calls([
@@ -155,8 +157,5 @@ class BatchTransformTestCase(unittest.TestCase):
       _utils.wait_for_transform_job(mock_client, 'test-batch', 0)
 
     self.assertEqual(mock_client.describe_transform_job.call_count, 2)
-
-
-
 
 
