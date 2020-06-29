@@ -35,10 +35,19 @@ function run-proxy-agent {
         --health-check-unhealthy-threshold=${HEALTH_CHECK_UNHEALTHY_THRESHOLD}
 }
 
-# Don't reuse existing hostname. It means if proxy-agent got restarted,
-# it will get a new hostname.
-# https://github.com/kubeflow/pipelines/issues/3143
-# Another option is that We may try to fix it in InverseProxy server side.
+# Check if already has Hostname value.
+# It's possible the pod got restarted, in such case we continue use the existing
+# hostname. In proxy server side, it doesn't check VM name even pod got moved to
+# new VM.
+HOSTNAME=$(kubectl get configmap inverse-proxy-config -o json | jq -r ".data.Hostname // empty")
+if [[ -n "${HOSTNAME}" ]]; then
+  echo "Reuse existing hostname"
+  PROXY_URL=$(kubectl get configmap inverse-proxy-config -o json | jq -r ".data.ProxyUrl")
+  BACKEND_ID=$(kubectl get configmap inverse-proxy-config -o json | jq -r ".data.BackendId")
+  # If ConfigMap already exist, reuse the existing endpoint (a.k.a BACKEND_ID) and same ProxyUrl.
+  run-proxy-agent
+  exit 0
+fi
 
 # Activate service account for gcloud SDK first
 if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then

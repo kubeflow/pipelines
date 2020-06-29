@@ -20,10 +20,10 @@ from contextlib import contextmanager
 from pathlib import Path
 
 
-import kfp.components as comp
-from kfp.components._components import _resolve_command_line_and_paths
-from kfp.components._yaml_utils import load_yaml
-from kfp.components.structures import ComponentSpec
+from .. import components as comp
+from ..components._components import _resolve_command_line_and_paths
+from ..components._yaml_utils import load_yaml
+from ..components.structures import ComponentSpec
 
 
 class LoadComponentTestCase(unittest.TestCase):
@@ -44,17 +44,11 @@ class LoadComponentTestCase(unittest.TestCase):
         self.assertEqual(resolved_cmd.args[1], str(arg2))
 
     def test_load_component_from_yaml_file(self):
-        _this_file = Path(__file__).resolve()
-        _this_dir = _this_file.parent
-        _test_data_dir = _this_dir.joinpath('test_data')
-        component_path = _test_data_dir.joinpath('python_add.component.yaml')
+        component_path = Path(__file__).parent / 'test_data' / 'python_add.component.yaml'
         self._test_load_component_from_file(str(component_path))
 
     def test_load_component_from_zipped_yaml_file(self):
-        _this_file = Path(__file__).resolve()
-        _this_dir = _this_file.parent
-        _test_data_dir = _this_dir.joinpath('test_data')
-        component_path = _test_data_dir.joinpath('python_add.component.zip')
+        component_path = Path(__file__).parent / 'test_data' / 'python_add.component.zip'
         self._test_load_component_from_file(str(component_path))
 
     def test_load_component_from_url(self):

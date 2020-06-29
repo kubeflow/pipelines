@@ -194,7 +194,7 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
 		if s.db.IsDuplicateError(err) {
-			return nil, util.NewInvalidInputError(
+			return nil, util.NewAlreadyExistError(
 				"Failed to create a new experiment. The name %v already exists. Please specify a new name.", experiment.Name)
 		}
 		return nil, util.NewInternalServerError(err, "Failed to add experiment to experiment table: %v",

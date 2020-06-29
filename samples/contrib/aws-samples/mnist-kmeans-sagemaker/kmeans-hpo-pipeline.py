@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 
+
 import kfp
 import json
+import os
 import copy
 from kfp import components
 from kfp import dsl
 from kfp.aws import use_aws_secret
 
-sagemaker_hpo_op = components.load_component_from_file('../../../../components/aws/sagemaker/hyperparameter_tuning/component.yaml')
+
+components_dir = os.path.join(os.path.dirname(__file__), '../../../../components/aws/sagemaker/')
+sagemaker_hpo_op = components.load_component_from_file(os.path.join(components_dir, 'hyperparameter_tuning/component.yaml'))
 
 
 channelObjList = []
@@ -38,8 +42,8 @@ channelObjList.append(copy.deepcopy(channelObj))
     name='MNIST HPO test pipeline',
     description='SageMaker hyperparameter tuning job test'
 )
-def hpo_test(region='us-west-2',
-    hpo_job_name='HPO-kmeans-sample',
+def hpo_test(region='us-east-1',
+    job_name='HPO-kmeans-sample',
     image='',
     algorithm_name='K-Means',
     training_input_mode='File',
@@ -56,7 +60,7 @@ def hpo_test(region='us-west-2',
     channels=channelObjList,
     output_location='s3://kubeflow-pipeline-data/mnist_kmeans_example/output',
     output_encryption_key='',
-    instance_type='ml.p2.16xlarge',
+    instance_type='ml.m5.2xlarge',
     instance_count=1,
     volume_size=50,
     max_num_jobs=1,
@@ -80,7 +84,7 @@ def hpo_test(region='us-west-2',
     training = sagemaker_hpo_op(
         region=region,
         endpoint_url=endpoint_url,
-        job_name=hpo_job_name,
+        job_name=job_name,
         image=image,
         training_input_mode=training_input_mode,
         algorithm_name=algorithm_name,
@@ -114,7 +118,8 @@ def hpo_test(region='us-west-2',
         checkpoint_config=checkpoint_config,
         tags=tags,
         role=role_arn,
-    ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
+    )
+
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(hpo_test, __file__ + '.zip')

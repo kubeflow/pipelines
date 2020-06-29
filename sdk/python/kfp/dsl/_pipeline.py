@@ -64,6 +64,7 @@ class PipelineConf():
     self.default_pod_node_selector = {}
     self.image_pull_policy = None
     self.parallelism = None
+    self._data_passing_method = None
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """Configures the pipeline level imagepullsecret
@@ -102,9 +103,9 @@ class PipelineConf():
     """
     self.ttl_seconds_after_finished = seconds
     return self
-  
-  def set_default_pod_node_selector(self, label_name: str, value: str): 
-    """Add a constraint for nodeSelector for a pipeline. Each constraint is a key-value pair label. For the 
+
+  def set_default_pod_node_selector(self, label_name: str, value: str):
+    """Add a constraint for nodeSelector for a pipeline. Each constraint is a key-value pair label. For the
       container to be eligible to run on a node, the node must have each of the constraints appeared
       as labels.
 
@@ -114,7 +115,7 @@ class PipelineConf():
     """
     self.default_pod_node_selector[label_name] = value
     return self
-  
+
 
   def set_image_pull_policy(self, policy: str):
     """Configures the default image pull policy
@@ -128,12 +129,34 @@ class PipelineConf():
 
   def add_op_transformer(self, transformer):
     """Configures the op_transformers which will be applied to all ops in the pipeline.
+    The ops can be ResourceOp, VolumenOp, or ContainerOp.
 
     Args:
-      transformer: a function that takes a ContainOp as input and returns a ContainerOp
+      transformer: a function that takes a kfp Op as input and returns a kfp Op
     """
     self.op_transformers.append(transformer)
 
+  @property
+  def data_passing_method(self):
+    return self._data_passing_method
+
+  @data_passing_method.setter
+  def data_passing_method(self, value):
+    '''Sets the object representing the method used for intermediate data passing.
+    Example::
+
+      from kfp.dsl import PipelineConf, data_passing_methods
+      from kubernetes.client.models import V1Volume, V1PersistentVolumeClaim
+      pipeline_conf = PipelineConf()
+      pipeline_conf.data_passing_method = data_passing_methods.KubernetesVolume(
+          volume=V1Volume(
+              name='data',
+              persistent_volume_claim=V1PersistentVolumeClaim('data-volume'),
+          ),
+          path_prefix='artifact_data/',
+      )
+    '''
+    self._data_passing_method = value
 
 def get_pipeline_conf():
   """Configure the pipeline level setting to the current pipeline

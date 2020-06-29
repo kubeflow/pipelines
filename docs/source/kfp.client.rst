@@ -5,3 +5,11 @@ kfp.Client class
     :members:
     :undoc-members:
     :show-inheritance:
+
+Generated APIs
+------------------
+
+.. toctree::
+    :maxdepth: 2
+
+    kfp.server_api

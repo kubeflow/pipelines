@@ -53,7 +53,8 @@ for bucket in buckets:
     name='Secret pipeline',
     description='A pipeline to demonstrate mounting and use of secretes.'
 )
-def secret_op_pipeline(url='gs://ml-pipeline-playground/shakespeare1.txt'):
+def secret_op_pipeline(
+    url='gs://ml-pipeline/sample-data/shakespeare/shakespeare1.txt'):
   """A pipeline that uses secret to access cloud hosted resouces."""
 
   gcs_read_task = gcs_read_op(url)

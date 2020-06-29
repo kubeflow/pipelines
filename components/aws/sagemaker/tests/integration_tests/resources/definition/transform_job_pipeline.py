@@ -1,7 +1,6 @@
 import kfp
 from kfp import components
 from kfp import dsl
-from kfp.aws import use_aws_secret
 
 sagemaker_model_op = components.load_component_from_file("../../model/component.yaml")
 sagemaker_batch_transform_op = components.load_component_from_file(
@@ -40,7 +39,7 @@ def batch_transform_pipeline(
         model_artifact_url=model_artifact_url,
         network_isolation=network_isolation,
         role=role,
-    ).apply(use_aws_secret("aws-secret", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"))
+    )
 
     sagemaker_batch_transform_op(
         region=region,
@@ -57,7 +56,7 @@ def batch_transform_pipeline(
         split_type=split_type,
         compression_type=compression_type,
         output_location=output_location,
-    ).apply(use_aws_secret("aws-secret", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"))
+    )
 
 
 if __name__ == "__main__":

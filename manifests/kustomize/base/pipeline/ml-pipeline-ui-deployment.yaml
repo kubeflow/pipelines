@@ -14,7 +14,7 @@ spec:
         app: ml-pipeline-ui
     spec:
       containers:
-      - image: $(IMAGE_PREFIX)/frontend:$(IMAGE_TAG)
+      - image: gcr.io/ml-pipeline/frontend:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-ui
         ports:
@@ -24,6 +24,16 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          - name: MINIO_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: mlpipeline-minio-artifact
+                key: accesskey
+          - name: MINIO_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: mlpipeline-minio-artifact
+                key: secretkey
           - name: ALLOW_CUSTOM_VISUALIZATIONS
             value: "true"
         readinessProbe:

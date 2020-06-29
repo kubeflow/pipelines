@@ -92,6 +92,28 @@ def list(ctx, max_size):
 
 @pipeline.command()
 @click.argument("pipeline-id")
+@click.option(
+    "--max-size",
+    default=10,
+    help="Max size of the listed pipelines."
+)
+@click.pass_context
+def list_versions(ctx, pipeline_id, max_size):
+    """List versions of an uploaded KFP pipeline"""
+    client = ctx.obj["client"]
+
+    response = client.list_pipeline_versions(
+        pipeline_id=pipeline_id,
+        page_size=max_size,
+        sort_by="created_at desc"
+    )
+    if response.versions:
+        _print_pipeline_versions(response.versions)
+    else:
+        logging.info("No pipeline or version found")
+
+@pipeline.command()
+@click.argument("pipeline-id")
 @click.pass_context
 def get(ctx, pipeline_id):
     """Get detailed information about an uploaded KFP pipeline"""
@@ -119,6 +141,16 @@ def _print_pipelines(pipelines):
         pipeline.name,
         pipeline.created_at.isoformat()
     ] for pipeline in pipelines]
+    print(tabulate(data, headers=headers, tablefmt="grid"))
+
+
+def _print_pipeline_versions(versions):
+    headers = ["Version ID", "Version name", "Uploaded at"]
+    data = [[
+        version.id,
+        version.name,
+        version.created_at.isoformat()
+    ] for version in versions]
     print(tabulate(data, headers=headers, tablefmt="grid"))
 
 

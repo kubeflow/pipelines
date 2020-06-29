@@ -1,0 +1,99 @@
+name: Xgboost predict
+description: |-
+  Make predictions using a trained XGBoost model.
+
+      Args:
+          data_path: Path for the feature data in CSV format.
+          model_path: Path for the trained model in binary XGBoost format.
+          predictions_path: Output path for the predictions.
+          label_column: Column containing the label data.
+
+      Annotations:
+          author: Alexey Volkov <alexey.volkov@ark-kun.com>
+inputs:
+- {name: data, type: CSV}
+- {name: model, type: XGBoostModel}
+- {name: label_column, type: Integer, optional: true}
+outputs:
+- {name: predictions, type: Text}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'xgboost==1.1.1' 'pandas==1.0.5' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'xgboost==1.1.1' 'pandas==1.0.5'
+      --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def xgboost_predict(
+          data_path,  # Also supports LibSVM
+          model_path,
+          predictions_path,
+          label_column = None,
+      ):
+          '''Make predictions using a trained XGBoost model.
+
+          Args:
+              data_path: Path for the feature data in CSV format.
+              model_path: Path for the trained model in binary XGBoost format.
+              predictions_path: Output path for the predictions.
+              label_column: Column containing the label data.
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          '''
+          from pathlib import Path
+
+          import numpy
+          import pandas
+          import xgboost
+
+          df = pandas.read_csv(
+              data_path,
+          )
+
+          if label_column is not None:
+              df = df.drop(columns=[df.columns[label_column]])
+
+          testing_data = xgboost.DMatrix(
+              data=df,
+          )
+
+          model = xgboost.Booster(model_file=model_path)
+
+          predictions = model.predict(testing_data)
+
+          Path(predictions_path).parent.mkdir(parents=True, exist_ok=True)
+          numpy.savetxt(predictions_path, predictions)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Xgboost predict', description='Make predictions using a trained XGBoost model.\n\n    Args:\n        data_path: Path for the feature data in CSV format.\n        model_path: Path for the trained model in binary XGBoost format.\n        predictions_path: Output path for the predictions.\n        label_column: Column containing the label data.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')
+      _parser.add_argument("--data", dest="data_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--model", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--label-column", dest="label_column", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--predictions", dest="predictions_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = xgboost_predict(**_parsed_args)
+    args:
+    - --data
+    - {inputPath: data}
+    - --model
+    - {inputPath: model}
+    - if:
+        cond: {isPresent: label_column}
+        then:
+        - --label-column
+        - {inputValue: label_column}
+    - --predictions
+    - {outputPath: predictions}

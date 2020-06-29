@@ -49,11 +49,11 @@ inputs:
     type: String
   - name: max_human_labeled_objects
     description: 'The maximum number of objects that can be labeled by human workers.'
-    default: ''
+    default: '0'
     type: Integer
   - name: max_percent_objects
     description: 'The maximum number of input data objects that should be labeled.'
-    default: ''
+    default: '0'
     type: Integer
   - name: enable_auto_labeling
     description: 'Enables auto-labeling, only for bounding box, text classification, and image classification.'
@@ -119,7 +119,7 @@ outputs:
   - {name: active_learning_model_arn, description: 'The ARN for the most recent Amazon SageMaker model trained as part of automated data labeling.'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.3.1
+    image: amazon/aws-sagemaker-kfp-components:0.5.0
     command: ['python3']
     args: [
       ground_truth.py,

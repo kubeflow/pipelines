@@ -26,10 +26,11 @@ cd "$(dirname "$0")"
 PYTHONPATH="$PYTHONPATH:../sdk/python"
 
 echo "Testing loading all components"
-python3 -c '
+find . -name component.yaml | python3 -c '
 import sys
 import kfp
-for component_file in sys.argv[1:]:
+for component_file in sys.stdin:
+  component_file = component_file.rstrip("\n")
   print(component_file)
   kfp.components.load_component_from_file(component_file)
-' $(find . -name component.yaml)
+'

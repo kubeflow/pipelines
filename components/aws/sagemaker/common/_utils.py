@@ -83,12 +83,41 @@ def get_component_version():
     return component_version
 
 
+def print_logs_for_job(cw_client, log_grp, job_name):
+    """Gets the CloudWatch logs for SageMaker jobs"""
+    try:
+        logging.info('\n******************** CloudWatch logs for {} {} ********************\n'.format(log_grp, job_name))
+
+        log_streams = cw_client.describe_log_streams(
+            logGroupName=log_grp,
+            logStreamNamePrefix=job_name + '/'
+        )['logStreams']
+
+        for log_stream in log_streams:
+            logging.info('\n***** {} *****\n'.format(log_stream['logStreamName']))
+            response = cw_client.get_log_events(
+                logGroupName=log_grp,
+                logStreamName=log_stream['logStreamName']
+            )
+            for event in response['events']:
+                logging.info(event['message'])
+
+        logging.info('\n******************** End of CloudWatch logs for {} {} ********************\n'.format(log_grp, job_name))
+    except Exception as e:
+        logging.error(e)
+
+
 def get_sagemaker_client(region, endpoint_url=None):
     """Builds a client to the AWS SageMaker API."""
     session_config = botocore.config.Config(
         user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(get_component_version())
     )
     client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
+    return client
+
+
+def get_cloudwatch_client(region):
+    client = boto3.client('logs', region_name=region)
     return client
 
 
@@ -254,21 +283,17 @@ def create_model_request(args):
         else:
             request['PrimaryContainer'].pop('ContainerHostname')
 
-        if (args['image'] or args['model_artifact_url']) and args['model_package']:
-            logging.error("Please specify an image AND model artifact url, OR a model package name.")
-            raise Exception("Could not make create model request.")
-        elif args['model_package']:
+        if args['model_package']:
             request['PrimaryContainer']['ModelPackageName'] = args['model_package']
             request['PrimaryContainer'].pop('Image')
             request['PrimaryContainer'].pop('ModelDataUrl')
+        elif args['image'] and args['model_artifact_url']:
+            request['PrimaryContainer']['Image'] = args['image']
+            request['PrimaryContainer']['ModelDataUrl'] = args['model_artifact_url']
+            request['PrimaryContainer'].pop('ModelPackageName')
         else:
-            if args['image'] and args['model_artifact_url']:
-                request['PrimaryContainer']['Image'] = args['image']
-                request['PrimaryContainer']['ModelDataUrl'] = args['model_artifact_url']
-                request['PrimaryContainer'].pop('ModelPackageName')
-            else:
-                logging.error("Please specify an image AND model artifact url.")
-                raise Exception("Could not make create model request.")
+            logging.error("Please specify an image AND model artifact url, OR a model package name.")
+            raise Exception("Could not make create model request.")
 
     request['ExecutionRoleArn'] = args['role']
     request['EnableNetworkIsolation'] = args['network_isolation']
@@ -296,6 +321,10 @@ def create_endpoint_config_request(args):
     with open(os.path.join(__cwd__, 'endpoint_config.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
 
+    if not args['model_name_1']:
+        logging.error("Must specify at least one model (model name) to host.")
+        raise Exception("Could not create endpoint config.")
+
     endpoint_config_name = args['endpoint_config_name'] if args['endpoint_config_name'] else 'EndpointConfig' + args['model_name_1'][args['model_name_1'].index('-'):]
     request['EndpointConfigName'] = endpoint_config_name
 
@@ -303,10 +332,6 @@ def create_endpoint_config_request(args):
         request['KmsKeyId'] = args['resource_encryption_key']
     else:
         request.pop('KmsKeyId')
-
-    if not args['model_name_1']:
-        logging.error("Must specify at least one model (model name) to host.")
-        raise Exception("Could not create endpoint config.")
 
     for i in range(len(request['ProductionVariants']), 0, -1):
         if args['model_name_' + str(i)]:
@@ -377,14 +402,14 @@ def wait_for_endpoint_creation(client, endpoint_name):
   finally:
     resp = client.describe_endpoint(EndpointName=endpoint_name)
     status = resp['EndpointStatus']
-    logging.info("Endpoint Arn: " + resp['EndpointArn'])
-    logging.info("Create endpoint ended with status: " + status)
 
     if status != 'InService':
-      message = client.describe_endpoint(EndpointName=endpoint_name)['FailureReason']
+      message = resp['FailureReason']
       logging.info('Create endpoint failed with the following error: {}'.format(message))
       raise Exception('Endpoint creation did not succeed')
 
+    logging.info("Endpoint Arn: " + resp['EndpointArn'])
+    logging.info("Create endpoint ended with status: " + status)
 
 def create_transform_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_transform_job
@@ -462,7 +487,7 @@ def create_transform_job(client, args):
       raise Exception(e.response['Error']['Message'])
 
 
-def wait_for_transform_job(client, batch_job_name):
+def wait_for_transform_job(client, batch_job_name, poll_interval=30):
   ### Wait until the job finishes
   while(True):
     response = client.describe_transform_job(TransformJobName=batch_job_name)
@@ -475,7 +500,7 @@ def wait_for_transform_job(client, batch_job_name):
       logging.info('Transform failed with the following error: {}'.format(message))
       raise Exception('Transform job failed')
     logging.info("Transform job is still in status: " + status)
-    time.sleep(30)
+    time.sleep(poll_interval)
 
 
 def create_hyperparameter_tuning_job_request(args):
@@ -592,7 +617,7 @@ def create_hyperparameter_tuning_job(client, args):
     """Create a Sagemaker HPO job"""
     request = create_hyperparameter_tuning_job_request(args)
     try:
-        job_arn = client.create_hyper_parameter_tuning_job(**request)
+        client.create_hyper_parameter_tuning_job(**request)
         hpo_job_name = request['HyperParameterTuningJobName']
         logging.info("Created Hyperparameter Training Job with name: " + hpo_job_name)
         logging.info("HPO job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/hyper-tuning-jobs/{}"
@@ -604,7 +629,7 @@ def create_hyperparameter_tuning_job(client, args):
         raise Exception(e.response['Error']['Message'])
 
 
-def wait_for_hyperparameter_training_job(client, hpo_job_name):
+def wait_for_hyperparameter_training_job(client, hpo_job_name, poll_interval=30):
     ### Wait until the job finishes
     while(True):
         response = client.describe_hyper_parameter_tuning_job(HyperParameterTuningJobName=hpo_job_name)
@@ -617,7 +642,7 @@ def wait_for_hyperparameter_training_job(client, hpo_job_name):
             logging.error('Hyperparameter tuning failed with the following error: {}'.format(message))
             raise Exception('Hyperparameter tuning job failed')
         logging.info("Hyperparameter tuning job is still in status: " + status)
-        time.sleep(30)
+        time.sleep(poll_interval)
 
 
 def get_best_training_job_and_hyperparameters(client, hpo_job_name):
@@ -809,7 +834,7 @@ def create_labeling_job(client, args):
         raise Exception(e.response['Error']['Message'])
 
 
-def wait_for_labeling_job(client, labeling_job_name):
+def wait_for_labeling_job(client, labeling_job_name, poll_interval=30):
     ### Wait until the job finishes
     status = 'InProgress'
     while(status == 'InProgress'):
@@ -820,7 +845,7 @@ def wait_for_labeling_job(client, labeling_job_name):
             logging.info('Labeling failed with the following error: {}'.format(message))
             raise Exception('Labeling job failed')
         logging.info("Labeling job is still in status: " + status)
-        time.sleep(30)
+        time.sleep(poll_interval)
 
     if status == 'Completed':
         logging.info("Labeling job ended with status: " + status)
@@ -864,6 +889,116 @@ def enable_spot_instance_support(training_job_config, args):
         # Remove any artifacts that require spot instance support
         del training_job_config['StoppingCondition']['MaxWaitTimeInSeconds']
         del training_job_config['CheckpointConfig']
+
+def create_processing_job_request(args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_processing_job
+    with open(os.path.join(__cwd__, 'process.template.yaml'), 'r') as f:
+        request = yaml.safe_load(f)
+
+    job_name = args['job_name'] if args['job_name'] else 'ProcessingJob-' + strftime("%Y%m%d%H%M%S", gmtime()) + '-' + id_generator()
+
+    request['ProcessingJobName'] = job_name
+    request['RoleArn'] = args['role']
+
+    ### Update processing container settings
+    request['AppSpecification']['ImageUri'] = args['image']
+
+    if args['container_entrypoint']:
+        request['AppSpecification']['ContainerEntrypoint'] = args['container_entrypoint']
+    else:
+        request['AppSpecification'].pop('ContainerEntrypoint')
+    if args['container_arguments']:
+        request['AppSpecification']['ContainerArguments'] = args['container_arguments']
+    else:
+        request['AppSpecification'].pop('ContainerArguments')
+
+    ### Update or pop VPC configs
+    if args['vpc_security_group_ids'] and args['vpc_subnets']:
+        request['NetworkConfig']['VpcConfig']['SecurityGroupIds'] = args['vpc_security_group_ids'].split(',')
+        request['NetworkConfig']['VpcConfig']['Subnets'] = args['vpc_subnets'].split(',')
+    else:
+        request['NetworkConfig'].pop('VpcConfig')
+    request['NetworkConfig']['EnableNetworkIsolation'] = args['network_isolation']
+    request['NetworkConfig']['EnableInterContainerTrafficEncryption'] = args['traffic_encryption']
+
+    ### Update input channels, not a required field
+    if args['input_config']:
+        request['ProcessingInputs'] = args['input_config']
+    else:
+        request.pop('ProcessingInputs')
+
+    ### Update output channels, must have at least one specified
+    if len(args['output_config']) > 0:
+        request['ProcessingOutputConfig']['Outputs'] = args['output_config']
+    else:
+        logging.error("Must specify at least one output channel.")
+        raise Exception('Could not create job request')
+
+    if args['output_encryption_key']:
+        request['ProcessingOutputConfig']['KmsKeyId'] = args['output_encryption_key']
+    else:
+        request['ProcessingOutputConfig'].pop('KmsKeyId')
+
+    ### Update cluster config resources
+    request['ProcessingResources']['ClusterConfig']['InstanceType'] = args['instance_type']
+    request['ProcessingResources']['ClusterConfig']['InstanceCount'] = args['instance_count']
+    request['ProcessingResources']['ClusterConfig']['VolumeSizeInGB'] = args['volume_size']
+
+    if args['resource_encryption_key']:
+        request['ProcessingResources']['ClusterConfig']['VolumeKmsKeyId'] = args['resource_encryption_key']
+    else:
+        request['ProcessingResources']['ClusterConfig'].pop('VolumeKmsKeyId')
+
+    if args['max_run_time']:
+        request['StoppingCondition']['MaxRuntimeInSeconds'] = args['max_run_time']
+    else:
+        request['StoppingCondition']['MaxRuntimeInSeconds'].pop('max_run_time')
+
+    request['Environment'] = args['environment']
+
+    ### Update tags
+    for key, val in args['tags'].items():
+        request['Tags'].append({'Key': key, 'Value': val})
+
+    return request
+
+
+def create_processing_job(client, args):
+  """Create a SageMaker processing job."""
+  request = create_processing_job_request(args)
+  try:
+      client.create_processing_job(**request)
+      processing_job_name = request['ProcessingJobName']
+      logging.info("Created Processing Job with name: " + processing_job_name)
+      logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/ProcessingJobs;prefix={};streamFilter=typeLogStreamPrefix"
+        .format(args['region'], args['region'], processing_job_name))
+      return processing_job_name
+  except ClientError as e:
+      raise Exception(e.response['Error']['Message'])
+
+
+def wait_for_processing_job(client, processing_job_name, poll_interval=30):
+  while(True):
+    response = client.describe_processing_job(ProcessingJobName=processing_job_name)
+    status = response['ProcessingJobStatus']
+    if status == 'Completed':
+      logging.info("Processing job ended with status: " + status)
+      break
+    if status == 'Failed':
+      message = response['FailureReason']
+      logging.info('Processing failed with the following error: {}'.format(message))
+      raise Exception('Processing job failed')
+    logging.info("Processing job is still in status: " + status)
+    time.sleep(poll_interval)
+
+def get_processing_job_outputs(client, processing_job_name):
+    """Map the S3 outputs of a processing job to a dictionary object."""
+    response = client.describe_processing_job(ProcessingJobName=processing_job_name)
+    outputs = {}
+    for output in response['ProcessingOutputConfig']['Outputs']:
+        outputs[output['OutputName']] = output['S3Output']['S3Uri']
+
+    return outputs
 
 
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):

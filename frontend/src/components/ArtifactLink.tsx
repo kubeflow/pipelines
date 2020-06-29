@@ -1,5 +1,9 @@
 import * as React from 'react';
-import { generateGcsConsoleUri, generateMinioArtifactUrl } from '../lib/Utils';
+import {
+  generateGcsConsoleUri,
+  generateS3ArtifactUrl,
+  generateMinioArtifactUrl,
+} from '../lib/Utils';
 
 /**
  * A component that renders an artifact URL as clickable link if URL is correct
@@ -12,6 +16,9 @@ export const ArtifactLink: React.FC<{ artifactUri?: string }> = ({ artifactUri }
       if (gcsConsoleUrl) {
         clickableUrl = gcsConsoleUrl;
       }
+    }
+    if (artifactUri.startsWith('s3:')) {
+      clickableUrl = generateS3ArtifactUrl(artifactUri);
     } else if (artifactUri.startsWith('http:') || artifactUri.startsWith('https:')) {
       clickableUrl = artifactUri;
     } else if (artifactUri.startsWith('minio:')) {

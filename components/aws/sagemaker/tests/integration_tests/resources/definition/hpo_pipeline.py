@@ -1,7 +1,7 @@
 import kfp
 from kfp import components
 from kfp import dsl
-from kfp.aws import use_aws_secret
+
 
 sagemaker_hpo_op = components.load_component_from_file(
     "../../hyperparameter_tuning/component.yaml"
@@ -56,7 +56,7 @@ def hpo_pipeline(
         network_isolation=network_isolation,
         max_wait_time=max_wait_time,
         role=role,
-    ).apply(use_aws_secret("aws-secret", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"))
+    )
 
 
 if __name__ == "__main__":

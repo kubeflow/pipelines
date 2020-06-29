@@ -63,18 +63,19 @@ def load_component(filename=None, url=None, text=None):
         raise ValueError('Need to specify a source')
 
 
-def load_component_from_url(url):
+def load_component_from_url(url: str, auth=None):
     '''
     Loads component from URL and creates a task factory function
     
     Args:
         url: The URL of the component file data
+        auth: Auth object for the requests library. See https://requests.readthedocs.io/en/master/user/authentication/
 
     Returns:
         A factory function with a strongly-typed signature.
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp).
     '''
-    component_spec = _load_component_spec_from_url(url)
+    component_spec = _load_component_spec_from_url(url, auth)
     url = _fix_component_uri(url)
     component_ref = ComponentReference(url=url)
     return _create_task_factory_from_component_spec(
@@ -132,14 +133,14 @@ def _load_component_spec_from_file(path) -> ComponentSpec:
         return _load_component_spec_from_yaml_or_zip_bytes(component_stream.read())
 
 
-def _load_component_spec_from_url(url: str):
+def _load_component_spec_from_url(url: str, auth=None):
     if url is None:
         raise TypeError
 
     url = _fix_component_uri(url)
 
     import requests
-    resp = requests.get(url)
+    resp = requests.get(url, auth=auth)
     resp.raise_for_status()
     return _load_component_spec_from_yaml_or_zip_bytes(resp.content)
 
@@ -169,6 +170,7 @@ def _load_component_spec_from_component_text(text) -> ComponentSpec:
     # Calculating hash digest for the component
     import hashlib
     data = text if isinstance(text, bytes) else text.encode('utf-8')
+    data = data.replace(b'\r\n', b'\n')  # Normalizing line endings
     digest = hashlib.sha256(data).hexdigest()
     component_spec._digest = digest
 

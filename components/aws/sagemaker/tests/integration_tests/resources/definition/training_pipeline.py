@@ -1,7 +1,6 @@
 import kfp
 from kfp import components
 from kfp import dsl
-from kfp.aws import use_aws_secret
 
 sagemaker_train_op = components.load_component_from_file("../../train/component.yaml")
 
@@ -25,6 +24,8 @@ def training_pipeline(
     spot_instance="",
     max_wait_time="",
     checkpoint_config="{}",
+    vpc_security_group_ids="",
+    vpc_subnets="",
     role="",
 ):
     sagemaker_train_op(
@@ -45,8 +46,10 @@ def training_pipeline(
         spot_instance=spot_instance,
         max_wait_time=max_wait_time,
         checkpoint_config=checkpoint_config,
+        vpc_security_group_ids=vpc_security_group_ids,
+        vpc_subnets=vpc_subnets,
         role=role,
-    ).apply(use_aws_secret("aws-secret", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"))
+    )
 
 
 if __name__ == "__main__":

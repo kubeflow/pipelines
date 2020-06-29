@@ -1,7 +1,6 @@
 import kfp
 from kfp import components
 from kfp import dsl
-from kfp.aws import use_aws_secret
 
 sagemaker_model_op = components.load_component_from_file("../../model/component.yaml")
 
@@ -26,7 +25,7 @@ def create_model_pipeline(
         model_artifact_url=model_artifact_url,
         network_isolation=network_isolation,
         role=role,
-    ).apply(use_aws_secret("aws-secret", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"))
+    )
 
 
 if __name__ == "__main__":

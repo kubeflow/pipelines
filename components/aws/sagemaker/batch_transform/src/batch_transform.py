@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 import argparse
 import logging
 from pathlib2 import Path
@@ -44,9 +45,7 @@ def create_parser():
   parser.add_argument('--input_filter', type=str, required=False, help='A JSONPath expression used to select a portion of the input data to pass to the algorithm.', default='')
   parser.add_argument('--output_filter', type=str, required=False, help='A JSONPath expression used to select a portion of the joined dataset to save in the output file for a batch transform job.', default='')
   parser.add_argument('--join_source', choices=['None', 'Input', ''], type=str, required=False, help='Specifies the source of the data to join with the transformed data.', default='None')
-  parser.add_argument('--instance_type', choices=['ml.m4.xlarge', 'ml.m4.2xlarge', 'ml.m4.4xlarge', 'ml.m4.10xlarge', 'ml.m4.16xlarge', 'ml.m5.large', 'ml.m5.xlarge', 'ml.m5.2xlarge', 'ml.m5.4xlarge',
-    'ml.m5.12xlarge', 'ml.m5.24xlarge', 'ml.c4.xlarge', 'ml.c4.2xlarge', 'ml.c4.4xlarge', 'ml.c4.8xlarge', 'ml.p2.xlarge', 'ml.p2.8xlarge', 'ml.p2.16xlarge', 'ml.p3.2xlarge', 'ml.p3.8xlarge', 'ml.p3.16xlarge',
-    'ml.c5.xlarge', 'ml.c5.2xlarge', 'ml.c5.4xlarge', 'ml.c5.9xlarge', 'ml.c5.18xlarge'], type=str, required=True, help='The ML compute instance type for the transform job.', default='ml.m4.xlarge')
+  parser.add_argument('--instance_type', type=str, required=False, help='The ML compute instance type for the transform job.', default='ml.m4.xlarge')
   parser.add_argument('--instance_count', type=int, required=False, help='The number of ML compute instances to use in the transform job.')
   parser.add_argument('--resource_encryption_key', type=str, required=False, help='The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).', default='')
   parser.add_argument('--tags', type=_utils.yaml_or_json_str, required=False, help='An array of key-value pairs, to categorize AWS resources.', default={})
@@ -56,20 +55,28 @@ def create_parser():
 
 def main(argv=None):
   parser = create_parser()
-  args = parser.parse_args()
+  args = parser.parse_args(argv)
 
   logging.getLogger().setLevel(logging.INFO)
   client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
   logging.info('Submitting Batch Transformation request to SageMaker...')
   batch_job_name = _utils.create_transform_job(client, vars(args))
   logging.info('Batch Job request submitted. Waiting for completion...')
-  _utils.wait_for_transform_job(client, batch_job_name)
+
+  try:
+    _utils.wait_for_transform_job(client, batch_job_name)
+  except:
+    raise
+  finally:
+    cw_client = _utils.get_cloudwatch_client(args.region)
+    _utils.print_logs_for_job(cw_client, '/aws/sagemaker/TransformJobs', batch_job_name)
 
   Path(args.output_location_file).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.output_location_file).write_text(unicode(args.output_location))
+  with open(args.output_location_file, 'w') as f:
+    f.write(unicode(args.output_location))
 
   logging.info('Batch Transformation creation completed.')
 
 
 if __name__== "__main__":
-  main()
+  main(sys.argv[1:])

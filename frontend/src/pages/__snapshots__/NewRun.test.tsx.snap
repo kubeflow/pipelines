@@ -1482,6 +1482,13 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       Choose a method by which new runs will be triggered
     </div>
     <Trigger
+      initialProps={
+        Object {
+          "catchup": true,
+          "maxConcurrentRuns": undefined,
+          "trigger": undefined,
+        }
+      }
       onChange={[Function]}
     />
     <NewRunParameters
@@ -3575,6 +3582,13 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       Choose a method by which new runs will be triggered
     </div>
     <Trigger
+      initialProps={
+        Object {
+          "catchup": true,
+          "maxConcurrentRuns": undefined,
+          "trigger": undefined,
+        }
+      }
       onChange={[Function]}
     />
     <NewRunParameters

@@ -27,7 +27,7 @@ from kfp.dsl import _for_loop
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
 from ._op_to_template import _op_to_template
-from ._default_transformers import add_pod_env, add_pod_labels, get_default_telemetry_labels
+from ._default_transformers import add_pod_env
 
 from ..components.structures import InputSpec
 from ..components._yaml_utils import dump_yaml
@@ -154,7 +154,7 @@ class Compiler(object):
     elif op2.name in opsgroup_groups:
       op2_groups = opsgroup_groups[op2.name]
     else:
-      raise ValueError(op1.name + ' does not exist.')
+      raise ValueError(op2.name + ' does not exist.')
 
     both_groups = [op1_groups, op2_groups]
     common_groups_len = sum(1 for x in zip(*both_groups) if x==(x[0],)*len(x))
@@ -522,10 +522,10 @@ class Compiler(object):
     arguments = []
     for param_name, dependent_name in inputs[sub_group.name]:
       if is_recursive_subgroup:
-        for index, input in enumerate(sub_group.inputs):
+        for input_name, input in sub_group.arguments.items():
           if param_name == self._pipelineparam_full_name(input):
             break
-        referenced_input = sub_group.recursive_ref.inputs[index]
+        referenced_input = sub_group.recursive_ref.arguments[input_name]
         argument_name = self._pipelineparam_full_name(referenced_input)
       else:
         argument_name = param_name
@@ -768,11 +768,9 @@ class Compiler(object):
       pipeline_description: Text=None,
       params_list: List[dsl.PipelineParam]=None,
       pipeline_conf: dsl.PipelineConf = None,
-      allow_telemetry: bool = True,
-  ) -> Dict[Text, Any]:
+      ) -> Dict[Text, Any]:
     """ Internal implementation of create_workflow."""
     params_list = params_list or []
-    argspec = inspect.getfullargspec(pipeline_func)
 
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
@@ -792,9 +790,9 @@ class Compiler(object):
     if params_list and pipeline_meta.inputs:
       raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
-
     args_list = []
-    for arg_name in argspec.args:
+    signature = inspect.signature(pipeline_func)
+    for arg_name in signature.parameters:
       arg_type = None
       for input in pipeline_meta.inputs or []:
         if arg_name == input.name:
@@ -813,11 +811,10 @@ class Compiler(object):
     # Fill in the default values.
     args_list_with_defaults = []
     if pipeline_meta.inputs:
-      args_list_with_defaults = [dsl.PipelineParam(sanitize_k8s_name(arg_name, True))
-                                 for arg_name in argspec.args]
-      if argspec.defaults:
-        for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
-          arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
+      args_list_with_defaults = [
+        dsl.PipelineParam(sanitize_k8s_name(input_spec.name, True), value=input_spec.default)
+        for input_spec in pipeline_meta.inputs
+      ]
     elif params_list:
       # Or, if args are provided by params_list, fill in pipeline_meta.
       for param in params_list:
@@ -831,13 +828,6 @@ class Compiler(object):
             default=param.value) for param in params_list]
 
     op_transformers = [add_pod_env]
-    # By default adds telemetry instruments. Users can opt out toggling
-    # allow_telemetry.
-    # Also, TFX pipelines will be bypassed for pipeline compiled by tfx>0.21.4.
-    if allow_telemetry:
-      pod_labels = get_default_telemetry_labels()
-      op_transformers.append(add_pod_labels(pod_labels))
-
     op_transformers.extend(pipeline_conf.op_transformers)
 
     workflow = self._create_pipeline_workflow(
@@ -849,6 +839,9 @@ class Compiler(object):
 
     from ._data_passing_rewriter import fix_big_data_passing
     workflow = fix_big_data_passing(workflow)
+
+    if pipeline_conf and pipeline_conf.data_passing_method != None:
+      workflow = pipeline_conf.data_passing_method(workflow)
 
     metadata = workflow.setdefault('metadata', {})
     annotations = metadata.setdefault('annotations', {})
@@ -896,14 +889,7 @@ class Compiler(object):
     """Compile the given pipeline function into workflow."""
     return self._create_workflow(pipeline_func=pipeline_func, pipeline_conf=pipeline_conf)
 
-  def compile(
-      self,
-      pipeline_func,
-      package_path,
-      type_check=True,
-      pipeline_conf: dsl.PipelineConf = None,
-      allow_telemetry: bool = True,
-  ):
+  def compile(self, pipeline_func, package_path, type_check=True, pipeline_conf: dsl.PipelineConf = None):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
@@ -911,9 +897,6 @@ class Compiler(object):
       package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
       type_check: whether to enable the type check or not, default: False.
       pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
-      allow_telemetry: If set to true, two pod labels will be attached to k8s
-        pods spawned by this pipeline: 1) pipeline SDK style, 2) pipeline random
-        ID.
     """
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
@@ -922,8 +905,7 @@ class Compiler(object):
       self._create_and_write_workflow(
           pipeline_func=pipeline_func,
           pipeline_conf=pipeline_conf,
-          package_path=package_path,
-          allow_telemetry=allow_telemetry)
+          package_path=package_path)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
 
@@ -970,8 +952,7 @@ class Compiler(object):
       pipeline_description: Text=None,
       params_list: List[dsl.PipelineParam]=None,
       pipeline_conf: dsl.PipelineConf=None,
-      package_path: Text=None,
-      allow_telemetry: bool=True
+      package_path: Text=None
   ) -> None:
     """Compile the given pipeline function and dump it to specified file format."""
     workflow = self._create_workflow(
@@ -979,8 +960,7 @@ class Compiler(object):
         pipeline_name,
         pipeline_description,
         params_list,
-        pipeline_conf,
-        allow_telemetry)
+        pipeline_conf)
     self._write_workflow(workflow, package_path)
     _validate_workflow(workflow)
 

@@ -65,15 +65,26 @@ class TrainTestCase(unittest.TestCase):
     mock_args = self.parser.parse_args(required_args + ['--job_name', 'test-job'])
     response = _utils.create_training_job(mock_client, vars(mock_args))
 
-    mock_client.create_training_job.assert_called_once_with(AlgorithmSpecification={'TrainingImage': 'test-image',
-      'TrainingInputMode': 'File'}, EnableInterContainerTrafficEncryption=False, EnableManagedSpotTraining=False,
-      EnableNetworkIsolation=True, HyperParameters={}, InputDataConfig=[{'ChannelName': 'train', 'DataSource':
-      {'S3DataSource': {'S3Uri': 's3://fake-bucket/data', 'S3DataType': 'S3Prefix', 'S3DataDistributionType':
-      'FullyReplicated'}}, 'ContentType': '', 'CompressionType': 'None', 'RecordWrapperType': 'None', 'InputMode':
-      'File'}], OutputDataConfig={'KmsKeyId': '', 'S3OutputPath': 'test-path'}, ResourceConfig={'InstanceType':
-      'ml.m4.xlarge', 'InstanceCount': 1, 'VolumeSizeInGB': 50, 'VolumeKmsKeyId': ''},
-      RoleArn='arn:aws:iam::123456789012:user/Development/product_1234/*', StoppingCondition={'MaxRuntimeInSeconds':
-      3600}, Tags=[], TrainingJobName='test-job')
+    mock_client.create_training_job.assert_called_once_with(
+      AlgorithmSpecification={'TrainingImage': 'test-image', 'TrainingInputMode': 'File'},
+      EnableInterContainerTrafficEncryption=False,
+      EnableManagedSpotTraining=False,
+      EnableNetworkIsolation=True,
+      HyperParameters={},
+      InputDataConfig=[{'ChannelName': 'train',
+                        'DataSource': {'S3DataSource': {'S3Uri': 's3://fake-bucket/data', 'S3DataType': 'S3Prefix', 'S3DataDistributionType': 'FullyReplicated'}},
+                        'ContentType': '',
+                        'CompressionType': 'None',
+                        'RecordWrapperType': 'None',
+                        'InputMode': 'File'
+                      }],
+      OutputDataConfig={'KmsKeyId': '', 'S3OutputPath': 'test-path'},
+      ResourceConfig={'InstanceType': 'ml.m4.xlarge', 'InstanceCount': 1, 'VolumeSizeInGB': 50, 'VolumeKmsKeyId': ''},
+      RoleArn='arn:aws:iam::123456789012:user/Development/product_1234/*',
+      StoppingCondition={'MaxRuntimeInSeconds': 3600},
+      Tags=[],
+      TrainingJobName='test-job'
+    )
     self.assertEqual(response, 'test-job')
 
   def test_sagemaker_exception_in_create_training_job(self):
@@ -243,18 +254,13 @@ class TrainTestCase(unittest.TestCase):
     with self.assertRaises(Exception):
       _utils.create_training_job_request(vars(parsed_args))
 
-  def test_invalid_instance_type(self):
-    invalid_instance_args = required_args + ['--instance_type', 'invalid-instance']
-
-    with self.assertRaises(SystemExit):
-      self.parser.parse_args(invalid_instance_args)
 
   def test_valid_hyperparameters(self):
     hyperparameters_str = '{"hp1": "val1", "hp2": "val2", "hp3": "val3"}'
 
     good_args = self.parser.parse_args(required_args + ['--hyperparameters', hyperparameters_str])
     response = _utils.create_training_job_request(vars(good_args))
-    
+
     self.assertIn('hp1', response['HyperParameters'])
     self.assertIn('hp2', response['HyperParameters'])
     self.assertIn('hp3', response['HyperParameters'])
@@ -267,7 +273,7 @@ class TrainTestCase(unittest.TestCase):
 
     good_args = self.parser.parse_args(required_args + ['--hyperparameters', hyperparameters_str])
     response = _utils.create_training_job_request(vars(good_args))
-    
+
     self.assertEqual(response['HyperParameters'], {})
 
   def test_object_hyperparameters(self):
@@ -280,7 +286,7 @@ class TrainTestCase(unittest.TestCase):
   def test_vpc_configuration(self):
     required_vpc_args = self.parser.parse_args(required_args + ['--vpc_security_group_ids', 'sg1,sg2', '--vpc_subnets', 'subnet1,subnet2'])
     response = _utils.create_training_job_request(vars(required_vpc_args))
-    
+
     self.assertIn('VpcConfig', response)
     self.assertIn('sg1', response['VpcConfig']['SecurityGroupIds'])
     self.assertIn('sg2', response['VpcConfig']['SecurityGroupIds'])
@@ -305,7 +311,7 @@ class TrainTestCase(unittest.TestCase):
   def test_spot_lesser_wait_time(self):
     args = self.parser.parse_args(required_args + ['--spot_instance', 'True', '--max_wait_time', '3599', '--checkpoint_config', '{"S3Uri": "s3://fake-uri/", "LocalPath": "local-path"}'])
     with self.assertRaises(Exception):
-      _utils.create_training_job_request(vars(args))    
+      _utils.create_training_job_request(vars(args))
 
   def test_spot_good_args(self):
     good_args = self.parser.parse_args(required_args + ['--spot_instance', 'True', '--max_wait_time', '3600', '--checkpoint_config', '{"S3Uri": "s3://fake-uri/"}'])

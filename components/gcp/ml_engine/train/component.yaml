@@ -84,6 +84,12 @@ inputs:
     description: 'The prefix of the generated job id.'
     default: ''
     type: String
+  - name: job_id
+    description: >-
+        The ID of the job to create, takes precedence over generated
+        job id if set.
+    default: ''
+    type: String
   - name: wait_interval
     description: >-
       Optional. A time-interval to wait for between calls to get the job status. 
@@ -119,6 +125,7 @@ implementation:
       --worker_image_uri, {inputValue: worker_image_uri},
       --training_input, {inputValue: training_input},
       --job_id_prefix, {inputValue: job_id_prefix},
+      --job_id, {inputValue: job_id},
       --wait_interval, {inputValue: wait_interval},
     ]
     env:
