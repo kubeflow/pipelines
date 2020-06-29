@@ -137,7 +137,3 @@ implementation:
       --job_name_output_path, {outputPath: job_name},
       --training_image_output_path, {outputPath: training_image}
     ]
-    fileOutputs:
-      model_artifact_url: /tmp/model_artifact_url.txt
-      job_name: /tmp/job_name.txt
-      training_image: /tmp/training_image.txt

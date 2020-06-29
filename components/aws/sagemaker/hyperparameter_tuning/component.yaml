@@ -196,9 +196,3 @@ implementation:
       --best_hyperparameters_output_path, {outputPath: best_hyperparameters},
       --training_image_output_path, {outputPath: training_image}
     ]
-    fileOutputs:
-      hpo_job_name: /tmp/hpo_job_name.txt
-      model_artifact_url: /tmp/model_artifact_url.txt
-      best_job_name: /tmp/best_job_name.txt
-      best_hyperparameters: /tmp/best_hyperparameters.txt
-      training_image: /tmp/training_image.txt
