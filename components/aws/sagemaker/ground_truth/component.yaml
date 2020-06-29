@@ -153,7 +153,9 @@ implementation:
       --task_availibility, {inputValue: task_availibility},
       --max_concurrent_tasks, {inputValue: max_concurrent_tasks},
       --workforce_task_price, {inputValue: workforce_task_price},
-      --tags, {inputValue: tags}
+      --tags, {inputValue: tags},
+      --output_manifest_location_output_path, {outputPath: output_manifest_location},
+      --active_learning_model_arn_output_path, {outputPath: active_learning_model_arn}
     ]
     fileOutputs:
       output_manifest_location: /tmp/output_manifest_location.txt

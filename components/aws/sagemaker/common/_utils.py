@@ -65,7 +65,7 @@ def nullable_string_argument(value):
 
 def add_default_client_arguments(parser):
     parser.add_argument('--region', type=str, required=True, help='The region where the training job launches.')
-    parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the Sagemaker service.')
+    parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the SageMaker service.')
 
 
 def get_component_version():
@@ -207,7 +207,7 @@ def create_training_job_request(args):
 
 
 def create_training_job(client, args):
-  """Create a Sagemaker training job."""
+  """Create a SageMaker training job."""
   request = create_training_job_request(args)
   try:
       client.create_training_job(**request)
@@ -614,7 +614,7 @@ def create_hyperparameter_tuning_job_request(args):
 
 
 def create_hyperparameter_tuning_job(client, args):
-    """Create a Sagemaker HPO job"""
+    """Create a SageMaker HPO job"""
     request = create_hyperparameter_tuning_job_request(args)
     try:
         client.create_hyper_parameter_tuning_job(**request)
