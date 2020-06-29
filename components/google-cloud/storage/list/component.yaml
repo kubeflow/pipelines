@@ -3,6 +3,9 @@ inputs:
 - {name: GCS path, type: URI, description: 'GCS path for listing. For recursive listing use the "gs://bucket/path/**" syntax".'}
 outputs:
 - {name: Paths}
+metadata:
+    annotations:
+        volatile_component: 'true'
 implementation:
     container:
         image: google/cloud-sdk
