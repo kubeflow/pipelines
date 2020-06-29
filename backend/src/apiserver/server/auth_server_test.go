@@ -96,3 +96,26 @@ func TestAuthorizeRequest_Unauthorized(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "Failed to authorize the request: Failed to authorize namespace: BadRequestError: Unauthorized access for user@google.com to namespace ns1: Unauthorized access for user@google.com to namespace ns1")
 }
+
+func TestAuthorizeRequest_EmptyUserIdPrefix(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.KubeflowUserIDPrefix, "")
+	defer viper.Set(common.KubeflowUserIDPrefix, common.GoogleIAPUserIdentityPrefix)
+
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	authServer := AuthServer{resourceManager: manager}
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	request := &api.AuthorizeRequest{
+		Namespace: "ns1",
+		Resources: api.AuthorizeRequest_VIEWERS,
+		Verb:      api.AuthorizeRequest_GET,
+	}
+
+	_, err := authServer.Authorize(ctx, request)
+	assert.Nil(t, err)
+}
