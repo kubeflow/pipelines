@@ -93,7 +93,6 @@ require (
 	k8s.io/kubernetes v1.11.1
 	sigs.k8s.io/controller-runtime v0.0.0-20181121180216-5558165425ef
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
-	github.com/argoproj/argo/workflow/validate v0.0.0-20200424003221-9b858eff18a1
 )
 
 go 1.13
