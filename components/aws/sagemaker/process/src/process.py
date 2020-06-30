@@ -68,7 +68,7 @@ def main(argv=None):
   outputs = _utils.get_processing_job_outputs(client, job_name)
 
   Path(args.job_name_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.job_name_output_path).write_text(json.dumps(job_name))
+  Path(args.job_name_output_path).write_text(job_name)
 
   Path(args.output_artifacts_output_path).parent.mkdir(parents=True, exist_ok=True)
   Path(args.output_artifacts_output_path).write_text(json.dumps(outputs))

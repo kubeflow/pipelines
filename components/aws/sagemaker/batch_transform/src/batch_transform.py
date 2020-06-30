@@ -13,6 +13,7 @@
 import sys
 import argparse
 import logging
+import json
 from pathlib2 import Path
 
 from common import _utils
@@ -72,7 +73,7 @@ def main(argv=None):
     _utils.print_logs_for_job(cw_client, '/aws/sagemaker/TransformJobs', batch_job_name)
 
   Path(args.output_location_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.output_location_output_path).write_text(json.dumps(args.output_location))
+  Path(args.output_location_output_path).write_text(args.output_location)
 
   logging.info('Batch Transformation creation completed.')
 

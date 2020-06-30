@@ -64,7 +64,7 @@ def test_processingjob(
 
     # Verify Processing job was successful on SageMaker
     processing_job_name = utils.read_from_file_in_tar(
-        output_files["sagemaker-processing-job"]["job_name"], "job_name.txt"
+        output_files["sagemaker-processing-job"]["job_name"]
     )
     print(f"processing job name: {processing_job_name}")
     process_response = sagemaker_utils.describe_processing_job(
@@ -77,7 +77,6 @@ def test_processingjob(
     processing_outputs = json.loads(
         utils.read_from_file_in_tar(
             output_files["sagemaker-processing-job"]["output_artifacts"],
-            "output_artifacts.txt",
         )
     )
     print(f"processing job outputs: {json.dumps(processing_outputs, indent = 2)}")

@@ -13,6 +13,7 @@
 import sys
 import argparse
 import logging
+import json
 from pathlib2 import Path
 
 from common import _utils
@@ -60,7 +61,7 @@ def main(argv=None):
   _utils.wait_for_endpoint_creation(client, endpoint_name)
 
   Path(args.endpoint_name_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.endpoint_name_output_path).write_text(json.dumps(endpoint_name))
+  Path(args.endpoint_name_output_path).write_text(endpoint_name)
 
   logging.info('Endpoint creation completed.')
 
