@@ -13,8 +13,6 @@
 import sys
 import argparse
 import logging
-import json
-from pathlib2 import Path
 
 from common import _utils
 
@@ -44,8 +42,7 @@ def main(argv=None):
 
   logging.info('Workteam created.')
 
-  Path(args.workteam_arn_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.workteam_arn_output_path).write_text(workteam_arn)
+  _utils.write_output(args.workteam_arn_output_path, workteam_arn)
 
 
 if __name__== "__main__":

@@ -13,8 +13,6 @@
 import sys
 import argparse
 import logging
-import json
-from pathlib2 import Path
 
 from common import _utils
 
@@ -50,8 +48,7 @@ def main(argv=None):
 
   logging.info('Model creation completed.')
 
-  Path(args.model_name_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.model_name_output_path).write_text(args.model_name)
+  _utils.write_output(args.model_name_output_path, args.model_name)
 
 
 if __name__== "__main__":
