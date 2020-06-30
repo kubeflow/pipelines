@@ -122,8 +122,16 @@ properties:
       Using CloudSQL and GCS provides better reliability and performance,
       as well as features such as data backup and usage monitoring.
       This is the recommended option especially for production scenarios.
-      If false, the data will be stored in GCE Persistent Disk.
+      If false, the data will be stored in GCE Persistent Disks.
     default: false
+  managedstorage.gcsBucketName:
+    type: string
+    title: Artifact storage GCS bucket (Managed storage only)
+    description: |-
+      This field must be specified if choose to use managed storage.
+      Provide the Google Cloud Storage (GCS) bucket name for an existing bucket.
+      The bucket will be used for storing the output artifacts.
+      For more details on how to create a new bucket, see https://cloud.google.com/storage/docs/creating-buckets.
   managedstorage.cloudsqlInstanceConnectionName:
     type: string
     title: Cloud SQL instance connection name (Managed storage only)

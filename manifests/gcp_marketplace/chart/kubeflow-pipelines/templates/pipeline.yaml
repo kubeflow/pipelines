@@ -730,7 +730,7 @@ spec:
               value: "false"
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
-              value: '{{ tpl .Values.managedstorage.gcsBucketName . }}'
+              value: '{{ .Values.managedstorage.gcsBucketName }}'
             - name: DBCONFIG_DBNAME
               {{ if .Values.managedstorage.databaseNamePrefix }}
               value: '{{ .Values.managedstorage.databaseNamePrefix }}_pipeline'
