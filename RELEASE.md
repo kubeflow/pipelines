@@ -1,23 +1,104 @@
-# Releasing Kubeflow Pipelines
+# Kubeflow Pipelines Release Process
 
-WIP: this document is still incomplete.
+## Schedule
 
-## Common Prerequisites
+Kubeflow Pipelines has weekly patch releases and monthly minor releases.
+Patch releases only contain bug fixes, while minor releases have new features
+additionally.
+
+## Release Tags and Branches
+
+Releases are tagged with tags like `X.Y.Z`, e.g. `1.0.2`. A special format like
+`1.0.0-rc.2` is a pre-release. It is the second release candidate before
+releasing the final `1.0.0`.
+
+A release branch has the name structure `release-X.Y` where `X.Y` stands for the
+minor version. Releases like `X.Y.Z` will all be released from the branch
+`release-X.Y`.
+
+For example, `1.0.2` release should be on `release-1.0` branch.
+
+## Contributor Instructions
+
+The following section targets contributors. No need to read further if you only
+want to use Kubeflow Pipelines.
+
+### Cherry picking pull requests to release branch
+
+After the `release-X.Y` release branch is cut, pull requests (PRs) merged to
+master will be only get released in the next minor release `X.(Y+1).0`.
+
+If you want your PR released earlier in a patch release `X.Y.(Z+1)`:
+* The PR must already get merged to master branch.
+* The PR should be a bug fix.
+* The PR should be cherry picked to corresponding release branch `release-X.Y`.
+
+Choose one of the following options for cherry picking your PR to release branch.
+
+#### Option - (Recommended) cherrypick-approved label
+Contributors should ask OWNERS who approved the PR to add a `cherrypick-approved`
+label if they want the PR cherry picked to release branch.
+
+Release manager will
+* Periodically or before release, search all merged PRs with `cherrypick-approved`
+    label, but no `cherrypicked` label using
+    [this link](https://github.com/kubeflow/pipelines/pulls?q=is%3Apr+label%3Acherrypick-approved+-label%3Acherrypicked+is%3Aclosed+)
+* Use the git cherry-pick option to pick these PR commits into the release branch
+in a batch and add `cherrypicked` label to these PRs.
+
+    NOTE: if there are merge conflicts for a PR, ask the PR author or area OWNER
+    to create a cherry pick PR by themselves following other two options.
+* `git push upstream release-$VERSION` directly to the release branch.
+
+#### Option - git cherry-pick
+* Find the commit you want to cherry pick on master as $COMMIT_SHA.
+* Find the active release branch name $BRANCH, e.g. release-1.0
+*
+    ```bash
+    git co $BRANCH
+    git co -b <cherry-pick-pr-branch-name>
+    git cherry-pick $COMMIT_SHA
+    ```
+* Resolve merge conflicts if any
+* `git push origin HEAD`
+* Create a PR and remember to update PR's destination branch to `release-$VERSION`
+* Ask the same OWNERS that would normally need to approve this PR
+
+#### Option - Kubeflow cherry_pick_pull.sh helper
+Kubeflow has a cherry pick helper script: https://github.com/kubeflow/kubeflow/blob/master/hack/cherry-picks.md
+
+It automates the process using `hub` CLI tool and bash, so it takes some one off efforts to set up for the first time.
+
+After that, this is convenient to do a lot of cherry picks, because for each PR you'd only need to specify
+release branch and PR number.
+
+Known caveats:
+* It may produce PR title that is duplicative, you can edit the title after cherry picking.
+
+## Release Manager Instructions
+
+The following sections target release managers. You don't need to read further
+if you only want to use or contribute to this repo.
+
+### Common Prerequisites
 
 * OS: Linux (MacOS not supported yet due to different behavior of sed)
 * Permissions needed
-    * Can create a branch in github.com/kubeflow/pipelines
+    * Can create a branch in github.com/kubeflow/pipelines.
+    * Can trigger cloudbuild jobs in ml-pipeline-test GCP project.
 * Tools that should be in your `$PATH`
     * jq 1.6 https://stedolan.github.io/jq/download/
     * yq https://github.com/mikefarah/yq/releases/tag/3.3.0
     * jdk 8
+    * node 12
+    * bazel 0.24.0
 * Preparations
-    1. Clone github.com/kubeflow/pipelines repo into `$KFP_REPO`
+    1. Clone github.com/kubeflow/pipelines repo into `$KFP_REPO`.
     2. `cd $KFP_REPO`
 
-## Cutting a release branch
+### Cutting a release branch
 
-1. Choose a good commit on master branch with commit hash as `$COMMIT_SHA`
+1. Choose a good commit on master branch with commit hash as `$COMMIT_SHA`.
 2. Choose the next release branch's `$MINOR_VERSION` in format `x.y`, e.g. `1.0`, `1.1`...
 2. Make a release branch of format `release-$MINOR_VERSION`, e.g. `release-1.0`, `release-1.1`. Branch from the commit and push to kubeflow pipelines upstream repo.
     ```bash
@@ -26,13 +107,14 @@ WIP: this document is still incomplete.
     git push upstream HEAD
     ```
 
-## Releasing from release branch
+### Releasing from release branch
 
 1. Choose the release's complete `$VERSION` following semantic versioning, e.g.
     * `1.0.0-rc.1`
     * `1.0.0-rc.2`
     * `1.0.0`
     * `1.0.1`
+    * `1.1.0`
     * ...
 1. Update all version refs in release branch by
     ```bash
@@ -42,21 +124,21 @@ WIP: this document is still incomplete.
 
     Note, the script will clone kubeflow/pipelines repo into a temporary location on your computer, make those changes and attempt to push to upstream, so that it won't interfere with your current git repo.
 
-    TODO: this script should also regenerate
-    * changelog
-    * python api client
 1. View related cloudbuild jobs' statuses by clicking the latest commit's status icon
 in the release branch. The page will look like https://github.com/kubeflow/pipelines/runs/775788343.
+
 1. Wait and make sure the `build-each-commit` cloudbuild job that builds all images
-in gcr.io/ml-pipeline-test succeeded. If it fails, please click "View more details on Google Cloud Build" and then "Retry".
+in gcr.io/ml-pipeline-test succeeded. If it fails, please click "View more details
+on Google Cloud Build" and then "Retry".
+
 1. Select the `release-on-tag` cloudbuild job that copies built images and artifacts to
 public image registry and gcs bucket. This job should have already failed because
 artifacts haven't been built. Now, please click "View more details on Google Cloud Build"
 and then "Retry", because after waiting for previous step, artifacts are now ready.
 
     TODO: we should have an automation KFP cluster, and the waiting and submiting
-    `release-on-tag` cloudbuild task should be automatically waited.
-1. Search "PyPI" in internal doc for getting password of kubeflow-pipelines user.
+    `release-on-tag` cloudbuild task should happen automatically.
+1. Search "PyPI" in Google internal release doc for getting password of kubeflow-pipelines user.
 1. Release `kfp-server-api` python packages to PyPI.
     ```bash
     git checkout $BRANCH
@@ -75,82 +157,62 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
 
     !!! The file name must contain the version (you might need to rename the file). See https://github.com/kubeflow/pipelines/issues/1292
 
-    The username is "kubeflow-pipelines"
+1. Create a GitHub release using `$VERSION` git tag and title `Version $VERSION`,
+fill in the description. Detailed steps:
+   
+   1. [Draft a new release](https://github.com/kubeflow/pipelines/releases/new).
+   1. Typing in version tag field to search and select the "$VERSION" tag published in release instructions above.
+   Its format is like `X.Y.Z` or `X.Y.Z-rc.N`.
 
-1. Create a github release using `$VERSION` git tag and title `Version $VERSION`,
-fill in the description.
+   1. Use this template for public releases
+       <pre>
+       To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
 
-   Use this template for public releases
-   <pre>
-   To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
+       Install python SDK (python 3.5 above) by running:
+       ```
+       python3 -m pip install kfp kfp-server-api --upgrade
+       ```
 
-   Install python SDK (python 3.5 above) by running:
-   ```
-   python3 -m pip install kfp kfp-server-api --upgrade
-   ```
+       See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+       </pre>
 
-   See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
-   </pre>
+       Use this template for prereleases (release candidates) and please **check** the
+       `This is a prerelease` checkbox in the GitHub release UI.
+       <pre>
+       To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/).
 
-   Use this template for prereleases (release candidates) and please check the
-   `This is a prerelease` checkbox in the Github release UI.
-   <pre>
-   To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/).
+       Install python SDK (python 3.5 above) by running:
+       ```
+       python3 -m pip install kfp kfp-server-api --pre --upgrade
+       ```
 
-   Install python SDK (python 3.5 above) by running:
-   ```
-   python3 -m pip install kfp kfp-server-api --pre --upgrade
-   ```
-
-   See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
-   </pre>
+       See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+       </pre>
 
 1. Create a PR to update version in kubeflow documentation website: 
 https://github.com/kubeflow/website/blob/master/layouts/shortcodes/pipelines/latest-version.html
 
-   Note, there **MUST NOT** be a line ending in the file. Editing on github always add a line ending
-   for you so you cannot create a PR on github UI.
+   Note, there **MUST NOT** be a line ending in the file. Editing on GitHub always add a line ending
+   for you so you cannot create a PR on GitHub UI.
    Instead, you can checkout the repo locally and
    ```
    echo -n 1.0.0 > layouts/shortcodes/pipelines/latest-version.html
    ```
    and create a PR to update the version, e.g. https://github.com/kubeflow/website/pull/1942.
 
+## Scripts ./hack/release* implementation details
 
-## Cherry picking PRs to release branch
+The script `./hack/release-imp.sh` does the following:
+1. Generate `./CHANGELOG.md` using commit history.
+1. Regenerate open api specs based on proto files.
+1. Regenerate `kfp-server-api` python package.
+1. Update all version refs in this repo to `./VERSION` by calling each of the
+`./**/hack/release.sh` scripts. The individual scripts are responsible for updating
+version refs to their own folder.
 
-### Option - cherrypick-approved label
-* When OWNERS approve PRs, they should add the `cherrypick-approved` label to it.
-* Periodically or before release, release manager should search all merged PRs with
-    `cherrypick-approved` label, but no `cherrypicked` label using
-    [this link](https://github.com/kubeflow/pipelines/pulls?q=is%3Apr+label%3Acherrypick-approved+-label%3Acherrypicked+is%3Aclosed+)
-* Use the git cherry-pick option to pick these PR commits into the release branch
-in a batch and add `cherrypicked` label to these PRs.
-
-    NOTE: if there are merge conflicts for a PR, ask the PR author or area OWNER to create a PR by themselves following other two options.
-* `git push upstream release-$VERSION` directly to the release branch.
-
-### Option - git cherry-pick
-* Find the commit you want to cherry pick on master as $COMMIT_SHA.
-* Find the active release branch name $BRANCH, e.g. release-1.0
-*
-    ```bash
-    git co $BRANCH
-    git co -b <cherry-pick-pr-branch-name>
-    git cherry-pick $COMMIT_SHA
-    ```
-* Resolve merge conflicts if any
-* `git push origin HEAD`
-* create a PR and remember to update PR's destination branch to `$BRANCH`
-* Ask the same OWNERS that would normally need to approve this PR
-
-### Option - Kubeflow cherry_pick_pull.sh helper
-Kubeflow has a cherry pick helper script: https://github.com/kubeflow/kubeflow/blob/master/hack/cherry-picks.md
-
-It automates the process using `hub` CLI tool and bash, so it takes some one off efforts to set up for the first time.
-
-After that, this is convenient to do a lot of cherry picks, because for each PR you'd only need to specify
-release branch and PR number.
-
-Known caveats:
-* It may produce PR title that is duplicative, you can edit the title after cherry picking.
+The script `./hack/release.sh` is a wrapper on top of `./hack/release-imp.sh`, it
+1. Clones github.com/kubeflow/pipelines repo to a temporary path.
+1. Checkout `release-$MINOR` branch.
+1. Runs `./hack/release-imp.sh`.
+1. Runs git commit and tag.
+1. After confirming with user input, pushes to upstream branch.
