@@ -1,4 +1,5 @@
 import unittest
+import json
 
 from unittest.mock import patch, call, Mock, MagicMock, mock_open
 from botocore.exceptions import ClientError
@@ -43,3 +44,25 @@ class UtilsTestCase(unittest.TestCase):
         with patch('logging.Logger.error') as errorLog:
             _utils.print_logs_for_job(mock_cw_client, '/aws/sagemaker/FakeJobs', 'fake_job_name')
             errorLog.assert_called()
+
+    def test_write_output_string(self):
+        with patch("common._utils.Path", MagicMock()) as mock_path:
+            _utils.write_output("/tmp/output-path", "output-value")
+
+        mock_path.assert_called_with("/tmp/output-path")
+        mock_path("/tmp/output-path").parent.mkdir.assert_called()
+        mock_path("/tmp/output-path").write_text.assert_called_with("output-value")
+
+    def test_write_output_json(self):
+        # Ensure working versions of each type of JSON input
+        test_cases = [{"key1": "value1"}, ["val1", "val2"], "string-val"]
+
+        for case in test_cases:
+            with patch("common._utils.Path", MagicMock()) as mock_path:
+                _utils.write_output("/tmp/test-output", case, json_encode=True)
+
+                mock_path.assert_called_with("/tmp/test-output")
+                mock_path("/tmp/test-output").parent.mkdir.assert_called()
+                mock_path("/tmp/test-output").write_text.assert_called_with(
+                    json.dumps(case)
+                )

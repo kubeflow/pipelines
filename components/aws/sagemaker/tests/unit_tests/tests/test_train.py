@@ -31,31 +31,6 @@ class TrainTestCase(unittest.TestCase):
   def test_create_parser(self):
     self.assertIsNotNone(self.parser)
 
-  # TODO: Move this to test_utils.py when it is merged
-  def test_write_output_string(self):
-    with patch('common._utils.Path', MagicMock()) as mock_path:
-      _utils.write_output('/tmp/output-path', 'output-value')
-
-    mock_path.assert_called_with('/tmp/output-path')
-    mock_path('/tmp/output-path').parent.mkdir.assert_called()
-    mock_path('/tmp/output-path').write_text.assert_called_with('output-value')
-
-  def test_write_output_json(self):
-    # Ensure working versions of each type of JSON input
-    test_cases = [
-      {"key1": "value1"},
-      ['val1', 'val2'],
-      "string-val"
-    ]
-
-    for case in test_cases:
-      with patch('common._utils.Path', MagicMock()) as mock_path:
-        _utils.write_output('/tmp/test-output', case, json_encode=True)
-
-        mock_path.assert_called_with('/tmp/test-output')
-        mock_path('/tmp/test-output').parent.mkdir.assert_called()
-        mock_path('/tmp/test-output').write_text.assert_called_with(json.dumps(case))
-
   def test_main(self):
     # Mock out all of utils except parser
     train._utils = MagicMock()
