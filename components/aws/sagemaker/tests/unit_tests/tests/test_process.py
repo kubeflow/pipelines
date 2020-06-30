@@ -30,7 +30,9 @@ required_args = [
       'LocalPath': "/opt/ml/processing/output/train",
       'S3UploadMode': "Continuous"
     }
-  }])
+  }]),
+  '--job_name_output_path', '/tmp/job_name_output_path',
+  '--output_artifacts_output_path', '/tmp/output_artifacts_output_path'
 ]
 
 class ProcessTestCase(unittest.TestCase):
@@ -51,8 +53,7 @@ class ProcessTestCase(unittest.TestCase):
     process._utils.create_processing_job.return_value = 'job-name'
     process._utils.get_processing_job_outputs.return_value = mock_outputs = {'val1': 's3://1', 'val2': 's3://2'}
 
-    with patch('builtins.open', mock_open()) as file_open:
-      process.main(required_args)
+    process.main(required_args)
 
     # Check if correct requests were created and triggered
     process._utils.create_processing_job.assert_called()
@@ -60,15 +61,10 @@ class ProcessTestCase(unittest.TestCase):
     process._utils.print_logs_for_job.assert_called()
 
     # Check the file outputs
-    file_open.assert_has_calls([
-      call('/tmp/job_name.txt', 'w'),
-      call('/tmp/output_artifacts.txt', 'w')
-    ], any_order=True)
-
-    file_open().write.assert_has_calls([
-      call('job-name'),
-      call(json.dumps(mock_outputs))
-    ], any_order=False) # Must be in the same order as called
+    process._utils.write_output.assert_has_calls([
+      call('/tmp/job_name_output_path', 'job-name'),
+      call('/tmp/output_artifacts_output_path', mock_outputs, json_encode=True)
+    ])
 
   def test_create_processing_job(self):
     mock_client = MagicMock()

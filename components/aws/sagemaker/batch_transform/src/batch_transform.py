@@ -13,16 +13,8 @@
 import sys
 import argparse
 import logging
-import json
-from pathlib2 import Path
 
 from common import _utils
-
-try:
-  unicode
-except NameError:
-  unicode = str
-
 
 def create_parser():
   parser = argparse.ArgumentParser(description='SageMaker Batch Transformation Job')
@@ -72,8 +64,7 @@ def main(argv=None):
     cw_client = _utils.get_cloudwatch_client(args.region)
     _utils.print_logs_for_job(cw_client, '/aws/sagemaker/TransformJobs', batch_job_name)
 
-  Path(args.output_location_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.output_location_output_path).write_text(args.output_location)
+  _utils.write_output(args.output_location_output_path, args.output_location)
 
   logging.info('Batch Transformation creation completed.')
 

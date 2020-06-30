@@ -20,6 +20,8 @@ import random
 import json
 import yaml
 import re
+import json
+from pathlib2 import Path
 
 import boto3
 import botocore
@@ -1027,3 +1029,17 @@ def str_to_bool(str):
     # This distutils function returns an integer representation of the boolean
     # rather than a True/False value. This simply hard casts it.
     return bool(strtobool(str))
+
+def write_output(output_path, output_value, json_encode=False):
+    """Write an output value to the associated path, dumping as a JSON object
+    if specified.
+    Arguments:
+    - output_path: The file path of the output.
+    - output_value: The output value to write to the file.
+    - json_encode: True if the value should be encoded as a JSON object.
+    """
+
+    write_value = json.dumps(output_value) if json_encode else output_value 
+
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(output_path).write_text(write_value)

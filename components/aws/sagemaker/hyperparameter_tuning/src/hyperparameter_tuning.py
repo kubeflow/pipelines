@@ -13,8 +13,6 @@
 import sys
 import argparse
 import logging
-import json
-from pathlib2 import Path
 
 from common import _utils
 
@@ -87,21 +85,11 @@ def main(argv=None):
 
   logging.info('HyperParameter Tuning Job completed.')
 
-  Path(args.hpo_job_name_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.hpo_job_name_output_path).write_text(hpo_job_name)
-
-  Path(args.model_artifact_url_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.model_artifact_url_output_path).write_text(model_artifact_url)
-
-  Path(args.best_job_name_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.best_job_name_output_path).write_text(best_job)
-
-  Path(args.best_hyperparameters_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.best_hyperparameters_output_path).write_text(json.dumps(best_hyperparameters))
-
-  Path(args.training_image_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.training_image_output_path).write_text(image)
-
+  _utils.write_output(args.hpo_job_name_output_path, hpo_job_name)
+  _utils.write_output(args.model_artifact_url_output_path, model_artifact_url)
+  _utils.write_output(args.best_job_name_output_path, best_job)
+  _utils.write_output(args.best_hyperparameters_output_path, best_hyperparameters, json_encode=True)
+  _utils.write_output(args.training_image_output_path, image)
 
 if __name__== "__main__":
   main(sys.argv[1:])

@@ -13,8 +13,6 @@
 import sys
 import argparse
 import logging
-import json
-from pathlib2 import Path
 
 from common import _utils
 
@@ -67,11 +65,8 @@ def main(argv=None):
 
   outputs = _utils.get_processing_job_outputs(client, job_name)
 
-  Path(args.job_name_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.job_name_output_path).write_text(job_name)
-
-  Path(args.output_artifacts_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.output_artifacts_output_path).write_text(json.dumps(outputs))
+  _utils.write_output(args.job_name_output_path, job_name)
+  _utils.write_output(args.output_artifacts_output_path, outputs, json_encode=True)
 
   logging.info('Job completed.')
 
