@@ -317,23 +317,20 @@ class Client(object):
       A response object including a list of experiments and next page token.
     """
     while True:
-
-        filterName = filter_pb2.Filter()
-        predicate = filter_pb2.Predicate() 
-        predicate.key="name"
-        predicate.op=1
-        predicate.string_value=name 
-        filterName.predicates.append(predicate)
-
-        result = self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, filter=urllib.parse.quote(MessageToJson(filterName)))
-        print(result)
-        print("NOW NOW NOW")
-        for pl in result.pipelines:
-            if pl.name == name:
-                return pl.id
-        page_token = result.next_page_token
-        if not page_token:
-            break
+      filterName = filter_pb2.Filter()
+      predicate = filter_pb2.Predicate() 
+      predicate.key = "name"
+      predicate.op = 1
+      predicate.string_value=name 
+      filterName.predicates.append(predicate)
+      result = self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, filter=urllib.parse.quote(MessageToJson(filterName)))
+      print(result)
+      for pl in result.pipelines:
+          if pl.name == name:
+              return pl.id
+      page_token = result.next_page_token
+      if not page_token:
+          break
     return None
 
   def list_experiments(self, page_token='', page_size=10, sort_by='', namespace=None):
