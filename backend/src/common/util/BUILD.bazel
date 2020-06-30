@@ -26,6 +26,7 @@ go_library(
         "//backend/src/crd/pkg/apis/scheduledworkflow/v1beta1:go_default_library",
         "@com_github_argoproj_argo//pkg/apis/workflow/v1alpha1:go_default_library",
         "@com_github_argoproj_argo//workflow/validate:go_default_library",
+        "@com_github_argoproj_argo//workflow/pkg:go_default_library",
         "@com_github_cenkalti_backoff//:go_default_library",
         "@com_github_ghodss_yaml//:go_default_library",
         "@com_github_go_openapi_runtime//:go_default_library",
