@@ -37,7 +37,7 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
 				ArgoWorkflowNodeName: "test_node",
-				ArgoWorkflowTemplate: `{"name": "test_template"}`,
+				ArgoWorkflowTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
 			},
 			Labels: map[string]string{
 				ArgoCompleteLabelKey:    "true",
@@ -135,9 +135,9 @@ func TestMutatePodIfCached(t *testing.T) {
 
 func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 	executionCache := &model.ExecutionCache{
-		ExecutionCacheKey: "f98b62e4625b9f96bac478ac72d88181a37e4f1d6bfd3bd5f53e29286b2ca034",
+		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `{"name": "test_template"}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
