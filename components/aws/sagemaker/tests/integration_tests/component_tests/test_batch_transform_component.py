@@ -70,7 +70,7 @@ def test_transform_job(
 
     # Verify output location from pipeline matches job output and that the transformed file exists
     output_location = utils.read_from_file_in_tar(
-        output_files["sagemaker-batch-transformation"]["output_location"], "data",
+        output_files["sagemaker-batch-transformation"]["output_location"]
     )
     print(f"output location: {output_location}")
     assert output_location == response["TransformOutput"]["S3OutputPath"]
