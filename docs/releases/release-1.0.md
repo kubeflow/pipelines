@@ -12,6 +12,9 @@ There are two available ways to [deployment Kubeflow Pipelines](https://www.kube
 
 * [AI Platform Pipelines](https://cloud.google.com/ai-platform/pipelines/docs), which minimizes the user effort in deploying a Kubeflow pipelines instance.
 
+* Note: as of 2020-06-30, the Kubeflow Pipelines 1.0 instance is not available in [the Kubeflow deployment](https://www.kubeflow.org/docs/pipelines/installation/overview/#full-kubeflow) yet. Please use the above two ways
+to deploy the Kubeflow Pipelines 1.0 instance.
+
 ## Core features and APIs
 
 Core features and APIs are the fundamental functionalities of Kubeflow Pipelines. The most fundamental functionality is to manage the Kubeflow Pipelines resources (that is, pipeline, pipeline version, run, job, experiment) via the operations listed below. Active supports are available for core features and APIs.
