@@ -709,7 +709,7 @@ spec:
             - name: HAS_DEFAULT_BUCKET
               value: "true"
             - name: BUCKET_NAME
-              value: "{{ .Values.gcsBucketName }}"
+              value: "{{ .Values.managedstorage.gcsBucketName }}"
             {{ else }}
             - name: HAS_DEFAULT_BUCKET
               valueFrom:
@@ -737,7 +737,7 @@ spec:
               value: "false"
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
-              value: '{{ .Values.managedstorage.gcsBucketName }}'
+              value: "{{ .Values.managedstorage.gcsBucketName }}"
             - name: DBCONFIG_DBNAME
               {{ if .Values.managedstorage.databaseNamePrefix }}
               value: '{{ .Values.managedstorage.databaseNamePrefix }}_pipeline'
