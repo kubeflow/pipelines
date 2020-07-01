@@ -324,7 +324,6 @@ class Client(object):
       predicate.string_value=name 
       filterName.predicates.append(predicate)
       result = self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, filter=urllib.parse.quote(MessageToJson(filterName)))
-      print(result)
       for pl in result.pipelines:
           if pl.name == name:
               return pl.id
