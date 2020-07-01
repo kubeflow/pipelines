@@ -58,14 +58,6 @@ spec:
           name: minio
           ports:
             - containerPort: 9000
-          volumeMounts:
-            - name: gcp-sa-token
-              mountPath: "/etc/credentials"
-              readOnly: true
-      volumes:
-        - name: gcp-sa-token
-          secret:
-            secretName: {{ .Values.gcpSecretName }}
 {{ end }}
 ---
 {{ if not .Values.managedstorage.enabled }}
