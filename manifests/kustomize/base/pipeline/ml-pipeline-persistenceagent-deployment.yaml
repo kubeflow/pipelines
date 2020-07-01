@@ -21,6 +21,8 @@ spec:
                 fieldPath: metadata.namespace
           - name: TTL_SECONDS_AFTER_WORKFLOW_FINISH
             value: "86400"
+          - name: NUM_WORKERS
+            value: "2"
         image: gcr.io/ml-pipeline/persistenceagent:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-persistenceagent

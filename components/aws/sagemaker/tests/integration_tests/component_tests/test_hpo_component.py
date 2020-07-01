@@ -13,8 +13,7 @@ from utils import sagemaker_utils
     [
         pytest.param(
             "resources/config/kmeans-mnist-hpo", marks=pytest.mark.canary_test
-        ),
-        "resources/config/aws-samples-hpo-spot-training",
+        )
     ],
 )
 def test_hyperparameter_tuning(

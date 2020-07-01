@@ -1,13 +1,10 @@
-import json
 import unittest
 
 from unittest.mock import patch, call, Mock, MagicMock, mock_open
 from botocore.exceptions import ClientError
-from datetime import datetime
 
 from batch_transform.src import batch_transform
 from common import _utils
-from . import test_utils
 
 
 # TODO : Errors out if model_name doesn't contain '-'
@@ -47,6 +44,8 @@ class BatchTransformTestCase(unittest.TestCase):
     # Check if correct requests were created and triggered
     batch_transform._utils.create_transform_job.assert_called()
     batch_transform._utils.wait_for_transform_job.assert_called()
+    batch_transform._utils.print_logs_for_job.assert_called()
+
 
     # Check the file outputs
     file_open.assert_has_calls([
