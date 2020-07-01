@@ -76,8 +76,7 @@ implementation:
       --dataset_location, {inputValue: dataset_location},
       --output_gcs_path, {inputValue: output_gcs_path},
       --job_config, {inputValue: job_config},
+      --output_gcs_path_output_path, {outputPath: output_gcs_path},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
-    fileOutputs:
-      output_gcs_path: /tmp/kfp/output/bigquery/query-output-path.txt

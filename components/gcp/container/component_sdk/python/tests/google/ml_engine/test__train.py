@@ -24,14 +24,20 @@ CREATE_JOB_MODULE = 'kfp_component.google.ml_engine._train'
 class TestCreateTrainingJob(unittest.TestCase):
 
     def test_train_succeed(self, mock_create_job):
-        train('proj-1', 'mock.module', ['gs://test/package'],
-            'region-1', args=['arg-1', 'arg-2'], job_dir='gs://test/job/dir', 
+        train(
+            project_id='proj-1',
+            python_module='mock.module',
+            package_uris=['gs://test/package'],
+            region='region-1',
+            args=['arg-1', 'arg-2'], job_dir='gs://test/job/dir', 
             training_input={
                 'runtimeVersion': '1.10',
                 'pythonVersion': '2.7'
             }, job_id_prefix='job-', job_id='job-1',
             master_image_uri='tensorflow:latest',
-            worker_image_uri='debian:latest')
+            worker_image_uri='debian:latest',
+            job_id_output_path='/tmp/kfp/output/ml_engine/job_id.txt',
+        )
         
         mock_create_job.assert_called_with('proj-1', {
             'trainingInput': {
@@ -49,4 +55,4 @@ class TestCreateTrainingJob(unittest.TestCase):
                     'imageUri': 'debian:latest'
                 }
             }
-        }, 'job-', 'job-1', 30)
+        }, 'job-', 'job-1', 30, job_id_output_path='/tmp/kfp/output/ml_engine/job_id.txt')

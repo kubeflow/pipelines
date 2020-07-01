@@ -14,7 +14,7 @@
 
 from ._submit_job import submit_job
 
-def submit_sparksql_job(project_id, region, cluster_name, 
+def submit_sparksql_job(project_id, region, cluster_name, job_id_output_path,
     queries=[], query_file_uri=None, script_variables={}, sparksql_job={}, 
     job={}, wait_interval=30):
     """Submits a Cloud Dataproc job for running Apache Spark SQL queries.
@@ -37,12 +37,10 @@ def submit_sparksql_job(project_id, region, cluster_name,
             https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs).
         wait_interval (int): The wait seconds between polling the operation. 
             Defaults to 30s.
+        job_id_output_path (str): Path for the ID of the created job
 
     Returns:
         The created job payload.
-
-    Output Files:
-        $KFP_OUTPUT_PATH/dataproc/job_id.txt: The ID of the created job.
     """
     if not sparksql_job:
         sparksql_job = {}
@@ -55,4 +53,4 @@ def submit_sparksql_job(project_id, region, cluster_name,
     if script_variables:
         sparksql_job['scriptVariables'] = script_variables
     job['sparkSqlJob'] = sparksql_job
-    return submit_job(project_id, region, cluster_name, job, wait_interval)
+    return submit_job(project_id, region, cluster_name, job, wait_interval, job_id_output_path=job_id_output_path)
