@@ -1,6 +1,11 @@
 This directory contains code for the components that comprise the Kubeflow
 Pipelines backend.
 
+
+## Bazel
+
+The supported Bazel version is 0.24.0. 
+
 ## Building & Testing
 
 All components can be built using [Bazel](https://bazel.build/). To build
@@ -50,4 +55,3 @@ WORKSPACE go_repository rules using the following command: `bazel run
 dependencies. To update dependencies, edit [requirements.in](requirements.in)
 and run `./update_requirements.sh <requirements.in >requirements.txt` to update and pin the transitive
 dependencies.
-

@@ -1,4 +1,6 @@
-# Copyright 2018 Google LLC
+# export to new table. 
+
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +17,7 @@
 name: Bigquery - Query
 description: |
   A Kubeflow Pipeline component to submit a query to Google Cloud Bigquery 
-  service and dump outputs to a Google Cloud Storage blob. 
+  service and dump outputs to new table.
 metadata:
   labels:
     add-pod-env: 'true'
@@ -36,10 +38,6 @@ inputs:
       will generate a random id for the table.
     default: '' 
     type: String
-  - name: output_gcs_path
-    description: 'The path to the Cloud Storage bucket to store the query output.'
-    default: ''
-    type: GCSPath
   - name: dataset_location
     description: 'The location to create the dataset. Defaults to `US`.'
     default: 'US'
@@ -51,15 +49,14 @@ inputs:
       for details.
     default: ''
     type: Dict
+  - name: table
+    type: String
 outputs:
-  - name: output_gcs_path
-    description: 'The path to the Cloud Storage bucket containing the query output in CSV format.'
-    type: GCSPath
   - name: MLPipeline UI metadata
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:ad9bd5648dd0453005225779f25d8cebebc7ca00
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp
     args: [
       --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.bigquery, query,
@@ -68,10 +65,7 @@ implementation:
       --dataset_id, {inputValue: dataset_id},
       --table_id, {inputValue: table_id},
       --dataset_location, {inputValue: dataset_location},
-      --output_gcs_path, {inputValue: output_gcs_path},
       --job_config, {inputValue: job_config},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
-    fileOutputs:
-      output_gcs_path: /tmp/kfp/output/bigquery/query-output-path.txt

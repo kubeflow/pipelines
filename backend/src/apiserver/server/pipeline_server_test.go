@@ -244,6 +244,24 @@ func TestCreatePipelineVersion_InvalidURL(t *testing.T) {
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
+func TestListPipelineVersion_NoResourceKey(t *testing.T){
+	httpServer := getMockServer(t)
+	// Close the server when test finishes
+	defer httpServer.Close()
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client()}
+
+
+	_, err := pipelineServer.ListPipelineVersions(context.Background(), &api.ListPipelineVersionsRequest{
+		ResourceKey: nil,
+		PageSize: 20,
+	})
+	assert.Equal(t, "Invalid input error: ResourceKey must be set in the input", err.Error())
+}
+
 func getMockServer(t *testing.T) *httptest.Server {
 	httpServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		// Send response to be tested

@@ -89,7 +89,7 @@ class ApiPipelineRuntime(object):
         Output. The runtime JSON manifest of the pipeline, including the status of pipeline steps and fields need for UI visualization etc.  # noqa: E501
 
         :param pipeline_manifest: The pipeline_manifest of this ApiPipelineRuntime.  # noqa: E501
-        :type: str
+        :type pipeline_manifest: str
         """
 
         self._pipeline_manifest = pipeline_manifest
@@ -112,7 +112,7 @@ class ApiPipelineRuntime(object):
         Output. The runtime JSON manifest of the argo workflow. This is deprecated after pipeline_runtime_manifest is in use.  # noqa: E501
 
         :param workflow_manifest: The workflow_manifest of this ApiPipelineRuntime.  # noqa: E501
-        :type: str
+        :type workflow_manifest: str
         """
 
         self._workflow_manifest = workflow_manifest
