@@ -70,7 +70,7 @@ class GroundTruthTestCase(unittest.TestCase):
                        'TaskTimeLimitInSeconds': 180,
                        'AnnotationConsolidationConfig': {'AnnotationConsolidationLambdaArn': ''}},
       InputConfig={'DataSource': {'S3DataSource': {'ManifestS3Uri': 's3://fake-bucket/manifest'}}},
-      LabelAttributeName='test_job', LabelCategoryConfigS3Uri='', LabelingJobName='test_job',
+      LabelAttributeName='test_job', LabelingJobName='test_job',
       OutputConfig={'S3OutputPath': 's3://fake-bucket/output', 'KmsKeyId': ''},
       RoleArn='arn:aws:iam::123456789012:user/Development/product_1234/*', Tags=[]
     )
@@ -156,7 +156,6 @@ class GroundTruthTestCase(unittest.TestCase):
                                                 'DataAttributes': {'ContentClassifiers': ['FreeOfAdultContent', 'FreeOfPersonallyIdentifiableInformation']}},
                                 'OutputConfig': {'S3OutputPath': 's3://fake-bucket/output', 'KmsKeyId': ''},
                                 'RoleArn': 'arn:aws:iam::123456789012:user/Development/product_1234/*',
-                                'LabelCategoryConfigS3Uri': '',
                                 'StoppingConditions': {'MaxHumanLabeledObjectCount': 10, 'MaxPercentageOfInputDatasetLabeled': 50},
                                 'LabelingJobAlgorithmsConfig': {'LabelingJobAlgorithmSpecificationArn': 'arn:aws:sagemaker:us-west-2:027400017018:labeling-job-algorithm-specification/image-classification',
                                                                 'InitialActiveLearningModelArn': 'fake-model-arn',
