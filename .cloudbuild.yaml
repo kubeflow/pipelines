@@ -294,3 +294,5 @@ timeout: '3600s'
 options:
  diskSizeGb: 300
  machineType: 'N1_HIGHCPU_8'
+tags:
+- build-each-commit

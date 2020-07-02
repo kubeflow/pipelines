@@ -1,13 +1,11 @@
-import json
 import unittest
 
 from unittest.mock import patch, call, Mock, MagicMock, mock_open
 from botocore.exceptions import ClientError
-from datetime import datetime
 
 from train.src import train
 from common import _utils
-from . import test_utils
+
 
 required_args = [
   '--region', 'us-west-2',
@@ -46,6 +44,7 @@ class TrainTestCase(unittest.TestCase):
     # Check if correct requests were created and triggered
     train._utils.create_training_job.assert_called()
     train._utils.wait_for_training_job.assert_called()
+    train._utils.print_logs_for_job.assert_called()
 
     # Check the file outputs
     file_open.assert_has_calls([

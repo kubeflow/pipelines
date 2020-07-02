@@ -28,7 +28,7 @@ def train(args):
     wml_train_code = args.train_code
     wml_execution_command = args.execution_command.strip('\'')
     wml_framework_name = args.framework if args.framework else 'tensorflow'
-    wml_framework_version = args.framework_version if args.framework_version else '1.14'
+    wml_framework_version = args.framework_version if args.framework_version else '1.15'
     wml_runtime_name = args.runtime if args.runtime else 'python'
     wml_runtime_version = args.runtime_version if args.runtime_version else '3.6'
     wml_run_definition = args.run_definition if args.run_definition else 'python-tensorflow-definition'

@@ -216,6 +216,8 @@ func initConfig() {
 	replacer := strings.NewReplacer(".", "_")
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
+	// We need empty string env var for e.g. KUBEFLOW_USERID_PREFIX.
+	viper.AllowEmptyEnv(true)
 
 	// Set configuration file name. The format is auto detected in this case.
 	viper.SetConfigName("config")

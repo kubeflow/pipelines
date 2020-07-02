@@ -47,9 +47,6 @@ spec:
       - name: loop-item-param-00000001-subvar-a
       - name: my_pipe_param
     name: my-in-coop1
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
   - container:
       args:
       - echo op2 {{inputs.parameters.loop-item-param-00000001-subvar-b}}
@@ -61,9 +58,6 @@ spec:
       parameters:
       - name: loop-item-param-00000001-subvar-b
     name: my-in-coop2
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
   - container:
       args:
       - echo {{inputs.parameters.my_pipe_param}}
@@ -75,9 +69,6 @@ spec:
       parameters:
       - name: my_pipe_param
     name: my-out-cop
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
   - dag:
       tasks:
       - arguments:

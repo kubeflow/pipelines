@@ -92,7 +92,7 @@ class ApiCronSchedule(object):
 
 
         :param start_time: The start_time of this ApiCronSchedule.  # noqa: E501
-        :type: datetime
+        :type start_time: datetime
         """
 
         self._start_time = start_time
@@ -113,7 +113,7 @@ class ApiCronSchedule(object):
 
 
         :param end_time: The end_time of this ApiCronSchedule.  # noqa: E501
-        :type: datetime
+        :type end_time: datetime
         """
 
         self._end_time = end_time
@@ -134,7 +134,7 @@ class ApiCronSchedule(object):
 
 
         :param cron: The cron of this ApiCronSchedule.  # noqa: E501
-        :type: str
+        :type cron: str
         """
 
         self._cron = cron

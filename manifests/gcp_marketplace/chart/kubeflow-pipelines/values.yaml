@@ -17,23 +17,13 @@ images:
   cacheserver: gcr.io/ml-pipeline/google/pipelines/cacheserver:dummy
   cachedeployer: gcr.io/ml-pipeline/google/pipelines/cachedeployer:dummy
 
-gcpSecretName: "user-gcp-sa"
 serviceAccountCredential: ""
 gcpDefaultConfigName: "gcp-default-config"
 
 managedstorage:
   enabled: false
   cloudsqlInstanceConnectionName: null
-  # gcsBucketName should be determined by cloudsqlInstanceConnectionName to make
-  # sure user is always using a valid pair of connection name + gcs bucket name.
-  #
-  # gcsBucketName is used in two places, so I wrote a template string here that
-  # can be evaluated in each place.
-  #
-  # Name pattern:
-  # If spedify databaseNamePrefix: %{cloudsqlInstanceConnectionName}-%{truncedDatabaseNamePrefix}
-  # else: %{cloudsqlInstanceConnectionName}-%{releaseName}
-  gcsBucketName: '{{ if .Values.managedstorage.databaseNamePrefix }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Values.managedstorage.databaseNamePrefix | replace ":" "-" | lower | trunc 60 }}{{ else }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Release.Name | replace ":" "-" | lower | trunc 60 }}{{ end }}'
+  gcsBucketName: null
   databaseNamePrefix: null
   dbUsername: 'root'
   dbPassword: ''
