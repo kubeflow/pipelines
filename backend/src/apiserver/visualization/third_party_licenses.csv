@@ -54,7 +54,7 @@ grpcio-gcp,https://raw.githubusercontent.com/GoogleCloudPlatform/grpc-gcp-python
 h5py,https://raw.githubusercontent.com/h5py/h5py/master/LICENSE,BSD-3
 hdfs,https://raw.githubusercontent.com/mtth/hdfs/master/LICENSE,MIT
 httplib2,https://raw.githubusercontent.com/httplib2/httplib2/master/LICENSE,MIT
-idna,https://raw.githubusercontent.com/kjd/idna/master/LICENSE.rst,BSD-3
+idna,https://raw.githubusercontent.com/kjd/idna/master/LICENSE.md,BSD-3
 importlib-metadata,https://gitlab.com/python-devs/importlib_metadata/master/LICENSE,Apache 2.0
 ipykernel,https://raw.githubusercontent.com/ipython/ipykernel/master/COPYING.md,BSD-3
 ipython,https://raw.githubusercontent.com/ipython/ipython/master/LICENSE,BSD-3
