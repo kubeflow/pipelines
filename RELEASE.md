@@ -39,16 +39,8 @@ Choose one of the following options for cherry picking your PR to release branch
 Contributors should ask OWNERS who approved the PR to add a `cherrypick-approved`
 label if they want the PR cherry picked to release branch.
 
-Release manager will
-* Periodically or before release, search all merged PRs with `cherrypick-approved`
-    label, but no `cherrypicked` label using
-    [this link](https://github.com/kubeflow/pipelines/pulls?q=is%3Apr+label%3Acherrypick-approved+-label%3Acherrypicked+is%3Aclosed+)
-* Use the git cherry-pick option to pick these PR commits into the release branch
-in a batch and add `cherrypicked` label to these PRs.
-
-    NOTE: if there are merge conflicts for a PR, ask the PR author or area OWNER
-    to create a cherry pick PR by themselves following other two options.
-* `git push upstream release-$VERSION` directly to the release branch.
+Release manager will periodically or before release, search all merged PRs with
+`cherrypick-approved` and cherry pick them into current release branch.
 
 #### Option - git cherry-pick
 * Find the commit you want to cherry pick on master as $COMMIT_SHA.
@@ -106,6 +98,21 @@ if you only want to use or contribute to this repo.
     git checkout -b release-$MINOR_VERSION
     git push upstream HEAD
     ```
+
+### Before release
+
+Do the following things before a release:
+1. Cherry pick all merged PRs with `cherrypick-approved` label:
+    * Search all merged PRs with `cherrypick-approved`
+        label, but no `cherrypicked` label using
+        [this link](https://github.com/kubeflow/pipelines/pulls?q=is%3Apr+label%3Acherrypick-approved+-label%3Acherrypicked+is%3Aclosed+sort%3Aupdated-asc)
+    * Use the git cherry-pick option to pick these PR commits into the release
+    branch one by one in a batch and add `cherrypicked` label to these PRs.
+
+        NOTE: if there are merge conflicts for a PR, ask the PR author or area OWNER
+        to create a cherry pick PR by themselves following other two options.
+    * `git push upstream release-$VERSION` directly to the release branch.
+1. Verify cloudbuild and postsubmit tests are passing.
 
 ### Releasing from release branch
 
