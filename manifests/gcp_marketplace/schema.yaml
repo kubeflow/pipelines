@@ -122,8 +122,30 @@ properties:
       Using CloudSQL and GCS provides better reliability and performance,
       as well as features such as data backup and usage monitoring.
       This is the recommended option especially for production scenarios.
-      If false, the data will be stored in GCE Persistent Disk.
+
+      If yes, you must specify GCS bucket and CloudSQL instance below. Note, to
+      reserve your data while reinstalling Kubeflow Pipelines, you must use
+      exactly the same managed storage options as before.
+
+      If upgrading from managed storage Kubeflow Pipelines 0.5.1, GCS bucket
+      name was previously auto generated in the same project, it should have been
+      named like "<cloudsql instance connection name>-<database prefix or instance name>".
+
+      If false, following options will be ignored and the data will be stored in
+      GCE Persistent Disks.
     default: false
+  managedstorage.gcsBucketName:
+    type: string
+    title: Artifact storage GCS bucket (Managed storage only)
+    description: |-
+      This field must be specified if choose to use managed storage.
+      Provide the Google Cloud Storage (GCS) bucket name for an existing bucket.
+      The bucket will be used for storing the output artifacts.
+      For more details on how to create a new bucket, see https://cloud.google.com/storage/docs/creating-buckets.
+
+      Warning, if provided bucket doesn't exist, deployer will automatically
+      create a bucket for you in us-central1, but you won't be able to customize
+      any parameters.
   managedstorage.cloudsqlInstanceConnectionName:
     type: string
     title: Cloud SQL instance connection name (Managed storage only)
