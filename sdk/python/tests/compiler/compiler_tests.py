@@ -248,36 +248,6 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
       # print(tmpdir)
 
-  def test_package_compile(self):
-    """Test compiling python packages."""
-
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-    test_package_dir = os.path.join(test_data_dir, 'testpackage')
-    tmpdir = tempfile.mkdtemp()
-    cwd = os.getcwd()
-    try:
-      os.chdir(test_package_dir)
-      subprocess.check_call(['python3', 'setup.py', 'sdist', '--format=gztar', '-d', tmpdir])
-      package_path = os.path.join(tmpdir, 'testsample-0.1.tar.gz')
-      target_zip = os.path.join(tmpdir, 'compose.zip')
-      subprocess.check_call([
-          'dsl-compile', '--package', package_path, '--namespace', 'mypipeline',
-          '--output', target_zip, '--function', 'download_save_most_frequent_word'])
-      with open(os.path.join(test_data_dir, 'compose.yaml'), 'r') as f:
-        golden = yaml.safe_load(f)
-      compiled = self._get_yaml_from_zip(target_zip)
-
-      for workflow in golden, compiled:
-        del workflow['metadata']
-        for template in workflow['spec']['templates']:
-          template.pop('metadata', None)
-
-      self.maxDiff = None
-      self.assertEqual(golden, compiled)
-    finally:
-      shutil.rmtree(tmpdir)
-      os.chdir(cwd)
-
   def _test_py_compile_zip(self, file_base_name):
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     py_file = os.path.join(test_data_dir, file_base_name + '.py')
