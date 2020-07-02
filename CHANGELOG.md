@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.0.0-rc.3](https://github.com/kubeflow/pipelines/compare/1.0.0-rc.2...1.0.0-rc.3) (2020-07-02)
+
+
+### Features
+
+* **deployment:** marketplace - allow specifying gcs bucket directly ([\#4112](https://github.com/kubeflow/pipelines/issues/4112)) ([92a8cfe](https://github.com/kubeflow/pipelines/commit/92a8cfebced775eb816e68622cd4d70bd3b45784))
+
+
+### Bug Fixes
+
+* increase TFX version from 0.20.2 to 0.22.0. Fixes [\#4084](https://github.com/kubeflow/pipelines/issues/4084), fixes [\#4114](https://github.com/kubeflow/pipelines/issues/4114) ([\#4133](https://github.com/kubeflow/pipelines/issues/4133)) ([5d8a59c](https://github.com/kubeflow/pipelines/commit/5d8a59c359038f13356eb9a4ecbffd961381e426))
+* **backend:** allow empty userid header prefix. Fixes [\#4091](https://github.com/kubeflow/pipelines/issues/4091) (#4098) ([9e00c79](https://github.com/kubeflow/pipelines/commit/9e00c79a4601f3a79629718c902db60a39792da2))
+
+
+### Other Pull Requests
+
+* SDK - Compiler - Removed the deprecated dsl-compile --package command ([\#4055](https://github.com/kubeflow/pipelines/issues/4055)) ([6bcb3ef](https://github.com/kubeflow/pipelines/commit/6bcb3efa144a38cda3c2ecf551c9f34a4c35e9de))
+* SDK - Components - Python - Switched the default base image to python 3.7 (#4054) ([090fffc](https://github.com/kubeflow/pipelines/commit/090fffc3c48ac4dded562ce76ade21ee0d83ef18))
+* Validate resourcekey to avoid apiserver being panic for invalid inputs ([\#3999](https://github.com/kubeflow/pipelines/issues/3999)) ([6ced6ea](https://github.com/kubeflow/pipelines/commit/6ced6ea6e6da8a5bd121d7dbfc788b05795f425c))
+* [Backend] Bug fix: applying filter in listing versions ([\#4052](https://github.com/kubeflow/pipelines/issues/4052)) ([3243f73](https://github.com/kubeflow/pipelines/commit/3243f73ed73a370b733d05376aeb7ae623a1b282))
+* better native-keras based sample ([\#3900](https://github.com/kubeflow/pipelines/issues/3900)) ([842e8ce](https://github.com/kubeflow/pipelines/commit/842e8ce1ee5fc5559733f99596fa5db401a7fa3b))
+* Metadata Writer - Added timeouts ([\#4037](https://github.com/kubeflow/pipelines/issues/4037)) ([e808795](https://github.com/kubeflow/pipelines/commit/e808795ad6b50f51f981e20587c96518d59af5bf))
+* Fix/log unavailable warning ([\#3848](https://github.com/kubeflow/pipelines/issues/3848)) ([3c6f6db](https://github.com/kubeflow/pipelines/commit/3c6f6db72d9ea7c5ba363285c3419c886f2ef1df))
+* Metadata-Writer: Updates metadata writer to use mlmd 0.22.0 ([\#4027](https://github.com/kubeflow/pipelines/issues/4027)) ([88d6da7](https://github.com/kubeflow/pipelines/commit/88d6da724f501402c1c497d1f3c5b155c97b7e18))
+* Metadata Writer - Stopped using artifact properties ([\#4004](https://github.com/kubeflow/pipelines/issues/4004)) ([4833d1a](https://github.com/kubeflow/pipelines/commit/4833d1a1e708633074481491a736a10c3c10fe3b))
+* update refreshing mechanism ([\#3981](https://github.com/kubeflow/pipelines/issues/3981)) ([efa5f1e](https://github.com/kubeflow/pipelines/commit/efa5f1e239af2705f2ffca48004871e6deaa6d77))
+* enable pagination when expanding experiment in both the home page and the archive page ([\#4012](https://github.com/kubeflow/pipelines/issues/4012)) ([8d34f6d](https://github.com/kubeflow/pipelines/commit/8d34f6d5e7e95caf0367c50dc78d26f4ca0899b3))
+
 ## [0.5.1](https://github.com/kubeflow/pipelines/tree/0.5.1) (2020-05-07)
 
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.4.0...0.5.1)
