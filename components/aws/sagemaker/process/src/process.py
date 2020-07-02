@@ -40,7 +40,7 @@ def create_parser():
   parser.add_argument('--traffic_encryption', type=_utils.str_to_bool, required=False, help='Encrypts all communications between ML compute instances in distributed training.', default=False)
   parser.add_argument('--tags', type=_utils.yaml_or_json_str, required=False, help='An array of key-value pairs, to categorize AWS resources.', default={})
   parser.add_argument('--job_name_output_path', type=str, default='/tmp/job-name.json', help='Local output path for the file containing the name of the processing job.')
-  parser.add_argument('--output_artifacts_output_path', type=str, default='/tmp/output-artifacts.json', help='Local output path for the file containing the dictionary describing the output S3 artifacts.')
+  parser.add_argument('--output_artifacts_output_path', type=str, default='/tmp/output-artifacts', help='Local output path for the file containing the dictionary describing the output S3 artifacts.')
 
   return parser
 

@@ -42,7 +42,7 @@ def create_parser():
   parser.add_argument('--instance_count', type=int, required=False, help='The number of ML compute instances to use in the transform job.')
   parser.add_argument('--resource_encryption_key', type=str, required=False, help='The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).', default='')
   parser.add_argument('--tags', type=_utils.yaml_or_json_str, required=False, help='An array of key-value pairs, to categorize AWS resources.', default={})
-  parser.add_argument('--output_location_output_path', type=str, default='/tmp/output-location.json', help='Local output path for the file containing the Amazon S3 URI of the transform job results.')
+  parser.add_argument('--output_location_output_path', type=str, default='/tmp/output-location', help='Local output path for the file containing the Amazon S3 URI of the transform job results.')
 
   return parser
 
