@@ -64,12 +64,16 @@ export default class Buttons {
   }
 
   public archive(
+    resourceName: 'run' | 'experiment',
     getSelectedIds: () => string[],
     useCurrentResource: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
   ): Buttons {
     this._map[ButtonKeys.ARCHIVE] = {
-      action: () => this._archive(getSelectedIds(), useCurrentResource, callback),
+      action: () =>
+        resourceName === 'run'
+          ? this._archiveRun(getSelectedIds(), useCurrentResource, callback)
+          : this._archiveExperiments(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to archive',
       id: 'archiveBtn',
@@ -148,7 +152,7 @@ export default class Buttons {
   // or recurring run config.
   public delete(
     getSelectedIds: () => string[],
-    resourceName: 'pipeline' | 'recurring run config' | 'pipeline version',
+    resourceName: 'pipeline' | 'recurring run config' | 'pipeline version' | 'run',
     callback: (selectedIds: string[], success: boolean) => void,
     useCurrentResource: boolean,
   ): Buttons {
@@ -158,6 +162,8 @@ export default class Buttons {
           ? this._deletePipeline(getSelectedIds(), useCurrentResource, callback)
           : resourceName === 'pipeline version'
           ? this._deletePipelineVersion(getSelectedIds(), useCurrentResource, callback)
+          : resourceName === 'run'
+          ? this._deleteRun(getSelectedIds(), useCurrentResource, callback)
           : this._deleteRecurringRun(getSelectedIds()[0], useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource
@@ -296,7 +302,7 @@ export default class Buttons {
       outlined: true,
       style: { minWidth: 160 },
       title: label,
-      tooltip: 'Upload pipeline or pipeline version',
+      tooltip: 'Upload pipeline version',
     };
     return this;
   }
@@ -312,12 +318,16 @@ export default class Buttons {
   }
 
   public restore(
+    resourceName: 'run' | 'experiment',
     getSelectedIds: () => string[],
     useCurrentResource: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
   ): Buttons {
     this._map[ButtonKeys.RESTORE] = {
-      action: () => this._restore(getSelectedIds(), useCurrentResource, callback),
+      action: () =>
+        resourceName === 'run'
+          ? this._restore(getSelectedIds(), useCurrentResource, callback)
+          : this._restoreExperiments(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to restore',
       id: 'restoreBtn',
@@ -389,7 +399,7 @@ export default class Buttons {
     );
   }
 
-  private _archive(
+  private _archiveRun(
     selectedIds: string[],
     useCurrent: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
@@ -425,6 +435,30 @@ export default class Buttons {
       callback,
       'Restore',
       'run',
+    );
+  }
+
+  private _restoreExperiments(
+    selectedIds: string[],
+    useCurrent: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): void {
+    this._dialogActionHandler(
+      selectedIds,
+      `Do you want to restore ${
+        selectedIds.length === 1 ? 'this experiment to its' : 'these experiments to their'
+      } original location? All runs and jobs in ${
+        selectedIds.length === 1 ? 'this experiment' : 'these experiments'
+      } will stay at their current locations in spite that ${
+        selectedIds.length === 1 ? 'this experiment' : 'these experiments'
+      } will be moved to ${selectedIds.length === 1 ? 'its' : 'their'} original location${s(
+        selectedIds,
+      )}.`,
+      useCurrent,
+      id => Apis.experimentServiceApi.unarchiveExperiment(id),
+      callback,
+      'Restore',
+      'experiment',
     );
   }
 
@@ -497,6 +531,22 @@ export default class Buttons {
     );
   }
 
+  private _deleteRun(
+    ids: string[],
+    useCurrentResource: boolean,
+    callback: (_: string[], success: boolean) => void,
+  ): void {
+    this._dialogActionHandler(
+      ids,
+      'Do you want to delete the selected runs? This action cannot be undone.',
+      useCurrentResource,
+      id => Apis.runServiceApi.deleteRun(id),
+      callback,
+      'Delete',
+      'run',
+    );
+  }
+
   private _dialogActionHandler(
     selectedIds: string[],
     content: string,
@@ -563,7 +613,7 @@ export default class Buttons {
       );
 
       const successfulOps = selectedIds.length - unsuccessfulIds.length;
-      if (useCurrentResource || successfulOps > 0) {
+      if (successfulOps > 0) {
         this._props.updateSnackbar({
           message: `${actionName} succeeded for ${
             useCurrentResource ? 'this' : successfulOps
@@ -756,6 +806,8 @@ export default class Buttons {
     // Delete pipeline versions.
     const unsuccessfulVersionIds: { [pipelineId: string]: string[] } = {};
     await Promise.all(
+      // TODO: fix the no no return value bug
+      // eslint-disable-next-line array-callback-return
       Object.keys(toBeDeletedVersionIds).map(pipelineId => {
         toBeDeletedVersionIds[pipelineId].map(async versionId => {
           try {
@@ -819,5 +871,25 @@ export default class Buttons {
 
   private _deepCountDictionary(dict: { [pipelineId: string]: string[] }): number {
     return Object.keys(dict).reduce((count, pipelineId) => count + dict[pipelineId].length, 0);
+  }
+
+  private _archiveExperiments(
+    selectedIds: string[],
+    useCurrent: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): void {
+    this._dialogActionHandler(
+      selectedIds,
+      `Experiment${s(selectedIds)} will be moved to the Archive section, where you can still view${
+        selectedIds.length === 1 ? 'its' : 'their'
+      } details. All runs in this archived experiment will be archived. All jobs in this archived experiment will be disabled. Use the Restore action on the experiment details page to restore the experiment${s(
+        selectedIds,
+      )} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
+      useCurrent,
+      id => Apis.experimentServiceApi.archiveExperiment(id),
+      callback,
+      'Archive',
+      'experiment',
+    );
   }
 }

@@ -38,9 +38,9 @@ const (
 func initializeDbAndStore() (*DB, *JobStore) {
 	db := NewFakeDbOrFatal()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
-	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1", Namespace: "n1"})
 	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
-	expStore.CreateExperiment(&model.Experiment{Name: "exp2"})
+	expStore.CreateExperiment(&model.Experiment{Name: "exp2", Namespace: "n1"})
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	job1 := &model.Job{
 		UUID:        "1",
@@ -88,6 +88,7 @@ func initializeDbAndStore() (*DB, *JobStore) {
 				Cron:                       util.StringPointer("1 * *"),
 			},
 		},
+		NoCatchup:      true,
 		Enabled:        true,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
@@ -163,6 +164,7 @@ func TestListJobs_Pagination(t *testing.T) {
 					Cron:                       util.StringPointer("1 * *"),
 				},
 			},
+			NoCatchup:      true,
 			CreatedAtInSec: 2,
 			UpdatedAtInSec: 2,
 			Conditions:     "ready",
@@ -244,6 +246,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 					Cron:                       util.StringPointer("1 * *"),
 				},
 			},
+			NoCatchup:      true,
 			CreatedAtInSec: 2,
 			UpdatedAtInSec: 2,
 			ResourceReferences: []*model.ResourceReference{
@@ -281,6 +284,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 					IntervalSecond:                 util.Int64Pointer(3),
 				},
 			},
+			NoCatchup:      false,
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
 			ResourceReferences: []*model.ResourceReference{
@@ -352,6 +356,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 					Cron:                       util.StringPointer("1 * *"),
 				},
 			},
+			NoCatchup:      true,
 			CreatedAtInSec: 2,
 			UpdatedAtInSec: 2,
 			ResourceReferences: []*model.ResourceReference{
@@ -414,6 +419,12 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
 	assert.Equal(t, jobsExpected, jobs)
+
+	jobs, total_size, nextPageToken, err = jobStore.ListJobs(
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: "n1"}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, 2, total_size) // both test jobs belong to namespace `n1`
 }
 
 func TestListJobsError(t *testing.T) {
@@ -711,6 +722,7 @@ func TestUpdateJob_Success(t *testing.T) {
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Enabled:        false,
 			MaxConcurrency: util.Int64Pointer(200),
+			NoCatchup:      util.BoolPointer(true),
 			Workflow: &swfapi.WorkflowResource{
 				Parameters: []swfapi.Parameter{
 					{Name: "PARAM1", Value: "NEW_VALUE1"},
@@ -755,6 +767,7 @@ func TestUpdateJob_Success(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 		MaxConcurrency: 200,
+		NoCatchup:      true,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
 			PipelineName: "p1",

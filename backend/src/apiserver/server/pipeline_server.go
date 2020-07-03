@@ -54,7 +54,7 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 		return nil, util.Wrap(err, "Invalid pipeline name.")
 	}
 
-	pipeline, err := s.resourceManager.CreatePipeline(pipelineName, "", pipelineFile)
+	pipeline, err := s.resourceManager.CreatePipeline(pipelineName, request.Pipeline.Description, pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed.")
 	}
@@ -164,6 +164,11 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *api.
 
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
+	}
+
+	//Ensure resourceKey has been set
+	if request.ResourceKey == nil {
+		return nil, util.NewInvalidInputError("ResourceKey must be set in the input")
 	}
 
 	pipelineVersions, total_size, nextPageToken, err :=

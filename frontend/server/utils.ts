@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018-2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,6 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { readFileSync } from 'fs';
+import { Transform, TransformOptions } from 'stream';
+
+/** get the server address from host, port, and schema (defaults to 'http'). */
+export function getAddress({
+  host,
+  port,
+  namespace,
+  schema = 'http',
+}: {
+  host: string;
+  port?: string | number;
+  namespace?: string;
+  schema?: string;
+}) {
+  namespace = namespace ? `.${namespace}` : '';
+  port = port ? `:${port}` : '';
+  return `${schema}://${host}${namespace}${port}`;
+}
 
 export function equalArrays(a1: any[], a2: any[]): boolean {
   if (!Array.isArray(a1) || !Array.isArray(a2) || a1.length !== a2.length) {
@@ -34,11 +52,133 @@ export function generateRandomString(length: number): string {
   return str;
 }
 
-export function loadJSON(filepath: string, defaultValue: Object = {}): Object {
-  if (!filepath) return defaultValue;
+export function loadJSON<T>(filepath?: string, defaultValue?: T): T | undefined {
+  if (!filepath) {
+    return defaultValue;
+  }
   try {
     return JSON.parse(readFileSync(filepath, 'utf-8'));
   } catch (error) {
+    console.error(`Failed reading json data from '${filepath}':`);
+    console.error(error);
     return defaultValue;
   }
+}
+
+export interface PreviewStreamOptions extends TransformOptions {
+  peek: number;
+}
+
+/**
+ * Transform stream that only stream the first X number of bytes.
+ */
+export class PreviewStream extends Transform {
+  constructor({ peek, ...opts }: PreviewStreamOptions) {
+    // acts like passthrough
+    let transform: TransformOptions['transform'] = (chunk, _encoding, callback) =>
+      callback(undefined, chunk);
+    // implements preview - peek must be positive number
+    if (peek && peek > 0) {
+      let size = 0;
+      transform = (chunk, _encoding, callback) => {
+        const delta = peek - size;
+        size += chunk.length;
+        if (size >= peek) {
+          callback(undefined, chunk.slice(0, delta));
+          this.resume(); // do not handle any subsequent data
+          return;
+        }
+        callback(undefined, chunk);
+      };
+    }
+    super({ ...opts, transform });
+  }
+}
+
+export interface ErrorDetails {
+  message: string;
+  additionalInfo: any;
+}
+const UNKOWN_ERROR = 'Unknown error';
+export async function parseError(error: any): Promise<ErrorDetails> {
+  return (
+    parseK8sError(error) ||
+    (await parseKfpApiError(error)) ||
+    parseGenericError(error) || { message: UNKOWN_ERROR, additionalInfo: error }
+  );
+}
+
+function parseGenericError(error: any): ErrorDetails | undefined {
+  if (!error) {
+    return undefined;
+  } else if (typeof error === 'string') {
+    return {
+      message: error,
+      additionalInfo: error,
+    };
+  } else if (error instanceof Error) {
+    return { message: error.message, additionalInfo: error };
+  } else if (error.message && typeof error.message === 'string') {
+    return { message: error.message, additionalInfo: error };
+  } else if (
+    error.url &&
+    typeof error.url === 'string' &&
+    error.status &&
+    typeof error.status === 'number' &&
+    error.statusText &&
+    typeof error.statusText === 'string'
+  ) {
+    const { url, status, statusText } = error;
+    return {
+      message: `Fetching ${url} failed with status code ${status} and message: ${statusText}`,
+      additionalInfo: { url, status, statusText },
+    };
+  }
+  // Cannot understand error type
+  return undefined;
+}
+async function parseKfpApiError(error: any): Promise<ErrorDetails | undefined> {
+  if (!error || !error.json || typeof error.json !== 'function') {
+    return undefined;
+  }
+  try {
+    const json = await error.json();
+    const { error: message, details } = json;
+    if (message && details && typeof message === 'string' && typeof details === 'object') {
+      return {
+        message,
+        additionalInfo: details,
+      };
+    } else {
+      return undefined;
+    }
+  } catch (err) {
+    return undefined;
+  }
+}
+function parseK8sError(error: any): ErrorDetails | undefined {
+  if (!error || !error.body || typeof error.body !== 'object') {
+    return undefined;
+  }
+
+  if (typeof error.body.message !== 'string') {
+    return undefined;
+  }
+
+  // Kubernetes client http error has body with all the info.
+  // Example error.body
+  // {
+  //   kind: 'Status',
+  //   apiVersion: 'v1',
+  //   metadata: {},
+  //   status: 'Failure',
+  //   message: 'pods "test-pod" not found',
+  //   reason: 'NotFound',
+  //   details: { name: 'test-pod', kind: 'pods' },
+  //   code: 404
+  // }
+  return {
+    message: error.body.message,
+    additionalInfo: error.body,
+  };
 }

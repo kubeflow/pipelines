@@ -46,10 +46,11 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to load database status.")
 	}
-	defer rows.Close()
+	next := rows.Next()
+	rows.Close() // "rows" shouldn't be used after this point.
 
 	// The table is not initialized
-	if !rows.Next() {
+	if !next {
 		sql, args, queryErr := sq.
 			Insert("db_statuses").
 			SetMap(defaultDBStatus).

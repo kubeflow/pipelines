@@ -25,18 +25,24 @@ import CustomTable, {
 import RunList from './RunList';
 import produce from 'immer';
 import { ApiFilter, PredicateOp } from '../apis/filter';
-import { ApiListExperimentsResponse, ApiExperiment } from '../apis/experiment';
+import {
+  ApiListExperimentsResponse,
+  ApiExperiment,
+  ExperimentStorageState,
+} from '../apis/experiment';
 import { ApiRun, RunStorageState } from '../apis/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
 import { statusToIcon } from './Status';
+import Tooltip from '@material-ui/core/Tooltip';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface DisplayExperiment extends ApiExperiment {
   last5Runs?: ApiRun[];
@@ -50,7 +56,7 @@ interface ExperimentListState {
   selectedTab: number;
 }
 
-class ExperimentList extends Page<{}, ExperimentListState> {
+export class ExperimentList extends Page<{ namespace?: string }, ExperimentListState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -71,7 +77,12 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         .newExperiment()
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)
-        .archive(() => this.state.selectedIds, false, ids => this._selectionChanged(ids))
+        .archive(
+          'run',
+          () => this.state.selectedIds,
+          false,
+          ids => this._selectionChanged(ids),
+        )
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
@@ -140,13 +151,15 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Link
-        className={commonCss.link}
-        onClick={e => e.stopPropagation()}
-        to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
-      >
-        {props.value}
-      </Link>
+      <Tooltip title={props.value} enterDelay={300} placement='top-start'>
+        <Link
+          className={commonCss.link}
+          onClick={e => e.stopPropagation()}
+          to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
+        >
+          {props.value}
+        </Link>
+      </Tooltip>
     );
   };
 
@@ -169,11 +182,27 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     let response: ApiListExperimentsResponse;
     let displayExperiments: DisplayExperiment[];
     try {
+      // This ExperimentList page is used as the "All experiments" tab
+      // inside ExperimentAndRuns. Here we only list unarchived experiments.
+      // Archived experiments are listed in "Archive" page.
+      const filter = JSON.parse(
+        decodeURIComponent(request.filter || '{"predicates": []}'),
+      ) as ApiFilter;
+      filter.predicates = (filter.predicates || []).concat([
+        {
+          key: 'storage_state',
+          op: PredicateOp.NOTEQUALS,
+          string_value: ExperimentStorageState.ARCHIVED.toString(),
+        },
+      ]);
+      request.filter = encodeURIComponent(JSON.stringify(filter));
       response = await Apis.experimentServiceApi.listExperiment(
         request.pageToken,
         request.pageSize,
         request.sortBy,
         request.filter,
+        this.props.namespace ? 'NAMESPACE' : undefined,
+        this.props.namespace || undefined,
       );
       displayExperiments = response.experiments || [];
       displayExperiments.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
@@ -217,7 +246,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
       }),
     );
 
-    this.setState({ displayExperiments });
+    this.setStateSafe({ displayExperiments });
     return response.next_page_token || '';
   }
 
@@ -249,7 +278,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         experimentIdMask={experiment.id}
         onError={() => null}
         {...this.props}
-        disablePaging={true}
+        disablePaging={false}
         selectedIds={this.state.selectedIds}
         noFilterBox={true}
         storageState={RunStorageState.AVAILABLE}
@@ -260,4 +289,9 @@ class ExperimentList extends Page<{}, ExperimentListState> {
   }
 }
 
-export default ExperimentList;
+const EnhancedExperimentList: React.FC<PageProps> = props => {
+  const namespace = React.useContext(NamespaceContext);
+  return <ExperimentList key={namespace} {...props} namespace={namespace} />;
+};
+
+export default EnhancedExperimentList;

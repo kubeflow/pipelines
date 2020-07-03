@@ -37,6 +37,8 @@ const style = (orientation: Orientation, units: number) => {
       };
 };
 
-export default (props: SeparatorProps) => (
+const Separator = (props: SeparatorProps) => (
   <span style={style(props.orientation || 'horizontal', props.units || 10)} />
 );
+
+export default Separator;

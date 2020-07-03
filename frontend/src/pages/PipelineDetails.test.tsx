@@ -606,7 +606,7 @@ describe('PipelineDetails', () => {
     tree = shallow(<PipelineDetails {...generateProps()} />);
     await getPipelineVersionTemplateSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'some-node-id');
+    clickGraphNode(tree, 'some-node-id');
     expect(tree.state('selectedNodeId')).toBe('some-node-id');
     expect(tree).toMatchSnapshot();
   });
@@ -618,8 +618,14 @@ describe('PipelineDetails', () => {
     info.command = ['test command', 'test command 2'];
     info.condition = 'test condition';
     info.image = 'test image';
-    info.inputs = [['key1', 'val1'], ['key2', 'val2']];
-    info.outputs = [['key3', 'val3'], ['key4', 'val4']];
+    info.inputs = [
+      ['key1', 'val1'],
+      ['key2', 'val2'],
+    ];
+    info.outputs = [
+      ['key3', 'val3'],
+      ['key4', 'val4'],
+    ];
     info.nodeType = 'container';
     g.setNode('node1', { info, label: 'node1' });
     createGraphSpy.mockImplementation(() => g);
@@ -627,7 +633,7 @@ describe('PipelineDetails', () => {
     tree = shallow(<PipelineDetails {...generateProps()} />);
     await getPipelineVersionTemplateSpy;
     await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
+    clickGraphNode(tree, 'node1');
     expect(tree).toMatchSnapshot();
   });
 
@@ -650,7 +656,7 @@ describe('PipelineDetails', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('closes side panel when close button is clicked', async () => {
+  it('shows correct versions in version selector', async () => {
     tree = shallow(<PipelineDetails {...generateProps()} />);
     await getPipelineVersionTemplateSpy;
     await TestUtils.flushPromises();
@@ -658,3 +664,12 @@ describe('PipelineDetails', () => {
     expect(tree).toMatchSnapshot();
   });
 });
+
+function clickGraphNode(wrapper: ShallowWrapper, nodeId: string) {
+  // TODO: use dom events instead
+  wrapper
+    .find('EnhancedGraph')
+    .dive()
+    .dive()
+    .simulate('click', nodeId);
+}

@@ -15,8 +15,8 @@
  */
 
 import createMuiTheme from '@material-ui/core/styles/createMuiTheme';
-import { NestedCSSProperties } from 'typestyle/lib/types';
 import { style, stylesheet } from 'typestyle';
+import { NestedCSSProperties } from 'typestyle/lib/types';
 
 export const color = {
   activeBg: '#eaf1fd',
@@ -43,6 +43,8 @@ export const color = {
   themeDarker: '#0b59dc',
   warningBg: '#f9f9e1',
   warningText: '#ee8100',
+  infoBg: '#f3f4ff',
+  infoText: '#1a73e8',
   weak: '#9aa0a6',
 };
 
@@ -72,6 +74,7 @@ export const fontsize = {
   medium: 16,
   large: 18,
   title: 18,
+  pageTitle: 24,
 };
 // tslint:enable:object-literal-sort-keys
 

@@ -24,6 +24,7 @@ package reconciler
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	viewerV1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta1"
@@ -176,10 +177,14 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 		"tensorboard",
 		fmt.Sprintf("--logdir=%s", view.Spec.TensorboardSpec.LogDir),
 		fmt.Sprintf("--path_prefix=/tensorboard/%s/", view.Name),
-		// This is needed for tf 2.0. We need to optionally add it
-		// when https://github.com/kubeflow/pipelines/issues/2514 is done
-		// "--bind_all",
 	}
+
+	tfImageVersion := strings.Split(view.Spec.TensorboardSpec.TensorflowImage, ":")[1]
+	// This is needed for tf 2.0
+	if !strings.HasPrefix(tfImageVersion, `1.`) {
+		c.Args = append(c.Args, "--bind_all")
+	}
+
 	c.Ports = []corev1.ContainerPort{
 		corev1.ContainerPort{ContainerPort: viewerTargetPort},
 	}
@@ -255,6 +260,7 @@ func serviceFrom(v *viewerV1beta1.Viewer, deploymentName string) *corev1.Service
 			},
 			Ports: []corev1.ServicePort{
 				corev1.ServicePort{
+					Name:       "http",
 					Protocol:   corev1.ProtocolTCP,
 					Port:       80,
 					TargetPort: intstr.IntOrString{IntVal: viewerTargetPort}},
@@ -282,5 +288,5 @@ func (r *Reconciler) maybeDeleteOldestViewer(t viewerV1beta1.ViewerType, namespa
 		}
 	}
 
-	return r.Client.Delete(context.Background(), oldest, nil)
+	return r.Client.Delete(context.Background(), oldest)
 }

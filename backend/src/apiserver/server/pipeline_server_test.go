@@ -29,6 +29,7 @@ func TestCreatePipeline_YAML(t *testing.T) {
 		Pipeline: &api.Pipeline{
 			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
 			Name: "argument-parameters",
+			Description: "pipeline description",
 		}})
 
 	assert.Nil(t, err)
@@ -41,6 +42,7 @@ func TestCreatePipeline_YAML(t *testing.T) {
 	err = json.Unmarshal([]byte(newPipeline.Parameters), &params)
 	assert.Nil(t, err)
 	assert.Equal(t, []api.Parameter{{Name: "param1", Value: "hello"}, {Name: "param2"}}, params)
+	assert.Equal(t, "pipeline description", newPipeline.Description)
 }
 
 func TestCreatePipeline_Tarball(t *testing.T) {
@@ -56,6 +58,7 @@ func TestCreatePipeline_Tarball(t *testing.T) {
 		Pipeline: &api.Pipeline{
 			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments_tarball/arguments.tar.gz"},
 			Name: "argument-parameters",
+			Description: "pipeline description",
 		}})
 
 	assert.Nil(t, err)
@@ -68,6 +71,7 @@ func TestCreatePipeline_Tarball(t *testing.T) {
 	err = json.Unmarshal([]byte(newPipeline.Parameters), &params)
 	assert.Nil(t, err)
 	assert.Equal(t, []api.Parameter{{Name: "param1", Value: "hello"}, {Name: "param2"}}, params)
+	assert.Equal(t, "pipeline description", newPipeline.Description)
 }
 
 func TestCreatePipeline_InvalidYAML(t *testing.T) {
@@ -238,6 +242,24 @@ func TestCreatePipelineVersion_InvalidURL(t *testing.T) {
 				}}}})
 
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestListPipelineVersion_NoResourceKey(t *testing.T){
+	httpServer := getMockServer(t)
+	// Close the server when test finishes
+	defer httpServer.Close()
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client()}
+
+
+	_, err := pipelineServer.ListPipelineVersions(context.Background(), &api.ListPipelineVersionsRequest{
+		ResourceKey: nil,
+		PageSize: 20,
+	})
+	assert.Equal(t, "Invalid input error: ResourceKey must be set in the input", err.Error())
 }
 
 func getMockServer(t *testing.T) *httptest.Server {

@@ -4,33 +4,33 @@ metadata:
   labels:
     app: metadata
     app.kubernetes.io/name: {{ .Release.Name }}
-  name: metadata-service
+  name: metadata-grpc-service
 spec:
   ports:
-    - name: md-backendapi
+    - name: grpc-api
       port: 8080
       protocol: TCP
   selector:
-    component: metadata-server
+    component: metadata-grpc-server
     app.kubernetes.io/name: {{ .Release.Name }}
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    component: metadata-server
+    component: metadata-grpc-server
     app.kubernetes.io/name: {{ .Release.Name }}
-  name: metadata-deployment
+  name: metadata-grpc-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      component: metadata-server
+      component: metadata-grpc-server
       app.kubernetes.io/name: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        component: metadata-server
+        component: metadata-grpc-server
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
@@ -38,6 +38,7 @@ spec:
         image: {{ .Values.images.metadataserver }}
         imagePullPolicy: 'Always'
         env:
+        # TODO: merge all into mysql-credential
         {{ if .Values.managedstorage.enabled }}
         - name: DBCONFIG_USER
           valueFrom:
@@ -76,11 +77,24 @@ spec:
                  "--mysql_config_host=$(MYSQL_HOST)",
                  "--mysql_config_port=$(MYSQL_PORT)",
                  "--mysql_config_user=$(DBCONFIG_USER)",
-                 "--mysql_config_password=$(DBCONFIG_PASSWORD)"
+                 "--mysql_config_password=$(DBCONFIG_PASSWORD)",
+                 "--enable_database_upgrade=true"
                 ]
         ports:
         - containerPort: 8080
-          name: md-backendapi
+          name: grpc-api
+        livenessProbe:
+          tcpSocket:
+            port: grpc-api
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        readinessProbe:
+          tcpSocket:
+            port: grpc-api
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
 ---
 kind: Service
 apiVersion: v1
@@ -98,7 +112,7 @@ spec:
       protocol: TCP
       name: md-envoy
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: metadata-envoy
@@ -127,23 +141,6 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: metadata-configmap
-  labels:
-    component: metadata-server
-data:
-  {{ if .Values.managedstorage.databaseNamePrefix }}
-  mysql_database: '{{ .Values.managedstorage.databaseNamePrefix }}_metadata'
-  {{ else }}
-  mysql_database: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_metadata'
-  {{ end }}
-  mysql_host: "mysql"
-  mysql_port: "3306"
-  username: "root"
-  password: ""
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
   name: metadata-mysql-configmap
   labels:
     component: metadata-server
@@ -151,19 +148,103 @@ data:
   {{ if .Values.managedstorage.databaseNamePrefix }}
   MYSQL_DATABASE: '{{ .Values.managedstorage.databaseNamePrefix }}_metadata'
   {{ else }}
-  mysql_database: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_metadata'
+  MYSQL_DATABASE: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_metadata'
   {{ end }}
   MYSQL_HOST: "mysql"
   MYSQL_PORT: "3306"
-  username: "root"
-  password: ""
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: metadata-grpc-configmap
   labels:
-    component: metadata-server
+    component: metadata-grpc-server
 data:
-  METADATA_GRPC_SERVICE_HOST: "metadata-service"
+  METADATA_GRPC_SERVICE_HOST: "metadata-grpc-service"
   METADATA_GRPC_SERVICE_PORT: "8080"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-writer
+  labels:
+    app: metadata-writer
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metadata-writer
+      app.kubernetes.io/name: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: metadata-writer
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: main
+        image: {{ .Values.images.metadatawriter }}
+        env:
+        - name: NAMESPACE_TO_WATCH
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      serviceAccountName: kubeflow-pipelines-metadata-writer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: kubeflow-pipelines-metadata-writer-role
+    app.kubernetes.io/name: {{ .Release.Name }}
+  name: kubeflow-pipelines-metadata-writer-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubeflow-pipelines-metadata-writer-binding
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubeflow-pipelines-metadata-writer-role
+subjects:
+- kind: ServiceAccount
+  name: kubeflow-pipelines-metadata-writer
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubeflow-pipelines-metadata-writer
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}

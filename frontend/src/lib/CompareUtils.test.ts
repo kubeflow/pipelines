@@ -266,7 +266,10 @@ describe('CompareUtils', () => {
         } as ApiRun,
       ];
       expect(CompareUtils.multiRunMetricsCompareProps(runs)).toEqual({
-        rows: [['0.330', ''], ['', '0.660']],
+        rows: [
+          ['0.330', ''],
+          ['', '0.660'],
+        ],
         xLabels: ['run1', 'run2'],
         yLabels: ['some-metric', 'another-metric'],
       });
@@ -396,7 +399,10 @@ describe('CompareUtils', () => {
         name: 'run1',
       } as ApiRun;
       expect(CompareUtils.singleRunToMetricsCompareProps(run)).toEqual({
-        rows: [['0.230', ''], ['', '0.540']],
+        rows: [
+          ['0.230', ''],
+          ['', '0.540'],
+        ],
         xLabels: ['some-metric-name', 'another-metric-name'],
         yLabels: ['someNodeId', 'anotherNodeId'],
       });

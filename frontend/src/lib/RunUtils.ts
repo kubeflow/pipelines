@@ -15,8 +15,8 @@
  */
 
 import { orderBy } from 'lodash';
-import { ApiParameter, ApiPipelineVersion } from 'src/apis/pipeline';
-import { Workflow } from 'third_party/argo-ui/argo_template';
+import { ApiParameter, ApiPipelineVersion } from '../apis/pipeline';
+import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { ApiJob } from '../apis/job';
 import {
   ApiPipelineRuntime,
@@ -24,9 +24,11 @@ import {
   ApiResourceType,
   ApiRun,
   ApiRunDetail,
+  ApiRelationship,
 } from '../apis/run';
 import { logger } from './Utils';
 import WorkflowParser from './WorkflowParser';
+import { ApiExperiment } from 'src/apis/experiment';
 
 export interface MetricMetadata {
   count: number;
@@ -116,6 +118,20 @@ function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference
   );
 }
 
+function getNamespaceReferenceName(run?: ApiExperiment): string | undefined {
+  // There should be only one namespace reference.
+  const namespaceRef =
+    run &&
+    run.resource_references &&
+    run.resource_references.find(
+      ref =>
+        ref.relationship === ApiRelationship.OWNER &&
+        ref.key &&
+        ref.key.type === ApiResourceType.NAMESPACE,
+    );
+  return namespaceRef && namespaceRef.key && namespaceRef.key.id;
+}
+
 /**
  * Takes an array of Runs and returns a map where each key represents a single metric, and its value
  * contains the name again, how many of that metric were collected across all supplied Runs, and the
@@ -174,6 +190,7 @@ export default {
   getFirstExperimentReference,
   getFirstExperimentReferenceId,
   getFirstExperimentReferenceName,
+  getNamespaceReferenceName,
   getParametersFromRun,
   getParametersFromRuntime,
   getPipelineId,

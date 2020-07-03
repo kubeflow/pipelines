@@ -17,28 +17,28 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"time"
 
-	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/minio/minio-go"
 )
 
 const (
 	minioServiceHost       = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort       = "MINIO_SERVICE_SERVICE_PORT"
+	minioServiceRegion     = "MINIO_SERVICE_REGION"
+	minioServiceSecure     = "MINIO_SERVICE_SECURE"
+	pipelineBucketName     = "MINIO_PIPELINE_BUCKET_NAME"
+	pipelinePath           = "MINIO_PIPELINE_PATH"
 	mysqlServiceHost       = "DBConfig.Host"
 	mysqlServicePort       = "DBConfig.Port"
 	mysqlUser              = "DBConfig.User"
@@ -47,11 +47,11 @@ const (
 	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
 	kfamServiceHost        = "PROFILES_KFAM_SERVICE_HOST"
 	kfamServicePort        = "PROFILES_KFAM_SERVICE_PORT"
+	mysqlExtraParams       = "DBConfig.ExtraParams"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
 
-	podNamespace          = "POD_NAMESPACE"
 	initConnectionTimeout = "InitConnectionTimeout"
 )
 
@@ -66,9 +66,9 @@ type ClientManager struct {
 	dBStatusStore          storage.DBStatusStoreInterface
 	defaultExperimentStore storage.DefaultExperimentStoreInterface
 	objectStore            storage.ObjectStoreInterface
-	wfClient               workflowclient.WorkflowInterface
-	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
-	podClient              v1.PodInterface
+	argoClient             client.ArgoClientInterface
+	swfClient              client.SwfClientInterface
+	k8sCoreClient          client.KubernetesCoreInterface
 	kfamClient             client.KFAMClientInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
@@ -106,16 +106,16 @@ func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
 	return c.objectStore
 }
 
-func (c *ClientManager) Workflow() workflowclient.WorkflowInterface {
-	return c.wfClient
+func (c *ClientManager) ArgoClient() client.ArgoClientInterface {
+	return c.argoClient
 }
 
-func (c *ClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
+func (c *ClientManager) SwfClient() client.SwfClientInterface {
 	return c.swfClient
 }
 
-func (c *ClientManager) PodClient() v1.PodInterface {
-	return c.podClient
+func (c *ClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
+	return c.k8sCoreClient
 }
 
 func (c *ClientManager) KFAMClient() client.KFAMClientInterface {
@@ -149,14 +149,11 @@ func (c *ClientManager) init() {
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
 
-	c.wfClient = client.CreateWorkflowClientOrFatal(
-		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
+	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
-	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
-		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
+	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
-	c.podClient = client.CreatePodClientOrFatal(
-		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
+	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
@@ -215,9 +212,24 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
 
+	response = db.Model(&model.Experiment{}).RemoveIndex("Name")
+	if response.Error != nil {
+		glog.Fatalf("Failed to drop unique key on experiment name. Error: %s", response.Error)
+	}
+
 	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext not null")
 	if response.Error != nil {
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
+	}
+
+	response = db.Model(&model.RunDetail{}).AddIndex("experimentuuid_createatinsec", "ExperimentUUID", "CreatedAtInSec")
+	if response.Error != nil {
+		glog.Fatalf("Failed to create index experimentuuid_createatinsec on run_details. Error: %s", response.Error)
+	}
+
+	response = db.Model(&model.RunDetail{}).AddIndex("experimentuuid_conditions_finishedatinsec", "ExperimentUUID", "Conditions", "FinishedAtInSec")
+	if response.Error != nil {
+		glog.Fatalf("Failed to create index experimentuuid_conditions_finishedatinsec on run_details. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.RunMetric{}).
@@ -235,6 +247,10 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// pipeline_versions to enter mlpipeline DB.
 	if initializePipelineVersions {
 		initPipelineVersionsFromPipelines(db)
+	}
+	err = backfillExperimentIDToRunTable(db)
+	if err != nil {
+		glog.Fatalf("Failed to backfill experiment UUID in run_details table: %s", err)
 	}
 
 	response = db.Model(&model.Pipeline{}).ModifyColumn("Description", "longtext not null")
@@ -265,6 +281,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 		common.GetStringConfigWithDefault(mysqlServicePort, "3306"),
 		"",
 		common.GetStringConfigWithDefault(mysqlGroupConcatMaxLen, "1024"),
+		common.GetMapConfig(mysqlExtraParams),
 	)
 
 	var db *sql.DB
@@ -298,6 +315,11 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 	util.TerminateIfError(err)
 	mysqlConfig.DBName = dbName
+	// When updating, return rows matched instead of rows affected. This counts rows that are being
+	// set as the same values as before. If updating using a primary key and rows matched is 0, then
+	// it means this row is not found.
+	// Config reference: https://github.com/go-sql-driver/mysql#clientfoundrows
+	mysqlConfig.ClientFoundRows = true
 	return mysqlConfig.FormatDSN()
 }
 
@@ -307,29 +329,37 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
 	minioServicePort := common.GetStringConfigWithDefault(
 		"ObjectStoreConfig.Port", os.Getenv(minioServicePort))
-	accessKey := common.GetStringConfig("ObjectStoreConfig.AccessKey")
-	secretKey := common.GetStringConfig("ObjectStoreConfig.SecretAccessKey")
-	bucketName := common.GetStringConfig("ObjectStoreConfig.BucketName")
+	minioServiceRegion := common.GetStringConfigWithDefault(
+		"ObjectStoreConfig.Region", os.Getenv(minioServiceRegion))
+	minioServiceSecure := common.GetBoolConfigWithDefault(
+		"ObjectStoreConfig.Secure", common.GetBoolFromStringWithDefault(os.Getenv(minioServiceSecure), false))
+	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
+	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
+	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", os.Getenv(pipelineBucketName))
+	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", os.Getenv(pipelinePath))
 	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
-		secretKey, initConnectionTimeout)
-	createMinioBucket(minioClient, bucketName)
+		secretKey, minioServiceSecure, minioServiceRegion, initConnectionTimeout)
+	createMinioBucket(minioClient, bucketName, minioServiceRegion)
 
-	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, disableMultipart)
+	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, pipelinePath, disableMultipart)
 }
 
-func createMinioBucket(minioClient *minio.Client, bucketName string) {
-	// Create bucket if it does not exist
-	err := minioClient.MakeBucket(bucketName, "")
+func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
+	// Check to see if we already own this bucket.
+	exists, err := minioClient.BucketExists(bucketName)
 	if err != nil {
-		// Check to see if we already own this bucket.
-		exists, err := minioClient.BucketExists(bucketName)
-		if err == nil && exists {
-			glog.Infof("We already own %s\n", bucketName)
-		} else {
-			glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
-		}
+		glog.Fatalf("Failed to check if Minio bucket exists. Error: %v", err)
+	}
+	if exists {
+		glog.Infof("We already own %s\n", bucketName)
+		return
+	}
+	// Create bucket if it does not exist
+	err = minioClient.MakeBucket(bucketName, region)
+	if err != nil {
+		glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
 	}
 	glog.Infof("Successfully created bucket %s\n", bucketName)
 }
@@ -371,4 +401,31 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 	tx.Exec("update pipelines set DefaultVersionId=UUID;")
 
 	tx.Commit()
+}
+
+func backfillExperimentIDToRunTable(db *gorm.DB) (retError error) {
+	// check if there is any row in the run table has experiment ID being empty
+	rows, err := db.CommonDB().Query(`SELECT ExperimentUUID FROM run_details WHERE ExperimentUUID = '' LIMIT 1`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	// no row in run_details table has empty ExperimentUUID
+	if !rows.Next() {
+		return nil
+	}
+
+	_, err = db.CommonDB().Exec(`
+		UPDATE
+			run_details, resource_references
+		SET
+			run_details.ExperimentUUID = resource_references.ReferenceUUID
+		WHERE
+			run_details.UUID = resource_references.ResourceUUID
+			AND resource_references.ResourceType = 'Run'
+			AND resource_references.ReferenceType = 'Experiment'
+			AND run_details.ExperimentUUID = ''
+	`)
+	return err
 }

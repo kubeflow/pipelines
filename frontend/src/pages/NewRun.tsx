@@ -30,7 +30,7 @@ import ResourceSelector from './ResourceSelector';
 import RunUtils from '../lib/RunUtils';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
-import { ApiExperiment } from '../apis/experiment';
+import { ApiExperiment, ExperimentStorageState } from '../apis/experiment';
 import { ApiPipeline, ApiParameter, ApiPipelineVersion } from '../apis/pipeline';
 import {
   ApiRun,
@@ -43,7 +43,7 @@ import {
 import { ApiTrigger, ApiJob } from '../apis/job';
 import { Apis, PipelineSortKeys, PipelineVersionSortKeys, ExperimentSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
@@ -54,18 +54,25 @@ import { logger, errorToMessage } from '../lib/Utils';
 import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
 import { CustomRendererProps } from '../components/CustomTable';
 import { Description } from '../components/Description';
+import { NamespaceContext } from '../lib/KubeflowClient';
+import { NameWithTooltip } from '../components/CustomTableNameColumn';
+import { PredicateOp, ApiFilter } from '../apis/filter';
+import { HelpButton } from 'src/atoms/HelpButton';
+import { ExternalLink } from 'src/atoms/ExternalLink';
 
 interface NewRunState {
   description: string;
   errorMessage: string;
   experiment?: ApiExperiment;
   experimentName: string;
+  serviceAccount: string;
   experimentSelectorOpen: boolean;
   isBeingStarted: boolean;
   isClone: boolean;
   isFirstRunInExperiment: boolean;
   isRecurringRun: boolean;
   maxConcurrentRuns?: string;
+  catchup: boolean;
   parameters: ApiParameter[];
   pipeline?: ApiPipeline;
   pipelineVersion?: ApiPipelineVersion;
@@ -106,50 +113,63 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-class NewRun extends Page<{}, NewRunState> {
+export class NewRun extends Page<{ namespace?: string }, NewRunState> {
+  public state: NewRunState = {
+    catchup: true,
+    description: '',
+    errorMessage: '',
+    experimentName: '',
+    serviceAccount: '',
+    experimentSelectorOpen: false,
+    isBeingStarted: false,
+    isClone: false,
+    isFirstRunInExperiment: false,
+    isRecurringRun: false,
+    parameters: [],
+    pipelineName: '',
+    pipelineSelectorOpen: false,
+    pipelineVersionName: '',
+    pipelineVersionSelectorOpen: false,
+    runName: '',
+    uploadDialogOpen: false,
+    usePipelineFromRunLabel: 'Using pipeline from cloned run',
+    useWorkflowFromRun: false,
+  };
+
   private pipelineSelectorColumns = [
-    { label: 'Pipeline name', flex: 1, sortKey: PipelineSortKeys.NAME },
+    {
+      customRenderer: NameWithTooltip,
+      flex: 1,
+      label: 'Pipeline name',
+      sortKey: PipelineSortKeys.NAME,
+    },
     { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
     { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
   ];
 
   private pipelineVersionSelectorColumns = [
-    { label: 'Version name', flex: 1, sortKey: PipelineVersionSortKeys.NAME },
+    {
+      customRenderer: NameWithTooltip,
+      flex: 2,
+      label: 'Version name',
+      sortKey: PipelineVersionSortKeys.NAME,
+    },
     // TODO(jingzhang36): version doesn't have description field; remove it and
     // fix the rendering.
-    { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
+    { label: 'Description', flex: 1, customRenderer: descriptionCustomRenderer },
     { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
   ];
 
   private experimentSelectorColumns = [
-    { label: 'Experiment name', flex: 1, sortKey: ExperimentSortKeys.NAME },
+    {
+      customRenderer: NameWithTooltip,
+      flex: 1,
+      label: 'Experiment name',
+      sortKey: ExperimentSortKeys.NAME,
+    },
     { label: 'Description', flex: 2 },
     { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
   ];
-
-  constructor(props: any) {
-    super(props);
-
-    this.state = {
-      description: '',
-      errorMessage: '',
-      experimentName: '',
-      experimentSelectorOpen: false,
-      isBeingStarted: false,
-      isClone: false,
-      isFirstRunInExperiment: false,
-      isRecurringRun: false,
-      parameters: [],
-      pipelineName: '',
-      pipelineSelectorOpen: false,
-      pipelineVersionName: '',
-      pipelineVersionSelectorOpen: false,
-      runName: '',
-      uploadDialogOpen: false,
-      usePipelineFromRunLabel: 'Using pipeline from cloned run',
-      useWorkflowFromRun: false,
-    };
-  }
 
   public getInitialToolbarState(): ToolbarProps {
     return {
@@ -165,6 +185,7 @@ class NewRun extends Page<{}, NewRunState> {
       description,
       errorMessage,
       experimentName,
+      serviceAccount,
       experimentSelectorOpen,
       isClone,
       isFirstRunInExperiment,
@@ -386,8 +407,33 @@ class NewRun extends Page<{}, NewRunState> {
                 {...this.props}
                 title='Choose an experiment'
                 filterLabel='Filter experiments'
-                listApi={async (...args) => {
-                  const response = await Apis.experimentServiceApi.listExperiment(...args);
+                listApi={async (
+                  page_token?: string,
+                  page_size?: number,
+                  sort_by?: string,
+                  filter?: string,
+                ) => {
+                  // A new run can only be created in an unarchived experiment.
+                  // Therefore, when listing experiments here for selection, we
+                  // only list unarchived experiments.
+                  const new_filter = JSON.parse(
+                    decodeURIComponent(filter || '{"predicates": []}'),
+                  ) as ApiFilter;
+                  new_filter.predicates = (new_filter.predicates || []).concat([
+                    {
+                      key: 'storage_state',
+                      op: PredicateOp.NOTEQUALS,
+                      string_value: ExperimentStorageState.ARCHIVED.toString(),
+                    },
+                  ]);
+                  const response = await Apis.experimentServiceApi.listExperiment(
+                    page_token,
+                    page_size,
+                    sort_by,
+                    encodeURIComponent(JSON.stringify(new_filter)),
+                    this.props.namespace ? 'NAMESPACE' : undefined,
+                    this.props.namespace,
+                  );
                   return {
                     nextPageToken: response.next_page_token || '',
                     resources: response.experiments || [],
@@ -463,6 +509,27 @@ class NewRun extends Page<{}, NewRunState> {
             }}
           />
 
+          <div>
+            This run will use the following Kubernetes service account.{' '}
+            <HelpButton
+              helpText={
+                <div>
+                  Note, the service account needs{' '}
+                  <ExternalLink href='https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md'>
+                    minimum permissions required by argo workflows
+                  </ExternalLink>{' '}
+                  and extra permissions the specific task requires.
+                </div>
+              }
+            />
+          </div>
+          <Input
+            value={serviceAccount}
+            onChange={this.handleChange('serviceAccount')}
+            label='Service Account (Optional)'
+            variant='outlined'
+          />
+
           {/* One-off/Recurring Run Type */}
           <div className={commonCss.header}>Run Type</div>
           {isClone && <span>{isRecurringRun ? 'Recurring' : 'One-off'}</span>}
@@ -492,9 +559,15 @@ class NewRun extends Page<{}, NewRunState> {
               <div>Choose a method by which new runs will be triggered</div>
 
               <Trigger
-                onChange={(trigger, maxConcurrentRuns) =>
+                initialProps={{
+                  trigger: this.state.trigger,
+                  maxConcurrentRuns: this.state.maxConcurrentRuns,
+                  catchup: this.state.catchup,
+                }}
+                onChange={({ trigger, maxConcurrentRuns, catchup }) =>
                   this.setStateSafe(
                     {
+                      catchup,
                       maxConcurrentRuns,
                       trigger,
                     },
@@ -590,10 +663,15 @@ class NewRun extends Page<{}, NewRunState> {
     } else if (originalRecurringRunId) {
       // If we are cloning a recurring run, fetch the original
       try {
-        const originalRun = await Apis.jobServiceApi.getJob(originalRecurringRunId);
-        await this._prepareFormFromClone(originalRun);
+        const originalJob = await Apis.jobServiceApi.getJob(originalRecurringRunId);
+        await this._prepareFormFromClone(originalJob);
+        this.setStateSafe({
+          trigger: originalJob.trigger,
+          maxConcurrentRuns: originalJob.max_concurrency,
+          catchup: !originalJob.no_catchup,
+        });
         if (!experimentId) {
-          experimentId = RunUtils.getFirstExperimentReferenceId(originalRun);
+          experimentId = RunUtils.getFirstExperimentReferenceId(originalJob);
         }
       } catch (err) {
         await this.showPageError(
@@ -617,6 +695,38 @@ class NewRun extends Page<{}, NewRunState> {
             pipeline,
             pipelineName: (pipeline && pipeline.name) || '',
           });
+          const possiblePipelineVersionId =
+            urlParser.get(QUERY_PARAMS.pipelineVersionId) ||
+            (pipeline.default_version && pipeline.default_version.id);
+          if (possiblePipelineVersionId) {
+            try {
+              const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
+                possiblePipelineVersionId,
+              );
+              this.setStateSafe({
+                parameters: pipelineVersion.parameters || [],
+                pipelineVersion,
+                pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
+                runName: this._getRunNameFromPipelineVersion(
+                  (pipelineVersion && pipelineVersion.name) || '',
+                ),
+              });
+            } catch (err) {
+              urlParser.clear(QUERY_PARAMS.pipelineVersionId);
+              await this.showPageError(
+                `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
+                err,
+              );
+              logger.error(
+                `Failed to retrieve pipeline version: ${possiblePipelineVersionId}`,
+                err,
+              );
+            }
+          } else {
+            this.setStateSafe({
+              runName: this._getRunNameFromPipelineVersion((pipeline && pipeline.name) || ''),
+            });
+          }
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
           await this.showPageError(
@@ -624,26 +734,6 @@ class NewRun extends Page<{}, NewRunState> {
             err,
           );
           logger.error(`Failed to retrieve pipeline: ${possiblePipelineId}`, err);
-        }
-      }
-      const possiblePipelineVersionId = urlParser.get(QUERY_PARAMS.pipelineVersionId);
-      if (possiblePipelineVersionId) {
-        try {
-          const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
-            possiblePipelineVersionId,
-          );
-          this.setStateSafe({
-            parameters: pipelineVersion.parameters || [],
-            pipelineVersion,
-            pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
-          });
-        } catch (err) {
-          urlParser.clear(QUERY_PARAMS.pipelineVersionId);
-          await this.showPageError(
-            `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
-            err,
-          );
-          logger.error(`Failed to retrieve pipeline version: ${possiblePipelineVersionId}`, err);
         }
       }
     }
@@ -782,7 +872,7 @@ class NewRun extends Page<{}, NewRunState> {
     try {
       const uploadedPipeline =
         method === ImportMethod.LOCAL
-          ? await Apis.uploadPipeline(name, file!)
+          ? await Apis.uploadPipeline(name, description || '', file!)
           : await Apis.pipelineServiceApi.createPipeline({ name, url: { pipeline_url: url } });
       this.setStateSafe(
         {
@@ -861,6 +951,7 @@ class NewRun extends Page<{}, NewRunState> {
     let usePipelineFromRunLabel = '';
     let name = '';
     let pipelineVersionName = '';
+    const serviceAccount = originalRun.service_account || '';
 
     // Case 1: a legacy run refers to a pipeline without specifying version.
     const referencePipelineId = RunUtils.getPipelineId(originalRun);
@@ -935,6 +1026,7 @@ class NewRun extends Page<{}, NewRunState> {
       usePipelineFromRunLabel,
       useWorkflowFromRun,
       workflowFromRun,
+      serviceAccount,
     });
 
     this._validate();
@@ -990,11 +1082,13 @@ class NewRun extends Page<{}, NewRunState> {
           : undefined,
       },
       resource_references: references,
+      service_account: this.state.serviceAccount,
     };
     if (this.state.isRecurringRun) {
       newRun = Object.assign(newRun, {
         enabled: true,
         max_concurrency: this.state.maxConcurrentRuns || '1',
+        no_catchup: !this.state.catchup,
         trigger: this.state.trigger,
       });
     }
@@ -1045,6 +1139,24 @@ class NewRun extends Page<{}, NewRunState> {
     }
   }
 
+  private _generateRandomString(length: number): string {
+    let d = 0;
+    function randomChar(): string {
+      const r = Math.trunc((d + Math.random() * 16) % 16);
+      d = Math.floor(d / 16);
+      return r.toString(16);
+    }
+    let str = '';
+    for (let i = 0; i < length; ++i) {
+      str += randomChar();
+    }
+    return str;
+  }
+
+  private _getRunNameFromPipelineVersion(pipelineVersionName: string): string {
+    return 'Run of ' + pipelineVersionName + ' (' + this._generateRandomString(5) + ')';
+  }
+
   private _validate(): void {
     // Validate state
     const { pipelineVersion, workflowFromRun, maxConcurrentRuns, runName, trigger } = this.state;
@@ -1082,13 +1194,14 @@ class NewRun extends Page<{}, NewRunState> {
   }
 
   private _areParametersMissing(): boolean {
-    const { pipeline } = this.state;
-    if (pipeline && Array.isArray(pipeline.parameters) && pipeline.parameters.length > 0) {
-      const missingParameters = pipeline.parameters.filter(parameter => !parameter.value);
-      return missingParameters.length !== 0;
-    }
-    return false;
+    const { parameters } = this.state;
+    return parameters.some(parameter => !parameter.value);
   }
 }
 
-export default NewRun;
+const EnhancedNewRun: React.FC<PageProps> = props => {
+  const namespace = React.useContext(NamespaceContext);
+  return <NewRun {...props} namespace={namespace} />;
+};
+
+export default EnhancedNewRun;

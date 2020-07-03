@@ -16,6 +16,8 @@
 from . import _container_op
 from . import _resource_op
 from . import _ops_group
+from ._component_bridge import _create_container_op_from_component_and_arguments
+from ..components import _components
 from ..components._naming import _make_name_unique_by_adding_index
 import sys
 
@@ -40,9 +42,9 @@ def pipeline(name : str = None, description : str = None):
   """
   def _pipeline(func):
     if name:
-      func._pipeline_name = name
+      func._component_human_name = name
     if description:
-      func._pipeline_description = description
+      func._component_description = description
 
     if _pipeline_decorator_handler:
       return _pipeline_decorator_handler(func) or func
@@ -58,8 +60,11 @@ class PipelineConf():
     self.image_pull_secrets = []
     self.timeout = 0
     self.ttl_seconds_after_finished = -1
-    self.artifact_location = None
     self.op_transformers = []
+    self.default_pod_node_selector = {}
+    self.image_pull_policy = None
+    self.parallelism = None
+    self._data_passing_method = None
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """Configures the pipeline level imagepullsecret
@@ -81,6 +86,15 @@ class PipelineConf():
     self.timeout = seconds
     return self
 
+  def set_parallelism(self, max_num_pods: int):
+    """Configures the max number of total parallel pods that can execute at the same time in a workflow.
+
+    Args:
+        max_num_pods (int): max number of total parallel pods.
+    """
+    self.parallelism = max_num_pods
+    return self
+
   def set_ttl_seconds_after_finished(self, seconds: int):
     """Configures the ttl after the pipeline has finished.
 
@@ -90,48 +104,59 @@ class PipelineConf():
     self.ttl_seconds_after_finished = seconds
     return self
 
-  def set_artifact_location(self, artifact_location):
-    """Configures the pipeline level artifact location.
-
-    Example::
-
-      from kfp.dsl import ArtifactLocation, get_pipeline_conf, pipeline
-      from kubernetes.client.models import V1SecretKeySelector
-
-
-      @pipeline(name='foo', description='hello world')
-      def foo_pipeline(tag: str, pull_image_policy: str):
-        '''A demo pipeline'''
-        # create artifact location object
-        artifact_location = ArtifactLocation.s3(
-                              bucket="foo",
-                              endpoint="minio-service:9000",
-                              insecure=True,
-                              access_key_secret=V1SecretKeySelector(name="minio", key="accesskey"),
-                              secret_key_secret=V1SecretKeySelector(name="minio", key="secretkey"))
-        # config pipeline level artifact location
-        conf = get_pipeline_conf().set_artifact_location(artifact_location)
-
-        # rest of codes
-        ...
+  def set_default_pod_node_selector(self, label_name: str, value: str):
+    """Add a constraint for nodeSelector for a pipeline. Each constraint is a key-value pair label. For the
+      container to be eligible to run on a node, the node must have each of the constraints appeared
+      as labels.
 
     Args:
-      artifact_location: V1alpha1ArtifactLocation object
-      For detailed description, check Argo V1alpha1ArtifactLocation definition
-      https://github.com/e2fyi/argo-models/blob/release-2.2/argo/models/v1alpha1_artifact_location.py
-      https://github.com/argoproj/argo/blob/release-2.2/api/openapi-spec/swagger.json
+        label_name: The name of the constraint label.
+        value: The value of the constraint label.
     """
-    self.artifact_location = artifact_location
+    self.default_pod_node_selector[label_name] = value
+    return self
+
+
+  def set_image_pull_policy(self, policy: str):
+    """Configures the default image pull policy
+
+    Args:
+      policy: the pull policy, has to be one of: Always, Never, IfNotPresent.
+      For more info: https://github.com/kubernetes-client/python/blob/10a7f95435c0b94a6d949ba98375f8cc85a70e5a/kubernetes/docs/V1Container.md
+    """
+    self.image_pull_policy = policy
     return self
 
   def add_op_transformer(self, transformer):
     """Configures the op_transformers which will be applied to all ops in the pipeline.
+    The ops can be ResourceOp, VolumenOp, or ContainerOp.
 
     Args:
-      transformer: a function that takes a ContainOp as input and returns a ContainerOp
+      transformer: a function that takes a kfp Op as input and returns a kfp Op
     """
     self.op_transformers.append(transformer)
 
+  @property
+  def data_passing_method(self):
+    return self._data_passing_method
+
+  @data_passing_method.setter
+  def data_passing_method(self, value):
+    '''Sets the object representing the method used for intermediate data passing.
+    Example::
+
+      from kfp.dsl import PipelineConf, data_passing_methods
+      from kubernetes.client.models import V1Volume, V1PersistentVolumeClaim
+      pipeline_conf = PipelineConf()
+      pipeline_conf.data_passing_method = data_passing_methods.KubernetesVolume(
+          volume=V1Volume(
+              name='data',
+              persistent_volume_claim=V1PersistentVolumeClaim('data-volume'),
+          ),
+          path_prefix='artifact_data/',
+      )
+    '''
+    self._data_passing_method = value
 
 def get_pipeline_conf():
   """Configure the pipeline level setting to the current pipeline
@@ -189,6 +214,8 @@ class Pipeline():
       raise Exception('Nested pipelines are not allowed.')
 
     Pipeline._default_pipeline = self
+    self._old_container_task_constructor = _components._container_task_constructor
+    _components._container_task_constructor = _create_container_op_from_component_and_arguments
 
     def register_op_and_generate_id(op):
       return self.add_op(op, op.is_exit_handler)
@@ -200,6 +227,7 @@ class Pipeline():
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
     _container_op._register_op_handler = self._old__register_op_handler
+    _components._container_task_constructor = self._old_container_task_constructor
 
   def add_op(self, op: _container_op.BaseOp, define_only: bool):
     """Add a new operator.
@@ -248,5 +276,3 @@ class Pipeline():
       metadata (ComponentMeta): component metadata
     '''
     self._metadata = metadata
-
-

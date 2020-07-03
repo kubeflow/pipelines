@@ -1,0 +1,9 @@
+extends:
+    - react-app
+ignorePatterns:
+    - node_modules/
+    - src/apis # these are generated api clients
+    - '*.test.ts'
+    - '*.test.tsx'
+rules:
+    react/jsx-no-target-blank: ['error', { "allowReferrer": true }]

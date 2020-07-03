@@ -409,6 +409,7 @@ func TestToApiJobs(t *testing.T) {
 			},
 		},
 		MaxConcurrency: 2,
+		NoCatchup:      true,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "2",
 			PipelineName: "p2",
@@ -444,6 +445,7 @@ func TestToApiJobs(t *testing.T) {
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
 			MaxConcurrency: 2,
+			NoCatchup:      true,
 			Trigger: &api.Trigger{
 				Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
 					StartTime: &timestamp.Timestamp{Seconds: 2},
@@ -521,4 +523,39 @@ func TestToApiResourceReferences(t *testing.T) {
 			Name: "k1", Relationship: api.Relationship_OWNER},
 	}
 	assert.Equal(t, expectedApiResourceReferences, toApiResourceReferences(resourceReferences))
+}
+
+func TestToApiExperiments(t *testing.T) {
+	exp1 := &model.Experiment{
+		UUID:           "exp1",
+		CreatedAtInSec: 1,
+		Name:           "experiment1",
+		Description:    "My name is experiment1",
+		StorageState:   "STORAGESTATE_AVAILABLE",
+	}
+	exp2 := &model.Experiment{
+		UUID:           "exp2",
+		CreatedAtInSec: 2,
+		Name:           "experiment2",
+		Description:    "My name is experiment2",
+		StorageState:   "STORAGESTATE_ARCHIVED",
+	}
+	apiExps := ToApiExperiments([]*model.Experiment{exp1, exp2})
+	expectedApiExps := []*api.Experiment{
+		{
+			Id:           "exp1",
+			Name:         "experiment1",
+			Description:  "My name is experiment1",
+			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			StorageState: api.Experiment_StorageState(api.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
+		},
+		{
+			Id:           "exp2",
+			Name:         "experiment2",
+			Description:  "My name is experiment2",
+			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
+			StorageState: api.Experiment_StorageState(api.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
+		},
+	}
+	assert.Equal(t, expectedApiExps, apiExps)
 }

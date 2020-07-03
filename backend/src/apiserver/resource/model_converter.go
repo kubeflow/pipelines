@@ -22,7 +22,26 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/pkg/errors"
 )
+
+func (r *ResourceManager) ToModelExperiment(apiExperiment *api.Experiment) (*model.Experiment, error) {
+	namespace := ""
+	resourceReferences := apiExperiment.GetResourceReferences()
+	if resourceReferences != nil {
+		if len(resourceReferences) != 1 ||
+			resourceReferences[0].Key.Type != api.ResourceType_NAMESPACE ||
+			resourceReferences[0].Relationship != api.Relationship_OWNER {
+			return nil, util.NewInternalServerError(errors.New("Invalid resource references for experiment"), "Unable to convert to model experiment.")
+		}
+		namespace = resourceReferences[0].Key.Id
+	}
+	return &model.Experiment{
+		Name:        apiExperiment.Name,
+		Description: apiExperiment.Description,
+		Namespace:   namespace,
+	}, nil
+}
 
 func (r *ResourceManager) ToModelRunMetric(metric *api.RunMetric, runUUID string) *model.RunMetric {
 	return &model.RunMetric{
@@ -53,12 +72,19 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 		}
 	}
 
+	experimentUUID, err := r.getOwningExperimentUUID(run.ResourceReferences)
+	if err != nil {
+		return nil, util.Wrap(err, "Error getting the experiment UUID")
+	}
+
 	return &model.RunDetail{
 		Run: model.Run{
 			UUID:               runId,
+			ExperimentUUID:     experimentUUID,
 			DisplayName:        run.Name,
 			Name:               workflow.Name,
 			Namespace:          workflow.Namespace,
+			ServiceAccount:     workflow.Spec.ServiceAccountName,
 			Conditions:         workflow.Condition(),
 			Description:        run.Description,
 			ResourceReferences: resourceReferences,
@@ -91,16 +117,22 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 			return nil, util.Wrap(err, "Error getting the pipeline name")
 		}
 	}
+	serviceAccount := ""
+	if swf.Spec.Workflow != nil {
+		serviceAccount = swf.Spec.Workflow.Spec.ServiceAccountName
+	}
 	return &model.Job{
 		UUID:               string(swf.UID),
 		DisplayName:        job.Name,
 		Name:               swf.Name,
 		Namespace:          swf.Namespace,
+		ServiceAccount:     serviceAccount,
 		Description:        job.Description,
 		Conditions:         swf.ConditionSummary(),
 		Enabled:            job.Enabled,
 		Trigger:            toModelTrigger(job.Trigger),
 		MaxConcurrency:     job.MaxConcurrency,
+		NoCatchup:          job.NoCatchup,
 		ResourceReferences: resourceReferences,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           job.GetPipelineSpec().GetPipelineId(),
@@ -199,7 +231,7 @@ func (r *ResourceManager) toModelResourceReferences(
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to find the referred resource")
 		}
-    
+
 		//TODO(gaoning777) further investigation: Is the plain namespace a good option?  maybe uuid for distinctness even with namespace deletion/recreation.
 		modelRef := &model.ResourceReference{
 			ResourceUUID:  resourceId,
@@ -251,4 +283,19 @@ func (r *ResourceManager) getResourceName(resourceType common.ResourceType, reso
 	default:
 		return "", util.NewInvalidInputError("Unsupported resource type: %s", string(resourceType))
 	}
+}
+
+func (r *ResourceManager) getOwningExperimentUUID(references []*api.ResourceReference) (string, error) {
+	var experimentUUID string
+	for _, ref := range references {
+		if ref.Key.Type == api.ResourceType_EXPERIMENT && ref.Relationship == api.Relationship_OWNER {
+			experimentUUID = ref.Key.Id
+			break
+		}
+	}
+
+	if experimentUUID == "" {
+		return "", util.NewInternalServerError(nil, "Missing owning experiment UUID")
+	}
+	return experimentUUID, nil
 }

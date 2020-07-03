@@ -12,24 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// @ts-ignore
 import {
   Core_v1Api,
   Custom_objectsApi,
   KubeConfig,
-  V1ConfigMapKeySelector,
+  V1DeleteOptions,
+  V1Pod,
+  V1EventList,
 } from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
-import * as Utils from './utils';
-import { IPartialArgoWorkflow } from './workflow-helper';
+import { PartialArgoWorkflow } from './workflow-helper';
+import { parseError } from './utils';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
 const namespaceFilePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
-let namespace = '';
-let k8sV1Client: Core_v1Api | null = null;
-let k8sV1CustomObjectClient: Custom_objectsApi | null = null;
+let serverNamespace: string | undefined = undefined;
 
 // Constants for creating customer resource Viewer.
 const viewerGroup = 'kubeflow.org';
@@ -44,45 +43,19 @@ const workflowPlural = 'workflows';
 /** Default pod template spec used to create tensorboard viewer. */
 export const defaultPodTemplateSpec = {
   spec: {
-    containers: [
-      {
-        env: [
-          {
-            name: 'GOOGLE_APPLICATION_CREDENTIALS',
-            value: '/secret/gcp-credentials/user-gcp-sa.json',
-          },
-        ],
-        volumeMounts: [
-          {
-            name: 'gcp-credentials',
-            mountPath: '/secret/gcp-credentials/user-gcp-sa.json',
-            readOnly: true,
-          },
-        ],
-      },
-    ],
-    volumes: [
-      {
-        name: 'gcp-credentials',
-        volumeSource: {
-          secret: {
-            secretName: 'user-gcp-sa',
-          },
-        },
-      },
-    ],
+    containers: [{}],
   },
 };
 
-export const isInCluster = fs.existsSync(namespaceFilePath);
-
-if (isInCluster) {
-  namespace = fs.readFileSync(namespaceFilePath, 'utf-8');
-  const kc = new KubeConfig();
-  kc.loadFromDefault();
-  k8sV1Client = kc.makeApiClient(Core_v1Api);
-  k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
+// The file path contains pod namespace when in Kubernetes cluster.
+if (fs.existsSync(namespaceFilePath)) {
+  serverNamespace = fs.readFileSync(namespaceFilePath, 'utf-8');
 }
+const kc = new KubeConfig();
+// This loads kubectl config when not in cluster.
+kc.loadFromDefault();
+const k8sV1Client = kc.makeApiClient(Core_v1Api);
+const k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
 
 function getNameOfViewerResource(logdir: string): string {
   // TODO: find some hash function with shorter resulting message.
@@ -95,14 +68,20 @@ function getNameOfViewerResource(logdir: string): string {
  */
 export async function newTensorboardInstance(
   logdir: string,
-  podTemplateSpec: Object = defaultPodTemplateSpec,
+  namespace: string,
+  tfImageName: string,
+  tfversion: string,
+  podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<void> {
-  if (!k8sV1CustomObjectClient) {
-    throw new Error('Cannot access kubernetes Custom Object API');
-  }
-  const currentPod = await getTensorboardInstance(logdir);
-  if (currentPod) {
-    return;
+  const currentPod = await getTensorboardInstance(logdir, namespace);
+  if (currentPod.podAddress) {
+    if (tfversion === currentPod.tfVersion) {
+      return;
+    } else {
+      throw new Error(
+        `There's already an existing tensorboard instance with a different version ${currentPod.tfVersion}`,
+      );
+    }
   }
 
   const body = {
@@ -110,16 +89,15 @@ export async function newTensorboardInstance(
     kind: 'Viewer',
     metadata: {
       name: getNameOfViewerResource(logdir),
-      namespace: namespace,
+      namespace,
     },
     spec: {
-      type: 'tensorboard',
+      podTemplateSpec,
       tensorboardSpec: {
         logDir: logdir,
-        // TODO(jingzhang36): tensorflow image version read from input textbox.
-        tensorflowImage: 'tensorflow/tensorflow:1.13.2',
+        tensorflowImage: tfImageName + ':' + tfversion,
       },
-      podTemplateSpec,
+      type: 'tensorboard',
     },
   };
   await k8sV1CustomObjectClient.createNamespacedCustomObject(
@@ -133,13 +111,12 @@ export async function newTensorboardInstance(
 
 /**
  * Finds a running Tensorboard instance created via CRD with the given logdir
- * and returns its dns address.
+ * and returns its dns address and its version
  */
-export async function getTensorboardInstance(logdir: string): Promise<string> {
-  if (!k8sV1CustomObjectClient) {
-    throw new Error('Cannot access kubernetes Custom Object API');
-  }
-
+export async function getTensorboardInstance(
+  logdir: string,
+  namespace: string,
+): Promise<{ podAddress: string; tfVersion: string }> {
   return await k8sV1CustomObjectClient
     .getNamespacedCustomObject(
       viewerGroup,
@@ -152,43 +129,92 @@ export async function getTensorboardInstance(logdir: string): Promise<string> {
       // Viewer CRD pod has tensorboard instance running at port 6006 while
       // viewer CRD service has tensorboard instance running at port 80. Since
       // we return service address here (instead of pod address), so use 80.
-      (viewer: any) =>
-        viewer &&
-        viewer.body &&
-        viewer.body.spec.tensorboardSpec.logDir == logdir &&
-        viewer.body.spec.type == 'tensorboard'
-          ? `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`
-          : '',
+      (viewer: any) => {
+        if (
+          viewer &&
+          viewer.body &&
+          viewer.body.spec.tensorboardSpec.logDir === logdir &&
+          viewer.body.spec.type === 'tensorboard'
+        ) {
+          const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
+          const tfImageParts = viewer.body.spec.tensorboardSpec.tensorflowImage.split(':', 2);
+          const tfVersion = tfImageParts.length == 2 ? tfImageParts[1] : '';
+          return { podAddress: address, tfVersion: tfVersion };
+        } else {
+          return { podAddress: '', tfVersion: '' };
+        }
+      },
       // No existing custom object with the given name, i.e., no existing
       // tensorboard instance.
-      (error: any) => '',
+      err => {
+        // This is often expected, so only use debug level for logging.
+        console.debug(
+          `Failed getting viewer custom object for logdir=${logdir} in ${namespace} namespace, err: `,
+          err?.body || err,
+        );
+        return { podAddress: '', tfVersion: '' };
+      },
     );
+}
+
+/**
+ * Find a running Tensorboard instance with the given logdir, delete the instance
+ * and returns the deleted podAddress
+ */
+
+export async function deleteTensorboardInstance(logdir: string, namespace: string): Promise<void> {
+  const currentPod = await getTensorboardInstance(logdir, namespace);
+  if (!currentPod.podAddress) {
+    return;
+  }
+
+  const viewerName = getNameOfViewerResource(logdir);
+  const deleteOption = new V1DeleteOptions();
+
+  await k8sV1CustomObjectClient.deleteNamespacedCustomObject(
+    viewerGroup,
+    viewerVersion,
+    namespace,
+    viewerPlural,
+    viewerName,
+    deleteOption,
+  );
 }
 
 /**
  * Polls every second for a running Tensorboard instance with the given logdir,
  * and returns the address of one if found, or rejects if a timeout expires.
  */
-export function waitForTensorboardInstance(logdir: string, timeout: number): Promise<string> {
+export function waitForTensorboardInstance(
+  logdir: string,
+  namespace: string,
+  timeout: number,
+): Promise<string> {
   const start = Date.now();
   return new Promise((resolve, reject) => {
-    setInterval(async () => {
+    const handle = setInterval(async () => {
       if (Date.now() - start > timeout) {
+        clearInterval(handle);
         reject('Timed out waiting for tensorboard');
       }
-      const tensorboardAddress = await getTensorboardInstance(logdir);
+      const tensorboardInstance = await getTensorboardInstance(logdir, namespace);
+      const tensorboardAddress = tensorboardInstance.podAddress;
       if (tensorboardAddress) {
-        resolve(encodeURIComponent(tensorboardAddress));
+        clearInterval(handle);
+        resolve(tensorboardAddress);
       }
     }, 1000);
   });
 }
 
-export function getPodLogs(podName: string): Promise<string> {
-  if (!k8sV1Client) {
-    throw new Error('Cannot access kubernetes API');
+export function getPodLogs(podName: string, podNamespace?: string): Promise<string> {
+  podNamespace = podNamespace || serverNamespace;
+  if (!podNamespace) {
+    throw new Error(
+      `podNamespace is not specified and cannot get namespace from ${namespaceFilePath}.`,
+    );
   }
-  return (k8sV1Client.readNamespacedPodLog(podName, namespace, 'main') as any).then(
+  return (k8sV1Client.readNamespacedPodLog(podName, podNamespace, 'main') as any).then(
     (response: any) => (response && response.body ? response.body.toString() : ''),
     (error: any) => {
       throw new Error(JSON.stringify(error.body));
@@ -196,22 +222,69 @@ export function getPodLogs(podName: string): Promise<string> {
   );
 }
 
+export interface K8sError {
+  message: string;
+  additionalInfo: any;
+}
+export async function getPod(
+  podName: string,
+  podNamespace: string,
+): Promise<[V1Pod, undefined] | [undefined, K8sError]> {
+  try {
+    const { body } = await k8sV1Client.readNamespacedPod(podName, podNamespace);
+    return [body, undefined];
+  } catch (error) {
+    const { message, additionalInfo } = await parseError(error);
+    const userMessage = `Could not get pod ${podName} in namespace ${podNamespace}: ${message}`;
+    return [undefined, { message: userMessage, additionalInfo }];
+  }
+}
+
+// Golang style result type including an error.
+export type Result<T, E = K8sError> = [T, undefined] | [undefined, E];
+export async function listPodEvents(
+  podName: string,
+  podNamespace: string,
+): Promise<Result<V1EventList>> {
+  try {
+    const { body } = await k8sV1Client.listNamespacedEvent(
+      podNamespace,
+      undefined,
+      undefined,
+      undefined,
+      // The following fieldSelector can be found when running
+      // `kubectl describe <pod-name> -v 8`
+      // (-v 8) will verbosely print network requests sent by kubectl.
+      `involvedObject.namespace=${podNamespace},involvedObject.name=${podName},involvedObject.kind=Pod`,
+    );
+    return [body, undefined];
+  } catch (error) {
+    const { message, additionalInfo } = await parseError(error);
+    const userMessage = `Error when listing pod events for pod "${podName}" in "${podNamespace}" namespace: ${message}`;
+    return [undefined, { message: userMessage, additionalInfo }];
+  }
+}
+
 /**
  * Retrieves the argo workflow CRD.
  * @param workflowName name of the argo workflow
  */
-export async function getArgoWorkflow(workflowName: string): Promise<IPartialArgoWorkflow> {
-  if (!k8sV1CustomObjectClient) {
-    throw new Error('Cannot access kubernetes Custom Object API');
+export async function getArgoWorkflow(workflowName: string): Promise<PartialArgoWorkflow> {
+  if (!serverNamespace) {
+    throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
   }
 
   const res = await k8sV1CustomObjectClient.getNamespacedCustomObject(
     workflowGroup,
     workflowVersion,
-    namespace,
+    serverNamespace,
     workflowPlural,
     workflowName,
   );
+
+  if (res.response.statusCode == null) {
+    throw new Error(`Unable to query workflow:${workflowName}: No status code present.`);
+  }
 
   if (res.response.statusCode >= 400) {
     throw new Error(`Unable to query workflow:${workflowName}: Access denied.`);
@@ -225,12 +298,17 @@ export async function getArgoWorkflow(workflowName: string): Promise<IPartialArg
  * @param key key in the secret
  */
 export async function getK8sSecret(name: string, key: string) {
-  if (!k8sV1Client) {
-    throw new Error('Cannot access kubernetes API');
+  if (!serverNamespace) {
+    throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
   }
 
-  const k8sSecret = await k8sV1Client.readNamespacedSecret(name, namespace);
+  const k8sSecret = await k8sV1Client.readNamespacedSecret(name, serverNamespace);
   const secretb64 = k8sSecret.body.data[key];
   const buff = new Buffer(secretb64, 'base64');
   return buff.toString('ascii');
 }
+
+export const TEST_ONLY = {
+  k8sV1Client,
+  k8sV1CustomObjectClient,
+};

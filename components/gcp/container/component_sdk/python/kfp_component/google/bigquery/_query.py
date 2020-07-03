@@ -14,6 +14,7 @@
 
 import json
 import logging
+import os
 
 from google.cloud import bigquery
 from google.api_core import exceptions
@@ -24,8 +25,10 @@ from .. import common as gcp_common
 # TODO(hongyes): make this path configurable as a environment variable
 KFP_OUTPUT_PATH = '/tmp/kfp/output/'
 
+
 def query(query, project_id, dataset_id=None, table_id=None, 
-    output_gcs_path=None, dataset_location='US', job_config=None):
+    output_gcs_path=None, dataset_location='US', job_config=None,
+    output_path=None, output_filename=None):
     """Submit a query to Bigquery service and dump outputs to Bigquery table or 
     a GCS blob.
     
@@ -40,6 +43,8 @@ def query(query, project_id, dataset_id=None, table_id=None,
         output_gcs_path (str): The GCS blob path to dump the query results to.
         dataset_location (str): The location to create the dataset. Defaults to `US`.
         job_config (dict): The full config spec for the query job.
+        output_path (str): The path to where query result will be stored
+        output_filename (str): The name of the file where the results will be stored
     Returns:
         The API representation of the completed query job.
     """
@@ -68,14 +73,21 @@ def query(query, project_id, dataset_id=None, table_id=None,
                 job_config.destination = table_ref
             query_job = client.query(query, job_config, job_id=job_id)
         _display_job_link(project_id, job_id)
-        query_job.result() # Wait for query to finish
-        if output_gcs_path:
-            job_id = 'extract_' + ctx.context_id()
-            extract_job = _get_job(client, job_id)
-            logging.info('Extracting data from table {} to {}.'.format(str(table_ref), output_gcs_path))
-            if not extract_job:
-                extract_job = client.extract_table(table_ref, output_gcs_path)
-            extract_job.result()  # Wait for export to finish
+        if output_path != None: #Write to local file
+            result = query_job.result()
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+            df = result.to_dataframe()
+            df.to_csv(os.path.join(output_path, output_filename))
+        else:
+            query_job.result() 
+            if output_gcs_path:
+                job_id = 'extract_' + ctx.context_id()
+                extract_job = _get_job(client, job_id)
+                logging.info('Extracting data from table {} to {}.'.format(str(table_ref), output_gcs_path))
+                if not extract_job:
+                    extract_job = client.extract_table(table_ref, output_gcs_path)
+                extract_job.result()  # Wait for export to finish
         _dump_outputs(query_job, output_gcs_path, table_ref)
         return query_job.to_api_repr()
 
@@ -88,7 +100,6 @@ def _get_job(client, job_id):
 def _prepare_dataset_ref(client, dataset_id, output_gcs_path, dataset_location):
     if not output_gcs_path and not dataset_id:
         return None
-    
     if not dataset_id:
         dataset_id = 'kfp_tmp_dataset'
     dataset_ref = client.dataset(dataset_id)
@@ -120,10 +131,10 @@ def _dump_outputs(job, output_path, table_ref):
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-job.json', 
         json.dumps(job.to_api_repr()))
     if not output_path:
-        output_path = ''
+        output_path = '-'  # Replace with empty string when we upgrade to Argo version which has the fix: https://github.com/argoproj/argo/pull/1653
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-output-path.txt', 
         output_path)
-    (dataset_id, table_id) = (table_ref.dataset_id, table_ref.table_id) if table_ref else ('', '')
+    (dataset_id, table_id) = (table_ref.dataset_id, table_ref.table_id) if table_ref else ('-', '-')
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-dataset-id.txt', 
         dataset_id)
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-table-id.txt', 

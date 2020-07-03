@@ -1,5 +1,12 @@
 # Deploy Kubeflow Pipelines from Google Cloud Marketplace
 
+> **Alpha version:** 
+Kubeflow Pipelines on GCP Marketplace is currently in **Alpha** with limited 
+support. The Kubeflow team is interested in any feedback you may have, in 
+particular with regards to usability of the feature. Please raise any issues
+or discussion items in the
+[Kubeflow Pipelines issue tracker](https://github.com/kubeflow/pipelines/issues).
+
 Go to [Google Cloud Marketplace](https://console.cloud.google.com/marketplace) to deploy Kubeflow Pipelines by using a graphical interface.
 You can go to the [Marketplace page for Kubeflow Pipelines](https://console.cloud.google.com/marketplace/details/google-cloud-ai-platform/kubeflow-pipelines) directly, or search for "Kubeflow Pipelines" from the Marketplace landing page.
 
@@ -7,7 +14,16 @@ Once you have deployed Kubeflow Pipelines instances, you can view and manage the
 
 ## Cluster
 
-You can deploy Kubeflow Pipelines to a new cluster or an existing cluster. New clusters aren't customizable, so if you need that, you should use the [Google Kubernetes Engine](https://console.cloud.google.com/kubernetes/list) to create a cluster that meets your requirements and then deploy to that.
+You can deploy Kubeflow Pipelines to a new cluster or an existing cluster. New clusters aren't customizable, so if you need that, you should use the [Google Kubernetes Engine](https://console.cloud.google.com/kubernetes/list) to create a cluster that meets your requirements and then deploy to that. The required cluster profile is 3 nodes with 2 CPUs. You also can create the cluster via gcloud.
+
+Here is a sample which will create a cluster with 3x2 CPUs and can access all GCP APIs without setting up secrets.
+
+```
+gcloud container clusters create $CLUSTER_NAME \
+    --zone $ZONE \
+    --machine-type n1-standard-2 \
+    --scopes cloud-platform
+```
 
 You can only deploy one Kubeflow Pipelines into a given cluster.
 
@@ -51,6 +67,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
   --role=roles/ml.admin
 
 # More roles can be binded if your pipeline requires it.
+# --role=roles/bigquery.admin
 # --role=roles/dataproc.admin
 # --role=roles/dataflow.admin
 ```

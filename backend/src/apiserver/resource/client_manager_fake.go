@@ -15,13 +15,10 @@
 package resource
 
 import (
-	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const (
@@ -30,21 +27,21 @@ const (
 )
 
 type FakeClientManager struct {
-	db                          *storage.DB
-	experimentStore             storage.ExperimentStoreInterface
-	pipelineStore               storage.PipelineStoreInterface
-	jobStore                    storage.JobStoreInterface
-	runStore                    storage.RunStoreInterface
-	resourceReferenceStore      storage.ResourceReferenceStoreInterface
-	dBStatusStore               storage.DBStatusStoreInterface
-	defaultExperimentStore      storage.DefaultExperimentStoreInterface
-	objectStore                 storage.ObjectStoreInterface
-	workflowClientFake          *FakeWorkflowClient
-	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
-	podClientFake               v1.PodInterface
-	KfamClientFake              client.KFAMClientInterface
-	time                        util.TimeInterface
-	uuid                        util.UUIDGeneratorInterface
+	db                     *storage.DB
+	experimentStore        storage.ExperimentStoreInterface
+	pipelineStore          storage.PipelineStoreInterface
+	jobStore               storage.JobStoreInterface
+	runStore               storage.RunStoreInterface
+	resourceReferenceStore storage.ResourceReferenceStoreInterface
+	dBStatusStore          storage.DBStatusStoreInterface
+	defaultExperimentStore storage.DefaultExperimentStoreInterface
+	objectStore            storage.ObjectStoreInterface
+	ArgoClientFake         *client.FakeArgoClient
+	swfClientFake          *client.FakeSwfClient
+	k8sCoreClientFake      *client.FakeKuberneteCoreClient
+	KfamClientFake         client.KFAMClientInterface
+	time                   util.TimeInterface
+	uuid                   util.UUIDGeneratorInterface
 }
 
 func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterface) (
@@ -66,21 +63,21 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 
 	// TODO(neuromage): Pass in metadata.Store instance for tests as well.
 	return &FakeClientManager{
-		db:                          db,
-		experimentStore:             storage.NewExperimentStore(db, time, uuid),
-		pipelineStore:               storage.NewPipelineStore(db, time, uuid),
-		jobStore:                    storage.NewJobStore(db, time),
-		runStore:                    storage.NewRunStore(db, time),
-		workflowClientFake:          NewWorkflowClientFake(),
-		resourceReferenceStore:      storage.NewResourceReferenceStore(db),
-		dBStatusStore:               storage.NewDBStatusStore(db),
-		defaultExperimentStore:      storage.NewDefaultExperimentStore(db),
-		objectStore:                 storage.NewFakeObjectStore(),
-		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
-		podClientFake:               FakePodClient{},
-		KfamClientFake:              client.NewFakeKFAMClientAuthorized(),
-		time:                        time,
-		uuid:                        uuid,
+		db:                     db,
+		experimentStore:        storage.NewExperimentStore(db, time, uuid),
+		pipelineStore:          storage.NewPipelineStore(db, time, uuid),
+		jobStore:               storage.NewJobStore(db, time),
+		runStore:               storage.NewRunStore(db, time),
+		ArgoClientFake:         client.NewFakeArgoClient(),
+		resourceReferenceStore: storage.NewResourceReferenceStore(db),
+		dBStatusStore:          storage.NewDBStatusStore(db),
+		defaultExperimentStore: storage.NewDefaultExperimentStore(db),
+		objectStore:            storage.NewFakeObjectStore(),
+		swfClientFake:          client.NewFakeSwfClient(),
+		k8sCoreClientFake:      client.NewFakeKuberneteCoresClient(),
+		KfamClientFake:         client.NewFakeKFAMClientAuthorized(),
+		time:                   time,
+		uuid:                   uuid,
 	}, nil
 }
 
@@ -117,8 +114,8 @@ func (f *FakeClientManager) DB() *storage.DB {
 	return f.db
 }
 
-func (f *FakeClientManager) Workflow() workflowclient.WorkflowInterface {
-	return f.workflowClientFake
+func (f *FakeClientManager) ArgoClient() client.ArgoClientInterface {
+	return f.ArgoClientFake
 }
 
 func (f *FakeClientManager) JobStore() storage.JobStoreInterface {
@@ -141,12 +138,12 @@ func (f *FakeClientManager) DefaultExperimentStore() storage.DefaultExperimentSt
 	return f.defaultExperimentStore
 }
 
-func (f *FakeClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
-	return f.scheduledWorkflowClientFake
+func (f *FakeClientManager) SwfClient() client.SwfClientInterface {
+	return f.swfClientFake
 }
 
-func (f *FakeClientManager) PodClient() v1.PodInterface {
-	return f.podClientFake
+func (f *FakeClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
+	return f.k8sCoreClientFake
 }
 
 func (f *FakeClientManager) KFAMClient() client.KFAMClientInterface {
@@ -155,4 +152,11 @@ func (f *FakeClientManager) KFAMClient() client.KFAMClientInterface {
 
 func (f *FakeClientManager) Close() error {
 	return f.db.Close()
+}
+
+// Update the uuid used in this fake client manager
+func (f *FakeClientManager) UpdateUUID(uuid util.UUIDGeneratorInterface) {
+	f.uuid = uuid
+	f.experimentStore = storage.NewExperimentStore(f.db, f.time, uuid)
+	f.pipelineStore = storage.NewPipelineStore(f.db, f.time, uuid)
 }

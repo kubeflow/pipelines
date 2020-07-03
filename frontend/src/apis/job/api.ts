@@ -138,11 +138,17 @@ export interface ApiJob {
    */
   pipeline_spec?: ApiPipelineSpec;
   /**
-   * Optional input field. Specify which resource this run belongs to.
+   * Optional input field. Specify which resource this job belongs to.
    * @type {Array<ApiResourceReference>}
    * @memberof ApiJob
    */
   resource_references?: Array<ApiResourceReference>;
+  /**
+   * Optional input field. Specify which Kubernetes service account this job uses.
+   * @type {string}
+   * @memberof ApiJob
+   */
+  service_account?: string;
   /**
    *
    * @type {string}
@@ -191,6 +197,12 @@ export interface ApiJob {
    * @memberof ApiJob
    */
   enabled?: boolean;
+  /**
+   * Optional input field. Whether the job should catch up if behind schedule. If true, the job will only schedule the latest interval if behind schedule. If false, the job will catch up on each past interval.
+   * @type {boolean}
+   * @memberof ApiJob
+   */
+  no_catchup?: boolean;
 }
 
 /**
@@ -371,6 +383,7 @@ export enum ApiResourceType {
   JOB = <any>'JOB',
   PIPELINE = <any>'PIPELINE',
   PIPELINEVERSION = <any>'PIPELINE_VERSION',
+  NAMESPACE = <any>'NAMESPACE',
 }
 
 /**
@@ -557,7 +570,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Disable a job.
+     * @summary Stops a job and all its associated runs. The job is not deleted.
      * @param {string} id The ID of the job to be disabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -605,7 +618,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Enable a job.
+     * @summary Restarts a job that was previously stopped. All runs associated with the job will continue.
      * @param {string} id The ID of the job to be enabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -705,7 +718,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
      * @param {string} [page_token]
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default.
-     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
@@ -720,7 +733,8 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
         | 'EXPERIMENT'
         | 'JOB'
         | 'PIPELINE'
-        | 'PIPELINE_VERSION',
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
       resource_reference_key_id?: string,
       filter?: string,
       options: any = {},
@@ -837,7 +851,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Disable a job.
+     * @summary Stops a job and all its associated runs. The job is not deleted.
      * @param {string} id The ID of the job to be disabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -859,7 +873,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Enable a job.
+     * @summary Restarts a job that was previously stopped. All runs associated with the job will continue.
      * @param {string} id The ID of the job to be enabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -904,7 +918,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
      * @param {string} [page_token]
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default.
-     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
@@ -919,7 +933,8 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
         | 'EXPERIMENT'
         | 'JOB'
         | 'PIPELINE'
-        | 'PIPELINE_VERSION',
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
       resource_reference_key_id?: string,
       filter?: string,
       options?: any,
@@ -978,7 +993,7 @@ export const JobServiceApiFactory = function(
     },
     /**
      *
-     * @summary Disable a job.
+     * @summary Stops a job and all its associated runs. The job is not deleted.
      * @param {string} id The ID of the job to be disabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -988,7 +1003,7 @@ export const JobServiceApiFactory = function(
     },
     /**
      *
-     * @summary Enable a job.
+     * @summary Restarts a job that was previously stopped. All runs associated with the job will continue.
      * @param {string} id The ID of the job to be enabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1012,7 +1027,7 @@ export const JobServiceApiFactory = function(
      * @param {string} [page_token]
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default.
-     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
@@ -1027,7 +1042,8 @@ export const JobServiceApiFactory = function(
         | 'EXPERIMENT'
         | 'JOB'
         | 'PIPELINE'
-        | 'PIPELINE_VERSION',
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
       resource_reference_key_id?: string,
       filter?: string,
       options?: any,
@@ -1078,7 +1094,7 @@ export class JobServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Disable a job.
+   * @summary Stops a job and all its associated runs. The job is not deleted.
    * @param {string} id The ID of the job to be disabled
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1090,7 +1106,7 @@ export class JobServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Enable a job.
+   * @summary Restarts a job that was previously stopped. All runs associated with the job will continue.
    * @param {string} id The ID of the job to be enabled
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1118,7 +1134,7 @@ export class JobServiceApi extends BaseAPI {
    * @param {string} [page_token]
    * @param {number} [page_size]
    * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default.
-   * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION'} [resource_reference_key_type] The type of the resource that referred to.
+   * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
    * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
    * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
    * @param {*} [options] Override http request option.
@@ -1134,7 +1150,8 @@ export class JobServiceApi extends BaseAPI {
       | 'EXPERIMENT'
       | 'JOB'
       | 'PIPELINE'
-      | 'PIPELINE_VERSION',
+      | 'PIPELINE_VERSION'
+      | 'NAMESPACE',
     resource_reference_key_id?: string,
     filter?: string,
     options?: any,

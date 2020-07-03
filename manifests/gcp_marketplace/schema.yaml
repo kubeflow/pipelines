@@ -1,12 +1,11 @@
 x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
-  publishedVersion: '0.1.35'
+  publishedVersion: '0.5.1'
   publishedVersionMetadata:
-    releaseNote: >-
-      Based on 0.1.35 version.
+    releaseNote: Based on 0.5.1 version.
     releaseTypes:
-      - Feature
+    - Feature
     recommended: false
   managedUpdates:
     kalmSupported: false
@@ -73,24 +72,39 @@ x-google-marketplace:
       properties:
         images.metadataenvoy:
           type: FULL
+    metadatawriter:
+      properties:
+        images.metadatawriter:
+          type: FULL
+    cacheserver:
+      properties:
+        images.cacheserver:
+          type: FULL
+    cachedeployer:
+      properties:
+        images.cachedeployer:
+          type: FULL
   deployerServiceAccount:
     roles:
-      - type: ClusterRole        # This is a cluster-wide ClusterRole
-        rulesType: CUSTOM        # We specify our own custom RBAC roles
-        rules:
-          - apiGroups: ['apiextensions.k8s.io']
-            resources: ['customresourcedefinitions']
-            verbs: ['*']
+    - type: ClusterRole # This is a cluster-wide ClusterRole
+      rulesType: CUSTOM # We specify our own custom RBAC roles
+      rules:
+      - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io']
+        resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings']
+        verbs: ['*']
   clusterConstraints:
     resources:
     - replicas: 3
       requests:
-        cpu: 4
-        memory: 8Gi
+        cpu: 1
+        memory: 2Gi
       affinity:
         simpleNodeAffinity:
           type: REQUIRE_ONE_NODE_PER_REPLICA
-
+    gcp:
+      nodes:
+        requiredOauthScopes:
+        - https://www.googleapis.com/auth/cloud-platform
 properties:
   name:
     type: string
@@ -100,8 +114,73 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
+  managedstorage.enabled:
+    type: boolean
+    title: Use managed storage
+    description: |-
+      Use Cloud SQL and GCS for storing the data.
+      Using CloudSQL and GCS provides better reliability and performance,
+      as well as features such as data backup and usage monitoring.
+      This is the recommended option especially for production scenarios.
 
+      If yes, you must specify GCS bucket and CloudSQL instance below. Note, to
+      reserve your data while reinstalling Kubeflow Pipelines, you must use
+      exactly the same managed storage options as before.
+
+      If upgrading from managed storage Kubeflow Pipelines 0.5.1, GCS bucket
+      name was previously auto generated in the same project, it should have been
+      named like "<cloudsql instance connection name>-<database prefix or instance name>".
+
+      If false, following options will be ignored and the data will be stored in
+      GCE Persistent Disks.
+    default: false
+  managedstorage.gcsBucketName:
+    type: string
+    title: Artifact storage GCS bucket (Managed storage only)
+    description: |-
+      This field must be specified if choose to use managed storage.
+      Provide the Google Cloud Storage (GCS) bucket name for an existing bucket.
+      The bucket will be used for storing the output artifacts.
+      For more details on how to create a new bucket, see https://cloud.google.com/storage/docs/creating-buckets.
+
+      Warning, if provided bucket doesn't exist, deployer will automatically
+      create a bucket for you in us-central1, but you won't be able to customize
+      any parameters.
+  managedstorage.cloudsqlInstanceConnectionName:
+    type: string
+    title: Cloud SQL instance connection name (Managed storage only)
+    description: |-
+      This field must be specified if choose to use managed storage.
+      Provide the instance connection name for an existing Cloud SQL for MySQL instance.
+      The instance connection name can be found on the instance detail page in the Cloud SQL console.
+      The instance connection name uses the format project:zone:instance-name, for example,myproject:us-central1:myinstance.
+      For more details on how to create a new instance, see https://cloud.google.com/sql/docs/mysql/quickstart.
+  managedstorage.dbUsername:
+    type: string
+    title: Database username (Managed storage only)
+    description: |-
+      The database username to use when connecting to the Cloud SQL instance.
+      If you leave this field empty, the deployment will use the default 'root' user account to connect.
+      For more details about MySQL users, see https://cloud.google.com/sql/docs/mysql/users.
+  managedstorage.dbPassword:
+    type: string
+    title: Database password (Managed storage only)
+    x-google-marketplace:
+      type: MASKED_FIELD
+    description: |-
+      The database password to use when connecting to the Cloud SQL instance.
+      If you leave this field empty, the deployment will try to connect to the instance without providing a password.
+      This will fail if a password is required for the username you provided.
+  managedstorage.databaseNamePrefix:
+    type: string
+    title: Database name prefix (Managed storage only)
+    description: |-
+      The prefix of the database name. Kubeflow Pipelines will create two databases,
+      [prefix]_pipeline and [prefix]_metadata.
+      Use lowercase letters, numbers, and hyphens. Start with a letter.
+      If the prefix specified is same as an old deployment in the past,
+      the deployment will recover from an old deployment.
+      If this not specified, the app instance name will be used.
 required:
-  - name
-  - namespace
-
+- name
+- namespace

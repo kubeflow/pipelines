@@ -1,7 +1,9 @@
 # Lint as: python3
 """CLI interface for KFP diagnose_me tool."""
 
-from typing import Text
+import json as json_library
+import sys
+from typing import Dict, Text
 import click
 from .diagnose_me import dev_env
 from .diagnose_me import gcp
@@ -19,7 +21,7 @@ def diagnose_me():
 @click.option(
     '--json',
     is_flag=True,
-    help='Output in Json fromat, human readable format is set by default.')
+    help='Output in Json format, human readable format is set by default.')
 @click.option(
     '--project-id',
     type=Text,
@@ -27,7 +29,7 @@ def diagnose_me():
 @click.option(
     '--namespace',
     type=Text,
-    help='Namespace to use for Kubernatees cluster. It will use environment default if not specified.'
+    help='Namespace to use for Kubernetes cluster.all-namespaces is used if not specified.'
 )
 @click.pass_context
 def diagnose_me(ctx, json, project_id, namespace):
@@ -45,38 +47,54 @@ def diagnose_me(ctx, json, project_id, namespace):
           'https://cloud.google.com/sdk/install to install the SDK.')
       return
 
-  # default behaviour dump all ocnfiguration
+  print('Collecting diagnostic information ...', file=sys.stderr)
+
+  # default behaviour dump all configurations
+  results = {}
   for gcp_command in gcp.Commands:
-    results = gcp.get_gcp_configuration(
+    results[gcp_command] = gcp.get_gcp_configuration(
         gcp_command, project_id=project_id, human_readable=not json)
-    print_to_sdtout(results, gcp_command, not json)
 
   for k8_command in k8.Commands:
-    results = k8.get_kubectl_configuration(
+    results[k8_command] = k8.get_kubectl_configuration(
         k8_command, human_readable=not json)
-    print_to_sdtout(results, k8_command, not json)
 
   for dev_env_command in dev_env.Commands:
-    results = dev_env.get_dev_env_configuration(
+    results[dev_env_command] = dev_env.get_dev_env_configuration(
         dev_env_command, human_readable=not json)
-    print_to_sdtout(results, dev_env_command, not json)
+
+  print_to_sdtout(results, not json)
 
 
-def print_to_sdtout(results: utility.ExecutorResponse, command: gcp.Commands,
+def print_to_sdtout(results: Dict[str, utility.ExecutorResponse],
                     human_readable: bool):
   """Viewer to print the ExecutorResponse results to stdout.
 
   Args:
-    results: Execution results to be printed out
-    command: Command that was used for this execution
-    human_readable: Print results in human readable format.
+    results: A dictionary with key:command names and val: Execution response
+    human_readable: Print results in human readable format. If set to True
+      command names will be printed as visual delimiters in new lines. If False
+      results are printed as a dictionary with command as key.
   """
-  print('\n================', command.name, '===================\n')
-  if results.has_error:
-    print(' An error occurred during the executions with details as follows:',
-          results.stderr)
-    return
+
+  output_dict = {}
+  human_readable_result = []
+  for key, val in results.items():
+    if val.has_error:
+      output_dict[
+          key.
+          name] = 'Following error occurred during the diagnoses: %s' % val.stderr
+      continue
+
+    output_dict[key.name] = val.json_output
+    human_readable_result.append('================ %s ===================' %
+                                 (key.name))
+    human_readable_result.append(val.parsed_output)
+
   if human_readable:
-    print(results.parsed_output)
+    result = '\n'.join(human_readable_result)
   else:
-    print(results.json_output)
+    result = json_library.dumps(
+        output_dict, sort_keys=True, indent=2, separators=(',', ': '))
+
+  print(result)

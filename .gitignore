@@ -14,7 +14,7 @@ bower_components/
 dist
 
 # Web server
-frontend/server/*.js
+frontend/server/dist
 
 # Python built package
 *.egg-info
@@ -65,4 +65,7 @@ _artifacts
 
 # Generated Python SDK documentation
 docs/_build
+
+# sed backups
+*.bak
 

@@ -2,7 +2,9 @@ package integration
 
 import (
 	"io/ioutil"
+	"sort"
 	"testing"
+	"time"
 
 	"github.com/kubeflow/pipelines/backend/test"
 
@@ -29,6 +31,12 @@ type RunApiTestSuite struct {
 	runClient            *api_server.RunClient
 }
 
+type RunResourceReferenceSorter []*run_model.APIResourceReference
+
+func (r RunResourceReferenceSorter) Len() int           { return len(r) }
+func (r RunResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
+func (r RunResourceReferenceSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+
 // Check the namespace have ML pipeline installed and ready
 func (s *RunApiTestSuite) SetupTest() {
 	if !*runIntegrationTests {
@@ -36,12 +44,15 @@ func (s *RunApiTestSuite) SetupTest() {
 		return
 	}
 
-	err := test.WaitForReady(*namespace, *initializeTimeout)
-	if err != nil {
-		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+	if !*isDevMode {
+		err := test.WaitForReady(*namespace, *initializeTimeout)
+		if err != nil {
+			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+		}
 	}
 	s.namespace = *namespace
 	clientConfig := test.GetClientConfig(*namespace)
+	var err error
 	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
@@ -58,6 +69,8 @@ func (s *RunApiTestSuite) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get run client. Error: %s", err.Error())
 	}
+
+	s.cleanUp()
 }
 
 func (s *RunApiTestSuite) TestRunApis() {
@@ -67,31 +80,39 @@ func (s *RunApiTestSuite) TestRunApis() {
 	helloWorldPipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
 	assert.Nil(t, err)
 
+	/* ---------- Upload a pipeline version YAML under helloWorldPipeline ---------- */
+	time.Sleep(1 * time.Second)
+	helloWorldPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
+		"../resources/hello-world.yaml", &uploadParams.UploadPipelineVersionParams{
+			Name:       util.StringPointer("hello-world-version"),
+			Pipelineid: util.StringPointer(helloWorldPipeline.ID),
+		})
+	assert.Nil(t, err)
+
 	/* ---------- Create a new hello world experiment ---------- */
 	experiment := &experiment_model.APIExperiment{Name: "hello world experiment"}
 	helloWorldExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
-	/* ---------- Create a new hello world run by specifying pipeline ID ---------- */
+	/* ---------- Create a new hello world run by specifying pipeline version ID ---------- */
 	createRunRequest := &runparams.CreateRunParams{Body: &run_model.APIRun{
 		Name:        "hello world",
 		Description: "this is hello world",
-		PipelineSpec: &run_model.APIPipelineSpec{
-			PipelineID: helloWorldPipeline.ID,
-		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
 				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER},
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: helloWorldPipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR},
 		},
 	}}
 	helloWorldRunDetail, _, err := s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
-	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipeline.ID)
+	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipelineVersion.ID, helloWorldPipelineVersion.Name)
 
 	/* ---------- Get hello world run ---------- */
 	helloWorldRunDetail, _, err = s.runClient.Get(&runparams.GetRunParams{RunID: helloWorldRunDetail.Run.ID})
 	assert.Nil(t, err)
-	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipeline.ID)
+	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipelineVersion.ID, helloWorldPipelineVersion.Name)
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	createExperimentRequest := &experimentparams.CreateExperimentParams{Body: &experiment_model.APIExperiment{Name: "argument parameter experiment"}}
@@ -191,16 +212,23 @@ func (s *RunApiTestSuite) TestRunApis() {
 	longRunningPipeline, err := s.pipelineUploadClient.UploadFile("../resources/long-running.yaml", uploadParams.NewUploadPipelineParamsWithTimeout(350))
 	assert.Nil(t, err)
 
+	/* ---------- Upload a long-running pipeline version YAML under longRunningPipeline ---------- */
+	time.Sleep(1 * time.Second)
+	longRunningPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/long-running.yaml", &uploadParams.UploadPipelineVersionParams{
+		Name:       util.StringPointer("long-running-version"),
+		Pipelineid: util.StringPointer(longRunningPipeline.ID),
+	})
+	assert.Nil(t, err)
+
 	/* ---------- Create a new long-running run by specifying pipeline ID ---------- */
 	createLongRunningRunRequest := &runparams.CreateRunParams{Body: &run_model.APIRun{
 		Name:        "long running",
 		Description: "this pipeline will run long enough for us to manually terminate it before it finishes",
-		PipelineSpec: &run_model.APIPipelineSpec{
-			PipelineID: longRunningPipeline.ID,
-		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
 				Relationship: run_model.APIRelationshipOWNER},
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: longRunningPipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR},
 		},
 	}}
 	longRunningRunDetail, _, err := s.runClient.Create(createLongRunningRunRequest)
@@ -214,67 +242,73 @@ func (s *RunApiTestSuite) TestRunApis() {
 	/* ---------- Get long-running run ---------- */
 	longRunningRunDetail, _, err = s.runClient.Get(&runparams.GetRunParams{RunID: longRunningRunDetail.Run.ID})
 	assert.Nil(t, err)
-	s.checkTerminatedRunDetail(t, longRunningRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, longRunningPipeline.ID)
-
-	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, t)
-	test.DeleteAllPipelines(s.pipelineClient, t)
-	test.DeleteAllRuns(s.runClient, t)
+	s.checkTerminatedRunDetail(t, longRunningRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, longRunningPipelineVersion.ID, longRunningPipelineVersion.Name)
 }
 
-func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineId string) {
+func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
 	// Check workflow manifest is not empty
 	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "wait-awhile")
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "wait-awhile")
 
 	expectedRun := &run_model.APIRun{
-		ID:          runDetail.Run.ID,
-		Name:        "long running",
-		Description: "this pipeline will run long enough for us to manually terminate it before it finishes",
-		Status:      "Terminating",
+		ID:             runDetail.Run.ID,
+		Name:           "long running",
+		Description:    "this pipeline will run long enough for us to manually terminate it before it finishes",
+		Status:         "Terminating",
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &run_model.APIPipelineSpec{
-			PipelineID:       pipelineId,
-			PipelineName:     "long-running.yaml",
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
 				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
 			},
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR},
 		},
 		CreatedAt:   runDetail.Run.CreatedAt,
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
+
+	// Need to sort resource references before equality check as the order is non-deterministic
+	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
-func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineId string) {
+func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
 	// Check workflow manifest is not empty
 	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay")
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "whalesay")
 
 	expectedRun := &run_model.APIRun{
-		ID:          runDetail.Run.ID,
-		Name:        "hello world",
-		Description: "this is hello world",
-		Status:      runDetail.Run.Status,
+		ID:             runDetail.Run.ID,
+		Name:           "hello world",
+		Description:    "this is hello world",
+		Status:         runDetail.Run.Status,
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &run_model.APIPipelineSpec{
-			PipelineID:       pipelineId,
-			PipelineName:     "hello-world.yaml",
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
 				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
 			},
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR,
+			},
 		},
 		CreatedAt:   runDetail.Run.CreatedAt,
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
+
+	// Need to sort resource references before equality check as the order is non-deterministic
+	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))
+	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
@@ -286,10 +320,11 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "arguments-parameters-")
 	expectedRun := &run_model.APIRun{
-		ID:          runDetail.Run.ID,
-		Name:        "argument parameter",
-		Description: "this is argument parameter",
-		Status:      runDetail.Run.Status,
+		ID:             runDetail.Run.ID,
+		Name:           "argument parameter",
+		Description:    "this is argument parameter",
+		Status:         runDetail.Run.Status,
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: string(argParamsBytes),
 			Parameters: []*run_model.APIParameter{
@@ -306,9 +341,25 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 		ScheduledAt: runDetail.Run.ScheduledAt,
 		FinishedAt:  runDetail.Run.FinishedAt,
 	}
+
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
 func TestRunApi(t *testing.T) {
 	suite.Run(t, new(RunApiTestSuite))
+}
+
+func (s *RunApiTestSuite) TearDownSuite() {
+	if *runIntegrationTests {
+		if !*isDevMode {
+			s.cleanUp()
+		}
+	}
+}
+
+func (s *RunApiTestSuite) cleanUp() {
+	/* ---------- Clean up ---------- */
+	test.DeleteAllExperiments(s.experimentClient, s.T())
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
+	test.DeleteAllRuns(s.runClient, s.T())
 }

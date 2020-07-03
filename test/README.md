@@ -69,8 +69,7 @@ argo submit integration_test_gke.yaml -p branch="my-branch" -p cleanup="false"
 
 Run the following commands from root of kubeflow/pipelines repo.
 ```
-#$PULL_PULL_SHA and $WORKSPACE are env variables set by Prow
-export PULL_PULL_SHA=pull-sha-placeholder
+# $WORKSPACE are env variables set by Prow
 export WORKSPACE=$(pwd) # root of kubeflow/pipelines git repo
 export SA_KEY_FILE=PATH/TO/YOUR/GCP/PROJECT/SERVICE/ACCOUNT/KEY
 # (optional) uncomment the following to keep reusing the same cluster

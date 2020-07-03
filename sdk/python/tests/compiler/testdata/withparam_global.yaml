@@ -17,24 +17,24 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: loopidy_doop
-            value: '{{inputs.parameters.loopidy_doop}}'
+          - name: loopidy_doop-loop-item
+            value: '{{inputs.parameters.loopidy_doop-loop-item}}'
         name: my-in-cop1
         template: my-in-cop1
     inputs:
       parameters:
-      - name: loopidy_doop
+      - name: loopidy_doop-loop-item
     name: for-loop-for-loop-00000001-1
   - container:
       args:
-      - 'echo no output global op1, item: {{inputs.parameters.loopidy_doop}}'
+      - 'echo no output global op1, item: {{inputs.parameters.loopidy_doop-loop-item}}'
       command:
       - sh
       - -c
       image: library/bash:4.4.23
     inputs:
       parameters:
-      - name: loopidy_doop
+      - name: loopidy_doop-loop-item
     name: my-in-cop1
   - container:
       args:
@@ -68,7 +68,7 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: loopidy_doop
+          - name: loopidy_doop-loop-item
             value: '{{item}}'
         dependencies:
         - my-out-cop0

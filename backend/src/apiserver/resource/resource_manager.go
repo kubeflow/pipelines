@@ -34,14 +34,15 @@ import (
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
-	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
-	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
+	defaultPipelineRunnerServiceAccount = "pipeline-runner"
+	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
+	ProjectIDEnvVar                     = "PROJECT_ID"
+	DefaultBucketNameEnvVar             = "BUCKET_NAME"
 )
 
 type ClientManagerInterface interface {
@@ -53,55 +54,67 @@ type ClientManagerInterface interface {
 	DBStatusStore() storage.DBStatusStoreInterface
 	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
-	Workflow() workflowclient.WorkflowInterface
-	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
-	PodClient() corev1.PodInterface
+	ArgoClient() client.ArgoClientInterface
+	SwfClient() client.SwfClientInterface
+	KubernetesCoreClient() client.KubernetesCoreInterface
 	KFAMClient() client.KFAMClientInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
 }
 
 type ResourceManager struct {
-	experimentStore         storage.ExperimentStoreInterface
-	pipelineStore           storage.PipelineStoreInterface
-	jobStore                storage.JobStoreInterface
-	runStore                storage.RunStoreInterface
-	resourceReferenceStore  storage.ResourceReferenceStoreInterface
-	dBStatusStore           storage.DBStatusStoreInterface
-	defaultExperimentStore  storage.DefaultExperimentStoreInterface
-	objectStore             storage.ObjectStoreInterface
-	workflowClient          workflowclient.WorkflowInterface
-	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
-	podClient               corev1.PodInterface
-	kfamClient              client.KFAMClientInterface
-	time                    util.TimeInterface
-	uuid                    util.UUIDGeneratorInterface
+	experimentStore        storage.ExperimentStoreInterface
+	pipelineStore          storage.PipelineStoreInterface
+	jobStore               storage.JobStoreInterface
+	runStore               storage.RunStoreInterface
+	resourceReferenceStore storage.ResourceReferenceStoreInterface
+	dBStatusStore          storage.DBStatusStoreInterface
+	defaultExperimentStore storage.DefaultExperimentStoreInterface
+	objectStore            storage.ObjectStoreInterface
+	argoClient             client.ArgoClientInterface
+	swfClient              client.SwfClientInterface
+	k8sCoreClient          client.KubernetesCoreInterface
+	kfamClient             client.KFAMClientInterface
+	time                   util.TimeInterface
+	uuid                   util.UUIDGeneratorInterface
 }
 
 func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 	return &ResourceManager{
-		experimentStore:         clientManager.ExperimentStore(),
-		pipelineStore:           clientManager.PipelineStore(),
-		jobStore:                clientManager.JobStore(),
-		runStore:                clientManager.RunStore(),
-		resourceReferenceStore:  clientManager.ResourceReferenceStore(),
-		dBStatusStore:           clientManager.DBStatusStore(),
-		defaultExperimentStore:  clientManager.DefaultExperimentStore(),
-		objectStore:             clientManager.ObjectStore(),
-		workflowClient:          clientManager.Workflow(),
-		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		podClient:               clientManager.PodClient(),
-		kfamClient:              clientManager.KFAMClient(),
-		time:                    clientManager.Time(),
-		uuid:                    clientManager.UUID(),
+		experimentStore:        clientManager.ExperimentStore(),
+		pipelineStore:          clientManager.PipelineStore(),
+		jobStore:               clientManager.JobStore(),
+		runStore:               clientManager.RunStore(),
+		resourceReferenceStore: clientManager.ResourceReferenceStore(),
+		dBStatusStore:          clientManager.DBStatusStore(),
+		defaultExperimentStore: clientManager.DefaultExperimentStore(),
+		objectStore:            clientManager.ObjectStore(),
+		argoClient:             clientManager.ArgoClient(),
+		swfClient:              clientManager.SwfClient(),
+		k8sCoreClient:          clientManager.KubernetesCoreClient(),
+		kfamClient:             clientManager.KFAMClient(),
+		time:                   clientManager.Time(),
+		uuid:                   clientManager.UUID(),
 	}
+}
+
+func (r *ResourceManager) getWorkflowClient(namespace string) workflowclient.WorkflowInterface {
+	return r.argoClient.Workflow(namespace)
+}
+
+func (r *ResourceManager) getScheduledWorkflowClient(namespace string) scheduledworkflowclient.ScheduledWorkflowInterface {
+	return r.swfClient.ScheduledWorkflow(namespace)
 }
 
 func (r *ResourceManager) GetTime() util.TimeInterface {
 	return r.time
 }
 
-func (r *ResourceManager) CreateExperiment(experiment *model.Experiment) (*model.Experiment, error) {
+func (r *ResourceManager) CreateExperiment(apiExperiment *api.Experiment) (*model.Experiment, error) {
+	experiment, err := r.ToModelExperiment(apiExperiment)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert experiment model")
+	}
 	return r.experimentStore.CreateExperiment(experiment)
 }
 
@@ -109,9 +122,9 @@ func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment,
 	return r.experimentStore.GetExperiment(experimentId)
 }
 
-func (r *ResourceManager) ListExperiments(opts *list.Options) (
+func (r *ResourceManager) ListExperiments(filterContext *common.FilterContext, opts *list.Options) (
 	experiments []*model.Experiment, total_size int, nextPageToken string, err error) {
-	return r.experimentStore.ListExperiments(opts)
+	return r.experimentStore.ListExperiments(filterContext, opts)
 }
 
 func (r *ResourceManager) DeleteExperiment(experimentID string) error {
@@ -120,6 +133,52 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 		return util.Wrap(err, "Delete experiment failed")
 	}
 	return r.experimentStore.DeleteExperiment(experimentID)
+}
+
+func (r *ResourceManager) ArchiveExperiment(experimentId string) error {
+	// To archive an experiment
+	// (1) update our persistent agent to disable CRDs of jobs in experiment
+	// (2) update database to
+	// (2.1) archive experiemnts
+	// (2.2) archive runs
+	// (2.3) disable jobs
+	opts, err := list.NewOptions(&model.Job{}, 50, "name", nil)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create list jobs options when archiving experiment. ")
+	}
+	for {
+		jobs, _, newToken, err := r.jobStore.ListJobs(&common.FilterContext{
+			ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: experimentId}}, opts)
+		if err != nil {
+			return util.NewInternalServerError(err,
+				"Failed to list jobs of to-be-archived experiment. expID: %v", experimentId)
+		}
+		for _, job := range jobs {
+			_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
+				job.Name,
+				types.MergePatchType,
+				[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(false))))
+			if err != nil {
+				return util.NewInternalServerError(err,
+					"Failed to disable job CRD. jobID: %v", job.UUID)
+			}
+		}
+		if newToken == "" {
+			break
+		} else {
+			opts, err = list.NewOptionsFromToken(newToken, 50)
+			if err != nil {
+				return util.NewInternalServerError(err,
+					"Failed to create list jobs options from page token when archiving experiment. ")
+			}
+		}
+	}
+	return r.experimentStore.ArchiveExperiment(experimentId)
+}
+
+func (r *ResourceManager) UnarchiveExperiment(experimentId string) error {
+	return r.experimentStore.UnarchiveExperiment(experimentId)
 }
 
 func (r *ResourceManager) ListPipelines(opts *list.Options) (
@@ -152,7 +211,7 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	// versions and hence multiple files, and we shall improve performance by
 	// either using async deletion in order for this method to be non-blocking
 	// or or exploring other performance optimization tools provided by gcs.
-	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
+	err = r.objectStore.DeleteFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineId)))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline %v", pipelineId))
 		return nil
@@ -188,7 +247,7 @@ func (r *ResourceManager) CreatePipeline(name string, description string, pipeli
 
 	// Store the pipeline file to a path dependent on pipeline version
 	err = r.objectStore.AddFile(pipelineFile,
-		storage.CreatePipelinePath(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
+		r.objectStore.GetPipelineKey(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
@@ -225,7 +284,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 		return nil, util.Wrap(err,
 			"Get pipeline template failed since no default version is defined")
 	}
-	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(pipeline.DefaultVersion.UUID)))
+	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipeline.DefaultVersion.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
@@ -237,10 +296,15 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// Get workflow from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
+	// And the latter takes priority over the former
 	var workflowSpecManifestBytes []byte
-	workflowSpecManifestBytes, err := r.getWorkflowSpecBytes(apiRun.GetPipelineSpec())
+	err := ConvertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
 	if err != nil {
-		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiRun.GetResourceReferences())
+		return nil, util.Wrap(err, "Failed to find default version to create run with pipeline id.")
+	}
+	workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiRun.GetResourceReferences())
+	if err != nil {
+		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineSpec(apiRun.GetPipelineSpec())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 		}
@@ -263,11 +327,27 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 
-	workflow.SetServiceAccount(r.getDefaultSA())
+	r.setDefaultServiceAccount(&workflow, apiRun.GetServiceAccount())
+
+	// Disable istio sidecar injection
+	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+	// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
+	// receive targeting pods. Since cache server only receives pods in step level, the resource manager here will set this global label flag
+	// on every single step/pod so the cache server can understand.
+	// TODO: Add run_level flag with similar logic by reading flag value from create_run api.
+	workflow.SetLabelsToAllTemplates(util.LabelKeyCacheEnabled, common.IsCacheEnabled())
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
+
+	err = OverrideParameterWithSystemDefault(workflow, apiRun)
+	if err != nil {
+		return nil, err
+	}
+
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, runId)
+	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
+	workflow.SetAnnotations(util.AnnotationKeyRunName, apiRun.Name)
 	// Replace {{workflow.uid}} with runId
 	err = workflow.ReplaceUID(runId)
 	if err != nil {
@@ -276,7 +356,6 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
-	// TODO: Change the compiler to stop auto-adding those two atrifacts to all tasks.
 	for templateIdx, template := range workflow.Workflow.Spec.Templates {
 		for artIdx, artifact := range template.Outputs.Artifacts {
 			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
@@ -285,19 +364,24 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		}
 	}
 
-	// Create argo workflow CRD resource
-	newWorkflow, err := r.workflowClient.Create(workflow.Get())
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
-	}
-
 	// Add a reference to the default experiment if run does not already have a containing experiment
 	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
 	if err != nil {
 		return nil, err
 	}
 	if ref != nil {
-		apiRun.ResourceReferences = append(apiRun.ResourceReferences, ref)
+		apiRun.ResourceReferences = append(apiRun.GetResourceReferences(), ref)
+	}
+
+	namespace, err := r.getNamespaceFromExperiment(apiRun.GetResourceReferences())
+	if err != nil {
+		return nil, err
+	}
+
+	// Create argo workflow CRD resource
+	newWorkflow, err := r.getWorkflowClient(namespace).Create(workflow.Get())
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
 	}
 
 	// Store run metadata into database
@@ -333,7 +417,11 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 	if err != nil {
 		return util.Wrap(err, "Delete run failed")
 	}
-	err = r.workflowClient.Delete(runDetail.Name, &v1.DeleteOptions{})
+	namespace, err := r.GetNamespaceFromRunID(runID)
+	if err != nil {
+		return util.Wrap(err, "Delete run failed")
+	}
+	err = r.getWorkflowClient(namespace).Delete(runDetail.Name, &v1.DeleteOptions{})
 	if err != nil {
 		// API won't need to delete the workflow CRD
 		// once persistent agent sync the state to DB and set TTL for it.
@@ -379,12 +467,17 @@ func (r *ResourceManager) TerminateRun(runId string) error {
 		return util.Wrap(err, "Terminate run failed")
 	}
 
+	namespace, err := r.GetNamespaceFromRunID(runId)
+	if err != nil {
+		return util.Wrap(err, "Terminate run failed")
+	}
+
 	err = r.runStore.TerminateRun(runId)
 	if err != nil {
 		return util.Wrap(err, "Terminate run failed")
 	}
 
-	err = TerminateWorkflow(r.workflowClient, runDetail.Run.Name)
+	err = TerminateWorkflow(r.getWorkflowClient(namespace), runDetail.Run.Name)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to terminate the run")
 	}
@@ -393,6 +486,10 @@ func (r *ResourceManager) TerminateRun(runId string) error {
 
 func (r *ResourceManager) RetryRun(runId string) error {
 	runDetail, err := r.checkRunExist(runId)
+	if err != nil {
+		return util.Wrap(err, "Retry run failed")
+	}
+	namespace, err := r.GetNamespaceFromRunID(runId)
 	if err != nil {
 		return util.Wrap(err, "Retry run failed")
 	}
@@ -410,16 +507,16 @@ func (r *ResourceManager) RetryRun(runId string) error {
 		return util.Wrap(err, "Retry run failed.")
 	}
 
-	if err = deletePods(r.podClient, podsToDelete); err != nil {
+	if err = deletePods(r.k8sCoreClient, podsToDelete, namespace); err != nil {
 		return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
 	}
 
 	// First try to update workflow
-	updateError := r.updateWorkflow(newWorkflow)
+	updateError := r.updateWorkflow(newWorkflow, namespace)
 	if updateError != nil {
 		// Remove resource version
 		newWorkflow.ResourceVersion = ""
-		newCreatedWorkflow, createError := r.workflowClient.Create(newWorkflow.Workflow)
+		newCreatedWorkflow, createError := r.getWorkflowClient(namespace).Create(newWorkflow.Workflow)
 		if createError != nil {
 			return util.NewInternalServerError(createError,
 				"Retry run failed. Failed to create or update the run. Update Error: %s, Create Error: %s",
@@ -434,15 +531,15 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	return nil
 }
 
-func (r *ResourceManager) updateWorkflow(newWorkflow *util.Workflow) error {
+func (r *ResourceManager) updateWorkflow(newWorkflow *util.Workflow, namespace string) error {
 	// If fail to get the workflow, return error.
-	latestWorkflow, err := r.workflowClient.Get(newWorkflow.Name, v1.GetOptions{})
+	latestWorkflow, err := r.getWorkflowClient(namespace).Get(newWorkflow.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	// Update the workflow's resource version to latest.
 	newWorkflow.ResourceVersion = latestWorkflow.ResourceVersion
-	_, err = r.workflowClient.Update(newWorkflow.Workflow)
+	_, err = r.getWorkflowClient(namespace).Update(newWorkflow.Workflow)
 	return err
 }
 
@@ -454,10 +551,15 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	// Get workflow from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
+	// And the latter takes priority over the former
 	var workflowSpecManifestBytes []byte
-	workflowSpecManifestBytes, err := r.getWorkflowSpecBytes(apiJob.GetPipelineSpec())
+	err := ConvertPipelineIdToDefaultPipelineVersion(apiJob.PipelineSpec, &apiJob.ResourceReferences, r)
 	if err != nil {
-		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiJob.GetResourceReferences())
+		return nil, util.Wrap(err, "Failed to find default version to create job with pipeline id.")
+	}
+	workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(apiJob.GetResourceReferences())
+	if err != nil {
+		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineSpec(apiJob.GetPipelineSpec())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 		}
@@ -475,14 +577,16 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
+
+	r.setDefaultServiceAccount(&workflow, apiJob.GetServiceAccount())
+
+	// Disable istio sidecar injection
+	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+
 	swfGeneratedName, err := toSWFCRDResourceGeneratedName(apiJob.Name)
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
-
-	// Set workflow to be run using default pipeline runner service account.
-	workflow.SetServiceAccount(r.getDefaultSA())
-
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: v1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
@@ -493,11 +597,18 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
 				Spec:       workflow.Spec,
 			},
+			NoCatchup: util.BoolPointer(apiJob.NoCatchup),
 		},
 	}
-	newScheduledWorkflow, err := r.scheduledWorkflowClient.Create(scheduledWorkflow)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
+
+	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
+	// TODO: Fix the components to explicitly declare the artifacts they really output.
+	for templateIdx, template := range scheduledWorkflow.Spec.Workflow.Spec.Templates {
+		for artIdx, artifact := range template.Outputs.Artifacts {
+			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
+				scheduledWorkflow.Spec.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
+			}
+		}
 	}
 
 	// Add a reference to the default experiment if run does not already have a containing experiment
@@ -507,6 +618,16 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	}
 	if ref != nil {
 		apiJob.ResourceReferences = append(apiJob.GetResourceReferences(), ref)
+	}
+
+	namespace, err := r.getNamespaceFromExperiment(apiJob.GetResourceReferences())
+	if err != nil {
+		return nil, err
+	}
+
+	newScheduledWorkflow, err := r.getScheduledWorkflowClient(namespace).Create(scheduledWorkflow)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
 	}
 
 	job, err := r.ToModelJob(apiJob, util.NewScheduledWorkflow(newScheduledWorkflow), string(workflowSpecManifestBytes))
@@ -525,7 +646,8 @@ func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
 	if err != nil {
 		return util.Wrap(err, "Enable/Disable job failed")
 	}
-	_, err = r.scheduledWorkflowClient.Patch(
+
+	_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
 		job.Name,
 		types.MergePatchType,
 		[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(enabled))))
@@ -549,7 +671,8 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 	if err != nil {
 		return util.Wrap(err, "Delete job failed")
 	}
-	err = r.scheduledWorkflowClient.Delete(job.Name, &v1.DeleteOptions{})
+
+	err = r.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
 	if err != nil {
 		return util.NewInternalServerError(err, "Delete job CRD failed.")
 	}
@@ -567,10 +690,13 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	}
 	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
+	if len(workflow.Namespace) == 0 {
+		return util.NewInvalidInputError("Workflow missing namespace")
+	}
 
 	if workflow.PersistedFinalState() {
 		// If workflow's final state has being persisted, the workflow should be garbage collected.
-		err := r.workflowClient.Delete(workflow.Name, &v1.DeleteOptions{})
+		err := r.getWorkflowClient(workflow.Namespace).Delete(workflow.Name, &v1.DeleteOptions{})
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 		}
@@ -638,7 +764,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	}
 
 	if workflow.IsInFinalState() {
-		err := AddWorkflowLabel(r.workflowClient, workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
+		err := AddWorkflowLabel(r.getWorkflowClient(workflow.Namespace), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
 			return util.Wrap(err, "Failed to add PersistedFinalState label to workflow")
 		}
@@ -683,7 +809,8 @@ func (r *ResourceManager) checkJobExist(jobID string) (*model.Job, error) {
 	if err != nil {
 		return nil, util.Wrap(err, "Check job exist failed")
 	}
-	scheduledWorkflow, err := r.scheduledWorkflowClient.Get(job.Name, v1.GetOptions{})
+
+	scheduledWorkflow, err := r.getScheduledWorkflowClient(job.Namespace).Get(job.Name, v1.GetOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Check job exist failed")
 	}
@@ -704,18 +831,8 @@ func (r *ResourceManager) checkRunExist(runID string) (*model.RunDetail, error) 
 	return runDetail, nil
 }
 
-func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, error) {
-	// TODO(jingzhang36): after FE is enabled to use pipeline version to create
-	// run, we'll only check for the raw manifest in pipeline_spec.
-	if spec.GetPipelineId() != "" {
-		var workflow util.Workflow
-		err := r.objectStore.GetFromYamlFile(&workflow, storage.CreatePipelinePath(spec.GetPipelineId()))
-		if err != nil {
-			return nil, util.Wrap(err, "Get pipeline YAML failed.")
-		}
-
-		return []byte(workflow.ToStringForStore()), nil
-	} else if spec.GetWorkflowManifest() != "" {
+func (r *ResourceManager) getWorkflowSpecBytesFromPipelineSpec(spec *api.PipelineSpec) ([]byte, error) {
+	if spec.GetWorkflowManifest() != "" {
 		return []byte(spec.GetWorkflowManifest()), nil
 	}
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
@@ -732,7 +849,7 @@ func (r *ResourceManager) getWorkflowSpecBytesFromPipelineVersion(references []*
 		return nil, util.NewInvalidInputError("No pipeline version.")
 	}
 	var workflow util.Workflow
-	err := r.objectStore.GetFromYamlFile(&workflow, storage.CreatePipelinePath(pipelineVersionId))
+	err := r.objectStore.GetFromYamlFile(&workflow, r.objectStore.GetPipelineKey(pipelineVersionId))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline YAML failed.")
 	}
@@ -754,7 +871,7 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	}
 
 	// Create default experiment
-	defaultExperiment := &model.Experiment{
+	defaultExperiment := &api.Experiment{
 		Name:        "Default",
 		Description: "All runs created without specifying an experiment will be grouped here.",
 	}
@@ -782,7 +899,13 @@ func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*api.R
 			return nil, nil
 		}
 	}
+	if common.IsMultiUserMode() {
+		return nil, util.NewInvalidInputError("Experiment is required in resource references.")
+	}
+	return r.getDefaultExperimentResourceReference(references)
+}
 
+func (r *ResourceManager) getDefaultExperimentResourceReference(references []*api.ResourceReference) (*api.ResourceReference, error) {
 	// Create reference to the default experiment
 	defaultExperimentId, err := r.GetDefaultExperimentId()
 	if err != nil {
@@ -850,7 +973,7 @@ func (r *ResourceManager) MarkSampleLoaded() error {
 }
 
 func (r *ResourceManager) getDefaultSA() string {
-	return common.GetStringConfigWithDefault(defaultPipelineRunnerServiceAccountEnvVar, defaultPipelineRunnerServiceAccount)
+	return common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccount, defaultPipelineRunnerServiceAccount)
 }
 
 func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte) (*model.PipelineVersion, error) {
@@ -885,7 +1008,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 	}
 
 	// Store the pipeline file
-	err = r.objectStore.AddFile(pipelineFile, storage.CreatePipelinePath(fmt.Sprint(version.UUID)))
+	err = r.objectStore.AddFile(pipelineFile, r.objectStore.GetPipelineKey(fmt.Sprint(version.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
@@ -921,7 +1044,7 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 		return util.Wrap(err, "Delete pipeline version failed")
 	}
 
-	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineVersionId)))
+	err = r.objectStore.DeleteFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersionId)))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline version %v", pipelineVersionId))
 		return util.Wrap(err, "Delete pipeline version failed")
@@ -942,7 +1065,7 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 		return nil, util.Wrap(err, "Get pipeline version template failed")
 	}
 
-	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(versionId)))
+	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(versionId)))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline version template failed")
 	}
@@ -952,4 +1075,59 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 
 func (r *ResourceManager) IsRequestAuthorized(userIdentity string, namespace string) (bool, error) {
 	return r.kfamClient.IsAuthorized(userIdentity, namespace)
+}
+
+func (r *ResourceManager) GetNamespaceFromExperimentID(experimentID string) (string, error) {
+	experiment, err := r.GetExperiment(experimentID)
+	if err != nil {
+		return "", util.Wrap(err, "Failed to get namespace from experiment ID.")
+	}
+	return experiment.Namespace, nil
+}
+
+func (r *ResourceManager) GetNamespaceFromRunID(runId string) (string, error) {
+	runDetail, err := r.GetRun(runId)
+	if err != nil {
+		return "", util.Wrap(err, "Failed to get namespace from run id.")
+	}
+	return runDetail.Namespace, nil
+}
+
+func (r *ResourceManager) GetNamespaceFromJobID(jobId string) (string, error) {
+	job, err := r.GetJob(jobId)
+	if err != nil {
+		return "", util.Wrap(err, "Failed to get namespace from Job ID.")
+	}
+	return job.Namespace, nil
+}
+
+func (r *ResourceManager) setDefaultServiceAccount(workflow *util.Workflow, serviceAccount string) {
+	if len(serviceAccount) > 0 {
+		workflow.SetServiceAccount(serviceAccount)
+		return
+	}
+	workflowServiceAccount := workflow.Spec.ServiceAccountName
+	if len(workflowServiceAccount) == 0 || workflowServiceAccount == defaultPipelineRunnerServiceAccount {
+		// To reserve SDK backward compatibility, the backend only replaces
+		// serviceaccount when it is empty or equal to default value set by SDK.
+		workflow.SetServiceAccount(r.getDefaultSA())
+	}
+}
+
+func (r *ResourceManager) getNamespaceFromExperiment(references []*api.ResourceReference) (string, error) {
+	experimentID := common.GetExperimentIDFromAPIResourceReferences(references)
+	experiment, err := r.GetExperiment(experimentID)
+	if err != nil {
+		return "", util.NewInternalServerError(err, "Failed to get experiment.")
+	}
+
+	namespace := experiment.Namespace
+	if len(namespace) == 0 {
+		if common.IsMultiUserMode() {
+			return "", util.NewInternalServerError(errors.New("Missing namespace"), "Experiment %v doesn't have a namespace.", experiment.Name)
+		} else {
+			namespace = common.GetPodNamespace()
+		}
+	}
+	return namespace, nil
 }

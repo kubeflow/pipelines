@@ -470,6 +470,7 @@ describe('PipelineList', () => {
       .simulate('click');
     deletePipelineSpy.mockImplementation(id => {
       if (id.indexOf(3) === -1 && id.indexOf(2) === -1) {
+        // eslint-disable-next-line no-throw-literal
         throw {
           text: () => Promise.resolve('woops, failed!'),
         };
@@ -499,7 +500,7 @@ describe('PipelineList', () => {
     });
   });
 
-  it.only("delete a pipeline and some other pipeline's version together", async () => {
+  it("delete a pipeline and some other pipeline's version together", async () => {
     deletePipelineSpy.mockImplementation(() => Promise.resolve());
     deletePipelineVersionSpy.mockImplementation(() => Promise.resolve());
     listPipelineVersionsSpy.mockImplementation(() => ({

@@ -736,3 +736,91 @@ func TestFilterOnResourceReference(t *testing.T) {
 		}
 	}
 }
+
+func TestFilterOnExperiment(t *testing.T) {
+
+	type testIn struct {
+		table  string
+		count  bool
+		filter *common.FilterContext
+	}
+	tests := []struct {
+		in      *testIn
+		wantSql string
+		wantErr error
+	}{
+		{
+			in: &testIn{
+				table:  "testTable",
+				count:  false,
+				filter: &common.FilterContext{},
+			},
+			wantSql: "SELECT * FROM testTable WHERE ExperimentUUID = ?",
+			wantErr: nil,
+		},
+		{
+			in: &testIn{
+				table:  "testTable",
+				count:  true,
+				filter: &common.FilterContext{},
+			},
+			wantSql: "SELECT count(*) FROM testTable WHERE ExperimentUUID = ?",
+			wantErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		sqlBuilder, gotErr := FilterOnExperiment(test.in.table, []string{"*"}, test.in.count, "123")
+		gotSql, _, err := sqlBuilder.ToSql()
+		assert.Nil(t, err)
+
+		if gotSql != test.wantSql || gotErr != test.wantErr {
+			t.Errorf("FilterOnExperiment(%+v) =\nGot: %q, %v\nWant: %q, %v",
+				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
+		}
+	}
+}
+
+func TestFilterOnNamesapce(t *testing.T) {
+
+	type testIn struct {
+		table  string
+		count  bool
+		filter *common.FilterContext
+	}
+	tests := []struct {
+		in      *testIn
+		wantSql string
+		wantErr error
+	}{
+		{
+			in: &testIn{
+				table:  "testTable",
+				count:  false,
+				filter: &common.FilterContext{},
+			},
+			wantSql: "SELECT * FROM testTable WHERE Namespace = ?",
+			wantErr: nil,
+		},
+		{
+			in: &testIn{
+				table:  "testTable",
+				count:  true,
+				filter: &common.FilterContext{},
+			},
+			wantSql: "SELECT count(*) FROM testTable WHERE Namespace = ?",
+			wantErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		sqlBuilder, gotErr := FilterOnNamespace(test.in.table, []string{"*"}, test.in.count, "ns")
+		gotSql, _, err := sqlBuilder.ToSql()
+		assert.Nil(t, err)
+
+		if gotSql != test.wantSql || gotErr != test.wantErr {
+			t.Errorf("FilterOnNamespace(%+v) =\nGot: %q, %v\nWant: %q, %v",
+				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
+		}
+	}
+}

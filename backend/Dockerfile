@@ -28,7 +28,13 @@ FROM python:3.5 as compiler
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
-RUN python3 -m pip install tfx==0.15.0
+COPY backend/requirements.txt .
+RUN python3 -m pip install -r requirements.txt
+
+# Downloading Argo CLI so that the samples are validated
+#ADD  https://github.com/argoproj/argo/releases/download/v2.7.5/argo-linux-amd64 /usr/local/bin/argo
+ADD  https://github.com/argoproj/argo/releases/download/v2.4.3/argo-linux-amd64 /usr/local/bin/argo
+RUN chmod +x /usr/local/bin/argo
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY sdk sdk
@@ -38,19 +44,28 @@ RUN python3 setup.py install
 WORKDIR /samples
 COPY ./samples .
 
-#We need to check that all samples have been compiled without error.
-#For find program, the -exec argument is a filter predicate just like -name. It only affects whether the file is "found", not the find's exit code.
-#One way to solve this problem is to check whether we have any python pipelines that cannot compile. Here the exit code is the number of such files:
-#RUN  bash -e -c 'exit $(find . -maxdepth 2 -name "*.py" ! -exec dsl-compile --py {} --output {}.tar.gz \; -print | wc -l)'
-#I think it's better to just use a shell loop though.
-#RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
-#The "for" loop breaks on all whitespace, so we either need to override IFS or use the "read" command instead.
-RUN  set -e; find core -maxdepth 2 -name '*.py' -type f | while read pipeline; do python3 $pipeline; done
+# We need to check that all samples have been compiled without error.
+# For find program, the -exec argument is a filter predicate just like -name. It
+# only affects whether the file is "found", not the find's exit code.
+# One way to solve this problem is to check whether we have any python pipelines
+# that cannot compile. Here the exit code is the number of such files:
+# RUN  bash -e -c 'exit $(find . -maxdepth 2 -name "*.py" ! -exec dsl-compile --py {} --output {}.tar.gz \; -print | wc -l)'
+# I think it's better to just use a shell loop though.
+# RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
+# The "for" loop breaks on all whitespace, so we either need to override IFS or
+# use the "read" command instead.
+RUN line="import kfp;kfp.components.default_base_image_or_builder='gcr.io/google-appengine/python:2020-03-31-141326";\
+    set -e; find core tutorials -maxdepth 2 -name '*.py' -type f | while read pipeline; do \
+    awk -v text="$line" '!/^#/ && !p {print text; p=1} 1' "$pipeline" && \
+    python3 "$pipeline"; \
+    done
 
 FROM debian:stretch
 
 ARG COMMIT_SHA=unknown
 ENV COMMIT_SHA=${COMMIT_SHA}
+ARG TAG_NAME=unknown
+ENV TAG_NAME=${TAG_NAME}
 
 WORKDIR /bin
 
@@ -63,7 +78,13 @@ COPY backend/src/apiserver/config/ /config
 COPY --from=compiler /samples/ /samples/
 
 # Adding CA certificate so API server can download pipeline through URL
-RUN apt-get update && apt-get install -y ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates \
+    # wget is used for liveness/readiness probe command
+    wget
+
+# Pin sample doc links to the commit that built the backend image
+RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_config.json && \
+    sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i /config/sample_config.json
 
 # Expose apiserver port
 EXPOSE 8888

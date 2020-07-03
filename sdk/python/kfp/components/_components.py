@@ -19,15 +19,15 @@ __all__ = [
     'load_component_from_file',
 ]
 
+import copy
 import sys
 from collections import OrderedDict
+from typing import Any, List, Mapping, NamedTuple, Sequence, Union
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
-from ._structures import ComponentSpec
-from ._structures import *
-from ._data_passing import serialize_value, type_name_to_type
-from kfp.dsl import PipelineParam
-from kfp.dsl.types import verify_type_compatibility
+from .structures import *
+from ._data_passing import serialize_value, get_canonical_type_for_type_struct
+
 
 _default_component_name = 'Component'
 
@@ -63,30 +63,26 @@ def load_component(filename=None, url=None, text=None):
         raise ValueError('Need to specify a source')
 
 
-def load_component_from_url(url):
+def load_component_from_url(url: str, auth=None):
     '''
     Loads component from URL and creates a task factory function
     
     Args:
         url: The URL of the component file data
+        auth: Auth object for the requests library. See https://requests.readthedocs.io/en/master/user/authentication/
 
     Returns:
         A factory function with a strongly-typed signature.
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp).
     '''
-    if url is None:
-        raise TypeError
-
-    #Handling Google Cloud Storage URIs
-    if url.startswith('gs://'):
-        #Replacing the gs:// URI with https:// URI (works for public objects)
-        url = 'https://storage.googleapis.com/' + url[len('gs://'):]
-
-    import requests
-    resp = requests.get(url)
-    resp.raise_for_status()
+    component_spec = _load_component_spec_from_url(url, auth)
+    url = _fix_component_uri(url)
     component_ref = ComponentReference(url=url)
-    return _load_component_from_yaml_or_zip_bytes(resp.content, url, component_ref)
+    return _create_task_factory_from_component_spec(
+        component_spec=component_spec,
+        component_filename=url,
+        component_ref=component_ref,
+    )
 
 
 def load_component_from_file(filename):
@@ -100,10 +96,11 @@ def load_component_from_file(filename):
         A factory function with a strongly-typed signature.
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp).
     '''
-    if filename is None:
-        raise TypeError
-    with open(filename, 'rb') as component_stream:
-        return _load_component_from_yaml_or_zip_stream(component_stream, filename)
+    component_spec = _load_component_spec_from_file(path=filename)
+    return _create_task_factory_from_component_spec(
+        component_spec=component_spec,
+        component_filename=filename,
+    )
 
 
 def load_component_from_text(text):
@@ -119,42 +116,65 @@ def load_component_from_text(text):
     '''
     if text is None:
         raise TypeError
-    return _create_task_factory_from_component_text(text, None)
+    component_spec = _load_component_spec_from_component_text(text)
+    return _create_task_factory_from_component_spec(component_spec=component_spec)
+
+
+def _fix_component_uri(uri: str) -> str:
+    #Handling Google Cloud Storage URIs
+    if uri.startswith('gs://'):
+        #Replacing the gs:// URI with https:// URI (works for public objects)
+        uri = 'https://storage.googleapis.com/' + uri[len('gs://'):]
+    return uri
+
+
+def _load_component_spec_from_file(path) -> ComponentSpec:
+    with open(path, 'rb') as component_stream:
+        return _load_component_spec_from_yaml_or_zip_bytes(component_stream.read())
+
+
+def _load_component_spec_from_url(url: str, auth=None):
+    if url is None:
+        raise TypeError
+
+    url = _fix_component_uri(url)
+
+    import requests
+    resp = requests.get(url, auth=auth)
+    resp.raise_for_status()
+    return _load_component_spec_from_yaml_or_zip_bytes(resp.content)
 
 
 _COMPONENT_FILE_NAME_IN_ARCHIVE = 'component.yaml'
 
 
-def _load_component_from_yaml_or_zip_bytes(bytes, component_filename=None, component_ref: ComponentReference = None):
-    import io
-    component_stream = io.BytesIO(bytes)
-    return _load_component_from_yaml_or_zip_stream(component_stream, component_filename, component_ref)
+def _load_component_spec_from_yaml_or_zip_bytes(data: bytes):
+    '''Loads component spec from binary data.
 
-
-def _load_component_from_yaml_or_zip_stream(stream, component_filename=None, component_ref: ComponentReference = None):
-    '''Loads component from a stream and creates a task factory function.
-    The stream can be YAML or a zip file with a component.yaml file inside.
+    The data can be a YAML file or a zip file with a component.yaml file inside.
     '''
     import zipfile
-    stream.seek(0)
+    import io
+    stream = io.BytesIO(data)
     if zipfile.is_zipfile(stream):
         stream.seek(0)
         with zipfile.ZipFile(stream) as zip_obj:
-            with zip_obj.open(_COMPONENT_FILE_NAME_IN_ARCHIVE) as component_stream:
-                return _create_task_factory_from_component_text(component_stream, component_filename, component_ref)
-    else:
-        stream.seek(0)
-        return _create_task_factory_from_component_text(stream, component_filename, component_ref)
+            data = zip_obj.read(_COMPONENT_FILE_NAME_IN_ARCHIVE)
+    return _load_component_spec_from_component_text(data)
 
 
-def _create_task_factory_from_component_text(text_or_file, component_filename=None, component_ref: ComponentReference = None):
-    component_dict = load_yaml(text_or_file)
-    return _create_task_factory_from_component_dict(component_dict, component_filename, component_ref)
-
-
-def _create_task_factory_from_component_dict(component_dict, component_filename=None, component_ref: ComponentReference = None):
+def _load_component_spec_from_component_text(text) -> ComponentSpec:
+    component_dict = load_yaml(text)
     component_spec = ComponentSpec.from_dict(component_dict)
-    return _create_task_factory_from_component_spec(component_spec, component_filename, component_ref)
+
+    # Calculating hash digest for the component
+    import hashlib
+    data = text if isinstance(text, bytes) else text.encode('utf-8')
+    data = data.replace(b'\r\n', b'\n')  # Normalizing line endings
+    digest = hashlib.sha256(data).hexdigest()
+    component_spec._digest = digest
+
+    return component_spec
 
 
 _inputs_dir = '/tmp/inputs'
@@ -170,13 +190,71 @@ def _generate_output_file_name(port_name):
     return _outputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
 
 
-#Holds the transformation functions that are called each time TaskSpec instance is created from a component. If there are multiple handlers, the last one is used.
-_created_task_transformation_handler = []
+def _react_to_incompatible_reference_type(
+    input_type,
+    argument_type,
+    input_name: str,
+):
+    """Raises error for the case when the argument type is incompatible with the input type."""
+    message = 'Argument with type "{}" was passed to the input "{}" that has type "{}".'.format(argument_type, input_name, input_type)
+    raise TypeError(message)
 
 
-#TODO: Move to the dsl.Pipeline context class
-from . import _dsl_bridge
-_created_task_transformation_handler.append(_dsl_bridge.create_container_op_from_task)
+def _create_task_spec_from_component_and_arguments(
+    component_spec: ComponentSpec,
+    arguments: Mapping[str, Any],
+    component_ref: ComponentReference = None,
+) -> TaskSpec:
+    """Constructs a TaskSpec object from component reference and arguments.
+    The function also checks the arguments types and serializes them."""
+    if component_ref is None:
+        component_ref = ComponentReference(spec=component_spec)
+    else:
+        component_ref = copy.copy(component_ref)
+        component_ref.spec = component_spec
+
+    # Not checking for missing or extra arguments since the dynamic factory function checks that
+    task_arguments = {}
+    for input_name, argument_value in arguments.items():
+        input_type = component_spec._inputs_dict[input_name].type
+
+        if isinstance(argument_value, (GraphInputArgument, TaskOutputArgument)):
+            # argument_value is a reference
+            if isinstance(argument_value, GraphInputArgument):
+                reference_type = argument_value.graph_input.type
+            elif isinstance(argument_value, TaskOutputArgument):
+                reference_type = argument_value.task_output.type
+            else:
+                reference_type = None
+
+            if reference_type and input_type and reference_type != input_type:
+                _react_to_incompatible_reference_type(input_type, reference_type, input_name)
+
+            task_arguments[input_name] = argument_value
+        else:
+            # argument_value is a constant value
+            serialized_argument_value = serialize_value(argument_value, input_type)
+            task_arguments[input_name] = serialized_argument_value
+
+    task = TaskSpec(
+        component_ref=component_ref,
+        arguments=task_arguments,
+    )
+    task._init_outputs()
+
+    return task
+
+
+_default_container_task_constructor = _create_task_spec_from_component_and_arguments
+
+# Holds the function that constructs a task object based on ComponentSpec, arguments and ComponentReference.
+# Framework authors can override this constructor function to construct different framework-specific task-like objects.
+# The task object should have the task.outputs dictionary with keys corresponding to the ComponentSpec outputs.
+# The default constructor creates and instance of the TaskSpec class.
+_container_task_constructor = _default_container_task_constructor
+
+
+_always_expand_graph_components = False
 
 
 class _DefaultValue:
@@ -208,46 +286,42 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
         component_ref = ComponentReference(spec=component_spec, url=component_filename)
     else:
         component_ref.spec = component_spec
+    
+    digest = getattr(component_spec, '_digest', None)
+    # TODO: Calculate the digest if missing
+    if digest:
+        # TODO: Report possible digest conflicts
+        component_ref.digest = digest
+
 
     def create_task_from_component_and_arguments(pythonic_arguments):
-        arguments = {}
-        # Not checking for missing or extra arguments since the dynamic factory function checks that
-        for argument_name, argument_value in pythonic_arguments.items():
-            if isinstance(argument_value, _DefaultValue): # Skipping passing arguments for optional values that have not been overridden.
-                continue
-            input_name = pythonic_name_to_input_name[argument_name]
-            input_type = component_spec._inputs_dict[input_name].type
+        arguments = {
+            pythonic_name_to_input_name[argument_name]: argument_value
+            for argument_name, argument_value in pythonic_arguments.items()
+            if not isinstance(argument_value, _DefaultValue) # Skipping passing arguments for optional values that have not been overridden.
+        }
 
-            if isinstance(argument_value, (GraphInputArgument, TaskOutputArgument, PipelineParam)):
-                # argument_value is a reference 
+        if (
+            isinstance(component_spec.implementation, GraphImplementation)
+            and (
+                # When the container task constructor is not overriden, we just construct TaskSpec for both container and graph tasks.
+                # If the container task constructor is overriden, we should expand the graph components so that the override is called for all sub-tasks.
+                _container_task_constructor != _default_container_task_constructor
+                or _always_expand_graph_components
+            )
+        ):
+            return _resolve_graph_task(
+                component_spec=component_spec,
+                arguments=arguments,
+                component_ref=component_ref,
+            )
 
-                if isinstance(argument_value, PipelineParam):
-                    reference_type = argument_value.param_type
-                    argument_value = str(argument_value)
-                elif isinstance(argument_value, TaskOutputArgument):
-                    reference_type = argument_value.task_output.type
-                else:
-                    reference_type = None
-
-                verify_type_compatibility(reference_type, input_type, 'Incompatible argument passed to the input "{}" of component "{}": '.format(input_name, component_spec.name))
-
-                arguments[input_name] = argument_value
-            else:
-                # argument_value is a constant value
-                serialized_argument_value = serialize_value(argument_value, input_type)
-                arguments[input_name] = serialized_argument_value
-
-        task = TaskSpec(
-            component_ref=component_ref,
+        task = _container_task_constructor(
+            component_spec=component_spec,
             arguments=arguments,
+            component_ref=component_ref,
         )
-        task._init_outputs()
-        
-        if isinstance(component_spec.implementation, GraphImplementation):
-            return _resolve_graph_task(task, component_spec)
 
-        if _created_task_transformation_handler:
-            task = _created_task_transformation_handler[-1](task)
         return task
 
     import inspect
@@ -266,7 +340,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     input_parameters = [
         _dynamic.KwParameter(
             input_name_to_pythonic[port.name],
-            annotation=(type_name_to_type.get(str(port.type), str(port.type)) if port.type else inspect.Parameter.empty),
+            annotation=(get_canonical_type_for_type_struct(str(port.type)) or str(port.type) if port.type else inspect.Parameter.empty),
             default=component_default_to_func_default(port.default, port.optional),
         )
         for port in reordered_input_list
@@ -284,14 +358,161 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     return task_factory
 
 
-def _resolve_graph_task(graph_task: TaskSpec, graph_component_spec: ComponentSpec) -> TaskSpec:
+_ResolvedCommandLineAndPaths = NamedTuple(
+    '_ResolvedCommandLineAndPaths',
+    [
+        ('command', Sequence[str]),
+        ('args', Sequence[str]),
+        ('input_paths', Mapping[str, str]),
+        ('output_paths', Mapping[str, str]),
+        ('inputs_consumed_by_value', Mapping[str, str]),
+    ],
+)
+
+
+def _resolve_command_line_and_paths(
+    component_spec: ComponentSpec,
+    arguments: Mapping[str, str],
+    input_path_generator=_generate_input_file_name,
+    output_path_generator=_generate_output_file_name,
+    argument_serializer=serialize_value,
+) -> _ResolvedCommandLineAndPaths:
+    """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
+    argument_values = arguments
+
+    if not isinstance(component_spec.implementation, ContainerImplementation):
+        raise TypeError('Only container components have command line to resolve')
+
+    inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
+    container_spec = component_spec.implementation.container
+
+    output_paths = OrderedDict() #Preserving the order to make the kubernetes output names deterministic
+    unconfigurable_output_paths = container_spec.file_outputs or {}
+    for output in component_spec.outputs or []:
+        if output.name in unconfigurable_output_paths:
+            output_paths[output.name] = unconfigurable_output_paths[output.name]
+
+    input_paths = OrderedDict()
+    inputs_consumed_by_value = {}
+
+    def expand_command_part(arg) -> Union[str, List[str], None]:
+        if arg is None:
+            return None
+        if isinstance(arg, (str, int, float, bool)):
+            return str(arg)
+
+        if isinstance(arg, InputValuePlaceholder):
+            input_name = arg.input_name
+            input_spec = inputs_dict[input_name]
+            input_value = argument_values.get(input_name, None)
+            if input_value is not None:
+                serialized_argument = argument_serializer(input_value, input_spec.type)
+                inputs_consumed_by_value[input_name] = serialized_argument
+                return serialized_argument
+            else:
+                if input_spec.optional:
+                    return None
+                else:
+                    raise ValueError('No value provided for input {}'.format(input_name))
+
+        if isinstance(arg, InputPathPlaceholder):
+            input_name = arg.input_name
+            input_value = argument_values.get(input_name, None)
+            if input_value is not None:
+                input_path = input_path_generator(input_name)
+                input_paths[input_name] = input_path
+                return input_path
+            else:
+                input_spec = inputs_dict[input_name]
+                if input_spec.optional:
+                    #Even when we support default values there is no need to check for a default here.
+                    #In current execution flow (called by python task factory), the missing argument would be replaced with the default value by python itself.
+                    return None
+                else:
+                    raise ValueError('No value provided for input {}'.format(input_name))
+
+        elif isinstance(arg, OutputPathPlaceholder):
+            output_name = arg.output_name
+            output_filename = output_path_generator(output_name)
+            if arg.output_name in output_paths:
+                if output_paths[output_name] != output_filename:
+                    raise ValueError('Conflicting output files specified for port {}: {} and {}'.format(output_name, output_paths[output_name], output_filename))
+            else:
+                output_paths[output_name] = output_filename
+
+            return output_filename
+
+        elif isinstance(arg, ConcatPlaceholder):
+            expanded_argument_strings = expand_argument_list(arg.items)
+            return ''.join(expanded_argument_strings)
+
+        elif isinstance(arg, IfPlaceholder):
+            arg = arg.if_structure
+            condition_result = expand_command_part(arg.condition)
+            from distutils.util import strtobool
+            condition_result_bool = condition_result and strtobool(condition_result) #Python gotcha: bool('False') == True; Need to use strtobool; Also need to handle None and []
+            result_node = arg.then_value if condition_result_bool else arg.else_value
+            if result_node is None:
+                return []
+            if isinstance(result_node, list):
+                expanded_result = expand_argument_list(result_node)
+            else:
+                expanded_result = expand_command_part(result_node)
+            return expanded_result
+
+        elif isinstance(arg, IsPresentPlaceholder):
+            argument_is_present = argument_values.get(arg.input_name, None) is not None
+            return str(argument_is_present)
+        else:
+            raise TypeError('Unrecognized argument type: {}'.format(arg))
+    
+    def expand_argument_list(argument_list):
+        expanded_list = []
+        if argument_list is not None:
+            for part in argument_list:
+                expanded_part = expand_command_part(part)
+                if expanded_part is not None:
+                    if isinstance(expanded_part, list):
+                        expanded_list.extend(expanded_part)
+                    else:
+                        expanded_list.append(str(expanded_part))
+        return expanded_list
+
+    expanded_command = expand_argument_list(container_spec.command)
+    expanded_args = expand_argument_list(container_spec.args)
+
+    return _ResolvedCommandLineAndPaths(
+        command=expanded_command,
+        args=expanded_args,
+        input_paths=input_paths,
+        output_paths=output_paths,
+        inputs_consumed_by_value=inputs_consumed_by_value,
+    )
+
+
+_ResolvedGraphTask = NamedTuple(
+    '_ResolvedGraphTask',
+    [
+        ('component_spec', ComponentSpec),
+        ('component_ref', ComponentReference),
+        ('outputs', Mapping[str, Any]),
+        ('task_arguments', Mapping[str, Any]),
+    ],
+)
+
+
+def _resolve_graph_task(
+    component_spec: ComponentSpec,
+    arguments: Mapping[str, Any],
+    component_ref: ComponentReference = None,
+) -> TaskSpec:
     from ..components import ComponentStore
     component_store = ComponentStore.default_store
 
-    graph = graph_component_spec.implementation.graph
+    graph = component_spec.implementation.graph
 
-    graph_input_arguments = {input.name: input.default for input in graph_component_spec.inputs if input.default is not None}
-    graph_input_arguments.update(graph_task.arguments)
+    graph_input_arguments = {input.name: input.default for input in component_spec.inputs or [] if input.default is not None}
+    graph_input_arguments.update(arguments)
 
     outputs_of_tasks = {}
     def resolve_argument(argument):
@@ -326,7 +547,10 @@ def _resolve_graph_task(graph_task: TaskSpec, graph_component_spec: ComponentSpe
     resolved_graph_outputs = OrderedDict([(output_name, resolve_argument(argument)) for output_name, argument in graph.output_values.items()])
 
     # For resolved graph component tasks task.outputs point to the actual tasks that originally produced the output that is later returned from the graph
-    graph_task.output_references = graph_task.outputs
-    graph_task.outputs = resolved_graph_outputs
-    
+    graph_task = _ResolvedGraphTask(
+        component_ref=component_ref,
+        component_spec=component_spec,
+        outputs = resolved_graph_outputs,
+        task_arguments=arguments,
+    )
     return graph_task

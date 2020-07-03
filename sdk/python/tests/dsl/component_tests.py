@@ -17,7 +17,7 @@ import kfp.dsl as dsl
 from kfp.dsl import component, graph_component
 from kfp.dsl.types import Integer, GCSPath, InconsistentTypeException
 from kfp.dsl import ContainerOp, Pipeline, PipelineParam
-from kfp.components._structures import ComponentSpec, InputSpec, OutputSpec
+from kfp.components.structures import ComponentSpec, InputSpec, OutputSpec
 import unittest
 
 class TestPythonComponent(unittest.TestCase):
@@ -35,13 +35,41 @@ class TestPythonComponent(unittest.TestCase):
 
     containerOp = componentA(1,2,c=3)
 
-    golden_meta = ComponentSpec(name='componentA', inputs=[], outputs=[])
+    golden_meta = ComponentSpec(name='ComponentA', inputs=[], outputs=[])
     golden_meta.inputs.append(InputSpec(name='a', type={'ArtifactA': {'file_type': 'csv'}}))
-    golden_meta.inputs.append(InputSpec(name='b', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default="12"))
-    golden_meta.inputs.append(InputSpec(name='c', type={'ArtifactB': {'path_type':'file', 'file_type': 'tsv'}}, default='gs://hello/world'))
+    golden_meta.inputs.append(InputSpec(name='b', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default="12", optional=True))
+    golden_meta.inputs.append(InputSpec(name='c', type={'ArtifactB': {'path_type':'file', 'file_type': 'tsv'}}, default='gs://hello/world', optional=True))
     golden_meta.outputs.append(OutputSpec(name='model', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}))
 
     self.assertEqual(containerOp._metadata, golden_meta)
+
+  def test_python_component_decorator(self):
+    # Deprecated
+    from kfp.dsl import python_component
+    from kfp.components import create_component_from_func
+
+    expected_name = 'Sum component name'
+    expected_description = 'Sum component description'
+    expected_image = 'org/image'
+
+    @python_component(
+        name=expected_name,
+        description=expected_description,
+        base_image=expected_image
+    )
+    def add_two_numbers_decorated(
+        a: float,
+        b: float,
+    ) -> float:
+        '''Returns sum of two arguments'''
+        return a + b
+
+    op = create_component_from_func(add_two_numbers_decorated)
+
+    component_spec = op.component_spec
+    self.assertEqual(component_spec.name, expected_name)
+    self.assertEqual(component_spec.description.strip(), expected_description.strip())
+    self.assertEqual(component_spec.implementation.container.image, expected_image)
 
   def test_type_check_with_same_representation(self):
     """Test type check at the decorator."""

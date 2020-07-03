@@ -15,12 +15,13 @@
  */
 
 import * as React from 'react';
-import NewExperiment from './NewExperiment';
+import { NewExperiment } from './NewExperiment';
 import TestUtils from '../TestUtils';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
+import { ApiResourceType, ApiRelationship } from 'src/apis/experiment';
 
 describe('NewExperiment', () => {
   let tree: ReactWrapper | ShallowWrapper;
@@ -41,6 +42,13 @@ describe('NewExperiment', () => {
       updateSnackbar: updateSnackbarSpy,
       updateToolbar: updateToolbarSpy,
     };
+  }
+
+  // Used by tests that don't care about exact experiment name
+  function fillAnyExperimentName() {
+    (tree.instance() as any).handleChange('experimentName')({
+      target: { value: 'a-random-experiment-name-DO-NOT-VERIFY-THIS' },
+    });
   }
 
   beforeEach(() => {
@@ -154,6 +162,28 @@ describe('NewExperiment', () => {
       description: 'experiment description',
       name: 'experiment name',
     });
+  });
+
+  it('calls the createExperimentAPI with namespace when it is provided', async () => {
+    tree = shallow(<NewExperiment {...(generateProps() as any)} namespace='test-ns' />);
+
+    fillAnyExperimentName();
+    tree.find('#createExperimentBtn').simulate('click');
+    await TestUtils.flushPromises();
+
+    expect(createExperimentSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resource_references: [
+          {
+            key: {
+              id: 'test-ns',
+              type: ApiResourceType.NAMESPACE,
+            },
+            relationship: ApiRelationship.OWNER,
+          },
+        ],
+      }),
+    );
   });
 
   it('navigates to NewRun page upon successful creation', async () => {

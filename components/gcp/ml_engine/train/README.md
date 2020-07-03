@@ -49,6 +49,7 @@ Use this component to submit a training job to AI Platform from a Kubeflow pipel
 | worker_image_uri | The Docker image to run on the worker replica. This image must be in Container Registry. | Yes | GCRPath |-  | None |
 | training_input | The input parameters to create a training job. | Yes | Dict | [TrainingInput](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#TrainingInput) | None |
 | job_id_prefix | The prefix of the job ID that is generated. | Yes | String | - | None |
+| job_id | The ID of the job to create, takes precedence over generated job id if set. | Yes | String | - | None |
 | wait_interval | The number of seconds to wait between API calls to get the status of the job. | Yes | Integer | - | 30 |
 
 
@@ -73,12 +74,7 @@ The component accepts two types of inputs:
 To use the component, you must:
 
 *   Set up a cloud environment by following this [guide](https://cloud.google.com/ml-engine/docs/tensorflow/getting-started-training-prediction#setup).
-*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
-
-    ```
-    mlengine_train_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-    ```
-
+*   The component can authenticate to GCP. Refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication-pipelines/) for details.
 *   Grant the following access to the Kubeflow user service account: 
     *   Read access to the Cloud Storage buckets which contain the input data, packages, or Docker images.
     *   Write access to the Cloud Storage bucket of the output directory.
@@ -104,7 +100,7 @@ The steps to use the component in a pipeline are:
     ```python
     import kfp.components as comp
 
-    mlengine_train_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a8d3b6977df26a89701cd229f01c1840a8475521/components/gcp/ml_engine/train/component.yaml')
+    mlengine_train_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/gcp/ml_engine/train/component.yaml')
     help(mlengine_train_op)
     ```
 ### Sample
@@ -160,7 +156,6 @@ rm -fr ./cloudml-samples-master/ ./master.zip ./dist
 
 ```python
 import kfp.dsl as dsl
-import kfp.gcp as gcp
 import json
 @dsl.pipeline(
     name='CloudML training pipeline',
@@ -185,6 +180,7 @@ def pipeline(
     worker_image_uri = '',
     training_input = '',
     job_id_prefix = '',
+    job_id = '',
     wait_interval = '30'):
     task = mlengine_train_op(
         project_id=project_id, 
@@ -199,7 +195,8 @@ def pipeline(
         worker_image_uri=worker_image_uri, 
         training_input=training_input, 
         job_id_prefix=job_id_prefix, 
-        wait_interval=wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        job_id=job_id,
+        wait_interval=wait_interval)
 ```
 
 #### Compile the pipeline

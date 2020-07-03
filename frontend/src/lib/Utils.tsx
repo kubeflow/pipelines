@@ -24,20 +24,33 @@ import { ListRequest } from './Apis';
 import { Row, Column, ExpandState } from '../components/CustomTable';
 import { padding } from '../Css';
 import { classes } from 'typestyle';
-import { Value, Artifact, Execution } from '../generated/src/apis/metadata/metadata_store_pb';
 import { CustomTableRow, css } from '../components/CustomTableRow';
-import { ServiceError } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
 
 export const logger = {
   error: (...args: any[]) => {
     // tslint:disable-next-line:no-console
     console.error(...args);
   },
+  warn: (...args: any[]) => {
+    // tslint:disable-next-line:no-console
+    console.warn(...args);
+  },
   verbose: (...args: any[]) => {
     // tslint:disable-next-line:no-console
     console.log(...args);
   },
 };
+
+export function extendError(err: any, extraMessage?: string): any {
+  if (err.message && typeof err.message === 'string') {
+    err.message = extraMessage + ': ' + err.message;
+  }
+  return err;
+}
+
+export function rethrow(err: any, extraMessage?: string): never {
+  throw extendError(err, extraMessage);
+}
 
 export function formatDateString(date: Date | string | undefined): string {
   if (typeof date === 'string') {
@@ -107,58 +120,13 @@ export function s(items: any[] | number): string {
   return length === 1 ? '' : 's';
 }
 
-/** Title cases a string by capitalizing the first letter of each word. */
-export function titleCase(str: string): string {
-  return str
-    .split(/[\s_-]/)
-    .map(w => `${w.charAt(0).toUpperCase()}${w.slice(1)}`)
-    .join(' ');
-}
-
-/**
- * Safely extracts the named property or custom property from the provided
- * Artifact or Execution.
- * @param resource
- * @param propertyName
- * @param fromCustomProperties
- */
-export function getResourceProperty(
-  resource: Artifact | Execution,
-  propertyName: string,
-  fromCustomProperties = false,
-): string | number | null {
-  const props = fromCustomProperties
-    ? resource.getCustomPropertiesMap()
-    : resource.getPropertiesMap();
-
-  return (props && props.get(propertyName) && getMetadataValue(props.get(propertyName))) || null;
+interface ServiceError {
+  message: string;
+  code?: number;
 }
 
 export function serviceErrorToString(error: ServiceError): string {
-  return `Error: ${error.message}. Code: ${error.code}`;
-}
-
-/**
- * Extracts an int, double, or string from a metadata Value. Returns '' if no value is found.
- * @param value
- */
-export function getMetadataValue(value?: Value): string | number {
-  if (!value) {
-    return '';
-  }
-
-  if (value.hasDoubleValue()) {
-    return value.getDoubleValue() || '';
-  }
-
-  if (value.hasIntValue()) {
-    return value.getIntValue() || '';
-  }
-
-  if (value.hasStringValue()) {
-    return value.getStringValue() || '';
-  }
-  return '';
+  return `Error: ${error.message}.${error.code ? ` Code: ${error.code}` : ''}`;
 }
 
 /**
@@ -324,8 +292,21 @@ export function generateGcsConsoleUri(gcsUri: string): string | undefined {
 
 const MINIO_URI_PREFIX = 'minio://';
 
-function generateArtifactUrl(source: string, bucket: string, key: string): string {
-  return `artifacts/get?source=${source}&bucket=${bucket}&key=${key}`;
+/**
+ * Generates the path component of the url to retrieve an artifact.
+ *
+ * @param source source of the artifact. Can be "minio", "s3", "http", "https", or "gcs".
+ * @param bucket bucket where the artifact is stored, value is assumed to be uri encoded.
+ * @param key path to the artifact, value is assumed to be uri encoded.
+ * @param peek number of characters or bytes to return. If not provided, the entire content of the artifact will be returned.
+ */
+export function generateArtifactUrl(
+  source: string,
+  bucket: string,
+  key: string,
+  peek?: number,
+): string {
+  return `artifacts/get${buildQuery({ source, bucket, key, peek })}`;
 }
 
 /**
@@ -334,14 +315,46 @@ function generateArtifactUrl(source: string, bucket: string, key: string): strin
  * @param minioUri Minio uri that starts with minio://, like minio://ml-pipeline/path/file
  * @returns A URL that leads to the artifact data. Returns undefined when minioUri is not valid.
  */
-export function generateMinioArtifactUrl(minioUri: string): string | undefined {
+export function generateMinioArtifactUrl(minioUri: string, peek?: number): string | undefined {
   if (!minioUri.startsWith(MINIO_URI_PREFIX)) {
     return undefined;
   }
 
+  // eslint-disable-next-line no-useless-escape
   const matches = minioUri.match(/^minio:\/\/([^\/]+)\/(.+)$/);
   if (matches == null) {
     return undefined;
   }
-  return generateArtifactUrl('minio', matches[1], matches[2]);
+  return generateArtifactUrl('minio', matches[1], matches[2], peek);
+}
+
+const S3_URI_PREFIX = 's3://';
+/**
+ * Generates an HTTPS API URL from s3:// uri
+ *
+ * @param s3Uri S3 uri that starts with s3://, like s3://ml-pipeline/path/file
+ * @returns A URL that leads to the artifact data. Returns undefined when s3Uri is not valid.
+ */
+export function generateS3ArtifactUrl(s3Uri: string): string | undefined {
+  if (!s3Uri.startsWith(S3_URI_PREFIX)) {
+    return undefined;
+  }
+
+  // eslint-disable-next-line no-useless-escape
+  const matches = s3Uri.match(/^s3:\/\/([^\/]+)\/(.+)$/);
+  if (matches == null) {
+    return undefined;
+  }
+  return generateArtifactUrl('s3', matches[1], matches[2]);
+}
+
+export function buildQuery(queriesMap: { [key: string]: string | number | undefined }): string {
+  const queryContent = Object.entries(queriesMap)
+    .filter((entry): entry is [string, string | number] => entry[1] != null)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join('&');
+  if (!queryContent) {
+    return '';
+  }
+  return `?${queryContent}`;
 }

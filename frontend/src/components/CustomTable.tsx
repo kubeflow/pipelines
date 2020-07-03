@@ -48,7 +48,7 @@ export interface Column {
   flex?: number;
   label: string;
   sortKey?: string;
-  customRenderer?: React.FC<CustomRendererProps<{} | undefined>>;
+  customRenderer?: React.FC<CustomRendererProps<any | undefined>>;
 }
 
 export interface CustomRendererProps<T> {
@@ -386,6 +386,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               logger.error('Rows must have the same number of cells defined in columns');
               return null;
             }
+            const selected = this.isSelected(row.id);
             return (
               <div
                 className={classes(
@@ -396,12 +397,13 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               >
                 <div
                   role='checkbox'
+                  aria-checked={selected}
                   tabIndex={-1}
                   className={classes(
                     'tableRow',
                     css.row,
                     this.props.disableSelection === true && padding(20, 'l'),
-                    this.isSelected(row.id) && css.selected,
+                    selected && css.selected,
                     row.expandState === ExpandState.EXPANDED && css.expandedRow,
                   )}
                   onClick={e => this.handleClick(e, row.id)}
@@ -410,7 +412,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                   BodyRowSelectionSection({
                     disableSelection: this.props.disableSelection,
                     expandState: row.expandState,
-                    isSelected: this.isSelected(row.id),
+                    isSelected: selected,
                     onExpand: e => this._expandButtonToggled(e, i),
                     showExpandButton: !!this.props.getExpandComponent,
                     useRadioButtons: this.props.useRadioButtons,

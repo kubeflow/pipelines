@@ -28,6 +28,7 @@ import { URLParser } from '../lib/URLParser';
 import { commonCss, color } from '../Css';
 import { formatDateString, logger, errorToMessage, getRunDuration } from '../lib/Utils';
 import { statusToIcon } from './Status';
+import Tooltip from '@material-ui/core/Tooltip';
 
 interface PipelineVersionInfo {
   displayName?: string;
@@ -55,19 +56,26 @@ interface DisplayMetric {
   metric?: ApiRunMetric;
 }
 
-export interface RunListProps extends RouteComponentProps {
-  disablePaging?: boolean;
-  disableSelection?: boolean;
-  disableSorting?: boolean;
-  experimentIdMask?: string;
-  hideExperimentColumn?: boolean;
-  noFilterBox?: boolean;
-  onError: (message: string, error: Error) => void;
-  onSelectionChange?: (selectedRunIds: string[]) => void;
-  runIdListMask?: string[];
-  selectedIds?: string[];
-  storageState?: RunStorageState;
-}
+// Both masks cannot be provided together.
+type MaskProps = Exclude<
+  { experimentIdMask?: string; namespaceMask?: string },
+  { experimentIdMask: string; namespaceMask: string }
+>;
+
+export type RunListProps = MaskProps &
+  RouteComponentProps & {
+    disablePaging?: boolean;
+    disableSelection?: boolean;
+    disableSorting?: boolean;
+    hideExperimentColumn?: boolean;
+    hideMetricMetadata?: boolean;
+    noFilterBox?: boolean;
+    onError: (message: string, error: Error) => void;
+    onSelectionChange?: (selectedRunIds: string[]) => void;
+    runIdListMask?: string[];
+    selectedIds?: string[];
+    storageState?: RunStorageState;
+  };
 
 interface RunListState {
   metrics: MetricMetadata[];
@@ -111,7 +119,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       });
     }
 
-    if (metricMetadata.length) {
+    if (metricMetadata.length && !this.props.hideMetricMetadata) {
       // This is a column of empty cells with a left border to separate the metrics from the other
       // columns.
       columns.push({
@@ -157,7 +165,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       if (!this.props.hideExperimentColumn) {
         row.otherFields.splice(3, 0, r.experiment);
       }
-      if (displayMetrics.length) {
+      if (displayMetrics.length && !this.props.hideMetricMetadata) {
         row.otherFields.push(''); // Metric buffer column
         row.otherFields.push(...(displayMetrics as any));
       }
@@ -183,7 +191,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
             `No` +
             `${this.props.storageState === RunStorageState.ARCHIVED ? ' archived' : ' available'}` +
             ` runs found` +
-            `${this.props.experimentIdMask ? ' for this experiment' : ''}.`
+            `${
+              this.props.experimentIdMask
+                ? ' for this experiment'
+                : this.props.namespaceMask
+                ? ' for this namespace'
+                : ''
+            }.`
           }
         />
       </div>
@@ -200,13 +214,15 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Link
-        className={commonCss.link}
-        onClick={e => e.stopPropagation()}
-        to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
-      >
-        {props.value}
-      </Link>
+      <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
+        <Link
+          className={commonCss.link}
+          onClick={e => e.stopPropagation()}
+          to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
+        >
+          {props.value}
+        </Link>
+      </Tooltip>
     );
   };
 
@@ -230,11 +246,22 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           ':' + RouteParams.pipelineId,
           props.value.pipelineId || '',
         );
-    return (
-      <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
-        {props.value.usePlaceholder ? '[View pipeline]' : props.value.displayName}
-      </Link>
-    );
+    if (props.value.usePlaceholder) {
+      return (
+        <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
+          [View pipeline]
+        </Link>
+      );
+    } else {
+      // Display name could be too long, so we show the full content in tooltip on hover.
+      return (
+        <Tooltip title={props.value.displayName || ''} enterDelay={300} placement='top-start'>
+          <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
+            {props.value.displayName}
+          </Link>
+        </Tooltip>
+      );
+    }
   };
 
   public _recurringRunCustomRenderer: React.FC<CustomRendererProps<RecurringRunInfo>> = (
@@ -329,12 +356,27 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       }
 
       try {
+        let resourceReference: {
+          keyType?: 'EXPERIMENT' | 'NAMESPACE';
+          keyId?: string;
+        } = {};
+        if (this.props.experimentIdMask) {
+          resourceReference = {
+            keyType: 'EXPERIMENT',
+            keyId: this.props.experimentIdMask,
+          };
+        } else if (this.props.namespaceMask) {
+          resourceReference = {
+            keyType: 'NAMESPACE',
+            keyId: this.props.namespaceMask,
+          };
+        }
         const response = await Apis.runServiceApi.listRuns(
           request.pageToken,
           request.pageSize,
           request.sortBy,
-          this.props.experimentIdMask ? 'EXPERIMENT' : undefined,
-          this.props.experimentIdMask,
+          resourceReference.keyType,
+          resourceReference.keyId,
           request.filter,
         );
 

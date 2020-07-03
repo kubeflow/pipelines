@@ -27,7 +27,9 @@ import { color } from '../Css';
 import { statusToIcon } from '../pages/Status';
 import { Constants } from './Constants';
 import { KeyValue } from './StaticGraphParser';
-import { hasFinished, NodePhase, statusToBgColor } from './StatusUtils';
+import { hasFinished, NodePhase, statusToBgColor, parseNodePhase } from './StatusUtils';
+import { parseTaskDisplayName } from './ParserUtils';
+import { isS3Endpoint } from './AwsHelper';
 
 export enum StorageService {
   GCS = 'gcs',
@@ -96,17 +98,12 @@ export default class WorkflowParser {
         const tmpl = workflow.spec.templates.find(
           t => !!t && !!t.name && t.name === node.templateName,
         );
-        if (tmpl && tmpl.metadata && tmpl.metadata.annotations) {
-          const displayName = tmpl.metadata.annotations['pipelines.kubeflow.org/task_display_name'];
-          if (displayName) {
-            nodeLabel = displayName;
-          }
-        }
+        nodeLabel = parseTaskDisplayName(tmpl?.metadata) || nodeLabel;
       }
 
       g.setNode(node.id, {
         height: Constants.NODE_HEIGHT,
-        icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt, node.message),
+        icon: statusToIcon(parseNodePhase(node), node.startedAt, node.finishedAt, node.message),
         label: nodeLabel,
         statusColoring: statusToBgColor(node.phase as NodePhase, node.message),
         width: Constants.NODE_WIDTH,
@@ -296,11 +293,10 @@ export default class WorkflowParser {
           outputPaths.push({
             bucket: a.s3!.bucket,
             key: a.s3!.key,
-            source: StorageService.MINIO,
+            source: isS3Endpoint(a.s3!.endpoint) ? StorageService.S3 : StorageService.MINIO,
           }),
         );
     }
-
     return outputPaths;
   }
 

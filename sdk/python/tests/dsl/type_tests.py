@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.dsl.types import _instance_to_dict, check_types, GCSPath
+from kfp.dsl.types import check_types, GCSPath
 import unittest
 
 class TestTypes(unittest.TestCase):
 
   def test_class_to_dict(self):
     """Test _class_to_dict function."""
-    gcspath_dict = _instance_to_dict(GCSPath())
+    gcspath_dict = GCSPath().to_dict()
     golden_dict = {
         'GCSPath': {
           'openapi_schema_validator': {

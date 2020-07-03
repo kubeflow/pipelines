@@ -89,7 +89,7 @@ preparation should be within the notebook, such as by `!pip install packages`
 Here are the ordered steps to add the sample tests for samples. 
 Only the core samples are expected to be added to the sample test infrastructure.
 
-1. Make sure the sample follows the [sample conventions](#sample-conventions).
+1. Make sure the sample follows the [sample conventions](#sample-contribution).
 2. If the sample requires argument inputs, they can be specified in a config yaml file
 placed under `test/sample-test/configs`. See 
 [`xgboost_training_cm.config.yaml`](https://github.com/kubeflow/pipelines/blob/master/test/sample-test/configs/xgboost_training_cm.config.yaml) 

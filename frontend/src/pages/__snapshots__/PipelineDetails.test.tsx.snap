@@ -13,7 +13,7 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -94,6 +94,7 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -112,11 +113,11 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -135,181 +136,7 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
               }
             }
             onClick={[Function]}
-            selectedNodeId=""
-          />
-          <SidePanel
-            isOpen={false}
-            onClose={[Function]}
-            title=""
-          >
-            <div
-              className="page"
-            >
-              <div
-                className="absoluteCenter"
-              >
-                Unable to retrieve node info
-              </div>
-            </div>
-          </SidePanel>
-          <div
-            className="footer"
-          >
-            <div
-              className="flex footerInfoOffset"
-            >
-              <pure(InfoOutlinedIcon)
-                className="infoIcon"
-              />
-              <span
-                className="infoSpan"
-              >
-                Static pipeline graph
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-`;
-
-exports[`PipelineDetails closes side panel when close button is clicked 2`] = `
-<div
-  className="page"
->
-  <div
-    className="page"
-  >
-    <MD2Tabs
-      onSwitch={[Function]}
-      selectedTab={0}
-      tabs={
-        Array [
-          "Graph",
-          "Source",
-        ]
-      }
-    />
-    <div
-      className="page"
-    >
-      <div
-        className="page"
-      >
-        <div
-          className="page"
-          style={
-            Object {
-              "overflow": "hidden",
-              "position": "relative",
-            }
-          }
-        >
-          <WithStyles(Paper)
-            className="summaryCard"
-          >
-            <div
-              style={
-                Object {
-                  "alignItems": "baseline",
-                  "display": "flex",
-                  "justifyContent": "space-between",
-                }
-              }
-            >
-              <div
-                className="header"
-              >
-                Summary
-              </div>
-              <WithStyles(Button)
-                color="secondary"
-                onClick={[Function]}
-              >
-                Hide
-              </WithStyles(Button)>
-            </div>
-            <div
-              className="summaryKey"
-            >
-              ID
-            </div>
-            <div>
-              test-pipeline-id
-            </div>
-            <form
-              autoComplete="off"
-            >
-              <WithStyles(FormControl)>
-                <WithStyles(WithFormControlContext(InputLabel))>
-                  Version
-                </WithStyles(WithFormControlContext(InputLabel))>
-                <WithStyles(WithFormControlContext(Select))
-                  inputProps={
-                    Object {
-                      "id": "version-selector",
-                      "name": "selectedVersion",
-                    }
-                  }
-                  onChange={[Function]}
-                  value="test-pipeline-version-id"
-                >
-                  <WithStyles(MenuItem)
-                    key="test-pipeline-version-id"
-                    value="test-pipeline-version-id"
-                  >
-                    test-pipeline-version
-                  </WithStyles(MenuItem)>
-                </WithStyles(WithFormControlContext(Select))>
-              </WithStyles(FormControl)>
-            </form>
-            <div
-              className="summaryKey"
-            >
-              <a
-                target="_blank"
-              >
-                Version source
-              </a>
-            </div>
-            <div
-              className="summaryKey"
-            >
-              Uploaded on
-            </div>
-            <div>
-              9/5/2018, 4:03:02 AM
-            </div>
-            <div
-              className="summaryKey"
-            >
-              Description
-            </div>
-            <Component
-              description="test pipeline description"
-            />
-          </WithStyles(Paper)>
-          <Graph
-            graph={
-              Graph {
-                "_defaultEdgeLabelFn": [Function],
-                "_defaultNodeLabelFn": [Function],
-                "_edgeLabels": Object {},
-                "_edgeObjs": Object {},
-                "_in": Object {},
-                "_isCompound": false,
-                "_isDirected": true,
-                "_isMultigraph": false,
-                "_label": undefined,
-                "_nodes": Object {},
-                "_out": Object {},
-                "_preds": Object {},
-                "_sucs": Object {},
-              }
-            }
-            onClick={[Function]}
+            onError={[Function]}
             selectedNodeId=""
           />
           <SidePanel
@@ -363,7 +190,7 @@ exports[`PipelineDetails collapses summary card when summary shown state is fals
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -382,7 +209,7 @@ exports[`PipelineDetails collapses summary card when summary shown state is fals
             }
           }
         >
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -401,6 +228,7 @@ exports[`PipelineDetails collapses summary card when summary shown state is fals
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId=""
           />
           <SidePanel
@@ -460,7 +288,7 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -541,6 +369,7 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -559,11 +388,11 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -582,6 +411,7 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="some-node-id"
           />
           <SidePanel
@@ -635,7 +465,7 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -716,6 +546,7 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -734,11 +565,11 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -809,6 +640,7 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
               }
             }
             onClick={[Function]}
+            onError={[Function]}
             selectedNodeId="node1"
           />
           <SidePanel
@@ -891,7 +723,7 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
 </div>
 `;
 
-exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
+exports[`PipelineDetails shows correct versions in version selector 1`] = `
 <div
   className="page"
 >
@@ -904,7 +736,7 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -985,6 +817,7 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -1003,11 +836,11 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>
-          <Graph
+          <EnhancedGraph
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -1026,6 +859,184 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
               }
             }
             onClick={[Function]}
+            onError={[Function]}
+            selectedNodeId=""
+          />
+          <SidePanel
+            isOpen={false}
+            onClose={[Function]}
+            title=""
+          >
+            <div
+              className="page"
+            >
+              <div
+                className="absoluteCenter"
+              >
+                Unable to retrieve node info
+              </div>
+            </div>
+          </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex footerInfoOffset"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Static pipeline graph
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "YAML",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page"
+      >
+        <div
+          className="page"
+          style={
+            Object {
+              "overflow": "hidden",
+              "position": "relative",
+            }
+          }
+        >
+          <WithStyles(Paper)
+            className="summaryCard"
+          >
+            <div
+              style={
+                Object {
+                  "alignItems": "baseline",
+                  "display": "flex",
+                  "justifyContent": "space-between",
+                }
+              }
+            >
+              <div
+                className="header"
+              >
+                Summary
+              </div>
+              <WithStyles(Button)
+                color="secondary"
+                onClick={[Function]}
+              >
+                Hide
+              </WithStyles(Button)>
+            </div>
+            <div
+              className="summaryKey"
+            >
+              ID
+            </div>
+            <div>
+              test-pipeline-id
+            </div>
+            <form
+              autoComplete="off"
+            >
+              <WithStyles(FormControl)>
+                <WithStyles(WithFormControlContext(InputLabel))>
+                  Version
+                </WithStyles(WithFormControlContext(InputLabel))>
+                <WithStyles(WithFormControlContext(Select))
+                  inputProps={
+                    Object {
+                      "id": "version-selector",
+                      "name": "selectedVersion",
+                    }
+                  }
+                  onChange={[Function]}
+                  value="test-pipeline-version-id"
+                >
+                  <WithStyles(MenuItem)
+                    key="test-pipeline-version-id"
+                    value="test-pipeline-version-id"
+                  >
+                    test-pipeline-version
+                  </WithStyles(MenuItem)>
+                </WithStyles(WithFormControlContext(Select))>
+              </WithStyles(FormControl)>
+            </form>
+            <div
+              className="summaryKey"
+            >
+              <a
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Version source
+              </a>
+            </div>
+            <div
+              className="summaryKey"
+            >
+              Uploaded on
+            </div>
+            <div>
+              9/5/2018, 4:03:02 AM
+            </div>
+            <div
+              className="summaryKey"
+            >
+              Description
+            </div>
+            <Description
+              description="test pipeline description"
+            />
+          </WithStyles(Paper)>
+          <EnhancedGraph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": undefined,
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            onError={[Function]}
             selectedNodeId=""
           />
           <SidePanel
@@ -1079,7 +1090,7 @@ exports[`PipelineDetails shows empty pipeline details with no graph 1`] = `
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />
@@ -1117,7 +1128,7 @@ exports[`PipelineDetails shows pipeline source code when config tab is clicked 1
       tabs={
         Array [
           "Graph",
-          "Source",
+          "YAML",
         ]
       }
     />

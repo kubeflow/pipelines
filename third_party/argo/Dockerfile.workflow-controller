@@ -21,7 +21,7 @@ RUN apk add --no-cache curl
 ENV OUTPUT_FOLDER /downloads/
 RUN sh /third_party/download_source.sh </third_party/argo/repo-MPL.txt
 
-From argoproj/workflow-controller:v2.3.0
+From argoproj/workflow-controller:v2.7.5
 
 # Copy concatenated license file
 COPY third_party/argo/license.txt /third_party/license.txt

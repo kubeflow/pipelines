@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { Artifact, Execution, getMetadataValue } from '@kubeflow/frontend';
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { color, commonCss } from '../Css';
-import { getMetadataValue } from '../lib/Utils';
-import { Artifact, Execution } from '../generated/src/apis/metadata/metadata_store_pb';
 import { ArtifactLink } from './ArtifactLink';
 
 export const css = stylesheet({

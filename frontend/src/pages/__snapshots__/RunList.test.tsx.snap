@@ -736,7 +736,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
         className="pageOverflowHidden"
       >
         <div>
-          <Component
+          <Input
             InputLabelProps={
               Object {
                 "classes": Object {
@@ -1742,7 +1742,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 </FormControl>
               </WithStyles(FormControl)>
             </TextField>
-          </Component>
+          </Input>
         </div>
         <div
           className="header"
@@ -6175,23 +6175,8 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                   <WithStyles(WithFormControlContext(Select))
                     input={
                       <WithStyles(Input)
-                        autoComplete={undefined}
-                        autoFocus={undefined}
-                        defaultValue={undefined}
                         disableUnderline={true}
-                        fullWidth={undefined}
-                        id={undefined}
-                        inputProps={undefined}
-                        inputRef={undefined}
-                        multiline={undefined}
-                        name={undefined}
-                        onBlur={undefined}
                         onChange={[Function]}
-                        onFocus={undefined}
-                        placeholder={undefined}
-                        rows={undefined}
-                        rowsMax={undefined}
-                        type={undefined}
                         value={10}
                       />
                     }
@@ -6211,23 +6196,8 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       }
                       input={
                         <WithStyles(Input)
-                          autoComplete={undefined}
-                          autoFocus={undefined}
-                          defaultValue={undefined}
                           disableUnderline={true}
-                          fullWidth={undefined}
-                          id={undefined}
-                          inputProps={undefined}
-                          inputRef={undefined}
-                          multiline={undefined}
-                          name={undefined}
-                          onBlur={undefined}
                           onChange={[Function]}
-                          onFocus={undefined}
-                          placeholder={undefined}
-                          rows={undefined}
-                          rowsMax={undefined}
-                          type={undefined}
                           value={10}
                         />
                       }
@@ -6250,23 +6220,8 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         displayEmpty={false}
                         input={
                           <WithStyles(Input)
-                            autoComplete={undefined}
-                            autoFocus={undefined}
-                            defaultValue={undefined}
                             disableUnderline={true}
-                            fullWidth={undefined}
-                            id={undefined}
-                            inputProps={undefined}
-                            inputRef={undefined}
-                            multiline={undefined}
-                            name={undefined}
-                            onBlur={undefined}
                             onChange={[Function]}
-                            onFocus={undefined}
-                            placeholder={undefined}
-                            rows={undefined}
-                            rowsMax={undefined}
-                            type={undefined}
                             value={10}
                           />
                         }
@@ -7562,16 +7517,10 @@ exports[`RunList reloads the run when refresh is called 1`] = `
 </RunList>
 `;
 
-exports[`RunList renders an empty metric when metric is empty 1`] = `
-<Metric
-  metadata={undefined}
-  metric={undefined}
-/>
-`;
+exports[`RunList renders an empty metric when metric is empty 1`] = `<Metric />`;
 
 exports[`RunList renders an empty metric when metric value is empty 1`] = `
 <Metric
-  metadata={undefined}
   metric={Object {}}
 />
 `;
@@ -7611,7 +7560,6 @@ exports[`RunList renders no experiment name 1`] = `
 
 exports[`RunList renders percentage metric 1`] = `
 <Metric
-  metadata={undefined}
   metric={
     Object {
       "format": "PERCENTAGE",
@@ -7622,14 +7570,20 @@ exports[`RunList renders percentage metric 1`] = `
 `;
 
 exports[`RunList renders pipeline name as link to its details page 1`] = `
-<Link
-  className="link"
-  onClick={[Function]}
-  replace={false}
-  to="/pipelines/details/pipeline-id?"
+<WithStyles(Tooltip)
+  enterDelay={300}
+  placement="top-start"
+  title="test pipeline"
 >
-  test pipeline
-</Link>
+  <Link
+    className="link"
+    onClick={[Function]}
+    replace={false}
+    to="/pipelines/details/pipeline-id?"
+  >
+    test pipeline
+  </Link>
+</WithStyles(Tooltip)>
 `;
 
 exports[`RunList renders pipeline name as link to its details page 2`] = `
@@ -7644,14 +7598,20 @@ exports[`RunList renders pipeline name as link to its details page 2`] = `
 `;
 
 exports[`RunList renders pipeline version name as link to its details page 1`] = `
-<Link
-  className="link"
-  onClick={[Function]}
-  replace={false}
-  to="/pipelines/details/pipeline-id/version/version-id?"
+<WithStyles(Tooltip)
+  enterDelay={300}
+  placement="top-start"
+  title="test pipeline version"
 >
-  test pipeline version
-</Link>
+  <Link
+    className="link"
+    onClick={[Function]}
+    replace={false}
+    to="/pipelines/details/pipeline-id/version/version-id?"
+  >
+    test pipeline version
+  </Link>
+</WithStyles(Tooltip)>
 `;
 
 exports[`RunList renders raw metric 1`] = `
@@ -7672,14 +7632,20 @@ exports[`RunList renders raw metric 1`] = `
 `;
 
 exports[`RunList renders run name as link to its details page 1`] = `
-<Link
-  className="link"
-  onClick={[Function]}
-  replace={false}
-  to="/runs/details/run-id"
+<WithStyles(Tooltip)
+  enterDelay={300}
+  placement="top-start"
+  title="test run"
 >
-  test run
-</Link>
+  <Link
+    className="link"
+    onClick={[Function]}
+    replace={false}
+    to="/runs/details/run-id"
+  >
+    test run
+  </Link>
+</WithStyles(Tooltip)>
 `;
 
 exports[`RunList renders status as icon 1`] = `

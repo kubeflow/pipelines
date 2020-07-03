@@ -17,9 +17,12 @@ import warnings
 
 
 class BaseType:
-	'''MetaType is a base type for all scalar and artifact types.
-	'''
-	pass
+	'''BaseType is a base type for all scalar and artifact types.'''
+
+	def to_dict(self) -> Union[Dict, str]:
+		'''to_dict serializes the type instance into a python dictionary or string'''
+		return {type(self).__name__: self.__dict__} if self.__dict__ else type(self).__name__
+
 
 # Primitive Types
 class Integer(BaseType):
@@ -137,12 +140,12 @@ def check_types(checked_type, expected_type):
 		expected_type (BaseType/str/dict): it describes a type from the downstream component input
 		'''
 	if isinstance(checked_type, BaseType):
-		checked_type = _instance_to_dict(checked_type)
-	elif isinstance(checked_type, str):
+		checked_type = checked_type.to_dict()
+	if isinstance(checked_type, str):
 		checked_type = {checked_type: {}}
 	if isinstance(expected_type, BaseType):
-		expected_type = _instance_to_dict(expected_type)
-	elif isinstance(expected_type, str):
+		expected_type = expected_type.to_dict()
+	if isinstance(expected_type, str):
 		expected_type = {expected_type: {}}
 	return _check_dict_types(checked_type, expected_type)
 
@@ -163,15 +166,6 @@ def _check_valid_type_dict(payload):
 				return False
 	return True
 
-def _instance_to_dict(instance):
-	'''_instance_to_dict serializes the type instance into a python dictionary
-	Args:
-		instance(BaseType): An instance that describes a type
-
-	Return:
-		dict
-	'''
-	return {type(instance).__name__: instance.__dict__}
 
 def _check_dict_types(checked_type, expected_type):
 	'''_check_dict_types checks the type consistency.
