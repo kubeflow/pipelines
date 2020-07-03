@@ -10,25 +10,6 @@ bases:
 - cache-deployer
 resources:
 - pipeline-application.yaml
-images:
-- name: gcr.io/ml-pipeline/api-server
-  newTag: 0.5.1
-- name: gcr.io/ml-pipeline/persistenceagent
-  newTag: 0.5.1
-- name: gcr.io/ml-pipeline/scheduledworkflow
-  newTag: 0.5.1
-- name: gcr.io/ml-pipeline/frontend
-  newTag: 0.5.1
-- name: gcr.io/ml-pipeline/viewer-crd-controller
-  newTag: 0.5.1
-- name: gcr.io/ml-pipeline/visualization-server
-  newTag: 0.5.1
-- name: gcr.io/ml-pipeline/metadata-writer
-  newTag: 0.5.1
-- name: gcr.io/ml-pipeline/cache-server
-  newTag: 0.5.1
-- name: gcr.io/ml-pipeline/cache-deployer
-  newTag: 0.5.1
 # Used by Kustomize
 configMapGenerator:
 - name: pipeline-install-config

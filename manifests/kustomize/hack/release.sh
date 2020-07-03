@@ -25,8 +25,18 @@ if [[ -z "$TAG_NAME" ]]; then
 fi
 
 echo "This release script uses yq, it can be downloaded at https://github.com/mikefarah/yq/releases/tag/3.3.0"
-yq w -i "$DIR/../base/kustomization.yaml" images[*].newTag "$TAG_NAME"
-yq w -i "$DIR/../env/gcp/inverse-proxy/kustomization.yaml" images[*].newTag "$TAG_NAME"
+kustomization_yamls_with_images=(
+  "base/cache-deployer/kustomization.yaml"
+  "base/cache/kustomization.yaml"
+  "base/metadata/kustomization.yaml"
+  "base/pipeline/metadata-writer/kustomization.yaml"
+  "base/pipeline/kustomization.yaml"
+  "env/gcp/inverse-proxy/kustomization.yaml"
+)
+for path in "${kustomization_yamls_with_images[@]}"
+do
+  yq w -i "$DIR/../$path" images[*].newTag "$TAG_NAME"
+done
 
 # Note, this only works in linux. TODO: make it MacOS sed compatible.
 sed -i.bak -e "s|appVersion=.\+|appVersion=$TAG_NAME|g" "$DIR/../base/params.env"

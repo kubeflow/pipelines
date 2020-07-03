@@ -43,7 +43,7 @@ spec:
             - name: PROJECT_ID
               valueFrom:
                 configMapKeyRef:
-                  name: {{ .Values.gcpDefaultConfigName}}
+                  name: "{{ .Values.gcpDefaultConfigName }}"
                   key: "project_id"
             - name: MINIO_ACCESS_KEY
               value: minio
@@ -58,14 +58,6 @@ spec:
           name: minio
           ports:
             - containerPort: 9000
-          volumeMounts:
-            - name: gcp-sa-token
-              mountPath: "/etc/credentials"
-              readOnly: true
-      volumes:
-        - name: gcp-sa-token
-          secret:
-            secretName: {{ .Values.gcpSecretName }}
 {{ end }}
 ---
 {{ if not .Values.managedstorage.enabled }}

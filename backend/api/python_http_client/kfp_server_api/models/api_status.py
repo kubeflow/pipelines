@@ -92,7 +92,7 @@ class ApiStatus(object):
 
 
         :param error: The error of this ApiStatus.  # noqa: E501
-        :type: str
+        :type error: str
         """
 
         self._error = error
@@ -113,7 +113,7 @@ class ApiStatus(object):
 
 
         :param code: The code of this ApiStatus.  # noqa: E501
-        :type: int
+        :type code: int
         """
 
         self._code = code
@@ -134,7 +134,7 @@ class ApiStatus(object):
 
 
         :param details: The details of this ApiStatus.  # noqa: E501
-        :type: list[ProtobufAny]
+        :type details: list[ProtobufAny]
         """
 
         self._details = details

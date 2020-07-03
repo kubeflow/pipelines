@@ -40,10 +40,18 @@ def xgboost_train(
     Annotations:
         author: Alexey Volkov <alexey.volkov@ark-kun.com>
     '''
+    import pandas
     import xgboost
 
-    csv_training_data_spec = training_data_path + '?format=csv&label_column=' + str(label_column)
-    training_data = xgboost.DMatrix(csv_training_data_spec)
+    df = pandas.read_csv(
+        training_data_path,
+    )
+
+    training_data = xgboost.DMatrix(
+        data=df.drop(columns=[df.columns[label_column]]),
+        label=df[df.columns[label_column]],
+    )
+
     booster_params = booster_params or {}
     booster_params.setdefault('objective', objective)
     booster_params.setdefault('booster', booster)
@@ -75,5 +83,8 @@ if __name__ == '__main__':
         xgboost_train,
         output_component_file='component.yaml',
         base_image='python:3.7',
-        packages_to_install=['xgboost==1.0.2']
+        packages_to_install=[
+            'xgboost==1.1.1',
+            'pandas==1.0.5',
+        ]
     )

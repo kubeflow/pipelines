@@ -104,7 +104,7 @@ class ApiPipelineSpec(object):
         Optional input field. The ID of the pipeline user uploaded before.  # noqa: E501
 
         :param pipeline_id: The pipeline_id of this ApiPipelineSpec.  # noqa: E501
-        :type: str
+        :type pipeline_id: str
         """
 
         self._pipeline_id = pipeline_id
@@ -127,7 +127,7 @@ class ApiPipelineSpec(object):
         Optional output field. The name of the pipeline. Not empty if the pipeline id is not empty.  # noqa: E501
 
         :param pipeline_name: The pipeline_name of this ApiPipelineSpec.  # noqa: E501
-        :type: str
+        :type pipeline_name: str
         """
 
         self._pipeline_name = pipeline_name
@@ -150,7 +150,7 @@ class ApiPipelineSpec(object):
         Optional input field. The marshalled raw argo JSON workflow. This will be deprecated when pipeline_manifest is in use.  # noqa: E501
 
         :param workflow_manifest: The workflow_manifest of this ApiPipelineSpec.  # noqa: E501
-        :type: str
+        :type workflow_manifest: str
         """
 
         self._workflow_manifest = workflow_manifest
@@ -173,7 +173,7 @@ class ApiPipelineSpec(object):
         Optional input field. The raw pipeline JSON spec.  # noqa: E501
 
         :param pipeline_manifest: The pipeline_manifest of this ApiPipelineSpec.  # noqa: E501
-        :type: str
+        :type pipeline_manifest: str
         """
 
         self._pipeline_manifest = pipeline_manifest
@@ -196,7 +196,7 @@ class ApiPipelineSpec(object):
         The parameter user provide to inject to the pipeline JSON. If a default value of a parameter exist in the JSON, the value user provided here will replace.  # noqa: E501
 
         :param parameters: The parameters of this ApiPipelineSpec.  # noqa: E501
-        :type: list[ApiParameter]
+        :type parameters: list[ApiParameter]
         """
 
         self._parameters = parameters

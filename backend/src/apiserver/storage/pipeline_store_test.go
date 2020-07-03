@@ -1195,6 +1195,89 @@ func TestListPipelineVersions_Pagination_LessThanPageSize(t *testing.T) {
 	})
 }
 
+func TestListPipelineVersions_WithFilter(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+
+	// Create a pipeline.
+	pipelineStore.CreatePipeline(
+		&model.Pipeline{
+			Name:       "pipeline_1",
+			Parameters: `[{"Name": "param1"}]`,
+			Status:     model.PipelineReady,
+		})
+
+	// Create "version_1" with fakeUUIDTwo.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.CreatePipelineVersion(
+		&model.PipelineVersion{
+			Name:       "pipeline_version_1",
+			Parameters: `[{"Name": "param1"}]`,
+			PipelineId: fakeUUID,
+			Status:     model.PipelineVersionReady,
+		})
+
+	// Create "version_2" with fakeUUIDThree.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+	pipelineStore.CreatePipelineVersion(
+		&model.PipelineVersion{
+			Name:       "pipeline_version_2",
+			Parameters: `[{"Name": "param1"}]`,
+			PipelineId: fakeUUID,
+			Status:     model.PipelineVersionReady,
+		})
+
+	// Filter for name being equal to pipeline_version_1
+	equalFilterProto := &api.Filter{
+		Predicates: []*api.Predicate{
+			&api.Predicate{
+				Key:   "name",
+				Op:    api.Predicate_EQUALS,
+				Value: &api.Predicate_StringValue{StringValue: "pipeline_version_1"},
+			},
+		},
+	}
+
+	// Filter for name prefix being pipeline_version
+	prefixFilterProto := &api.Filter{
+		Predicates: []*api.Predicate{
+			&api.Predicate{
+				Key:   "name",
+				Op:    api.Predicate_IS_SUBSTRING,
+				Value: &api.Predicate_StringValue{StringValue: "pipeline_version"},
+			},
+		},
+	}
+
+	// Only return 1 pipeline version with equal filter.
+	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", equalFilterProto)
+	assert.Nil(t, err)
+	_, totalSize, nextPageToken, err := pipelineStore.ListPipelineVersions(fakeUUID, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, 1, totalSize)
+
+	// Return 2 pipeline versions without filter.
+	opts, err = list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
+	assert.Nil(t, err)
+	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(fakeUUID, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, 2, totalSize)
+
+	// Return 2 pipeline versions with prefix filter.
+	opts, err = list.NewOptions(&model.PipelineVersion{}, 10, "id", prefixFilterProto)
+	assert.Nil(t, err)
+	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(fakeUUID, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, 2, totalSize)
+}
+
 func TestListPipelineVersionsError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()

@@ -158,7 +158,7 @@ def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable, embe
     #Checking the pipeline_func output object types
     for output_name, output_value in graph_output_value_map.items():
         if not isinstance(output_value, TaskOutputArgument):
-            raise TypeError('Only TaskOutputArgument instances should be returned from graph component, but got "{output_name}" = "{}".'.format(output_name, str(output_value)))
+            raise TypeError('Only TaskOutputArgument instances should be returned from graph component, but got "{}" = "{}".'.format(output_name, str(output_value)))
 
     if not component_spec.outputs and graph_output_value_map:
         component_spec.outputs = [OutputSpec(name=output_name, type=output_value.task_output.type) for output_name, output_value in graph_output_value_map.items()]

@@ -92,7 +92,7 @@ class ApiListPipelinesResponse(object):
 
 
         :param pipelines: The pipelines of this ApiListPipelinesResponse.  # noqa: E501
-        :type: list[ApiPipeline]
+        :type pipelines: list[ApiPipeline]
         """
 
         self._pipelines = pipelines
@@ -115,7 +115,7 @@ class ApiListPipelinesResponse(object):
         The total number of pipelines for the given query.  # noqa: E501
 
         :param total_size: The total_size of this ApiListPipelinesResponse.  # noqa: E501
-        :type: int
+        :type total_size: int
         """
 
         self._total_size = total_size
@@ -138,7 +138,7 @@ class ApiListPipelinesResponse(object):
         The token to list the next page of pipelines.  # noqa: E501
 
         :param next_page_token: The next_page_token of this ApiListPipelinesResponse.  # noqa: E501
-        :type: str
+        :type next_page_token: str
         """
 
         self._next_page_token = next_page_token

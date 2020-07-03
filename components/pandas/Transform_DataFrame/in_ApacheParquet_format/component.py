@@ -23,11 +23,12 @@ def Pandas_Transform_DataFrame_in_ApacheParquet_format(
         author: Alexey Volkov <alexey.volkov@ark-kun.com>
     '''
     import pandas
-    from pyarrow import parquet
 
     df = pandas.read_parquet(table_path)
-    exec(transform_code)
-    df.to_parquet(transformed_table_path)
+    # The namespace is needed so that the code can replace `df`. For example df = df[['X']]
+    namespace = locals()
+    exec(transform_code, namespace)
+    namespace['df'].to_parquet(transformed_table_path)
 
 
 if __name__ == '__main__':

@@ -43,8 +43,9 @@ implementation:
     - sh
     - -c
     - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
-      'xgboost==1.0.2' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
-      --no-warn-script-location 'xgboost==1.0.2' --user) && "$0" "$@"
+      'xgboost==1.1.1' 'pandas==1.0.5' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'xgboost==1.1.1' 'pandas==1.0.5'
+      --user) && "$0" "$@"
     - python3
     - -u
     - -c
@@ -94,10 +95,18 @@ implementation:
           Annotations:
               author: Alexey Volkov <alexey.volkov@ark-kun.com>
           '''
+          import pandas
           import xgboost
 
-          csv_training_data_spec = training_data_path + '?format=csv&label_column=' + str(label_column)
-          training_data = xgboost.DMatrix(csv_training_data_spec)
+          df = pandas.read_csv(
+              training_data_path,
+          )
+
+          training_data = xgboost.DMatrix(
+              data=df.drop(columns=[df.columns[label_column]]),
+              label=df[df.columns[label_column]],
+          )
+
           booster_params = booster_params or {}
           booster_params.setdefault('objective', objective)
           booster_params.setdefault('booster', booster)
@@ -139,22 +148,8 @@ implementation:
       _parser.add_argument("--model", dest="model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--model-config", dest="model_config_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parsed_args = vars(_parser.parse_args())
-      _output_files = _parsed_args.pop("_output_paths", [])
 
       _outputs = xgboost_train(**_parsed_args)
-
-      _output_serializers = [
-
-      ]
-
-      import os
-      for idx, output_file in enumerate(_output_files):
-          try:
-              os.makedirs(os.path.dirname(output_file))
-          except OSError:
-              pass
-          with open(output_file, 'w') as f:
-              f.write(_output_serializers[idx](_outputs[idx]))
     args:
     - --training-data
     - {inputPath: training_data}

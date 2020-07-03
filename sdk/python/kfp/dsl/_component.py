@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 from deprecated.sphinx import deprecated
 from ._pipeline_param import PipelineParam
 from .types import check_types, InconsistentTypeException
@@ -119,8 +120,12 @@ def graph_component(func):
   from functools import wraps
   @wraps(func)
   def _graph_component(*args, **kargs):
+    # We need to make sure that the arguments are correctly mapped to inputs regardless of the passing order
+    signature = inspect.signature(func)
+    bound_arguments = signature.bind(*args, **kargs)
     graph_ops_group = Graph(func.__name__)
-    graph_ops_group.inputs = list(args) + list(kargs.values())
+    graph_ops_group.inputs = list(bound_arguments.arguments.values())
+    graph_ops_group.arguments = bound_arguments.arguments
     for input in graph_ops_group.inputs:
       if not isinstance(input, PipelineParam):
         raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams.')

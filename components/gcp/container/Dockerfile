@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN pip2 install apache-beam[gcp]==2.10.0
+RUN pip install pandas
 
 ADD build /ml
 WORKDIR /ml

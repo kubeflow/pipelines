@@ -60,14 +60,9 @@ spec:
           volumeMounts:
             - mountPath: /cloudsql
               name: cloudsql
-            - mountPath: /credentials
-              name: gcp-sa-token
       volumes:
         - name: cloudsql
           emptyDir:
-        - name: gcp-sa-token
-          secret:
-            secretName: {{ .Values.gcpSecretName }}
 ---
 apiVersion: v1
 kind: Secret

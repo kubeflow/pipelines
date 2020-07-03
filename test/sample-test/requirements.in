@@ -3,7 +3,7 @@ minio
 papermill
 fire
 yamale
-tfx==0.21.2
+tfx==0.22.0
 
 # Avoiding conflicts:
 # There are incompatible versions in the resolved dependencies:

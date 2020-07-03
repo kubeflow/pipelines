@@ -64,6 +64,7 @@ class PipelineConf():
     self.default_pod_node_selector = {}
     self.image_pull_policy = None
     self.parallelism = None
+    self._data_passing_method = None
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """Configures the pipeline level imagepullsecret
@@ -135,6 +136,27 @@ class PipelineConf():
     """
     self.op_transformers.append(transformer)
 
+  @property
+  def data_passing_method(self):
+    return self._data_passing_method
+
+  @data_passing_method.setter
+  def data_passing_method(self, value):
+    '''Sets the object representing the method used for intermediate data passing.
+    Example::
+
+      from kfp.dsl import PipelineConf, data_passing_methods
+      from kubernetes.client.models import V1Volume, V1PersistentVolumeClaim
+      pipeline_conf = PipelineConf()
+      pipeline_conf.data_passing_method = data_passing_methods.KubernetesVolume(
+          volume=V1Volume(
+              name='data',
+              persistent_volume_claim=V1PersistentVolumeClaim('data-volume'),
+          ),
+          path_prefix='artifact_data/',
+      )
+    '''
+    self._data_passing_method = value
 
 def get_pipeline_conf():
   """Configure the pipeline level setting to the current pipeline

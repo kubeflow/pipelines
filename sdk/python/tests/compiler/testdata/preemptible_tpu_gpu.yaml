@@ -32,9 +32,6 @@ spec:
           limits:
             nvidia.com/gpu: 1
       name: flip
-      metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
       outputs:
         artifacts:
           - name: flip-output

@@ -86,10 +86,11 @@ source "${DIR}/test-prep.sh"
 CLOUDBUILD_TIMEOUT_SECONDS=3600
 PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT=$(expr ${CLOUDBUILD_TIMEOUT_SECONDS} / 20 )
 CLOUDBUILD_STARTED=TIMEOUT
+CLOUDBUILD_FILTER="substitutions.COMMIT_SHA:${PULL_BASE_SHA} AND tags:build-each-commit"
 
 for i in $(seq 1 ${PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT})
 do
-  output=`gcloud builds list --project="$CLOUDBUILD_PROJECT" --filter="sourceProvenance.resolvedRepoSource.commitSha:${PULL_BASE_SHA}"`
+  output=`gcloud builds list --project="$CLOUDBUILD_PROJECT" --filter="$CLOUDBUILD_FILTER"`
   if [[ ${output} != "" ]]; then
     CLOUDBUILD_STARTED=True
     break
@@ -106,7 +107,7 @@ fi
 CLOUDBUILD_FINISHED=TIMEOUT
 for i in $(seq 1 ${PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT})
 do
-  output=`gcloud builds list --project="$CLOUDBUILD_PROJECT" --filter="sourceProvenance.resolvedRepoSource.commitSha:${PULL_BASE_SHA}"`
+  output=`gcloud builds list --project="$CLOUDBUILD_PROJECT" --filter="$CLOUDBUILD_FILTER"`
   if [[ ${output} == *"SUCCESS"* ]]; then
     CLOUDBUILD_FINISHED=SUCCESS
     break
