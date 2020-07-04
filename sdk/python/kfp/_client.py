@@ -316,20 +316,17 @@ class Client(object):
     Returns:
       A response object including a list of experiments and next page token.
     """
-    while True:
-      filterName = filter_pb2.Filter()
-      predicate = filter_pb2.Predicate() 
-      predicate.key = "name"
-      predicate.op = 1
-      predicate.string_value=name 
-      filterName.predicates.append(predicate)
-      result = self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, filter=urllib.parse.quote(MessageToJson(filterName)))
-      for pl in result.pipelines:
-          if pl.name == name:
-              return pl.id
-      page_token = result.next_page_token
-      if not page_token:
-          break
+    filterName = filter_pb2.Filter()
+    predicate = filter_pb2.Predicate() 
+    predicate.key = "name"
+    predicate.op = 1 #
+    predicate.string_value=name 
+    filterName.predicates.append(predicate)
+    result = self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, filter=urllib.parse.quote(MessageToJson(filterName)))
+    if len(result.pipelines)==1:
+      return result.pipelines[0].id
+    elif len(result.pipelines)>1:
+      raise ValueError("Multiple pipelines with the name: {}, the name needs to  be unique".format(name))
     return None
 
   def list_experiments(self, page_token='', page_size=10, sort_by='', namespace=None):
