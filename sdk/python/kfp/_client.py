@@ -42,7 +42,15 @@ from kfp_server_api import filter_pb2
 # initialized with host=<inverse proxy endpoint>.
 # Set to 55 mins to provide some safe margin.
 _GCP_ACCESS_TOKEN_TIMEOUT = datetime.timedelta(minutes=55)
-
+_FILTER_OPERATIONS = {"UNKNOWN": 0,
+    # Operators on scalar values. Only applies to one of |int_value|,
+    # |long_value|, |string_value| or |timestamp_value|.
+    "EQUALS" : 1,
+    "NOT_EQUALS" : 2,
+    "GREATER_THAN": 3,
+    "GREATER_THAN_EQUALS": 5,
+    "LESS_THAN": 6,
+    "LESS_THAN_EQUALS": 7}
 
 def _add_generated_apis(target_struct, api_module, api_client):
   '''Initializes a hierarchical API object based on the generated API module.
@@ -319,7 +327,7 @@ class Client(object):
     filterName = filter_pb2.Filter()
     predicate = filter_pb2.Predicate() 
     predicate.key = "name"
-    predicate.op = 1 #
+    predicate.op = _FILTER_OPERATIONS["EQUALS"]
     predicate.string_value=name 
     filterName.predicates.append(predicate)
     result = self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, filter=urllib.parse.quote(MessageToJson(filterName)))
