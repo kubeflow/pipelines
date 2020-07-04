@@ -30,11 +30,11 @@ from typing import Mapping, Callable
 import kfp
 import kfp_server_api
 
-from kfp import filter_pb2
 from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 
 from kfp._auth import get_auth_token, get_gcp_access_token
+from kfp_server_api import filter_pb2 
 
 # TTL of the access token associated with the client. This is needed because
 # `gcloud auth print-access-token` generates a token with TTL=1 hour, after
