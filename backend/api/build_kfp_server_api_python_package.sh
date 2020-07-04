@@ -26,6 +26,7 @@
 # brew tap caskroom/cask
 # brew cask install caskroom/versions/java8
 # brew install jq
+# brew install protobuf
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 REPO_ROOT="$DIR/../.."
@@ -60,6 +61,8 @@ java -jar "$codegen_file" generate -g python -t "$CURRENT_DIR/python_http_client
 
 echo "Copying LICENSE to $DIR"
 cp "$CURRENT_DIR/../../LICENSE" "$DIR"
+
+protoc -I=. --python_out="$DIR/kfp_server_api" ./filter.proto
 
 echo "Building the python package in $DIR."
 pushd "$DIR"
