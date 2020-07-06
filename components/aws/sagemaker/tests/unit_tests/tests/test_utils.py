@@ -43,3 +43,58 @@ class UtilsTestCase(unittest.TestCase):
         with patch('logging.Logger.error') as errorLog:
             _utils.print_logs_for_job(mock_cw_client, '/aws/sagemaker/FakeJobs', 'fake_job_name')
             errorLog.assert_called()
+
+    def test_stop_training_job(self):
+        mock_sm_client = MagicMock()
+        mock_sm_client.stop_training_job.return_value = None
+
+        response = _utils.stop_training_job(mock_sm_client, 'FakeJobName')
+
+        mock_sm_client.stop_training_job.assert_called_once_with(
+            TrainingJobName='FakeJobName'
+        )
+        self.assertEqual(response, None)
+
+    def test_stop_transform_job(self):
+        mock_sm_client = MagicMock()
+        mock_sm_client.stop_transform_job.return_value = None
+
+        response = _utils.stop_transform_job(mock_sm_client, 'FakeJobName')
+
+        mock_sm_client.stop_transform_job.assert_called_once_with(
+            TransformJobName='FakeJobName'
+        )
+        self.assertEqual(response, None)
+
+    def test_stop_hyper_parameter_tuning_job(self):
+        mock_sm_client = MagicMock()
+        mock_sm_client.stop_hyper_parameter_tuning_job.return_value = None
+
+        response = _utils.stop_hyperparameter_tuning_job(mock_sm_client, 'FakeJobName')
+
+        mock_sm_client.stop_hyper_parameter_tuning_job.assert_called_once_with(
+            HyperParameterTuningJobName='FakeJobName'
+        )
+        self.assertEqual(response, None)
+
+    def test_stop_labeling_job(self):
+        mock_sm_client = MagicMock()
+        mock_sm_client.stop_labeling_job.return_value = None
+
+        response = _utils.stop_labeling_job(mock_sm_client, 'FakeJobName')
+
+        mock_sm_client.stop_labeling_job.assert_called_once_with(
+            LabelingJobName='FakeJobName'
+        )
+        self.assertEqual(response, None)
+
+    def test_stop_processing_job(self):
+        mock_sm_client = MagicMock()
+        mock_sm_client.stop_processing_job.return_value = None
+
+        response = _utils.stop_processing_job(mock_sm_client, 'FakeJobName')
+
+        mock_sm_client.stop_processing_job.assert_called_once_with(
+            ProcessingJobName='FakeJobName'
+        )
+        self.assertEqual(response, None)

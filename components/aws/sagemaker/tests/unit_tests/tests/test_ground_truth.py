@@ -1,6 +1,8 @@
 import unittest
+import os
+import signal
 
-from unittest.mock import patch, call, Mock, MagicMock, mock_open
+from unittest.mock import patch, call, Mock, MagicMock, mock_open, ANY
 from botocore.exceptions import ClientError
 
 from ground_truth.src import ground_truth
@@ -76,6 +78,15 @@ class GroundTruthTestCase(unittest.TestCase):
     )
 
     self.assertEqual(response, 'test_job')
+
+  def test_stop_labelling_job(self):
+    ground_truth._utils = MagicMock()
+
+    try:
+      os.kill(os.getpid(), signal.SIGTERM)
+    finally:
+      ground_truth._utils.stop_labeling_job.assert_called_once_with(ANY, 'test_job')
+      ground_truth._utils.get_labeling_job_outputs.assert_not_called()
 
   def test_sagemaker_exception_in_ground_truth(self):
     mock_client = MagicMock()

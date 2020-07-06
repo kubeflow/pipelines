@@ -14,8 +14,10 @@ import sys
 import argparse
 import logging
 import json
+import signal
 
 from common import _utils
+
 
 def create_parser():
   parser = argparse.ArgumentParser(description='SageMaker Hyperparameter Tuning Job')
@@ -70,6 +72,12 @@ def main(argv=None):
   client = _utils.get_sagemaker_client(args.region)
   logging.info('Submitting HyperParameter Tuning Job request to SageMaker...')
   hpo_job_name = _utils.create_hyperparameter_tuning_job(client, vars(args))
+
+  def signal_term_handler(signalNumber, frame):
+    logging.info(f"Stopping HyperParameter Tuning Job: {hpo_job_name}")
+    _utils.stop_hyperparameter_tuning_job(client, hpo_job_name)
+  signal.signal(signal.SIGTERM, signal_term_handler)
+
   logging.info('HyperParameter Tuning Job request submitted. Waiting for completion...')
   _utils.wait_for_hyperparameter_training_job(client, hpo_job_name)
   best_job, best_hyperparameters = _utils.get_best_training_job_and_hyperparameters(client, hpo_job_name)

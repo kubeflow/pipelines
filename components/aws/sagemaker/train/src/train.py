@@ -13,6 +13,7 @@
 import sys
 import argparse
 import logging
+import signal
 
 from common import _utils
 
@@ -59,6 +60,12 @@ def main(argv=None):
 
   logging.info('Submitting Training Job to SageMaker...')
   job_name = _utils.create_training_job(client, vars(args))
+
+  def signal_term_handler(signalNumber, frame):
+    logging.info(f"Stopping Training Job: {job_name}")
+    _utils.stop_training_job(client, job_name)
+  signal.signal(signal.SIGTERM, signal_term_handler)
+
   logging.info('Job request submitted. Waiting for completion...')
   try:
     _utils.wait_for_training_job(client, job_name)
