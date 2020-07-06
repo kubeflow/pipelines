@@ -5,14 +5,15 @@ The Kubeflow Pipelines versioning follows the [semantic versioning policy](https
 # Kubeflow Pipelines Feature Status
 
 The features in Kubeflow Pipelines fall into three different phases: general availability,
-alpha and beta. The features in the first phase are stable and have
-active support for bug fixes. The features in the latter two phases are both experimental.
-The features in alpha phase are mostly stable. On a case-by-case basis, they will either
-stay in the maintenance mode or be improved to general availability in the future. The features
-in beta phase are complete but haven't been tested extensively. They are subject to
-future deprecation.
+alpha and beta.
 
-## Core features in general availability
+- The features in the general availability phase are stable and have active support for bug fixes.
+- The features in alpha phase are mostly stable. On a case-by-case basis, they will either
+stay in the maintenance mode or be promoted to general availability in the future.
+- The features in beta phase are complete but haven't been tested extensively. They are subject to
+future deprecation. Moreover, some of the beta features are not turned on by default and in those cases, users need to turn them on explicitly to experiment on them.
+
+## Features in general availability
 
 ### APIs
 
@@ -21,7 +22,6 @@ future deprecation.
 | Pipeline         | - [x]  |  - [x] |- [x]|- [x] | - [x]  | - [x]   | - [x]     |
 | Pipeline Version | - [x]  |  - [x] |- [x]|- [x] | - [x]  | - [x]   | - [x]     |
 | Run              | - [x]  |  - [x] |- [x]|- [x] | - [x]  | - [x]   | - [x]     |        |         | - [x]     | - [x] |
-| Job              | - [x]  |  - [x] |- [x]|- [x] | - [x]  |         |           | - [x]  | - [x]   |
 | Experiment       | - [x]  |  - [x] |- [x]|- [x] | - [x]  | - [x]   | - [x]     |
 
 * Refer to the Kubeflow Pipelines [introduction]((https://www.kubeflow.org/docs/pipelines/overview/)) for
@@ -35,9 +35,7 @@ for how to manage the Kubeflow Pipelines resources via the Kubeflow Pipelines cl
 
 * Only [ComponentSpec](https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/components/structures/components.json_schema.json) in SDK is in general availability phase.
 
-## Experimental features
-
-### Features in Alpha
+## Features in Beta
 
 * Job API
 
@@ -50,17 +48,19 @@ for how to manage the Kubeflow Pipelines resources via the Kubeflow Pipelines cl
 
 * [Upgrade/Reinstall the Kubeflow Pipelines instance](https://www.kubeflow.org/docs/pipelines/upgrade/).
 
+* [Built-in visualization of selected artifact types](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations/).
 
-## Features in Beta
 
-* SDK client (that is, the helper functions). The helper functions are to be
-deprecated. The recommended alternatives are the
-auto-generated client APIs, for example, client.pipelines.list_pipelines(),
+## Features in Alpha
+
+* SDK client (that is, the helper functions). The helper functions mainly rely
+on community maintenance. The recommended alternatives are the auto-generated
+client APIs, for example, client.pipelines.list_pipelines(),
 client.runs.list_runs(), client.pipeline_uploads.upload_pipeline(). Refer to
 [more samples](https://www.kubeflow.org/docs/pipelines/tutorials/sdk-examples/)
 on how to use them.
 
-* Visualization of output artifacts in two ways: [built-in visualization of selected artifact types](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations/) and [python based custom visualization](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations/).
+* [Python based custom visualization](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations/).
 
 * [Step caching](https://www.kubeflow.org/docs/pipelines/caching/).
 
