@@ -34,7 +34,6 @@ from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 
 from kfp._auth import get_auth_token, get_gcp_access_token
-from kfp_server_api import filter_pb2 
 
 # TTL of the access token associated with the client. This is needed because
 # `gcloud auth print-access-token` generates a token with TTL=1 hour, after
@@ -324,13 +323,6 @@ class Client(object):
     Returns:
       A response object including a list of experiments and next page token.
     """
-    #filterName = filter_pb2.Filter()
-    #predicate = filter_pb2.Predicate() 
-    #predicate.key = "name"
-    #predicate.op = _FILTER_OPERATIONS["EQUALS"]
-    #predicate.string_value=name 
-    #filterName.predicates.append(predicate)
-    #old_pipeline_filter = urllib.parse.quote(MessageToJson(filterName))
     pipeline_filter = json.dumps({
       "predicates": [
         {
