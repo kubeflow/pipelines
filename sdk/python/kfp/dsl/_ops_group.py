@@ -33,7 +33,7 @@ class OpsGroup(object):
     Args:
       group_type (str): one of 'pipeline', 'exit_handler', 'condition', 'for_loop', and 'graph'.
       name (str): name of the opsgroup
-      parallelism (int): parallelism for the sub-DAG
+      parallelism (int): parallelism for the sub-DAG:s
     """
     #TODO: declare the group_type to be strongly typed
     self.type = group_type
