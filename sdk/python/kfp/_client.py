@@ -316,8 +316,6 @@ class Client(object):
     """Returns the pipeline id if a pipeline with the name exsists.
     Args:
       name: pipeline name
-      page_token: token for starting of the page.
-      page_size: size of the page.
     Returns:
       A response object including a list of experiments and next page token.
     """
