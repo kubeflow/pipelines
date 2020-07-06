@@ -589,7 +589,6 @@ class Compiler(object):
     #   op_name_to_parent_groups also contains the recursive opsgroups
     #   condition_params from _get_condition_params_for_ops also contains the recursive opsgroups
     #   groups does not include the recursive opsgroups
-    # HERE HERE HERE
     opsgroups = self._get_groups(root_group)
     op_name_to_parent_groups = self._get_groups_for_ops(root_group)
     opgroup_name_to_parent_groups = self._get_groups_for_opsgroups(root_group)
