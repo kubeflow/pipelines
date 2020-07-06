@@ -744,13 +744,13 @@ class Client(object):
   def upload_pipeline_version(
     self,
     pipeline_package_path,
-    pipeline_name: str,
+    pipeline_version_name: str,
     pipeline_id: str,
   ):
     """Uploads a new version of the pipeline to the Kubeflow Pipelines cluster.
     Args:
       pipeline_package_path: Local path to the pipeline package.
-      pipeline_name:  Name of the pipeline to be shown in the UI.
+      pipeline_version_name:  Name of the pipeline version to be shown in the UI.
       pipeline_id: Id of the pipeline.
     Returns:
       Server response object containing pipleine id and other information.
