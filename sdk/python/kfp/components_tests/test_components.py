@@ -22,6 +22,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 
+from .. import components
 from .. import components as comp
 from ..components._components import _resolve_command_line_and_paths
 from ..components._yaml_utils import load_yaml
@@ -53,11 +54,8 @@ class LoadComponentTestCase(unittest.TestCase):
         component_path = Path(__file__).parent / 'test_data' / 'python_add.component.zip'
         self._test_load_component_from_file(str(component_path))
 
-    def test_load_component_from_url(self):
-        component_path = Path(__file__).parent / 'test_data' / 'python_add.component.yaml'
-        component_url = 'https://raw.githubusercontent.com/some/repo/components/component_group/python_add/component.yaml'
-        component_bytes = component_path.read_bytes()
-        component_dict = load_yaml(component_bytes)
+    def _load_component_from_url_using_mock(self, component_url: str, component_path: str):
+        component_bytes = Path(component_path).read_bytes()
 
         def mock_response_factory(url, params=None, **kwargs):
             if url == component_url:
@@ -69,8 +67,16 @@ class LoadComponentTestCase(unittest.TestCase):
             raise RuntimeError('Unexpected URL "{}"'.format(url))
 
         with mock.patch('requests.get', mock_response_factory):
-            task_factory1 = comp.load_component_from_url(component_url)
+            return components.load_component_from_url(component_url)
 
+    def test_load_component_from_url(self):
+        component_path = str(Path(__file__).parent / 'test_data' / 'python_add.component.yaml')
+        component_url = 'https://raw.githubusercontent.com/some/repo/components/component_group/python_add/component.yaml'
+
+        task_factory1 = self._load_component_from_url_using_mock(
+            component_path=component_path, component_url=component_url,
+        )
+        component_dict = load_yaml(Path(component_path).read_bytes())
         self.assertEqual(task_factory1.__doc__, component_dict['name'] + '\n' + component_dict['description'])
 
         arg1 = 3
@@ -692,6 +698,64 @@ implementation:
         task = op()
 
         self.assertFalse(hasattr(task, 'output'))
+
+    def test_edit_component_loaded_from_text(self):
+        component_text = textwrap.dedent('''\
+            implementation:
+              container:
+                image: busybox
+            ''',
+        )
+        op = components.load_component_from_text(component_text)
+        editing_code = op.edit()
+        print(editing_code)
+
+        self.assertIn('component.yaml', editing_code)
+        self.assertIn(component_text, editing_code.replace('\r\n', '\n'))
+
+        # Checking that the editing code is valid
+        compile(
+            source=editing_code,
+            filename='component.yaml',
+            mode='exec',
+        )
+
+    def test_edit_component_loaded_from_local_yaml_file(self):
+        component_path = Path(__file__).parent / 'test_data' / 'python_add.component.yaml'
+        op = components.load_component_from_file(str(component_path))
+        editing_code = op.edit()
+        component_text = component_path.read_text()
+
+        self.assertIn('python_add.component.yaml', editing_code)
+        self.assertIn(component_text, editing_code.replace('\r\n', '\n'))
+
+        # Checking that the editing code is valid
+        compile(
+            source=editing_code,
+            filename=component_path,
+            mode='exec',
+        )
+
+    def test_edit_component_loaded_from_url(self):
+        component_path = Path(__file__).parent / 'test_data' / 'python_add.component.yaml'
+        component_url = 'https://raw.githubusercontent.com/some/repo/components/component_group/python_add/component.yaml'
+        component_text = component_path.read_text()
+
+        op = self._load_component_from_url_using_mock(
+            component_path=str(component_path), component_url=component_url,
+        )
+
+        editing_code = op.edit()
+        self.assertIn('python_add', editing_code)
+        self.assertIn('component_group', editing_code)
+        self.assertIn(component_text, editing_code.replace('\r\n', '\n'))
+
+        # Checking that the editing code is valid
+        compile(
+            source=editing_code,
+            filename=component_path,
+            mode='exec',
+        )
 
     def test_check_type_validation_of_task_spec_outputs(self):
         producer_component_text = '''\

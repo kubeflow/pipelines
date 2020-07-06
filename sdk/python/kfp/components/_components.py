@@ -130,7 +130,9 @@ def _fix_component_uri(uri: str) -> str:
 
 def _load_component_spec_from_file(path) -> ComponentSpec:
     with open(path, 'rb') as component_stream:
-        return _load_component_spec_from_yaml_or_zip_bytes(component_stream.read())
+        spec = _load_component_spec_from_yaml_or_zip_bytes(component_stream.read())
+        spec._local_path = path
+        return spec
 
 
 def _load_component_spec_from_url(url: str, auth=None):
@@ -170,6 +172,7 @@ def _load_component_spec_from_component_text(text) -> ComponentSpec:
     # Calculating hash digest for the component
     import hashlib
     data = text if isinstance(text, bytes) else text.encode('utf-8')
+    component_spec._data = data
     data = data.replace(b'\r\n', b'\n')  # Normalizing line endings
     digest = hashlib.sha256(data).hexdigest()
     component_spec._digest = digest
@@ -355,6 +358,10 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
         func_filename=component_filename if (component_filename and (component_filename.endswith('.yaml') or component_filename.endswith('.yml'))) else None,
     )
     task_factory.component_spec = component_spec
+
+    # Adding editing support
+    from ._editing import edit_component_yaml
+    task_factory.edit = lambda: edit_component_yaml(component_ref=component_ref)
     return task_factory
 
 
