@@ -312,7 +312,7 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return experiment
 
-  def get_pipeline_id(self, name, page_token='', page_size=100):
+  def get_pipeline_id(self, name, page_size=100):
     """Returns the pipeline id if a pipeline with the name exsists.
     Args:
       name: pipeline name
@@ -330,7 +330,7 @@ class Client(object):
         }
       ]
     })
-    result = self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, filter=pipeline_filter)
+    result = self._pipelines_api.list_pipelines(filter=pipeline_filter)
     if len(result.pipelines)==1:
       return result.pipelines[0].id
     elif len(result.pipelines)>1:
