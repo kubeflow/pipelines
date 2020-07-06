@@ -26,7 +26,6 @@
 # brew tap caskroom/cask
 # brew cask install caskroom/versions/java8
 # brew install jq
-# brew install protobuf
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 REPO_ROOT="$DIR/../.."

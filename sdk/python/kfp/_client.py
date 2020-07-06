@@ -23,8 +23,6 @@ import warnings
 import yaml
 import zipfile
 import datetime
-import urllib.parse 
-from google.protobuf.json_format import MessageToJson
 from typing import Mapping, Callable
 
 import kfp
