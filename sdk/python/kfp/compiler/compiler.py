@@ -613,8 +613,6 @@ class Compiler(object):
 
     templates = []
     for opsgroup in opsgroups.keys():
-      # HERE WE SEEM TO MAKE IT TO A GROUP. 
-      # HOW FAR CAN WE GO... 
       template = self._group_to_dag_template(opsgroups[opsgroup], inputs, outputs, dependencies)
       templates.append(template)
 
