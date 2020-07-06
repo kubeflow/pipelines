@@ -23,17 +23,11 @@ spec:
       parameters:
       - name: create-volume-name
     name: cop
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     volumes:
     - name: create-volume
       persistentVolumeClaim:
         claimName: '{{inputs.parameters.create-volume-name}}'
   - name: create-volume
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     outputs:
       parameters:
       - name: create-volume-manifest

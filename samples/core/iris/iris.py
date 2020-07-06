@@ -198,11 +198,11 @@ def _create_pipeline(
 if __name__ == '__main__':
   absl.logging.set_verbosity(absl.logging.INFO)
   # Make sure the version of TFX image used is consistent with the version of
-  # TFX SDK. Here we use tfx:0.21.2 image.
+  # TFX SDK. Here we use tfx:0.22.0 image.
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
-      tfx_image='gcr.io/tfx-oss-public/tfx:0.21.2',
+      tfx_image='gcr.io/tfx-oss-public/tfx:0.22.0',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
       output_filename=__file__ + '.yaml', config=config

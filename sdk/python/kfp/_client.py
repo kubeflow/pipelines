@@ -381,7 +381,7 @@ class Client(object):
       with open(package_file, 'r') as f:
         return yaml.safe_load(f)
     else:
-      raise ValueError('The package_file '+ package_file + ' should ends with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
+      raise ValueError('The package_file '+ package_file + ' should end with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
 
   def list_pipelines(self, page_token='', page_size=10, sort_by=''):
     """List pipelines.

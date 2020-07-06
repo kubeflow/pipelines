@@ -3,11 +3,10 @@ import unittest
 
 from unittest.mock import patch, call, Mock, MagicMock, mock_open
 from botocore.exceptions import ClientError
-from datetime import datetime
 
 from process.src import process
 from common import _utils
-from . import test_utils
+
 
 required_args = [
   '--region', 'us-west-2',
@@ -58,6 +57,7 @@ class ProcessTestCase(unittest.TestCase):
     # Check if correct requests were created and triggered
     process._utils.create_processing_job.assert_called()
     process._utils.wait_for_processing_job.assert_called()
+    process._utils.print_logs_for_job.assert_called()
 
     # Check the file outputs
     file_open.assert_has_calls([

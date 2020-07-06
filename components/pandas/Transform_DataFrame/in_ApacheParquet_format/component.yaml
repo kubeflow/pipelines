@@ -63,11 +63,12 @@ implementation:
               author: Alexey Volkov <alexey.volkov@ark-kun.com>
           '''
           import pandas
-          from pyarrow import parquet
 
           df = pandas.read_parquet(table_path)
-          exec(transform_code)
-          df.to_parquet(transformed_table_path)
+          # The namespace is needed so that the code can replace `df`. For example df = df[['X']]
+          namespace = locals()
+          exec(transform_code, namespace)
+          namespace['df'].to_parquet(transformed_table_path)
 
       import argparse
       _parser = argparse.ArgumentParser(prog='Pandas Transform DataFrame in ApacheParquet format', description='Transform DataFrame loaded from an ApacheParquet file.\n\n    Inputs:\n        table: DataFrame to transform.\n        transform_code: Transformation code. Code is written in Python and can consist of multiple lines.\n            The DataFrame variable is called "df".\n            Examples:\n            - `df[\'prod\'] = df[\'X\'] * df[\'Y\']`\n            - `df = df[[\'X\', \'prod\']]`\n            - `df.insert(0, "is_positive", df["X"] > 0)`\n\n    Outputs:\n        transformed_table: Transformed DataFrame.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')

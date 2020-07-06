@@ -29,14 +29,12 @@ spec:
               _parsed_args = vars(_parser.parse_args())
               
               _outputs = consume(**_parsed_args)
-        image: "tensorflow/tensorflow:1.13.2-py3"
+        image: "python:3.7"
       inputs: 
         parameters: 
           - 
             name: produce-list-of-strings-Output
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume
@@ -59,14 +57,12 @@ spec:
               _parsed_args = vars(_parser.parse_args())
               
               _outputs = consume(**_parsed_args)
-        image: "tensorflow/tensorflow:1.13.2-py3"
+        image: "python:3.7"
       inputs: 
         parameters: 
           - 
             name: produce-list-of-strings-Output-loop-item
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-2
@@ -89,14 +85,12 @@ spec:
               _parsed_args = vars(_parser.parse_args())
               
               _outputs = consume(**_parsed_args)
-        image: "tensorflow/tensorflow:1.13.2-py3"
+        image: "python:3.7"
       inputs: 
         parameters: 
           - 
             name: produce-str-Output
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-3
@@ -119,14 +113,12 @@ spec:
               _parsed_args = vars(_parser.parse_args())
               
               _outputs = consume(**_parsed_args)
-        image: "tensorflow/tensorflow:1.13.2-py3"
+        image: "python:3.7"
       inputs: 
         parameters: 
           - 
             name: produce-list-of-ints-Output
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-4
@@ -149,14 +141,12 @@ spec:
               _parsed_args = vars(_parser.parse_args())
               
               _outputs = consume(**_parsed_args)
-        image: "tensorflow/tensorflow:1.13.2-py3"
+        image: "python:3.7"
       inputs: 
         parameters: 
           - 
             name: produce-list-of-ints-Output-loop-item
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-5
@@ -179,14 +169,12 @@ spec:
               _parsed_args = vars(_parser.parse_args())
               
               _outputs = consume(**_parsed_args)
-        image: "tensorflow/tensorflow:1.13.2-py3"
+        image: "python:3.7"
       inputs: 
         parameters: 
           - 
             name: produce-list-of-dicts-Output
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-6
@@ -209,14 +197,12 @@ spec:
               _parsed_args = vars(_parser.parse_args())
               
               _outputs = consume(**_parsed_args)
-        image: "tensorflow/tensorflow:1.13.2-py3"
+        image: "python:3.7"
       inputs: 
         parameters: 
           - 
             name: produce-list-of-dicts-Output-loop-item-subvar-aaa
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"inputs\": [{\"name\": \"param1\"}], \"name\": \"Consume\"}"
       name: consume-7
@@ -417,10 +403,8 @@ spec:
                       pass
                   with open(output_file, 'w') as f:
                       f.write(_output_serializers[idx](_outputs[idx]))
-        image: "tensorflow/tensorflow:1.13.2-py3"
+        image: "python:3.7"
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce list of dicts\", \"outputs\": [{\"name\": \"Output\", \"type\": \"JsonArray\"}]}"
       name: produce-list-of-dicts
@@ -481,10 +465,8 @@ spec:
                       pass
                   with open(output_file, 'w') as f:
                       f.write(_output_serializers[idx](_outputs[idx]))
-        image: "tensorflow/tensorflow:1.13.2-py3"
+        image: "python:3.7"
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce list of ints\", \"outputs\": [{\"name\": \"Output\", \"type\": \"JsonArray\"}]}"
       name: produce-list-of-ints
@@ -545,10 +527,8 @@ spec:
                       pass
                   with open(output_file, 'w') as f:
                       f.write(_output_serializers[idx](_outputs[idx]))
-        image: "tensorflow/tensorflow:1.13.2-py3"
+        image: "python:3.7"
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce list of strings\", \"outputs\": [{\"name\": \"Output\", \"type\": \"JsonArray\"}]}"
       name: produce-list-of-strings
@@ -603,10 +583,8 @@ spec:
                       pass
                   with open(output_file, 'w') as f:
                       f.write(_output_serializers[idx](_outputs[idx]))
-        image: "tensorflow/tensorflow:1.13.2-py3"
+        image: "python:3.7"
       metadata:
-        labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
         annotations: 
           pipelines.kubeflow.org/component_spec: "{\"name\": \"Produce str\", \"outputs\": [{\"name\": \"Output\", \"type\": \"String\"}]}"
       name: produce-str

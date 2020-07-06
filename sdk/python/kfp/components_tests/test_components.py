@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import mock
 import os
+import requests
 import sys
 import textwrap
 import unittest
@@ -44,27 +46,31 @@ class LoadComponentTestCase(unittest.TestCase):
         self.assertEqual(resolved_cmd.args[1], str(arg2))
 
     def test_load_component_from_yaml_file(self):
-        _this_file = Path(__file__).resolve()
-        _this_dir = _this_file.parent
-        _test_data_dir = _this_dir.joinpath('test_data')
-        component_path = _test_data_dir.joinpath('python_add.component.yaml')
+        component_path = Path(__file__).parent / 'test_data' / 'python_add.component.yaml'
         self._test_load_component_from_file(str(component_path))
 
     def test_load_component_from_zipped_yaml_file(self):
-        _this_file = Path(__file__).resolve()
-        _this_dir = _this_file.parent
-        _test_data_dir = _this_dir.joinpath('test_data')
-        component_path = _test_data_dir.joinpath('python_add.component.zip')
+        component_path = Path(__file__).parent / 'test_data' / 'python_add.component.zip'
         self._test_load_component_from_file(str(component_path))
 
     def test_load_component_from_url(self):
-        url = 'https://raw.githubusercontent.com/kubeflow/pipelines/e54fe675432cfef1d115a7a2909f08ed95ea8933/sdk/python/tests/components/test_data/python_add.component.yaml'
+        component_path = Path(__file__).parent / 'test_data' / 'python_add.component.yaml'
+        component_url = 'https://raw.githubusercontent.com/some/repo/components/component_group/python_add/component.yaml'
+        component_bytes = component_path.read_bytes()
+        component_dict = load_yaml(component_bytes)
 
-        import requests
-        resp = requests.get(url)
-        component_text = resp.content
-        component_dict = load_yaml(component_text)
-        task_factory1 = comp.load_component_from_url(url)
+        def mock_response_factory(url, params=None, **kwargs):
+            if url == component_url:
+                response = requests.Response()
+                response.url = component_url
+                response.status_code = 200
+                response._content = component_bytes
+                return response
+            raise RuntimeError('Unexpected URL "{}"'.format(url))
+
+        with mock.patch('requests.get', mock_response_factory):
+            task_factory1 = comp.load_component_from_url(component_url)
+
         self.assertEqual(task_factory1.__doc__, component_dict['name'] + '\n' + component_dict['description'])
 
         arg1 = 3
