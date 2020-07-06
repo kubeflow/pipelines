@@ -324,13 +324,23 @@ class Client(object):
     Returns:
       A response object including a list of experiments and next page token.
     """
-    filterName = filter_pb2.Filter()
-    predicate = filter_pb2.Predicate() 
-    predicate.key = "name"
-    predicate.op = _FILTER_OPERATIONS["EQUALS"]
-    predicate.string_value=name 
-    filterName.predicates.append(predicate)
-    result = self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, filter=urllib.parse.quote(MessageToJson(filterName)))
+    #filterName = filter_pb2.Filter()
+    #predicate = filter_pb2.Predicate() 
+    #predicate.key = "name"
+    #predicate.op = _FILTER_OPERATIONS["EQUALS"]
+    #predicate.string_value=name 
+    #filterName.predicates.append(predicate)
+    #old_pipeline_filter = urllib.parse.quote(MessageToJson(filterName))
+    pipeline_filter = json.dumps({
+      "predicates": [
+        {
+          "op":  _FILTER_OPERATIONS["EQUALS"],
+          "key": "name",
+          "stringValue": name,
+        }
+      ]
+    })
+    result = self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, filter=pipeline_filter)
     if len(result.pipelines)==1:
       return result.pipelines[0].id
     elif len(result.pipelines)>1:
