@@ -1,4 +1,4 @@
-name: 'Sagemaker - Deploy Model'
+name: 'SageMaker - Deploy Model'
 description: |
   Deploy Machine Learning Model Endpoint in SageMaker
 inputs:
@@ -104,7 +104,7 @@ outputs:
   - {name: endpoint_name,          description: 'Endpoint name'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.5.1
+    image: amazon/aws-sagemaker-kfp-components:0.5.2
     command: ['python3']
     args: [
       deploy.py,
@@ -132,7 +132,6 @@ implementation:
       --resource_encryption_key, {inputValue: resource_encryption_key},
       --endpoint_config_tags, {inputValue: endpoint_config_tags},
       --endpoint_name, {inputValue: endpoint_name},
-      --endpoint_tags, {inputValue: endpoint_tags}
+      --endpoint_tags, {inputValue: endpoint_tags},
+      --endpoint_name_output_path, {outputPath: endpoint_name}
     ]
-    fileOutputs:
-      endpoint_name: /tmp/endpoint_name.txt

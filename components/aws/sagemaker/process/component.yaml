@@ -89,7 +89,7 @@ outputs:
   - {name: output_artifacts,      description: 'A dictionary containing the output S3 artifacts'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.5.1
+    image: amazon/aws-sagemaker-kfp-components:0.5.2
     command: ['python3']
     args: [
       process.py,
@@ -113,8 +113,7 @@ implementation:
       --vpc_subnets, {inputValue: vpc_subnets},
       --network_isolation, {inputValue: network_isolation},
       --traffic_encryption, {inputValue: traffic_encryption},
-      --tags, {inputValue: tags}
+      --tags, {inputValue: tags},
+      --job_name_output_path, {outputPath: job_name},
+      --output_artifacts_output_path, {outputPath: output_artifacts}
     ]
-    fileOutputs:
-      job_name: /tmp/job_name.txt
-      output_artifacts: /tmp/output_artifacts.txt
