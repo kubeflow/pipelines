@@ -48,7 +48,7 @@ for how to manage the Kubeflow Pipelines resources via the Kubeflow Pipelines cl
 
 * [Upgrade/Reinstall the Kubeflow Pipelines instance](https://www.kubeflow.org/docs/pipelines/upgrade/).
 
-* [Built-in visualization of selected artifact types](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations/).
+* [Built-in visualization of selected artifact types](https://www.kubeflow.org/docs/pipelines/sdk/output-viewer/).
 
 
 ## Features in Alpha
