@@ -150,7 +150,7 @@ outputs:
     description: 'The registry path of the Docker image that contains the training algorithm'
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.5.1
+    image: amazon/aws-sagemaker-kfp-components:0.5.2
     command: ['python3']
     args: [
       hyperparameter_tuning.py,
@@ -189,11 +189,10 @@ implementation:
       --checkpoint_config, {inputValue: checkpoint_config},
       --warm_start_type, {inputValue: warm_start_type},
       --parent_hpo_jobs, {inputValue: parent_hpo_jobs},
-      --tags, {inputValue: tags}
+      --tags, {inputValue: tags},
+      --hpo_job_name_output_path, {outputPath: hpo_job_name},
+      --model_artifact_url_output_path, {outputPath: model_artifact_url},
+      --best_job_name_output_path, {outputPath: best_job_name},
+      --best_hyperparameters_output_path, {outputPath: best_hyperparameters},
+      --training_image_output_path, {outputPath: training_image}
     ]
-    fileOutputs:
-      hpo_job_name: /tmp/hpo_job_name.txt
-      model_artifact_url: /tmp/model_artifact_url.txt
-      best_job_name: /tmp/best_job_name.txt
-      best_hyperparameters: /tmp/best_hyperparameters.txt
-      training_image: /tmp/training_image.txt

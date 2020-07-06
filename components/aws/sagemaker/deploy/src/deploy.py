@@ -43,6 +43,7 @@ def create_parser():
   parser.add_argument('--endpoint_config_tags', type=_utils.yaml_or_json_str, required=False, help='An array of key-value pairs, to categorize AWS resources.', default={})
   parser.add_argument('--endpoint_name', type=str, required=False, help='The name of the endpoint.', default='')
   parser.add_argument('--endpoint_tags', type=_utils.yaml_or_json_str, required=False, help='An array of key-value pairs, to categorize AWS resources.', default={})
+  parser.add_argument('--endpoint_name_output_path', type=str, default='/tmp/endpoint-name', help='Local output path for the file containing the name of the created endpoint.')
 
   return parser
 
@@ -57,8 +58,7 @@ def main(argv=None):
   logging.info('Endpoint creation request submitted. Waiting for completion...')
   _utils.wait_for_endpoint_creation(client, endpoint_name)
 
-  with open('/tmp/endpoint_name.txt', 'w') as f:
-    f.write(endpoint_name)
+  _utils.write_output(args.endpoint_name_output_path, endpoint_name)
 
   logging.info('Endpoint creation completed.')
 

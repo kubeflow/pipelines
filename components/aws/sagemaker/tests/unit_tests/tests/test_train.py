@@ -16,7 +16,10 @@ required_args = [
   '--instance_count', '1',
   '--volume_size', '50',
   '--max_run_time', '3600',
-  '--model_artifact_path', 'test-path'
+  '--model_artifact_path', 'test-path',
+  '--model_artifact_url_output_path', '/tmp/model_artifact_url_output_path',
+  '--job_name_output_path', '/tmp/job_name_output_path',
+  '--training_image_output_path', '/tmp/training_image_output_path',
 ]
 
 class TrainTestCase(unittest.TestCase):
@@ -38,8 +41,7 @@ class TrainTestCase(unittest.TestCase):
     train._utils.get_image_from_job.return_value = 'training-image'
     train._utils.get_model_artifacts_from_job.return_value = 'model-artifacts'
 
-    with patch('builtins.open', mock_open()) as file_open:
-      train.main(required_args)
+    train.main(required_args)
 
     # Check if correct requests were created and triggered
     train._utils.create_training_job.assert_called()
@@ -47,17 +49,11 @@ class TrainTestCase(unittest.TestCase):
     train._utils.print_logs_for_job.assert_called()
 
     # Check the file outputs
-    file_open.assert_has_calls([
-      call('/tmp/model_artifact_url.txt', 'w'),
-      call('/tmp/job_name.txt', 'w'),
-      call('/tmp/training_image.txt', 'w')
-    ], any_order=True)
-
-    file_open().write.assert_has_calls([
-      call('model-artifacts'),
-      call('job-name'),
-      call('training-image'),
-    ], any_order=False) # Must be in the same order as called
+    train._utils.write_output.assert_has_calls([
+      call('/tmp/model_artifact_url_output_path', 'model-artifacts'),
+      call('/tmp/job_name_output_path', 'job-name'),
+      call('/tmp/training_image_output_path', 'training-image')
+    ])
 
   def test_create_training_job(self):
     mock_client = MagicMock()
