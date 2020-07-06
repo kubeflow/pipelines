@@ -1,6 +1,8 @@
 import unittest
+import os
+import signal
 
-from unittest.mock import patch, call, Mock, MagicMock, mock_open
+from unittest.mock import patch, call, Mock, MagicMock, mock_open, ANY
 from botocore.exceptions import ClientError
 
 from hyperparameter_tuning.src import hyperparameter_tuning as hpo
@@ -120,7 +122,16 @@ class HyperparameterTestCase(unittest.TestCase):
     )
 
     self.assertEqual(response, 'test-job')
-  
+
+  def test_stop_hyperparameter_tuning_job(self):
+    hpo._utils = MagicMock()
+    hpo._utils.create_processing_job.return_value = 'job-name'
+
+    try:
+      os.kill(os.getpid(), signal.SIGTERM)
+    finally:
+      hpo._utils.stop_hyperparameter_tuning_job.assert_called_once_with(ANY, 'job-name')
+      hpo._utils.get_best_training_job_and_hyperparameters.assert_not_called()
 
   def test_sagemaker_exception_in_create_hyperparameter_tuning_job(self):
     mock_client = MagicMock()

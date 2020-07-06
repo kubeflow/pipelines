@@ -66,3 +66,58 @@ class UtilsTestCase(unittest.TestCase):
                 mock_path("/tmp/test-output").write_text.assert_called_with(
                     json.dumps(case)
                 )
+
+    def test_stop_training_job(self):
+        mock_sm_client = MagicMock()
+        mock_sm_client.stop_training_job.return_value = None
+
+        response = _utils.stop_training_job(mock_sm_client, 'FakeJobName')
+
+        mock_sm_client.stop_training_job.assert_called_once_with(
+            TrainingJobName='FakeJobName'
+        )
+        self.assertEqual(response, None)
+
+    def test_stop_transform_job(self):
+        mock_sm_client = MagicMock()
+        mock_sm_client.stop_transform_job.return_value = None
+
+        response = _utils.stop_transform_job(mock_sm_client, 'FakeJobName')
+
+        mock_sm_client.stop_transform_job.assert_called_once_with(
+            TransformJobName='FakeJobName'
+        )
+        self.assertEqual(response, None)
+
+    def test_stop_hyper_parameter_tuning_job(self):
+        mock_sm_client = MagicMock()
+        mock_sm_client.stop_hyper_parameter_tuning_job.return_value = None
+
+        response = _utils.stop_hyperparameter_tuning_job(mock_sm_client, 'FakeJobName')
+
+        mock_sm_client.stop_hyper_parameter_tuning_job.assert_called_once_with(
+            HyperParameterTuningJobName='FakeJobName'
+        )
+        self.assertEqual(response, None)
+
+    def test_stop_labeling_job(self):
+        mock_sm_client = MagicMock()
+        mock_sm_client.stop_labeling_job.return_value = None
+
+        response = _utils.stop_labeling_job(mock_sm_client, 'FakeJobName')
+
+        mock_sm_client.stop_labeling_job.assert_called_once_with(
+            LabelingJobName='FakeJobName'
+        )
+        self.assertEqual(response, None)
+
+    def test_stop_processing_job(self):
+        mock_sm_client = MagicMock()
+        mock_sm_client.stop_processing_job.return_value = None
+
+        response = _utils.stop_processing_job(mock_sm_client, 'FakeJobName')
+
+        mock_sm_client.stop_processing_job.assert_called_once_with(
+            ProcessingJobName='FakeJobName'
+        )
+        self.assertEqual(response, None)

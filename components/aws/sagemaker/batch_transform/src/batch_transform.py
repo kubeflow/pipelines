@@ -13,7 +13,9 @@
 import sys
 import argparse
 import logging
+import signal
 
+from pathlib2 import Path
 from common import _utils
 
 def create_parser():
@@ -54,6 +56,12 @@ def main(argv=None):
   client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
   logging.info('Submitting Batch Transformation request to SageMaker...')
   batch_job_name = _utils.create_transform_job(client, vars(args))
+
+  def signal_term_handler(signalNumber, frame):
+    logging.info(f"Stopping Transform Job: {batch_job_name}")
+    _utils.stop_transform_job(client, batch_job_name)
+  signal.signal(signal.SIGTERM, signal_term_handler)
+
   logging.info('Batch Job request submitted. Waiting for completion...')
 
   try:
