@@ -78,7 +78,6 @@ function cleanup() {
   set +e
 
   cleanup_kfp
-  delete_generated_role
 
   if [[ "${SKIP_FSX_TESTS}" == "false" ]]; then
     delete_fsx_instance
@@ -88,6 +87,7 @@ function cleanup() {
   fi
 
   if [[ -z "${EKS_EXISTING_CLUSTER}" ]]; then
+    delete_generated_role
     delete_eks
   fi
 }
