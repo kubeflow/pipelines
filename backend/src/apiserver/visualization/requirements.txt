@@ -14,3 +14,5 @@ tensorflow-metadata==0.21.1
 tensorflow-model-analysis==0.21.5
 tensorflow-data-validation==0.21.1
 tornado==6.0.2
+# Increase google-api-core to some release AFTER 1.21.0 when it becomes available
+google-api-core==1.16.0
