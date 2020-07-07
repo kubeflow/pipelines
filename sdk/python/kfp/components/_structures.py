@@ -80,6 +80,7 @@ class InputSpec(ModelBase):
         description: Optional[str] = None,
         default: Optional[PrimitiveTypes] = None,
         optional: Optional[bool] = False,
+        annotations: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(locals())
 
@@ -90,6 +91,7 @@ class OutputSpec(ModelBase):
         name: str,
         type: Optional[TypeSpecType] = None,
         description: Optional[str] = None,
+        annotations: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(locals())
 
