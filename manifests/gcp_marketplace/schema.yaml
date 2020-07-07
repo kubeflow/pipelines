@@ -156,7 +156,7 @@ properties:
       instance connection name for your MySQL instance on Cloud SQL.
       The instance connection name can be found on the instance detail page in
       the Cloud SQL console. The instance connection name uses the format
-      "<project>:<zone>:<instance-name>", for example: myproject:us-central1:myinstance.
+      "<project>:<region>:<instance-name>", for example: myproject:us-central1:myinstance.
       Learn more about setting up your Cloud SQL instance, see https://cloud.google.com/sql/docs/mysql/quickstart.
   managedstorage.dbUsername:
     type: string
