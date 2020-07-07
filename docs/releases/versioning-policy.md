@@ -11,7 +11,7 @@ alpha and beta.
 - The features in beta phase are mostly stable. On a case-by-case basis, they will either
 stay in the maintenance mode or be promoted to general availability in the future.
 - The features in alpha phase are complete but haven't been tested extensively. They are subject to
-future deprecation. Moreover, some of the beta features are not turned on by default and in those cases, users need to turn them on explicitly to experiment on them.
+future deprecation.
 
 ## Features in general availability
 
@@ -19,10 +19,10 @@ future deprecation. Moreover, some of the beta features are not turned on by def
 
 |                  | Upload | Create | Get | List | Delete | Archive | Unarchive | Enable | Disable | Terminate | Retry |
 |:----------------:|:------:|:------:|:---:|:----:|:------:|:-------:|:---------:|:------:|:-------:|:---------:|:-----:|
-| Pipeline         | - [x]  |  - [x] |- [x]|- [x] | - [x]  | - [x]   | - [x]     |
-| Pipeline Version | - [x]  |  - [x] |- [x]|- [x] | - [x]  | - [x]   | - [x]     |
-| Run              | - [x]  |  - [x] |- [x]|- [x] | - [x]  | - [x]   | - [x]     |        |         | - [x]     | - [x] |
-| Experiment       | - [x]  |  - [x] |- [x]|- [x] | - [x]  | - [x]   | - [x]     |
+| Pipeline         | - [x]  |  - [x] |- [x]|- [x] | - [x]  |         |           |
+| Pipeline Version | - [x]  |  - [x] |- [x]|- [x] | - [x]  |         |           |
+| Run              |        |  - [x] |- [x]|- [x] | - [x]  | - [x]   | - [x]     |        |         | - [x]     | - [x] |
+| Experiment       |        |  - [x] |- [x]|- [x] | - [x]  | - [x]   | - [x]     |
 
 * Refer to the Kubeflow Pipelines [introduction]((https://www.kubeflow.org/docs/pipelines/overview/)) for
   - An [overview](https://www.kubeflow.org/docs/pipelines/overview/pipelines-overview/) and [main concepts](https://www.kubeflow.org/docs/pipelines/overview/concepts/), for example, what is a pipeline or run in Kubeflow Pipelines.
@@ -41,7 +41,7 @@ for how to manage the Kubeflow Pipelines resources via the Kubeflow Pipelines cl
 
 |                  | Upload | Create | Get | List | Delete | Archive | Unarchive | Enable | Disable | Terminate | Retry |
 |:----------------:|:------:|:------:|:---:|:----:|:------:|:-------:|:---------:|:------:|:-------:|:---------:|:-----:|
-| Job              | - [x]  |  - [x] |- [x]|- [x] | - [x]  |         |           | - [x]  | - [x]   |
+| Job              |        |  - [x] |- [x]|- [x] | - [x]  |         |           | - [x]  | - [x]   |
 
 
 * SDK DSL
