@@ -96,6 +96,21 @@ class TestComponentBridge(unittest.TestCase):
         self.assertEqual(task1.pod_annotations['key1'], 'value1')
         self.assertEqual(task1.pod_labels['key1'], 'value1')
 
+    def test_volatile_components(self):
+        component_text = textwrap.dedent('''\
+            metadata:
+                annotations:
+                    volatile_component: "true"
+            implementation:
+                container:
+                    image: busybox
+            '''
+        )
+        task_factory1 = load_component_from_text(text=component_text)
+
+        task1 = task_factory1()
+        self.assertEqual(task1.execution_options.caching_strategy.max_cache_staleness, 'P0D')
+
     def test_type_compatibility_check_not_failing_when_disabled(self):
         component_a = textwrap.dedent('''\
             outputs:
