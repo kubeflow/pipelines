@@ -8,9 +8,9 @@ The features in Kubeflow Pipelines fall into three different phases: general ava
 alpha and beta.
 
 - The features in the general availability phase are stable and have active support for bug fixes.
-- The features in alpha phase are mostly stable. On a case-by-case basis, they will either
+- The features in beta phase are mostly stable. On a case-by-case basis, they will either
 stay in the maintenance mode or be promoted to general availability in the future.
-- The features in beta phase are complete but haven't been tested extensively. They are subject to
+- The features in alpha phase are complete but haven't been tested extensively. They are subject to
 future deprecation. Moreover, some of the beta features are not turned on by default and in those cases, users need to turn them on explicitly to experiment on them.
 
 ## Features in general availability
