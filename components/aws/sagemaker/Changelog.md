@@ -4,6 +4,12 @@ The version of the AWS SageMaker Components is determined by the docker image ta
 Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components
 
 ---------------------------------------------
+**Change log for version 0.5.2**
+- Modified outputs to use newer `outputPath` syntax
+
+> Pull requests : [#4119](https://github.com/kubeflow/pipelines/pull/4119)
+
+
 **Change log for version 0.5.1**
 - Update region support for GroudTruth component
 - Make `label_category_config` an optional parameter in Ground Truth component

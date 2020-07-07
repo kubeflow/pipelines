@@ -1,4 +1,4 @@
-name: 'Sagemaker - Training Job'
+name: 'SageMaker - Training Job'
 description: |
   Train Machine Learning and Deep Learning Models using SageMaker
 inputs:
@@ -99,12 +99,12 @@ inputs:
     default: '{}'
     type: JsonObject
 outputs:
-  - {name: model_artifact_url,    description: 'Model artifacts url'}
+  - {name: model_artifact_url,    description: 'Model artifacts URL'}
   - {name: job_name,              description: 'Training job name'}
   - {name: training_image,        description: 'The registry path of the Docker image that contains the training algorithm'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.5.1
+    image: amazon/aws-sagemaker-kfp-components:0.5.2
     command: ['python3']
     args: [
       train.py,
@@ -132,9 +132,8 @@ implementation:
       --spot_instance, {inputValue: spot_instance},
       --max_wait_time, {inputValue: max_wait_time},
       --checkpoint_config, {inputValue: checkpoint_config},
-      --tags, {inputValue: tags}
+      --tags, {inputValue: tags},
+      --model_artifact_url_output_path, {outputPath: model_artifact_url},
+      --job_name_output_path, {outputPath: job_name},
+      --training_image_output_path, {outputPath: training_image}
     ]
-    fileOutputs:
-      model_artifact_url: /tmp/model_artifact_url.txt
-      job_name: /tmp/job_name.txt
-      training_image: /tmp/training_image.txt
