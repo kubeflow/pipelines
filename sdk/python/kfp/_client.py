@@ -332,7 +332,7 @@ class Client(object):
     if len(result.pipelines)==1:
       return result.pipelines[0].id
     elif len(result.pipelines)>1:
-      raise ValueError("Multiple pipelines with the name: {}, the name needs to  be unique".format(name))
+      raise ValueError("Multiple pipelines with the name: {} found, the name needs to be unique".format(name))
     return None
 
   def list_experiments(self, page_token='', page_size=10, sort_by='', namespace=None):
