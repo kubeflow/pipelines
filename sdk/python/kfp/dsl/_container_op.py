@@ -1014,7 +1014,8 @@ class ContainerOp(BaseOp):
 
         super().__init__(name=name, init_containers=init_containers, sidecars=sidecars, is_exit_handler=is_exit_handler)
 
-        if not DISABLE_REUSABLE_COMPONENT_WARNING:
+        if not DISABLE_REUSABLE_COMPONENT_WARNING and '--component_launcher_class_path' not in (arguments or []):
+            # The warning is suppressed for pipelines created using the TFX SDK.
             warnings.warn(
                 "Please create reusable components instead of constructing ContainerOp instances directly."
                 " Reusable components are shareable, portable and have compatibility and support guarantees."
