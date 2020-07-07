@@ -91,6 +91,7 @@ function cleanup() {
   fi
 
   if [[ -z "${EKS_EXISTING_CLUSTER}" ]]; then
+    delete_generated_role
     delete_eks
   fi
 }
