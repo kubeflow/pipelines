@@ -71,7 +71,7 @@ def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeli
     if pipeline_name!=None: 
         pipeline_id = client.get_pipeline_id(name=pipeline_name)
         if pipeline_id==None: 
-            raise ValueError("Cant find a pipeline with name: {}".format(pipeline_name))
+            raise ValueError("Can't find a pipeline with name: {}".format(pipeline_name))
     logging.info("The pipeline id is: {}".format(pipeline_id))
     version = client.pipeline_uploads.upload_pipeline_version(
         package_file, name=pipeline_version, pipelineid=pipeline_id)
