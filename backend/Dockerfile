@@ -47,7 +47,7 @@ COPY backend/src/apiserver/config/sample_config.json /samples/
 
 # Compiling the preloaded samples.
 # The default image is replaced with the GCR-hosted python image.
-RUN set -e -o pipefail; \
+RUN set -e; \
     < /samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
         pipeline_py="${pipeline_yaml%.yaml}"; \
         mv "$pipeline_py" "${pipeline_py}.tmp"; \
