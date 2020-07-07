@@ -29,7 +29,6 @@ RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
-COPY backend/src/apiserver/config/sample_config.json .
 RUN python3 -m pip install -r requirements.txt
 
 # Downloading Argo CLI so that the samples are validated
@@ -42,13 +41,14 @@ COPY sdk sdk
 WORKDIR /go/src/github.com/kubeflow/pipelines/sdk/python
 RUN python3 setup.py install
 
-WORKDIR /samples
-COPY ./samples .
+WORKDIR /
+COPY ./samples /samples
+COPY backend/src/apiserver/config/sample_config.json /samples/
 
 # Compiling the preloaded samples.
 # The default image is replaced with the GCR-hosted python image.
-RUN set -e; \
-    < sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
+RUN set -e -o pipefail; \
+    < /samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
         pipeline_py="${pipeline_yaml%.yaml}"; \
         mv "$pipeline_py" "${pipeline_py}.tmp"; \
         echo "import kfp; kfp.components.default_base_image_or_builder='gcr.io/google-appengine/python:2020-03-31-141326" | cat - "${pipeline_py}.tmp" > "$pipeline_py"; \
