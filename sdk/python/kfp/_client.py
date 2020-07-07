@@ -39,9 +39,9 @@ from kfp._auth import get_auth_token, get_gcp_access_token
 # initialized with host=<inverse proxy endpoint>.
 # Set to 55 mins to provide some safe margin.
 _GCP_ACCESS_TOKEN_TIMEOUT = datetime.timedelta(minutes=55)
+# Operators on scalar values. Only applies to one of |int_value|,
+# |long_value|, |string_value| or |timestamp_value|.
 _FILTER_OPERATIONS = {"UNKNOWN": 0,
-    # Operators on scalar values. Only applies to one of |int_value|,
-    # |long_value|, |string_value| or |timestamp_value|.
     "EQUALS" : 1,
     "NOT_EQUALS" : 2,
     "GREATER_THAN": 3,

@@ -66,18 +66,18 @@ def upload(ctx, pipeline_name, package_file):
 def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeline_name=None):
     """Upload a version of the KFP pipeline"""
     client = ctx.obj["client"]
-    if (pipeline_id == None and pipeline_name == None)  or (pipeline_id and pipeline_name): #[TODO] do this using click instead... 
+    if bool(pipeline_id) == bool(pipeline_name):
         raise ValueError("Need to suppy 'pipeline-name' or 'pipeline-id'")
     if pipeline_name!=None: 
         pipeline_id = client.get_pipeline_id(name=pipeline_name)
         if pipeline_id==None: 
-            raise ValueError("Can't find a pipeline with name: {}".format(pipeline_name))
-    logging.info("The pipeline id is: {}".format(pipeline_id))
+            raise ValueError("Can't find a pipeline with name: %s" % pipeline_name)
+    logging.info("The pipeline id is: %s" % pipeline_id)
     version = client.pipeline_uploads.upload_pipeline_version(
         package_file, name=pipeline_version, pipelineid=pipeline_id)
     logging.info(
-        "The {} version of the pipeline {} has been submitted\n".format(
-            pipeline_version, pipeline_id))
+        "The %s version of the pipeline %s has been submitted\n" %
+            (pipeline_version, pipeline_id))
     _display_pipeline_version(version)
 
 
