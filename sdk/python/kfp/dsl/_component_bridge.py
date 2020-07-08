@@ -42,8 +42,8 @@ def _create_container_op_from_component_and_arguments(
 
     container_spec = component_spec.implementation.container
 
-    old_warn_value = dsl.DISABLE_REUSABLE_COMPONENT_WARNING
-    DISABLE_REUSABLE_COMPONENT_WARNING = True
+    old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
+    dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
     task = dsl.ContainerOp(
         name=component_spec.name or _default_component_name,
         image=container_spec.image,
@@ -59,7 +59,7 @@ def _create_container_op_from_component_and_arguments(
             for input_name, path in resolved_cmd.input_paths.items()
         ],
     )
-    dsl.DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
+    dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
 
     component_meta = copy.copy(component_spec)
     task._set_metadata(component_meta)

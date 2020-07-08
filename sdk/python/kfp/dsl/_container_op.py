@@ -920,9 +920,6 @@ class InputArgumentPath:
         self.path = path
 
 
-DISABLE_REUSABLE_COMPONENT_WARNING = False
-
-
 class ContainerOp(BaseOp):
     """
     Represents an op implemented by a container image.
@@ -962,6 +959,8 @@ class ContainerOp(BaseOp):
     # the input parameters during compilation.
     # Excludes `file_outputs` and `outputs` as they are handled separately
     # in the compilation process to generate the DAGs and task io parameters.
+
+    _DISABLE_REUSABLE_COMPONENT_WARNING = False
 
     def __init__(
       self,
@@ -1014,7 +1013,7 @@ class ContainerOp(BaseOp):
 
         super().__init__(name=name, init_containers=init_containers, sidecars=sidecars, is_exit_handler=is_exit_handler)
 
-        if not DISABLE_REUSABLE_COMPONENT_WARNING and '--component_launcher_class_path' not in (arguments or []):
+        if not ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING and '--component_launcher_class_path' not in (arguments or []):
             # The warning is suppressed for pipelines created using the TFX SDK.
             warnings.warn(
                 "Please create reusable components instead of constructing ContainerOp instances directly."
