@@ -35,20 +35,12 @@ import zipfile
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import SessionNotCreatedException
+from webdriver_manager.chrome import ChromeDriverManager
 
 IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
 LOCAL_KFP_CREDENTIAL = os.path.expanduser('~/.config/kfp/credentials.json')
 DEFAULT_CHROME_DRIVER_PATH = os.path.join(os.path.expanduser('~'), '.kfp', 'chromedriver')
-CHROME_DRIVER_VERSIONS = [
-    '78.0.3904.105', '79.0.3945.36', '80.0.3987.16', '83.0.4103.116', 'LATEST_RELEASE'
-]
-CHROME_DRIVER_ROOT_URL = 'https://chromedriver.storage.googleapis.com'
-CHROME_DRIVER_SUPPORTED_PLATFORMS = {
-    'Windows': 'win32',
-    'Darwin': 'mac64',
-    'Linux': 'linux64'
-}
 
 def get_gcp_access_token():
     """Get and return GCP access token for the current Application Default
@@ -233,7 +225,7 @@ def get_auth_cookie(host, username=None, password=None, from_cache=True):
             ::
                 'AWSELBAuthSessionCookie-0=0YVVtNnipQ...cjmqrMOuYmpTxvo'
     """
-    cache = DiskCache('kfp')
+    cache = DiskCache('elb_session_cookie')
 
     if from_cache:
         cached_creds = cache.get(expires_in=86400)
@@ -269,7 +261,7 @@ def get_auth_cookie(host, username=None, password=None, from_cache=True):
 
     return auth_cookie
 
-def get_chrome_driver(driver_index=-1):
+def get_chrome_driver():
     """ Download Chrome driver if it doesn't already exists
     """
 
@@ -277,54 +269,23 @@ def get_chrome_driver(driver_index=-1):
     options.add_argument('--headless')
     options.add_argument('--disable-gpu')
 
+    cache = DiskCache('chrome_driver_executable_path')
+
     if not os.path.exists(DEFAULT_CHROME_DRIVER_PATH):
         logging.info('Selenium driver not found, trying to download one')
-        download_driver()
-        driver_index = 0
+        executable_path = download_driver()
+        cache.save(executable_path)
+    else:
+        executable_path = cache.get()
 
-    try:
-        return Chrome(executable_path=DEFAULT_CHROME_DRIVER_PATH,
-                      chrome_options=options)
-    except SessionNotCreatedException as e:
-        if "This version of ChromeDriver only supports Chrome version" in e.msg:
-            logging.info('Chrome driver mismatch, downloading newer version')
-            os.remove(DEFAULT_CHROME_DRIVER_PATH)
-            download_driver(driver_index=driver_index + 1)
-            return get_chrome_driver(driver_index=driver_index + 1)
-        else:
-            raise
+    return Chrome(executable_path=executable_path, options=options)
 
-def download_driver(driver_index=0):
+def download_driver():
     """ Helper function for downloading the driver
     """
 
-    osy = CHROME_DRIVER_SUPPORTED_PLATFORMS[platform.system()]
-
-    try:
-        driver_url = (f'{CHROME_DRIVER_ROOT_URL}/{CHROME_DRIVER_VERSIONS[driver_index]}'
-                      f'/chromedriver_{osy}.zip')
-    except IndexError:
-        raise Exception(
-            ('Suitable chrome driver not found, please check your chrome '
-             f'version and download appropriate driver to {DEFAULT_CHROME_DRIVER_PATH}'
-            ))
-
-    logging.info('Downloading driver from %s', driver_url)
-
-    r = requests.get(driver_url)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
-    path = os.path.dirname(DEFAULT_CHROME_DRIVER_PATH)
-
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-    z.extractall(path)
-    os.chmod(DEFAULT_CHROME_DRIVER_PATH, stat.S_IEXEC)
-
-
-def mkdir(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
+    logging.info('Downloading driver..')
+    return ChromeDriverManager(path=DEFAULT_CHROME_DRIVER_PATH).install()
 
 class DiskCache:
     """ Helper class for caching data on disk.
@@ -335,7 +296,8 @@ class DiskCache:
     def __init__(self, name):
         self.name = name
         self.cache_path = os.path.join(self._DEFAULT_CACHE_ROOT, self.name)
-        mkdir(self._DEFAULT_CACHE_ROOT)
+        if not os.path.exists(self._DEFAULT_CACHE_ROOT):
+            os.makedirs(self._DEFAULT_CACHE_ROOT)
 
     def save(self, content):
         """ cache content in a known location
