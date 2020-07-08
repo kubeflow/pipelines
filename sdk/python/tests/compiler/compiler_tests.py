@@ -690,7 +690,6 @@ implementation:
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
     self.assertEqual(workflow_dict['spec']['ttlSecondsAfterFinished'], 86400)
 
-  # HERE HERE HERE
   def test_pod_disruption_budget(self):
     """Test a pipeline with poddisruption budget."""
     def some_op():
