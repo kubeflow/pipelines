@@ -60,6 +60,8 @@ class PipelineConf():
     self.image_pull_secrets = []
     self.timeout = 0
     self.ttl_seconds_after_finished = -1
+    self.min_available = None
+    self.selector = None
     self.op_transformers = []
     self.default_pod_node_selector = {}
     self.image_pull_policy = None
@@ -97,11 +99,30 @@ class PipelineConf():
 
   def set_ttl_seconds_after_finished(self, seconds: int):
     """Configures the ttl after the pipeline has finished.
+      // An eviction is allowed if at least "minAvailable" pods selected by
+	    // "selector" will still be available after the eviction, i.e. even in the
+	    // absence of the evicted pod.  So for example you can prevent all voluntary
+	    // evictions by specifying "100%".
 
     Args:
       seconds: number of seconds for the workflow to be garbage collected after it is finished.
     """
     self.ttl_seconds_after_finished = seconds
+    return self
+
+  def set_pod_disruption_budget(self, min_available: str, selector: str=None):
+    """ PodDisruptionBudget holds the number of concurrent disruptions that you allow for pipeline Pods.
+	      Controller will automatically add the selector with workflow name, if selector is empty.
+
+    Args:
+        min_available (str):  An eviction is allowed if at least "minAvailable" pods selected by 
+                              "selector" will still be available after the eviction, i.e. even in the
+	                            absence of the evicted pod.  So for example you can prevent all voluntary
+	                            evictions by specifying "100%".
+        selector (str): Label query over pods whose evictions are managed by the disruption
+    """
+    self.min_available = min_available
+    self.selector = selector
     return self
 
   def set_default_pod_node_selector(self, label_name: str, value: str):
