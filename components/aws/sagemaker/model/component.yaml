@@ -1,4 +1,4 @@
-name: 'Sagemaker - Create Model'
+name: 'SageMaker - Create Model'
 description: |
   Create Models in SageMaker
 inputs:
@@ -56,10 +56,10 @@ inputs:
     default: '{}'
     type: JsonObject
 outputs:
-  - {name: model_name,          description: 'The model name Sagemaker created'}
+  - {name: model_name,          description: 'The model name SageMaker created'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.5.1
+    image: amazon/aws-sagemaker-kfp-components:0.5.2
     command: ['python3']
     args: [
       create_model.py,
@@ -76,7 +76,6 @@ implementation:
       --vpc_security_group_ids, {inputValue: vpc_security_group_ids},
       --vpc_subnets, {inputValue: vpc_subnets},
       --network_isolation, {inputValue: network_isolation},
-      --tags, {inputValue: tags}
+      --tags, {inputValue: tags},
+      --model_name_output_path, {outputPath: model_name}
     ]
-    fileOutputs:
-      model_name: /tmp/model_name.txt

@@ -26,7 +26,7 @@ RUN if [ "$use_remote_build" = "true" ]; then \
 # Compile
 FROM python:3.5 as compiler
 RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev
+    apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt
@@ -41,23 +41,18 @@ COPY sdk sdk
 WORKDIR /go/src/github.com/kubeflow/pipelines/sdk/python
 RUN python3 setup.py install
 
-WORKDIR /samples
-COPY ./samples .
+WORKDIR /
+COPY ./samples /samples
+COPY backend/src/apiserver/config/sample_config.json /samples/
 
-# We need to check that all samples have been compiled without error.
-# For find program, the -exec argument is a filter predicate just like -name. It
-# only affects whether the file is "found", not the find's exit code.
-# One way to solve this problem is to check whether we have any python pipelines
-# that cannot compile. Here the exit code is the number of such files:
-# RUN  bash -e -c 'exit $(find . -maxdepth 2 -name "*.py" ! -exec dsl-compile --py {} --output {}.tar.gz \; -print | wc -l)'
-# I think it's better to just use a shell loop though.
-# RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
-# The "for" loop breaks on all whitespace, so we either need to override IFS or
-# use the "read" command instead.
-RUN line="import kfp;kfp.components.default_base_image_or_builder='gcr.io/google-appengine/python:2020-03-31-141326";\
-    set -e; find core tutorials -maxdepth 2 -name '*.py' -type f | while read pipeline; do \
-    awk -v text="$line" '!/^#/ && !p {print text; p=1} 1' "$pipeline" && \
-    python3 "$pipeline"; \
+# Compiling the preloaded samples.
+# The default image is replaced with the GCR-hosted python image.
+RUN set -e; \
+    < /samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
+        pipeline_py="${pipeline_yaml%.yaml}"; \
+        mv "$pipeline_py" "${pipeline_py}.tmp"; \
+        echo 'import kfp; kfp.components.default_base_image_or_builder="gcr.io/google-appengine/python:2020-03-31-141326"' | cat - "${pipeline_py}.tmp" > "$pipeline_py"; \
+        python3 "$pipeline_py"; \
     done
 
 FROM debian:stretch

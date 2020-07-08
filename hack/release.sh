@@ -37,7 +37,7 @@ echo -n "$TAG_NAME" > ./VERSION
 
 # Checking-in the component changes
 git add --all
-git commit --message "Updated version to $TAG_NAME"
+git commit --message "chore(release): bumped version to $TAG_NAME"
 git tag -a "$TAG_NAME" -m "Kubeflow Pipelines $TAG_NAME release"
 
 # Pushing the changes upstream

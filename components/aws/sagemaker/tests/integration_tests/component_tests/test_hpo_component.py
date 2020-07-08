@@ -57,8 +57,7 @@ def test_hyperparameter_tuning(
 
     # Verify HPO job was successful on SageMaker
     hpo_job_name = utils.read_from_file_in_tar(
-        output_files["sagemaker-hyperparameter-tuning"]["hpo_job_name"],
-        "hpo_job_name.txt",
+        output_files["sagemaker-hyperparameter-tuning"]["hpo_job_name"]
     )
     print(f"HPO job name: {hpo_job_name}")
     hpo_response = sagemaker_utils.describe_hpo_job(sagemaker_client, hpo_job_name)
@@ -68,8 +67,7 @@ def test_hyperparameter_tuning(
 
     # Verify training image output is an ECR image
     training_image = utils.read_from_file_in_tar(
-        output_files["sagemaker-hyperparameter-tuning"]["training_image"],
-        "training_image.txt",
+        output_files["sagemaker-hyperparameter-tuning"]["training_image"]
     )
     print(f"Training image used: {training_image}")
     if "ExpectedTrainingImage" in test_params.keys():
@@ -79,8 +77,7 @@ def test_hyperparameter_tuning(
 
     # Verify Training job was part of HPO job, returned as best and was successful
     best_training_job_name = utils.read_from_file_in_tar(
-        output_files["sagemaker-hyperparameter-tuning"]["best_job_name"],
-        "best_job_name.txt",
+        output_files["sagemaker-hyperparameter-tuning"]["best_job_name"]
     )
     print(f"best training job name: {best_training_job_name}")
     train_response = sagemaker_utils.describe_training_job(
@@ -95,8 +92,7 @@ def test_hyperparameter_tuning(
 
     # Verify model artifacts output was generated from this run
     model_artifact_url = utils.read_from_file_in_tar(
-        output_files["sagemaker-hyperparameter-tuning"]["model_artifact_url"],
-        "model_artifact_url.txt",
+        output_files["sagemaker-hyperparameter-tuning"]["model_artifact_url"]
     )
     print(f"model_artifact_url: {model_artifact_url}")
     assert model_artifact_url == train_response["ModelArtifacts"]["S3ModelArtifacts"]
@@ -105,8 +101,7 @@ def test_hyperparameter_tuning(
     # Verify hyper_parameters output is not empty
     hyper_parameters = json.loads(
         utils.read_from_file_in_tar(
-            output_files["sagemaker-hyperparameter-tuning"]["best_hyperparameters"],
-            "best_hyperparameters.txt",
+            output_files["sagemaker-hyperparameter-tuning"]["best_hyperparameters"]
         )
     )
     print(f"HPO best hyperparameters: {json.dumps(hyper_parameters, indent = 2)}")
