@@ -31,7 +31,7 @@ import kfp_server_api
 from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 
-from kfp._auth import get_auth_token, get_gcp_access_token
+from kfp._auth import get_auth_token, get_gcp_access_token, get_auth_cookie
 
 # TTL of the access token associated with the client. This is needed because
 # `gcloud auth print-access-token` generates a token with TTL=1 hour, after
@@ -123,6 +123,21 @@ class Client(object):
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
     self._load_context_setting_or_default()
+
+  @staticmethod
+  def create_cognito_authenticated(host, username=None, password=None):
+    """ Creates a KFP client object that is authenticated against AWS Cognito
+
+    Args:
+      host (str): The host name to use to talk to Kubeflow Pipelines.
+      username (str): Cognito username. If not provided there will be an input prompt
+      password (str): Password for the username provided above. If not provided there will be an input prompt
+
+    Returns:
+      Client : Client authenticated against Cognito
+    """
+    elb_auth_session_cookie = get_auth_cookie(host, username, password)
+    return Client(host=host, cookie=elb_auth_session_cookie)
 
   def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token):
     config = kfp_server_api.configuration.Configuration()
