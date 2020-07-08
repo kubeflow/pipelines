@@ -40,7 +40,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
 LOCAL_KFP_CREDENTIAL = os.path.expanduser('~/.config/kfp/credentials.json')
-DEFAULT_CHROME_DRIVER_PATH = os.path.join(os.path.expanduser('~'), '.kfp', 'chromedriver')
+DEFAULT_CHROME_DRIVER_PATH = os.path.join(os.path.expanduser('~'), '.config', 'kfp', 'chromedriver')
 
 def get_gcp_access_token():
     """Get and return GCP access token for the current Application Default
@@ -236,9 +236,7 @@ def get_auth_cookie(host, username=None, password=None, from_cache=True):
                 'Credentials are not found in the cache, trying to login')
 
     driver = get_chrome_driver()
-
     driver.get(host)
-
     username, password = validate_creds(username, password)
 
     # Setting the value of email input field
@@ -291,7 +289,7 @@ class DiskCache:
     """ Helper class for caching data on disk.
     """
 
-    _DEFAULT_CACHE_ROOT = os.path.join(os.path.expanduser('~'), '.kfp')
+    _DEFAULT_CACHE_ROOT = os.path.join(os.path.expanduser('~'), '.config', 'kfp')
 
     def __init__(self, name):
         self.name = name

@@ -112,7 +112,7 @@ class Client(object):
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
-    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, cookie)
     # Save the loaded API client configuration, as a reference if update is
     # needed.
     self._existing_config = config
@@ -140,13 +140,14 @@ class Client(object):
     elb_auth_session_cookie = get_auth_cookie(host, username, password)
     return Client(host=host, cookie=elb_auth_session_cookie)
 
-  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, cookie):
     config = kfp_server_api.configuration.Configuration()
 
     host = host or ''
     # Preprocess the host endpoint to prevent some common user mistakes.
-    # This should only be done for non-IAP cases (when client_id is None). IAP requires preserving the protocol.
-    if not client_id:
+    # This should only be done for non GCP IAP case (when client_id is None) or non AWS Cognito case (when cookie is None).
+    # GCP IAP and AWS Cognito require preserving the protocol.
+    if not client_id and not cookie:
       host = re.sub(r'^(http|https)://', '', host).rstrip('/')
 
     if host:
