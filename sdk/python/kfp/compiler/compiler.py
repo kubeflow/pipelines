@@ -411,6 +411,8 @@ class Compiler(object):
     inputs, outputs, dependencies are all helper dicts.
     """
     template = {'name': group.name}
+    if group.parallelism != None: 
+      template["parallelism"] = group.parallelism
 
     # Generate inputs section.
     if inputs.get(group.name, None):
