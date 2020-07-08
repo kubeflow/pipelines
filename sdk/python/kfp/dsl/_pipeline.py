@@ -99,10 +99,6 @@ class PipelineConf():
 
   def set_ttl_seconds_after_finished(self, seconds: int):
     """Configures the ttl after the pipeline has finished.
-      // An eviction is allowed if at least "minAvailable" pods selected by
-	    // "selector" will still be available after the eviction, i.e. even in the
-	    // absence of the evicted pod.  So for example you can prevent all voluntary
-	    // evictions by specifying "100%".
 
     Args:
       seconds: number of seconds for the workflow to be garbage collected after it is finished.
