@@ -27,7 +27,7 @@ kubectl apply -k cluster-scoped-resources/
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
 kubectl apply -k env/platform-agnostic/
 kubectl wait applications/pipeline -n kubeflow --for condition=Ready --timeout=1800s
-kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
+kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:3000
 ```
 Now you can access it via localhost:8080
 
