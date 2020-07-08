@@ -379,7 +379,7 @@ class Client(object):
     while next_page_token is not None:
       list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token, namespace=namespace)
       next_page_token = list_experiments_response.next_page_token
-      for experiment in list_experiments_response.experiments:
+      for experiment in list_experiments_response.experiments or []:
         if experiment.name == experiment_name:
           return self._experiment_api.get_experiment(id=experiment.id)
     raise ValueError('No experiment is found with name {}.'.format(experiment_name))
