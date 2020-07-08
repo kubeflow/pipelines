@@ -26,10 +26,29 @@ import requests_toolbelt.adapters.appengine
 from webbrowser import open_new_tab
 import requests
 import json
+import time
+import io
+import getpass
+import platform
+import stat
+import zipfile
+from selenium.webdriver import Chrome
+from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import SessionNotCreatedException
 
 IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
 LOCAL_KFP_CREDENTIAL = os.path.expanduser('~/.config/kfp/credentials.json')
+DEFAULT_CHROME_DRIVER_PATH = os.path.join(os.path.expanduser('~'), '.kfp', 'chromedriver')
+CHROME_DRIVER_VERSIONS = [
+    '78.0.3904.105', '79.0.3945.36', '80.0.3987.16', '83.0.4103.116', 'LATEST_RELEASE'
+]
+CHROME_DRIVER_ROOT_URL = 'https://chromedriver.storage.googleapis.com'
+CHROME_DRIVER_SUPPORTED_PLATFORMS = {
+    'Windows': 'win32',
+    'Darwin': 'mac64',
+    'Linux': 'linux64'
+}
 
 def get_gcp_access_token():
     """Get and return GCP access token for the current Application Default
@@ -190,3 +209,161 @@ def id_token_from_refresh_token(client_id, client_secret, refresh_token, audienc
                "audience": audience}
     res = requests.post(OAUTH_TOKEN_URI, data=payload)
     return (str(json.loads(res.text)[u"id_token"]))
+
+def validate_creds(username, password):
+    if not username or not password:
+        logging.info("Please provide AWS Cognito credentials below")
+        username = input("Username: ")
+        password = getpass.getpass("Password: ")
+
+    return username, password
+
+def get_auth_cookie(host, username=None, password=None, from_cache=True):
+    """This function communicates with AWS auth services and returns
+        credentials requried for communicating with KFP API Server
+
+        Args:
+            host (string): KFP API server URL
+            username (string): username for authentication
+            password (string): user account password for authentication
+
+        Returns:
+            auth_cookie (string): Returns a string
+            example:
+            ::
+                'AWSELBAuthSessionCookie-0=0YVVtNnipQ...cjmqrMOuYmpTxvo'
+    """
+    cache = DiskCache('kfp')
+
+    if from_cache:
+        cached_creds = cache.get(expires_in=86400)
+        if cached_creds:
+            return cached_creds
+        else:
+            logging.info(
+                'Credentials are not found in the cache, trying to login')
+
+    driver = get_chrome_driver()
+
+    driver.get(host)
+
+    username, password = validate_creds(username, password)
+
+    # Setting the value of email input field
+    driver.execute_script(
+        'var element = document.getElementById("signInFormUsername");' +
+        f'element.value = "{username}";')
+
+    # Setting the value of password input field
+    driver.execute_script(
+        'var element = document.getElementById("signInFormPassword");' +
+        f'element.value = "{password}";')
+
+    # Submitting the form or click the sign in button
+    driver.execute_script(
+        'document.getElementsByName("signInSubmitButton")[0].click();')
+
+    cookies_list = driver.get_cookies()
+    auth_cookie = f"{cookies_list[0]['name']}={cookies_list[0]['value']}"
+    cache.save(auth_cookie)
+
+    return auth_cookie
+
+def get_chrome_driver(driver_index=-1):
+    """ Download Chrome driver if it doesn't already exists
+    """
+
+    options = Options()
+    options.add_argument('--headless')
+    options.add_argument('--disable-gpu')
+
+    if not os.path.exists(DEFAULT_CHROME_DRIVER_PATH):
+        logging.info('Selenium driver not found, trying to download one')
+        download_driver()
+        driver_index = 0
+
+    try:
+        return Chrome(executable_path=DEFAULT_CHROME_DRIVER_PATH,
+                      chrome_options=options)
+    except SessionNotCreatedException as e:
+        if "This version of ChromeDriver only supports Chrome version" in e.msg:
+            logging.info('Chrome driver mismatch, downloading newer version')
+            os.remove(DEFAULT_CHROME_DRIVER_PATH)
+            download_driver(driver_index=driver_index + 1)
+            return get_chrome_driver(driver_index=driver_index + 1)
+        else:
+            raise
+
+def download_driver(driver_index=0):
+    """ Helper function for downloading the driver
+    """
+
+    osy = CHROME_DRIVER_SUPPORTED_PLATFORMS[platform.system()]
+
+    try:
+        driver_url = (f'{CHROME_DRIVER_ROOT_URL}/{CHROME_DRIVER_VERSIONS[driver_index]}'
+                      f'/chromedriver_{osy}.zip')
+    except IndexError:
+        raise Exception(
+            ('Suitable chrome driver not found, please check your chrome '
+             f'version and download appropriate driver to {DEFAULT_CHROME_DRIVER_PATH}'
+            ))
+
+    logging.info('Downloading driver from %s', driver_url)
+
+    r = requests.get(driver_url)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    path = os.path.dirname(DEFAULT_CHROME_DRIVER_PATH)
+
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    z.extractall(path)
+    os.chmod(DEFAULT_CHROME_DRIVER_PATH, stat.S_IEXEC)
+
+
+def mkdir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+class DiskCache:
+    """ Helper class for caching data on disk.
+    """
+
+    _DEFAULT_CACHE_ROOT = os.path.join(os.path.expanduser('~'), '.kfp')
+
+    def __init__(self, name):
+        self.name = name
+        self.cache_path = os.path.join(self._DEFAULT_CACHE_ROOT, self.name)
+        mkdir(self._DEFAULT_CACHE_ROOT)
+
+    def save(self, content):
+        """ cache content in a known location
+
+        Args:
+            content (str): content to be cached
+        """
+
+        with open(self.cache_path, 'w') as cacheFile:
+            cacheFile.write(content)
+
+    def get(self, expires_in=None):
+        """[summary]
+
+        Args:
+            expires_in (int, optional): Time in seconds since last modifed
+                when the cache is valid. Defaults to None which means for ever.
+
+        Returns:
+            (str): retrived cached content or None if not found
+        """
+
+        try:
+            if expires_in and time.time() - os.path.getmtime(
+                    self.cache_path) > expires_in:
+                return
+
+            with open(self.cache_path) as cacheFile:
+                return cacheFile.read()
+        except FileNotFoundError:
+            return
