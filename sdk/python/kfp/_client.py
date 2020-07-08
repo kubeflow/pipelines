@@ -90,7 +90,7 @@ class Client(object):
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
   # TODO: Wrap the configurations for different authentication methods.
-  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookie=None):
     """Create a new instance of kfp client.
 
     Args:
@@ -115,7 +115,7 @@ class Client(object):
     # Save the loaded API client configuration, as a reference if update is
     # needed.
     self._existing_config = config
-    api_client = kfp_server_api.api_client.ApiClient(config)
+    api_client = kfp_server_api.api_client.ApiClient(config, cookie)
     _add_generated_apis(self, kfp_server_api, api_client)
     self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
