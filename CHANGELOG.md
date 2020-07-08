@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.0-rc.4](https://github.com/kubeflow/pipelines/compare/1.0.0-rc.3...1.0.0-rc.4) (2020-07-08)
+
+
+### Features
+
+* **sdk:** DSL - Added support for volatile components ([\#4104](https://github.com/kubeflow/pipelines/issues/4104)) ([07ebc27](https://github.com/kubeflow/pipelines/commit/07ebc27305495cf3b4f3c71e9a2345bb3d9e65f2))
+
+
+### Bug Fixes
+
+* **backend:** fix the google-api-core to 1.16.0 for backend visualization server. ([\#4158](https://github.com/kubeflow/pipelines/issues/4158)) ([8da057d](https://github.com/kubeflow/pipelines/commit/8da057d183bb3a65f52d0e494e985d86b2a89050))
+
 ## [1.0.0-rc.3](https://github.com/kubeflow/pipelines/compare/1.0.0-rc.2...1.0.0-rc.3) (2020-07-02)
 
 
@@ -11,13 +23,13 @@
 ### Bug Fixes
 
 * increase TFX version from 0.20.2 to 0.22.0. Fixes [\#4084](https://github.com/kubeflow/pipelines/issues/4084), fixes [\#4114](https://github.com/kubeflow/pipelines/issues/4114) ([\#4133](https://github.com/kubeflow/pipelines/issues/4133)) ([5d8a59c](https://github.com/kubeflow/pipelines/commit/5d8a59c359038f13356eb9a4ecbffd961381e426))
-* **backend:** allow empty userid header prefix. Fixes [\#4091](https://github.com/kubeflow/pipelines/issues/4091) (#4098) ([9e00c79](https://github.com/kubeflow/pipelines/commit/9e00c79a4601f3a79629718c902db60a39792da2))
+* **backend:** allow empty userid header prefix. Fixes [\#4091](https://github.com/kubeflow/pipelines/issues/4091) ([\#4098](https://github.com/kubeflow/pipelines/issues/4098)) ([9e00c79](https://github.com/kubeflow/pipelines/commit/9e00c79a4601f3a79629718c902db60a39792da2))
 
 
 ### Other Pull Requests
 
 * SDK - Compiler - Removed the deprecated dsl-compile --package command ([\#4055](https://github.com/kubeflow/pipelines/issues/4055)) ([6bcb3ef](https://github.com/kubeflow/pipelines/commit/6bcb3efa144a38cda3c2ecf551c9f34a4c35e9de))
-* SDK - Components - Python - Switched the default base image to python 3.7 (#4054) ([090fffc](https://github.com/kubeflow/pipelines/commit/090fffc3c48ac4dded562ce76ade21ee0d83ef18))
+* SDK - Components - Python - Switched the default base image to python 3.7 ([\#4054](https://github.com/kubeflow/pipelines/issues/4054)) ([090fffc](https://github.com/kubeflow/pipelines/commit/090fffc3c48ac4dded562ce76ade21ee0d83ef18))
 * Validate resourcekey to avoid apiserver being panic for invalid inputs ([\#3999](https://github.com/kubeflow/pipelines/issues/3999)) ([6ced6ea](https://github.com/kubeflow/pipelines/commit/6ced6ea6e6da8a5bd121d7dbfc788b05795f425c))
 * [Backend] Bug fix: applying filter in listing versions ([\#4052](https://github.com/kubeflow/pipelines/issues/4052)) ([3243f73](https://github.com/kubeflow/pipelines/commit/3243f73ed73a370b733d05376aeb7ae623a1b282))
 * better native-keras based sample ([\#3900](https://github.com/kubeflow/pipelines/issues/3900)) ([842e8ce](https://github.com/kubeflow/pipelines/commit/842e8ce1ee5fc5559733f99596fa5db401a7fa3b))
