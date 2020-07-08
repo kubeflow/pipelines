@@ -38,6 +38,7 @@ REQUIRES = [
     'Deprecated',
     'strip-hints',
     'selenium>=3.141.0',
+    'webdriver_manager',
 ]
 
 TESTS_REQUIRE = [

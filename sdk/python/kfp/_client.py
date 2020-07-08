@@ -116,7 +116,7 @@ class Client(object):
       other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
       existing_token: pass in token directly, it's used for cases better get token outside of SDK, e.x. GCP Cloud Functions
           or caller already has a token
-      cookies: CookieJar object containing cookies that will be passed to the pipelines API.
+      cookie: CookieJar object containing cookies that will be passed to the pipelines API.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
@@ -124,7 +124,7 @@ class Client(object):
     # Save the loaded API client configuration, as a reference if update is
     # needed.
     self._existing_config = config
-    api_client = kfp_server_api.api_client.ApiClient(config, cookie)
+    api_client = kfp_server_api.api_client.ApiClient(config, cookie=cookie)
     _add_generated_apis(self, kfp_server_api, api_client)
     self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
