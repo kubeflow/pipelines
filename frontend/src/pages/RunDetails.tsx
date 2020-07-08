@@ -670,14 +670,16 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         runFinished = true;
       }
 
-      const jsonWorkflow = JSON.parse(
-        runDetail.pipeline_runtime!.workflow_manifest || '{}',
-      );
+      const jsonWorkflow = JSON.parse(runDetail.pipeline_runtime!.workflow_manifest || '{}');
 
-      if (jsonWorkflow.status &&
+      if (
+        jsonWorkflow.status &&
         !jsonWorkflow.status.nodes &&
-        jsonWorkflow.status.compressedNodes) {
-          jsonWorkflow.status.nodes = await decodeCompressedNodes(jsonWorkflow.status.compressedNodes);
+        jsonWorkflow.status.compressedNodes
+      ) {
+        jsonWorkflow.status.nodes = await decodeCompressedNodes(
+          jsonWorkflow.status.compressedNodes,
+        );
       }
       const workflow = jsonWorkflow as Workflow;
 
