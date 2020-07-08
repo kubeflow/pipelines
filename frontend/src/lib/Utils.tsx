@@ -358,3 +358,22 @@ export function buildQuery(queriesMap: { [key: string]: string | number | undefi
   }
   return `?${queryContent}`;
 }
+
+export async function decodeCompressedNodes(compressedNodes: str): object {
+  try{
+    const decodedNodes = await new Promise<Buffer>((resolve, reject) => {
+      const compressedBuffer = Buffer.from(compressedNodes, 'base64')
+      zlib.gunzip(compressedBuffer, (error, result: Buffer) => {
+        if(error){
+          reject(error)
+        } else {
+          resolve(new TextDecoder("utf-8").decode(result))
+        }
+      })
+    })
+    return JSON.parse(decodedNodes);
+  } catch (err) {
+    logger.error('Error decoding compressedNodes!', err);
+    return {}
+  }
+}
