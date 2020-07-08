@@ -943,3 +943,32 @@ implementation:
           'Wrong argument mapping: "{}" passed to "{}"'.format(argument['value'], argument['name']))
       else:
         self.fail('Unexpected input name: ' + argument['name'])
+
+  def test_input_name_sanitization(self):
+    # Verifying that the recursive call arguments are passed correctly when specified out of order
+    component_2_in_1_out_op = kfp.components.load_component_from_text('''
+inputs:
+- name: Input 1
+- name: Input 2
+outputs:
+- name: Output 1
+implementation:
+  container:
+    image: busybox
+    command:
+    - echo
+    - inputValue: Input 1
+    - inputPath: Input 2
+    - outputPath: Output 1
+    ''')
+    def some_pipeline():
+      task1 = component_2_in_1_out_op('value 1', 'value 2')
+      component_2_in_1_out_op(task1.output, task1.output)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    container_templates = [template for template in workflow_dict['spec']['templates'] if 'container' in template]
+    for template in container_templates:
+      for argument in template['inputs'].get('parameters', []):
+        self.assertNotIn(' ', argument['name'], 'The input name "{}" of template "{}" was not sanitized.'.format(argument['name'], template['name']))
+      for argument in template['inputs']['artifacts']:
+        self.assertNotIn(' ', argument['name'], 'The input name "{}" of template "{}" was not sanitized.'.format(argument['name'], template['name']))
