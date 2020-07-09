@@ -43,7 +43,7 @@ if grep "${WEBHOOK_SECRET_NAME}" -w <cache_secret.txt; then
     webhook_secret_exists=true
 fi
 
-if [ "$webhook_config_exists" == "true" ] && [ "$webhook_config_exists" == "true" ]; then
+if [ "$webhook_config_exists" == "true" ] && [ "$webhook_secret_exists" == "true" ]; then
     echo "Webhook config and secret are already installed. Sleeping forever."
     sleep infinity
 fi
