@@ -126,8 +126,6 @@ function install_kfp() {
 
   kubectl wait --for=condition=ready -n "${KFP_NAMESPACE}" pod -l app=minio --timeout=5m
   kubectl port-forward -n kubeflow svc/minio-service $MINIO_LOCAL_PORT:9000 &
-  echo "Forcing error"
-  exit 1
   MINIO_PID=$!
 
   echo "[Installing KFP] Minio port-forwarded to ${MINIO_LOCAL_PORT}"
@@ -161,6 +159,7 @@ function delete_generated_role() {
 function cleanup_kfp() {
   # Clean up Minio
   if [[ ! -z "${MINIO_PID:-}" ]]; then
+    # If this fails, deleting the nodegroup later will clean it up anyway
     kill -9 $MINIO_PID || true
   fi
 }
