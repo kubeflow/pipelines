@@ -31,9 +31,6 @@ def parse_arguments():
   parser.add_argument('--py',
                       type=str,
                       help='local absolute path to a py file.')
-  parser.add_argument('--package',
-                      type=str,
-                      help='local path to a pip installable python package file.')
   parser.add_argument('--function',
                       type=str,
                       help='The name of the function to compile if there are multiple.')
@@ -85,24 +82,6 @@ class PipelineCollectorContext():
     dsl._pipeline._pipeline_decorator_handler = self.old_handler
 
 
-@deprecated(version='0.1.28', reason='''\
-    The ability to compile pipeline from a python package is deprecated and will be removed in next release.
-    Please switch to compiling pipeline files or functions.
-    If you use this feature please create an issue in https://github.com/kubeflow/pipelines/issues .'''
-)
-def compile_package(package_path, namespace, function_name, output_path, type_check):
-  tmpdir = tempfile.mkdtemp()
-  sys.path.insert(0, tmpdir)
-  try:
-    subprocess.check_call(['python3', '-m', 'pip', 'install', package_path, '-t', tmpdir])
-    with PipelineCollectorContext() as pipeline_funcs:
-      __import__(namespace)
-    _compile_pipeline_function(pipeline_funcs, function_name, output_path, type_check)
-  finally:
-    del sys.path[0]
-    shutil.rmtree(tmpdir)
-
-
 def compile_pyfile(pyfile, function_name, output_path, type_check):
   sys.path.insert(0, os.path.dirname(pyfile))
   try:
@@ -116,13 +95,11 @@ def compile_pyfile(pyfile, function_name, output_path, type_check):
 
 def main():
   args = parse_arguments()
-  if ((args.py is None and args.package is None) or
-      (args.py is not None and args.package is not None)):
-    raise ValueError('Either --py or --package is needed but not both.')
-  if args.py:
-    compile_pyfile(args.py, args.function, args.output, not args.disable_type_check)
-  else:
-    if args.namespace is None:
-      raise ValueError('--namespace is required for compiling packages.')
-    compile_package(args.package, args.namespace, args.function, args.output, not args.disable_type_check)
-  
+  if args.py is None:
+    raise ValueError('The --py option must be specified.')
+  compile_pyfile(
+      args.py,
+      args.function,
+      args.output,
+      not args.disable_type_check,
+  )

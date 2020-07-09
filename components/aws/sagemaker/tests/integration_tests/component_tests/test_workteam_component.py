@@ -17,7 +17,7 @@ def create_workteamjob(
         )
     )
 
-    # Get the account, region specific user_pool and client_id for the Sagemaker Workforce.
+    # Get the account, region specific user_pool and client_id for the SageMaker Workforce.
     (
         test_params["Arguments"]["user_pool"],
         test_params["Arguments"]["client_id"],
@@ -70,8 +70,7 @@ def test_workteamjob(
 
         # Verify WorkTeam arn artifact was created in Minio and matches the one in SageMaker
         workteam_arn = utils.read_from_file_in_tar(
-            output_files["sagemaker-private-workforce"]["workteam_arn"],
-            "workteam_arn.txt",
+            output_files["sagemaker-private-workforce"]["workteam_arn"]
         )
         assert response["Workteam"]["WorkteamArn"] == workteam_arn
 

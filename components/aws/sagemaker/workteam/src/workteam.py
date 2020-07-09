@@ -27,6 +27,7 @@ def create_parser():
   parser.add_argument('--client_id', type=str, required=False, help='An identifier for an application client. You must create the app client ID using Amazon Cognito.', default='')
   parser.add_argument('--sns_topic', type=str, required=False, help='The ARN for the SNS topic to which notifications should be published.', default='')
   parser.add_argument('--tags', type=_utils.yaml_or_json_str, required=False, help='An array of key-value pairs, to categorize AWS resources.', default={})
+  parser.add_argument('--workteam_arn_output_path', type=str, default='/tmp/workteam-arn', help='Local output path for the file containing the ARN of the workteam.')
 
   return parser
 
@@ -41,8 +42,7 @@ def main(argv=None):
 
   logging.info('Workteam created.')
 
-  with open('/tmp/workteam_arn.txt', 'w') as f:
-    f.write(workteam_arn)
+  _utils.write_output(args.workteam_arn_output_path, workteam_arn)
 
 
 if __name__== "__main__":
