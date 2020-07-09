@@ -15,6 +15,10 @@
 import logging
 import os
 import subprocess
+import json
+import time
+import getpass
+from webbrowser import open_new_tab
 import google.auth
 import google.auth.app_engine
 import google.auth.compute_engine.credentials
@@ -23,18 +27,9 @@ from google.auth.transport.requests import Request
 import google.oauth2.credentials
 import google.oauth2.service_account
 import requests_toolbelt.adapters.appengine
-from webbrowser import open_new_tab
 import requests
-import json
-import time
-import io
-import getpass
-import platform
-import stat
-import zipfile
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import SessionNotCreatedException
 from webdriver_manager.chrome import ChromeDriverManager
 
 IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
@@ -233,7 +228,8 @@ def get_auth_cookie(host, username=None, password=None, from_cache=True):
             return cached_creds
         else:
             logging.info(
-                'Credentials are not found in the cache, trying to login')
+                'Credentials are not found in the cache, trying to login'
+            )
 
     driver = get_chrome_driver()
     driver.get(host)
@@ -242,22 +238,26 @@ def get_auth_cookie(host, username=None, password=None, from_cache=True):
     # Setting the value of email input field
     driver.execute_script(
         'var element = document.getElementById("signInFormUsername");' +
-        f'element.value = "{username}";')
+        f'element.value = "{username}";'
+    )
 
     # Setting the value of password input field
     driver.execute_script(
         'var element = document.getElementById("signInFormPassword");' +
-        f'element.value = "{password}";')
+        f'element.value = "{password}";'
+    )
 
     # Submitting the form or click the sign in button
     driver.execute_script(
-        'document.getElementsByName("signInSubmitButton")[0].click();')
+        'document.getElementsByName("signInSubmitButton")[0].click();'
+    )
 
     cookies_list = driver.get_cookies()
     auth_cookie = f"{cookies_list[0]['name']}={cookies_list[0]['value']}"
     cache.save(auth_cookie)
 
     return auth_cookie
+
 
 def get_chrome_driver():
     """ Download Chrome driver if it doesn't already exists
@@ -278,12 +278,14 @@ def get_chrome_driver():
 
     return Chrome(executable_path=executable_path, options=options)
 
+
 def download_driver():
     """ Helper function for downloading the driver
     """
 
     logging.info('Downloading driver..')
     return ChromeDriverManager(path=DEFAULT_CHROME_DRIVER_PATH).install()
+
 
 class DiskCache:
     """ Helper class for caching data on disk.
@@ -319,8 +321,7 @@ class DiskCache:
         """
 
         try:
-            if expires_in and time.time() - os.path.getmtime(
-                    self.cache_path) > expires_in:
+            if expires_in and time.time() - os.path.getmtime(self.cache_path) > expires_in:
                 return
 
             with open(self.cache_path) as cacheFile:
