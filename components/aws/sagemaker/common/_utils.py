@@ -31,6 +31,9 @@ from sagemaker.amazon.amazon_estimator import get_image_uri
 import logging
 logging.getLogger().setLevel(logging.INFO)
 
+# this error message is used in integration tests
+CW_ERROR_MESSAGE = 'Error in fetching CloudWatch logs for SageMaker job'
+
 # Mappings are extracted from the first table in https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html
 built_in_algos = {
     'blazingtext': 'blazingtext',
@@ -106,6 +109,7 @@ def print_logs_for_job(cw_client, log_grp, job_name):
 
         logging.info('\n******************** End of CloudWatch logs for {} {} ********************\n'.format(log_grp, job_name))
     except Exception as e:
+        logging.error(CW_ERROR_MESSAGE)
         logging.error(e)
 
 
