@@ -411,6 +411,8 @@ class Compiler(object):
     inputs, outputs, dependencies are all helper dicts.
     """
     template = {'name': group.name}
+    if group.parallelism != None: 
+      template["parallelism"] = group.parallelism
 
     # Generate inputs section.
     if inputs.get(group.name, None):
@@ -759,6 +761,11 @@ class Compiler(object):
           sanitized_attribute_outputs[sanitize_k8s_name(key, True)] = \
             op.attribute_outputs[key]
         op.attribute_outputs = sanitized_attribute_outputs
+      if isinstance(op, dsl.ContainerOp):
+        if op.input_artifact_paths:
+          op.input_artifact_paths = {sanitize_k8s_name(key, True): value for key, value in op.input_artifact_paths.items()}
+        if op.artifact_arguments:
+          op.artifact_arguments = {sanitize_k8s_name(key, True): value for key, value in op.artifact_arguments.items()}
       sanitized_ops[sanitized_name] = op
     pipeline.ops = sanitized_ops
 

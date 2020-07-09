@@ -15,6 +15,7 @@
 import tempfile
 import textwrap
 import unittest
+import warnings
 import kfp
 from pathlib import Path
 from kfp.components import load_component_from_text, create_component_from_func
@@ -227,3 +228,18 @@ class TestComponentBridge(unittest.TestCase):
 
         self.assertSetEqual(set(task1.outputs.keys()), {'Output 1', 'output_1'})
         self.assertIsNotNone(task1.output)
+
+    def test_reusable_component_warnings(self):
+        op1 = load_component_from_text('''\
+            implementation:
+                container:
+                    image: busybox
+            '''
+        )
+        with warnings.catch_warnings(record=True) as warning_messages:
+            op1()
+            deprecation_messages = list(str(message) for message in warning_messages if message.category == DeprecationWarning)
+            self.assertListEqual(deprecation_messages, [])
+
+        with self.assertWarnsRegex(DeprecationWarning, expected_regex='reusable'):
+            kfp.dsl.ContainerOp(name='name', image='image')
