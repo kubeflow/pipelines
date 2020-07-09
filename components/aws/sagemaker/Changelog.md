@@ -4,6 +4,12 @@ The version of the AWS SageMaker Components is determined by the docker image ta
 Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components
 
 ---------------------------------------------
+**Change log for version 0.5.3**
+- Add static error string in case of error fetching logs
+
+>  Pull requests : [#4056](https://github.com/kubeflow/pipelines/pull/4056)
+
+
 **Change log for version 0.5.2**
 - Modified outputs to use newer `outputPath` syntax
 

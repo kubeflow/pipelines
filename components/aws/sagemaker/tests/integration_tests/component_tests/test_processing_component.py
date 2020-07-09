@@ -5,7 +5,7 @@ import utils
 from utils import kfp_client_utils
 from utils import minio_utils
 from utils import sagemaker_utils
-
+from utils import argo_utils
 
 @pytest.mark.parametrize(
     "test_file_dir",
@@ -84,5 +84,8 @@ def test_processingjob(
 
     for output in process_response["ProcessingOutputConfig"]["Outputs"]:
         assert processing_outputs[output["OutputName"]] == output["S3Output"]["S3Uri"]
+
+    assert not argo_utils.error_in_cw_logs(workflow_json["metadata"]["name"]), \
+        ('Found the CloudWatch error message in the log output. Check SageMaker to see if the job has failed.')
 
     utils.remove_dir(download_dir)
