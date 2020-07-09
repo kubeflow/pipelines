@@ -238,13 +238,13 @@ def get_auth_cookie(host, username=None, password=None, from_cache=True):
     # Setting the value of email input field
     driver.execute_script(
         'var element = document.getElementById("signInFormUsername");' +
-        f'element.value = "{username}";'
+        'element.value = "{}";'.format(username)
     )
 
     # Setting the value of password input field
     driver.execute_script(
         'var element = document.getElementById("signInFormPassword");' +
-        f'element.value = "{password}";'
+        'element.value = "{}";'.format(password)
     )
 
     # Submitting the form or click the sign in button
@@ -253,7 +253,7 @@ def get_auth_cookie(host, username=None, password=None, from_cache=True):
     )
 
     cookies_list = driver.get_cookies()
-    auth_cookie = f"{cookies_list[0]['name']}={cookies_list[0]['value']}"
+    auth_cookie = "{}={}".format(cookies_list[0]['name'], cookies_list[0]['value'])
     cache.save(auth_cookie)
 
     return auth_cookie
