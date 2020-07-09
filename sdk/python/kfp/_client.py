@@ -247,7 +247,7 @@ class Client(object):
       
   def _refresh_api_client_token(self):
     """Refreshes the existing token associated with the kfp_api_client."""
-    if getattr(self, '_is_refresh_token'):
+    if getattr(self, '_is_refresh_token', None):
       return
 
     new_token = get_gcp_access_token()
