@@ -149,6 +149,12 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 	endpoint := "localhost" + *rpcPortFlag
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
+	// Only change the maxCallRecvMesSize if it is for visualizations
+	if serviceName == "Visualization" {
+		maxCallRecvMsgSize = 50 * 1024 * 1024
+		opts := append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxCallRecvMsgSize)))
+	}
+	
 	if err := handler(ctx, mux, endpoint, opts); err != nil {
 		glog.Fatalf("Failed to register %v handler: %v", serviceName, err)
 	}

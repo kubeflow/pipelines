@@ -153,21 +153,3 @@ within your cluster.
       - name: KERNEL_TIMEOUT
         value: 100
     ```
-* The HTML content of the generated visualizations cannot be larger than 4MB.
-    * gRPC by default imposes a limit of 4MB as the maximum size that can be
-    sent and received by a server. To allow for visualizations that are larger
-    than 4MB in size to be generated, you must manually set
-    **MaxCallRecvMsgSize** for gRPC. This can be done by editing the provided
-    options given to the gRPC server within [main.go](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/main.go#L128)
-    to 
-    ```golang
-    var maxCallRecvMsgSize = 4 * 1024 * 1024
-	if serviceName == "Visualization" {
-		// Only change the maxCallRecvMesSize if it is for visualizations
-		maxCallRecvMsgSize = 50 * 1024 * 1024
-    }
-	opts := []grpc.DialOption{
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxCallRecvMsgSize)),
-		grpc.WithInsecure(),
-	}
-    ```
