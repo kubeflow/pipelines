@@ -4,8 +4,23 @@ The `mnist-classification-pipeline.py` sample runs a pipeline to train a classfi
 
 ## Prerequisites 
 
+### Setup K8s cluster and authentication
 Make sure you have the setup explained in this [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/README.md)
 
+### Sample MNIST dataset
+
+The following commands will copy the data extraction pre-processing script to an S3 bucket which we will use to store artifacts for the pipeline.
+
+1. [Create a bucket](https://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html) in `us-east-1` region if you don't have one already. 
+For the purposes of this demonstration, all resources will be created in the us-east-1 region.
+
+2. Upload the `mnist-kmeans-sagemaker/kmeans_preprocessing.py` file to your bucket with the prefix `mnist_kmeans_example/processing_code/kmeans_preprocessing.py`.
+This can be done with the following command, replacing `<bucket-name>` with the name of the bucket you previously created in `us-east-1`:
+    ```
+    aws s3 cp mnist-kmeans-sagemaker/kmeans_preprocessing.py s3://<bucket-name>/mnist_kmeans_example/processing_code/kmeans_preprocessing.py
+    ```
+
+3. Update the `my_bucket_name` variable with the bucket you just created in the [pipeline definition](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py#L18)
 
 ## Compiling the pipeline template
 
@@ -28,24 +43,41 @@ You will have an model endpoint in service. Please remember to clean it up.
 
 ## Prediction
 
-Open SageMaker [console](https://us-east-1.console.aws.amazon.com/sagemaker/home?region=us-east-1#/endpoints) and find your endpoint name, You can call endpoint in this way. Please check dataset section to get `train_set`.
+1. Find your endpoint name either by,
+  - Opening SageMaker [console](https://us-east-1.console.aws.amazon.com/sagemaker/home?region=us-east-1#/endpoints),  or
+  - Clicking the `sagemaker-deploy-model-endpoint_name` under `Output artifacts` of `SageMaker - Deploy Model` component of the pipeline
+
+2. Setup AWS credentials with `sagemaker:InvokeEndpoint` access. [Sample commands](https://sagemaker.readthedocs.io/en/stable/workflows/kubernetes/using_amazon_sagemaker_components.html#configure-permissions-to-run-predictions)
+3. Update the `endpoint_name` variable in the script below
+4. Run the script below to invoke the endpoint
 
 ```python
 import json
 import io
 import boto3
+import pickle
+import urllib.request
+import gzip
+import numpy
 
-# Simple function to create a csv from our numpy array
+ENDPOINT_NAME="<your_endpoint_name>"
+
+# Simple function to create a csv from numpy array
 def np2csv(arr):
     csv = io.BytesIO()
     numpy.savetxt(csv, arr, delimiter=',', fmt='%g')
     return csv.getvalue().decode().rstrip()
 
-runtime = boto3.Session().client('sagemaker-runtime')
+# Prepare input for the model
+urllib.request.urlretrieve("http://deeplearning.net/data/mnist/mnist.pkl.gz", "mnist.pkl.gz")
+with gzip.open('mnist.pkl.gz', 'rb') as f:
+    train_set, _, _ = pickle.load(f, encoding='latin1')
 
 payload = np2csv(train_set[0][30:31])
 
-response = runtime.invoke_endpoint(EndpointName='Endpoint-20190502202738-LDKG',
+# Run prediction aganist the endpoint created by the pipeline
+runtime = boto3.Session(region_name='us-east-1').client('sagemaker-runtime')
+response = runtime.invoke_endpoint(EndpointName=endpoint_name,
                                    ContentType='text/csv',
                                    Body=payload)
 result = json.loads(response['Body'].read().decode())
