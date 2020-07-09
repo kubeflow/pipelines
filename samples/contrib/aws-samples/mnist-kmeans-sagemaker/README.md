@@ -48,7 +48,7 @@ You will have an model endpoint in service. Please remember to clean it up.
   - Clicking the `sagemaker-deploy-model-endpoint_name` under `Output artifacts` of `SageMaker - Deploy Model` component of the pipeline
 
 2. Setup AWS credentials with `sagemaker:InvokeEndpoint` access. [Sample commands](https://sagemaker.readthedocs.io/en/stable/workflows/kubernetes/using_amazon_sagemaker_components.html#configure-permissions-to-run-predictions)
-3. Update the `endpoint_name` variable in the script below
+3. Update the `ENDPOINT_NAME` variable in the script below
 4. Run the script below to invoke the endpoint
 
 ```python
@@ -77,7 +77,7 @@ payload = np2csv(train_set[0][30:31])
 
 # Run prediction aganist the endpoint created by the pipeline
 runtime = boto3.Session(region_name='us-east-1').client('sagemaker-runtime')
-response = runtime.invoke_endpoint(EndpointName=endpoint_name,
+response = runtime.invoke_endpoint(EndpointName=ENDPOINT_NAME,
                                    ContentType='text/csv',
                                    Body=payload)
 result = json.loads(response['Body'].read().decode())
