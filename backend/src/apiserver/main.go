@@ -151,8 +151,8 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 
 	// Only change the maxCallRecvMesSize if it is for visualizations
 	if serviceName == "Visualization" {
-		maxCallRecvMsgSize = 50 * 1024 * 1024
-		opts := append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxCallRecvMsgSize)))
+		maxCallRecvMsgSize := 50 * 1024 * 1024
+		opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxCallRecvMsgSize)))
 	}
 	
 	if err := handler(ctx, mux, endpoint, opts); err != nil {
