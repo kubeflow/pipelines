@@ -119,7 +119,7 @@ class BatchTransformTestCase(unittest.TestCase):
                           'InstanceCount': None, 'VolumeKmsKeyId': ''}
     )
 
-  def test_stop_tranform_job(self):
+  def test_main_stop_tranform_job(self):
     batch_transform._utils = MagicMock()
     batch_transform._utils.create_transform_job.return_value = 'test-batch-job'
 
@@ -128,6 +128,17 @@ class BatchTransformTestCase(unittest.TestCase):
     finally:
       batch_transform._utils.stop_transform_job.assert_called_once_with(ANY, 'test-batch-job')
       batch_transform._utils.print_logs_for_job.assert_not_called()
+
+  def test_utils_stop_transform_job(self):
+    mock_sm_client = MagicMock()
+    mock_sm_client.stop_transform_job.return_value = None
+
+    response = _utils.stop_transform_job(mock_sm_client, 'FakeJobName')
+
+    mock_sm_client.stop_transform_job.assert_called_once_with(
+        TransformJobName='FakeJobName'
+    )
+    self.assertEqual(response, None)
 
   def test_sagemaker_exception_in_batch_transform(self):
     mock_client = MagicMock()

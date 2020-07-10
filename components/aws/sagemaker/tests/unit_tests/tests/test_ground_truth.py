@@ -75,7 +75,7 @@ class GroundTruthTestCase(unittest.TestCase):
 
     self.assertEqual(response, 'test_job')
 
-  def test_stop_labelling_job(self):
+  def test_main_stop_labelling_job(self):
     ground_truth._utils = MagicMock()
 
     try:
@@ -83,6 +83,17 @@ class GroundTruthTestCase(unittest.TestCase):
     finally:
       ground_truth._utils.stop_labeling_job.assert_called_once_with(ANY, 'test_job')
       ground_truth._utils.get_labeling_job_outputs.assert_not_called()
+
+  def test_utils_stop_labeling_job(self):
+    mock_sm_client = MagicMock()
+    mock_sm_client.stop_labeling_job.return_value = None
+
+    response = _utils.stop_labeling_job(mock_sm_client, 'FakeJobName')
+
+    mock_sm_client.stop_labeling_job.assert_called_once_with(
+        LabelingJobName='FakeJobName'
+    )
+    self.assertEqual(response, None)
 
   def test_sagemaker_exception_in_ground_truth(self):
     mock_client = MagicMock()

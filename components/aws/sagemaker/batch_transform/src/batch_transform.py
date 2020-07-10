@@ -58,8 +58,8 @@ def main(argv=None):
   batch_job_name = _utils.create_transform_job(client, vars(args))
 
   def signal_term_handler(signalNumber, frame):
-    logging.info(f"Stopping Transform Job: {batch_job_name}")
     _utils.stop_transform_job(client, batch_job_name)
+    logging.info(f"Transform job: {batch_job_name} request submitted to Stop")
   signal.signal(signal.SIGTERM, signal_term_handler)
 
   logging.info('Batch Job request submitted. Waiting for completion...')

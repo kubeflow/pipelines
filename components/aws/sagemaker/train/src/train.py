@@ -68,8 +68,8 @@ def main(argv=None):
   job_name = _utils.create_training_job(client, vars(args))
 
   def signal_term_handler(signalNumber, frame):
-    logging.info(f"Stopping Training Job: {job_name}")
     _utils.stop_training_job(client, job_name)
+    logging.info(f"Training Job: {job_name} request submitted to Stop")
   signal.signal(signal.SIGTERM, signal_term_handler)
 
   logging.info('Job request submitted. Waiting for completion...')

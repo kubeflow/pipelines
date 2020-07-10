@@ -123,7 +123,7 @@ class HyperparameterTestCase(unittest.TestCase):
 
     self.assertEqual(response, 'test-job')
 
-  def test_stop_hyperparameter_tuning_job(self):
+  def test_main_stop_hyperparameter_tuning_job(self):
     hpo._utils = MagicMock()
     hpo._utils.create_processing_job.return_value = 'job-name'
 
@@ -132,6 +132,17 @@ class HyperparameterTestCase(unittest.TestCase):
     finally:
       hpo._utils.stop_hyperparameter_tuning_job.assert_called_once_with(ANY, 'job-name')
       hpo._utils.get_best_training_job_and_hyperparameters.assert_not_called()
+
+  def test_utils_stop_hyper_parameter_tuning_job(self):
+    mock_sm_client = MagicMock()
+    mock_sm_client.stop_hyper_parameter_tuning_job.return_value = None
+
+    response = _utils.stop_hyperparameter_tuning_job(mock_sm_client, 'FakeJobName')
+
+    mock_sm_client.stop_hyper_parameter_tuning_job.assert_called_once_with(
+        HyperParameterTuningJobName='FakeJobName'
+    )
+    self.assertEqual(response, None)
 
   def test_sagemaker_exception_in_create_hyperparameter_tuning_job(self):
     mock_client = MagicMock()

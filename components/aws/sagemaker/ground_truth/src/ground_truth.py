@@ -65,8 +65,8 @@ def main(argv=None):
   _utils.create_labeling_job(client, vars(args))
 
   def signal_term_handler(signalNumber, frame):
-    logging.info(f"Stopping Labelling Job: {args.job_name}")
     _utils.stop_labeling_job(client, args.job_name)
+    logging.info(f"Ground Truth labeling job: {args.job_name} request submitted to Stop")
   signal.signal(signal.SIGTERM, signal_term_handler)
 
   logging.info('Ground Truth labeling job request submitted. Waiting for completion...')

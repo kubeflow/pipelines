@@ -44,6 +44,7 @@ class UtilsTestCase(unittest.TestCase):
         with patch('logging.Logger.error') as errorLog:
             _utils.print_logs_for_job(mock_cw_client, '/aws/sagemaker/FakeJobs', 'fake_job_name')
             errorLog.assert_called()
+<<<<<<< HEAD
 
     def test_write_output_string(self):
         with patch("common._utils.Path", MagicMock()) as mock_path:
@@ -121,3 +122,5 @@ class UtilsTestCase(unittest.TestCase):
             ProcessingJobName='FakeJobName'
         )
         self.assertEqual(response, None)
+=======
+>>>>>>> 15422abd... unit test update and customer message update

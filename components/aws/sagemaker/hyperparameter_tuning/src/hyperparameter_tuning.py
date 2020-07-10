@@ -81,8 +81,8 @@ def main(argv=None):
   hpo_job_name = _utils.create_hyperparameter_tuning_job(client, vars(args))
 
   def signal_term_handler(signalNumber, frame):
-    logging.info(f"Stopping HyperParameter Tuning Job: {hpo_job_name}")
     _utils.stop_hyperparameter_tuning_job(client, hpo_job_name)
+    logging.info(f"HyperParameter Tuning Job: {hpo_job_name} request submitted to Stop")
   signal.signal(signal.SIGTERM, signal_term_handler)
 
   logging.info('HyperParameter Tuning Job request submitted. Waiting for completion...')

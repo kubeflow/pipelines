@@ -117,7 +117,7 @@ class ProcessTestCase(unittest.TestCase):
     )
     self.assertEqual(response, 'test-job')
 
-  def test_stop_processing_job(self):
+  def test_main_stop_processing_job(self):
     process._utils = MagicMock()
     process._utils.create_processing_job.return_value = 'job-name'
 
@@ -126,6 +126,17 @@ class ProcessTestCase(unittest.TestCase):
     finally:
       process._utils.stop_processing_job.assert_called_once_with(ANY, 'job-name')
       process._utils.get_processing_job_outputs.assert_not_called()
+
+  def test_utils_stop_processing_job(self):
+    mock_sm_client = MagicMock()
+    mock_sm_client.stop_processing_job.return_value = None
+
+    response = _utils.stop_processing_job(mock_sm_client, 'FakeJobName')
+
+    mock_sm_client.stop_processing_job.assert_called_once_with(
+        ProcessingJobName='FakeJobName'
+    )
+    self.assertEqual(response, None)
 
   def test_sagemaker_exception_in_create_processing_job(self):
     mock_client = MagicMock()
