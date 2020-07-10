@@ -624,6 +624,16 @@ implementation:
     template = workflow_dict['spec']['templates'][0]
     self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'], 'Custom name')
 
+  def test_set_dynamic_display_name(self):
+    """Test a pipeline with a customized task names."""
+
+    def some_pipeline(custom_name):
+      some_op().set_display_name(custom_name)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    template = [template for template in workflow_dict['spec']['templates'] if 'container' in template][0]
+    self.assertNotIn('pipelineparam', template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'])
+
   def test_set_parallelism(self):
     """Test a pipeline with parallelism limits."""
     def some_op():
