@@ -117,18 +117,24 @@ properties:
   managedstorage.enabled:
     type: boolean
     title: Use managed storage
-    description: "Select this option to store pipeline artifacts and metadata using\nCloud
-      SQL and Cloud Storage. Otherwise, pipeline artifacts and metadata\nare stored
-      on Compute Engine persistent disks. \n\nCloud SQL and Cloud Storage provides
-      better reliability and performance,\nas well as features such as data backup
-      and usage monitoring.\nUsing Cloud SQL and Cloud Storage is recommended for
-      production\ndeployments.\n\nTo configure your cluster to use managed storage,
-      specify your Cloud\nStorage bucket and Cloud SQL connection details below. To
-      preserve your\ndata while reinstalling Kubeflow Pipelines, you must specify
-      the same\nmanaged storage options as your previous instance.\n\nIf upgrading
-      from Kubeflow Pipelines 0.5.1 with managed storage, the\nCloud Storage bucket
-      was auto-generated in the same project. This bucket\nshould be named like \"<cloudsql
-      instance connection name>-<database prefix or instance name>\"."
+    description: |-
+      Select this option to store pipeline artifacts and metadata using
+      Cloud SQL and Cloud Storage. Otherwise, pipeline artifacts and metadata
+      are stored on Compute Engine persistent disks.
+
+      Cloud SQL and Cloud Storage provides better reliability and performance,
+      as well as features such as data backup and usage monitoring.
+      Using Cloud SQL and Cloud Storage is recommended for production
+      deployments.
+
+      To configure your cluster to use managed storage, specify your Cloud
+      Storage bucket and Cloud SQL connection details below. To preserve your
+      data while reinstalling Kubeflow Pipelines, you must specify the same
+      managed storage options as your previous instance.
+
+      If upgrading from Kubeflow Pipelines 0.5.1 with managed storage, the
+      Cloud Storage bucket was auto-generated in the same project. This bucket
+      should be named like "<cloudsql instance connection name>-<database prefix or instance name>".
     default: false
   managedstorage.gcsBucketName:
     type: string
@@ -178,7 +184,7 @@ properties:
     description: |-
       If you are deploying Kubeflow Pipelines with managed storage, specify the
       database name prefix. The prefix value must contain only lowercase
-      letters, numbers, and hyphens, and the prefix must start with a letter.
+      letters, numbers and underscores. Additionally, the prefix must start with a letter.
 
       During the deployment process, Kubeflow Pipelines creates two databases,
       "<prefix>_pipeline" and "<prefix>_metadata". If the prefix specified
