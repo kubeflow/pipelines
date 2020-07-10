@@ -1,19 +1,17 @@
-import json
 import unittest
 
 from unittest.mock import patch, call, Mock, MagicMock, mock_open
 from botocore.exceptions import ClientError
-from datetime import datetime
 
 from workteam.src import workteam
 from common import _utils
-from . import test_utils
 
 
 required_args = [
   '--region', 'us-west-2',
   '--team_name', 'test-team',
-  '--description', 'fake team'
+  '--description', 'fake team',
+  '--workteam_arn_output_path', '/tmp/output'
 ]
 
 class WorkTeamTestCase(unittest.TestCase):
@@ -33,19 +31,14 @@ class WorkTeamTestCase(unittest.TestCase):
     # Set some static returns
     workteam._utils.create_workteam.return_value = 'arn:aws:sagemaker:us-east-1:999999999999:work-team'
 
-    with patch('builtins.open', mock_open()) as file_open:
-      workteam.main(required_args)
+    workteam.main(required_args)
 
     # Check if correct requests were created and triggered
     workteam._utils.create_workteam.assert_called()
 
     # Check the file outputs
-    file_open.assert_has_calls([
-      call('/tmp/workteam_arn.txt', 'w')
-    ])
-
-    file_open().write.assert_has_calls([
-      call('arn:aws:sagemaker:us-east-1:999999999999:work-team')
+    workteam._utils.write_output.assert_has_calls([
+      call('/tmp/output', 'arn:aws:sagemaker:us-east-1:999999999999:work-team')
     ])
 
   def test_workteam(self):

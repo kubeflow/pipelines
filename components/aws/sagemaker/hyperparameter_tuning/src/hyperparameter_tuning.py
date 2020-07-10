@@ -13,7 +13,6 @@
 import sys
 import argparse
 import logging
-import json
 
 from common import _utils
 
@@ -60,6 +59,14 @@ def create_parser():
 
   parser.add_argument('--tags', type=_utils.yaml_or_json_str, required=False, help='An array of key-value pairs, to categorize AWS resources.', default={})
 
+  ### Start outputs
+  parser.add_argument('--hpo_job_name_output_path', type=str, default='/tmp/hpo-job-name', help='Local output path for the file containing the name of the hyper parameter tuning job')
+  parser.add_argument('--model_artifact_url_output_path', type=str, default='/tmp/artifact-url', help='Local output path for the file containing the model artifacts url')
+  parser.add_argument('--best_job_name_output_path', type=str, default='/tmp/best-job-name', help='Local output path for the file containing the name of the best training job in the hyper parameter tuning job')
+  parser.add_argument('--best_hyperparameters_output_path', type=str, default='/tmp/best-hyperparams', help='Local output path for the file containing the final tuned hyperparameters')
+  parser.add_argument('--training_image_output_path', type=str, default='/tmp/training-image', help='Local output path for the file containing the registry path of the Docker image that contains the training algorithm')
+  ### End outputs
+
   return parser
 
 def main(argv=None):
@@ -78,17 +85,11 @@ def main(argv=None):
 
   logging.info('HyperParameter Tuning Job completed.')
 
-  with open('/tmp/hpo_job_name.txt', 'w') as f:
-    f.write(hpo_job_name)
-  with open('/tmp/best_job_name.txt', 'w') as f:
-    f.write(best_job)
-  with open('/tmp/best_hyperparameters.txt', 'w') as f:
-    f.write(json.dumps(best_hyperparameters))
-  with open('/tmp/model_artifact_url.txt', 'w') as f:
-    f.write(model_artifact_url)
-  with open('/tmp/training_image.txt', 'w') as f:
-    f.write(image)
-
+  _utils.write_output(args.hpo_job_name_output_path, hpo_job_name)
+  _utils.write_output(args.model_artifact_url_output_path, model_artifact_url)
+  _utils.write_output(args.best_job_name_output_path, best_job)
+  _utils.write_output(args.best_hyperparameters_output_path, best_hyperparameters, json_encode=True)
+  _utils.write_output(args.training_image_output_path, image)
 
 if __name__== "__main__":
   main(sys.argv[1:])

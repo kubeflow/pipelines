@@ -15,7 +15,6 @@
 import kfp.dsl as dsl
 import kfp
 
-
 @kfp.components.create_component_from_func
 def print_op(s: str):
     print(s)
@@ -23,10 +22,11 @@ def print_op(s: str):
 @dsl.pipeline(name='my-pipeline')
 def pipeline():
     loop_args = [{'A_a': 1, 'B_b': 2}, {'A_a': 10, 'B_b': 20}]
-    with dsl.ParallelFor(loop_args, parallelism=10) as item:
-        print_op(item)
-        print_op(item.A_a)
-        print_op(item.B_b)
+    with dsl.Parallelism(parallelism=10):
+        with dsl.ParallelFor(loop_args) as item:
+            print_op(item)
+            print_op(item.A_a)
+            print_op(item.B_b)
 
 
 if __name__ == '__main__':

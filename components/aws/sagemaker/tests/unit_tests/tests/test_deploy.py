@@ -1,18 +1,16 @@
-import json
 import unittest
 
 from unittest.mock import patch, call, Mock, MagicMock, mock_open
 from botocore.exceptions import ClientError
-from datetime import datetime
 
 from deploy.src import deploy
 from common import _utils
-from . import test_utils
 
 
 required_args = [
   '--region', 'us-west-2',
-  '--model_name_1', 'model-test'
+  '--model_name_1', 'model-test',
+  '--endpoint_name_output_path', '/tmp/output'
 ]
 
 class DeployTestCase(unittest.TestCase):
@@ -32,20 +30,15 @@ class DeployTestCase(unittest.TestCase):
     # Set some static returns
     deploy._utils.deploy_model.return_value = 'test-endpoint-name'
 
-    with patch('builtins.open', mock_open()) as file_open:
-      deploy.main(required_args)
+    deploy.main(required_args)
 
     # Check if correct requests were created and triggered
     deploy._utils.deploy_model.assert_called()
     deploy._utils.wait_for_endpoint_creation.assert_called()
 
     # Check the file outputs
-    file_open.assert_has_calls([
-      call('/tmp/endpoint_name.txt', 'w')
-    ])
-
-    file_open().write.assert_has_calls([
-      call('test-endpoint-name')
+    deploy._utils.write_output.assert_has_calls([
+      call('/tmp/output', 'test-endpoint-name')
     ])
 
   def test_deploy_model(self):

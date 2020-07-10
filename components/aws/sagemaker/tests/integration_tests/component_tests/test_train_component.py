@@ -4,6 +4,7 @@ import utils
 from utils import kfp_client_utils
 from utils import minio_utils
 from utils import sagemaker_utils
+from utils import argo_utils
 
 
 @pytest.mark.parametrize(
@@ -51,7 +52,7 @@ def test_trainingjob(
 
     # Verify Training job was successful on SageMaker
     training_job_name = utils.read_from_file_in_tar(
-        output_files["sagemaker-training-job"]["job_name"], "job_name.txt"
+        output_files["sagemaker-training-job"]["job_name"]
     )
     print(f"training job name: {training_job_name}")
     train_response = sagemaker_utils.describe_training_job(
@@ -61,8 +62,7 @@ def test_trainingjob(
 
     # Verify model artifacts output was generated from this run
     model_artifact_url = utils.read_from_file_in_tar(
-        output_files["sagemaker-training-job"]["model_artifact_url"],
-        "model_artifact_url.txt",
+        output_files["sagemaker-training-job"]["model_artifact_url"]
     )
     print(f"model_artifact_url: {model_artifact_url}")
     assert model_artifact_url == train_response["ModelArtifacts"]["S3ModelArtifacts"]
@@ -70,12 +70,15 @@ def test_trainingjob(
 
     # Verify training image output is an ECR image
     training_image = utils.read_from_file_in_tar(
-        output_files["sagemaker-training-job"]["training_image"], "training_image.txt",
+        output_files["sagemaker-training-job"]["training_image"]
     )
     print(f"Training image used: {training_image}")
     if "ExpectedTrainingImage" in test_params.keys():
         assert test_params["ExpectedTrainingImage"] == training_image
     else:
         assert f"dkr.ecr.{region}.amazonaws.com" in training_image
+
+    assert not argo_utils.error_in_cw_logs(workflow_json["metadata"]["name"]), \
+        ('Found the CloudWatch error message in the log output. Check SageMaker to see if the job has failed.')
 
     utils.remove_dir(download_dir)
