@@ -184,7 +184,7 @@ properties:
     description: |-
       If you are deploying Kubeflow Pipelines with managed storage, specify the
       database name prefix. The prefix value must contain only lowercase
-      letters, numbers and underscore. Additionally, the prefix must start with a letter.
+      letters, numbers and underscores. Additionally, the prefix must start with a letter.
 
       During the deployment process, Kubeflow Pipelines creates two databases,
       "<prefix>_pipeline" and "<prefix>_metadata". If the prefix specified
