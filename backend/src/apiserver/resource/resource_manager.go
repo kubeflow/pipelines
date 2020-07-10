@@ -348,11 +348,6 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, runId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
 	workflow.SetAnnotations(util.AnnotationKeyRunName, apiRun.Name)
-	// Replace {{workflow.uid}} with runId
-	err = workflow.ReplaceUID(runId)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to replace workflow ID")
-	}
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.

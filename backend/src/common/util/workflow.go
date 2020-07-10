@@ -15,8 +15,6 @@
 package util
 
 import (
-	"strings"
-
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
@@ -238,17 +236,6 @@ func (w *Workflow) SetAnnotations(key string, value string) {
 		w.Annotations = make(map[string]string)
 	}
 	w.Annotations[key] = value
-}
-
-func (w *Workflow) ReplaceUID(id string) error {
-	newWorkflowString := strings.Replace(w.ToStringForStore(), "{{workflow.uid}}", id, -1)
-	var workflow *workflowapi.Workflow
-	if err := json.Unmarshal([]byte(newWorkflowString), &workflow); err != nil {
-		return NewInternalServerError(err,
-			"Failed to unmarshal workflow spec manifest. Workflow: %s", w.ToStringForStore())
-	}
-	w.Workflow = workflow
-	return nil
 }
 
 func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, index int64) {
