@@ -87,7 +87,7 @@ def test_create_endpoint(
         )
 
         output_endpoint_name = utils.read_from_file_in_tar(
-            output_files["sagemaker-deploy-model"]["endpoint_name"], "endpoint_name.txt"
+            output_files["sagemaker-deploy-model"]["endpoint_name"]
         )
         print(f"endpoint name: {output_endpoint_name}")
 

@@ -15,7 +15,6 @@
 import kfp.dsl as dsl
 import kfp
 
-
 @kfp.components.create_component_from_func
 def print_op(s: str):
     print(s)
