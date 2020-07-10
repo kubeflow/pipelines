@@ -200,12 +200,12 @@ class ComponentTest(SampleTest):
   def _injection(self):
     """Sample-specific image injection into yaml file."""
     subs = {
-        'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:\w+':self._local_confusionmatrix_image,
-        'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:\w+':self._local_roc_image
+        'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:(\w+|[.])+':self._local_confusionmatrix_image,
+        'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:(\w+|[.])+':self._local_roc_image
     }
     if self._test_name == 'xgboost_training_cm':
       subs.update({
-          'gcr\.io/ml-pipeline/ml-pipeline-gcp:\w+':self._dataproc_gcp_image
+          'gcr\.io/ml-pipeline/ml-pipeline-gcp:(\w|[.])+':self._dataproc_gcp_image
       })
 
       utils.file_injection('%s.py.yaml' % self._test_name,
