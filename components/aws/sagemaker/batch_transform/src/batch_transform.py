@@ -15,7 +15,6 @@ import argparse
 import logging
 import signal
 
-from pathlib2 import Path
 from common import _utils
 
 def create_parser():
