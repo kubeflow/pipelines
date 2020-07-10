@@ -662,7 +662,6 @@ class Compiler(object):
     # Restoring the name of the pipeline template
     pipeline_template = template_map[temp_pipeline_group_name]
     pipeline_template['name'] = pipeline_template_name
-
     templates.sort(key=lambda x: x['name'])
     workflow = {
       'apiVersion': 'argoproj.io/v1alpha1',
