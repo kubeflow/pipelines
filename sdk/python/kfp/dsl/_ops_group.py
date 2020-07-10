@@ -101,6 +101,7 @@ class OpsGroup(object):
     for sub_group in self.groups or []:
       sub_group.remove_op_recursive(op)
 
+
 class Parallelism(OpsGroup):
   TYPE_NAME = 'parallelism'
 
@@ -171,6 +172,7 @@ class Graph(OpsGroup):
     self.inputs = []
     self.outputs = {}
     self.dependencies = []
+
 
 class ParallelFor(OpsGroup):
   """Represents a parallel for loop over a static set of items.
