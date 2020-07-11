@@ -21,6 +21,7 @@ EKS_CLUSTER_VERSION=${EKS_CLUSTER_VERSION:-"1.15"} # EKS cluster K8s version
 EKS_NODE_COUNT=${EKS_NODE_COUNT:-"1"} # The initial node count of the EKS cluster
 EKS_PUBLIC_SUBNETS=${EKS_PUBLIC_SUBNETS:-""}
 EKS_PRIVATE_SUBNETS=${EKS_PRIVATE_SUBNETS:-""}
+SKIP_OIDC_SETUP=${SKIP_OIDC_SETUP:-"false"}
 
 ### Testing parameters
 MINIO_LOCAL_PORT=${MINIO_LOCAL_PORT:-9000}
@@ -91,7 +92,6 @@ function cleanup() {
   fi
 
   if [[ -z "${EKS_EXISTING_CLUSTER}" ]]; then
-    delete_generated_role
     delete_eks
   fi
 }
@@ -230,10 +230,16 @@ else
   wait
 fi
 
-generate_oidc_role_name
-"$cwd"/generate_iam_role ${EKS_CLUSTER_NAME} ${OIDC_ROLE_NAME} ${REGION} ${KFP_NAMESPACE} ${KFP_SERVICE_ACCOUNT}
+if [[ "${SKIP_OIDC_SETUP}" == "false" ]]; then
+  generate_oidc_role_name
+  "$cwd"/generate_iam_role ${EKS_CLUSTER_NAME} ${OIDC_ROLE_NAME} ${REGION} ${KFP_NAMESPACE} ${KFP_SERVICE_ACCOUNT}
+fi
+
 install_kfp
-install_oidc_role
+
+if [[ "${SKIP_OIDC_SETUP}" == "false" ]]; then
+  install_oidc_role
+fi
 
 generate_assumed_role
 
