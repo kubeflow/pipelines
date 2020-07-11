@@ -30,7 +30,6 @@ my_bucket_name = "my-bucket"
 # Common component inputs
 region = "us-east-1"
 instance_type = "ml.m5.2xlarge"
-max_run_time = 3600
 train_image = "382416733822.dkr.ecr.us-east-1.amazonaws.com/kmeans:1"
 train_input_mode = "File"
 train_output_location = f"s3://{my_bucket_name}/mnist_kmeans_example/output"
@@ -97,7 +96,6 @@ def mnist_classification(
         region=region,
         image="763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:1.5.0-cpu-py36-ubuntu16.04",
         instance_type=instance_type,
-        max_run_time=max_run_time,
         container_entrypoint=[
             "python",
             "/opt/ml/processing/code/kmeans_preprocessing.py",
@@ -152,7 +150,6 @@ def mnist_classification(
         instance_type=instance_type,
         max_num_jobs=3,
         max_parallel_jobs=2,
-        max_run_time=max_run_time,
         role=role_arn,
     ).after(process)
 
@@ -163,7 +160,6 @@ def mnist_classification(
         hyperparameters=hpo.outputs["best_hyperparameters"],
         channels=trainChannels,
         instance_type=instance_type,
-        max_run_time=max_run_time,
         model_artifact_path=train_output_location,
         role=role_arn,
     )
