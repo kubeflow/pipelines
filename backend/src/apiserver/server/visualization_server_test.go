@@ -155,7 +155,28 @@ func TestGenerateVisualization_ServiceNotAvailableError(t *testing.T) {
 	}
 	body, err := server.generateVisualizationFromRequest(request)
 	assert.Nil(t, body)
-	assert.Equal(t, "InternalServerError: Service not available: service not available", err.Error())
+	assert.Contains(t, err.Error(), "500 Internal Server Error")
+}
+
+func TestGenerateVisualization_ServiceHostNotExistError(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	nonExistingServerURL := "http://127.0.0.2:53484"
+	server := &VisualizationServer{
+		resourceManager: manager,
+		serviceURL:      nonExistingServerURL,
+	}
+	visualization := &go_client.Visualization{
+		Type:      go_client.Visualization_ROC_CURVE,
+		Source:    "gs://ml-pipeline/roc/data.csv",
+		Arguments: "{}",
+	}
+	request := &go_client.CreateVisualizationRequest{
+		Visualization: visualization,
+	}
+	body, err := server.generateVisualizationFromRequest(request)
+	assert.Nil(t, body)
+	assert.Contains(t, err.Error(), "Internal Error: the visualization server host not exist")
 }
 
 func TestGenerateVisualization_ServerError(t *testing.T) {
