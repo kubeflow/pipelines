@@ -80,8 +80,8 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 	serviceURL := s.getVisualizationServiceURL(request)
 	if !isVisualizationServiceAlive(serviceURL) {
 		return nil, util.NewInternalServerError(
-			fmt.Errorf("service not available"),
-			"Service not available",
+			fmt.Errorf("visualization server is not responsible"),
+			"Visualization server is not responsible",
 		)
 	}
 	visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
