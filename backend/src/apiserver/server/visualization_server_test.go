@@ -155,7 +155,7 @@ func TestGenerateVisualization_ServiceNotAvailableError(t *testing.T) {
 	}
 	body, err := server.generateVisualizationFromRequest(request)
 	assert.Nil(t, body)
-	assert.Equal(t, "InternalServerError: Service not available: service not available", err.Error())
+	assert.Contains(t, err.Error(), "Unable to verify visualization service is alive")
 }
 
 func TestGenerateVisualization_ServerError(t *testing.T) {

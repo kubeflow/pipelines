@@ -9,11 +9,11 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -78,11 +78,8 @@ func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_cli
 // It returns the generated HTML as a string and any error that is encountered.
 func (s *VisualizationServer) generateVisualizationFromRequest(request *go_client.CreateVisualizationRequest) ([]byte, error) {
 	serviceURL := s.getVisualizationServiceURL(request)
-	if !isVisualizationServiceAlive(serviceURL) {
-		return nil, util.NewInternalServerError(
-			fmt.Errorf("service not available"),
-			"Service not available",
-		)
+	if sig, err := isVisualizationServiceAlive(serviceURL); sig == false {
+		return nil, err
 	}
 	visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
 	urlValues := url.Values{
@@ -115,13 +112,12 @@ func (s *VisualizationServer) getVisualizationServiceURL(request *go_client.Crea
 	return s.serviceURL
 }
 
-func isVisualizationServiceAlive(serviceURL string) bool {
-	resp, err := http.Get(serviceURL)
-	if err != nil {
-		glog.Error("Unable to verify visualization service is alive!", err)
-		return false
+func isVisualizationServiceAlive(serviceURL string) (bool, error) {
+	resp, _ := http.Get(serviceURL)
+	if resp.StatusCode != http.StatusOK {
+		return false, errors.New(fmt.Sprintf("Unable to verify visualization service is alive by sending request to %s!", serviceURL))
 	}
-	return resp.StatusCode == http.StatusOK
+	return true, nil
 }
 
 func NewVisualizationServer(resourceManager *resource.ResourceManager, serviceHost string, servicePort string) *VisualizationServer {
