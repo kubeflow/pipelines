@@ -16,6 +16,7 @@ import logging
 
 from common import _utils
 
+
 def create_parser():
   parser = argparse.ArgumentParser(description='SageMaker Training Job')
   _utils.add_default_client_arguments(parser)
@@ -46,11 +47,10 @@ def create_parser():
   parser.add_argument('--update_endpoint', type=_utils.str_to_bool, required=False, help='If True, update endpoint if it exists else creates one', default=False)
   parser.add_argument('--endpoint_name_output_path', type=str, default='/tmp/endpoint-name', help='Local output path for the file containing the name of the created endpoint.')
 
-  return parser
 
 def main(argv=None):
-  parser = create_parser()
-  args = parser.parse_args(argv)
+    parser = create_parser()
+    args = parser.parse_args(argv)
 
   logging.getLogger().setLevel(logging.INFO)
   client = _utils.get_sagemaker_client(args.region, args.endpoint_url, assume_role_arn=args.assume_role)
@@ -80,5 +80,5 @@ def main(argv=None):
 
   logging.info('Endpoint creation/update completed.')
 
-if __name__== "__main__":
-  main(sys.argv[1:])
+if __name__ == "__main__":
+    main(sys.argv[1:])
