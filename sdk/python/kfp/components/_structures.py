@@ -80,6 +80,7 @@ class InputSpec(ModelBase):
         description: Optional[str] = None,
         default: Optional[PrimitiveTypes] = None,
         optional: Optional[bool] = False,
+        annotations: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(locals())
 
@@ -90,6 +91,7 @@ class OutputSpec(ModelBase):
         name: str,
         type: Optional[TypeSpecType] = None,
         description: Optional[str] = None,
+        annotations: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(locals())
 
@@ -588,6 +590,7 @@ class TaskSpec(ModelBase):
         arguments: Optional[Mapping[str, ArgumentType]] = None,
         is_enabled: Optional[PredicateType] = None,
         execution_options: Optional[ExecutionOptionsSpec] = None,
+        annotations: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(locals())
         #TODO: If component_ref is resolved to component spec, then check that the arguments correspond to the inputs

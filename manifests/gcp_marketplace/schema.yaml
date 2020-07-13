@@ -120,8 +120,8 @@ properties:
     description: |-
       Select this option to store pipeline artifacts and metadata using
       Cloud SQL and Cloud Storage. Otherwise, pipeline artifacts and metadata
-      are stored on Compute Engine persistent disks. 
-      
+      are stored on Compute Engine persistent disks.
+
       Cloud SQL and Cloud Storage provides better reliability and performance,
       as well as features such as data backup and usage monitoring.
       Using Cloud SQL and Cloud Storage is recommended for production
@@ -184,8 +184,8 @@ properties:
     description: |-
       If you are deploying Kubeflow Pipelines with managed storage, specify the
       database name prefix. The prefix value must contain only lowercase
-      letters, numbers, and hyphens, and the prefix must start with a letter.
-      
+      letters, numbers and underscores. Additionally, the prefix must start with a letter.
+
       During the deployment process, Kubeflow Pipelines creates two databases,
       "<prefix>_pipeline" and "<prefix>_metadata". If the prefix specified
       matches a previous deployment, this deployment will reuse the existing

@@ -991,6 +991,22 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
   import subprocess
   argo_path = shutil.which('argo')
   if argo_path:
+    has_working_argo_lint = False
+    try:
+      has_working_argo_lint = _run_argo_lint('')
+    except:
+      warnings.warn("Cannot validate the compiled workflow. Found the argo program in PATH, but it's not usable. argo v2.4.3 should work.")
+    
+    if has_working_argo_lint:
+      _run_argo_lint(yaml_text)
+
+
+def _run_argo_lint(yaml_text: str):
+  # Running Argo lint if available
+  import shutil
+  import subprocess
+  argo_path = shutil.which('argo')
+  if argo_path:
     result = subprocess.run([argo_path, 'lint', '/dev/stdin'], input=yaml_text.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode:
       raise RuntimeError(
@@ -998,3 +1014,5 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
 Error: {}'''.format(result.stderr.decode('utf-8'))
       )
+    return True
+  return False
