@@ -102,7 +102,7 @@ outputs:
   - {name: output_location,    description: 'S3 URI of the transform job results.'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.6.0
+    image: redbackthomson/aws-kubeflow-sagemaker:latest
     command: ['python3']
     args: [
       batch_transform.py,
