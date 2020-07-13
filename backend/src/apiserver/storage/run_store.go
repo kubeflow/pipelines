@@ -257,8 +257,8 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			&parameters,
 			&pipelineRuntimeManifest,
 			&workflowRuntimeManifest,
-			&metricsInString,
 			&resourceReferencesInString,
+			&metricsInString,
 		)
 		if err != nil {
 			glog.Errorf("Failed to scan row: %v", err)
