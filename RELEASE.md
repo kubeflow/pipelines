@@ -167,6 +167,7 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
     git checkout $BRANCH
     git pull upstream
     cd backend/api/python_http_client
+    rm -r dist
     python3 setup.py --quiet sdist
     python3 -m twine upload --username kubeflow-pipelines dist/*
     ```
