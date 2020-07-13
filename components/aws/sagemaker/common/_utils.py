@@ -75,7 +75,7 @@ def nullable_string_argument(value):
 def add_default_client_arguments(parser):
     parser.add_argument('--region', type=str, required=True, help='The region where the training job launches.')
     parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the SageMaker service.')
-    parser.add_argument('--assume_role', type=str, required=False, help='The ARN of an IAM role to assume when connecting to SageMaker.')
+    parser.add_argument('--assume_role', type=nullable_string_argument, required=False, help='The ARN of an IAM role to assume when connecting to SageMaker.')
 
 
 def get_component_version():
