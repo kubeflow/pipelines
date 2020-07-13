@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.0.0-rc.5](https://github.com/kubeflow/pipelines/compare/1.0.0-rc.4...1.0.0-rc.5) (2020-07-13)
+
+
+### Features
+
+* **sdk:** SDK - Components - Added annotations to InputSpec and OutputSpec ([\#4154](https://github.com/kubeflow/pipelines/issues/4154)) ([98fccca](https://github.com/kubeflow/pipelines/commit/98fcccacef2111f45666fb14aa6efc99314b54f2))
+* **sdk:** SDK - Components - Added annotations to TaskSpec ([\#4153](https://github.com/kubeflow/pipelines/issues/4153)) ([c439ec3](https://github.com/kubeflow/pipelines/commit/c439ec33b6d7c7cf0676acfbdb6d58e6d90a8c75))
+* **sdk:** SDK - Deprecation warning when using ContainerOp ([\#4166](https://github.com/kubeflow/pipelines/issues/4166)) ([ebd62ec](https://github.com/kubeflow/pipelines/commit/ebd62ec61c2e99f048e3ea4271519ca3275fa0a4))
+
+
+### Bug Fixes
+
+* **cache:** cache-deployer should check both secret and config ([\#4186](https://github.com/kubeflow/pipelines/issues/4186)) ([7b3654b](https://github.com/kubeflow/pipelines/commit/7b3654b6fdfdb27e20d2688bad6bd783fb349468))
+* **cache:** Fix cache deployer not regenerating secrets when secret not present ([\#4171](https://github.com/kubeflow/pipelines/issues/4171)) ([d727c91](https://github.com/kubeflow/pipelines/commit/d727c91bdf3398cd7c26ab7545eaaa096628dc4a))
+* **deployment:** fix database name prefix description ([\#4198](https://github.com/kubeflow/pipelines/issues/4198)) ([2ea1a1f](https://github.com/kubeflow/pipelines/commit/2ea1a1fc2a770827c3805151d785a3948607abb3))
+* **deployment:** gcp managed storage - add service account to minio and cloudsql proxy deployments for workload identity ([\#4188](https://github.com/kubeflow/pipelines/issues/4188)) ([bd7f3c9](https://github.com/kubeflow/pipelines/commit/bd7f3c9cd60144aef953db7aa2a4b17cec1cfa73))
+* **sdk:** fixes the default value for _is_refresh_token. Fixes [\#4189](https://github.com/kubeflow/pipelines/issues/4189) ([\#4195](https://github.com/kubeflow/pipelines/issues/4195)) ([be47d6d](https://github.com/kubeflow/pipelines/commit/be47d6d646961d2ee0f5c855a3cfc1c3d55fc903))
+
 ## [1.0.0-rc.4](https://github.com/kubeflow/pipelines/compare/1.0.0-rc.3...1.0.0-rc.4) (2020-07-08)
 
 

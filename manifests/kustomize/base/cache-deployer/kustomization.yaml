@@ -6,4 +6,4 @@ resources:
 - cache-deployer-deployment.yaml
 images:
 - name: gcr.io/ml-pipeline/cache-deployer
-  newTag: 1.0.0-rc.4
+  newTag: 1.0.0-rc.5
