@@ -40,7 +40,7 @@ outputs:
   - {name: workteam_arn, description: 'The ARN of the workteam.'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.5.3
+    image: redbackthomson/aws-kubeflow-sagemaker:latest
     command: ['python3']
     args: [
       workteam.py,
