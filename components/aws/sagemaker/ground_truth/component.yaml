@@ -110,6 +110,10 @@ inputs:
     description: 'The endpoint URL for the private link VPC endpoint.'
     default: ''
     type: String
+  - name: assume_role
+    description: 'The ARN of an IAM role to assume when connecting to SageMaker.'
+    default: ''
+    type: String
   - name: tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
@@ -125,6 +129,7 @@ implementation:
       ground_truth.py,
       --region, {inputValue: region},
       --endpoint_url, {inputValue: endpoint_url},
+      --assume_role, {inputValue: assume_role},
       --role, {inputValue: role},
       --job_name, {inputValue: job_name},
       --label_attribute_name, {inputValue: label_attribute_name},

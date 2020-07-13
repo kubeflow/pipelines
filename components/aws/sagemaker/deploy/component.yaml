@@ -88,6 +88,10 @@ inputs:
     description: 'The endpoint URL for the private link VPC endpoint.'
     default: ''
     type: String
+  - name: assume_role
+    description: 'The ARN of an IAM role to assume when connecting to SageMaker.'
+    default: ''
+    type: String
   - name: endpoint_config_tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
@@ -110,6 +114,7 @@ implementation:
       deploy.py,
       --region, {inputValue: region},
       --endpoint_url, {inputValue: endpoint_url},
+      --assume_role, {inputValue: assume_role},
       --endpoint_config_name, {inputValue: endpoint_config_name},
       --variant_name_1,{inputValue: variant_name_1},
       --model_name_1, {inputValue: model_name_1},
