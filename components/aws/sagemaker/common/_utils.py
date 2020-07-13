@@ -24,6 +24,7 @@ import json
 from pathlib2 import Path
 
 import boto3
+from boto3.session import Session
 import botocore
 from botocore.exceptions import ClientError
 from sagemaker.amazon.amazon_estimator import get_image_uri
@@ -33,6 +34,9 @@ logging.getLogger().setLevel(logging.INFO)
 
 # this error message is used in integration tests
 CW_ERROR_MESSAGE = 'Error in fetching CloudWatch logs for SageMaker job'
+
+# Name of session when user assumes a role
+ASSUME_SESSION_NAME_FORMAT = "kfp-sagemaker-assumed-role"
 
 # Mappings are extracted from the first table in https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html
 built_in_algos = {
@@ -71,6 +75,7 @@ def nullable_string_argument(value):
 def add_default_client_arguments(parser):
     parser.add_argument('--region', type=str, required=True, help='The region where the training job launches.')
     parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the SageMaker service.')
+    parser.add_argument('--assume_role', type=str, required=False, help='The ARN of an IAM role to assume when connecting to SageMaker.')
 
 
 def get_component_version():
@@ -113,17 +118,38 @@ def print_logs_for_job(cw_client, log_grp, job_name):
         logging.error(e)
 
 
-def get_sagemaker_client(region, endpoint_url=None):
+def get_boto3_session(region, role_arn=None):
+    """Creates a boto3 session, optionally assuming a role"""
+
+    # By default return a basic session
+    if role_arn is None:
+        return boto3
+
+    client = boto3.client("sts", region_name=region,
+                          endpoint_url='https://sts.' + region + '.amazonaws.com')
+    response = client.assume_role(RoleArn=role_arn, RoleSessionName=ASSUME_SESSION_NAME_FORMAT)
+
+    session = Session(
+        aws_access_key_id=response["Credentials"]["AccessKeyId"],
+        aws_secret_access_key=response["Credentials"]["SecretAccessKey"],
+        aws_session_token=response["Credentials"]["SessionToken"],
+        region_name=region
+    )
+    return session
+
+def get_sagemaker_client(region, endpoint_url=None, assume_role_arn=None):
     """Builds a client to the AWS SageMaker API."""
+    session = get_boto3_session(region, assume_role_arn)
     session_config = botocore.config.Config(
         user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(get_component_version())
     )
-    client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
+    client = session.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
     return client
 
 
-def get_cloudwatch_client(region):
-    client = boto3.client('logs', region_name=region)
+def get_cloudwatch_client(region, assume_role_arn=None):
+    session = get_boto3_session(region, assume_role_arn)
+    client = session.client('logs', region_name=region)
     return client
 
 
