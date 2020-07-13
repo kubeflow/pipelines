@@ -1,7 +1,6 @@
 name: Download from GCS
 inputs:
 - {name: GCS path, type: GCSPath}
-- {name: Recurse, type: Boolean, default: True}
 outputs:
 - {name: Data}
 implementation:
@@ -12,12 +11,10 @@ implementation:
         - -ex
         - -c
         - |
-            [ "$2" = False ] || cp_flags=-r
             if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
                 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
             fi
             mkdir -p "$1"
-            gsutil -m cp $cp_flags "$0" "$1"
+            gsutil -m cp -r "$0" "$1"
         - inputValue: GCS path
         - outputPath: Data
-        - inputValue: Recurse
