@@ -13,6 +13,7 @@
 # limitations under the License.
 import json
 
+import google.auth
 from fire import decorators
 from ._client import DataprocClient
 from kfp_component.core import KfpExecutionContext, display
@@ -75,7 +76,8 @@ def create_cluster(project_id, region, name=None, name_prefix=None,
 
 def _create_cluster_internal(project_id, region, cluster, name_prefix, 
     wait_interval):
-    client = DataprocClient()
+    credentials, project = google.auth.default()
+    client = DataprocClient(credentials)
     operation_name = None
     with KfpExecutionContext(
         on_cancel=lambda: client.cancel_operation(operation_name)) as ctx:
