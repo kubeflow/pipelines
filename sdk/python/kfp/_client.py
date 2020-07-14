@@ -12,26 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import time
-import logging
+import datetime
 import json
+import logging
 import os
 import re
 import tarfile
 import tempfile
+import time
 import warnings
-import yaml
 import zipfile
-import datetime
-from typing import Mapping, Callable
+from typing import Callable, Mapping
 
 import kfp
 import kfp_server_api
-
+import yaml
+from kfp._auth import get_auth_token, get_gcp_access_token
 from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
-
-from kfp._auth import get_auth_token, get_gcp_access_token
 
 # TTL of the access token associated with the client. This is needed because
 # `gcloud auth print-access-token` generates a token with TTL=1 hour, after
@@ -776,16 +774,26 @@ class Client(object):
     self,
     pipeline_package_path,
     pipeline_version_name: str,
-    pipeline_id: str,
+    pipeline_id: Optional[str],
+    pipeline_name: Optional[str]
   ):
     """Uploads a new version of the pipeline to the Kubeflow Pipelines cluster.
     Args:
       pipeline_package_path: Local path to the pipeline package.
       pipeline_version_name:  Name of the pipeline version to be shown in the UI.
-      pipeline_id: Id of the pipeline.
+      pipeline_id: Optional. Id of the pipeline.
+      pipeline_name: Optional. Name of the pipeline.
     Returns:
       Server response object containing pipleine id and other information.
+    Throws:
+      Exception if pipeline id is not found.
     """
+
+    if all([pipeline_id, pipeline_name]) or not any([pipeline_id, pipeline_name]):
+      raise ValueError('Either pipeline_id or pipeline_name is required')
+
+    if pipeline_name:
+      pipeline_id = self.get_pipeline_id(pipeline_name)
 
     response = self._upload_api.upload_pipeline_version(pipeline_package_path, name=pipeline_name, pipelineid=pipeline_id)
     if self._is_ipython():
