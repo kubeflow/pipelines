@@ -39,7 +39,15 @@ from kfp._auth import get_auth_token, get_gcp_access_token
 # initialized with host=<inverse proxy endpoint>.
 # Set to 55 mins to provide some safe margin.
 _GCP_ACCESS_TOKEN_TIMEOUT = datetime.timedelta(minutes=55)
-
+# Operators on scalar values. Only applies to one of |int_value|,
+# |long_value|, |string_value| or |timestamp_value|.
+_FILTER_OPERATIONS = {"UNKNOWN": 0,
+    "EQUALS" : 1,
+    "NOT_EQUALS" : 2,
+    "GREATER_THAN": 3,
+    "GREATER_THAN_EQUALS": 5,
+    "LESS_THAN": 6,
+    "LESS_THAN_EQUALS": 7}
 
 def _add_generated_apis(target_struct, api_module, api_client):
   '''Initializes a hierarchical API object based on the generated API module.
@@ -239,7 +247,7 @@ class Client(object):
       
   def _refresh_api_client_token(self):
     """Refreshes the existing token associated with the kfp_api_client."""
-    if getattr(self, '_is_refresh_token'):
+    if getattr(self, '_is_refresh_token', None):
       return
 
     new_token = get_gcp_access_token()
@@ -304,6 +312,29 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return experiment
 
+  def get_pipeline_id(self, name):
+    """Returns the pipeline id if a pipeline with the name exsists.
+    Args:
+      name: pipeline name
+    Returns:
+      A response object including a list of experiments and next page token.
+    """
+    pipeline_filter = json.dumps({
+      "predicates": [
+        {
+          "op":  _FILTER_OPERATIONS["EQUALS"],
+          "key": "name",
+          "stringValue": name,
+        }
+      ]
+    })
+    result = self._pipelines_api.list_pipelines(filter=pipeline_filter)
+    if len(result.pipelines)==1:
+      return result.pipelines[0].id
+    elif len(result.pipelines)>1:
+      raise ValueError("Multiple pipelines with the name: {} found, the name needs to be unique".format(name))
+    return None
+
   def list_experiments(self, page_token='', page_size=10, sort_by='', namespace=None):
     """List experiments.
     Args:
@@ -348,7 +379,7 @@ class Client(object):
     while next_page_token is not None:
       list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token, namespace=namespace)
       next_page_token = list_experiments_response.next_page_token
-      for experiment in list_experiments_response.experiments:
+      for experiment in list_experiments_response.experiments or []:
         if experiment.name == experiment_name:
           return self._experiment_api.get_experiment(id=experiment.id)
     raise ValueError('No experiment is found with name {}.'.format(experiment_name))

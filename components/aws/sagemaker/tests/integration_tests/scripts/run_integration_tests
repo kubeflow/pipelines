@@ -158,7 +158,8 @@ function delete_generated_role() {
 
 function cleanup_kfp() {
   # Clean up Minio
-  if [ ! -z "${MINIO_PID}" ]; then
+  if [[ ! -z "${MINIO_PID:-}" ]]; then
+    # If this fails, deleting the nodegroup later will clean it up anyway
     kill -9 $MINIO_PID || true
   fi
 }

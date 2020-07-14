@@ -960,6 +960,8 @@ class ContainerOp(BaseOp):
     # Excludes `file_outputs` and `outputs` as they are handled separately
     # in the compilation process to generate the DAGs and task io parameters.
 
+    _DISABLE_REUSABLE_COMPONENT_WARNING = False
+
     def __init__(
       self,
       name: str,
@@ -1010,6 +1012,19 @@ class ContainerOp(BaseOp):
         """
 
         super().__init__(name=name, init_containers=init_containers, sidecars=sidecars, is_exit_handler=is_exit_handler)
+
+        if not ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING and '--component_launcher_class_path' not in (arguments or []):
+            # The warning is suppressed for pipelines created using the TFX SDK.
+            warnings.warn(
+                "Please create reusable components instead of constructing ContainerOp instances directly."
+                " Reusable components are shareable, portable and have compatibility and support guarantees."
+                " Please see the documentation: https://www.kubeflow.org/docs/pipelines/sdk/component-development/#writing-your-component-definition-file"
+                " The components can be created manually (or, in case of python, using kfp.components.create_component_from_func or func_to_container_op)"
+                " and then loaded using kfp.components.load_component_from_file, load_component_from_uri or load_component_from_text: "
+                "https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.components.html#kfp.components.load_component_from_file",
+                category=DeprecationWarning,
+            )
+
         self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_arguments'] #Copying the BaseOp class variable!
 
         input_artifact_paths = {}

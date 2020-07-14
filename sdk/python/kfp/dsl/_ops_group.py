@@ -28,11 +28,12 @@ class OpsGroup(object):
   It is useful for implementing a compiler.
   """
 
-  def __init__(self, group_type: str, name: str=None):
+  def __init__(self, group_type: str, name: str=None, parallelism: int=None):
     """Create a new instance of OpsGroup.
     Args:
       group_type (str): one of 'pipeline', 'exit_handler', 'condition', 'for_loop', and 'graph'.
       name (str): name of the opsgroup
+      parallelism (int): parallelism for the sub-DAG:s
     """
     #TODO: declare the group_type to be strongly typed
     self.type = group_type
@@ -40,6 +41,7 @@ class OpsGroup(object):
     self.groups = list()
     self.name = name
     self.dependencies = []
+    self.parallelism = parallelism
     # recursive_ref points to the opsgroups with the same name if exists.
     self.recursive_ref = None
 
@@ -181,13 +183,14 @@ class ParallelFor(OpsGroup):
   def _get_unique_id_code():
     return uuid.uuid4().hex[:_for_loop.LoopArguments.NUM_CODE_CHARS]
 
-  def __init__(self, loop_args: Union[_for_loop.ItemList, _pipeline_param.PipelineParam]):
+  def __init__(self,  loop_args: Union[_for_loop.ItemList, _pipeline_param.PipelineParam],
+               parallelism: int=None):
     self.items_is_pipeline_param = isinstance(loop_args, _pipeline_param.PipelineParam)
 
     # use a random code to uniquely identify this loop
     code = self._get_unique_id_code()
     group_name = 'for-loop-{}'.format(code)
-    super().__init__(self.TYPE_NAME, name=group_name)
+    super().__init__(self.TYPE_NAME, name=group_name, parallelism=parallelism)
 
     if self.items_is_pipeline_param:
       loop_args = _for_loop.LoopArguments.from_pipeline_param(loop_args)
