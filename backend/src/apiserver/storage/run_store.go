@@ -214,19 +214,18 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 }
 
 func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.SelectBuilder) sq.SelectBuilder {
-	metricConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("m.Payload", ","), `"]"`}, "")
+	resourceRefConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("rr.Payload", ","), `"]"`}, "")
 	subQ := sq.
-		Select("rd.*", metricConcatQuery+" AS metrics").
+		Select("rd.*", resourceRefConcatQuery+" AS refs").
 		FromSelect(filteredSelectBuilder, "rd").
-		LeftJoin("run_metrics AS m ON rd.UUID=m.RunUUID").
+		LeftJoin("resource_references AS rr ON rr.ResourceType='Run' AND rd.UUID=rr.ResourceUUID").
 		GroupBy("rd.UUID")
 
-	resourceRefConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("r.Payload", ","), `"]"`}, "")
+	metricConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("rm.Payload", ","), `"]"`}, "")
 	return sq.
-		Select("subq.*", resourceRefConcatQuery+" AS refs").
+		Select("subq.*", metricConcatQuery+" AS metrics").
 		FromSelect(subQ, "subq").
-		// Append all the resource references for the run as a json column
-		LeftJoin("resource_references AS r ON r.ResourceType='Run' AND subq.UUID=r.ResourceUUID").
+		LeftJoin("run_metrics AS rm ON subq.UUID=rm.RunUUID").
 		GroupBy("subq.UUID")
 }
 
@@ -258,8 +257,8 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			&parameters,
 			&pipelineRuntimeManifest,
 			&workflowRuntimeManifest,
-			&metricsInString,
 			&resourceReferencesInString,
+			&metricsInString,
 		)
 		if err != nil {
 			glog.Errorf("Failed to scan row: %v", err)
