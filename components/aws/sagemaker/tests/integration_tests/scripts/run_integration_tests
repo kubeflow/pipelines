@@ -234,7 +234,7 @@ generate_assumed_role
 
 pytest_args=( --region "${REGION}" --role-arn "${SAGEMAKER_EXECUTION_ROLE_ARN}" \
   --s3-data-bucket "${S3_DATA_BUCKET}" --kfp-namespace "${KFP_NAMESPACE}" \
-  --minio-service-port "${MINIO_LOCAL_PORT}" --assumed-role-arn "${ASSUMED_ROLE_ARN}")
+  --minio-service-port "${MINIO_LOCAL_PORT}" --assume-role-arn "${ASSUMED_ROLE_ARN}")
 
 if [[ "${SKIP_FSX_TESTS}" == "true" ]]; then
   pytest_args+=( -m "not fsx_test" )

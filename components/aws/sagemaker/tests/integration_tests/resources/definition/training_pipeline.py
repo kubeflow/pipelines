@@ -26,6 +26,7 @@ def training_pipeline(
     checkpoint_config="{}",
     vpc_security_group_ids="",
     vpc_subnets="",
+    assume_role="",
     role="",
 ):
     sagemaker_train_op(
@@ -48,6 +49,7 @@ def training_pipeline(
         checkpoint_config=checkpoint_config,
         vpc_security_group_ids=vpc_security_group_ids,
         vpc_subnets=vpc_subnets,
+        assume_role=assume_role,
         role=role,
     )
 

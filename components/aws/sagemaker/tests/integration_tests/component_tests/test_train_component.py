@@ -11,14 +11,11 @@ from utils import argo_utils
     "test_file_dir",
     [
         pytest.param(
-            "resources/config/simple-mnist-training",
-            marks=pytest.mark.canary_test
+            "resources/config/simple-mnist-training", marks=pytest.mark.canary_test
         ),
-        pytest.param(
-            "resources/config/fsx-mnist-training",
-            marks=pytest.mark.fsx_test
-        ),
-        "resources/config/spot-sample-pipeline-training"
+        pytest.param("resources/config/fsx-mnist-training", marks=pytest.mark.fsx_test),
+        "resources/config/spot-sample-pipeline-training",
+        "resources/config/assume-role-training",
     ],
 )
 def test_trainingjob(
@@ -78,7 +75,8 @@ def test_trainingjob(
     else:
         assert f"dkr.ecr.{region}.amazonaws.com" in training_image
 
-    assert not argo_utils.error_in_cw_logs(workflow_json["metadata"]["name"]), \
-        ('Found the CloudWatch error message in the log output. Check SageMaker to see if the job has failed.')
+    assert not argo_utils.error_in_cw_logs(
+        workflow_json["metadata"]["name"]
+    ), "Found the CloudWatch error message in the log output. Check SageMaker to see if the job has failed."
 
     utils.remove_dir(download_dir)
