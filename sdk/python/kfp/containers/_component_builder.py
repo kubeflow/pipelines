@@ -170,8 +170,7 @@ def _configure_logger(logger):
 
 @deprecated(version='0.1.32', reason='`build_python_component` is deprecated. Use `kfp.containers.build_image_from_working_dir` + `kfp.components.func_to_container_op` instead.')
 def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, timeout=600, namespace=None, target_component_file=None, python_version='python3'):
-  """ build_component automatically builds a container image for the component_func
-  based on the base_image and pushes to the target_image.
+  """build_component automatically builds a container image for the component_func based on the base_image and pushes to the target_image.
 
   Args:
     component_func (python function): The python function to build components upon
@@ -184,6 +183,7 @@ def build_python_component(component_func, target_image, base_image=None, depend
     job is running on GKE and value is None the underlying functions will use the default namespace from GKE.  .
     dependency (list): a list of VersionedDependency, which includes the package name and versions, default is empty
     python_version (str): choose python2 or python3, default is python3
+
   Raises:
     ValueError: The function is not decorated with python_component decorator or the python_version is neither python2 nor python3
   """
@@ -271,7 +271,7 @@ def build_python_component(component_func, target_image, base_image=None, depend
 
 @deprecated(version='0.1.32', reason='`build_docker_image` is deprecated. Use `kfp.containers.build_image_from_working_dir` instead.')
 def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace=None):
-  """ build_docker_image automatically builds a container image based on the specification in the dockerfile and
+  """build_docker_image automatically builds a container image based on the specification in the dockerfile and
   pushes to the target_image.
 
   Args:
