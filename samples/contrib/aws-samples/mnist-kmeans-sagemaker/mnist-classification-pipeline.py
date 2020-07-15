@@ -31,7 +31,6 @@ my_bucket_name = "my-bucket"
 region = "us-east-1"
 instance_type = "ml.m5.2xlarge"
 train_image = "382416733822.dkr.ecr.us-east-1.amazonaws.com/kmeans:1"
-train_input_mode = "File"
 train_output_location = f"s3://{my_bucket_name}/mnist_kmeans_example/output"
 
 
@@ -43,7 +42,6 @@ def processing_input(input_name, s3_uri, local_path):
             "LocalPath": local_path,
             "S3DataType": "S3Prefix",
             "S3InputMode": "File",
-            "S3CompressionType": "None",
         },
     }
 
@@ -62,16 +60,7 @@ def processing_output(output_name, s3_uri, local_path):
 def training_input(input_name, s3_uri):
     return {
         "ChannelName": input_name,
-        "DataSource": {
-            "S3DataSource": {
-                "S3Uri": s3_uri,
-                "S3DataType": "S3Prefix",
-                "S3DataDistributionType": "FullyReplicated",
-            }
-        },
-        "CompressionType": "None",
-        "RecordWrapperType": "None",
-        "InputMode": "File",
+        "DataSource": {"S3DataSource": {"S3Uri": s3_uri, "S3DataType": "S3Prefix"}},
     }
 
 
@@ -88,9 +77,7 @@ trainChannels = [
     name="MNIST Classification pipeline",
     description="MNIST Classification using KMEANS in SageMaker",
 )
-def mnist_classification(
-    role_arn="",
-):
+def mnist_classification(role_arn=""):
     process = sagemaker_process_op(
         role=role_arn,
         region=region,
@@ -134,7 +121,6 @@ def mnist_classification(
     hpo = sagemaker_hpo_op(
         region=region,
         image=train_image,
-        training_input_mode=train_input_mode,
         metric_name="test:msd",
         metric_type="Minimize",
         static_parameters={"k": "10", "feature_dim": "784"},
@@ -156,7 +142,6 @@ def mnist_classification(
     training = sagemaker_train_op(
         region=region,
         image=train_image,
-        training_input_mode=train_input_mode,
         hyperparameters=hpo.outputs["best_hyperparameters"],
         channels=trainChannels,
         instance_type=instance_type,
