@@ -72,14 +72,17 @@ class UtilsTestCase(unittest.TestCase):
         with patch("common._utils.boto3", MagicMock()) as mock_boto3:
             returned_session = _utils.get_boto3_session("us-east-1")
 
-        assert returned_session == mock_boto3
+        assert isinstance(returned_session, Session)
         mock_boto3.assert_not_called()
 
+    @patch("common._utils.RefreshableCredentials", MagicMock())
+    @patch("common._utils.get_session", MagicMock())
     def test_assume_role_boto3_session(self):
         with patch("common._utils.boto3", MagicMock()) as mock_boto3:
             returned_session = _utils.get_boto3_session("us-east-1", role_arn="abc123")
 
         # Should not be the default boto3 client
+        assert isinstance(returned_session, Session)
         assert returned_session != mock_boto3
 
         mock_boto3.client.assert_called_once_with("sts", region_name="us-east-1", endpoint_url="https://sts.us-east-1.amazonaws.com")

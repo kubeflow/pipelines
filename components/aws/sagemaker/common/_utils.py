@@ -25,8 +25,12 @@ from pathlib2 import Path
 
 import boto3
 from boto3.session import Session
-import botocore
+
+from botocore.config import Config
+from botocore.credentials import RefreshableCredentials
 from botocore.exceptions import ClientError
+from botocore.session import get_session
+
 from sagemaker.amazon.amazon_estimator import get_image_uri
 
 import logging
@@ -123,24 +127,35 @@ def get_boto3_session(region, role_arn=None):
 
     # By default return a basic session
     if role_arn is None:
-        return boto3
+        return Session()
 
-    client = boto3.client("sts", region_name=region,
-                          endpoint_url='https://sts.' + region + '.amazonaws.com')
-    response = client.assume_role(RoleArn=role_arn, RoleSessionName=ASSUME_SESSION_NAME_FORMAT)
+    def refresh():
+        client = boto3.client("sts", region_name=region,
+                                endpoint_url='https://sts.' + region + '.amazonaws.com')
+        response = client.assume_role(RoleArn=role_arn, RoleSessionName=ASSUME_SESSION_NAME_FORMAT).get("Credentials")
+        return dict(
+            access_key=response.get("AccessKeyId"),
+            secret_key=response.get("SecretAccessKey"),
+            token=response.get("SessionToken"),
+            expiry_time=response.get("Expiration").isoformat()
+        )
 
-    session = Session(
-        aws_access_key_id=response["Credentials"]["AccessKeyId"],
-        aws_secret_access_key=response["Credentials"]["SecretAccessKey"],
-        aws_session_token=response["Credentials"]["SessionToken"],
-        region_name=region
+    session_credentials = RefreshableCredentials.create_from_metadata(
+        metadata=refresh(),
+        refresh_using=refresh,
+        method='sts-assume-role'
     )
-    return session
+
+    current_session = get_session()
+    # Must modify this internally, no clean way to set this otherwise
+    current_session._credentials = session_credentials
+    current_session.set_config_variable('region', region)
+    return Session(botocore_session=current_session)
 
 def get_sagemaker_client(region, endpoint_url=None, assume_role_arn=None):
     """Builds a client to the AWS SageMaker API."""
     session = get_boto3_session(region, assume_role_arn)
-    session_config = botocore.config.Config(
+    session_config = Config(
         user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(get_component_version())
     )
     client = session.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
