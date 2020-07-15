@@ -14,4 +14,4 @@ COPY . /app/
 
 WORKDIR /app/components/aws/sagemaker/tests/unit_tests/
 
-ENTRYPOINT [ "bash", "./run_all_tests.sh" ]
+ENTRYPOINT [ "bash", "./run_automated_test.sh" ]
