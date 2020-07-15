@@ -189,9 +189,11 @@ function generate_assumed_role() {
 }
 
 function delete_assumed_role() {
-  # Delete the role associated with the cluster thats being deleted
-  aws iam detach-role-policy --role-name "${ASSUMED_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
-  aws iam delete-role --role-name "${ASSUMED_ROLE_NAME}"
+  if [[ ! -z "${ASSUMED_ROLE_NAME}" ]]; then
+    # Delete the role associated with the cluster thats being deleted
+    aws iam detach-role-policy --role-name "${ASSUMED_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+    aws iam delete-role --role-name "${ASSUMED_ROLE_NAME}"
+  fi
 }
 
 function cleanup_kfp() {
