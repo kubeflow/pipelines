@@ -64,6 +64,8 @@ matrix:
         - cd $TRAVIS_BUILD_DIR/tfx
         - pip3 install --upgrade pip
         - pip3 install --upgrade 'numpy>=1.16,<1.17'
+        # Specify transitive dependency to get around: https://github.com/pypa/pip/issues/8583
+        - pip3 install --upgrade 'google-auth>=1.18.0'
         - set -x
         - set -e
         - python3 setup.py bdist_wheel
