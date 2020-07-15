@@ -13,6 +13,7 @@
 # limitations under the License.
 
 __all__ = [
+    'ComponentSpec',
     'create_component_from_func',
     'func_to_container_op',
     'func_to_component_text',
@@ -42,40 +43,37 @@ T = TypeVar('T')
 # InputPath(list) or InputPath('JsonObject')
 
 class InputPath:
-    '''When creating component from function, InputPath should be used as function parameter annotation to tell the system to pass the *data file path* to the function instead of passing the actual data.'''
+    '''When creating component from function, :code:`InputPath` should be used as function parameter annotation to tell the system to pass the *data file path* to the function instead of passing the actual data.'''
     def __init__(self, type=None):
         self.type = type
 
 
 class InputTextFile:
-    '''When creating component from function, InputTextFile should be used as function parameter annotation to tell the system to pass the *text data stream* object (`io.TextIOWrapper`) to the function instead of passing the actual data.'''
+    '''When creating component from function, :code:`InputTextFile` should be used as function parameter annotation to tell the system to pass the *text data stream* object (`io.TextIOWrapper`) to the function instead of passing the actual data.'''
     def __init__(self, type=None):
         self.type = type
 
 
 class InputBinaryFile:
-    '''When creating component from function, InputBinaryFile should be used as function parameter annotation to tell the system to pass the *binary data stream* object (`io.BytesIO`) to the function instead of passing the actual data.'''
+    '''When creating component from function, :code:`InputBinaryFile` should be used as function parameter annotation to tell the system to pass the *binary data stream* object (`io.BytesIO`) to the function instead of passing the actual data.'''
     def __init__(self, type=None):
         self.type = type
 
 
-#OutputFile[GcsPath[Gzipped[Text]]]
-
-
 class OutputPath:
-    '''When creating component from function, OutputPath should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a file with the given path instead of returning the data from the function.'''
+    '''When creating component from function, :code:`OutputPath` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a file with the given path instead of returning the data from the function.'''
     def __init__(self, type=None):
         self.type = type
 
 
 class OutputTextFile:
-    '''When creating component from function, OutputTextFile should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given text file stream (`io.TextIOWrapper`) instead of returning the data from the function.'''
+    '''When creating component from function, :code:`OutputTextFile` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given text file stream (`io.TextIOWrapper`) instead of returning the data from the function.'''
     def __init__(self, type=None):
         self.type = type
 
 
 class OutputBinaryFile:
-    '''When creating component from function, OutputBinaryFile should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given binary file stream (`io.BytesIO`) instead of returning the data from the function.'''
+    '''When creating component from function, :code:`OutputBinaryFile` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given binary file stream (:code:`io.BytesIO`) instead of returning the data from the function.'''
     def __init__(self, type=None):
         self.type = type
 
@@ -405,7 +403,7 @@ def _extract_component_interface(func) -> ComponentSpec:
 
 
 def _func_to_component_spec(func, extra_code='', base_image : str = None, packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False) -> ComponentSpec:
-    '''Takes a self-contained python function and converts it to component
+    '''Takes a self-contained python function and converts it to component.
 
     Args:
         func: Required. The function to be converted
@@ -415,6 +413,9 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
         packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
+
+    Returns:
+        A :py:class:`kfp.components.ComponentSpec` instance.
     '''
     decorator_base_image = getattr(func, '_component_base_image', None)
     if decorator_base_image is not None:
@@ -650,11 +651,10 @@ def _func_to_component_dict(func, extra_code='', base_image: str = None, package
 
 
 def func_to_component_text(func, extra_code='', base_image: str = None, packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False):
-    '''
-    Converts a Python function to a component definition and returns its textual representation
+    '''Converts a Python function to a component definition and returns its textual representation.
 
-    Function docstring is used as component description.
-    Argument and return annotations are used as component input/output types.
+    Function docstring is used as component description. Argument and return annotations are used as component input/output types.
+
     To declare a function with multiple return values, use the NamedTuple return annotation syntax::
 
         from typing import NamedTuple
@@ -685,11 +685,10 @@ def func_to_component_text(func, extra_code='', base_image: str = None, packages
 
 
 def func_to_component_file(func, output_component_file, base_image: str = None, extra_code='', packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False) -> None:
-    '''
-    Converts a Python function to a component definition and writes it to a file
+    '''Converts a Python function to a component definition and writes it to a file.
 
-    Function docstring is used as component description.
-    Argument and return annotations are used as component input/output types.
+    Function docstring is used as component description. Argument and return annotations are used as component input/output types.
+
     To declare a function with multiple return values, use the NamedTuple return annotation syntax::
 
         from typing import NamedTuple
@@ -720,12 +719,11 @@ def func_to_component_file(func, output_component_file, base_image: str = None, 
 
 
 def func_to_container_op(func, output_component_file=None, base_image: str = None, extra_code='', packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False):
-    '''
-    Converts a Python function to a component and returns a task (:py:class:`kfp.dsl.ContainerOp`) factory
+    '''Converts a Python function to a component and returns a task (:py:class:`kfp.dsl.ContainerOp`) factory.
 
-    Function docstring is used as component description.
-    Argument and return annotations are used as component input/output types.
-    To declare a function with multiple return values, use the NamedTuple return annotation syntax::
+    Function docstring is used as component description. Argument and return annotations are used as component input/output types.
+
+    To declare a function with multiple return values, use the :code:`NamedTuple` return annotation syntax::
 
         from typing import NamedTuple
         def add_multiply_two_numbers(a: float, b: float) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):
@@ -774,92 +772,90 @@ def create_component_from_func(
     Args:
         func: The python function to convert
         base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is the python image corresponding to the current python environment.
-        output_component_file: Optional. Write a component definition to a local file. The produced component file can be loaded back by calling `load_component_from_file` or :code:`load_component_from_uri`.
+        output_component_file: Optional. Write a component definition to a local file. The produced component file can be loaded back by calling :code:`load_component_from_file` or :code:`load_component_from_uri`.
         packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
 
     Returns:
         A factory function with a strongly-typed signature taken from the python function.
         Once called with the required arguments, the factory constructs a task instance that can run the original function in a container.
 
-    Function name and docstring are used as component name and description.
-    Argument and return annotations are used as component input/output types.
+    Examples:
+        The function name and docstring are used as component name and description. Argument and return annotations are used as component input/output types::
 
-    Examples::
+            def add(a: float, b: float) -> float:
+                """Returns sum of two arguments"""
+                return a + b
 
-        def add(a: float, b: float) -> float:
-            """Returns sum of two arguments"""
-            return a + b
+            # add_op is a task factory function that creates a task object when given arguments
+            add_op = create_component_from_func(
+                func=add,
+                base_image='python:3.7', # Optional
+                output_component_file='add.component.yaml', # Optional
+                packages_to_install=['pandas==0.24'], # Optional
+            )
 
-        # add_op is a task factory function that creates a task object when given arguments
-        add_op = create_component_from_func(
-            func=add,
-            base_image='python:3.7', # Optional
-            output_component_file='add.component.yaml', # Optional
-            packages_to_install=['pandas==0.24'], # Optional
-        )
+            # The component spec can be accessed through the .component_spec attribute:
+            add_op.component_spec.save('add.component.yaml')
 
-        # The component spec can be accessed through the .component_spec attribute:
-        add_op.component_spec.save('add.component.yaml')
+            # The component function can be called with arguments to create a task:
+            add_task = add_op(1, 3)
 
-        # The component function can be called with arguments to create a task:
-        add_task = add_op(1, 3)
+            # The resulting task has output references, corresponding to the component outputs.
+            # When the function only has a single anonymous return value, the output name is "Output":
+            sum_output_ref = add_task.outputs['Output']
 
-        # The resulting task has output references, corresponding to the component outputs.
-        # When the function only has a single anonymous return value, the output name is "Output":
-        sum_output_ref = add_task.outputs['Output']
-
-        # These task output references can be passed to other component functions, constructing a computation graph:
-        task2 = add_op(sum_output_ref, 5)
+            # These task output references can be passed to other component functions, constructing a computation graph:
+            task2 = add_op(sum_output_ref, 5)
 
 
-    `create_component_from_func` function can also be used as decorator::
+        :code:`create_component_from_func` function can also be used as decorator::
 
-        @create_component_from_func
-        def add_op(a: float, b: float) -> float:
-            """Returns sum of two arguments"""
-            return a + b
+            @create_component_from_func
+            def add_op(a: float, b: float) -> float:
+                """Returns sum of two arguments"""
+                return a + b
 
-    To declare a function with multiple return values, use the NamedTuple return annotation syntax::
+        To declare a function with multiple return values, use the :code:`NamedTuple` return annotation syntax::
 
-        from typing import NamedTuple
+            from typing import NamedTuple
 
-        def add_multiply_two_numbers(a: float, b: float) -> NamedTuple('Outputs', [('sum', float), ('product', float)]):
-            """Returns sum and product of two arguments"""
-            return (a + b, a * b)
+            def add_multiply_two_numbers(a: float, b: float) -> NamedTuple('Outputs', [('sum', float), ('product', float)]):
+                """Returns sum and product of two arguments"""
+                return (a + b, a * b)
 
-        add_multiply_op = create_component_from_func(add_multiply_two_numbers)
+            add_multiply_op = create_component_from_func(add_multiply_two_numbers)
 
-        # The component function can be called with arguments to create a task:
-        add_multiply_task = add_multiply_op(1, 3)
+            # The component function can be called with arguments to create a task:
+            add_multiply_task = add_multiply_op(1, 3)
 
-        # The resulting task has output references, corresponding to the component outputs:
-        sum_output_ref = add_multiply_task.outputs['sum']
+            # The resulting task has output references, corresponding to the component outputs:
+            sum_output_ref = add_multiply_task.outputs['sum']
 
-        # These task output references can be passed to other component functions, constructing a computation graph:
-        task2 = add_multiply_op(sum_output_ref, 5)
+            # These task output references can be passed to other component functions, constructing a computation graph:
+            task2 = add_multiply_op(sum_output_ref, 5)
 
+        Bigger data should be read from files and written to files.
+        Use the :py:class:`kfp.components.InputPath` parameter annotation to tell the system that the function wants to consume the corresponding input data as a file. The system will download the data, write it to a local file and then pass the **path** of that file to the function.
+        Use the :py:class:`kfp.components.OutputPath` parameter annotation to tell the system that the function wants to produce the corresponding output data as a file. The system will prepare and pass the **path** of a file where the function should write the output data. After the function exits, the system will upload the data to the storage system so that it can be passed to downstream components.
 
-    Bigger data should be read from files and written to files.
-    Use the `InputPath` parameter annotation to tell the system that the function wants to consume the corresponding input data as a file. The system will download the data, write it to a local file and then pass the **path** of that file to the function.
-    Use the `OutputPath` parameter annotation to tell the system that the function wants to produce the corresponding output data as a file. The system will prepare and pass the **path** of a file where the function should write the output data. After the function exits, the system will upload the data to the storage system so that it can be passed to downstream components.
-    You can specify the type of the consumed/produced data by specifying the type argument to `InputPath` and `OutputPath`. The type can be a python type or an arbitrary type name string. `OutputPath('CatBoostModel')` means that the function states that the data it has written to a file has type 'CatBoostModel'. `InputPath('CatBoostModel')` means that the function states that it expect the data it reads from a file to have type 'CatBoostModel'. When the pipeline author connects inputs to outputs the system checks whether the types match.
-    Every kind of data can be consumed as a file input. Conversely, bigger data should not be consumed by value as all value inputs pass through the command line.
+        You can specify the type of the consumed/produced data by specifying the type argument to :py:class:`kfp.components.InputPath` and :py:class:`kfp.components.OutputPath`. The type can be a python type or an arbitrary type name string. :code:`OutputPath('CatBoostModel')` means that the function states that the data it has written to a file has type :code:`CatBoostModel`. :code:`InputPath('CatBoostModel')` means that the function states that it expect the data it reads from a file to have type 'CatBoostModel'. When the pipeline author connects inputs to outputs the system checks whether the types match.
+        Every kind of data can be consumed as a file input. Conversely, bigger data should not be consumed by value as all value inputs pass through the command line.
 
-    Example of a component function declaring file input and output::
+        Example of a component function declaring file input and output::
 
-        def catboost_train_classifier(
-            training_data_path: InputPath('CSV'),            # Path to input data file of type "CSV"
-            trained_model_path: OutputPath('CatBoostModel'), # Path to output data file of type "CatBoostModel"
-            number_of_trees: int = 100,                      # Small output of type "Integer"
-        ) -> NamedTuple('Outputs', [
-            ('Accuracy', float),  # Small output of type "Float"
-            ('Precision', float), # Small output of type "Float"
-            ('JobUri', 'URI'),    # Small output of type "URI"
-        ]):
-            """Trains CatBoost classification model"""
-            ...
+            def catboost_train_classifier(
+                training_data_path: InputPath('CSV'),            # Path to input data file of type "CSV"
+                trained_model_path: OutputPath('CatBoostModel'), # Path to output data file of type "CatBoostModel"
+                number_of_trees: int = 100,                      # Small output of type "Integer"
+            ) -> NamedTuple('Outputs', [
+                ('Accuracy', float),  # Small output of type "Float"
+                ('Precision', float), # Small output of type "Float"
+                ('JobUri', 'URI'),    # Small output of type "URI"
+            ]):
+                """Trains CatBoost classification model"""
+                ...
 
-            return (accuracy, precision, recall)
+                return (accuracy, precision, recall)
     '''
 
     component_spec = _func_to_component_spec(
