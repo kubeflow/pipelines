@@ -30,6 +30,7 @@ class OpsGroup(object):
 
   def __init__(self, group_type: str, name: str=None, parallelism: int=None):
     """Create a new instance of OpsGroup.
+
     Args:
       group_type (str): one of 'pipeline', 'exit_handler', 'condition', 'for_loop', and 'graph'.
       name (str): name of the opsgroup
@@ -50,11 +51,13 @@ class OpsGroup(object):
 
   @staticmethod
   def _get_matching_opsgroup_already_in_pipeline(group_type, name):
-    """retrieves the opsgroup when the pipeline already contains it.
+    """Retrieves the opsgroup when the pipeline already contains it.
     the opsgroup might be already in the pipeline in case of recursive calls.
+  
     Args:
       group_type (str): one of 'pipeline', 'exit_handler', 'condition', and 'graph'.
-      name (str): the name before conversion. """
+      name (str): the name before conversion.
+    """
     if not _pipeline.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
     if name is None:
@@ -104,23 +107,22 @@ class OpsGroup(object):
 class ExitHandler(OpsGroup):
   """Represents an exit handler that is invoked upon exiting a group of ops.
 
-  Example usage:
-  ```python
-  exit_op = ContainerOp(...)
-  with ExitHandler(exit_op):
-    op1 = ContainerOp(...)
-    op2 = ContainerOp(...)
-  ```
+  Args:
+    exit_op: An operator invoked at exiting a group of ops.
+
+  Raises:
+    ValueError: Raised if the exit_op is invalid.
+
+  Example:
+    ::
+
+      exit_op = ContainerOp(...)
+      with ExitHandler(exit_op):
+        op1 = ContainerOp(...)
+        op2 = ContainerOp(...)
   """
 
   def __init__(self, exit_op: _container_op.ContainerOp):
-    """Create a new instance of ExitHandler.
-    Args:
-      exit_op: an operator invoked at exiting a group of ops.
-
-    Raises:
-      ValueError is the exit_op is invalid.
-    """
     super(ExitHandler, self).__init__('exit_handler')
     if exit_op.dependent_names:
       raise ValueError('exit_op cannot depend on any other ops.')
@@ -137,20 +139,19 @@ class ExitHandler(OpsGroup):
 class Condition(OpsGroup):
   """Represents an condition group with a condition.
 
-  Example usage:
-  ```python
-  with Condition(param1=='pizza', '[param1 is pizza]'):
-    op1 = ContainerOp(...)
-    op2 = ContainerOp(...)
-  ```
+  Args:
+    condition (ConditionOperator): the condition.
+    name (str): name of the condition
+
+  Example:
+    ::
+
+      with Condition(param1=='pizza', '[param1 is pizza]'):
+        op1 = ContainerOp(...)
+        op2 = ContainerOp(...)
   """
 
   def __init__(self, condition, name = None):
-    """Create a new instance of Condition.
-    Args:
-      condition (ConditionOperator): the condition.
-      name (str): name of the condition
-    """
     super(Condition, self).__init__('condition', name)
     self.condition = condition
 
@@ -158,6 +159,9 @@ class Condition(OpsGroup):
 class Graph(OpsGroup):
   """Graph DAG with inputs, recursive_inputs, and outputs.
   This is not used directly by the users but auto generated when the graph_component decoration exists
+
+  Args:
+    name: Name of the graph.
   """
   def __init__(self, name):
     super(Graph, self).__init__(group_type='graph', name=name)
@@ -169,13 +173,12 @@ class Graph(OpsGroup):
 class ParallelFor(OpsGroup):
   """Represents a parallel for loop over a static set of items.
 
-  Example usage:
-  ```python
-  with dsl.ParallelFor([{'a': 1, 'b': 10}, {'a': 2, 'b': 20}]) as item:
-    op1 = ContainerOp(..., args=['echo {}'.format(item.a)])
-    op2 = ContainerOp(..., args=['echo {}'.format(item.b])
-  ```
-  and op1 would be executed twice, once with args=['echo 1'] and once with args=['echo 2']
+  Example:
+    In this case :code:`op1` would be executed twice, once with case :code:`args=['echo 1']` and once with case :code:`args=['echo 2']`::
+
+      with dsl.ParallelFor([{'a': 1, 'b': 10}, {'a': 2, 'b': 20}]) as item:
+        op1 = ContainerOp(..., args=['echo {}'.format(item.a)])
+        op2 = ContainerOp(..., args=['echo {}'.format(item.b])
   """
   TYPE_NAME = 'for_loop'
 

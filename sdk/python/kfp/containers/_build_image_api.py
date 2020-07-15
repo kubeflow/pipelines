@@ -89,7 +89,7 @@ def build_image_from_working_dir(image_name: str = None, working_dir: str = None
           * For clusters installed with Kubeflow >= 0.7, use :code:`ContainerBuilder(namespace='<your-user-namespace>', service_account='default-editor', ...)`. You can omit the namespace if you use kfp sdk from in-cluster notebook, it uses notebook namespace by default.
           * For clusters installed with Kubeflow < 0.7, use :code:`ContainerBuilder(service_account='default', ...)`.
           * For clusters installed using Google Cloud Marketplace or Standalone with version <= 0.4.0, use :code:`ContainerBuilder(namespace='<your-kfp-namespace>' service_account='default')`
-            You may refer to `installation guide <https://www.kubeflow.org/docs/pipelines/installation/overview/>` for more details about different installation options.
+            You may refer to `installation guide <https://www.kubeflow.org/docs/pipelines/installation/overview/>`_ for more details about different installation options.
 
     Returns:
         The full name of the container image including the hash digest. E.g. :code:`gcr.io/my-org/my-image@sha256:86c1...793c`.
