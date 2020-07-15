@@ -721,7 +721,7 @@ def func_to_component_file(func, output_component_file, base_image: str = None, 
 
 def func_to_container_op(func, output_component_file=None, base_image: str = None, extra_code='', packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False):
     '''
-    Converts a Python function to a component and returns a task (ContainerOp) factory
+    Converts a Python function to a component and returns a task (:py:class:`kfp.dsl.ContainerOp`) factory
 
     Function docstring is used as component description.
     Argument and return annotations are used as component input/output types.
@@ -738,12 +738,12 @@ def func_to_container_op(func, output_component_file=None, base_image: str = Non
         output_component_file: Optional. Write a component definition to a local file. Can be used for sharing.
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
         packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
-        modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
+        modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the :code:`func.__module__` is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the :code:`dependency.__module__` is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
 
     Returns:
         A factory function with a strongly-typed signature taken from the python function.
-        Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp) that can run the original function in a container.
+        Once called with the required arguments, the factory constructs a pipeline task instance (:py:class:`kfp.dsl.ContainerOp`) that can run the original function in a container.
     '''
 
     component_spec = _func_to_component_spec(
@@ -769,12 +769,22 @@ def create_component_from_func(
     base_image: str = None,
     packages_to_install: List[str] = None,
 ):
-    '''
-    Converts a Python function to a component and returns a task factory (a function that accepts arguments and returns a task object).
+    '''Converts a Python function to a component and returns a task factory (a function that accepts arguments and returns a task object).
+
+    Args:
+        func: The python function to convert
+        base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is the python image corresponding to the current python environment.
+        output_component_file: Optional. Write a component definition to a local file. The produced component file can be loaded back by calling `load_component_from_file` or :code:`load_component_from_uri`.
+        packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
+
+    Returns:
+        A factory function with a strongly-typed signature taken from the python function.
+        Once called with the required arguments, the factory constructs a task instance that can run the original function in a container.
 
     Function name and docstring are used as component name and description.
     Argument and return annotations are used as component input/output types.
-    Example::
+
+    Examples::
 
         def add(a: float, b: float) -> float:
             """Returns sum of two arguments"""
@@ -850,17 +860,6 @@ def create_component_from_func(
             ...
 
             return (accuracy, precision, recall)
-
-
-    Args:
-        func: The python function to convert
-        base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is the python image corresponding to the current python environment.
-        output_component_file: Optional. Write a component definition to a local file. The produced component file can be loaded back by calling `load_component_from_file` or `load_component_from_uri`.
-        packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
-
-    Returns:
-        A factory function with a strongly-typed signature taken from the python function.
-        Once called with the required arguments, the factory constructs a task instance that can run the original function in a container.
     '''
 
     component_spec = _func_to_component_spec(
