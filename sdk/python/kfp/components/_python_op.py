@@ -13,7 +13,6 @@
 # limitations under the License.
 
 __all__ = [
-    'ComponentSpec',
     'create_component_from_func',
     'func_to_container_op',
     'func_to_component_text',
@@ -415,7 +414,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
 
     Returns:
-        A :py:class:`kfp.components.ComponentSpec` instance.
+        A :py:class:`kfp.components.structures.ComponentSpec` instance.
     '''
     decorator_base_image = getattr(func, '_component_base_image', None)
     if decorator_base_image is not None:
