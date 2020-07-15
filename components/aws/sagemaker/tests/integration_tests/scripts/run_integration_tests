@@ -173,7 +173,7 @@ function generate_assumed_role() {
         {
           "Effect": "Allow",
           "Principal": {
-            "AWS": "'"${OIDC_ROLE_ARN}"'"
+            "AWS": "arn:aws:iam::'"${AWS_ACCOUNT_ID}"':root"
           },
           "Action": "sts:AssumeRole",
           "Condition": {}
