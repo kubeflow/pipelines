@@ -15,11 +15,10 @@
 def use_azure_secret(secret_name='azcreds'):
     """An operator that configures the container to use Azure user credentials.
 
-        The azcreds secret is created as part of the kubeflow deployment that
-        stores the client ID and secrets for the kubeflow azure service principal.
+    The azcreds secret is created as part of the kubeflow deployment that
+    stores the client ID and secrets for the kubeflow azure service principal.
 
-        With this service principal, the container has a range of Azure APIs to
-        access to. 
+    With this service principal, the container has a range of Azure APIs to access to.
     """
 
     def _use_azure_secret(task):
