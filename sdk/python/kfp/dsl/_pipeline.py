@@ -30,15 +30,15 @@ _pipeline_decorator_handler = None
 def pipeline(name : str = None, description : str = None):
   """Decorator of pipeline functions.
 
-  Usage:
-  ```python
-  @pipeline(
-    name='my awesome pipeline',
-    description='Is it really awesome?'
-  )
-  def my_pipeline(a: PipelineParam, b: PipelineParam):
-    ...
-  ```
+  Example
+    ::
+
+      @pipeline(
+        name='my awesome pipeline',
+        description='Is it really awesome?'
+      )
+      def my_pipeline(a: PipelineParam, b: PipelineParam):
+        ...
   """
   def _pipeline(func):
     if name:
@@ -71,8 +71,8 @@ class PipelineConf():
 
     Args:
       image_pull_secrets: a list of Kubernetes V1LocalObjectReference
-      For detailed description, check Kubernetes V1LocalObjectReference definition
-      https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
+        For detailed description, check Kubernetes V1LocalObjectReference definition
+        https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
     """
     self.image_pull_secrets = image_pull_secrets
     return self
@@ -90,7 +90,7 @@ class PipelineConf():
     """Configures the max number of total parallel pods that can execute at the same time in a workflow.
 
     Args:
-        max_num_pods (int): max number of total parallel pods.
+        max_num_pods: max number of total parallel pods.
     """
     self.parallelism = max_num_pods
     return self
@@ -129,10 +129,10 @@ class PipelineConf():
 
   def add_op_transformer(self, transformer):
     """Configures the op_transformers which will be applied to all ops in the pipeline.
-    The ops can be ResourceOp, VolumenOp, or ContainerOp.
+    The ops can be ResourceOp, VolumeOp, or ContainerOp.
 
     Args:
-      transformer: a function that takes a kfp Op as input and returns a kfp Op
+      transformer: A function that takes a kfp Op as input and returns a kfp Op
     """
     self.op_transformers.append(transformer)
 
@@ -142,20 +142,22 @@ class PipelineConf():
 
   @data_passing_method.setter
   def data_passing_method(self, value):
-    '''Sets the object representing the method used for intermediate data passing.
-    Example::
+    """Sets the object representing the method used for intermediate data passing.
 
-      from kfp.dsl import PipelineConf, data_passing_methods
-      from kubernetes.client.models import V1Volume, V1PersistentVolumeClaim
-      pipeline_conf = PipelineConf()
-      pipeline_conf.data_passing_method = data_passing_methods.KubernetesVolume(
-          volume=V1Volume(
-              name='data',
-              persistent_volume_claim=V1PersistentVolumeClaim('data-volume'),
-          ),
-          path_prefix='artifact_data/',
-      )
-    '''
+    Example:
+      ::
+
+        from kfp.dsl import PipelineConf, data_passing_methods
+        from kubernetes.client.models import V1Volume, V1PersistentVolumeClaim
+        pipeline_conf = PipelineConf()
+        pipeline_conf.data_passing_method = data_passing_methods.KubernetesVolume(
+            volume=V1Volume(
+                name='data',
+                persistent_volume_claim=V1PersistentVolumeClaim('data-volume'),
+            ),
+            path_prefix='artifact_data/',
+        )
+    """
     self._data_passing_method = value
 
 def get_pipeline_conf():
@@ -173,12 +175,13 @@ class Pipeline():
   is useful for implementing a compiler. For example, the compiler can use the following
   to get the pipeline object and its ops:
 
-  ```python
-  with Pipeline() as p:
-    pipeline_func(*args_list)
+  Example:
+    ::
 
-  traverse(p.ops)
-  ```
+      with Pipeline() as p:
+        pipeline_func(*args_list)
+
+      traverse(p.ops)
   """
 
   # _default_pipeline is set when it (usually a compiler) runs "with Pipeline()"
@@ -271,8 +274,9 @@ class Pipeline():
     return self.group_id
 
   def _set_metadata(self, metadata):
-    '''_set_metadata passes the containerop the metadata information
+    """_set_metadata passes the containerop the metadata information
+
     Args:
       metadata (ComponentMeta): component metadata
-    '''
+    """
     self._metadata = metadata
