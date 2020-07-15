@@ -22,7 +22,7 @@ import tempfile
 import time
 import warnings
 import zipfile
-from typing import Callable, Mapping
+from typing import Callable, Mapping, Optional
 
 import kfp
 import kfp_server_api
