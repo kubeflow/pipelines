@@ -98,7 +98,7 @@ class Client(object):
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
   # TODO: Wrap the configurations for different authentication methods.
-  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, proxy=None):
     """Create a new instance of kfp client.
 
     Args:
@@ -116,10 +116,11 @@ class Client(object):
       other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
       existing_token: pass in token directly, it's used for cases better get token outside of SDK, e.x. GCP Cloud Functions
           or caller already has a token
+      proxy: HTTP or HTTPS proxy
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
-    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy)
     # Save the loaded API client configuration, as a reference if update is
     # needed.
     self._existing_config = config
@@ -132,8 +133,12 @@ class Client(object):
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
     self._load_context_setting_or_default()
 
-  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy):
     config = kfp_server_api.configuration.Configuration()
+
+    if proxy:
+      # https://github.com/kubeflow/pipelines/blob/c6ac5e0b1fd991e19e96419f0f508ec0a4217c29/backend/api/python_http_client/kfp_server_api/rest.py#L100
+      config.proxy = proxy
 
     host = host or ''
     # Preprocess the host endpoint to prevent some common user mistakes.
