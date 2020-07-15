@@ -12,24 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
-import json
+import time
 import logging
+import json
 import os
 import re
 import tarfile
 import tempfile
-import time
 import warnings
+import yaml
 import zipfile
-from typing import Callable, Mapping, Optional
+import datetime
+from typing import Mapping, Callable, Optional
 
 import kfp
 import kfp_server_api
-import yaml
-from kfp._auth import get_auth_token, get_gcp_access_token
+
 from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
+
+from kfp._auth import get_auth_token, get_gcp_access_token
 
 # TTL of the access token associated with the client. This is needed because
 # `gcloud auth print-access-token` generates a token with TTL=1 hour, after
