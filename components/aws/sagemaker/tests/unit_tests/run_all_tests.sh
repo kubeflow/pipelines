@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 export PYTHONPATH=../../
 
 coverage run -m pytest --junitxml ./unit_tests.log
