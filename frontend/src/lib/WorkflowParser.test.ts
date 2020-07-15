@@ -1108,6 +1108,14 @@ describe('WorkflowParser', () => {
         source: StorageService.HTTPS,
       });
     });
+
+    it('handles local file with path', () => {
+      expect(WorkflowParser.parseStoragePath('/path/foo/bar')).toEqual({
+        bucket: 'file',
+        key: '/path/foo/bar',
+        source: StorageService.FILE,
+      });
+    });
   });
 
   describe('getOutboundNodes', () => {

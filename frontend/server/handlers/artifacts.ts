@@ -20,13 +20,15 @@ import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
 import proxy from 'http-proxy-middleware';
 
+import * as fs from 'fs';
+
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
  * in the artifact request object.
  */
 interface ArtifactsQueryStrings {
   /** artifact source. */
-  source: 'minio' | 's3' | 'gcs' | 'http' | 'https';
+  source: 'minio' | 's3' | 'gcs' | 'http' | 'https' | 'file';
   /** bucket name. */
   bucket: string;
   /** artifact key/path that is uri encoded.  */
@@ -94,9 +96,16 @@ export function getArtifactsHandler(artifactsConfigs: {
       case 'http':
       case 'https':
         getHttpArtifactsHandler(
-          getHttpUrl(source, http.baseUrl || '', bucket, key),
-          http.auth,
-          peek,
+            getHttpUrl(source, http.baseUrl || '', bucket, key),
+            http.auth,
+            peek,
+        )(req, res);
+        break;
+
+      case 'file':
+        await getFileArtifactsHandler(
+            key,
+            peek,
         )(req, res);
         break;
 
@@ -235,6 +244,33 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
       });
     } catch (err) {
       res.status(500).send('Failed to download GCS file(s). Error: ' + err);
+    }
+  };
+}
+
+function getFileArtifactsHandler(
+    filePath: string,
+    peek: number = 0,
+) {
+  return async (req: Request, res: Response) => {
+    try{
+      if (!fs.existsSync(filePath)) {
+        res.status(500).send(`Failed to read local file: ${filePath}, check file is exist`);
+        return;
+      }
+
+      // currently not support directory
+      const stat = fs.statSync(filePath);
+      if (stat.isDirectory()) {
+        res.status(500).send(`Failed to read local file: ${filePath}, directory does not currently support`);
+        return;
+      }
+
+      fs.createReadStream(filePath)
+          .pipe(new PreviewStream({ peek }))
+          .pipe(res);
+    } catch (err) {
+      res.status(500).send(`Failed to get local file ${filePath}: ${err}`);
     }
   };
 }

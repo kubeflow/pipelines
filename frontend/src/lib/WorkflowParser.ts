@@ -37,6 +37,7 @@ export enum StorageService {
   HTTPS = 'https',
   MINIO = 'minio',
   S3 = 's3',
+  FILE = 'file',
 }
 
 export interface StoragePath {
@@ -360,6 +361,12 @@ export default class WorkflowParser {
         bucket: pathParts[0],
         key: pathParts.slice(1).join('/'),
         source: StorageService.HTTPS,
+      };
+    } else if (strPath.startsWith('/')) {
+      return {
+        bucket: StorageService.FILE,
+        key: strPath,
+        source: StorageService.FILE,
       };
     } else {
       throw new Error('Unsupported storage path: ' + strPath);
