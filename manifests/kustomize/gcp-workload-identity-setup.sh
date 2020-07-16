@@ -139,7 +139,7 @@ function create_ksa_if_not_present {
   if kubectl get serviceaccount $name -n $NAMESPACE >/dev/null; then
     echo "KSA $name already exists"
   else
-    kubectl create serviceaccount $name -n $NAMESPACE
+    kubectl create serviceaccount $name -n $NAMESPACE --save-config
     echo "KSA $name created"
   fi
 }
@@ -202,6 +202,6 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \\
 
 * "Cloud SQL Client" role to allow connecting to Cloud SQL instances:
 gcloud projects add-iam-policy-binding $PROJECT_ID \\
-  --member="serviceAccount:$USER_GSA_FULL" \\
+  --member="serviceAccount:$SYSTEM_GSA_FULL" \\
   --role="roles/cloudsql.client"
 EOF
