@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
+
 import yaml
 from collections import OrderedDict
 
@@ -54,6 +56,17 @@ def dump_yaml(data):
             return self.represent_scalar(u'tag:yaml.org,2002:str', data, style)
 
         OrderedDumper.add_representer(str, represent_str_or_text)
+
+        # Add [-+]?(?:[0-9][0-9_]*)(?:[eE][-+]?[0-9]+) which allows you not to define a point in a float in
+        # scientific notation. E.g. 2e-5 instead of 2.e-5.
+        OrderedDumper.add_implicit_resolver(
+            u'tag:yaml.org,2002:float', re.compile(u'''^(?:[-+]?(?:[0-9][0-9_]*)\\.[0-9_]*(?:[eE][-+]?[0-9]+)?
+                    |[-+]?(?:[0-9][0-9_]*)(?:[eE][-+]?[0-9]+)
+                    |\\.[0-9_]+(?:[eE][-+][0-9]+)?
+                    |[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+\\.[0-9_]*
+                    |[-+]?\\.(?:inf|Inf|INF)
+                    |\\.(?:nan|NaN|NAN))$''', re.X),
+            list(u'-+0123456789.'))
 
         return yaml.dump(data, stream, OrderedDumper, **kwds)
     return ordered_dump(data, default_flow_style=None)
