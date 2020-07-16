@@ -185,23 +185,23 @@ Next steps:
 
 ### If **NOT** using GCP managed storage, you can:
 * Give $SYSTEM_GSA_FULL "Storage Object Viewer" role to allow KFP UI load data in GCS in the same project:
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:$SYSTEM_GSA_FULL" \
+gcloud projects add-iam-policy-binding $PROJECT_ID \\
+  --member="serviceAccount:$SYSTEM_GSA_FULL" \\
   --role="roles/storage.objectViewer"
 
 * Give $USER_GSA_FULL any permissions your pipelines need. For **QUICK** tryouts, you can give it Project Editor role for all permissions, but be aware this overgrants too much permission:
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:$USER_GSA_FULL" \
+gcloud projects add-iam-policy-binding $PROJECT_ID \\
+  --member="serviceAccount:$USER_GSA_FULL" \\
   --role="roles/editor"
 
 ### If using GCP managed storage, you **ALSO** need to give $SYSTEM_GSA_FULL these roles:
 * "Storage Object Admin" role to allow writing to specified GCS artifact bucket:
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:$SYSTEM_GSA_FULL" \
+gcloud projects add-iam-policy-binding $PROJECT_ID \\
+  --member="serviceAccount:$SYSTEM_GSA_FULL" \\
   --role="roles/storage.objectAdmin"
 
 * "Cloud SQL Client" role to allow connecting to Cloud SQL instances:
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:$USER_GSA_FULL" \
+gcloud projects add-iam-policy-binding $PROJECT_ID \\
+  --member="serviceAccount:$USER_GSA_FULL" \\
   --role="roles/cloudsql.client"
 EOF
