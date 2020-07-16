@@ -32,6 +32,7 @@ resources:
 - pipeline-runner-rolebinding.yaml
 - pipeline-runner-sa.yaml
 - container-builder-sa.yaml
+- viewer-sa.yaml
 images:
 - name: gcr.io/ml-pipeline/api-server
   newTag: 0.5.1

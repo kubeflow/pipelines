@@ -29,7 +29,7 @@ USER_GSA=${USER_GSA:-$RESOURCE_PREFIX-kfp-user}
 # * kubeflow-pipelines-minio-gcs-gateway needs gcs permissions
 # * kubeflow-pipelines-cloudsql-proxy needs cloudsql permissions
 SYSTEM_KSA=(ml-pipeline-ui ml-pipeline-visualizationserver)
-USER_KSA=(pipeline-runner kubeflow-pipelines-container-builder)
+USER_KSA=(pipeline-runner kubeflow-pipelines-container-builder kubeflow-pipelines-viewer)
 
 if [ -n $USE_GCP_MANAGED_STORAGE ]; then
   SYSTEM_KSA+=(kubeflow-pipelines-minio-gcs-gateway)
