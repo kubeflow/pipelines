@@ -28,23 +28,27 @@ USER_GSA=${USER_GSA:-$CLUSTER_NAME-kfp-user}
 SYSTEM_KSA=(ml-pipeline-ui ml-pipeline-visualizationserver)
 USER_KSA=(pipeline-runner kubeflow-pipelines-container-builder)
 
-cat <<EOF
+if [ -n $MANAGED_STORAGE ]; then
+  SYSTEM_KSA+=(kubeflow-pipelines-minio-gcs-gateway)
+  SYSTEM_KSA+=(kubeflow-pipelines-cloudsql-proxy)
+fi
 
+cat <<EOF
 It is recommended to first review introduction to workload identity: https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity.
 
-This script sets up Google service accounts and workload identity bindings for a Kubeflow Pipelines (KFP) standalone deployment.
+This script sets up Google service accounts, Kubernetes service accounts and workload identity bindings for a Kubeflow Pipelines (KFP) standalone deployment.
 You can also choose to manually set these up based on documentation: https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity.
 
 Before you begin, please check the following list:
 * gcloud is configured following steps: https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#before_you_begin.
 * KFP is already deployed by standalone deployment: https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/.
 * kubectl talks to the cluster KFP is deployed to: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl.
+* The namespace you specified by NAMESPACE env var already exists on the cluster.
 
 The following resources will be created to bind workload identity between GSAs and KSAs:
 * Google service accounts (GSAs): $SYSTEM_GSA and $USER_GSA.
 * Service account IAM policy bindings.
-* Kubernetes service account annotations.
-
+* Kubernetes service accounts with annotations.
 EOF
 
 NAMESPACE=${NAMESPACE:-kubeflow}
@@ -57,7 +61,7 @@ PROJECT_ID=<your-gcp-project-id> CLUSTER_NAME=<your-gke-cluster-name> NAMESPACE=
 
 PROJECT_ID: GCP project ID your cluster belongs to.
 CLUSTER_NAME: your GKE cluster's name.
-NAMESPACE: Kubernetes namespace your Kubeflow Pipelines standalone deployment belongs to (default is kubeflow).
+NAMESPACE: Kubernetes namespace your Kubeflow Pipelines standalone deployment belongs to (defaults to kubeflow).
 EOF
 }
 if [ -z "$PROJECT_ID" ]; then
@@ -97,6 +101,16 @@ function create_gsa_if_not_present {
 create_gsa_if_not_present $SYSTEM_GSA
 create_gsa_if_not_present $USER_GSA
 
+function create_ksa_if_not_present {
+  local name=${1}
+  if kubectl get serviceaccount $name -n $NAMESPACE; then
+    echo "KSA $name already exists"
+  else
+    kubectl create serviceaccount $name -n $NAMESPACE
+    echo "KSA $name created"
+  fi
+}
+
 # You can optionally choose to add iam policy bindings to grant project permissions to these GSAs.
 # You can also set these up later.
 # gcloud projects add-iam-policy-binding $PROJECT_ID \
@@ -116,6 +130,8 @@ function bind_gsa_and_ksa {
     --member="serviceAccount:$PROJECT_ID.svc.id.goog[$NAMESPACE/$ksa]" \
     --role="roles/iam.workloadIdentityUser" \
     > /dev/null # hide verbose output
+
+  create_ksa_if_not_present $ksa
   kubectl annotate serviceaccount \
     --namespace $NAMESPACE \
     --overwrite \
