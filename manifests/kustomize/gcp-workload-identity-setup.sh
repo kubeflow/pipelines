@@ -190,10 +190,10 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \\
   --role="roles/editor"
 
 ### If using GCP managed storage, you **ALSO** need to give $SYSTEM_GSA_FULL these roles:
-* "Storage Admin" role to allow writing to specified GCS artifact bucket:
-gcloud projects add-iam-policy-binding $PROJECT_ID \\
-  --member="serviceAccount:$SYSTEM_GSA_FULL" \\
-  --role="roles/storage.admin"
+* "Storage Admin" role on specified GCS bucket to allow writing to specified GCS artifact bucket:
+gsutil iam ch serviceAccount:$SYSTEM_GSA_FULL:roles/storage.admin gs://[BUCKET_NAME]
+
+Or you can find other ways in https://cloud.google.com/storage/docs/access-control/using-iam-permissions#bucket-add.
 
 * "Cloud SQL Client" role to allow connecting to Cloud SQL instances:
 gcloud projects add-iam-policy-binding $PROJECT_ID \\
