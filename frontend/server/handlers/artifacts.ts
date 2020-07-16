@@ -255,14 +255,15 @@ function getFileArtifactsHandler(
   return async (req: Request, res: Response) => {
     try{
       if (!fs.existsSync(filePath)) {
-        res.status(500).send(`Failed to read local file: ${filePath}, check file is exist`);
+        res.status(500).send(`Failed to open local file: ${filePath}, please check if file is exist`);
         return;
       }
 
       // currently not support directory
+      // TODO: support directory and filePath include wildcards '*'
       const stat = fs.statSync(filePath);
       if (stat.isDirectory()) {
-        res.status(500).send(`Failed to read local file: ${filePath}, directory does not currently support`);
+        res.status(500).send(`Failed to read local file: ${filePath}, directory does not support`);
         return;
       }
 
