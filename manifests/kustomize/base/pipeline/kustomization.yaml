@@ -17,6 +17,7 @@ resources:
 - ml-pipeline-scheduledworkflow-rolebinding.yaml
 - ml-pipeline-scheduledworkflow-sa.yaml
 - ml-pipeline-ui-deployment.yaml
+- ml-pipeline-ui-configmap.yaml
 - ml-pipeline-ui-role.yaml
 - ml-pipeline-ui-rolebinding.yaml
 - ml-pipeline-ui-sa.yaml
