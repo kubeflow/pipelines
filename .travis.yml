@@ -65,7 +65,9 @@ matrix:
         - sudo ./bazel_installer.sh
         # Install TFX from head
         - cd $TRAVIS_BUILD_DIR
-        - git clone https://github.com/tensorflow/tfx.git
+        - TFX_VERSION="0.22.0"
+        - curl -SL "https://github.com/tensorflow/tfx/archive/v${TFX_VERSION}.tar.gz" | tar -xzv
+        - mv $TRAVIS_BUILD_DIR/tfx-$TFX_VERSION $TRAVIS_BUILD_DIR/tfx
         - cd $TRAVIS_BUILD_DIR/tfx
         - pip3 install --upgrade pip
         - pip3 install --upgrade 'numpy>=1.16,<1.17'
