@@ -67,8 +67,8 @@ PROJECT_ID=<your-gcp-project-id> RESOURCE_PREFIX=<your-chosen-prefix> NAMESPACE=
 PROJECT_ID: GCP project ID your cluster belongs to.
 RESOURCE_PREFIX: Your preferred resource prefix for GCP resources this script creates.
 NAMESPACE: Optional. Kubernetes namespace your Kubeflow Pipelines standalone deployment belongs to. (Defaults to kubeflow)
-USE_GCP_MANAGED_STORAGE: Optional. Defaults to "false", specify "true" if you intend to use GCP managed storage, Google Cloud Storage and Cloud SQL, for KFP following instructions in
-https://www.kubeflow.org/docs/pipelines/installation/standalone-deployment/#deploy-on-gcp-with-cloudsql-and-google-cloud-storage.
+USE_GCP_MANAGED_STORAGE: Optional. Defaults to "false", specify "true" if you intend to use GCP managed storage (Google Cloud Storage and Cloud SQL) following instructions in:
+https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize/sample
 EOF
 }
 if [ -z "$PROJECT_ID" ]; then
@@ -96,20 +96,15 @@ USER_GSA_FULL="$USER_GSA@$PROJECT_ID.iam.gserviceaccount.com"
 cat <<EOF
 
 The following resources will be created or updated to create workload identity bindings between GSAs and KSAs:
-
 * Google service accounts (GSAs):
   * $SYSTEM_GSA_FULL
   * $USER_GSA_FULL
-
 * Service account IAM policy bindings on these GSAs to grant "Workload Identity User" role.
-
 * Kubernetes service accounts with annotations in namespace "$NAMESPACE".
-
 * $SYSTEM_GSA_FULL will be bound to these KSAs:
-${SYSTEM_KSA[@]}.
-
+  ${SYSTEM_KSA[@]}.
 * $USER_GSA_FULL will be bound to these KSAs:
-${USER_KSA[@]}.
+  ${USER_KSA[@]}.
 
 Note: if you prefer more granular workload identity bindings, you can modify this script to suit your needs.
 
