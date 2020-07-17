@@ -80,7 +80,8 @@ METADATA_WRITTEN_LABEL_KEY = 'pipelines.kubeflow.org/metadata_written'
 
 def output_name_to_argo(name: str) -> str:
     import re
-    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).strip('-')
+    # This sanitization code should be kept in sync with the code in the DSL compiler.
+    return re.sub('-+', '-', re.sub('[^-_0-9A-Za-z]+', '-', name)).strip('-')
 
 def is_s3_endpoint(endpoint: str) -> bool:
     return re.search('^.*s3.*amazonaws.com.*$', endpoint)
