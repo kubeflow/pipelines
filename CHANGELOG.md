@@ -11,6 +11,7 @@
 * **sdk:** SDK - Components - Added annotations to TaskSpec ([\#4153](https://github.com/kubeflow/pipelines/issues/4153)) ([c439ec3](https://github.com/kubeflow/pipelines/commit/c439ec33b6d7c7cf0676acfbdb6d58e6d90a8c75))
 * **sdk:** SDK - Deprecation warning when using ContainerOp ([\#4166](https://github.com/kubeflow/pipelines/issues/4166)) ([ebd62ec](https://github.com/kubeflow/pipelines/commit/ebd62ec61c2e99f048e3ea4271519ca3275fa0a4))
 * **sdk/client:** add cookie configuration to kfp client ([\#2679](https://github.com/kubeflow/pipelines/issues/2679)) ([9206b5a](https://github.com/kubeflow/pipelines/commit/9206b5aade23edf77b9f6cdce6b0fd97325ea1a3))
+* **deployment:** GCP managed storage - detailed instructions to set up workload identity bindings before deployment (#4232) ([11c1cd6](https://github.com/kubeflow/pipelines/commit/11c1cd6b4fb99a8f55b1dc4d370c0de8fe83b1e6))
 
 
 ### Bug Fixes
