@@ -43,6 +43,10 @@ func (f *fakeListable) GetModelName() string {
 	return ""
 }
 
+func (f *fakeListable) GetFieldValue(name string) interface{} {
+	return nil
+}
+
 func TestNextPageToken_ValidTokens(t *testing.T) {
 	l := &fakeListable{PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234}
 
@@ -823,4 +827,8 @@ func TestFilterOnNamesapce(t *testing.T) {
 				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
 		}
 	}
+}
+
+func TestSortByRunMetrics(t *testing.T) {
+
 }
