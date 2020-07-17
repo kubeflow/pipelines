@@ -58,6 +58,11 @@ matrix:
         - sudo unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
         - sudo unzip -o $PROTOC_ZIP -d /usr/local 'include/*'
         - rm -f $PROTOC_ZIP
+        # Compile and setup bazel for compiling the protos
+        # Instruction from https://docs.bazel.build/versions/master/install-ubuntu.html
+        - curl -sSL https://github.com/bazelbuild/bazel/releases/download/3.4.1/bazel-3.4.1-installer-linux-x86_64.sh -o bazel_installer.sh
+        - chmod +x bazel_installer.sh
+        - sudo ./bazel_installer.sh
         # Install TFX from head
         - cd $TRAVIS_BUILD_DIR
         - git clone https://github.com/tensorflow/tfx.git
