@@ -788,6 +788,7 @@ class Client(object):
     Returns:
       Server response object containing pipleine id and other information.
     Throws:
+      ValueError when none or both of pipeline_id or pipeline_name are specified
       Exception if pipeline id is not found.
     """
 
@@ -797,7 +798,12 @@ class Client(object):
     if pipeline_name:
       pipeline_id = self.get_pipeline_id(pipeline_name)
 
-    response = self._upload_api.upload_pipeline_version(pipeline_package_path, name=pipeline_version_name, pipelineid=pipeline_id)
+    response = self._upload_api.upload_pipeline_version(
+      pipeline_package_path, 
+      name=pipeline_version_name, 
+      pipelineid=pipeline_id
+    )
+
     if self._is_ipython():
       import IPython
       html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
