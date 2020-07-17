@@ -570,15 +570,14 @@ class UserContainer(Container):
       swagger_types (dict): The key is attribute name
                             and the value is attribute type.
 
-    Example:
-        ::
+    Example::
 
-            from kfp.dsl import ContainerOp, UserContainer
+        from kfp.dsl import ContainerOp, UserContainer
 
-            # creates a `ContainerOp` and adds a redis init container
-            op = (ContainerOp(name='foo-op', image='busybox:latest')
-                    .add_initContainer(
-                        UserContainer(name='redis', image='redis:alpine')))
+        # creates a `ContainerOp` and adds a redis init container
+        op = (ContainerOp(name='foo-op', image='busybox:latest')
+                .add_initContainer(
+                    UserContainer(name='redis', image='redis:alpine')))
     """
     # adds `mirror_volume_mounts` to `UserContainer` swagger definition
     # NOTE inherits definition from `V1Container` rather than `Container`
@@ -762,16 +761,15 @@ class BaseOp(object):
         """Applies a modifier function to self. The function should return the passed object.
         This is needed to chain "extention methods" to this class.
 
-        Example:
-            ::
+        Example::
 
-                from kfp.gcp import use_gcp_secret
-                task = (
-                    train_op(...)
-                        .set_memory_request('1G')
-                        .apply(use_gcp_secret('user-gcp-sa'))
-                        .set_memory_limit('2G')
-                )
+            from kfp.gcp import use_gcp_secret
+            task = (
+                train_op(...)
+                    .set_memory_request('1G')
+                    .apply(use_gcp_secret('user-gcp-sa'))
+                    .set_memory_limit('2G')
+            )
         """
         return mod_func(self) or self
 
@@ -811,15 +809,14 @@ class BaseOp(object):
           For detailed spec, check affinity definition
           https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_affinity.py
         
-        Example:
-            ::
+        Example::
 
-                V1Affinity(
-                    node_affinity=V1NodeAffinity(
-                        required_during_scheduling_ignored_during_execution=V1NodeSelector(
-                            node_selector_terms=[V1NodeSelectorTerm(
-                                match_expressions=[V1NodeSelectorRequirement(
-                                    key='beta.kubernetes.io/instance-type', operator='In', values=['p2.xlarge'])])])))
+            V1Affinity(
+                node_affinity=V1NodeAffinity(
+                    required_during_scheduling_ignored_during_execution=V1NodeSelector(
+                        node_selector_terms=[V1NodeSelectorTerm(
+                            match_expressions=[V1NodeSelectorRequirement(
+                                key='beta.kubernetes.io/instance-type', operator='In', values=['p2.xlarge'])])])))
         """
         self.affinity = affinity
         return self
@@ -951,34 +948,33 @@ class ContainerOp(BaseOp):
             V1Volume or it inherited type.
             E.g {"/my/path": vol, "/mnt": other_op.pvolumes["/output"]}.
 
-    Example:
-        ::
+    Example::
 
-            from kfp import dsl
-            from kubernetes.client.models import V1EnvVar, V1SecretKeySelector
+        from kfp import dsl
+        from kubernetes.client.models import V1EnvVar, V1SecretKeySelector
 
-            @dsl.pipeline(
-                name='foo',
-                description='hello world')
-            def foo_pipeline(tag: str, pull_image_policy: str):
+        @dsl.pipeline(
+            name='foo',
+            description='hello world')
+        def foo_pipeline(tag: str, pull_image_policy: str):
 
-                # any attributes can be parameterized (both serialized string or actual PipelineParam)
-                op = dsl.ContainerOp(name='foo', 
-                                    image='busybox:%s' % tag,
-                                    # pass in init_container list
-                                    init_containers=[dsl.UserContainer('print', 'busybox:latest', command='echo "hello"')],
-                                    # pass in sidecars list
-                                    sidecars=[dsl.Sidecar('print', 'busybox:latest', command='echo "hello"')],
-                                    # pass in k8s container kwargs
-                                    container_kwargs={'env': [V1EnvVar('foo', 'bar')]},
-                )
+            # any attributes can be parameterized (both serialized string or actual PipelineParam)
+            op = dsl.ContainerOp(name='foo', 
+                                image='busybox:%s' % tag,
+                                # pass in init_container list
+                                init_containers=[dsl.UserContainer('print', 'busybox:latest', command='echo "hello"')],
+                                # pass in sidecars list
+                                sidecars=[dsl.Sidecar('print', 'busybox:latest', command='echo "hello"')],
+                                # pass in k8s container kwargs
+                                container_kwargs={'env': [V1EnvVar('foo', 'bar')]},
+            )
 
-                # set `imagePullPolicy` property for `container` with `PipelineParam` 
-                op.container.set_image_pull_policy(pull_image_policy)
+            # set `imagePullPolicy` property for `container` with `PipelineParam` 
+            op.container.set_image_pull_policy(pull_image_policy)
 
-                # add sidecar with parameterized image tag
-                # sidecar follows the argo sidecar swagger spec
-                op.add_sidecar(dsl.Sidecar('redis', 'redis:%s' % tag).set_image_pull_policy('Always'))
+            # add sidecar with parameterized image tag
+            # sidecar follows the argo sidecar swagger spec
+            op.add_sidecar(dsl.Sidecar('redis', 'redis:%s' % tag).set_image_pull_policy('Always'))
     """
 
     # list of attributes that might have pipeline params - used to generate
@@ -1141,20 +1137,19 @@ class ContainerOp(BaseOp):
         `io.argoproj.workflow.v1alpha1.Template`. Can be used to update the
         container configurations. 
         
-        Example:
-            ::
+        Example::
 
-                import kfp.dsl as dsl
-                from kubernetes.client.models import V1EnvVar
-        
-                @dsl.pipeline(name='example_pipeline')
-                def immediate_value_pipeline():
-                    op1 = (dsl.ContainerOp(name='example', image='nginx:alpine')
-                            .container
-                                .add_env_variable(V1EnvVar(name='HOST', value='foo.bar'))
-                                .add_env_variable(V1EnvVar(name='PORT', value='80'))
-                                .parent # return the parent `ContainerOp`
-                            )
+            import kfp.dsl as dsl
+            from kubernetes.client.models import V1EnvVar
+    
+            @dsl.pipeline(name='example_pipeline')
+            def immediate_value_pipeline():
+                op1 = (dsl.ContainerOp(name='example', image='nginx:alpine')
+                        .container
+                            .add_env_variable(V1EnvVar(name='HOST', value='foo.bar'))
+                            .add_env_variable(V1EnvVar(name='PORT', value='80'))
+                            .parent # return the parent `ContainerOp`
+                        )
         """
         return self._container
 
