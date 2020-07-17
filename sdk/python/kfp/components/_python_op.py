@@ -655,7 +655,7 @@ def func_to_component_text(func, extra_code='', base_image: str = None, packages
 
     Function docstring is used as component description.
     Argument and return annotations are used as component input/output types.
-    To declare a function with multiple return values, use the NamedTuple return annotation syntax:
+    To declare a function with multiple return values, use the NamedTuple return annotation syntax::
 
         from typing import NamedTuple
         def add_multiply_two_numbers(a: float, b: float) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):
@@ -690,7 +690,7 @@ def func_to_component_file(func, output_component_file, base_image: str = None, 
 
     Function docstring is used as component description.
     Argument and return annotations are used as component input/output types.
-    To declare a function with multiple return values, use the NamedTuple return annotation syntax:
+    To declare a function with multiple return values, use the NamedTuple return annotation syntax::
 
         from typing import NamedTuple
         def add_multiply_two_numbers(a: float, b: float) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):
@@ -725,7 +725,7 @@ def func_to_container_op(func, output_component_file=None, base_image: str = Non
 
     Function docstring is used as component description.
     Argument and return annotations are used as component input/output types.
-    To declare a function with multiple return values, use the NamedTuple return annotation syntax:
+    To declare a function with multiple return values, use the NamedTuple return annotation syntax::
 
         from typing import NamedTuple
         def add_multiply_two_numbers(a: float, b: float) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):

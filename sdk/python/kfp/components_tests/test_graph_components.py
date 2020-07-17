@@ -143,50 +143,6 @@ implementation:
         component_spec = ComponentSpec.from_dict(struct)
         self.assertEqual(component_spec.implementation.graph.tasks['task 1'].execution_options.caching_strategy.max_cache_staleness, 'P30D')
 
-    def test_handle_parsing_task_container_spec_options(self):
-        component_text = '''\
-implementation:
-  graph:
-    tasks:
-      task 1:
-        componentRef: {name: Comp 1}
-        executionOptions:
-          kubernetesOptions:
-            mainContainer:
-              resources:
-                requests:
-                  memory: 1024Mi
-                  cpu: 200m
-
-'''
-        struct = load_yaml(component_text)
-        component_spec = ComponentSpec.from_dict(struct)
-        self.assertEqual(component_spec.implementation.graph.tasks['task 1'].execution_options.kubernetes_options.main_container.resources.requests['memory'], '1024Mi')
-
-
-    def test_handle_parsing_task_volumes_and_mounts(self):
-        component_text = '''\
-implementation:
-  graph:
-    tasks:
-      task 1:
-        componentRef: {name: Comp 1}
-        executionOptions:
-          kubernetesOptions:
-            mainContainer:
-              volumeMounts:
-              - name: workdir
-                mountPath: /mnt/vol
-            podSpec:
-              volumes:
-              - name: workdir
-                emptyDir: {}
-'''
-        struct = load_yaml(component_text)
-        component_spec = ComponentSpec.from_dict(struct)
-        self.assertEqual(component_spec.implementation.graph.tasks['task 1'].execution_options.kubernetes_options.pod_spec.volumes[0].name, 'workdir')
-        self.assertIsNotNone(component_spec.implementation.graph.tasks['task 1'].execution_options.kubernetes_options.pod_spec.volumes[0].empty_dir)
-    
     def test_load_graph_component(self):
         component_text = '''\
 inputs:
@@ -256,7 +212,7 @@ implementation:
         op = comp.load_component_from_text(component_text)
         task = op('graph 1', 'graph 2')
         self.assertEqual(len(task.outputs), 4)
-    
+
     def test_load_nested_graph_components(self):
         component_text = '''\
 inputs:

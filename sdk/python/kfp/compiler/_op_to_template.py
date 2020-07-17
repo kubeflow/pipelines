@@ -176,6 +176,10 @@ def _outputs_to_json(op: BaseOp,
 def _op_to_template(op: BaseOp):
     """Generate template given an operator inherited from BaseOp."""
 
+    # Display name
+    if op.display_name:
+        op.add_pod_annotation('pipelines.kubeflow.org/task_display_name', op.display_name)
+
     # NOTE in-place update to BaseOp
     # replace all PipelineParams with template var strings
     processed_op = _process_base_ops(op)
@@ -269,10 +273,6 @@ def _op_to_template(op: BaseOp):
     if processed_op.volumes:
         template['volumes'] = [convert_k8s_obj_to_json(volume) for volume in processed_op.volumes]
         template['volumes'].sort(key=lambda x: x['name'])
-
-    # Display name
-    if processed_op.display_name:
-        template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/task_display_name'] = processed_op.display_name
 
     if isinstance(op, dsl.ContainerOp) and op._metadata:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)

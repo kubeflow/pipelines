@@ -248,36 +248,6 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
       # print(tmpdir)
 
-  def test_package_compile(self):
-    """Test compiling python packages."""
-
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-    test_package_dir = os.path.join(test_data_dir, 'testpackage')
-    tmpdir = tempfile.mkdtemp()
-    cwd = os.getcwd()
-    try:
-      os.chdir(test_package_dir)
-      subprocess.check_call(['python3', 'setup.py', 'sdist', '--format=gztar', '-d', tmpdir])
-      package_path = os.path.join(tmpdir, 'testsample-0.1.tar.gz')
-      target_zip = os.path.join(tmpdir, 'compose.zip')
-      subprocess.check_call([
-          'dsl-compile', '--package', package_path, '--namespace', 'mypipeline',
-          '--output', target_zip, '--function', 'download_save_most_frequent_word'])
-      with open(os.path.join(test_data_dir, 'compose.yaml'), 'r') as f:
-        golden = yaml.safe_load(f)
-      compiled = self._get_yaml_from_zip(target_zip)
-
-      for workflow in golden, compiled:
-        del workflow['metadata']
-        for template in workflow['spec']['templates']:
-          template.pop('metadata', None)
-
-      self.maxDiff = None
-      self.assertEqual(golden, compiled)
-    finally:
-      shutil.rmtree(tmpdir)
-      os.chdir(cwd)
-
   def _test_py_compile_zip(self, file_base_name):
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     py_file = os.path.join(test_data_dir, file_base_name + '.py')
@@ -654,6 +624,16 @@ implementation:
     template = workflow_dict['spec']['templates'][0]
     self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'], 'Custom name')
 
+  def test_set_dynamic_display_name(self):
+    """Test a pipeline with a customized task names."""
+
+    def some_pipeline(custom_name):
+      some_op().set_display_name(custom_name)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    template = [template for template in workflow_dict['spec']['templates'] if 'container' in template][0]
+    self.assertNotIn('pipelineparam', template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'])
+
   def test_set_parallelism(self):
     """Test a pipeline with parallelism limits."""
     def some_op():
@@ -973,3 +953,32 @@ implementation:
           'Wrong argument mapping: "{}" passed to "{}"'.format(argument['value'], argument['name']))
       else:
         self.fail('Unexpected input name: ' + argument['name'])
+
+  def test_input_name_sanitization(self):
+    # Verifying that the recursive call arguments are passed correctly when specified out of order
+    component_2_in_1_out_op = kfp.components.load_component_from_text('''
+inputs:
+- name: Input 1
+- name: Input 2
+outputs:
+- name: Output 1
+implementation:
+  container:
+    image: busybox
+    command:
+    - echo
+    - inputValue: Input 1
+    - inputPath: Input 2
+    - outputPath: Output 1
+    ''')
+    def some_pipeline():
+      task1 = component_2_in_1_out_op('value 1', 'value 2')
+      component_2_in_1_out_op(task1.output, task1.output)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    container_templates = [template for template in workflow_dict['spec']['templates'] if 'container' in template]
+    for template in container_templates:
+      for argument in template['inputs'].get('parameters', []):
+        self.assertNotIn(' ', argument['name'], 'The input name "{}" of template "{}" was not sanitized.'.format(argument['name'], template['name']))
+      for argument in template['inputs']['artifacts']:
+        self.assertNotIn(' ', argument['name'], 'The input name "{}" of template "{}" was not sanitized.'.format(argument['name'], template['name']))

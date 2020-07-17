@@ -20,6 +20,8 @@ import random
 import json
 import yaml
 import re
+import json
+from pathlib2 import Path
 
 import boto3
 import botocore
@@ -28,6 +30,9 @@ from sagemaker.amazon.amazon_estimator import get_image_uri
 
 import logging
 logging.getLogger().setLevel(logging.INFO)
+
+# this error message is used in integration tests
+CW_ERROR_MESSAGE = 'Error in fetching CloudWatch logs for SageMaker job'
 
 # Mappings are extracted from the first table in https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html
 built_in_algos = {
@@ -65,7 +70,7 @@ def nullable_string_argument(value):
 
 def add_default_client_arguments(parser):
     parser.add_argument('--region', type=str, required=True, help='The region where the training job launches.')
-    parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the Sagemaker service.')
+    parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the SageMaker service.')
 
 
 def get_component_version():
@@ -104,6 +109,7 @@ def print_logs_for_job(cw_client, log_grp, job_name):
 
         logging.info('\n******************** End of CloudWatch logs for {} {} ********************\n'.format(log_grp, job_name))
     except Exception as e:
+        logging.error(CW_ERROR_MESSAGE)
         logging.error(e)
 
 
@@ -207,7 +213,7 @@ def create_training_job_request(args):
 
 
 def create_training_job(client, args):
-  """Create a Sagemaker training job."""
+  """Create a SageMaker training job."""
   request = create_training_job_request(args)
   try:
       client.create_training_job(**request)
@@ -614,7 +620,7 @@ def create_hyperparameter_tuning_job_request(args):
 
 
 def create_hyperparameter_tuning_job(client, args):
-    """Create a Sagemaker HPO job"""
+    """Create a SageMaker HPO job"""
     request = create_hyperparameter_tuning_job_request(args)
     try:
         client.create_hyper_parameter_tuning_job(**request)
@@ -1027,3 +1033,17 @@ def str_to_bool(str):
     # This distutils function returns an integer representation of the boolean
     # rather than a True/False value. This simply hard casts it.
     return bool(strtobool(str))
+
+def write_output(output_path, output_value, json_encode=False):
+    """Write an output value to the associated path, dumping as a JSON object
+    if specified.
+    Arguments:
+    - output_path: The file path of the output.
+    - output_value: The output value to write to the file.
+    - json_encode: True if the value should be encoded as a JSON object.
+    """
+
+    write_value = json.dumps(output_value) if json_encode else output_value 
+
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(output_path).write_text(write_value)

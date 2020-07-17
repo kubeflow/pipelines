@@ -6,6 +6,7 @@ from utils import kfp_client_utils
 from utils import minio_utils
 from utils import sagemaker_utils
 from utils import s3_utils
+from utils import argo_utils
 
 
 @pytest.mark.parametrize(
@@ -70,7 +71,7 @@ def test_transform_job(
 
     # Verify output location from pipeline matches job output and that the transformed file exists
     output_location = utils.read_from_file_in_tar(
-        output_files["sagemaker-batch-transformation"]["output_location"], "data",
+        output_files["sagemaker-batch-transformation"]["output_location"]
     )
     print(f"output location: {output_location}")
     assert output_location == response["TransformOutput"]["S3OutputPath"]
@@ -81,5 +82,8 @@ def test_transform_job(
         "/".join(output_location.split("/")[3:]), test_params["ExpectedOutputFile"]
     )
     assert s3_utils.check_object_exists(s3_client, s3_data_bucket, file_key)
+
+    assert not argo_utils.error_in_cw_logs(workflow_json["metadata"]["name"]), \
+        ('Found the CloudWatch error message in the log output. Check SageMaker to see if the job has failed.')
 
     utils.remove_dir(download_dir)

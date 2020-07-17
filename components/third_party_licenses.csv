@@ -101,7 +101,7 @@ google-gax,https://raw.githubusercontent.com/googleapis/gax-python/master/LICENS
 googleapis-common-protos,https://raw.githubusercontent.com/googleapis/api-common-protos/master/LICENSE,Apache 2.0
 googledatastore,https://raw.githubusercontent.com/GoogleCloudPlatform/google-cloud-datastore/master/LICENSE,Apache 2.0
 hdfs,https://github.com/mtth/hdfs/blob/master/LICENSE,MIT
-idna,https://raw.githubusercontent.com/kjd/idna/master/LICENSE.rst,BSD-like
+idna,https://raw.githubusercontent.com/kjd/idna/master/LICENSE.md,BSD-3
 Markdown,https://raw.githubusercontent.com/Python-Markdown/markdown/master/LICENSE.md,BSD
 monotonic,https://raw.githubusercontent.com/atdt/monotonic/master/LICENSE,Apache 2.0
 oauth2client,https://raw.githubusercontent.com/google/oauth2client/master/LICENSE,Apache 2.0

@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # This script is for deploying cache service to an existing cluster.
-# Prerequisite: config kubectl to talk to your cluster. See ref below: 
+# Prerequisite: config kubectl to talk to your cluster. See ref below:
 # https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl
 
 set -ex
@@ -40,10 +40,10 @@ fi
 
 webhook_secret_exists=false
 if grep "${WEBHOOK_SECRET_NAME}" -w <cache_secret.txt; then
-    webhook_config_exists=true
+    webhook_secret_exists=true
 fi
 
-if [ "$webhook_config_exists" == "true" ] && [ "$webhook_config_exists" == "true" ]; then
+if [ "$webhook_config_exists" == "true" ] && [ "$webhook_secret_exists" == "true" ]; then
     echo "Webhook config and secret are already installed. Sleeping forever."
     sleep infinity
 fi
@@ -76,8 +76,8 @@ cat ./cache-configmap-ca-bundle.yaml
 kubectl apply -f ./cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
 
 # TODO: Check whether we really need to check for the existence of the webhook
-# Usually the Kubernetes objects appear immediately. 
-while true; do 
+# Usually the Kubernetes objects appear immediately.
+while true; do
     # Should fail if there are connectivity problems
     kubectl get mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
 
@@ -87,5 +87,5 @@ while true; do
     else
         echo "Webhook is not visible yet. Waiting a bit."
         sleep 10s
-    fi    
+    fi
 done
