@@ -16,7 +16,6 @@ import logging
 import os
 import subprocess
 import json
-import time
 import getpass
 from webbrowser import open_new_tab
 import google.auth
@@ -28,14 +27,11 @@ import google.oauth2.credentials
 import google.oauth2.service_account
 import requests_toolbelt.adapters.appengine
 import requests
-from selenium.webdriver import Chrome
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
+from kfp.aws import DiskCache, get_chrome_driver
 
 IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
 LOCAL_KFP_CREDENTIAL = os.path.expanduser('~/.config/kfp/credentials.json')
-DEFAULT_CHROME_DRIVER_PATH = os.path.join(os.path.expanduser('~'), '.config', 'kfp', 'chromedriver')
 
 def get_gcp_access_token():
     """Get and return GCP access token for the current Application Default
@@ -209,6 +205,8 @@ def get_auth_cookie(host, username=None, password=None, from_cache=True):
     """This function communicates with AWS auth services and returns
         credentials requried for communicating with KFP API Server
 
+        Current dom only works for cognito itself. We might extend to other IDP pages later.
+
         Args:
             host (string): KFP API server URL
             username (string): username for authentication
@@ -257,74 +255,3 @@ def get_auth_cookie(host, username=None, password=None, from_cache=True):
     cache.save(auth_cookie)
 
     return auth_cookie
-
-
-def get_chrome_driver():
-    """ Download Chrome driver if it doesn't already exists
-    """
-
-    options = Options()
-    options.add_argument('--headless')
-    options.add_argument('--disable-gpu')
-
-    cache = DiskCache('chrome_driver_executable_path')
-
-    if not os.path.exists(DEFAULT_CHROME_DRIVER_PATH):
-        logging.info('Selenium driver not found, trying to download one')
-        executable_path = download_driver()
-        cache.save(executable_path)
-    else:
-        executable_path = cache.get()
-
-    return Chrome(executable_path=executable_path, options=options)
-
-
-def download_driver():
-    """ Helper function for downloading the driver
-    """
-
-    logging.info('Downloading driver..')
-    return ChromeDriverManager(path=DEFAULT_CHROME_DRIVER_PATH).install()
-
-
-class DiskCache:
-    """ Helper class for caching data on disk.
-    """
-
-    _DEFAULT_CACHE_ROOT = os.path.join(os.path.expanduser('~'), '.config', 'kfp')
-
-    def __init__(self, name):
-        self.name = name
-        self.cache_path = os.path.join(self._DEFAULT_CACHE_ROOT, self.name)
-        if not os.path.exists(self._DEFAULT_CACHE_ROOT):
-            os.makedirs(self._DEFAULT_CACHE_ROOT)
-
-    def save(self, content):
-        """ cache content in a known location
-
-        Args:
-            content (str): content to be cached
-        """
-
-        with open(self.cache_path, 'w') as cacheFile:
-            cacheFile.write(content)
-
-    def get(self, expires_in=None):
-        """[summary]
-
-        Args:
-            expires_in (int, optional): Time in seconds since last modifed
-                when the cache is valid. Defaults to None which means for ever.
-
-        Returns:
-            (str): retrived cached content or None if not found
-        """
-
-        try:
-            if expires_in and time.time() - os.path.getmtime(self.cache_path) > expires_in:
-                return
-
-            with open(self.cache_path) as cacheFile:
-                return cacheFile.read()
-        except FileNotFoundError:
-            return

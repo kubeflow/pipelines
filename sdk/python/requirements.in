@@ -17,6 +17,9 @@ google-cloud-storage>=1.13.0
 google-auth>=1.6.1
 requests_toolbelt>=0.8.0
 
+# kfp.Client AWS auth
+
+
 # CLI
 tabulate
 click
