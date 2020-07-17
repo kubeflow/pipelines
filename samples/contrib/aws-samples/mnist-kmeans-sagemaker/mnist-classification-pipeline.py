@@ -66,11 +66,11 @@ def mnist_classification(role_arn="", bucket_name=""):
     train_image = "382416733822.dkr.ecr.us-east-1.amazonaws.com/kmeans:1"
 
     # Training input and output location based on bucket name
-    hpoChannels = [
+    hpo_channels = [
         training_input("train", f"s3://{bucket_name}/mnist_kmeans_example/train_data"),
         training_input("test", f"s3://{bucket_name}/mnist_kmeans_example/test_data"),
     ]
-    trainChannels = [
+    train_channels = [
         training_input("train", f"s3://{bucket_name}/mnist_kmeans_example/train_data")
     ]
     train_output_location = f"s3://{bucket_name}/mnist_kmeans_example/output"
@@ -128,7 +128,7 @@ def mnist_classification(role_arn="", bucket_name=""):
         categorical_parameters=[
             {"Name": "init_method", "Values": ["random", "kmeans++"]}
         ],
-        channels=hpoChannels,
+        channels=hpo_channels,
         output_location=train_output_location,
         instance_type=instance_type,
         max_num_jobs=3,
@@ -140,7 +140,7 @@ def mnist_classification(role_arn="", bucket_name=""):
         region=region,
         image=train_image,
         hyperparameters=hpo.outputs["best_hyperparameters"],
-        channels=trainChannels,
+        channels=train_channels,
         instance_type=instance_type,
         model_artifact_path=train_output_location,
         role=role_arn,
