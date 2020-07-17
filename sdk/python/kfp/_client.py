@@ -98,7 +98,7 @@ class Client(object):
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
   # TODO: Wrap the configurations for different authentication methods.
-  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookie=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None):
     """Create a new instance of kfp client.
 
     Args:
@@ -116,15 +116,15 @@ class Client(object):
       other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
       existing_token: pass in token directly, it's used for cases better get token outside of SDK, e.x. GCP Cloud Functions
           or caller already has a token
-      cookie: CookieJar object containing cookies that will be passed to the pipelines API.
+      cookies: CookieJar object containing cookies that will be passed to the pipelines API.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
-    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, cookie)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, cookies)
     # Save the loaded API client configuration, as a reference if update is
     # needed.
     self._existing_config = config
-    api_client = kfp_server_api.api_client.ApiClient(config, cookie=cookie)
+    api_client = kfp_server_api.api_client.ApiClient(config, cookie=cookies)
     _add_generated_apis(self, kfp_server_api, api_client)
     self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
@@ -146,16 +146,16 @@ class Client(object):
       Client : Client authenticated against Cognito
     """
     elb_auth_session_cookie = get_auth_cookie(host, username, password)
-    return Client(host=host, cookie=elb_auth_session_cookie)
+    return Client(host=host, cookies=elb_auth_session_cookie)
 
-  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, cookie):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, cookies):
     config = kfp_server_api.configuration.Configuration()
 
     host = host or ''
     # Preprocess the host endpoint to prevent some common user mistakes.
     # This should only be done for non GCP IAP case (when client_id is None) or non AWS Cognito case (when cookie is None).
     # GCP IAP and AWS Cognito require preserving the protocol.
-    if not client_id and not cookie:
+    if not client_id and not cookies:
       host = re.sub(r'^(http|https)://', '', host).rstrip('/')
 
     if host:

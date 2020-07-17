@@ -18,7 +18,7 @@ google-auth>=1.6.1
 requests_toolbelt>=0.8.0
 
 # kfp.Client AWS auth
-
+selenium>=3.141.0
 
 # CLI
 tabulate
