@@ -24,15 +24,6 @@ sagemaker_batch_transform_op = components.load_component_from_file(
     "../../../../components/aws/sagemaker/batch_transform/component.yaml"
 )
 
-# Update this to match the name of your bucket
-my_bucket_name = "my-bucket"
-
-# Common component inputs
-region = "us-east-1"
-instance_type = "ml.m5.2xlarge"
-train_image = "382416733822.dkr.ecr.us-east-1.amazonaws.com/kmeans:1"
-train_output_location = f"s3://{my_bucket_name}/mnist_kmeans_example/output"
-
 
 def processing_input(input_name, s3_uri, local_path):
     return {
@@ -64,20 +55,26 @@ def training_input(input_name, s3_uri):
     }
 
 
-hpoChannels = [
-    training_input("train", f"s3://{my_bucket_name}/mnist_kmeans_example/train_data"),
-    training_input("test", f"s3://{my_bucket_name}/mnist_kmeans_example/test_data"),
-]
-trainChannels = [
-    training_input("train", f"s3://{my_bucket_name}/mnist_kmeans_example/train_data")
-]
-
-
 @dsl.pipeline(
     name="MNIST Classification pipeline",
     description="MNIST Classification using KMEANS in SageMaker",
 )
-def mnist_classification(role_arn=""):
+def mnist_classification(role_arn="", bucket_name=""):
+    # Common component inputs
+    region = "us-east-1"
+    instance_type = "ml.m5.2xlarge"
+    train_image = "382416733822.dkr.ecr.us-east-1.amazonaws.com/kmeans:1"
+
+    # Training input and output location based on bucket name
+    hpoChannels = [
+        training_input("train", f"s3://{bucket_name}/mnist_kmeans_example/train_data"),
+        training_input("test", f"s3://{bucket_name}/mnist_kmeans_example/test_data"),
+    ]
+    trainChannels = [
+        training_input("train", f"s3://{bucket_name}/mnist_kmeans_example/train_data")
+    ]
+    train_output_location = f"s3://{bucket_name}/mnist_kmeans_example/output"
+
     process = sagemaker_process_op(
         role=role_arn,
         region=region,
@@ -95,24 +92,24 @@ def mnist_classification(role_arn=""):
             ),
             processing_input(
                 "source_code",
-                f"s3://{my_bucket_name}/mnist_kmeans_example/processing_code/kmeans_preprocessing.py",
+                f"s3://{bucket_name}/mnist_kmeans_example/processing_code/kmeans_preprocessing.py",
                 "/opt/ml/processing/code",
             ),
         ],
         output_config=[
             processing_output(
                 "train_data",
-                f"s3://{my_bucket_name}/mnist_kmeans_example/",
+                f"s3://{bucket_name}/mnist_kmeans_example/",
                 "/opt/ml/processing/output_train/",
             ),
             processing_output(
                 "test_data",
-                f"s3://{my_bucket_name}/mnist_kmeans_example/",
+                f"s3://{bucket_name}/mnist_kmeans_example/",
                 "/opt/ml/processing/output_test/",
             ),
             processing_output(
                 "valid_data",
-                f"s3://{my_bucket_name}/mnist_kmeans_example/input/",
+                f"s3://{bucket_name}/mnist_kmeans_example/input/",
                 "/opt/ml/processing/output_valid/",
             ),
         ],
@@ -166,10 +163,10 @@ def mnist_classification(role_arn=""):
         model_name=create_model.output,
         instance_type=instance_type,
         batch_strategy="MultiRecord",
-        input_location=f"s3://{my_bucket_name}/mnist_kmeans_example/input",
+        input_location=f"s3://{bucket_name}/mnist_kmeans_example/input",
         content_type="text/csv",
         split_type="Line",
-        output_location=f"s3://{my_bucket_name}/mnist_kmeans_example/output",
+        output_location=f"s3://{bucket_name}/mnist_kmeans_example/output",
     )
 
 

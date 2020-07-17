@@ -20,8 +20,6 @@ This can be done with the following command, replacing `<bucket-name>` with the 
     aws s3 cp mnist-kmeans-sagemaker/kmeans_preprocessing.py s3://<bucket-name>/mnist_kmeans_example/processing_code/kmeans_preprocessing.py
     ```
 
-3. Update the `my_bucket_name` variable with the bucket you just created in the [pipeline definition](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py#L18)
-
 ## Compiling the pipeline template
 
 Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
@@ -35,10 +33,10 @@ dsl-compile --py mnist-classification-pipeline.py --output mnist-classification-
 
 Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compiled specification (`.tar.gz` file) as a new pipeline template.
 
-The pipeline requires several arguments, replace `role_arn` and data path with your settings.
+Provide the `role_arn` and `bucket_name` you created as pipeline inputs.
 
 Once the pipeline done, you can go to `batch_transform_ouput` to check your batch prediction results.
-You will have an model endpoint in service. Please remember to clean it up.
+You will also have an model endpoint in service. Refer to [Prediction section](#Prediction) below to run predictions aganist your deployed model aganist the endpoint. Please remember to clean up the endpoint.
 
 
 ## Prediction
