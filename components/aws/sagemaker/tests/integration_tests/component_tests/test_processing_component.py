@@ -7,6 +7,7 @@ from utils import minio_utils
 from utils import sagemaker_utils
 from utils import argo_utils
 
+
 @pytest.mark.parametrize(
     "test_file_dir",
     [
@@ -87,7 +88,7 @@ def test_processingjob(
 def test_terminate_processingjob(kfp_client, experiment_id, region, sagemaker_client):
     test_file_dir = "resources/config/kmeans-algo-mnist-processing"
     download_dir = utils.mkdir(
-        os.path.join(test_file_dir + "/generated/test_terminate")
+        os.path.join(test_file_dir + "/generated_test_terminate")
     )
     test_params = utils.load_params(
         utils.replace_placeholders(

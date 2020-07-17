@@ -113,7 +113,7 @@ def test_hyperparameter_tuning(
 def test_terminate_hpojob(kfp_client, experiment_id, region, sagemaker_client):
     test_file_dir = "resources/config/kmeans-mnist-hpo"
     download_dir = utils.mkdir(
-        os.path.join(test_file_dir + "/generated/test_terminate")
+        os.path.join(test_file_dir + "/generated_test_terminate")
     )
     test_params = utils.load_params(
         utils.replace_placeholders(
