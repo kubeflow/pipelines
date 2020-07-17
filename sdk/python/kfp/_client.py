@@ -23,7 +23,7 @@ import warnings
 import yaml
 import zipfile
 import datetime
-from typing import Mapping, Callable
+from typing import Mapping, Callable, Optional
 
 import kfp
 import kfp_server_api
@@ -767,6 +767,44 @@ class Client(object):
     """
 
     response = self._upload_api.upload_pipeline(pipeline_package_path, name=pipeline_name, description=description)
+    if self._is_ipython():
+      import IPython
+      html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
+      IPython.display.display(IPython.display.HTML(html))
+    return response
+
+  def upload_pipeline_version(
+    self,
+    pipeline_package_path,
+    pipeline_version_name: str,
+    pipeline_id: Optional[str] = None,
+    pipeline_name: Optional[str] = None
+  ):
+    """Uploads a new version of the pipeline to the Kubeflow Pipelines cluster.
+    Args:
+      pipeline_package_path: Local path to the pipeline package.
+      pipeline_version_name:  Name of the pipeline version to be shown in the UI.
+      pipeline_id: Optional. Id of the pipeline.
+      pipeline_name: Optional. Name of the pipeline.
+    Returns:
+      Server response object containing pipleine id and other information.
+    Throws:
+      ValueError when none or both of pipeline_id or pipeline_name are specified
+      Exception if pipeline id is not found.
+    """
+
+    if all([pipeline_id, pipeline_name]) or not any([pipeline_id, pipeline_name]):
+      raise ValueError('Either pipeline_id or pipeline_name is required')
+
+    if pipeline_name:
+      pipeline_id = self.get_pipeline_id(pipeline_name)
+
+    response = self._upload_api.upload_pipeline_version(
+      pipeline_package_path, 
+      name=pipeline_version_name, 
+      pipelineid=pipeline_id
+    )
+
     if self._is_ipython():
       import IPython
       html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
