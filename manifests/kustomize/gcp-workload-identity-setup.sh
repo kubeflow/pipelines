@@ -184,7 +184,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \\
   --member="serviceAccount:$SYSTEM_GSA_FULL" \\
   --role="roles/storage.objectViewer"
 
-* Give $USER_GSA_FULL any permissions your pipelines need. For **QUICK** tryouts, you can give it Project Editor role for all permissions, but be aware this overgrants too much permission:
+* Give $USER_GSA_FULL any permissions your pipelines, container builder and tensorboard need. For **QUICK** tryouts, you can give it Project Editor role for all permissions, but **WARNING** be aware this overgrants too much permission:
 gcloud projects add-iam-policy-binding $PROJECT_ID \\
   --member="serviceAccount:$USER_GSA_FULL" \\
   --role="roles/editor"
