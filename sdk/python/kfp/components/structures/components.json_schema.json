@@ -322,8 +322,7 @@
       "type": "object",
       "properties": {
         "retryStrategy": {"$ref": "#/definitions/RetryStrategySpec"},
-        "cachingStrategy": {"$ref": "#/definitions/CachingStrategySpec"},
-        "launcherOptions": {"type": "object"}
+        "cachingStrategy": {"$ref": "#/definitions/CachingStrategySpec"}
       },
       "additionalProperties": false
     },

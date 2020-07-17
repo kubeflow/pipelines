@@ -548,13 +548,11 @@ class ExecutionOptionsSpec(ModelBase):
     _serialized_names = {
         'retry_strategy': 'retryStrategy',
         'caching_strategy': 'cachingStrategy',
-        'launcher_options': 'launcherOptions',
     }
 
     def __init__(self,
         retry_strategy: Optional[RetryStrategySpec] = None,
         caching_strategy: Optional[CachingStrategySpec] = None,
-        launcher_options: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(locals())
 

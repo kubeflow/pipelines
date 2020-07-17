@@ -213,5 +213,4 @@ message RetryStrategySpec {
 // Optional configuration that specifies how the task should be executed. Can be used to set some platform-specific options.
 message ExecutionOptionsSpec {
     RetryStrategySpec retryStrategy = 1;
-    map<string, google.protobuf.Struct> launcherOptions = 2;
 }

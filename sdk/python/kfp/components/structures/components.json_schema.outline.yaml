@@ -67,4 +67,3 @@
                                     maxRetries: integer
                                 cachingStrategy: #CachingStrategySpec
                                     maxCacheStaleness: string
-                                launcherOptions: #Map str -> Any
