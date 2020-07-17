@@ -69,7 +69,6 @@ setup(
         'kfp.compiler',
         'kfp.components',
         'kfp.components.structures',
-        'kfp.components.structures.kubernetes',
         'kfp.containers',
         'kfp.dsl',
         'kfp.dsl.extensions',
