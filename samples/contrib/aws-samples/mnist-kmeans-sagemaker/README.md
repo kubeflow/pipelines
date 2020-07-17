@@ -43,7 +43,7 @@ You will also have an model endpoint in service. Refer to [Prediction section](#
 
 1. Find your endpoint name either by,
   - Opening SageMaker [console](https://us-east-1.console.aws.amazon.com/sagemaker/home?region=us-east-1#/endpoints),  or
-  - Clicking the `sagemaker-deploy-model-endpoint_name` under `Output artifacts` of `SageMaker - Deploy Model` component of the pipeline
+  - Clicking the `sagemaker-deploy-model-endpoint_name` under `Output artifacts` of `SageMaker - Deploy Model` component of the pipeline run
 
 2. Setup AWS credentials with `sagemaker:InvokeEndpoint` access. [Sample commands](https://sagemaker.readthedocs.io/en/stable/workflows/kubernetes/using_amazon_sagemaker_components.html#configure-permissions-to-run-predictions)
 3. Update the `ENDPOINT_NAME` variable in the script below
