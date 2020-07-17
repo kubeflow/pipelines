@@ -84,7 +84,7 @@ def use_tpu(tpu_cores: int, tpu_resource: str, tf_version: str):
 
     def _set_tpu_spec(task):
         task.add_pod_annotation('tf-version.cloud-tpus.google.com', tf_version)
-        task.add_resource_limit('cloud-tpus.google.com/{}'.format(tpu_resource), str(tpu_cores))
+        task.container.add_resource_limit('cloud-tpus.google.com/{}'.format(tpu_resource), str(tpu_cores))
         return task
 
     return _set_tpu_spec
