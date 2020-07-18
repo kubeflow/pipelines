@@ -96,9 +96,9 @@ export function getArtifactsHandler(artifactsConfigs: {
       case 'http':
       case 'https':
         getHttpArtifactsHandler(
-            getHttpUrl(source, http.baseUrl || '', bucket, key),
-            http.auth,
-            peek,
+          getHttpUrl(source, http.baseUrl || '', bucket, key),
+          http.auth,
+          peek,
         )(req, res);
         break;
 
