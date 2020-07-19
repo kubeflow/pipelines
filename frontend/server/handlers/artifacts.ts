@@ -103,10 +103,7 @@ export function getArtifactsHandler(artifactsConfigs: {
         break;
 
       case 'file':
-        await getFileArtifactsHandler(
-            key,
-            peek,
-        )(req, res);
+        await getFileArtifactsHandler(key, peek)(req, res);
         break;
 
       default:
@@ -248,14 +245,13 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
   };
 }
 
-function getFileArtifactsHandler(
-    filePath: string,
-    peek: number = 0,
-) {
+function getFileArtifactsHandler(filePath: string, peek: number = 0) {
   return async (req: Request, res: Response) => {
-    try{
+    try {
       if (!fs.existsSync(filePath)) {
-        res.status(500).send(`Failed to open local file: ${filePath}, please check if file is exist`);
+        res
+          .status(500)
+          .send(`Failed to open local file: ${filePath}, please check if file is exist`);
         return;
       }
 
@@ -268,8 +264,8 @@ function getFileArtifactsHandler(
       }
 
       fs.createReadStream(filePath)
-          .pipe(new PreviewStream({ peek }))
-          .pipe(res);
+        .pipe(new PreviewStream({ peek }))
+        .pipe(res);
     } catch (err) {
       res.status(500).send(`Failed to get local file ${filePath}: ${err}`);
     }
