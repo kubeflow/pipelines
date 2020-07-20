@@ -48,6 +48,20 @@ func (e *Experiment) GetModelName() string {
 }
 
 func (e *Experiment) GetFieldValue(name string) interface{} {
-	// TODO(jingzhang36): follow the example of GetFieldValue in run.go
-	return nil
+	switch name {
+	case "UUID":
+		return e.UUID
+	case "Name":
+		return e.Name
+	case "CreatedAtInSec":
+		return e.CreatedAtInSec
+	case "Description":
+		return e.Description
+	case "Namespace":
+		return e.Namespace
+	case "StorageState":
+		return e.StorageState
+	default:
+		return nil
+	}
 }

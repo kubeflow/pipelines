@@ -368,17 +368,8 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	// TODO(jingzhang36): this if-else block can be simplified to one call to
 	// GetFieldValue after all the models (run, job, experiment, etc.) implement
 	// GetFieldValue method in listable interface.
-	if !o.SortByFieldIsRunMetric {
-		if value := elem.FieldByName(o.SortByFieldName); value.IsValid() {
-			sortByField = value.Interface()
-		} else {
-			return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
-		}
-	} else {
-		sortByField = listable.GetFieldValue(o.SortByFieldName)
-		if sortByField == nil {
-			return nil, util.NewInvalidInputError("Unable to find run metric %s", o.SortByFieldName)
-		}
+	if sortByField = listable.GetFieldValue(o.SortByFieldName); sortByField == nil {
+		return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
 	}
 
 	keyField := elem.FieldByName(listable.PrimaryKeyColumnName())

@@ -80,6 +80,16 @@ func (p *Pipeline) GetModelName() string {
 }
 
 func (p *Pipeline) GetFieldValue(name string) interface{} {
-	// TODO(jingzhang36): follow the example of GetFieldValue in run.go
-	return nil
+	switch name {
+	case "UUID":
+		return p.UUID
+	case "Name":
+		return p.Name
+	case "CreatedAtInSec":
+		return p.CreatedAtInSec
+	case "Description":
+		return p.Description
+	default:
+		return nil
+	}
 }
