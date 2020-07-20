@@ -8,6 +8,8 @@ Amazon SageMaker Components for Kubeflow Pipelines offer an alternative to launc
 
 For an end-to-end tutorial using these components, see [Using Amazon SageMaker Components](https://sagemaker.readthedocs.io/en/stable/workflows/kubernetes/using_amazon_sagemaker_components.html).
 
+For more example pipelines, see [Sample AWS SageMaker Kubeflow Pipelines](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples).
+
 There is no additional charge for using Amazon SageMaker Components for Kubeflow Pipelines. You incur charges for any Amazon SageMaker resources you use through these components.
 
 ### Training components
