@@ -15,10 +15,16 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 )
 
+type fakeMetric struct {
+	Name: string
+	Value: float64
+}
+
 type fakeListable struct {
 	PrimaryKey       string
 	FakeName         string
 	CreatedTimestamp int64
+	Metrics          []*fakeMetric
 }
 
 func (f *fakeListable) PrimaryKeyColumnName() string {
@@ -51,13 +57,26 @@ func (f *fakeListable) GetFieldValue(name string) interface{} {
 		return f.FakeName
 	case "PrimaryKey":
 		return f.PrimaryKey
-	default:
-		return nil
 	}
+	for _, metric := range f.Metrics {
+		if metric.Name == name {
+			return metric.Value
+		}
+	}
+	return nil
 }
 
 func TestNextPageToken_ValidTokens(t *testing.T) {
-	l := &fakeListable{PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234}
+	l := &fakeListable{PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234, Metrics: []*fakeMetric{
+		{
+			Name: "m1",
+			Value: 1.0,
+		},
+		{
+			Name: "m2",
+			Value: 2.0,
+		},
+	}}
 
 	protoFilter := &api.Filter{Predicates: []*api.Predicate{
 		&api.Predicate{
@@ -125,6 +144,22 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				KeyFieldValue:    "uuid123",
 				IsDesc:           false,
 				Filter:           testFilter,
+			},
+		},
+		{
+			inOpts: &Options{
+				PageSize: 10,
+				token: &token{
+					SortByFieldName: "metric:m1", IsDesc: false,
+				},
+			},
+			want: &token{
+				SortByFieldName:  "m1",
+				SortByFieldValue: "1.0",
+				SortByFieldIsRunMetric: true,
+				KeyFieldName:     "PrimaryKey",
+				KeyFieldValue:    "uuid123",
+				IsDesc:           false,
 			},
 		},
 	}
@@ -836,8 +871,4 @@ func TestFilterOnNamesapce(t *testing.T) {
 				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
 		}
 	}
-}
-
-func TestSortByRunMetrics(t *testing.T) {
-
 }

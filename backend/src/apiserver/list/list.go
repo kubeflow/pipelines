@@ -365,9 +365,6 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	elemName := elem.Type().Name()
 
 	var sortByField interface{}
-	// TODO(jingzhang36): this if-else block can be simplified to one call to
-	// GetFieldValue after all the models (run, job, experiment, etc.) implement
-	// GetFieldValue method in listable interface.
 	if sortByField = listable.GetFieldValue(o.SortByFieldName); sortByField == nil {
 		return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
 	}
