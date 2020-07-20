@@ -44,7 +44,16 @@ func (f *fakeListable) GetModelName() string {
 }
 
 func (f *fakeListable) GetFieldValue(name string) interface{} {
-	return nil
+	switch name {
+	case "CreatedTimestamp":
+		return f.CreatedTimestamp
+	case "FakeName":
+		return f.FakeName
+	case "PrimaryKey":
+		return f.PrimaryKey
+	default:
+		return nil
+	}
 }
 
 func TestNextPageToken_ValidTokens(t *testing.T) {
