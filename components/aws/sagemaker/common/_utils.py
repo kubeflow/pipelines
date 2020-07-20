@@ -260,6 +260,13 @@ def get_image_from_job(client, job_name):
     return image
 
 
+def stop_training_job(client, job_name):
+    try:
+        client.stop_training_job(TrainingJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
+
+
 def create_model(client, args):
     request = create_model_request(args)
     try:
@@ -509,6 +516,13 @@ def wait_for_transform_job(client, batch_job_name, poll_interval=30):
     time.sleep(poll_interval)
 
 
+def stop_transform_job(client, job_name):
+    try:
+        client.stop_transform_job(TransformJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
+
+
 def create_hyperparameter_tuning_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_hyper_parameter_tuning_job
     with open(os.path.join(__cwd__, 'hpo.template.yaml'), 'r') as f:
@@ -625,7 +639,7 @@ def create_hyperparameter_tuning_job(client, args):
     try:
         client.create_hyper_parameter_tuning_job(**request)
         hpo_job_name = request['HyperParameterTuningJobName']
-        logging.info("Created Hyperparameter Training Job with name: " + hpo_job_name)
+        logging.info("Created Hyperparameter Tuning Job with name: " + hpo_job_name)
         logging.info("HPO job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/hyper-tuning-jobs/{}"
             .format(args['region'], args['region'], hpo_job_name))
         logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/TrainingJobs;prefix={};streamFilter=typeLogStreamPrefix"
@@ -659,6 +673,13 @@ def get_best_training_job_and_hyperparameters(client, hpo_job_name):
     train_hyperparameters = training_info['HyperParameters']
     train_hyperparameters.pop('_tuning_objective_metric')
     return best_job, train_hyperparameters
+
+
+def stop_hyperparameter_tuning_job(client, job_name):
+    try:
+        client.stop_hyper_parameter_tuning_job(HyperParameterTuningJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
 
 
 def create_workteam(client, args):
@@ -880,6 +901,14 @@ def get_labeling_job_outputs(client, labeling_job_name, auto_labeling):
         active_learning_model_arn = ' '
     return output_manifest, active_learning_model_arn
 
+
+def stop_labeling_job(client, job_name):
+    try:
+        client.stop_labeling_job(LabelingJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
+
+
 def create_hyperparameters(hyperparam_args):
     # Validate all values are strings
     for key, value in hyperparam_args.items():
@@ -1016,6 +1045,13 @@ def get_processing_job_outputs(client, processing_job_name):
         outputs[output['OutputName']] = output['S3Output']['S3Uri']
 
     return outputs
+
+
+def stop_processing_job(client, job_name):
+    try:
+        client.stop_processing_job(ProcessingJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
 
 
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):

@@ -108,3 +108,39 @@ def test_hyperparameter_tuning(
     assert hyper_parameters is not None
 
     utils.remove_dir(download_dir)
+
+
+def test_terminate_hpojob(kfp_client, experiment_id, region, sagemaker_client):
+    test_file_dir = "resources/config/kmeans-mnist-hpo"
+    download_dir = utils.mkdir(
+        os.path.join(test_file_dir + "/generated_test_terminate")
+    )
+    test_params = utils.load_params(
+        utils.replace_placeholders(
+            os.path.join(test_file_dir, "config.yaml"),
+            os.path.join(download_dir, "config.yaml"),
+        )
+    )
+
+    input_job_name = test_params["Arguments"]["job_name"] = (
+        utils.generate_random_string(4) + "-terminate-job"
+    )
+
+    run_id, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
+        kfp_client,
+        experiment_id,
+        test_params["PipelineDefinition"],
+        test_params["Arguments"],
+        download_dir,
+        test_params["TestName"],
+        60,
+        "running",
+    )
+
+    print(f"Terminating run: {run_id} where HPO job_name: {input_job_name}")
+    kfp_client_utils.terminate_run(kfp_client, run_id)
+
+    response = sagemaker_utils.describe_hpo_job(sagemaker_client, input_job_name)
+    assert response["HyperParameterTuningJobStatus"] in ["Stopping", "Stopped"]
+
+    utils.remove_dir(download_dir)

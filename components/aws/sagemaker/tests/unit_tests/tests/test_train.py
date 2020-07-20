@@ -1,6 +1,8 @@
 import unittest
+import os
+import signal
 
-from unittest.mock import patch, call, Mock, MagicMock, mock_open
+from unittest.mock import patch, call, Mock, MagicMock, mock_open, ANY
 from botocore.exceptions import ClientError
 
 from train.src import train
@@ -81,6 +83,27 @@ class TrainTestCase(unittest.TestCase):
       TrainingJobName='test-job'
     )
     self.assertEqual(response, 'test-job')
+
+  def test_main_stop_training_job(self):
+    train._utils = MagicMock()
+    train._utils.create_training_job.return_value = 'job-name'
+
+    try:
+      os.kill(os.getpid(), signal.SIGTERM)
+    finally:
+      train._utils.stop_training_job.assert_called_once_with(ANY, 'job-name')
+      train._utils.get_image_from_job.assert_not_called()
+
+  def test_utils_stop_training_job(self):
+    mock_sm_client = MagicMock()
+    mock_sm_client.stop_training_job.return_value = None
+
+    response = _utils.stop_training_job(mock_sm_client, 'FakeJobName')
+
+    mock_sm_client.stop_training_job.assert_called_once_with(
+        TrainingJobName='FakeJobName'
+    )
+    self.assertEqual(response, None)
 
   def test_sagemaker_exception_in_create_training_job(self):
     mock_client = MagicMock()

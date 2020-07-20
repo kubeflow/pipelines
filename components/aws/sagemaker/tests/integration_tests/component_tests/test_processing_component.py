@@ -7,6 +7,7 @@ from utils import minio_utils
 from utils import sagemaker_utils
 from utils import argo_utils
 
+
 @pytest.mark.parametrize(
     "test_file_dir",
     [
@@ -26,13 +27,6 @@ def test_processingjob(
             os.path.join(test_file_dir, "config.yaml"),
             os.path.join(download_dir, "config.yaml"),
         )
-    )
-
-    test_params["Arguments"]["input_config"] = json.dumps(
-        test_params["Arguments"]["input_config"]
-    )
-    test_params["Arguments"]["output_config"] = json.dumps(
-        test_params["Arguments"]["output_config"]
     )
 
     # Generate random prefix for job name to avoid errors if model with same name exists
@@ -87,5 +81,41 @@ def test_processingjob(
 
     assert not argo_utils.error_in_cw_logs(workflow_json["metadata"]["name"]), \
         ('Found the CloudWatch error message in the log output. Check SageMaker to see if the job has failed.')
+
+    utils.remove_dir(download_dir)
+
+
+def test_terminate_processingjob(kfp_client, experiment_id, region, sagemaker_client):
+    test_file_dir = "resources/config/kmeans-algo-mnist-processing"
+    download_dir = utils.mkdir(
+        os.path.join(test_file_dir + "/generated_test_terminate")
+    )
+    test_params = utils.load_params(
+        utils.replace_placeholders(
+            os.path.join(test_file_dir, "config.yaml"),
+            os.path.join(download_dir, "config.yaml"),
+        )
+    )
+
+    input_job_name = test_params["Arguments"]["job_name"] = (
+        utils.generate_random_string(4) + "-terminate-job"
+    )
+
+    run_id, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
+        kfp_client,
+        experiment_id,
+        test_params["PipelineDefinition"],
+        test_params["Arguments"],
+        download_dir,
+        test_params["TestName"],
+        60,
+        "running",
+    )
+
+    print(f"Terminating run: {run_id} where Processing job_name: {input_job_name}")
+    kfp_client_utils.terminate_run(kfp_client, run_id)
+
+    response = sagemaker_utils.describe_processing_job(sagemaker_client, input_job_name)
+    assert response["ProcessingJobStatus"] in ["Stopping", "Stopped"]
 
     utils.remove_dir(download_dir)
