@@ -271,6 +271,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 			},
 		}}
 
+	// Sort in asc order
 	opts, err := list.NewOptions(&model.Run{}, 1, "metric:dummymetric", nil)
 	assert.Nil(t, err)
 
@@ -288,6 +289,26 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
+	assert.Empty(t, nextPageToken)
+
+	// Sort in desc order
+	opts, err = list.NewOptions(&model.Run{}, 1, "metric:dummymetric desc", nil)
+	assert.Nil(t, err)
+
+	runs, total_size, nextPageToken, err = runStore.ListRuns(
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, total_size)
+	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
+	assert.NotEmpty(t, nextPageToken)
+
+	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
+	assert.Nil(t, err)
+	runs, total_size, nextPageToken, err = runStore.ListRuns(
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, total_size)
+	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
 }
 
