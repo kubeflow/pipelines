@@ -187,7 +187,7 @@ fill in the description. Detailed steps:
    1. Typing in version tag field to search and select the "$VERSION" tag published in release instructions above.
    Its format is like `X.Y.Z` or `X.Y.Z-rc.N`.
 
-   1. Use this template for public releases
+   1. Use this template for public releases and replace the `$TAG_NAME` with real values.
        <pre>
        To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
 
@@ -196,7 +196,7 @@ fill in the description. Detailed steps:
        python3 -m pip install kfp kfp-server-api --upgrade
        ```
 
-       See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+       See the [Change Log](https://github.com/kubeflow/pipelines/blob/$TAG_NAME/CHANGELOG.md)
        </pre>
 
        Use this template for prereleases (release candidates) and **PLEASE CHECK** the
@@ -209,7 +209,7 @@ fill in the description. Detailed steps:
        python3 -m pip install kfp kfp-server-api --pre --upgrade
        ```
 
-       See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+       See the [Change Log](https://github.com/kubeflow/pipelines/blob/$TAG_NAME/CHANGELOG.md)
        </pre>
 
 1. Update master branch to the same version.
