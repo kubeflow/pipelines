@@ -142,8 +142,9 @@ class Client(object):
     if proxy:
       # https://github.com/kubeflow/pipelines/blob/c6ac5e0b1fd991e19e96419f0f508ec0a4217c29/backend/api/python_http_client/kfp_server_api/rest.py#L100
       config.proxy = proxy
-      if ssl_ca_cert:
-        config.ssl_ca_cert = ssl_ca_cert
+
+    if ssl_ca_cert:
+      config.ssl_ca_cert = ssl_ca_cert
 
     host = host or ''
     # Preprocess the host endpoint to prevent some common user mistakes.
