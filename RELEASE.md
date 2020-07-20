@@ -63,8 +63,8 @@ Release manager will periodically or before release, search all merged PRs with
 * Find the active release branch name $BRANCH, e.g. release-1.0
 *
     ```bash
-    git co $BRANCH
-    git co -b <cherry-pick-pr-branch-name>
+    git checkout $BRANCH
+    git checkout -b <cherry-pick-pr-branch-name>
     git cherry-pick $COMMIT_SHA
     ```
 * Resolve merge conflicts if any
@@ -215,9 +215,9 @@ fill in the description. Detailed steps:
 1. Update master branch to the same version.
     ```bash
     export TAG_NAME=<TAG_NAME>
-    git co master
+    git checkout master
     git pull
-    git co -b <your-branch-name>
+    git checkout -b <your-branch-name>
     # This avoids line break at end of line.
     echo -n $TAG_NAME > VERSION
     # This takes a while.
