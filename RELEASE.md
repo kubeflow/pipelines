@@ -212,6 +212,21 @@ fill in the description. Detailed steps:
        See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
        </pre>
 
+1. Update master branch to the same version.
+    ```bash
+    export TAG_NAME=<TAG_NAME>
+    git co master
+    git pull
+    git co -b <your-branch-name>
+    # This avoids line break at end of line.
+    echo -n $TAG_NAME > VERSION
+    # This takes a while.
+    ./hack/release-imp.sh
+    git checkout $TAG_NAME -- CHANGELOG.md
+    git add -A
+    git commit -m "chore(release): bump version to $TAG_NAME on master branch"
+    ```
+
 1. If current release is not a prerelease, create a PR to update version in kubeflow documentation website: 
 https://github.com/kubeflow/website/blob/master/layouts/shortcodes/pipelines/latest-version.html
 
