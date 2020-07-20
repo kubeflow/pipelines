@@ -13,7 +13,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: '0.5.1'
+    version: 1.0.0
     description: |-
       Reusable end-to-end ML workflow
     maintainers:
