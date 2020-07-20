@@ -23,7 +23,7 @@ import warnings
 import yaml
 import zipfile
 import datetime
-from typing import Mapping, Callable
+from typing import Mapping, Callable, Optional
 
 import kfp
 import kfp_server_api
@@ -98,7 +98,8 @@ class Client(object):
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
   # TODO: Wrap the configurations for different authentication methods.
-  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, proxy=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None):
     """Create a new instance of kfp client.
 
     Args:
@@ -116,15 +117,17 @@ class Client(object):
       other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
       existing_token: pass in token directly, it's used for cases better get token outside of SDK, e.x. GCP Cloud Functions
           or caller already has a token
-      proxy: HTTP or HTTPS proxy
+      cookies: CookieJar object containing cookies that will be passed to the pipelines API.
+      proxy: HTTP or HTTPS proxy server
+      ssl_ca_cert: cert for proxy
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
-    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert)
     # Save the loaded API client configuration, as a reference if update is
     # needed.
     self._existing_config = config
-    api_client = kfp_server_api.api_client.ApiClient(config)
+    api_client = kfp_server_api.api_client.ApiClient(config, cookie=cookies)
     _add_generated_apis(self, kfp_server_api, api_client)
     self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
@@ -133,12 +136,14 @@ class Client(object):
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
     self._load_context_setting_or_default()
 
-  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert):
     config = kfp_server_api.configuration.Configuration()
 
     if proxy:
       # https://github.com/kubeflow/pipelines/blob/c6ac5e0b1fd991e19e96419f0f508ec0a4217c29/backend/api/python_http_client/kfp_server_api/rest.py#L100
       config.proxy = proxy
+      if ssl_ca_cert:
+        config.ssl_ca_cert = ssl_ca_cert
 
     host = host or ''
     # Preprocess the host endpoint to prevent some common user mistakes.
@@ -771,6 +776,44 @@ class Client(object):
     """
 
     response = self._upload_api.upload_pipeline(pipeline_package_path, name=pipeline_name, description=description)
+    if self._is_ipython():
+      import IPython
+      html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
+      IPython.display.display(IPython.display.HTML(html))
+    return response
+
+  def upload_pipeline_version(
+    self,
+    pipeline_package_path,
+    pipeline_version_name: str,
+    pipeline_id: Optional[str] = None,
+    pipeline_name: Optional[str] = None
+  ):
+    """Uploads a new version of the pipeline to the Kubeflow Pipelines cluster.
+    Args:
+      pipeline_package_path: Local path to the pipeline package.
+      pipeline_version_name:  Name of the pipeline version to be shown in the UI.
+      pipeline_id: Optional. Id of the pipeline.
+      pipeline_name: Optional. Name of the pipeline.
+    Returns:
+      Server response object containing pipleine id and other information.
+    Throws:
+      ValueError when none or both of pipeline_id or pipeline_name are specified
+      Exception if pipeline id is not found.
+    """
+
+    if all([pipeline_id, pipeline_name]) or not any([pipeline_id, pipeline_name]):
+      raise ValueError('Either pipeline_id or pipeline_name is required')
+
+    if pipeline_name:
+      pipeline_id = self.get_pipeline_id(pipeline_name)
+
+    response = self._upload_api.upload_pipeline_version(
+      pipeline_package_path, 
+      name=pipeline_version_name, 
+      pipelineid=pipeline_id
+    )
+
     if self._is_ipython():
       import IPython
       html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
