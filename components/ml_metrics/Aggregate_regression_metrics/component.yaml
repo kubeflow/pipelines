@@ -1,0 +1,151 @@
+name: Aggregate regression metrics
+description: |-
+  Calculates regression metrics.
+
+      Annotations:
+          author: Alexey Volkov <alexey.volkov@ark-kun.com>
+inputs:
+- {name: metrics_1, type: JsonObject}
+- {name: metrics_2, type: JsonObject, optional: true}
+- {name: metrics_3, type: JsonObject, optional: true}
+- {name: metrics_4, type: JsonObject, optional: true}
+- {name: metrics_5, type: JsonObject, optional: true}
+outputs:
+- {name: number_of_items, type: Integer}
+- {name: max_absolute_error, type: Float}
+- {name: mean_absolute_error, type: Float}
+- {name: mean_squared_error, type: Float}
+- {name: root_mean_squared_error, type: Float}
+- {name: metrics, type: JsonObject}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - python3
+    - -u
+    - -c
+    - |
+      def aggregate_regression_metrics(
+          metrics_1,
+          metrics_2 = None,
+          metrics_3 = None,
+          metrics_4 = None,
+          metrics_5 = None,
+      ):
+          '''Calculates regression metrics.
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          '''
+          import math
+
+          metrics_dicts = [d for d in [metrics_1, metrics_2, metrics_3, metrics_4, metrics_5] if d is not None]
+          number_of_items = sum(metrics['number_of_items'] for metrics in metrics_dicts)
+          max_absolute_error = max(metrics['max_absolute_error'] for metrics in metrics_dicts)
+          mean_absolute_error = sum(metrics['mean_absolute_error'] * metrics['number_of_items'] for metrics in metrics_dicts) / number_of_items
+          mean_squared_error = sum(metrics['mean_squared_error'] * metrics['number_of_items'] for metrics in metrics_dicts) / number_of_items
+          root_mean_squared_error = math.sqrt(mean_squared_error)
+          metrics = dict(
+              number_of_items=number_of_items,
+              max_absolute_error=max_absolute_error,
+              mean_absolute_error=mean_absolute_error,
+              mean_squared_error=mean_squared_error,
+              root_mean_squared_error=root_mean_squared_error,
+          )
+
+          return (
+              number_of_items,
+              max_absolute_error,
+              mean_absolute_error,
+              mean_squared_error,
+              root_mean_squared_error,
+              metrics,
+          )
+
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+      def _serialize_float(float_value: float) -> str:
+          if isinstance(float_value, str):
+              return float_value
+          if not isinstance(float_value, (float, int)):
+              raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+          return str(float_value)
+
+      def _serialize_int(int_value: int) -> str:
+          if isinstance(int_value, str):
+              return int_value
+          if not isinstance(int_value, int):
+              raise TypeError('Value "{}" has type "{}" instead of int.'.format(str(int_value), str(type(int_value))))
+          return str(int_value)
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Aggregate regression metrics', description='Calculates regression metrics.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')
+      _parser.add_argument("--metrics-1", dest="metrics_1", type=json.loads, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--metrics-2", dest="metrics_2", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--metrics-3", dest="metrics_3", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--metrics-4", dest="metrics_4", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--metrics-5", dest="metrics_5", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=6)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = aggregate_regression_metrics(**_parsed_args)
+
+      _output_serializers = [
+          _serialize_int,
+          _serialize_float,
+          _serialize_float,
+          _serialize_float,
+          _serialize_float,
+          _serialize_json,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --metrics-1
+    - {inputValue: metrics_1}
+    - if:
+        cond: {isPresent: metrics_2}
+        then:
+        - --metrics-2
+        - {inputValue: metrics_2}
+    - if:
+        cond: {isPresent: metrics_3}
+        then:
+        - --metrics-3
+        - {inputValue: metrics_3}
+    - if:
+        cond: {isPresent: metrics_4}
+        then:
+        - --metrics-4
+        - {inputValue: metrics_4}
+    - if:
+        cond: {isPresent: metrics_5}
+        then:
+        - --metrics-5
+        - {inputValue: metrics_5}
+    - '----output-paths'
+    - {outputPath: number_of_items}
+    - {outputPath: max_absolute_error}
+    - {outputPath: mean_absolute_error}
+    - {outputPath: mean_squared_error}
+    - {outputPath: root_mean_squared_error}
+    - {outputPath: metrics}
