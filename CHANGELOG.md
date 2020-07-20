@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.0.0](https://github.com/kubeflow/pipelines/compare/1.0.0-rc.5...1.0.0) (2020-07-20)
+
+
+### Features
+
+* **sdk/client:** add cookie configuration to kfp client ([\#2679](https://github.com/kubeflow/pipelines/issues/2679)) ([9206b5a](https://github.com/kubeflow/pipelines/commit/9206b5aade23edf77b9f6cdce6b0fd97325ea1a3))
+
+
+### Bug Fixes
+
+* **backend:** Metadata Writer - Fixed regression with artifact type retrieval. Fixes [\#3971](https://github.com/kubeflow/pipelines/issues/3971) ([\#4231](https://github.com/kubeflow/pipelines/issues/4231)) ([3ffd55e](https://github.com/kubeflow/pipelines/commit/3ffd55ede27a2166f8389b34661a9c23501a3b39))
+
+
+### Other Pull Requests
+
+* SDK - Components - Temporary removed Kubernetes options from ComponentSpec ([\#4230](https://github.com/kubeflow/pipelines/issues/4230)) ([9c16eff](https://github.com/kubeflow/pipelines/commit/9c16eff256f489744ce9440201872a17b7aad67f))
+
 ## [1.0.0-rc.5](https://github.com/kubeflow/pipelines/compare/1.0.0-rc.4...1.0.0-rc.5) (2020-07-13)
 
 
