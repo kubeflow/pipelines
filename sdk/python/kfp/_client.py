@@ -150,7 +150,10 @@ class Client(object):
     # Preprocess the host endpoint to prevent some common user mistakes.
     # This should only be done for non-IAP cases (when client_id is None). IAP requires preserving the protocol.
     if not client_id:
-      host = re.sub(r'^(http|https)://', '', host).rstrip('/')
+      # Per feedback in proxy env, http or https is still required
+      if not proxy:
+        host = re.sub(r'^(http|https)://', '', host)
+      host = host.rstrip('/')
 
     if host:
       config.host = host
