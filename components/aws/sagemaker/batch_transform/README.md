@@ -17,7 +17,8 @@ Create a transform job in AWS SageMaker.
 Argument        | Description                 | Optional (in pipeline definition) | Optional (in UI) | Data type  | Accepted values | Default    |
 :---            | :----------                 | :----------                       | :----------      | :----------| :----------     | :----------|
 region | The region where the endpoint is created | No | No | String | | |
-endpoint_url | The endpoint URL for the private link VPC endpoint | Yes | Yes | String | | |
+endpoint_url | The endpoint URL for the private link VPC endpoint | Yes | String | | |
+assume_role | The ARN of an IAM role to assume when connecting to SageMaker | Yes | String | | |
 job_name | The name of the transform job. The name must be unique within an AWS Region in an AWS account | Yes | Yes | String | | is a generated name (combination of model_name and 'BatchTransform' string)|
 model_name | The name of the model that you want to use for the transform job. Model name must be the name of an existing Amazon SageMaker model within an AWS Region in an AWS account | No | No | String | | |
 max_concurrent | The maximum number of parallel requests that can be sent to each instance in a transform job | Yes | Yes | Integer | | 0 |
