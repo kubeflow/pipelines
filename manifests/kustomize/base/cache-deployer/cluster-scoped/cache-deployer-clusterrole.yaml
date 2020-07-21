@@ -15,8 +15,6 @@ rules:
   - delete
   - get
   - update
-  - list
-  - watch
 - apiGroups:
   - admissionregistration.k8s.io
   resources:
