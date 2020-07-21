@@ -37,6 +37,7 @@ REQUIRES = [
     'click',
     'Deprecated',
     'strip-hints',
+    'selenium>=3.141.0',
 ]
 
 TESTS_REQUIRE = [

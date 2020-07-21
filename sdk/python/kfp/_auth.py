@@ -15,6 +15,9 @@
 import logging
 import os
 import subprocess
+import json
+import getpass
+from webbrowser import open_new_tab
 import google.auth
 import google.auth.app_engine
 import google.auth.compute_engine.credentials
@@ -23,9 +26,8 @@ from google.auth.transport.requests import Request
 import google.oauth2.credentials
 import google.oauth2.service_account
 import requests_toolbelt.adapters.appengine
-from webbrowser import open_new_tab
 import requests
-import json
+from kfp.aws import DiskCache, get_chrome_driver
 
 IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
@@ -190,3 +192,66 @@ def id_token_from_refresh_token(client_id, client_secret, refresh_token, audienc
                "audience": audience}
     res = requests.post(OAUTH_TOKEN_URI, data=payload)
     return (str(json.loads(res.text)[u"id_token"]))
+
+def validate_creds(username, password):
+    if not username or not password:
+        logging.info("Please provide AWS Cognito credentials below")
+        username = input("Username: ")
+        password = getpass.getpass("Password: ")
+
+    return username, password
+
+def get_auth_cookie(host, username=None, password=None, from_cache=True):
+    """This function communicates with AWS auth services and returns
+        credentials requried for communicating with KFP API Server
+
+        Current dom only works for cognito itself. We might extend to other IDP pages later.
+
+        Args:
+            host (string): KFP API server URL
+            username (string): username for authentication
+            password (string): user account password for authentication
+
+        Returns:
+            auth_cookie (string): Returns a string
+            example:
+            ::
+                'AWSELBAuthSessionCookie-0=0YVVtNnipQ...cjmqrMOuYmpTxvo'
+    """
+    cache = DiskCache('elb_session_cookie')
+
+    if from_cache:
+        cached_creds = cache.get(expires_in=86400)
+        if cached_creds:
+            return cached_creds
+        else:
+            logging.info(
+                'Credentials are not found in the cache, trying to login'
+            )
+
+    driver = get_chrome_driver()
+    driver.get(host)
+    username, password = validate_creds(username, password)
+
+    # Setting the value of email input field
+    driver.execute_script(
+        'var element = document.getElementById("signInFormUsername");' +
+        'element.value = "{}";'.format(username)
+    )
+
+    # Setting the value of password input field
+    driver.execute_script(
+        'var element = document.getElementById("signInFormPassword");' +
+        'element.value = "{}";'.format(password)
+    )
+
+    # Submitting the form or click the sign in button
+    driver.execute_script(
+        'document.getElementsByName("signInSubmitButton")[0].click();'
+    )
+
+    cookies_list = driver.get_cookies()
+    auth_cookie = "{}={}".format(cookies_list[0]['name'], cookies_list[0]['value'])
+    cache.save(auth_cookie)
+
+    return auth_cookie

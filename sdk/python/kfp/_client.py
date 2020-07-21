@@ -31,7 +31,7 @@ import kfp_server_api
 from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 
-from kfp._auth import get_auth_token, get_gcp_access_token
+from kfp._auth import get_auth_token, get_gcp_access_token, get_auth_cookie
 
 # TTL of the access token associated with the client. This is needed because
 # `gcloud auth print-access-token` generates a token with TTL=1 hour, after
@@ -120,7 +120,7 @@ class Client(object):
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
-    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, cookies)
     # Save the loaded API client configuration, as a reference if update is
     # needed.
     self._existing_config = config
@@ -133,13 +133,29 @@ class Client(object):
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
     self._load_context_setting_or_default()
 
-  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token):
+  @staticmethod
+  def create_cognito_authenticated(host, username=None, password=None):
+    """ Creates a KFP client object that is authenticated against AWS Cognito
+
+    Args:
+      host (str): The host name to use to talk to Kubeflow Pipelines.
+      username (str): Cognito username. If not provided there will be an input prompt
+      password (str): Password for the username provided above. If not provided there will be an input prompt
+
+    Returns:
+      Client : Client authenticated against Cognito
+    """
+    elb_auth_session_cookie = get_auth_cookie(host, username, password)
+    return Client(host=host, cookies=elb_auth_session_cookie)
+
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, cookies):
     config = kfp_server_api.configuration.Configuration()
 
     host = host or ''
     # Preprocess the host endpoint to prevent some common user mistakes.
-    # This should only be done for non-IAP cases (when client_id is None). IAP requires preserving the protocol.
-    if not client_id:
+    # This should only be done for non GCP IAP case (when client_id is None) or non AWS Cognito case (when cookie is None).
+    # GCP IAP and AWS Cognito require preserving the protocol.
+    if not client_id and not cookies:
       host = re.sub(r'^(http|https)://', '', host).rstrip('/')
 
     if host:
