@@ -245,6 +245,10 @@ func (f *fakeListable) GetModelName() string {
 	return ""
 }
 
+func (f *fakeListable) GetFieldValue(name string) interface{} {
+	return nil
+}
+
 func TestValidatedListOptions_Errors(t *testing.T) {
 	opts, err := list.NewOptions(&fakeListable{}, 10, "name asc", nil)
 	if err != nil {
