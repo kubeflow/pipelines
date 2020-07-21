@@ -63,8 +63,8 @@ Release manager will periodically or before release, search all merged PRs with
 * Find the active release branch name $BRANCH, e.g. release-1.0
 *
     ```bash
-    git co $BRANCH
-    git co -b <cherry-pick-pr-branch-name>
+    git checkout $BRANCH
+    git checkout -b <cherry-pick-pr-branch-name>
     git cherry-pick $COMMIT_SHA
     ```
 * Resolve merge conflicts if any
@@ -187,7 +187,7 @@ fill in the description. Detailed steps:
    1. Typing in version tag field to search and select the "$VERSION" tag published in release instructions above.
    Its format is like `X.Y.Z` or `X.Y.Z-rc.N`.
 
-   1. Use this template for public releases
+   1. Use this template for public releases and replace the `$TAG_NAME` with real values.
        <pre>
        To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
 
@@ -196,7 +196,7 @@ fill in the description. Detailed steps:
        python3 -m pip install kfp kfp-server-api --upgrade
        ```
 
-       See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+       See the [Change Log](https://github.com/kubeflow/pipelines/blob/$TAG_NAME/CHANGELOG.md)
        </pre>
 
        Use this template for prereleases (release candidates) and **PLEASE CHECK** the
@@ -209,8 +209,23 @@ fill in the description. Detailed steps:
        python3 -m pip install kfp kfp-server-api --pre --upgrade
        ```
 
-       See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+       See the [Change Log](https://github.com/kubeflow/pipelines/blob/$TAG_NAME/CHANGELOG.md)
        </pre>
+
+1. Update master branch to the same version.
+    ```bash
+    export TAG_NAME=<TAG_NAME>
+    git checkout master
+    git pull
+    git checkout -b <your-branch-name>
+    # This avoids line break at end of line.
+    echo -n $TAG_NAME > VERSION
+    # This takes a while.
+    ./hack/release-imp.sh
+    git checkout $TAG_NAME -- CHANGELOG.md
+    git add -A
+    git commit -m "chore(release): bump version to $TAG_NAME on master branch"
+    ```
 
 1. If current release is not a prerelease, create a PR to update version in kubeflow documentation website: 
 https://github.com/kubeflow/website/blob/master/layouts/shortcodes/pipelines/latest-version.html
