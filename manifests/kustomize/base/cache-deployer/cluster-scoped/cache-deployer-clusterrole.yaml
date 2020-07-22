@@ -25,3 +25,11 @@ rules:
   - get
   - list
   - patch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - signers
+  resourceNames:
+  - kubernetes.io/*
+  verbs:
+  - approve  
