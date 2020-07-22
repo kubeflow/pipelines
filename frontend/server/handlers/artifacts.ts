@@ -17,19 +17,13 @@ import { Client as MinioClient } from 'minio';
 import { PreviewStream } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
 import * as k8sHelper from '../k8s-helper';
+import * as serverInfo from '../helpers/server-info';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
 import proxy from 'http-proxy-middleware';
 
 import * as fs from 'fs';
 import * as path from 'path';
-
-const namespaceFilePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
-let serverNamespace: string | undefined;
-// The file path contains pod namespace when in Kubernetes cluster.
-if (fs.existsSync(namespaceFilePath)) {
-  serverNamespace = fs.readFileSync(namespaceFilePath, 'utf-8');
-}
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -265,11 +259,14 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
   return async (req: Request, res: Response) => {
     const filePath = path.join('/', key);
     try {
+      // get ml-pipeline-ui pod namespace
+      const SERVER_NAMESPACE = serverInfo.getServerNamespace();
       // get ml-pipeline-ui pod name
-      const { HOSTNAME: POD_NAME } = process.env;
+      const POD_NAME = serverInfo.getServerPodName();
+
       // only check when POD_NAME and serverNamespace can be obtained
-      if (POD_NAME && serverNamespace) {
-        const [pod, err] = await k8sHelper.getPod(POD_NAME, serverNamespace);
+      if (POD_NAME && SERVER_NAMESPACE) {
+        const [pod, err] = await k8sHelper.getPod(POD_NAME, SERVER_NAMESPACE);
         if (err) {
           const { message, additionalInfo } = err;
           console.error(message, additionalInfo);
@@ -278,23 +275,37 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
         }
 
         if (!pod) {
-          const message = `Could not get pod ${POD_NAME} in namespace ${serverNamespace}`;
+          const message = `Could not get pod ${POD_NAME} in namespace ${SERVER_NAMESPACE}`;
           res.status(500).send(message);
           return;
         }
 
         // volumes not specified or volume named ${bucket} not specified
-        if (!pod.spec.volumes || !pod.spec.volumes.find(v => v.name === bucket)) {
-          const message = `Failed to open volume://${bucket}/${key}, volume ${bucket} not exist`;
-          res.status(500).send(message);
+        if (!Array.isArray(pod?.spec?.volumes) || !pod.spec.volumes.find(v => v?.name === bucket)) {
+          const message = `Failed to open volume://${bucket}${key}, volume ${bucket} not exist`;
+          res.status(400).send(message);
           return;
         }
+
+        // volumes mount not exist
+        if (
+          !Array.isArray(pod?.spec?.containers) ||
+          !Array.isArray(pod.spec.containers[0]?.volumeMounts) ||
+          !pod.spec.containers[0].volumeMounts.find(
+            v => v?.name === bucket && key.startsWith(v?.mountPath),
+          )
+        ) {
+          const message = `Failed to open volume://${bucket}${key}, prefix volume mountPath to ${key} not exist`;
+          res.status(400).send(message);
+          return;
+        }
+      } else {
+        console.warn(`pod name or server namespace can't be obtained, 
+          pod name: ${POD_NAME}, server namespace: ${SERVER_NAMESPACE}`);
       }
 
       if (!fs.existsSync(filePath)) {
-        res
-          .status(500)
-          .send(`Failed to open volume://${bucket}/${key}, file ${filePath} not exist`);
+        res.status(400).send(`Failed to open volume://${bucket}${key}, file ${filePath} not exist`);
         return;
       }
 
@@ -302,7 +313,7 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
       const stat = fs.statSync(filePath);
       if (stat.isDirectory()) {
         res
-          .status(500)
+          .status(400)
           .send(`Failed to read volume local file: ${filePath}, directory does not support`);
         return;
       }

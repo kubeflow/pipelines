@@ -23,13 +23,18 @@ import { UIServer } from './app';
 import { loadConfigs } from './configs';
 import * as minioHelper from './minio-helper';
 import { TEST_ONLY as K8S_TEST_EXPORT } from './k8s-helper';
+import * as serverInfo from './helpers/server-info';
 import { Server } from 'http';
 import { commonSetup } from './integration-tests/test-helper';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 jest.mock('minio');
 jest.mock('node-fetch');
 jest.mock('@google-cloud/storage');
 jest.mock('./minio-helper');
+jest.mock('./helpers/server-info');
 
 // TODO: move sections of tests here to individual files in `frontend/server/integration-tests/`
 // for better organization and shorter/more focused tests.
@@ -414,6 +419,232 @@ describe('UIServer apis', () => {
         .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
         .expect(200, artifactContent.slice(0, 5), done);
     });
+
+    it('responds with a volume artifact if source=volume', done => {
+      const artifactContent = 'hello world';
+      const tempPath = path.join(fs.mkdtempSync(os.tmpdir()), 'content');
+      fs.writeFileSync(tempPath, artifactContent);
+
+      jest.spyOn(serverInfo, 'getServerNamespace').mockImplementation(() => 'kubeflow');
+      jest.spyOn(serverInfo, 'getServerPodName').mockImplementation(() => 'ml-pipeline-ui');
+
+      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      readPodSpy.mockImplementation(() =>
+        Promise.resolve({
+          body: {
+            spec: {
+              containers: [
+                {
+                  volumeMounts: [
+                    {
+                      name: 'artifact',
+                      mountPath: path.dirname(tempPath),
+                    },
+                  ],
+                },
+              ],
+              volumes: [
+                {
+                  name: 'artifact',
+                  persistentVolumeClaim: {
+                    claimName: 'artifact_pvc',
+                  },
+                },
+              ],
+            },
+          },
+        } as any),
+      );
+
+      // process.env.HOSTNAME='ml-pipeline-ui';
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const request = requests(app.start());
+      request
+        .get(`/artifacts/get?source=volume&bucket=artifact&key=${tempPath}`)
+        .expect(200, artifactContent, done);
+    });
+
+    it('responds with a partial volume artifact if peek=5 is set', done => {
+      const artifactContent = 'hello world';
+      const tempPath = path.join(fs.mkdtempSync(os.tmpdir()), 'content');
+      fs.writeFileSync(tempPath, artifactContent);
+
+      jest.spyOn(serverInfo, 'getServerNamespace').mockImplementation(() => 'kubeflow');
+      jest.spyOn(serverInfo, 'getServerPodName').mockImplementation(() => 'ml-pipeline-ui');
+
+      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      readPodSpy.mockImplementation(() =>
+        Promise.resolve({
+          body: {
+            spec: {
+              containers: [
+                {
+                  volumeMounts: [
+                    {
+                      name: 'artifact',
+                      mountPath: path.dirname(tempPath),
+                    },
+                  ],
+                },
+              ],
+              volumes: [
+                {
+                  name: 'artifact',
+                  persistentVolumeClaim: {
+                    claimName: 'artifact_pvc',
+                  },
+                },
+              ],
+            },
+          },
+        } as any),
+      );
+
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const request = requests(app.start());
+      request
+        .get(`/artifacts/get?source=volume&bucket=artifact&key=${tempPath}&peek=5`)
+        .expect(200, artifactContent.slice(0, 5), done);
+    });
+
+    it('responds error with a not exist volume', done => {
+      jest.spyOn(serverInfo, 'getServerNamespace').mockImplementation(() => 'kubeflow');
+      jest.spyOn(serverInfo, 'getServerPodName').mockImplementation(() => 'ml-pipeline-ui');
+
+      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      readPodSpy.mockImplementation(() =>
+        Promise.resolve({
+          body: {
+            spec: {
+              containers: [
+                {
+                  volumeMounts: [
+                    {
+                      name: 'artifact',
+                      mountPath: '/foo/bar/path',
+                    },
+                  ],
+                },
+              ],
+              volumes: [
+                {
+                  name: 'artifact',
+                  persistentVolumeClaim: {
+                    claimName: 'artifact_pvc',
+                  },
+                },
+              ],
+            },
+          },
+        } as any),
+      );
+
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const request = requests(app.start());
+      request
+        .get(`/artifacts/get?source=volume&bucket=notexist&key=/foo/bar/path`)
+        .expect(
+          400,
+          'Failed to open volume://notexist/foo/bar/path, volume notexist not exist',
+          done,
+        );
+    });
+
+    it('responds error with a not exist volume mount path if source=volume', done => {
+      jest.spyOn(serverInfo, 'getServerNamespace').mockImplementation(() => 'kubeflow');
+      jest.spyOn(serverInfo, 'getServerPodName').mockImplementation(() => 'ml-pipeline-ui');
+
+      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      readPodSpy.mockImplementation(() =>
+        Promise.resolve({
+          body: {
+            spec: {
+              containers: [
+                {
+                  volumeMounts: [
+                    {
+                      name: 'artifact',
+                      mountPath: '/foo/bar/path',
+                    },
+                  ],
+                },
+              ],
+              volumes: [
+                {
+                  name: 'artifact',
+                  persistentVolumeClaim: {
+                    claimName: 'artifact_pvc',
+                  },
+                },
+              ],
+            },
+          },
+        } as any),
+      );
+
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const request = requests(app.start());
+      request
+        .get(`/artifacts/get?source=volume&bucket=artifact&key=/not/exist/bar/path`)
+        .expect(
+          400,
+          'Failed to open volume://artifact/not/exist/bar/path, prefix volume mountPath to /not/exist/bar/path not exist',
+          done,
+        );
+    });
+
+    it('responds error with a not exist volume mount artifact if source=volume', done => {
+      jest.spyOn(serverInfo, 'getServerNamespace').mockImplementation(() => 'kubeflow');
+      jest.spyOn(serverInfo, 'getServerPodName').mockImplementation(() => 'ml-pipeline-ui');
+
+      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      readPodSpy.mockImplementation(() =>
+        Promise.resolve({
+          body: {
+            spec: {
+              containers: [
+                {
+                  volumeMounts: [
+                    {
+                      name: 'artifact',
+                      mountPath: '/foo/bar',
+                    },
+                  ],
+                },
+              ],
+              volumes: [
+                {
+                  name: 'artifact',
+                  persistentVolumeClaim: {
+                    claimName: 'artifact_pvc',
+                  },
+                },
+              ],
+            },
+          },
+        } as any),
+      );
+
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const request = requests(app.start());
+      request
+        .get(`/artifacts/get?source=volume&bucket=artifact&key=/foo/bar/notxist.csv`)
+        .expect(
+          400,
+          'Failed to open volume://artifact/foo/bar/notxist.csv, file /foo/bar/notxist.csv not exist',
+          done,
+        );
+    });
   });
 
   describe('/system', () => {
@@ -601,6 +832,29 @@ describe('UIServer apis', () => {
   });
 
   describe('/apps/tensorboard', () => {
+    const POD_TEMPLATE_SPEC = {
+      spec: {
+        containers: [
+          {
+            volumeMounts: [
+              {
+                name: 'tensorboard',
+                mountPath: '/logs',
+              },
+            ],
+          },
+        ],
+        volumes: [
+          {
+            name: 'tensorboard',
+            persistentVolumeClaim: {
+              claimName: 'logs',
+            },
+          },
+        ],
+      },
+    };
+
     let k8sGetCustomObjectSpy: jest.SpyInstance;
     let k8sDeleteCustomObjectSpy: jest.SpyInstance;
     let k8sCreateCustomObjectSpy: jest.SpyInstance;
@@ -928,6 +1182,167 @@ describe('UIServer apis', () => {
                   "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
                 ]
               `);
+              done(err);
+            },
+          );
+      });
+
+      it('creates tensorboard viewer with exist volume', done => {
+        let getRequestCount = 0;
+        k8sGetCustomObjectSpy.mockImplementation(() => {
+          ++getRequestCount;
+          switch (getRequestCount) {
+            case 1:
+              return Promise.reject('Not found');
+            case 2:
+              return Promise.resolve(
+                newGetTensorboardResponse({
+                  name: 'viewer-abcdefg',
+                  logDir: 'Series1:/logs/log-dir-1,Series2:/logs/log-dir-2',
+                  tensorflowImage: 'tensorflow:2.0.0',
+                }),
+              );
+            default:
+              throw new Error('only expected to be called twice in this test');
+          }
+        });
+        k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+        const tempPath = path.join(fs.mkdtempSync(os.tmpdir()), 'config.json');
+        fs.writeFileSync(tempPath, JSON.stringify(POD_TEMPLATE_SPEC));
+        app = new UIServer(
+          loadConfigs(argv, { VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH: tempPath }),
+        );
+
+        requests(app.start())
+          .post(
+            `/apps/tensorboard?logdir=${encodeURIComponent(
+              'Series1:volume://tensorboard/logs/log-dir-1,Series2:volume://tensorboard/logs/log-dir-2',
+            )}&namespace=test-ns&tfversion=2.0.0`,
+          )
+          .expect(
+            200,
+            'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
+            err => {
+              expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
+                Array [
+                  "kubeflow.org",
+                  "v1beta1",
+                  "test-ns",
+                  "viewers",
+                  "viewer-776a6d013c4ef3797edfa6949a9888556cf0c75a",
+                ]
+              `);
+              expect(k8sCreateCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
+                Array [
+                  "kubeflow.org",
+                  "v1beta1",
+                  "test-ns",
+                  "viewers",
+                  Object {
+                    "apiVersion": "kubeflow.org/v1beta1",
+                    "kind": "Viewer",
+                    "metadata": Object {
+                      "name": "viewer-776a6d013c4ef3797edfa6949a9888556cf0c75a",
+                      "namespace": "test-ns",
+                    },
+                    "spec": Object {
+                      "podTemplateSpec": Object {
+                        "spec": Object {
+                          "containers": Array [
+                            Object {
+                              "volumeMounts": Array [
+                                Object {
+                                  "mountPath": "/logs",
+                                  "name": "tensorboard",
+                                },
+                              ],
+                            },
+                          ],
+                          "volumes": Array [
+                            Object {
+                              "name": "tensorboard",
+                              "persistentVolumeClaim": Object {
+                                "claimName": "logs",
+                              },
+                            },
+                          ],
+                        },
+                      },
+                      "tensorboardSpec": Object {
+                        "logDir": "Series1:/logs/log-dir-1,Series2:/logs/log-dir-2",
+                        "tensorflowImage": "tensorflow/tensorflow:2.0.0",
+                      },
+                      "type": "tensorboard",
+                    },
+                  },
+                ]
+              `);
+              expect(k8sGetCustomObjectSpy.mock.calls[1]).toMatchInlineSnapshot(`
+                Array [
+                  "kubeflow.org",
+                  "v1beta1",
+                  "test-ns",
+                  "viewers",
+                  "viewer-776a6d013c4ef3797edfa6949a9888556cf0c75a",
+                ]
+              `);
+              done(err);
+            },
+          );
+      });
+
+      it('creates tensorboard viewer with not exist volume and return error', done => {
+        const errorSpy = jest.spyOn(console, 'error');
+        errorSpy.mockImplementation();
+
+        k8sGetCustomObjectSpy.mockImplementation(() => {
+          return Promise.reject('Not found');
+        });
+
+        const tempPath = path.join(fs.mkdtempSync(os.tmpdir()), 'config.json');
+        fs.writeFileSync(tempPath, JSON.stringify(POD_TEMPLATE_SPEC));
+        app = new UIServer(
+          loadConfigs(argv, { VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH: tempPath }),
+        );
+
+        requests(app.start())
+          .post(
+            `/apps/tensorboard?logdir=${encodeURIComponent(
+              'volume://notexistvolume/logs/log-dir-1',
+            )}&namespace=test-ns&tfversion=2.0.0`,
+          )
+          .expect(500, `Failed to start Tensorboard app: Volume notexistvolume not found`, err => {
+            expect(errorSpy).toHaveBeenCalledTimes(1);
+            done(err);
+          });
+      });
+
+      it('creates tensorboard viewer with not exist volume mount and return error', done => {
+        const errorSpy = jest.spyOn(console, 'error');
+        errorSpy.mockImplementation();
+
+        k8sGetCustomObjectSpy.mockImplementation(() => {
+          return Promise.reject('Not found');
+        });
+
+        const tempPath = path.join(fs.mkdtempSync(os.tmpdir()), 'config.json');
+        fs.writeFileSync(tempPath, JSON.stringify(POD_TEMPLATE_SPEC));
+        app = new UIServer(
+          loadConfigs(argv, { VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH: tempPath }),
+        );
+
+        requests(app.start())
+          .post(
+            `/apps/tensorboard?logdir=${encodeURIComponent(
+              'volume://tensorboard/mountnotexist/log-dir-1',
+            )}&namespace=test-ns&tfversion=2.0.0`,
+          )
+          .expect(
+            500,
+            `Failed to start Tensorboard app: Volume tensorboard mount path to /mountnotexist/log-dir-1 not found`,
+            err => {
+              expect(errorSpy).toHaveBeenCalledTimes(1);
               done(err);
             },
           );

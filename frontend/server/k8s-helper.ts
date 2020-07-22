@@ -63,48 +63,41 @@ function getNameOfViewerResource(logdir: string): string {
   return 'viewer-' + crypto.SHA1(logdir);
 }
 
-export function parseTensorboardLogDir(
-  logdir: string,
-  podTemplateSpec: object | undefined,
-): string {
+function parseTensorboardLogDir(logdir: string, podTemplateSpec: object | undefined): string {
   const urls: string[] = [];
   const seriesParts = logdir.split(',');
   for (const seriesPart of seriesParts) {
     const strPath = seriesPart.replace(/Series\d*:/g, '');
 
-    if (strPath.startsWith('gs://')) {
-      urls.push(strPath);
-    } else if (strPath.startsWith('volume://')) {
+    // volume storage: parse real local mount path
+    if (strPath.startsWith('volume://')) {
       const pathParts = strPath.substr('volume://'.length).split('/');
       const volumeName = pathParts[0];
       const volumePath = path.join('/', pathParts.slice(1).join('/'));
 
       if (podTemplateSpec) {
         // check volume exist
-        if (
-          !podTemplateSpec['spec'] ||
-          !podTemplateSpec['spec']['volumes'] ||
-          !podTemplateSpec['spec']['volumes'].find((v: { name: string }) => v.name === volumeName)
-        ) {
+        const volumes = podTemplateSpec['spec'] && podTemplateSpec['spec']['volumes'];
+        if (!Array.isArray(volumes) || !volumes.find(v => v?.name === volumeName)) {
           throw new Error(`Volume ${volumeName} not found`);
         }
 
         // check volume mount exist
+        const volumeMounts =
+          podTemplateSpec['spec'] &&
+          podTemplateSpec['spec']['containers'] &&
+          podTemplateSpec['spec']['containers'][0] &&
+          podTemplateSpec['spec']['containers'][0]['volumeMounts'];
         if (
-          !podTemplateSpec['spec']['containers'] ||
-          !podTemplateSpec['spec']['containers'][0]['volumeMounts'] ||
-          !podTemplateSpec['spec']['containers'][0]['volumeMounts'].find(
-            (v: { name: string; mountPath: string }) =>
-              v.name === volumeName && volumePath.startsWith(v.mountPath),
-          )
+          !Array.isArray(volumeMounts) ||
+          !volumeMounts.find(v => v?.name === volumeName && volumePath.startsWith(v?.mountPath))
         ) {
           throw new Error(`Volume ${volumeName} mount path to ${volumePath} not found`);
         }
       }
       urls.push(volumePath);
     } else {
-      //TODO when backend viewer CRD support other storage(such as minio, s3) add more branch here
-      throw new Error(`Unsupported storage path: ${strPath} for tensorboard`);
+      urls.push(strPath);
     }
   }
   return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
