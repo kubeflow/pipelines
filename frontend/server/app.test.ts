@@ -1312,7 +1312,7 @@ describe('UIServer apis', () => {
               'volume://notexistvolume/logs/log-dir-1',
             )}&namespace=test-ns&tfversion=2.0.0`,
           )
-          .expect(500, `Failed to start Tensorboard app: Volume notexistvolume not found`, err => {
+          .expect(500, `Failed to start Tensorboard app: Volume notexistvolume not exist`, err => {
             expect(errorSpy).toHaveBeenCalledTimes(1);
             done(err);
           });
@@ -1340,7 +1340,7 @@ describe('UIServer apis', () => {
           )
           .expect(
             500,
-            `Failed to start Tensorboard app: Volume tensorboard mount path to /mountnotexist/log-dir-1 not found`,
+            `Failed to start Tensorboard app: Volume tensorboard prefix mountPath to /mountnotexist/log-dir-1 not exist`,
             err => {
               expect(errorSpy).toHaveBeenCalledTimes(1);
               done(err);
