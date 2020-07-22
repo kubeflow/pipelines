@@ -10,8 +10,8 @@
     ```
 2. Build the dockerfile  
     ```
-    cd pipelines/components/aws 
-    docker build ./ -f ./sagemaker/tests/unit_tests/Dockerfile -t amazon/unit-test-aws-sagemaker-kfp-components
+    cd pipelines
+    docker build . -f ./components/aws/sagemaker/tests/unit_tests/Dockerfile -t amazon/unit-test-aws-sagemaker-kfp-components
     ```
 3. Run all unit tests
    ```
@@ -36,6 +36,6 @@
     ```
     # while in the same directory pipelines/components/aws/sagemaker/tests/unit_tests/
    
-    ./run_all_tests.sh
+    ./run_unit_tests.sh
     ```
    
