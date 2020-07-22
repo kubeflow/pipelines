@@ -16,11 +16,20 @@ import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv } from '../configs';
 import { Client as MinioClient } from 'minio';
 import { PreviewStream } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
+import * as k8sHelper from '../k8s-helper';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
 import proxy from 'http-proxy-middleware';
 
 import * as fs from 'fs';
+import * as path from 'path';
+
+const namespaceFilePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
+let serverNamespace: string | undefined;
+// The file path contains pod namespace when in Kubernetes cluster.
+if (fs.existsSync(namespaceFilePath)) {
+  serverNamespace = fs.readFileSync(namespaceFilePath, 'utf-8');
+}
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -28,7 +37,7 @@ import * as fs from 'fs';
  */
 interface ArtifactsQueryStrings {
   /** artifact source. */
-  source: 'minio' | 's3' | 'gcs' | 'http' | 'https' | 'file';
+  source: 'minio' | 's3' | 'gcs' | 'http' | 'https' | 'volume';
   /** bucket name. */
   bucket: string;
   /** artifact key/path that is uri encoded.  */
@@ -102,8 +111,14 @@ export function getArtifactsHandler(artifactsConfigs: {
         )(req, res);
         break;
 
-      case 'file':
-        await getFileArtifactsHandler(key, peek)(req, res);
+      case 'volume':
+        await getVolumeArtifactsHandler(
+          {
+            bucket,
+            key,
+          },
+          peek,
+        )(req, res);
         break;
 
       default:
@@ -245,21 +260,50 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
   };
 }
 
-function getFileArtifactsHandler(filePath: string, peek: number = 0) {
+function getVolumeArtifactsHandler(options: { bucket: string; key: string }, peek: number = 0) {
+  const { key, bucket } = options;
   return async (req: Request, res: Response) => {
+    const filePath = path.join('/', key);
     try {
+      // get ml-pipeline-ui pod name
+      const { HOSTNAME: POD_NAME } = process.env;
+      // only check when POD_NAME and serverNamespace can be obtained
+      if (POD_NAME && serverNamespace) {
+        const [pod, err] = await k8sHelper.getPod(POD_NAME, serverNamespace);
+        if (err) {
+          const { message, additionalInfo } = err;
+          console.error(message, additionalInfo);
+          res.status(500).send(message);
+          return;
+        }
+
+        if (!pod) {
+          const message = `Could not get pod ${POD_NAME} in namespace ${serverNamespace}`;
+          res.status(500).send(message);
+          return;
+        }
+
+        // volumes not specified or volume named ${bucket} not specified
+        if (!pod.spec.volumes || !pod.spec.volumes.find(v => v.name === bucket)) {
+          const message = `Failed to open volume://${bucket}/${key}, volume ${bucket} not exist`;
+          res.status(500).send(message);
+          return;
+        }
+      }
+
       if (!fs.existsSync(filePath)) {
         res
           .status(500)
-          .send(`Failed to open local file: ${filePath}, please check if file is exist`);
+          .send(`Failed to open volume://${bucket}/${key}, file ${filePath} not exist`);
         return;
       }
 
-      // currently not support directory
-      // TODO: support directory and filePath include wildcards '*'
+      // TODO: support directory and support filePath include wildcards '*'
       const stat = fs.statSync(filePath);
       if (stat.isDirectory()) {
-        res.status(500).send(`Failed to read local file: ${filePath}, directory does not support`);
+        res
+          .status(500)
+          .send(`Failed to read volume local file: ${filePath}, directory does not support`);
         return;
       }
 
@@ -267,7 +311,7 @@ function getFileArtifactsHandler(filePath: string, peek: number = 0) {
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
-      res.status(500).send(`Failed to get local file ${filePath}: ${err}`);
+      res.status(500).send(`Failed to get volume local file ${filePath}: ${err}`);
     }
   };
 }

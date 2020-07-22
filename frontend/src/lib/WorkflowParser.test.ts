@@ -1109,11 +1109,19 @@ describe('WorkflowParser', () => {
       });
     });
 
-    it('handles local file with path', () => {
-      expect(WorkflowParser.parseStoragePath('/path/foo/bar')).toEqual({
-        bucket: 'file',
-        key: '/path/foo/bar',
-        source: StorageService.FILE,
+    it('handles volume file without path', () => {
+      expect(WorkflowParser.parseStoragePath('volume://output')).toEqual({
+        bucket: 'output',
+        key: '',
+        source: StorageService.VOLUME,
+      });
+    });
+
+    it('handles volume file with path', () => {
+      expect(WorkflowParser.parseStoragePath('volume://output/path/foo/bar')).toEqual({
+        bucket: 'output',
+        key: 'path/foo/bar',
+        source: StorageService.VOLUME,
       });
     });
   });

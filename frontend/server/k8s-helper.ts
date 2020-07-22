@@ -24,6 +24,7 @@ import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import { PartialArgoWorkflow } from './workflow-helper';
 import { parseError } from './utils';
+import * as path from 'path';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
@@ -62,6 +63,53 @@ function getNameOfViewerResource(logdir: string): string {
   return 'viewer-' + crypto.SHA1(logdir);
 }
 
+export function parseTensorboardLogDir(
+  logdir: string,
+  podTemplateSpec: object | undefined,
+): string {
+  const urls: string[] = [];
+  const seriesParts = logdir.split(',');
+  for (const seriesPart of seriesParts) {
+    const strPath = seriesPart.replace(/Series\d*:/g, '');
+
+    if (strPath.startsWith('gs://')) {
+      urls.push(strPath);
+    } else if (strPath.startsWith('volume://')) {
+      const pathParts = strPath.substr('volume://'.length).split('/');
+      const volumeName = pathParts[0];
+      const volumePath = path.join('/', pathParts.slice(1).join('/'));
+
+      if (podTemplateSpec) {
+        // check volume exist
+        if (
+          !podTemplateSpec['spec'] ||
+          !podTemplateSpec['spec']['volumes'] ||
+          !podTemplateSpec['spec']['volumes'].find((v: { name: string }) => v.name === volumeName)
+        ) {
+          throw new Error(`Volume ${volumeName} not found`);
+        }
+
+        // check volume mount exist
+        if (
+          !podTemplateSpec['spec']['containers'] ||
+          !podTemplateSpec['spec']['containers'][0]['volumeMounts'] ||
+          !podTemplateSpec['spec']['containers'][0]['volumeMounts'].find(
+            (v: { name: string; mountPath: string }) =>
+              v.name === volumeName && volumePath.startsWith(v.mountPath),
+          )
+        ) {
+          throw new Error(`Volume ${volumeName} mount path to ${volumePath} not found`);
+        }
+      }
+      urls.push(volumePath);
+    } else {
+      //TODO when backend viewer CRD support other storage(such as minio, s3) add more branch here
+      throw new Error(`Unsupported storage path: ${strPath} for tensorboard`);
+    }
+  }
+  return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
+}
+
 /**
  * Create Tensorboard instance via CRD with the given logdir if there is no
  * existing Tensorboard instance.
@@ -83,7 +131,6 @@ export async function newTensorboardInstance(
       );
     }
   }
-
   const body = {
     apiVersion: viewerGroup + '/' + viewerVersion,
     kind: 'Viewer',
@@ -94,7 +141,7 @@ export async function newTensorboardInstance(
     spec: {
       podTemplateSpec,
       tensorboardSpec: {
-        logDir: logdir,
+        logDir: parseTensorboardLogDir(logdir, podTemplateSpec),
         tensorflowImage: tfImageName + ':' + tfversion,
       },
       type: 'tensorboard',
@@ -133,7 +180,7 @@ export async function getTensorboardInstance(
         if (
           viewer &&
           viewer.body &&
-          viewer.body.spec.tensorboardSpec.logDir === logdir &&
+          viewer.body.spec.tensorboardSpec.logDir === parseTensorboardLogDir(logdir, undefined) &&
           viewer.body.spec.type === 'tensorboard'
         ) {
           const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
