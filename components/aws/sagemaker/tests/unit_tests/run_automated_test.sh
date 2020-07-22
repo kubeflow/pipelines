@@ -4,5 +4,5 @@
 
 set -e
 
-./run_all_tests.sh
+./run_unit_tests.sh
 ./check_formatting.sh

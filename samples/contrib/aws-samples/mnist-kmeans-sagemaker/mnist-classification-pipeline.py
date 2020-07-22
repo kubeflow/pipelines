@@ -7,12 +7,24 @@ import copy
 from kfp import components
 from kfp import dsl
 
-sagemaker_hpo_op = components.load_component_from_file("../../../../components/aws/sagemaker/hyperparameter_tuning/component.yaml")
-sagemaker_process_op = components.load_component_from_file("../../../../components/aws/sagemaker/process/component.yaml")
-sagemaker_train_op = components.load_component_from_file("../../../../components/aws/sagemaker/train/component.yaml")
-sagemaker_model_op = components.load_component_from_file("../../../../components/aws/sagemaker/model/component.yaml")
-sagemaker_deploy_op = components.load_component_from_file("../../../../components/aws/sagemaker/deploy/component.yaml")
-sagemaker_batch_transform_op = components.load_component_from_file("../../../../components/aws/sagemaker/batch_transform/component.yaml")
+sagemaker_hpo_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/hyperparameter_tuning/component.yaml"
+)
+sagemaker_process_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/process/component.yaml"
+)
+sagemaker_train_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/train/component.yaml"
+)
+sagemaker_model_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/model/component.yaml"
+)
+sagemaker_deploy_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/deploy/component.yaml"
+)
+sagemaker_batch_transform_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/batch_transform/component.yaml"
+)
 
 # Update this to match the name of your bucket
 my_bucket_name = "my-bucket"
@@ -173,7 +185,7 @@ def mnist_classification(
         max_run_time=max_run_time,
         container_entrypoint=process_entrypoint,
         input_config=process_input_config,
-        output_config=process_output_config
+        output_config=process_output_config,
     )
 
     hpo = sagemaker_hpo_op(
@@ -261,4 +273,3 @@ def mnist_classification(
 
 if __name__ == "__main__":
     kfp.compiler.Compiler().compile(mnist_classification, __file__ + ".zip")
-
