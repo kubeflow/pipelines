@@ -79,7 +79,7 @@ function parseTensorboardLogDir(logdir: string, podTemplateSpec: object | undefi
         // check volume exist
         const volumes = podTemplateSpec['spec'] && podTemplateSpec['spec']['volumes'];
         if (!Array.isArray(volumes) || !volumes.find(v => v?.name === volumeName)) {
-          throw new Error(`Volume ${volumeName} not found`);
+          throw new Error(`Volume ${volumeName} not exist`);
         }
 
         // check volume mount exist
@@ -92,7 +92,7 @@ function parseTensorboardLogDir(logdir: string, podTemplateSpec: object | undefi
           !Array.isArray(volumeMounts) ||
           !volumeMounts.find(v => v?.name === volumeName && volumePath.startsWith(v?.mountPath))
         ) {
-          throw new Error(`Volume ${volumeName} mount path to ${volumePath} not found`);
+          throw new Error(`Volume ${volumeName} prefix mountPath to ${volumePath} not exist`);
         }
       }
       urls.push(volumePath);
