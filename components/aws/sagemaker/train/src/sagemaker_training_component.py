@@ -16,10 +16,11 @@ from abc import ABC, abstractmethod
 from .sagemaker_training_spec import SageMakerTrainingSpec
 from common.sagemaker_component import SageMakerComponent, ComponentMetadata
 
+
 @ComponentMetadata(
     name="SageMaker - Training Job",
     description="Train Machine Learning and Deep Learning Models using SageMaker",
-    spec=SageMakerTrainingSpec
+    spec=SageMakerTrainingSpec,
 )
 class SageMakerTrainingComponent(SageMakerComponent):
     """SageMaker component for training."""
@@ -30,6 +31,7 @@ class SageMakerTrainingComponent(SageMakerComponent):
 
     def Do(self, spec):
         pass
+
 
 if __name__ == "__main__":
     pass

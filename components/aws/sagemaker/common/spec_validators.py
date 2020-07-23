@@ -34,7 +34,7 @@ class SpecValidators:
     def yaml_or_json_list(str):
         """Parses a YAML or JSON list to a Python list"""
         return SpecValidators._yaml_or_json_str
-    
+
     @staticmethod
     def yaml_or_json_dict(str):
         """Parses a YAML or JSON dictionary to a Python dictionary"""

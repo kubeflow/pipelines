@@ -151,15 +151,10 @@ class SageMakerTrainingSpec(SageMakerComponentSpec):
     OUTPUTS = {
         **SageMakerComponentSpec.OUTPUTS,
         **{
-            "model_artifact_url": dict(
-                help="The model artifacts URL.",
-            ),
-            "job_name": dict(
-                help="The training job name.",
-            ),
+            "model_artifact_url": dict(help="The model artifacts URL.",),
+            "job_name": dict(help="The training job name.",),
             "training_image": dict(
                 help="The registry path of the Docker image that contains the training algorithm.",
             ),
         },
     }
-
