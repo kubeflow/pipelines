@@ -1,0 +1,5 @@
+boto3==1.13.19
+sagemaker==1.54.0
+pathlib2==2.3.5
+pyyaml==3.12
+mypy_extensions==0.4.3

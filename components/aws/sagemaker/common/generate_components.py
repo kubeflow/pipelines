@@ -34,13 +34,15 @@ class ComponentCollectorContext:
 def compile_spec_file(spec_file, component_file, spec_dir):
     output_path = Path(spec_dir.parent, "component.yaml")
     relative_path = os.path.splitext(str(component_file.relative_to(root)))[0]
-    
+
     with ComponentCollectorContext() as component_metadatas:
         # Import the file using the path relative to the root
         __import__(relative_path.replace("/", "."))
 
     if len(component_metadatas) != 1:
-        raise ValueError(f"Expected exactly 1 ComponentMetadata in {spec_file}, found {len(component_metadatas)}")
+        raise ValueError(
+            f"Expected exactly 1 ComponentMetadata in {spec_file}, found {len(component_metadatas)}"
+        )
 
     SageMakerComponentCompiler.compile(
         component_metadatas[0], component_file.name, str(output_path.resolve())
@@ -71,4 +73,3 @@ if __name__ == "__main__":
             raise ValueError(f"Found multiple _component.py files for {component}")
 
         compile_spec_file(specs[0], components[0], component_src_dir)
-

@@ -22,26 +22,11 @@ RUN yum update -y \
     wget \
     unzip
 
-RUN pip3 install \
-    boto3==1.14.12 \
-    sagemaker==2.1.0 \
-    pathlib2==2.3.5 \
-    pyyaml==3.12
+COPY requirements.txt .
+RUN pip3 install -r requirements.txt
 
 WORKDIR /app
 
-COPY LICENSE.txt .
-COPY NOTICE.txt .
-COPY THIRD-PARTY-LICENSES.txt .
-COPY hyperparameter_tuning/src/hyperparameter_tuning.py .
-COPY train/src/train.py .
-COPY deploy/src/deploy.py .
-COPY model/src/create_model.py .
-COPY process/src/process.py .
-COPY batch_transform/src/batch_transform.py .
-COPY workteam/src/workteam.py .
-COPY ground_truth/src/ground_truth.py .
-
-COPY common /app/common/
+COPY . .
 
 ENTRYPOINT [ "bash" ]
