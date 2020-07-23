@@ -6,6 +6,7 @@ data:
   config: |
     {
     namespace: $(kfp-namespace),
+    containerRuntimeExecutor: pns,
     executorImage: gcr.io/ml-pipeline/argoexec:v2.7.5-license-compliance,
     artifactRepository:
     {
