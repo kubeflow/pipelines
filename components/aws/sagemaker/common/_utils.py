@@ -178,19 +178,6 @@ def get_cloudwatch_client(region, assume_role_arn=None):
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):
   return ''.join(random.choice(chars) for _ in range(size))
 
-def yaml_or_json_str(str):
-  if str == "" or str == None:
-    return None
-  try:
-    return json.loads(str)
-  except:
-    return yaml.safe_load(str)
-
-def str_to_bool(str):
-    # This distutils function returns an integer representation of the boolean
-    # rather than a True/False value. This simply hard casts it.
-    return bool(strtobool(str))
-
 def write_output(output_path, output_value, json_encode=False):
     """Write an output value to the associated path, dumping as a JSON object
     if specified.
