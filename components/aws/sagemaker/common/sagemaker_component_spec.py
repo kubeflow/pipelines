@@ -17,6 +17,7 @@ from typing import Dict, Any
 
 from .spec_validators import SpecValidators
 
+
 class SageMakerComponentSpec(object):
     """Defines the set of inputs and outputs as expected for a SageMakerComponent.
 
@@ -79,7 +80,9 @@ class SageMakerComponentSpec(object):
             parser.add_argument(f"--{key}", **props)
         for key, props in self.OUTPUTS.items():
             # Outputs are appended with _file_path to differentiate them programatically
-            parser.add_argument(f"--{key}_file_path", default=f"/tmp/{key}", type=str, **props)
+            parser.add_argument(
+                f"--{key}_file_path", default=f"/tmp/{key}", type=str, **props
+            )
 
         return parser
 
@@ -102,4 +105,3 @@ class SageMakerComponentSpec(object):
     @property
     def outputs(self) -> Dict[str, str]:
         return self._outputs
-

@@ -21,6 +21,8 @@ from .spec_validators import SpecValidators
 
 
 class ComponentSpec(TypedDict):
+    """Defines the structure of a KFP component.yaml file"""
+
     class InputSpec(TypedDict, total=False):
         name: str
         description: str
