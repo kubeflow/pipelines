@@ -63,7 +63,7 @@ function getNameOfViewerResource(logdir: string): string {
   return 'viewer-' + crypto.SHA1(logdir);
 }
 
-function parseTensorboardLogDir(logdir: string, podTemplateSpec: object | undefined): string {
+function parseTensorboardLogDir(logdir: string, podTemplateSpec: object): string {
   const urls: string[] = [];
   const seriesParts = logdir.split(',');
   for (const seriesPart of seriesParts) {
@@ -72,30 +72,46 @@ function parseTensorboardLogDir(logdir: string, podTemplateSpec: object | undefi
     // volume storage: parse real local mount path
     if (strPath.startsWith('volume://')) {
       const pathParts = strPath.substr('volume://'.length).split('/');
-      const volumeName = pathParts[0];
-      const volumePath = path.join('/', pathParts.slice(1).join('/'));
-
-      if (podTemplateSpec) {
-        // check volume exist
-        const volumes = podTemplateSpec['spec'] && podTemplateSpec['spec']['volumes'];
-        if (!Array.isArray(volumes) || !volumes.find(v => v?.name === volumeName)) {
-          throw new Error(`Volume ${volumeName} not exist`);
-        }
-
-        // check volume mount exist
-        const volumeMounts =
-          podTemplateSpec['spec'] &&
-          podTemplateSpec['spec']['containers'] &&
-          podTemplateSpec['spec']['containers'][0] &&
-          podTemplateSpec['spec']['containers'][0]['volumeMounts'];
-        if (
-          !Array.isArray(volumeMounts) ||
-          !volumeMounts.find(v => v?.name === volumeName && volumePath.startsWith(v?.mountPath))
-        ) {
-          throw new Error(`Volume ${volumeName} prefix mountPath to ${volumePath} not exist`);
-        }
+      const bucket = pathParts[0];
+      const key = pathParts.slice(1).join('/');
+      // check volume exist
+      const volumes = podTemplateSpec['spec'] && podTemplateSpec['spec']['volumes'];
+      if (!Array.isArray(volumes) || !volumes.find(v => v?.name === bucket)) {
+        throw new Error(`Volume ${bucket} not exist`);
       }
-      urls.push(volumePath);
+
+      // get volume mount object
+      const volumeMounts =
+        podTemplateSpec['spec'] &&
+        podTemplateSpec['spec']['containers'] &&
+        podTemplateSpec['spec']['containers'][0] &&
+        podTemplateSpec['spec']['containers'][0]['volumeMounts'];
+
+      // find volumes mount
+      let volumeMount;
+      if (Array.isArray(volumeMounts)) {
+        volumeMount = volumeMounts.find(v => {
+          // volume name must be same
+          if (v?.name === bucket) {
+            if (v?.subPath) {
+              return key.startsWith(v.subPath);
+            } else {
+              return true;
+            }
+          }
+          return false;
+        });
+      }
+
+      if (!volumeMount) {
+        throw new Error(`Volume mount ${bucket} not exist`);
+      }
+
+      // relative file path
+      const relativeFilePath = volumeMount.subPath
+        ? key.substring(volumeMount.subPath.length)
+        : key;
+      urls.push(path.join(volumeMount.mountPath, relativeFilePath));
     } else {
       urls.push(strPath);
     }
@@ -114,7 +130,7 @@ export async function newTensorboardInstance(
   tfversion: string,
   podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<void> {
-  const currentPod = await getTensorboardInstance(logdir, namespace);
+  const currentPod = await getTensorboardInstance(logdir, namespace, podTemplateSpec);
   if (currentPod.podAddress) {
     if (tfversion === currentPod.tfVersion) {
       return;
@@ -156,6 +172,7 @@ export async function newTensorboardInstance(
 export async function getTensorboardInstance(
   logdir: string,
   namespace: string,
+  podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<{ podAddress: string; tfVersion: string }> {
   return await k8sV1CustomObjectClient
     .getNamespacedCustomObject(
@@ -173,7 +190,8 @@ export async function getTensorboardInstance(
         if (
           viewer &&
           viewer.body &&
-          viewer.body.spec.tensorboardSpec.logDir === parseTensorboardLogDir(logdir, undefined) &&
+          viewer.body.spec.tensorboardSpec.logDir ===
+            parseTensorboardLogDir(logdir, podTemplateSpec) &&
           viewer.body.spec.type === 'tensorboard'
         ) {
           const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
@@ -202,8 +220,12 @@ export async function getTensorboardInstance(
  * and returns the deleted podAddress
  */
 
-export async function deleteTensorboardInstance(logdir: string, namespace: string): Promise<void> {
-  const currentPod = await getTensorboardInstance(logdir, namespace);
+export async function deleteTensorboardInstance(
+  logdir: string,
+  namespace: string,
+  podTemplateSpec: object = defaultPodTemplateSpec,
+): Promise<void> {
+  const currentPod = await getTensorboardInstance(logdir, namespace, podTemplateSpec);
   if (!currentPod.podAddress) {
     return;
   }
@@ -229,6 +251,7 @@ export function waitForTensorboardInstance(
   logdir: string,
   namespace: string,
   timeout: number,
+  podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<string> {
   const start = Date.now();
   return new Promise((resolve, reject) => {
@@ -237,7 +260,7 @@ export function waitForTensorboardInstance(
         clearInterval(handle);
         reject('Timed out waiting for tensorboard');
       }
-      const tensorboardInstance = await getTensorboardInstance(logdir, namespace);
+      const tensorboardInstance = await getTensorboardInstance(logdir, namespace, podTemplateSpec);
       const tensorboardAddress = tensorboardInstance.podAddress;
       if (tensorboardAddress) {
         clearInterval(handle);

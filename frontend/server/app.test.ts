@@ -439,6 +439,7 @@ describe('UIServer apis', () => {
                     {
                       name: 'artifact',
                       mountPath: path.dirname(tempPath),
+                      subPath: 'subartifact',
                     },
                   ],
                 },
@@ -456,13 +457,12 @@ describe('UIServer apis', () => {
         } as any),
       );
 
-      // process.env.HOSTNAME='ml-pipeline-ui';
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
 
       const request = requests(app.start());
       request
-        .get(`/artifacts/get?source=volume&bucket=artifact&key=${tempPath}`)
+        .get('/artifacts/get?source=volume&bucket=artifact&key=subartifact/content')
         .expect(200, artifactContent, done);
     });
 
@@ -507,7 +507,7 @@ describe('UIServer apis', () => {
 
       const request = requests(app.start());
       request
-        .get(`/artifacts/get?source=volume&bucket=artifact&key=${tempPath}&peek=5`)
+        .get(`/artifacts/get?source=volume&bucket=artifact&key=content&peek=5`)
         .expect(200, artifactContent.slice(0, 5), done);
     });
 
@@ -548,12 +548,8 @@ describe('UIServer apis', () => {
 
       const request = requests(app.start());
       request
-        .get(`/artifacts/get?source=volume&bucket=notexist&key=/foo/bar/path`)
-        .expect(
-          400,
-          'Failed to open volume://notexist/foo/bar/path, volume notexist not exist',
-          done,
-        );
+        .get(`/artifacts/get?source=volume&bucket=notexist&key=content`)
+        .expect(400, 'Failed to open volume://notexist/content, volume notexist not exist', done);
     });
 
     it('responds error with a not exist volume mount path if source=volume', done => {
@@ -571,6 +567,7 @@ describe('UIServer apis', () => {
                     {
                       name: 'artifact',
                       mountPath: '/foo/bar/path',
+                      subPath: 'subartifact',
                     },
                   ],
                 },
@@ -593,10 +590,10 @@ describe('UIServer apis', () => {
 
       const request = requests(app.start());
       request
-        .get(`/artifacts/get?source=volume&bucket=artifact&key=/not/exist/bar/path`)
+        .get(`/artifacts/get?source=volume&bucket=artifact&key=notexist/config`)
         .expect(
           400,
-          'Failed to open volume://artifact/not/exist/bar/path, prefix volume mountPath to /not/exist/bar/path not exist',
+          'Failed to open volume://artifact/notexist/config, volume mount not exist',
           done,
         );
     });
@@ -616,6 +613,7 @@ describe('UIServer apis', () => {
                     {
                       name: 'artifact',
                       mountPath: '/foo/bar',
+                      subPath: 'subartifact',
                     },
                   ],
                 },
@@ -638,10 +636,10 @@ describe('UIServer apis', () => {
 
       const request = requests(app.start());
       request
-        .get(`/artifacts/get?source=volume&bucket=artifact&key=/foo/bar/notxist.csv`)
+        .get(`/artifacts/get?source=volume&bucket=artifact&key=subartifact/notxist.csv`)
         .expect(
           400,
-          'Failed to open volume://artifact/foo/bar/notxist.csv, file /foo/bar/notxist.csv not exist',
+          'Failed to open volume://artifact/subartifact/notxist.csv, file /notxist.csv in volume artifact:subartifact not exist',
           done,
         );
     });
@@ -841,6 +839,11 @@ describe('UIServer apis', () => {
                 name: 'tensorboard',
                 mountPath: '/logs',
               },
+              {
+                name: 'data',
+                subPath: 'tensorboard',
+                mountPath: '/data',
+              },
             ],
           },
         ],
@@ -849,6 +852,12 @@ describe('UIServer apis', () => {
             name: 'tensorboard',
             persistentVolumeClaim: {
               claimName: 'logs',
+            },
+          },
+          {
+            name: 'data',
+            persistentVolumeClaim: {
+              claimName: 'data',
             },
           },
         ],
@@ -1217,7 +1226,7 @@ describe('UIServer apis', () => {
         requests(app.start())
           .post(
             `/apps/tensorboard?logdir=${encodeURIComponent(
-              'Series1:volume://tensorboard/logs/log-dir-1,Series2:volume://tensorboard/logs/log-dir-2',
+              'Series1:volume://tensorboard/log-dir-1,Series2:volume://tensorboard/log-dir-2',
             )}&namespace=test-ns&tfversion=2.0.0`,
           )
           .expect(
@@ -1230,7 +1239,7 @@ describe('UIServer apis', () => {
                   "v1beta1",
                   "test-ns",
                   "viewers",
-                  "viewer-776a6d013c4ef3797edfa6949a9888556cf0c75a",
+                  "viewer-a800f945f0934d978f9cce9959b82ff44dac8493",
                 ]
               `);
               expect(k8sCreateCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
@@ -1243,7 +1252,7 @@ describe('UIServer apis', () => {
                     "apiVersion": "kubeflow.org/v1beta1",
                     "kind": "Viewer",
                     "metadata": Object {
-                      "name": "viewer-776a6d013c4ef3797edfa6949a9888556cf0c75a",
+                      "name": "viewer-a800f945f0934d978f9cce9959b82ff44dac8493",
                       "namespace": "test-ns",
                     },
                     "spec": Object {
@@ -1256,6 +1265,11 @@ describe('UIServer apis', () => {
                                   "mountPath": "/logs",
                                   "name": "tensorboard",
                                 },
+                                Object {
+                                  "mountPath": "/data",
+                                  "name": "data",
+                                  "subPath": "tensorboard",
+                                },
                               ],
                             },
                           ],
@@ -1264,6 +1278,12 @@ describe('UIServer apis', () => {
                               "name": "tensorboard",
                               "persistentVolumeClaim": Object {
                                 "claimName": "logs",
+                              },
+                            },
+                            Object {
+                              "name": "data",
+                              "persistentVolumeClaim": Object {
+                                "claimName": "data",
                               },
                             },
                           ],
@@ -1284,7 +1304,123 @@ describe('UIServer apis', () => {
                   "v1beta1",
                   "test-ns",
                   "viewers",
-                  "viewer-776a6d013c4ef3797edfa6949a9888556cf0c75a",
+                  "viewer-a800f945f0934d978f9cce9959b82ff44dac8493",
+                ]
+              `);
+              done(err);
+            },
+          );
+      });
+
+      it('creates tensorboard viewer with exist subPath volume', done => {
+        let getRequestCount = 0;
+        k8sGetCustomObjectSpy.mockImplementation(() => {
+          ++getRequestCount;
+          switch (getRequestCount) {
+            case 1:
+              return Promise.reject('Not found');
+            case 2:
+              return Promise.resolve(
+                newGetTensorboardResponse({
+                  name: 'viewer-abcdefg',
+                  logDir: 'Series1:/data/log-dir-1,Series2:/data/log-dir-2',
+                  tensorflowImage: 'tensorflow:2.0.0',
+                }),
+              );
+            default:
+              throw new Error('only expected to be called twice in this test');
+          }
+        });
+        k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+        const tempPath = path.join(fs.mkdtempSync(os.tmpdir()), 'config.json');
+        fs.writeFileSync(tempPath, JSON.stringify(POD_TEMPLATE_SPEC));
+        app = new UIServer(
+          loadConfigs(argv, { VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH: tempPath }),
+        );
+
+        requests(app.start())
+          .post(
+            `/apps/tensorboard?logdir=${encodeURIComponent(
+              'Series1:volume://data/tensorboard/log-dir-1,Series2:volume://data/tensorboard/log-dir-2',
+            )}&namespace=test-ns&tfversion=2.0.0`,
+          )
+          .expect(
+            200,
+            'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
+            err => {
+              expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
+                Array [
+                  "kubeflow.org",
+                  "v1beta1",
+                  "test-ns",
+                  "viewers",
+                  "viewer-82d7d06a6ecb1e4dcba66d06b884d6445a88e4ca",
+                ]
+              `);
+              expect(k8sCreateCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
+                Array [
+                  "kubeflow.org",
+                  "v1beta1",
+                  "test-ns",
+                  "viewers",
+                  Object {
+                    "apiVersion": "kubeflow.org/v1beta1",
+                    "kind": "Viewer",
+                    "metadata": Object {
+                      "name": "viewer-82d7d06a6ecb1e4dcba66d06b884d6445a88e4ca",
+                      "namespace": "test-ns",
+                    },
+                    "spec": Object {
+                      "podTemplateSpec": Object {
+                        "spec": Object {
+                          "containers": Array [
+                            Object {
+                              "volumeMounts": Array [
+                                Object {
+                                  "mountPath": "/logs",
+                                  "name": "tensorboard",
+                                },
+                                Object {
+                                  "mountPath": "/data",
+                                  "name": "data",
+                                  "subPath": "tensorboard",
+                                },
+                              ],
+                            },
+                          ],
+                          "volumes": Array [
+                            Object {
+                              "name": "tensorboard",
+                              "persistentVolumeClaim": Object {
+                                "claimName": "logs",
+                              },
+                            },
+                            Object {
+                              "name": "data",
+                              "persistentVolumeClaim": Object {
+                                "claimName": "data",
+                              },
+                            },
+                          ],
+                        },
+                      },
+                      "tensorboardSpec": Object {
+                        "logDir": "Series1:/data/log-dir-1,Series2:/data/log-dir-2",
+                        "tensorflowImage": "tensorflow/tensorflow:2.0.0",
+                      },
+                      "type": "tensorboard",
+                    },
+                  },
+                ]
+              `);
+              expect(k8sGetCustomObjectSpy.mock.calls[1]).toMatchInlineSnapshot(`
+                Array [
+                  "kubeflow.org",
+                  "v1beta1",
+                  "test-ns",
+                  "viewers",
+                  "viewer-82d7d06a6ecb1e4dcba66d06b884d6445a88e4ca",
                 ]
               `);
               done(err);
@@ -1318,7 +1454,7 @@ describe('UIServer apis', () => {
           });
       });
 
-      it('creates tensorboard viewer with not exist volume mount and return error', done => {
+      it('creates tensorboard viewer with not exist subPath volume mount and return error', done => {
         const errorSpy = jest.spyOn(console, 'error');
         errorSpy.mockImplementation();
 
@@ -1335,17 +1471,13 @@ describe('UIServer apis', () => {
         requests(app.start())
           .post(
             `/apps/tensorboard?logdir=${encodeURIComponent(
-              'volume://tensorboard/mountnotexist/log-dir-1',
+              'volume://data/notexit/mountnotexist/log-dir-1',
             )}&namespace=test-ns&tfversion=2.0.0`,
           )
-          .expect(
-            500,
-            `Failed to start Tensorboard app: Volume tensorboard prefix mountPath to /mountnotexist/log-dir-1 not exist`,
-            err => {
-              expect(errorSpy).toHaveBeenCalledTimes(1);
-              done(err);
-            },
-          );
+          .expect(500, `Failed to start Tensorboard app: Volume mount data not exist`, err => {
+            expect(errorSpy).toHaveBeenCalledTimes(1);
+            done(err);
+          });
       });
 
       it('returns error when there is an existing tensorboard with different version', done => {

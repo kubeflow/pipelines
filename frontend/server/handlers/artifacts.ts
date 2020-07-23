@@ -257,7 +257,8 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
 function getVolumeArtifactsHandler(options: { bucket: string; key: string }, peek: number = 0) {
   const { key, bucket } = options;
   return async (req: Request, res: Response) => {
-    const filePath = path.join('/', key);
+    let filePath;
+    let volumeMount;
     try {
       // get ml-pipeline-ui pod namespace
       const SERVER_NAMESPACE = serverInfo.getServerNamespace();
@@ -282,30 +283,61 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
 
         // volumes not specified or volume named ${bucket} not specified
         if (!Array.isArray(pod?.spec?.volumes) || !pod.spec.volumes.find(v => v?.name === bucket)) {
-          const message = `Failed to open volume://${bucket}${key}, volume ${bucket} not exist`;
+          const message = `Failed to open volume://${bucket}/${key}, volume ${bucket} not exist`;
           res.status(400).send(message);
           return;
         }
 
-        // volumes mount not exist
+        // find volumes mount
         if (
-          !Array.isArray(pod?.spec?.containers) ||
-          !Array.isArray(pod.spec.containers[0]?.volumeMounts) ||
-          !pod.spec.containers[0].volumeMounts.find(
-            v => v?.name === bucket && key.startsWith(v?.mountPath),
-          )
+          Array.isArray(pod?.spec?.containers) &&
+          Array.isArray(pod.spec.containers[0]?.volumeMounts)
         ) {
-          const message = `Failed to open volume://${bucket}${key}, prefix volume mountPath to ${key} not exist`;
-          res.status(400).send(message);
-          return;
+          volumeMount = pod.spec.containers[0].volumeMounts.find(v => {
+            // volume name must be same
+            if (v?.name === bucket) {
+              if (v?.subPath) {
+                return key.startsWith(v.subPath);
+              } else {
+                return true;
+              }
+            }
+            return false;
+          });
         }
       } else {
-        console.warn(`pod name or server namespace can't be obtained, 
-          pod name: ${POD_NAME}, server namespace: ${SERVER_NAMESPACE}`);
+        console.error(
+          `pod name or server namespace can't be obtained, pod name: ${POD_NAME}, server namespace: ${SERVER_NAMESPACE}`,
+        );
+        res
+          .status(500)
+          .send(
+            `Failed to open volume://${bucket}/${key}, can't obtain server pod name or server pod namespace`,
+          );
+        return;
       }
 
+      // volumes mount not exist
+      if (!volumeMount) {
+        const message = `Failed to open volume://${bucket}/${key}, volume mount not exist`;
+        res.status(400).send(message);
+        return;
+      }
+
+      // relative file path
+      const relativeFilePath = volumeMount.subPath
+        ? key.substring(volumeMount.subPath.length)
+        : key;
+      filePath = path.join(volumeMount.mountPath, relativeFilePath);
+
       if (!fs.existsSync(filePath)) {
-        res.status(400).send(`Failed to open volume://${bucket}${key}, file ${filePath} not exist`);
+        res
+          .status(400)
+          .send(
+            `Failed to open volume://${bucket}/${key}, file ${relativeFilePath} in volume ${bucket}${
+              volumeMount.subPath ? ':' + volumeMount.subPath : ''
+            } not exist`,
+          );
         return;
       }
 
@@ -314,7 +346,7 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
       if (stat.isDirectory()) {
         res
           .status(400)
-          .send(`Failed to read volume local file: ${filePath}, directory does not support`);
+          .send(`Failed to open volume local file: ${filePath}, directory does not support`);
         return;
       }
 
