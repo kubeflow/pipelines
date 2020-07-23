@@ -15,7 +15,7 @@ import argparse
 
 from typing import Dict, Any
 
-from .spec_validators import SpecValidation
+from .spec_validators import SpecValidators
 
 class SageMakerComponentSpec(object):
     """Defines the set of inputs and outputs as expected for a SageMakerComponent.
@@ -42,7 +42,7 @@ class SageMakerComponentSpec(object):
             type=str, required=True, help="The region where the training job launches."
         ),
         "endpoint_url": dict(
-            type=SpecValidation._nullable_string_argument,
+            type=SpecValidators.nullable_string_argument,
             required=False,
             help="The URL to use when communicating with the SageMaker service.",
         ),
@@ -77,7 +77,8 @@ class SageMakerComponentSpec(object):
         for key, props in self.INPUTS.items():
             parser.add_argument(f"--{key}", **props)
         for key, props in self.OUTPUTS.items():
-            parser.add_argument(f"--{key}", **props)
+            # Outputs are appended with _file_path to differentiate them programatically
+            parser.add_argument(f"--{key}_file_path", default=f"/tmp/{key}", type=str, **props)
 
         return parser
 
