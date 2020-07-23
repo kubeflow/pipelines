@@ -17,6 +17,16 @@ from typing import Type
 from .sagemaker_component_spec import SageMakerComponentSpec
 
 def ComponentMetadata(name: str, description: str, spec: Type[SageMakerComponentSpec]):
+    """Decorator for SageMaker components.
+
+    Usage:
+    ```python
+    @ComponentMetadata(
+        name="SageMaker - Component Name",
+        description="A cool new component we made!",
+        spec=MyComponentSpec
+    )
+    """
     def _component_metadata(cls):
         cls.COMPONENT_NAME = name
         cls.COMPONENT_DESCRIPTION = description
@@ -28,7 +38,8 @@ class SageMakerComponent(object):
     """Base class for a KFP SageMaker component.
 
     An instance of a subclass of this component represents an instantiation of the
-    component within a pipeline run.
+    component within a pipeline run. Use the `@ComponentMetadata` decorator to
+    modify the component attributes listed below.
 
     Attributes:
         COMPONENT_NAME: The name of the component as displayed to the user.
