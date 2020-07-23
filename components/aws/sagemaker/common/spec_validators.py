@@ -12,6 +12,8 @@
 # limitations under the License.
 
 
+from argparse import ArgumentTypeError
+
 class SpecValidators:
     @staticmethod
     def nullable_string_argument(value):
@@ -33,12 +35,18 @@ class SpecValidators:
     @staticmethod
     def yaml_or_json_list(str):
         """Parses a YAML or JSON list to a Python list"""
-        return SpecValidators._yaml_or_json_str
+        parsed = SpecValidators._yaml_or_json_str
+        if not isinstance(parsed, list):
+            raise ArgumentTypeError(f"{str} is not a list")
+        return parsed
 
     @staticmethod
     def yaml_or_json_dict(str):
         """Parses a YAML or JSON dictionary to a Python dictionary"""
-        return SpecValidators._yaml_or_json_str
+        parsed = SpecValidators._yaml_or_json_str
+        if not isinstance(parsed, dict):
+            raise ArgumentTypeError(f"{str} is not a dictionary")
+        return parsed
 
     @staticmethod
     def str_to_bool(str):

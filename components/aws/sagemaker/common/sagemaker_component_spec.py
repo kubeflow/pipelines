@@ -38,6 +38,7 @@ class SageMakerComponentSpec(object):
             OUTPUTS = {}
     """
 
+    # These inputs apply to all components
     INPUTS = {
         "region": dict(
             type=str, required=True, help="The region where the training job launches."
