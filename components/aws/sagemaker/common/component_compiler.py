@@ -21,7 +21,7 @@ from .spec_validators import SpecValidators
 
 
 class ComponentSpec(TypedDict):
-    """Defines the structure of a KFP component.yaml file"""
+    """Defines the structure of a KFP `component.yaml` file"""
 
     class InputSpec(TypedDict, total=False):
         name: str
@@ -81,10 +81,12 @@ class SageMakerComponentCompiler(object):
         component_def: Type[SageMakerComponent],
         component_file_path: str,
         output_path: str,
+        component_image_uri: str,
+        component_image_tag: str
     ):
         """Creates a component YAML specification and writes it to file"""
         component_spec = SageMakerComponentCompiler._create_component_spec(
-            component_def, component_file_path
+            component_def, component_file_path, component_image_uri=component_image_uri, component_image_tag=component_image_tag
         )
         SageMakerComponentCompiler._write_component(component_spec, output_path)
 
@@ -138,7 +140,10 @@ class SageMakerComponentCompiler(object):
 
     @staticmethod
     def _create_component_spec(
-        component_def: Type[SageMakerComponent], component_file_path: str
+        component_def: Type[SageMakerComponent],
+        component_file_path: str,
+        component_image_uri: str,
+        component_image_tag: str,
     ) -> ComponentSpec:
         """Create a component YAML specification object based on a component"""
         io_args = SageMakerComponentCompiler._create_io_from_component_spec(
@@ -152,7 +157,7 @@ class SageMakerComponentCompiler(object):
             outputs=io_args.outputs,
             implementation=ComponentSpec.ImplementationSpec(
                 container=ComponentSpec.ImplementationSpec.ContainerSpec(
-                    image="kfp-component:latest",
+                    image=f"{component_image_uri}:{component_image_tag}",
                     command=["python3"],
                     args=[component_file_path,] + io_args.args,
                 )
@@ -170,8 +175,14 @@ class SageMakerComponentCompiler(object):
         component_def: Type[SageMakerComponent],
         component_file_path: str,
         output_path: str,
+        component_image_uri: str,
+        component_image_tag: str,
     ):
         """Compiles a defined component into its component YAML specification"""
         SageMakerComponentCompiler._create_and_write_component(
-            component_def, component_file_path, output_path
+            component_def,
+            component_file_path,
+            output_path,
+            component_image_uri,
+            component_image_tag,
         )

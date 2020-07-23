@@ -1,3 +1,5 @@
+import argparse
+
 from common.component_compiler import SageMakerComponentCompiler
 import common.sagemaker_component as component_module
 
@@ -13,6 +15,22 @@ COMPONENT_DIRECTORIES = [
     # "workteam"
 ]
 
+def parse_arguments():
+    """Parse command line arguments."""
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--tag',
+                        type=str,
+                        required=True,
+                        help='The component container tag.')
+    parser.add_argument('--image',
+                        type=str,
+                        required=False,
+                        default="amazon/aws-sagemaker-kfp-components",
+                        help='The component container image.')
+
+    args = parser.parse_args()
+    return args
 
 class ComponentCollectorContext:
     def __enter__(self):
@@ -31,7 +49,7 @@ class ComponentCollectorContext:
         component_module._component_decorator_handler = self.old_handler
 
 
-def compile_spec_file(spec_file, component_file, spec_dir):
+def compile_spec_file(spec_file, component_file, spec_dir, args):
     output_path = Path(spec_dir.parent, "component.yaml")
     relative_path = os.path.splitext(str(component_file.relative_to(root)))[0]
 
@@ -45,13 +63,15 @@ def compile_spec_file(spec_file, component_file, spec_dir):
         )
 
     SageMakerComponentCompiler.compile(
-        component_metadatas[0], component_file.name, str(output_path.resolve())
+        component_metadatas[0], component_file.name, str(output_path.resolve()), component_image_tag=args.tag, component_image_uri=args.image
     )
 
 
 if __name__ == "__main__":
     import os
     from pathlib import Path
+
+    args = parse_arguments()
 
     cwd = Path(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     root = cwd.parent
@@ -72,4 +92,4 @@ if __name__ == "__main__":
         elif len(components) > 1:
             raise ValueError(f"Found multiple _component.py files for {component}")
 
-        compile_spec_file(specs[0], components[0], component_src_dir)
+        compile_spec_file(specs[0], components[0], component_src_dir, args)
