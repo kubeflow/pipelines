@@ -1,11 +1,14 @@
 package list
 
 import (
+	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 
@@ -16,8 +19,8 @@ import (
 )
 
 type fakeMetric struct {
-	Name: string
-	Value: float64
+	Name  string
+	Value float64
 }
 
 type fakeListable struct {
@@ -49,6 +52,16 @@ func (f *fakeListable) GetModelName() string {
 	return ""
 }
 
+func (f *fakeListable) GetField(name string) (string, bool) {
+	if field, ok := fakeAPIToModelMap[name]; ok {
+		return field, true
+	}
+	if strings.HasPrefix(name, "metric:") {
+		return name[7:], true
+	}
+	return "", false
+}
+
 func (f *fakeListable) GetFieldValue(name string) interface{} {
 	switch name {
 	case "CreatedTimestamp":
@@ -66,14 +79,22 @@ func (f *fakeListable) GetFieldValue(name string) interface{} {
 	return nil
 }
 
+func (f *fakeListable) GetSortByFieldPrefix(name string) string {
+	return ""
+}
+
+func (f *fakeListable) GetKeyFieldPrefix() string {
+	return ""
+}
+
 func TestNextPageToken_ValidTokens(t *testing.T) {
 	l := &fakeListable{PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234, Metrics: []*fakeMetric{
 		{
-			Name: "m1",
+			Name:  "m1",
 			Value: 1.0,
 		},
 		{
-			Name: "m2",
+			Name:  "m2",
 			Value: 2.0,
 		},
 	}}
@@ -103,6 +124,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				KeyFieldName:     "PrimaryKey",
 				KeyFieldValue:    "uuid123",
 				IsDesc:           true,
+				Model:            l,
 			},
 		},
 		{
@@ -115,6 +137,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				KeyFieldName:     "PrimaryKey",
 				KeyFieldValue:    "uuid123",
 				IsDesc:           true,
+				Model:            l,
 			},
 		},
 		{
@@ -127,6 +150,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				KeyFieldName:     "PrimaryKey",
 				KeyFieldValue:    "uuid123",
 				IsDesc:           false,
+				Model:            l,
 			},
 		},
 		{
@@ -144,22 +168,23 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				KeyFieldValue:    "uuid123",
 				IsDesc:           false,
 				Filter:           testFilter,
+				Model:            l,
 			},
 		},
 		{
 			inOpts: &Options{
 				PageSize: 10,
 				token: &token{
-					SortByFieldName: "metric:m1", IsDesc: false,
+					SortByFieldName: "m1", IsDesc: false,
 				},
 			},
 			want: &token{
 				SortByFieldName:  "m1",
-				SortByFieldValue: "1.0",
-				SortByFieldIsRunMetric: true,
+				SortByFieldValue: 1.0,
 				KeyFieldName:     "PrimaryKey",
 				KeyFieldValue:    "uuid123",
 				IsDesc:           false,
+				Model:            l,
 			},
 		},
 	}
@@ -222,6 +247,7 @@ func TestNewOptions_FromValidSerializedToken(t *testing.T) {
 		KeyFieldName:     "KeyField",
 		KeyFieldValue:    "string_key_value",
 		IsDesc:           true,
+		Model:            &fakeListable{},
 	}
 
 	s, err := tok.marshal()
@@ -229,6 +255,9 @@ func TestNewOptions_FromValidSerializedToken(t *testing.T) {
 		t.Fatalf("failed to marshal token %+v: %v", tok, err)
 	}
 
+	tok.Model = nil
+	tok.ModelType = "fakeListable"
+	tok.ModelMessage, _ = json.Marshal(&fakeListable{})
 	want := &Options{PageSize: 123, token: tok}
 	got, err := NewOptionsFromToken(s, 123)
 
@@ -286,6 +315,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:    "PrimaryKey",
 					SortByFieldName: "CreatedTimestamp",
 					IsDesc:          false,
+					Model:           &fakeListable{},
 				},
 			},
 		},
@@ -297,6 +327,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:    "PrimaryKey",
 					SortByFieldName: "CreatedTimestamp",
 					IsDesc:          false,
+					Model:           &fakeListable{},
 				},
 			},
 		},
@@ -308,6 +339,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:    "PrimaryKey",
 					SortByFieldName: "FakeName",
 					IsDesc:          false,
+					Model:           &fakeListable{},
 				},
 			},
 		},
@@ -319,6 +351,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:    "PrimaryKey",
 					SortByFieldName: "FakeName",
 					IsDesc:          false,
+					Model:           &fakeListable{},
 				},
 			},
 		},
@@ -330,6 +363,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:    "PrimaryKey",
 					SortByFieldName: "FakeName",
 					IsDesc:          true,
+					Model:           &fakeListable{},
 				},
 			},
 		},
@@ -341,6 +375,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:    "PrimaryKey",
 					SortByFieldName: "PrimaryKey",
 					IsDesc:          true,
+					Model:           &fakeListable{},
 				},
 			},
 		},
@@ -416,6 +451,7 @@ func TestNewOptions_ValidFilter(t *testing.T) {
 			SortByFieldName: "CreatedTimestamp",
 			IsDesc:          false,
 			Filter:          f,
+			Model:           &fakeListable{},
 		},
 	}
 
@@ -476,6 +512,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					KeyFieldName:     "KeyField",
 					KeyFieldValue:    1111,
 					IsDesc:           true,
+					Model:            &fakeListable{},
 				},
 			},
 			wantSQL:  "SELECT * FROM MyTable WHERE (SortField < ? OR (SortField = ? AND KeyField <= ?)) ORDER BY SortField DESC, KeyField DESC LIMIT 124",
@@ -490,6 +527,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					KeyFieldName:     "KeyField",
 					KeyFieldValue:    1111,
 					IsDesc:           false,
+					Model:            &fakeListable{},
 				},
 			},
 			wantSQL:  "SELECT * FROM MyTable WHERE (SortField > ? OR (SortField = ? AND KeyField >= ?)) ORDER BY SortField ASC, KeyField ASC LIMIT 124",
@@ -505,6 +543,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					KeyFieldValue:    1111,
 					IsDesc:           false,
 					Filter:           f,
+					Model:            &fakeListable{},
 				},
 			},
 			wantSQL:  "SELECT * FROM MyTable WHERE (SortField > ? OR (SortField = ? AND KeyField >= ?)) AND Name = ? ORDER BY SortField ASC, KeyField ASC LIMIT 124",
@@ -518,6 +557,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					KeyFieldName:    "KeyField",
 					KeyFieldValue:   1111,
 					IsDesc:          true,
+					Model:           &fakeListable{},
 				},
 			},
 			wantSQL:  "SELECT * FROM MyTable ORDER BY SortField DESC, KeyField DESC LIMIT 124",
@@ -531,6 +571,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					SortByFieldValue: "value",
 					KeyFieldName:     "KeyField",
 					IsDesc:           false,
+					Model:            &fakeListable{},
 				},
 			},
 			wantSQL:  "SELECT * FROM MyTable ORDER BY SortField ASC, KeyField ASC LIMIT 124",
@@ -545,6 +586,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					KeyFieldName:     "KeyField",
 					IsDesc:           false,
 					Filter:           f,
+					Model:            &fakeListable{},
 				},
 			},
 			wantSQL:  "SELECT * FROM MyTable WHERE Name = ? ORDER BY SortField ASC, KeyField ASC LIMIT 124",
@@ -575,6 +617,8 @@ func TestTokenSerialization(t *testing.T) {
 		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter, err)
 	}
 
+	modelMessage, _ := json.Marshal(&fakeListable{})
+
 	tests := []struct {
 		in   *token
 		want *token
@@ -586,13 +630,16 @@ func TestTokenSerialization(t *testing.T) {
 				SortByFieldValue: "string_field_value",
 				KeyFieldName:     "KeyField",
 				KeyFieldValue:    "string_key_value",
-				IsDesc:           true},
+				IsDesc:           true,
+				Model:            &fakeListable{}},
 			want: &token{
 				SortByFieldName:  "SortField",
 				SortByFieldValue: "string_field_value",
 				KeyFieldName:     "KeyField",
 				KeyFieldValue:    "string_key_value",
-				IsDesc:           true},
+				IsDesc:           true,
+				ModelType:        "fakeListable",
+				ModelMessage:     modelMessage},
 		},
 		// int values get deserialized as floats by JSON unmarshal.
 		{
@@ -601,13 +648,16 @@ func TestTokenSerialization(t *testing.T) {
 				SortByFieldValue: 100,
 				KeyFieldName:     "KeyField",
 				KeyFieldValue:    200,
-				IsDesc:           true},
+				IsDesc:           true,
+				Model:            &fakeListable{}},
 			want: &token{
 				SortByFieldName:  "SortField",
 				SortByFieldValue: float64(100),
 				KeyFieldName:     "KeyField",
 				KeyFieldValue:    float64(200),
-				IsDesc:           true},
+				IsDesc:           true,
+				ModelType:        "fakeListable",
+				ModelMessage:     modelMessage},
 		},
 		// has a filter.
 		{
@@ -618,6 +668,7 @@ func TestTokenSerialization(t *testing.T) {
 				KeyFieldValue:    200,
 				IsDesc:           true,
 				Filter:           testFilter,
+				Model:            &fakeListable{},
 			},
 			want: &token{
 				SortByFieldName:  "SortField",
@@ -626,6 +677,8 @@ func TestTokenSerialization(t *testing.T) {
 				KeyFieldValue:    float64(200),
 				IsDesc:           true,
 				Filter:           testFilter,
+				ModelType:        "fakeListable",
+				ModelMessage:     modelMessage,
 			},
 		},
 	}
@@ -871,4 +924,65 @@ func TestFilterOnNamesapce(t *testing.T) {
 				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
 		}
 	}
+}
+
+func TestAddSortingToSelectWithPipelineVersionModel(t *testing.T) {
+	listable := &model.PipelineVersion{
+		UUID:           "version_id_1",
+		CreatedAtInSec: 1,
+		Name:           "version_name_1",
+		Parameters:     "",
+		PipelineId:     "pipeline_id_1",
+		Status:         model.PipelineVersionReady,
+		CodeSourceUrl:  "",
+	}
+	protoFilter := &api.Filter{}
+	listableOptions, err := NewOptions(listable, 10, "name", protoFilter)
+	assert.Nil(t, err)
+	sqlBuilder := sq.Select("*").From("pipeline_versions")
+	sql, _, err := listableOptions.AddSortingToSelect(sqlBuilder).ToSql()
+	assert.Nil(t, err)
+
+	assert.Contains(t, sql, "pipeline_versions.Name") // sorting field
+	assert.Contains(t, sql, "pipeline_versions.UUID") // primary key field
+}
+
+func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
+	listable := &model.Run{
+		UUID:           "run_id_1",
+		CreatedAtInSec: 1,
+		Name:           "run_name_1",
+		Conditions:     "Succeeded",
+	}
+	protoFilter := &api.Filter{}
+	protoFilter.Predicates = []*api.Predicate{
+		{
+			Key:   "status",
+			Op:    api.Predicate_EQUALS,
+			Value: &api.Predicate_StringValue{StringValue: "Succeeded"},
+		},
+	}
+	listableOptions, err := NewOptions(listable, 10, "name", protoFilter)
+	assert.Nil(t, err)
+	sqlBuilder := sq.Select("*").From("run_details")
+	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
+	assert.Nil(t, err)
+	assert.Contains(t, sql, "WHERE Conditions = ?") // filtering on status, aka Conditions in db
+	assert.Contains(t, args, "Succeeded")
+
+	notEqualProtoFilter := &api.Filter{}
+	notEqualProtoFilter.Predicates = []*api.Predicate{
+		{
+			Key:   "status",
+			Op:    api.Predicate_NOT_EQUALS,
+			Value: &api.Predicate_StringValue{StringValue: "somevalue"},
+		},
+	}
+	listableOptions, err = NewOptions(listable, 10, "name", notEqualProtoFilter)
+	assert.Nil(t, err)
+	sqlBuilder = sq.Select("*").From("run_details")
+	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
+	assert.Nil(t, err)
+	assert.Contains(t, sql, "WHERE Conditions <> ?") // filtering on status, aka Conditions in db
+	assert.Contains(t, args, "somevalue")
 }

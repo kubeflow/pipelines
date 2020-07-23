@@ -47,6 +47,13 @@ func (e *Experiment) GetModelName() string {
 	return "experiments"
 }
 
+func (e *Experiment) GetField(name string) (string, bool) {
+	if field, ok := experimentAPIToModelFieldMap[name]; ok {
+		return field, true
+	}
+	return "", false
+}
+
 func (e *Experiment) GetFieldValue(name string) interface{} {
 	switch name {
 	case "UUID":
@@ -64,4 +71,12 @@ func (e *Experiment) GetFieldValue(name string) interface{} {
 	default:
 		return nil
 	}
+}
+
+func (e *Experiment) GetSortByFieldPrefix(name string) string {
+	return "experiments."
+}
+
+func (e *Experiment) GetKeyFieldPrefix() string {
+	return "experiments."
 }

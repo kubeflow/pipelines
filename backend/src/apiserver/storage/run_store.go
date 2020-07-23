@@ -170,7 +170,7 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	// If we're not just counting, then also add select columns and perform a left join
 	// to get resource reference information. Also add pagination.
 	if !selectCount {
-		sqlBuilder = opts.AddSortByRunMetricToSelect(sqlBuilder)
+		sqlBuilder = s.AddSortByRunMetricToSelect(sqlBuilder, opts)
 		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
 		sqlBuilder = s.addMetricsAndResourceReferences(sqlBuilder, opts)
 		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
@@ -224,11 +224,12 @@ func Map(vs []string, f func(string) string) []string {
 }
 
 func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
+	var r model.Run
 	resourceRefConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("rr.Payload", ","), `"]"`}, "")
 	columnsAfterJoiningResourceReferences := append(
 		Map(runColumns, func(column string) string { return "rd." + column }), // Add prefix "rd." to runColumns
 		resourceRefConcatQuery+" AS refs")
-	if opts != nil && opts.SortByFieldIsRunMetric {
+	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
 		columnsAfterJoiningResourceReferences = append(columnsAfterJoiningResourceReferences, "rd."+opts.SortByFieldName)
 	}
 	subQ := sq.
@@ -618,4 +619,19 @@ func (s *RunStore) TerminateRun(runId string) error {
 	}
 
 	return nil
+}
+
+// Add a metric as a new field to the select clause by join the passed-in SQL query with run_metrics table.
+// With the metric as a field in the select clause enable sorting on this metric afterwards.
+// TODO(jingzhang36): example of resulting SQL query and explanation for it.
+func (s *RunStore) AddSortByRunMetricToSelect(sqlBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
+	var r model.Run
+	if r.IsRegularField(opts.SortByFieldName) {
+		return sqlBuilder
+	}
+	// TODO(jingzhang36): address the case where runs doesn't have the specified metric.
+	return sq.
+		Select("selected_runs.*, run_metrics.numbervalue as "+opts.SortByFieldName).
+		FromSelect(sqlBuilder, "selected_runs").
+		LeftJoin("run_metrics ON selected_runs.uuid=run_metrics.runuuid AND run_metrics.name='" + opts.SortByFieldName + "'")
 }

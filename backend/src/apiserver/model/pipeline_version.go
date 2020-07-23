@@ -74,6 +74,13 @@ func (p *PipelineVersion) GetModelName() string {
 	return "pipeline_versions"
 }
 
+func (p *PipelineVersion) GetField(name string) (string, bool) {
+	if field, ok := p.APIToModelFieldMap()[name]; ok {
+		return field, true
+	}
+	return "", false
+}
+
 func (p *PipelineVersion) GetFieldValue(name string) interface{} {
 	switch name {
 	case "UUID":
@@ -87,4 +94,12 @@ func (p *PipelineVersion) GetFieldValue(name string) interface{} {
 	default:
 		return nil
 	}
+}
+
+func (p *PipelineVersion) GetSortByFieldPrefix(name string) string {
+	return "pipeline_versions."
+}
+
+func (p *PipelineVersion) GetKeyFieldPrefix() string {
+	return "pipeline_versions."
 }
