@@ -16,6 +16,10 @@ from typing import Type
 
 from .sagemaker_component_spec import SageMakerComponentSpec
 
+# This handler is called whenever the @ComponentMetadata is applied.
+# It allows the command line compiler to detect every component spec class.
+_component_decorator_handler = None
+
 def ComponentMetadata(name: str, description: str, spec: Type[SageMakerComponentSpec]):
     """Decorator for SageMaker components.
 
@@ -31,6 +35,10 @@ def ComponentMetadata(name: str, description: str, spec: Type[SageMakerComponent
         cls.COMPONENT_NAME = name
         cls.COMPONENT_DESCRIPTION = description
         cls.COMPONENT_SPEC = spec
+
+        # Add handler for compiler
+        if _component_decorator_handler:
+            return _component_decorator_handler(cls) or cls
         return cls
     return _component_metadata
 

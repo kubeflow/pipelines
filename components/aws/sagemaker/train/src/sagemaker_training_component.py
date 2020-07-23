@@ -30,3 +30,6 @@ class SageMakerTrainingComponent(SageMakerComponent):
 
     def Do(self, spec):
         pass
+
+if __name__ == "__main__":
+    pass
