@@ -23,10 +23,6 @@ from common.sagemaker_component import SageMakerComponent, ComponentMetadata
 class SageMakerTrainingComponent(SageMakerComponent):
     """SageMaker component for training."""
 
-    def __init__(self):
-        """Initialize a new component."""
-        super()
-
     def Do(self, spec):
         pass
 
