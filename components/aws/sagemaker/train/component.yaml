@@ -51,15 +51,15 @@ implementation:
     - inputValue: max_wait_time
     - --checkpoint_config
     - inputValue: checkpoint_config
-    - --model_artifact_url_file_path
+    - --model_artifact_url_output_path
     - inputValue: model_artifact_url
-    - --job_name_file_path
+    - --job_name_output_path
     - inputValue: job_name
-    - --training_image_file_path
+    - --training_image_output_path
     - inputValue: training_image
     command:
     - python3
-    image: kfp-component:latest
+    image: amazon/aws-sagemaker-kfp-components:0.5.0
 inputs:
 - description: The region where the training job launches.
   name: region
