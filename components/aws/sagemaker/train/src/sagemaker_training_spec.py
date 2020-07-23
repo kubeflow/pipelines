@@ -1,3 +1,16 @@
+"""Specification for the SageMaker training component"""
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from common.sagemaker_component_spec import SageMakerComponentSpec
 from common.spec_validators import SpecValidators
 
@@ -26,7 +39,7 @@ class SageMakerTrainingSpec(SageMakerComponentSpec):
             "algorithm_name": dict(
                 type=str,
                 required=False,
-                help="The name of the resource algorithm to use for the training job.",
+                help="The name of the resource algorithm to use for the training job. Do not specify a value for this if using training image.",
                 default="",
             ),
             "metric_definitions": dict(
@@ -138,14 +151,14 @@ class SageMakerTrainingSpec(SageMakerComponentSpec):
     OUTPUTS = {
         **SageMakerComponentSpec.OUTPUTS,
         **{
-            "--model_artifact_url": dict(
-                help="Local output path for the file containing the model artifacts URL.",
+            "model_artifact_url": dict(
+                help="The model artifacts URL.",
             ),
-            "--job_name": dict(
-                help="Local output path for the file containing the training job name.",
+            "job_name": dict(
+                help="The training job name.",
             ),
-            "--training_image": dict(
-                help="Local output path for the file containing the registry path of the Docker image that contains the training algorithm.",
+            "training_image": dict(
+                help="The registry path of the Docker image that contains the training algorithm.",
             ),
         },
     }

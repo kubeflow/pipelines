@@ -1,3 +1,16 @@
+"""Compiler for SageMaker component files into YAML"""
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import yaml
 from typing import Type, Optional, Union, List, NamedTuple
 from mypy_extensions import TypedDict
@@ -50,6 +63,7 @@ class IOArgs(NamedTuple):
 
 
 class SageMakerComponentCompiler(object):
+    # Maps all Python argument parser types to their associated KFP input types
     KFP_TYPE_FROM_ARGS = {
         str: "String",
         int: "Integer",
@@ -74,6 +88,7 @@ class SageMakerComponentCompiler(object):
 
     @staticmethod
     def _create_io_from_component_spec(spec: Type[SageMakerComponentSpec]) -> IOArgs:
+        """Parses the set of inputs and outputs from a component spec into the YAML spec form"""
         inputs = []
         outputs = []
         args = []
@@ -158,4 +173,3 @@ class SageMakerComponentCompiler(object):
         SageMakerComponentCompiler._create_and_write_component(
             component_def, component_file_path, output_path
         )
-

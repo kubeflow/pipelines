@@ -50,6 +50,7 @@ class SageMakerComponentSpec(object):
     OUTPUTS = {}
 
     def __init__(self, arguments: Dict[str, str]):
+        """Instantiates the spec with given user inputs"""
         parsed_args = self._parse_arguments(arguments)
 
         # Split results into inputs and outputs
