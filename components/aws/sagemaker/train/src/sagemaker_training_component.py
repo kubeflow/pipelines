@@ -11,9 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC, abstractmethod
-
-from .sagemaker_training_spec import SageMakerTrainingSpec
+from train.src.sagemaker_training_spec import SageMakerTrainingSpec
 from common.sagemaker_component import SageMakerComponent, ComponentMetadata
 
 
@@ -34,4 +32,8 @@ class SageMakerTrainingComponent(SageMakerComponent):
 
 
 if __name__ == "__main__":
-    pass
+    import sys
+    spec = SageMakerTrainingSpec(sys.argv[1:])
+
+    component = SageMakerTrainingComponent()
+    component.Do(spec)

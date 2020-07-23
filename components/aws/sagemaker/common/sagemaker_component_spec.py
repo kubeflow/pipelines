@@ -13,7 +13,7 @@
 
 import argparse
 
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from .spec_validators import SpecValidators
 
@@ -51,8 +51,14 @@ class SageMakerComponentSpec(object):
     }
     OUTPUTS = {}
 
-    def __init__(self, arguments: Dict[str, str]):
-        """Instantiates the spec with given user inputs"""
+    OUTPUT_ARGUMENT_SUFFIX = "_output_path"
+
+    def __init__(self, arguments: List[str]):
+        """Instantiates the spec with given user inputs
+        
+        Args:
+            arguments: A list of command line arguments
+        """
         parsed_args = self._parse_arguments(arguments)
 
         # Split results into inputs and outputs
@@ -61,10 +67,17 @@ class SageMakerComponentSpec(object):
             for key, value in parsed_args.items()
             if key in self.INPUTS.keys()
         }
+
+        # Map parsed keys (including suffix) to original output key name
+        parsed_key_to_output_key = {
+            f"{output_key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}": output_key
+            for output_key in self.OUTPUTS.keys()
+        }
+        # Fill outputs with original keys, but match based on parsed key name
         self._outputs = {
-            key: value
+            parsed_key_to_output_key.get(key): value
             for key, value in parsed_args.items()
-            if key in self.OUTPUTS.keys()
+            if key in parsed_key_to_output_key.keys()
         }
 
     @property
@@ -80,18 +93,21 @@ class SageMakerComponentSpec(object):
         for key, props in self.INPUTS.items():
             parser.add_argument(f"--{key}", **props)
         for key, props in self.OUTPUTS.items():
-            # Outputs are appended with _file_path to differentiate them programatically
+            # Outputs are appended with _output_path to differentiate them programatically
             parser.add_argument(
-                f"--{key}_file_path", default=f"/tmp/{key}", type=str, **props
+                f"--{key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}",
+                default=f"/tmp/{key}",
+                type=str,
+                **props,
             )
 
         return parser
 
-    def _parse_arguments(self, arguments: Dict[str, str]) -> Dict[str, Any]:
+    def _parse_arguments(self, arguments: List[str]) -> Dict[str, Any]:
         """Passes the set of arguments through the parser to form the inputs and outputs
     
         Args:
-            arguments: A dict mapping input names to corresponding string values.  
+            arguments: A list of command line input arguments.  
 
         Returns:
             A dict of input name to parsed value types.

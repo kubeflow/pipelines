@@ -12,7 +12,10 @@
 # limitations under the License.
 
 
+import yaml
+
 from argparse import ArgumentTypeError
+from typing import List, Dict
 
 class SpecValidators:
     @staticmethod
@@ -24,33 +27,33 @@ class SpecValidators:
         return value
 
     @staticmethod
-    def _yaml_or_json_str(str):
-        if str == "" or str == None:
+    def _yaml_or_json_str(value):
+        if value == "" or value == None:
             return None
         try:
-            return json.loads(str)
+            return json.loads(value)
         except:
-            return yaml.safe_load(str)
+            return yaml.safe_load(value)
 
     @staticmethod
-    def yaml_or_json_list(str):
+    def yaml_or_json_list(value):
         """Parses a YAML or JSON list to a Python list"""
-        parsed = SpecValidators._yaml_or_json_str
-        if not isinstance(parsed, list):
-            raise ArgumentTypeError(f"{str} is not a list")
+        parsed = SpecValidators._yaml_or_json_str(value)
+        if not isinstance(parsed, List):
+            raise ArgumentTypeError(f"{value} is not a list")
         return parsed
 
     @staticmethod
-    def yaml_or_json_dict(str):
+    def yaml_or_json_dict(value):
         """Parses a YAML or JSON dictionary to a Python dictionary"""
-        parsed = SpecValidators._yaml_or_json_str
-        if not isinstance(parsed, dict):
-            raise ArgumentTypeError(f"{str} is not a dictionary")
+        parsed = SpecValidators._yaml_or_json_str(value)
+        if not isinstance(parsed, Dict):
+            raise ArgumentTypeError(f"{value} is not a dictionary")
         return parsed
 
     @staticmethod
-    def str_to_bool(str):
+    def str_to_bool(value):
         """Converts a string interpretation of a boolean to a Python bool"""
         # This distutils function returns an integer representation of the boolean
         # rather than a True/False value. This simply hard casts it.
-        return bool(strtobool(str))
+        return bool(strtobool(value))
