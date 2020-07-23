@@ -127,7 +127,7 @@ class SageMakerComponentCompiler(object):
             )
 
             # Add arguments to input list
-            args.append(f"--{key}_file_path")
+            args.append(f"--{key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}")
             args.append(
                 ComponentSpec.ImplementationSpec.ContainerSpec.ArgumentValueSpec(
                     inputValue=key
