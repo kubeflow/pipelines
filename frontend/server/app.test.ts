@@ -425,13 +425,9 @@ describe('UIServer apis', () => {
       const tempPath = path.join(fs.mkdtempSync(os.tmpdir()), 'content');
       fs.writeFileSync(tempPath, artifactContent);
 
-      jest.spyOn(serverInfo, 'getServerNamespace').mockImplementation(() => 'kubeflow');
-      jest.spyOn(serverInfo, 'getServerPodName').mockImplementation(() => 'ml-pipeline-ui');
-
-      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
-      readPodSpy.mockImplementation(() =>
-        Promise.resolve({
-          body: {
+      jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
+        Promise.resolve([
+          {
             spec: {
               containers: [
                 {
@@ -453,8 +449,9 @@ describe('UIServer apis', () => {
                 },
               ],
             },
-          },
-        } as any),
+          } as any,
+          undefined,
+        ]),
       );
 
       const configs = loadConfigs(argv, {});
@@ -471,13 +468,9 @@ describe('UIServer apis', () => {
       const tempPath = path.join(fs.mkdtempSync(os.tmpdir()), 'content');
       fs.writeFileSync(tempPath, artifactContent);
 
-      jest.spyOn(serverInfo, 'getServerNamespace').mockImplementation(() => 'kubeflow');
-      jest.spyOn(serverInfo, 'getServerPodName').mockImplementation(() => 'ml-pipeline-ui');
-
-      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
-      readPodSpy.mockImplementation(() =>
-        Promise.resolve({
-          body: {
+      jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
+        Promise.resolve([
+          {
             spec: {
               containers: [
                 {
@@ -498,8 +491,9 @@ describe('UIServer apis', () => {
                 },
               ],
             },
-          },
-        } as any),
+          } as any,
+          undefined,
+        ]),
       );
 
       const configs = loadConfigs(argv, {});
@@ -512,13 +506,9 @@ describe('UIServer apis', () => {
     });
 
     it('responds error with a not exist volume', done => {
-      jest.spyOn(serverInfo, 'getServerNamespace').mockImplementation(() => 'kubeflow');
-      jest.spyOn(serverInfo, 'getServerPodName').mockImplementation(() => 'ml-pipeline-ui');
-
-      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
-      readPodSpy.mockImplementation(() =>
-        Promise.resolve({
-          body: {
+      jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
+        Promise.resolve([
+          {
             spec: {
               containers: [
                 {
@@ -539,8 +529,9 @@ describe('UIServer apis', () => {
                 },
               ],
             },
-          },
-        } as any),
+          } as any,
+          undefined,
+        ]),
       );
 
       const configs = loadConfigs(argv, {});
@@ -549,17 +540,13 @@ describe('UIServer apis', () => {
       const request = requests(app.start());
       request
         .get(`/artifacts/get?source=volume&bucket=notexist&key=content`)
-        .expect(400, 'Failed to open volume://notexist/content, volume notexist not exist', done);
+        .expect(404, 'Failed to open volume://notexist/content, volume notexist not found', done);
     });
 
     it('responds error with a not exist volume mount path if source=volume', done => {
-      jest.spyOn(serverInfo, 'getServerNamespace').mockImplementation(() => 'kubeflow');
-      jest.spyOn(serverInfo, 'getServerPodName').mockImplementation(() => 'ml-pipeline-ui');
-
-      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
-      readPodSpy.mockImplementation(() =>
-        Promise.resolve({
-          body: {
+      jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
+        Promise.resolve([
+          {
             spec: {
               containers: [
                 {
@@ -581,8 +568,9 @@ describe('UIServer apis', () => {
                 },
               ],
             },
-          },
-        } as any),
+          } as any,
+          undefined,
+        ]),
       );
 
       const configs = loadConfigs(argv, {});
@@ -592,20 +580,16 @@ describe('UIServer apis', () => {
       request
         .get(`/artifacts/get?source=volume&bucket=artifact&key=notexist/config`)
         .expect(
-          400,
-          'Failed to open volume://artifact/notexist/config, volume mount not exist',
+          404,
+          'Failed to open volume://artifact/notexist/config, volume mount artifact not found',
           done,
         );
     });
 
     it('responds error with a not exist volume mount artifact if source=volume', done => {
-      jest.spyOn(serverInfo, 'getServerNamespace').mockImplementation(() => 'kubeflow');
-      jest.spyOn(serverInfo, 'getServerPodName').mockImplementation(() => 'ml-pipeline-ui');
-
-      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
-      readPodSpy.mockImplementation(() =>
-        Promise.resolve({
-          body: {
+      jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
+        Promise.resolve([
+          {
             spec: {
               containers: [
                 {
@@ -627,8 +611,9 @@ describe('UIServer apis', () => {
                 },
               ],
             },
-          },
-        } as any),
+          } as any,
+          undefined,
+        ]),
       );
 
       const configs = loadConfigs(argv, {});
@@ -638,8 +623,8 @@ describe('UIServer apis', () => {
       request
         .get(`/artifacts/get?source=volume&bucket=artifact&key=subartifact/notxist.csv`)
         .expect(
-          400,
-          'Failed to open volume://artifact/subartifact/notxist.csv, file /notxist.csv in volume artifact:subartifact not exist',
+          404,
+          'Failed to open volume://artifact/subartifact/notxist.csv, file not found',
           done,
         );
     });
@@ -1448,7 +1433,7 @@ describe('UIServer apis', () => {
               'volume://notexistvolume/logs/log-dir-1',
             )}&namespace=test-ns&tfversion=2.0.0`,
           )
-          .expect(500, `Failed to start Tensorboard app: Volume notexistvolume not exist`, err => {
+          .expect(500, `Failed to start Tensorboard app: Volume notexistvolume not found`, err => {
             expect(errorSpy).toHaveBeenCalledTimes(1);
             done(err);
           });
@@ -1474,7 +1459,7 @@ describe('UIServer apis', () => {
               'volume://data/notexit/mountnotexist/log-dir-1',
             )}&namespace=test-ns&tfversion=2.0.0`,
           )
-          .expect(500, `Failed to start Tensorboard app: Volume mount data not exist`, err => {
+          .expect(500, `Failed to start Tensorboard app: Volume mount data not found`, err => {
             expect(errorSpy).toHaveBeenCalledTimes(1);
             done(err);
           });

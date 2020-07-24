@@ -14,9 +14,8 @@
 import fetch from 'node-fetch';
 import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv } from '../configs';
 import { Client as MinioClient } from 'minio';
-import { PreviewStream } from '../utils';
+import { PreviewStream, pruneAndConcatPath } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
-import * as k8sHelper from '../k8s-helper';
 import * as serverInfo from '../helpers/server-info';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
@@ -257,87 +256,59 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
 function getVolumeArtifactsHandler(options: { bucket: string; key: string }, peek: number = 0) {
   const { key, bucket } = options;
   return async (req: Request, res: Response) => {
-    let filePath;
-    let volumeMount;
     try {
-      // get ml-pipeline-ui pod namespace
-      const SERVER_NAMESPACE = serverInfo.getServerNamespace();
-      // get ml-pipeline-ui pod name
-      const POD_NAME = serverInfo.getServerPodName();
-
-      // only check when POD_NAME and serverNamespace can be obtained
-      if (POD_NAME && SERVER_NAMESPACE) {
-        const [pod, err] = await k8sHelper.getPod(POD_NAME, SERVER_NAMESPACE);
-        if (err) {
-          const { message, additionalInfo } = err;
-          console.error(message, additionalInfo);
-          res.status(500).send(message);
-          return;
-        }
-
-        if (!pod) {
-          const message = `Could not get pod ${POD_NAME} in namespace ${SERVER_NAMESPACE}`;
-          res.status(500).send(message);
-          return;
-        }
-
-        // volumes not specified or volume named ${bucket} not specified
-        if (!Array.isArray(pod?.spec?.volumes) || !pod.spec.volumes.find(v => v?.name === bucket)) {
-          const message = `Failed to open volume://${bucket}/${key}, volume ${bucket} not exist`;
-          res.status(400).send(message);
-          return;
-        }
-
-        // find volumes mount
-        if (
-          Array.isArray(pod?.spec?.containers) &&
-          Array.isArray(pod.spec.containers[0]?.volumeMounts)
-        ) {
-          volumeMount = pod.spec.containers[0].volumeMounts.find(v => {
-            // volume name must be same
-            if (v?.name === bucket) {
-              if (v?.subPath) {
-                return key.startsWith(v.subPath);
-              } else {
-                return true;
-              }
-            }
-            return false;
-          });
-        }
-      } else {
-        console.error(
-          `pod name or server namespace can't be obtained, pod name: ${POD_NAME}, server namespace: ${SERVER_NAMESPACE}`,
-        );
-        res
-          .status(500)
-          .send(
-            `Failed to open volume://${bucket}/${key}, can't obtain server pod name or server pod namespace`,
-          );
+      const [pod, err] = await serverInfo.getHostPod();
+      if (err) {
+        res.status(500).send(err);
         return;
       }
 
-      // volumes mount not exist
+      if (!pod) {
+        res.status(500).send('Could not get server pod');
+        return;
+      }
+
+      // volumes not specified or volume named ${bucket} not specified
+      if (!Array.isArray(pod?.spec?.volumes) || !pod.spec.volumes.find(v => v?.name === bucket)) {
+        const message = `Failed to open volume://${bucket}/${key}, volume ${bucket} not found`;
+        res.status(404).send(message);
+        return;
+      }
+
+      if (
+        !Array.isArray(pod?.spec?.containers) ||
+        !Array.isArray(pod.spec.containers[0]?.volumeMounts)
+      ) {
+        const message = `Failed to open volume://${bucket}/${key}, volume mount not found`;
+        res.status(404).send(message);
+        return;
+      }
+
+      // find volumes mount
+      const volumeMount = pod.spec.containers[0].volumeMounts.find(v => {
+        // volume name must be same
+        if (v?.name !== bucket) {
+          return false;
+        }
+        // if volume subPath set, volume subPath must be prefix of key
+        if (v?.subPath) {
+          return key.startsWith(v.subPath);
+        }
+        return true;
+      });
+
+      // volumes mount named ${bucket} not found
       if (!volumeMount) {
-        const message = `Failed to open volume://${bucket}/${key}, volume mount not exist`;
-        res.status(400).send(message);
+        const message = `Failed to open volume://${bucket}/${key}, volume mount ${bucket} not found`;
+        res.status(404).send(message);
         return;
       }
 
-      // relative file path
-      const relativeFilePath = volumeMount.subPath
-        ? key.substring(volumeMount.subPath.length)
-        : key;
-      filePath = path.join(volumeMount.mountPath, relativeFilePath);
+      // finally file path
+      const filePath = pruneAndConcatPath(volumeMount.mountPath, key, volumeMount.subPath);
 
       if (!fs.existsSync(filePath)) {
-        res
-          .status(400)
-          .send(
-            `Failed to open volume://${bucket}/${key}, file ${relativeFilePath} in volume ${bucket}${
-              volumeMount.subPath ? ':' + volumeMount.subPath : ''
-            } not exist`,
-          );
+        res.status(404).send(`Failed to open volume://${bucket}/${key}, file not found`);
         return;
       }
 
@@ -346,7 +317,7 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
       if (stat.isDirectory()) {
         res
           .status(400)
-          .send(`Failed to open volume local file: ${filePath}, directory does not support`);
+          .send(`Failed to open volume://${bucket}/${key}, directory does not support`);
         return;
       }
 
@@ -354,7 +325,7 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
-      res.status(500).send(`Failed to get volume local file ${filePath}: ${err}`);
+      res.status(500).send(`Failed to open volume://${bucket}/${key}: ${err}`);
     }
   };
 }

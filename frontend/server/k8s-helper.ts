@@ -23,8 +23,7 @@ import {
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import { PartialArgoWorkflow } from './workflow-helper';
-import { parseError } from './utils';
-import * as path from 'path';
+import { parseError, pruneAndConcatPath } from './utils';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
@@ -77,41 +76,39 @@ function parseTensorboardLogDir(logdir: string, podTemplateSpec: object): string
       // check volume exist
       const volumes = podTemplateSpec['spec'] && podTemplateSpec['spec']['volumes'];
       if (!Array.isArray(volumes) || !volumes.find(v => v?.name === bucket)) {
-        throw new Error(`Volume ${bucket} not exist`);
+        throw new Error(`Volume ${bucket} not found`);
       }
 
-      // get volume mount object
+      // get volume mount object, backend viewer CRD only use containers[0] as viewer main container
       const volumeMounts =
         podTemplateSpec['spec'] &&
         podTemplateSpec['spec']['containers'] &&
         podTemplateSpec['spec']['containers'][0] &&
         podTemplateSpec['spec']['containers'][0]['volumeMounts'];
 
-      // find volumes mount
-      let volumeMount;
-      if (Array.isArray(volumeMounts)) {
-        volumeMount = volumeMounts.find(v => {
-          // volume name must be same
-          if (v?.name === bucket) {
-            if (v?.subPath) {
-              return key.startsWith(v.subPath);
-            } else {
-              return true;
-            }
-          }
-          return false;
-        });
+      if (!Array.isArray(volumeMounts)) {
+        throw new Error(`Volume mount not found`);
       }
+
+      // find volumes mount
+      const volumeMount = volumeMounts.find(v => {
+        // volume name must be same
+        if (v?.name !== bucket) {
+          return false;
+        }
+        if (v?.subPath) {
+          return key.startsWith(v.subPath);
+        }
+        return true;
+      });
 
       if (!volumeMount) {
-        throw new Error(`Volume mount ${bucket} not exist`);
+        throw new Error(`Volume mount ${bucket} not found`);
       }
 
-      // relative file path
-      const relativeFilePath = volumeMount.subPath
-        ? key.substring(volumeMount.subPath.length)
-        : key;
-      urls.push(path.join(volumeMount.mountPath, relativeFilePath));
+      // finally file path
+      const filePath = pruneAndConcatPath(volumeMount.mountPath, key, volumeMount.subPath);
+      urls.push(filePath);
     } else {
       urls.push(strPath);
     }
@@ -374,4 +371,5 @@ export async function getK8sSecret(name: string, key: string) {
 export const TEST_ONLY = {
   k8sV1Client,
   k8sV1CustomObjectClient,
+  parseTensorboardLogDir,
 };

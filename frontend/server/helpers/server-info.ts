@@ -13,21 +13,43 @@
 // limitations under the License.
 
 import * as fs from 'fs';
+import { V1Pod } from '@kubernetes/client-node';
+import { getPod } from '../k8s-helper';
 
 const namespaceFilePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
 let serverNamespace: string | undefined;
+let hostPod: V1Pod | undefined;
+
 // The file path contains pod namespace when in Kubernetes cluster.
 if (fs.existsSync(namespaceFilePath)) {
   serverNamespace = fs.readFileSync(namespaceFilePath, 'utf-8');
 }
 
-export function getServerNamespace(): string | undefined {
-  // get ml-pipeline-ui pod namespace
-  return serverNamespace;
-}
+// get ml-pipeline-ui host pod
+export async function getHostPod(): Promise<[V1Pod | undefined, undefined] | [undefined, string]> {
+  // use cached hostPod
+  if (hostPod) {
+    return [hostPod, undefined];
+  }
 
-export function getServerPodName(): string | undefined {
-  // get ml-pipeline-ui pod name
+  if (!serverNamespace) {
+    return [undefined, "server namespace can't be obtained"];
+  }
+
+  // get ml-pipeline-ui server pod name
   const { HOSTNAME: POD_NAME } = process.env;
-  return POD_NAME;
+  if (!POD_NAME) {
+    return [undefined, "server pod name can't be obtained"];
+  }
+
+  const [pod, err] = await getPod(POD_NAME, serverNamespace);
+
+  if (err) {
+    const { message, additionalInfo } = err;
+    console.error(message, additionalInfo);
+    return [undefined, message];
+  }
+
+  hostPod = pod;
+  return [hostPod, undefined];
 }

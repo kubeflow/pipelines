@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { PassThrough } from 'stream';
-import { PreviewStream } from './utils';
+import { PreviewStream, pruneAndConcatPath } from './utils';
 
 describe('utils', () => {
   describe('PreviewStream', () => {
@@ -34,6 +34,28 @@ describe('utils', () => {
       const dst = source.pipe(preview).on('end', done);
       source.end(input);
       dst.once('readable', () => expect(dst.read().toString()).toBe(input));
+    });
+  });
+
+  describe('pruneAndConcatPath', () => {
+    it('undefined prefixPrunePath', () => {
+      const path = pruneAndConcatPath('/data', 'a/b/c', undefined);
+      expect(path).toEqual('/data/a/b/c');
+    });
+
+    it('with prefixPrunePath', () => {
+      const path = pruneAndConcatPath('/data', 'a/b/c', 'a');
+      expect(path).toEqual('/data/b/c');
+    });
+
+    it('with multiple layer prefixPrunePath', () => {
+      const path = pruneAndConcatPath('/data', 'a/b/c', 'a/b');
+      expect(path).toEqual('/data/c');
+    });
+
+    it('with not exist prefixPrunePath', () => {
+      const path = pruneAndConcatPath('/data', 'a/b/c', 'other');
+      expect(path).toEqual('/data/a/b/c');
     });
   });
 });

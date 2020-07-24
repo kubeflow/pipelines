@@ -13,6 +13,7 @@
 // limitations under the License.
 import { readFileSync } from 'fs';
 import { Transform, TransformOptions } from 'stream';
+import path from 'path';
 
 /** get the server address from host, port, and schema (defaults to 'http'). */
 export function getAddress({
@@ -63,6 +64,32 @@ export function loadJSON<T>(filepath?: string, defaultValue?: T): T | undefined 
     console.error(error);
     return defaultValue;
   }
+}
+
+/**
+ * prune remainingMaybePrunePath to relativePath, then concat with rootPath.
+ * for example:
+ * console.log(pruneAndConcatPath('/data', 'a/b/c', undefined))
+ * console.log(pruneAndConcatPath('/data', 'a/b/c', a))
+ * console.log(pruneAndConcatPath('/data', 'a/b/c', a/b))
+ * console.log(pruneAndConcatPath('/data', 'a/b/c', other))
+ *
+ * result is:
+ * /data/a/b/c
+ * /data/b/c
+ * /data/c
+ * /data/a/b/c
+ */
+export function pruneAndConcatPath(
+  rootFixedPath: string,
+  remainingMaybePrunePath: string,
+  prefixPrunePath: string | undefined,
+): string {
+  let relativePath = remainingMaybePrunePath;
+  if (prefixPrunePath && remainingMaybePrunePath.startsWith(prefixPrunePath)) {
+    relativePath = remainingMaybePrunePath.substring(prefixPrunePath.length);
+  }
+  return path.join(rootFixedPath, relativePath);
 }
 
 export interface PreviewStreamOptions extends TransformOptions {
