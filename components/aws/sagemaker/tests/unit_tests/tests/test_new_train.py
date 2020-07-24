@@ -37,27 +37,51 @@ class TrainingSpecTestCase(unittest.TestCase):
     def test_required_args(self):
         spec = SageMakerTrainingSpec(required_args)
 
-        assert spec.inputs.get("region") == "us-west-2"
-        assert (
-            spec.inputs.get("role")
-            == "arn:aws:iam::123456789012:user/Development/product_1234/*"
+        self.assertEqual(spec.inputs.get("region"), "us-west-2")
+        self.assertEqual(
+            spec.inputs.get("role"),
+            "arn:aws:iam::123456789012:user/Development/product_1234/*",
         )
-        assert spec.inputs.get("image") == "test-image"
-        assert spec.inputs.get("instance_type") == "ml.m4.xlarge"
-        assert spec.inputs.get("volume_size") == 50
-        assert spec.inputs.get("max_run_time") == 3600
+        self.assertEqual(spec.inputs.get("image"), "test-image")
+        self.assertEqual(spec.inputs.get("instance_type"), "ml.m4.xlarge")
+        self.assertEqual(spec.inputs.get("volume_size"), 50)
+        self.assertEqual(spec.inputs.get("max_run_time"), 3600)
+        self.assertEqual(
+            spec.inputs.get("channels"),
+            [
+                {
+                    "ChannelName": "train",
+                    "DataSource": {
+                        "S3DataSource": {
+                            "S3Uri": "s3://fake-bucket/data",
+                            "S3DataType": "S3Prefix",
+                            "S3DataDistributionType": "FullyReplicated",
+                        }
+                    },
+                    "ContentType": "",
+                    "CompressionType": "None",
+                    "RecordWrapperType": "None",
+                    "InputMode": "File",
+                }
+            ],
+        )
 
     def test_default_output_paths(self):
         spec = SageMakerTrainingSpec(required_args)
 
-        assert spec.outputs.get("model_artifact_url") == "/tmp/model_artifact_url"
-        assert spec.outputs.get("job_name") == "/tmp/job_name"
-        assert spec.outputs.get("training_image") == "/tmp/training_image"
+        self.assertEqual(
+            spec.outputs.get("model_artifact_url"), "/tmp/model_artifact_url"
+        )
+        self.assertEqual(spec.outputs.get("job_name"), "/tmp/job_name")
+        self.assertEqual(spec.outputs.get("training_image"), "/tmp/training_image")
+
 
 class TrainingComponentTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.spec = SageMakerTrainingSpec(required_args)
+
+
 # class TrainTestCase(unittest.TestCase):
 #     @classmethod
 #     def setUpClass(cls):
