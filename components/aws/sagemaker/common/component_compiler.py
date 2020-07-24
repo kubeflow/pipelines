@@ -1,4 +1,4 @@
-"""Compiler for SageMaker component files into YAML"""
+"""Compiler for SageMaker component files into YAML."""
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -21,7 +21,7 @@ from .spec_validators import SpecValidators
 
 
 class ComponentSpec(TypedDict):
-    """Defines the structure of a KFP `component.yaml` file"""
+    """Defines the structure of a KFP `component.yaml` file."""
 
     class InputSpec(TypedDict, total=False):
         name: str
@@ -53,7 +53,8 @@ class ComponentSpec(TypedDict):
 
 
 class IOArgs(NamedTuple):
-    """Represents a structure that fills in a YAML spec inputs/outputs and provides the associated container args"""
+    """Represents a structure that fills in a YAML spec inputs/outputs and
+    provides the associated container args."""
 
     inputs: List[ComponentSpec.InputSpec]
     outputs: List[ComponentSpec.OutputSpec]
@@ -84,7 +85,7 @@ class SageMakerComponentCompiler(object):
         component_image_uri: str,
         component_image_tag: str
     ):
-        """Creates a component YAML specification and writes it to file"""
+        """Creates a component YAML specification and writes it to file."""
         component_spec = SageMakerComponentCompiler._create_component_spec(
             component_def, component_file_path, component_image_uri=component_image_uri, component_image_tag=component_image_tag
         )
@@ -92,7 +93,8 @@ class SageMakerComponentCompiler(object):
 
     @staticmethod
     def _create_io_from_component_spec(spec: Type[SageMakerComponentSpec]) -> IOArgs:
-        """Parses the set of inputs and outputs from a component spec into the YAML spec form"""
+        """Parses the set of inputs and outputs from a component spec into the
+        YAML spec form."""
         inputs = []
         outputs = []
         args = []
@@ -145,7 +147,8 @@ class SageMakerComponentCompiler(object):
         component_image_uri: str,
         component_image_tag: str,
     ) -> ComponentSpec:
-        """Create a component YAML specification object based on a component"""
+        """Create a component YAML specification object based on a
+        component."""
         io_args = SageMakerComponentCompiler._create_io_from_component_spec(
             component_def.COMPONENT_SPEC
         )
@@ -166,7 +169,7 @@ class SageMakerComponentCompiler(object):
 
     @staticmethod
     def _write_component(component_spec: ComponentSpec, output_path: str):
-        """Write a component YAML specification to a file"""
+        """Write a component YAML specification to a file."""
         with open(output_path, "w") as stream:
             yaml.dump(component_spec, stream)
 
@@ -178,7 +181,8 @@ class SageMakerComponentCompiler(object):
         component_image_uri: str,
         component_image_tag: str,
     ):
-        """Compiles a defined component into its component YAML specification"""
+        """Compiles a defined component into its component YAML
+        specification."""
         SageMakerComponentCompiler._create_and_write_component(
             component_def,
             component_file_path,

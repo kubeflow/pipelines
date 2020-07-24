@@ -1,4 +1,5 @@
-"""SageMakerComponentSpec for defining inputs/outputs for SageMakerComponents"""
+"""SageMakerComponentSpec for defining inputs/outputs for
+SageMakerComponents."""
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -19,10 +20,11 @@ from .spec_validators import SpecValidators
 
 
 class SageMakerComponentSpec(object):
-    """Defines the set of inputs and outputs as expected for a SageMakerComponent.
+    """Defines the set of inputs and outputs as expected for a
+    SageMakerComponent.
 
     This class represents the inputs and outputs that are required to be provided
-    to run a given SageMakerComponent. The component uses this to validate the 
+    to run a given SageMakerComponent. The component uses this to validate the
     format of the input arguments as given by the pipeline at runtime. Components
     should have a corresponding ComponentSpec inheriting from this
     class and must override all private members:
@@ -54,8 +56,8 @@ class SageMakerComponentSpec(object):
     OUTPUT_ARGUMENT_SUFFIX = "_output_path"
 
     def __init__(self, arguments: List[str]):
-        """Instantiates the spec with given user inputs
-        
+        """Instantiates the spec with given user inputs.
+
         Args:
             arguments: A list of command line arguments
         """
@@ -82,8 +84,9 @@ class SageMakerComponentSpec(object):
 
     @property
     def _parser(self):
-        """Builds an argument parser to handle the set of defined inputs and outputs
-    
+        """Builds an argument parser to handle the set of defined inputs and
+        outputs.
+
         Returns:
             An argument parser that fits the set of static inputs and outputs.
         """
@@ -104,10 +107,11 @@ class SageMakerComponentSpec(object):
         return parser
 
     def _parse_arguments(self, arguments: List[str]) -> Dict[str, Any]:
-        """Passes the set of arguments through the parser to form the inputs and outputs
-    
+        """Passes the set of arguments through the parser to form the inputs
+        and outputs.
+
         Args:
-            arguments: A list of command line input arguments.  
+            arguments: A list of command line input arguments.
 
         Returns:
             A dict of input name to parsed value types.
