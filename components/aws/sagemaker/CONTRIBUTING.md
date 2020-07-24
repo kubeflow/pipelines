@@ -8,6 +8,15 @@ Please read through this document before submitting any issues or pull requests 
 
 We follow the [`black`](https://black.readthedocs.io/en/stable/) format for all of our Python code, and require that all contributions are formatted using the `black` formatter before submission. Also, it is encouraged to lint python docstrings by [`docformatter`](https://github.com/myint/docformatter).
 
+### Automatic Code Formatting
+
+Both `black` and `docformatter` provide CLIs for automatically formatting all relevant files. To use these tools, first follow the necessary setup as defined in the [Developer Setup](#developer-setup) section. Then, in the root of the component run the following commands:
+
+```
+black .
+docformatter -r . --in-place
+```
+
 ## Developer Setup
 
 To set up your development environment, we have included all necessary Python pip requirements in a `requirements.txt` file. We recommend that you install these in either a `conda` or `pyenv` environment. The current version of Python that the project uses is `Python 3.7`. The `PYTHONPATH` for this project should be set at the root of the component (`components/aws/sagemaker`).
