@@ -19,7 +19,7 @@ import { createMinioClient, getObjectStream } from '../minio-helper';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
 import proxy from 'http-proxy-middleware';
-import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from 'consts';
+import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
