@@ -438,6 +438,7 @@ describe('UIServer apis', () => {
                       subPath: 'subartifact',
                     },
                   ],
+                  name: 'ml-pipeline-ui',
                 },
               ],
               volumes: [
@@ -480,6 +481,7 @@ describe('UIServer apis', () => {
                       mountPath: path.dirname(tempPath),
                     },
                   ],
+                  name: 'ml-pipeline-ui',
                 },
               ],
               volumes: [
@@ -518,6 +520,7 @@ describe('UIServer apis', () => {
                       mountPath: '/foo/bar/path',
                     },
                   ],
+                  name: 'ml-pipeline-ui',
                 },
               ],
               volumes: [
@@ -557,6 +560,7 @@ describe('UIServer apis', () => {
                       subPath: 'subartifact',
                     },
                   ],
+                  name: 'ml-pipeline-ui',
                 },
               ],
               volumes: [
@@ -600,6 +604,7 @@ describe('UIServer apis', () => {
                       subPath: 'subartifact',
                     },
                   ],
+                  name: 'ml-pipeline-ui',
                 },
               ],
               volumes: [

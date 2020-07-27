@@ -23,6 +23,7 @@ import proxy from 'http-proxy-middleware';
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { V1Container } from '@kubernetes/client-node/dist/api';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -275,17 +276,25 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
         return;
       }
 
-      if (
-        !Array.isArray(pod?.spec?.containers) ||
-        !Array.isArray(pod.spec.containers[0]?.volumeMounts)
-      ) {
+      let serverContainer: V1Container | undefined;
+      if (Array.isArray(pod?.spec?.containers)) {
+        serverContainer = pod?.spec.containers.find(c => c.name === 'ml-pipeline-ui');
+      }
+
+      if (!serverContainer) {
+        const message = `Failed to open volume://${bucket}/${key}, server deployment container ml-pipeline-ui not found`;
+        res.status(404).send(message);
+        return;
+      }
+
+      if (!Array.isArray(serverContainer.volumeMounts)) {
         const message = `Failed to open volume://${bucket}/${key}, volume mount not found`;
         res.status(404).send(message);
         return;
       }
 
       // find volumes mount
-      const volumeMount = pod.spec.containers[0].volumeMounts.find(v => {
+      const volumeMount = serverContainer.volumeMounts.find(v => {
         // volume name must be same
         if (v?.name !== bucket) {
           return false;
