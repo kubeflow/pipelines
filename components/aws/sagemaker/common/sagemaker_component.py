@@ -11,10 +11,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC, abstractmethod
-from typing import Type
+import os
+import sys
+import re
+import signal
+import string
+import logging
+import json
+import yaml
+import random
+from time import strftime, gmtime
+from abc import abstractmethod
+from typing import Type, Dict, List, NamedTuple
 
 from .sagemaker_component_spec import SageMakerComponentSpec
+from .boto3_manager import Boto3Manager
 
 # This handler is called whenever the @ComponentMetadata is applied.
 # It allows the command line compiler to detect every component spec class.
@@ -46,6 +57,14 @@ def ComponentMetadata(name: str, description: str, spec: Type[SageMakerComponent
     return _component_metadata
 
 
+class SageMakerJobStatus(NamedTuple):
+    """Generic representation of a job status."""
+
+    is_completed: bool
+    has_error: bool = False
+    error_message: str = None
+
+
 class SageMakerComponent(object):
     """Base class for a KFP SageMaker component.
 
@@ -64,10 +83,324 @@ class SageMakerComponent(object):
     COMPONENT_DESCRIPTION = ""
     COMPONENT_SPEC = SageMakerComponentSpec
 
+    # Number of seconds between polling requests for the job status.
+    STATUS_POLL_INTERVAL = 30
+
     def __init__(self):
         """Initialize a new component."""
+        self._initialize_logging()
+
+    def _initialize_logging(self):
+        logging.getLogger().setLevel(logging.INFO)
+
+    def Do(self, spec: SageMakerComponentSpec):
+        self._spec = spec
+
+        # Global try-catch in order to allow for safe abort
+        try:
+            self._sm_client = Boto3Manager.get_sagemaker_client(
+                self._get_component_version(), spec.inputs.get("region"), endpoint_url=spec.inputs.get("endpoint_url")
+            )
+            self._cw_client = Boto3Manager.get_cloudwatch_client(
+                spec.inputs.get("region")
+            )
+
+            # Successful execution
+            if not self._do(spec):
+                sys.exit(1)
+        except Exception as e:
+            logging.exception("An error occurred while running the component")
+
+    def _do(self, spec: SageMakerComponentSpec) -> bool:
+        # Set up SIGTERM handling
+        def signal_term_handler(signalNumber, frame):
+            self._on_job_terminated()
+
+        signal.signal(signal.SIGTERM, signal_term_handler)
+
+        request = self._create_job_request(spec)
+        try:
+            job = self._submit_job_request(request)
+            self._after_submit_job_request(job, spec)
+        except Exception as e:
+            logging.exception(
+                "An error occurred while attempting to submit the request"
+            )
+            return False
+
+        status: SageMakerJobStatus = None
+        try:
+            # Continue until complete
+            while (not status) or (not status.is_completed):
+                status = self._get_job_status()
+        except Exception as e:
+            logging.exception("An error occurred while polling for job status")
+            return False
+        finally:
+            self._print_logs_for_job()
+
+        if status.has_error:
+            logging.error(status.error_message)
+            return False
+
+        self._after_job_complete(job, request, spec)
+        self._write_all_outputs(spec.outputs)
+
+        return True
+
+    @abstractmethod
+    def _get_job_status(self) -> SageMakerJobStatus:
+        """Waits for the current job to complete.
+
+        Returns:
+            SageMakerJobStatus: A status object.
+        """
         pass
 
     @abstractmethod
-    def Do(self, spec: COMPONENT_SPEC):
+    def _create_job_request(self, spec: Dict) -> Dict:
+        """Creates the boto3 request object to execute the component.
+
+        Args:
+            spec: The input specification for the component.
+
+        Returns:
+            dict: A dictionary object representing the request.
+        """
         pass
+
+    @abstractmethod
+    def _submit_job_request(self, request: Dict) -> object:
+        """Submits a pre-defined request object to SageMaker.
+
+        The `request` argument should be provided as the result of the
+        `_create_job_request` method.
+
+        Args:
+            request: A request object to execute the component.
+
+        Returns:
+            object: The job objected that was created.
+
+        Raises:
+            Exception: If SageMaker responded with an error during the request.
+        """
+        pass
+
+    @abstractmethod
+    def _after_submit_job_request(self, job: object, spec: Dict):
+        """Handles any events required after submitting a job to SageMaker.
+
+        Args:
+            job: The job object that was created.
+            spec: The component spec used to create the request.
+        """
+        pass
+
+    @abstractmethod
+    def _after_job_complete(self, job: object, request: Dict, spec: Dict):
+        """Handles any events after the job has been completed.
+
+        Args:
+            job: The job object that was created.
+            request: The request object used to execute the component.
+            spec: The component spec used to create the request.
+        """
+        pass
+
+    @abstractmethod
+    def _on_job_terminated(self):
+        """Handles any SIGTERM events.
+        """
+        pass
+
+    @abstractmethod
+    def _print_logs_for_job(self):
+        """Print the associated logs for the current job.
+        """
+        pass
+
+    @staticmethod
+    def _generate_unique_timestamped_id(
+        prefix: str = "",
+        size: int = 4,
+        chars: str = string.ascii_uppercase + string.digits,
+    ):
+        """Generate a random string of characters"""
+        unique = "".join(random.choice(chars) for _ in range(size))
+        return f'{prefix}-{strftime("%Y%m%d%H%M%S", gmtime())}-{unique}'
+
+    @staticmethod
+    def _enable_spot_instance_support(request: Dict, spec: Dict):
+        """Modifies a request object to add support for spot instance fields.
+
+        Args:
+            request: A request object to modify.
+            spec: A component spec object containing the inputs.
+        """
+        if spec.inputs.get("spot_instance"):
+            request["EnableManagedSpotTraining"] = spec.inputs.get("spot_instance")
+            if (
+                spec.inputs.get("max_wait_time")
+                >= request["StoppingCondition"]["MaxRuntimeInSeconds"]
+            ):
+                request["StoppingCondition"][
+                    "MaxWaitTimeInSeconds"
+                ] = spec.inputs.get("max_wait_time")
+            else:
+                logging.error(
+                    "Max wait time must be greater than or equal to max run time."
+                )
+                raise Exception("Could not create job request.")
+
+            if spec.inputs.get("checkpoint_config") and "S3Uri" in spec.inputs.get(
+                "checkpoint_config"
+            ):
+                request["CheckpointConfig"] = spec.inputs.get("checkpoint_config")
+            else:
+                logging.error(
+                    "EnableManagedSpotTraining requires checkpoint config with an S3 uri."
+                )
+                raise Exception("Could not create job request.")
+        else:
+            # Remove any artifacts that require spot instance support
+            del request["StoppingCondition"]["MaxWaitTimeInSeconds"]
+            del request["CheckpointConfig"]
+
+    @staticmethod
+    def _create_hyperparameters(hyperparam_args: Dict) -> Dict:
+        """Validates hyperparameters and returns the dictionary used for a request.
+
+        Args:
+            hyperparam_args: HyperParameters as passed in by the user.
+
+        Returns:
+            Dict: A validated set of HyperParameters.
+        """
+        # Validate all values are strings
+        for key, value in hyperparam_args.items():
+            if not isinstance(value, str):
+                raise Exception(f"Could not parse hyperparameters. Value for {key} was not a string.")
+
+        return hyperparam_args
+
+    def _write_all_outputs(self, outputs: Dict):
+        for output_key, output_path in self.COMPONENT_SPEC.OUTPUTS.items():
+            if output_key not in outputs.keys():
+                # Warn user that an output might be empty
+                logging.error(f"No output defined for {output_key}")
+                continue
+
+            output_value = outputs[output_key]
+            # Encode it if it's a List or Dict (not primitive)
+            encoded_types = (List, Dict)
+            self._write_output(
+                output_path,
+                output_value,
+                json_encode=isinstance(output_value, encoded_types),
+            )
+
+    def _write_output(
+        self, output_path: str, output_value: str, json_encode: bool = False
+    ):
+        """Write an output value to the associated path, dumping as a JSON object
+        if specified.
+
+        Args:
+            output_path: The file path of the output.
+            output_value: The output value to write to the file.
+            json_encode: True if the value should be encoded as a JSON object.
+        """
+
+        write_value = json.dumps(output_value) if json_encode else output_value
+
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(output_path).write_text(write_value)
+
+    @staticmethod
+    def _get_component_version() -> str:
+        """Get component version from the first line of License file.
+        
+        Returns:
+            str: The string version as specified in the License file."""
+        component_version = "NULL"
+
+        # Get license file using known common directory
+        license_file_path = os.path.abspath(
+            os.path.join(SageMakerComponent._get_common_path(), "../THIRD-PARTY-LICENSES.txt")
+        )
+        with open(license_file_path, "r") as license_file:
+            version_match = re.search(
+                "Amazon SageMaker Components for Kubeflow Pipelines; version (([0-9]+[.])+[0-9]+)",
+                license_file.readline(),
+            )
+            if version_match is not None:
+                component_version = version_match.group(1)
+
+        return component_version
+
+    @staticmethod
+    def _get_common_path() -> str:
+        """Gets the path of the common directory in the project.
+        
+        Returns:
+            str: The `realpath` representation of the common directory.
+        """
+        return os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
+    @staticmethod
+    def _get_request_template(template_name: str) -> object:
+        """Loads and returns a template file as a Python construct.
+
+        Args:
+            template_name: The name corresponding to the template file to load.
+
+        Returns:
+            object: A Python construct created by loading the template file.
+        """
+        with open(
+            os.path.join(
+                SageMakerComponent._get_common_path(), "templates", f"{template_name}.template.yaml"
+            ),
+            "r",
+        ) as f:
+            request = yaml.safe_load(f)
+        return request
+
+    def _print_cloudwatch_logs(self, log_grp: str, job_name: str):
+        """Gets the CloudWatch logs for SageMaker jobs.
+        
+        Args:
+            log_grp: The name of a CloudWatch log group.
+            job_name: The name of the job as defined in CloudWatch.
+        """
+
+        CW_ERROR_MESSAGE = "Error in fetching CloudWatch logs for SageMaker job"
+
+        try:
+            logging.info(
+                "\n******************** CloudWatch logs for {} {} ********************\n".format(
+                    log_grp, job_name
+                )
+            )
+
+            log_streams = self._cw_client.describe_log_streams(
+                logGroupName=log_grp, logStreamNamePrefix=job_name + "/"
+            )["logStreams"]
+
+            for log_stream in log_streams:
+                logging.info("\n***** {} *****\n".format(log_stream["logStreamName"]))
+                response = self._cw_client.get_log_events(
+                    logGroupName=log_grp, logStreamName=log_stream["logStreamName"]
+                )
+                for event in response["events"]:
+                    logging.info(event["message"])
+
+            logging.info(
+                "\n******************** End of CloudWatch logs for {} {} ********************\n".format(
+                    log_grp, job_name
+                )
+            )
+        except Exception as e:
+            logging.error(CW_ERROR_MESSAGE)
+            logging.error(e)
