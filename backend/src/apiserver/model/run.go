@@ -139,8 +139,12 @@ func (r *Run) GetFieldValue(name string) interface{} {
 // Non-regular fields are the run metrics for now. Could have other non-regular
 // sorting fields later.
 func (r *Run) IsRegularField(name string) bool {
-	_, ok := runAPIToModelFieldMap[name]
-	return ok
+	for _, field := range runAPIToModelFieldMap {
+		if field == name {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *Run) GetSortByFieldPrefix(name string) string {
