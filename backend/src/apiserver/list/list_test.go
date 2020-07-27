@@ -287,6 +287,7 @@ func TestNewOptionsFromToken_FromInValidPageSize(t *testing.T) {
 		KeyFieldName:     "KeyField",
 		KeyFieldValue:    "string_key_value",
 		IsDesc:           true,
+		Model:            &fakeListable{},
 	}
 
 	s, err := tok.marshal()
