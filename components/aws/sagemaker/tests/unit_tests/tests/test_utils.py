@@ -99,5 +99,5 @@ class UtilsTestCase(unittest.TestCase):
         assert client == mock_sm_client
 
         _utils.get_boto3_session.assert_called_once_with("us-east-1", "abc123")
-        _utils.get_boto3_session.return_value.client.assert_called_once_with("sagemaker", region_name="us-east-1", endpoint_url=None, config=ANY)
+        _utils.get_boto3_session.return_value.client.assert_called_once_with("sagemaker", endpoint_url=None, config=ANY)
         
