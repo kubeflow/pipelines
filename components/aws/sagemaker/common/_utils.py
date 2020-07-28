@@ -170,13 +170,13 @@ def get_sagemaker_client(region, endpoint_url=None, assume_role_arn=None):
     session_config = Config(
         user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(get_component_version())
     )
-    client = session.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
+    client = session.client('sagemaker', endpoint_url=endpoint_url, config=session_config)
     return client
 
 
 def get_cloudwatch_client(region, assume_role_arn=None):
     session = get_boto3_session(region, assume_role_arn)
-    client = session.client('logs', region_name=region)
+    client = session.client('logs')
     return client
 
 
