@@ -6,6 +6,15 @@ from utils import sagemaker_utils
 from utils import minio_utils
 
 
+@pytest.mark.parametrize(
+    "test_file_dir",
+    [
+        pytest.param(
+            "resources/config/create-workteam",
+            marks=pytest.mark.canary_test
+        )
+    ],
+)
 def create_workteamjob(
     kfp_client, experiment_id, region, sagemaker_client, test_file_dir, download_dir
 ):
@@ -42,10 +51,6 @@ def create_workteamjob(
     return workteam_name, workflow_json
 
 
-@pytest.mark.parametrize(
-    "test_file_dir",
-    [pytest.param("resources/config/create-workteam", marks=pytest.mark.canary_test)],
-)
 def test_workteamjob(
     kfp_client, experiment_id, region, sagemaker_client, test_file_dir
 ):

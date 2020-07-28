@@ -35,6 +35,9 @@ traffic_encryption | Encrypts all communications between ML compute instances in
 spot_instance | Use managed spot training if true | No | Boolean | False, True | False |
 max_wait_time | The maximum time in seconds you are willing to wait for a managed spot training job to complete | Yes | Int | ≤ 432000 (5 days) | 86400 (1 day) |
 checkpoint_config | Dictionary of information about the output location for managed spot training checkpoint data | Yes | Dict | | {} |
+debug_hook_config | Dictionary of configuration information for the debug hook parameters, collection configurations, and storage paths | Yes | Dict | | {} |
+debug_rule_config | List of configuration information for debugging rules. | Yes | List of Dicts | | [] |
+tensorboard_output_config | Dictionary of configuration information for storage locations for TensorBoard output. | Yes | Dict | | {} |
 tags | Key-value pairs to categorize AWS resources | Yes | Dict | | {} |
 
 

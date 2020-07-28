@@ -12,6 +12,14 @@ from utils import minio_utils
 from utils import sagemaker_utils
 
 
+@pytest.mark.parametrize(
+    "test_file_dir",
+    [
+        pytest.param(
+            "resources/config/kmeans-mnist-endpoint", marks=pytest.mark.canary_test
+        )
+    ],
+)
 def run_predict_mnist(boto3_session, endpoint_name, download_dir):
     """ https://github.com/awslabs/amazon-sagemaker-examples/blob/a8c20eeb72dc7d3e94aaaf28be5bf7d7cd5695cb
         /sagemaker-python-sdk/1P_kmeans_lowlevel/kmeans_mnist_lowlevel.ipynb """
@@ -40,14 +48,6 @@ def run_predict_mnist(boto3_session, endpoint_name, download_dir):
     return json.loads(response["Body"].read().decode())
 
 
-@pytest.mark.parametrize(
-    "test_file_dir",
-    [
-        pytest.param(
-            "resources/config/kmeans-mnist-endpoint", marks=pytest.mark.canary_test
-        )
-    ],
-)
 def test_create_endpoint(
     kfp_client, experiment_id, boto3_session, sagemaker_client, test_file_dir
 ):

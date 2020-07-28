@@ -21,6 +21,9 @@ VpcConfig:
 StoppingCondition:
   MaxRuntimeInSeconds: 86400
   MaxWaitTimeInSeconds: 86400
+DebugHookConfig: {}
+DebugRuleConfigurations: []
+TensorBoardOutputConfig: {}
 CheckpointConfig:
   S3Uri: ''
   LocalPath: ''

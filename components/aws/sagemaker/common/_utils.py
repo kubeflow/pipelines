@@ -205,6 +205,22 @@ def create_training_job_request(args):
 
     enable_spot_instance_support(request, args)
 
+    ### Update DebugHookConfig and DebugRuleConfigurations
+    if args['debug_hook_config']:
+        request['DebugHookConfig'] = args['debug_hook_config']
+    else:
+        request.pop('DebugHookConfig')
+
+    if args['debug_rule_config']:
+        request['DebugRuleConfigurations'] = args['debug_rule_config']
+    else:
+        request.pop('DebugRuleConfigurations')
+
+    if args['tensorboard_output_config']:
+        request['TensorBoardOutputConfig'] = args['tensorboard_output_config']
+    else:
+        request.pop('TensorBoardOutputConfig')
+
     ### Update tags
     for key, val in args['tags'].items():
         request['Tags'].append({'Key': key, 'Value': val})
@@ -228,20 +244,72 @@ def create_training_job(client, args):
       raise Exception(e.response['Error']['Message'])
 
 
-def wait_for_training_job(client, training_job_name, poll_interval=30):
-  while(True):
-    response = client.describe_training_job(TrainingJobName=training_job_name)
-    status = response['TrainingJobStatus']
-    if status == 'Completed':
-      logging.info("Training job ended with status: " + status)
-      break
-    if status == 'Failed':
-      message = response['FailureReason']
-      logging.info('Training failed with the following error: {}'.format(message))
-      raise Exception('Training job failed')
-    logging.info("Training job is still in status: " + status)
-    time.sleep(poll_interval)
+def wait_for_training_job(client, training_job_name, poll_interval=31):
+    while(True):
+        response = client.describe_training_job(TrainingJobName=training_job_name)
+        status = response['TrainingJobStatus']
+        if status == 'Completed':
+            logging.info("Training job ended with status: " + status)
+            break
+        if status == 'Failed':
+            message = response['FailureReason']
+            logging.info('Training failed with the following error: {}'.format(message))
+            raise Exception('Training job failed')
+        logging.info("Training job is still in status: " + status)
+        time.sleep(poll_interval)
 
+
+def wait_for_debug_rules(client, training_job_name, poll_interval=31):
+    first_poll = True
+    while(True):
+        response = client.describe_training_job(TrainingJobName=training_job_name)
+        if 'DebugRuleEvaluationStatuses' not in response:
+            break
+        if first_poll:
+            logging.info("Polling for status of all debug rules:")
+            first_poll = False
+        if debug_rules_completed(response):
+            logging.info("Rules have ended with status:\n")
+            print_debug_rule_status(response, True)
+            break
+        print_debug_rule_status(response)
+        time.sleep(poll_interval)
+
+
+def debug_rules_errored(response):
+    if 'DebugRuleEvaluationStatuses' in response:
+        for debug_rule in response['DebugRuleEvaluationStatuses']:
+            if debug_rule['RuleEvaluationStatus'] == "Error":
+                return True
+    return False
+
+
+def debug_rules_completed(response):
+    if 'DebugRuleEvaluationStatuses' in response:
+        for debug_rule in response['DebugRuleEvaluationStatuses']:
+            if debug_rule['RuleEvaluationStatus'] == "InProgress":
+                return False
+    return True
+
+
+def print_debug_rule_status(response, last_print=False):
+    for debug_rule in response['DebugRuleEvaluationStatuses']:
+        line_ending = "\n" if last_print else ""
+        if 'StatusDetails' in debug_rule:
+            status_details = "- {}{}".format(debug_rule['StatusDetails'].rstrip(), line_ending)
+            line_ending = ""
+        else:
+            status_details = ""
+        rule_status = "- {}: {}{}".format(debug_rule['RuleConfigurationName'], debug_rule['RuleEvaluationStatus'], line_ending)
+        if debug_rule['RuleEvaluationStatus'] == "Error":
+            logging.error("{}".format(rule_status))
+            if last_print and status_details:
+                logging.error("  {}".format(status_details))
+        else:
+            logging.info(" {}".format(rule_status))
+            if last_print and status_details:
+                logging.info("   {}".format(status_details))
+    logging.info(50 * "-")
 
 def get_model_artifacts_from_job(client, job_name):
   info = client.describe_training_job(TrainingJobName=job_name)

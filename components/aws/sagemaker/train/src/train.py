@@ -26,11 +26,11 @@ def create_parser():
   parser.add_argument('--image', type=str, required=False, help='The registry path of the Docker image that contains the training algorithm.', default='')
   parser.add_argument('--algorithm_name', type=str, required=False, help='The name of the resource algorithm to use for the training job.', default='')
   parser.add_argument('--metric_definitions', type=_utils.yaml_or_json_str, required=False, help='The dictionary of name-regex pairs specify the metrics that the algorithm emits.', default={})
-  parser.add_argument('--training_input_mode', choices=['File', 'Pipe'], type=str, help='The input mode that the algorithm supports. File or Pipe.', default='File')
-  parser.add_argument('--hyperparameters', type=_utils.yaml_or_json_str, help='Dictionary of hyperparameters for the the algorithm.', default={})
+  parser.add_argument('--training_input_mode', type=str, required=False, choices=['File', 'Pipe'], help='The input mode that the algorithm supports. File or Pipe.', default='File')
+  parser.add_argument('--hyperparameters', type=_utils.yaml_or_json_str, required=False, help='Dictionary of hyperparameters for the the algorithm.', default={})
   parser.add_argument('--channels', type=_utils.yaml_or_json_str, required=True, help='A list of dicts specifying the input channels. Must have at least one.')
-  parser.add_argument('--instance_type', required=False, type=str, help='The ML compute instance type.', default='ml.m4.xlarge')
-  parser.add_argument('--instance_count', required=True, type=int, help='The registry path of the Docker image that contains the training algorithm.', default=1)
+  parser.add_argument('--instance_type', type=str, required=False, help='The ML compute instance type.', default='ml.m4.xlarge')
+  parser.add_argument('--instance_count', type=int, required=True, help='The registry path of the Docker image that contains the training algorithm.', default=1)
   parser.add_argument('--volume_size', type=int, required=True, help='The size of the ML storage volume that you want to provision.', default=30)
   parser.add_argument('--resource_encryption_key', type=str, required=False, help='The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).', default='')
   parser.add_argument('--max_run_time', type=int, required=True, help='The maximum run time in seconds for the training job.', default=86400)
@@ -40,6 +40,9 @@ def create_parser():
   parser.add_argument('--vpc_subnets', type=str, required=False, help='The ID of the subnets in the VPC to which you want to connect your hpo job.')
   parser.add_argument('--network_isolation', type=_utils.str_to_bool, required=False, help='Isolates the training container.', default=True)
   parser.add_argument('--traffic_encryption', type=_utils.str_to_bool, required=False, help='Encrypts all communications between ML compute instances in distributed training.', default=False)
+  parser.add_argument('--debug_hook_config', type=_utils.yaml_or_json_str, required=False, help='Configuration information for the debug hook parameters, collection configuration, and storage paths.', default={})
+  parser.add_argument('--debug_rule_config', type=_utils.yaml_or_json_str, required=False, help='Configuration information for debugging rules.', default=[])
+  parser.add_argument('--tensorboard_output_config', type=_utils.yaml_or_json_str, required=False, help='Configuration of storage locations for TensorBoard output.', default={})
 
   ### Start spot instance support
   parser.add_argument('--spot_instance', type=_utils.str_to_bool, required=False, help='Use managed spot training.', default=False)
@@ -75,6 +78,7 @@ def main(argv=None):
   logging.info('Job request submitted. Waiting for completion...')
   try:
     _utils.wait_for_training_job(client, job_name)
+    _utils.wait_for_debug_rules(client, job_name)
   except:
     raise
   finally:

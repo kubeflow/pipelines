@@ -7,7 +7,6 @@ from utils import kfp_client_utils
 from utils import minio_utils
 from utils import sagemaker_utils
 
-
 @pytest.mark.parametrize(
     "test_file_dir",
     [

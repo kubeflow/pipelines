@@ -13,7 +13,14 @@ from utils import argo_utils
         pytest.param(
             "resources/config/simple-mnist-training", marks=pytest.mark.canary_test
         ),
-        pytest.param("resources/config/fsx-mnist-training", marks=pytest.mark.fsx_test),
+        pytest.param(
+            "resources/config/xgboost-mnist-trainingjob-debugger",
+            marks=pytest.mark.canary_test
+        ),
+        pytest.param(
+            "resources/config/fsx-mnist-training",
+            marks=pytest.mark.fsx_test
+        ),
         "resources/config/spot-sample-pipeline-training",
     ],
 )
