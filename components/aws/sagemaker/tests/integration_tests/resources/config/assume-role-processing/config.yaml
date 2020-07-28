@@ -1,5 +1,5 @@
 PipelineDefinition: resources/definition/processing_pipeline.py
-TestName: kmeans-algo-mnist-processing
+TestName: assume-role-processing
 Timeout: 1800
 Arguments:
   region: ((REGION))
