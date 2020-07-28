@@ -73,22 +73,20 @@ class UtilsTestCase(unittest.TestCase):
             returned_session = _utils.get_boto3_session("us-east-1")
 
         assert isinstance(returned_session, Session)
+        assert returned_session.region_name == "us-east-1"
         mock_boto3.assert_not_called()
 
-    @patch("common._utils.RefreshableCredentials", MagicMock())
-    @patch("common._utils.get_session", MagicMock())
+    @patch("common._utils.DeferredRefreshableCredentials", MagicMock())
+    @patch("common._utils.AssumeRoleCredentialFetcher", MagicMock())
     def test_assume_role_boto3_session(self):
-        with patch("common._utils.boto3", MagicMock()) as mock_boto3:
-            returned_session = _utils.get_boto3_session("us-east-1", role_arn="abc123")
-
-        # Should not be the default boto3 client
-        assert isinstance(returned_session, Session)
-        assert returned_session != mock_boto3
-
-        mock_boto3.client.assert_called_once_with("sts", region_name="us-east-1", endpoint_url="https://sts.us-east-1.amazonaws.com")
-        mock_boto3.client("sts").assume_role.assert_called_once_with(RoleArn="abc123", RoleSessionName=ANY)
+        returned_session = _utils.get_boto3_session("us-east-1", role_arn="abc123")
 
         assert isinstance(returned_session, Session)
+        assert returned_session.region_name == "us-east-1"
+
+        # Bury into the internals to ensure our provider was registered correctly
+        our_provider = returned_session._session._components.get_component('credential_provider').providers[0]
+        assert isinstance(our_provider, _utils.AssumeRoleProvider)
 
     def test_assumed_sagemaker_client(self):
         _utils.get_boto3_session = MagicMock()
@@ -102,3 +100,4 @@ class UtilsTestCase(unittest.TestCase):
 
         _utils.get_boto3_session.assert_called_once_with("us-east-1", "abc123")
         _utils.get_boto3_session.return_value.client.assert_called_once_with("sagemaker", region_name="us-east-1", endpoint_url=None, config=ANY)
+        
