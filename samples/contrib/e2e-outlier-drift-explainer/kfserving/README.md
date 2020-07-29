@@ -15,8 +15,8 @@
 ## CIFAR10 Image Classification Model
 
  * Seldon CIFAR10 Image Model with deployed explainer, outlier detector and drift detector
-    * [Kale annotated Jupyter Notebook](./seldon_e2e_cifar10.ipynb)
-    * [Pipeline](./seldon_e2e_cifar10.kale.py)
+    * [Kale annotated Jupyter Notebook](./kfserving_e2e_cifar10.ipynb)
+    * [Pipeline](./kfserving_e2e_cifar10.kale.py)
       * Assumes `storage_class="nfs-client"`
 
 ![pipeline](cifar10-pipeline.png)

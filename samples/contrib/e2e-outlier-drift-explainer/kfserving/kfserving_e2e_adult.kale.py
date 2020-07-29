@@ -24,33 +24,16 @@ def setup(MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_BUCKET: str, MINIO
     from sklearn.impute import SimpleImputer
     from sklearn.metrics import accuracy_score
     from sklearn.preprocessing import StandardScaler, OneHotEncoder
-    from alibi.explainers import AnchorImage
+    from alibi.explainers import AnchorTabular
     from alibi.datasets import fetch_adult
     from minio import Minio
     from minio.error import ResponseError
     from joblib import dump, load
     import dill
+    import time
+    import json
     from subprocess import run, Popen, PIPE
     from alibi_detect.utils.data import create_outlier_batch
-    from alibi_detect.utils.fetching import fetch_tf_model
-    import json
-    import logging
-    import matplotlib.pyplot as plt
-    import tensorflow as tf
-    tf.keras.backend.clear_session()
-    from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Layer, Reshape, InputLayer
-    from tqdm import tqdm
-
-    from alibi_detect.models.losses import elbo
-    from alibi_detect.od import OutlierVAE
-    from alibi_detect.utils.fetching import fetch_detector
-    from alibi_detect.utils.perturbation import apply_mask
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from alibi_detect.utils.visualize import plot_instance_score, plot_feature_outlier_image
-    import time
-
-    logger = tf.get_logger()
-    logger.setLevel(logging.ERROR)
     '''
 
     block2 = '''
@@ -91,15 +74,14 @@ def setup(MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_BUCKET: str, MINIO
     _kale_mlmd_utils.call("mark_execution_complete")
 
 
-def train_model_and_explainer(CIFAR10_MODEL_PATH: str, EXPLAINER_MODEL_PATH: str, MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_BUCKET: str, MINIO_SECRET_KEY: str):
+def build_model(INCOME_MODEL_PATH: str, MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_BUCKET: str, MINIO_SECRET_KEY: str):
     pipeline_parameters_block = '''
-    CIFAR10_MODEL_PATH = "{}"
-    EXPLAINER_MODEL_PATH = "{}"
+    INCOME_MODEL_PATH = "{}"
     MINIO_ACCESS_KEY = "{}"
     MINIO_HOST = "{}"
     MINIO_MODEL_BUCKET = "{}"
     MINIO_SECRET_KEY = "{}"
-    '''.format(CIFAR10_MODEL_PATH, EXPLAINER_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)
+    '''.format(INCOME_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)
 
     from kale.utils import mlmd_utils as _kale_mlmd_utils
     _kale_mlmd_utils.init_metadata()
@@ -112,33 +94,16 @@ def train_model_and_explainer(CIFAR10_MODEL_PATH: str, EXPLAINER_MODEL_PATH: str
     from sklearn.impute import SimpleImputer
     from sklearn.metrics import accuracy_score
     from sklearn.preprocessing import StandardScaler, OneHotEncoder
-    from alibi.explainers import AnchorImage
+    from alibi.explainers import AnchorTabular
     from alibi.datasets import fetch_adult
     from minio import Minio
     from minio.error import ResponseError
     from joblib import dump, load
     import dill
+    import time
+    import json
     from subprocess import run, Popen, PIPE
     from alibi_detect.utils.data import create_outlier_batch
-    from alibi_detect.utils.fetching import fetch_tf_model
-    import json
-    import logging
-    import matplotlib.pyplot as plt
-    import tensorflow as tf
-    tf.keras.backend.clear_session()
-    from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Layer, Reshape, InputLayer
-    from tqdm import tqdm
-
-    from alibi_detect.models.losses import elbo
-    from alibi_detect.od import OutlierVAE
-    from alibi_detect.utils.fetching import fetch_detector
-    from alibi_detect.utils.perturbation import apply_mask
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from alibi_detect.utils.visualize import plot_instance_score, plot_feature_outlier_image
-    import time
-
-    logger = tf.get_logger()
-    logger.setLevel(logging.ERROR)
     '''
 
     block2 = '''
@@ -150,91 +115,78 @@ def train_model_and_explainer(CIFAR10_MODEL_PATH: str, EXPLAINER_MODEL_PATH: str
     '''
 
     block3 = '''
-    model = fetch_tf_model('cifar10', 'resnet32')
+    adult = fetch_adult()
+    adult.keys()
     '''
 
     block4 = '''
-    train, test = tf.keras.datasets.cifar10.load_data()
-    X_train, y_train = train
-    X_test, y_test = test
-
-    X_train = X_train.astype('float32') / 255
-    X_test = X_test.astype('float32') / 255
-    print(X_train.shape, y_train.shape, X_test.shape, y_test.shape)
+    data = adult.data
+    target = adult.target
+    feature_names = adult.feature_names
+    category_map = adult.category_map
     '''
 
     block5 = '''
-    class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
-                   'dog', 'frog', 'horse', 'ship', 'truck']
+    from alibi.utils.data import gen_category_map
     '''
 
     block6 = '''
-    idx = 1
-    X = X_test[idx].reshape(1, 32, 32, 3)
-    plt.imshow(X.reshape(32, 32, 3))
-    plt.axis('off')
-    plt.show()
-    print("class:",class_names[y_test[idx][0]])
-    print("prediction:",class_names[model.predict(X_test[idx:idx+1])[0].argmax()])
+    np.random.seed(0)
+    data_perm = np.random.permutation(np.c_[data, target])
+    data = data_perm[:,:-1]
+    target = data_perm[:,-1]
     '''
 
     block7 = '''
-    modelfilepath="resnet"
-    tf.saved_model.save(model, modelfilepath)
+    idx = 30000
+    X_train,Y_train = data[:idx,:], target[:idx]
+    X_test, Y_test = data[idx+1:,:], target[idx+1:]
     '''
 
     block8 = '''
-    from os import listdir
-    from os.path import isfile, join
-
-    model_filepath="resnet"
-    print(get_minio().fput_object(MINIO_MODEL_BUCKET, f"{CIFAR10_MODEL_PATH}/1/saved_model.pb", modelfilepath+"/saved_model.pb"))
-    variable_filepath = modelfilepath+"/variables"
-    onlyfiles = [f for f in listdir(variable_filepath) if isfile(join(variable_filepath, f))]
-    for filename in onlyfiles:
-        print(filename)
-        print(get_minio().fput_object(MINIO_MODEL_BUCKET, f"{CIFAR10_MODEL_PATH}/1/variables/{filename}", join(variable_filepath, filename)))
+    ordinal_features = [x for x in range(len(feature_names)) if x not in list(category_map.keys())]
+    ordinal_transformer = Pipeline(steps=[('imputer', SimpleImputer(strategy='median')),
+                                          ('scaler', StandardScaler())])
     '''
 
     block9 = '''
+    categorical_features = list(category_map.keys())
+    categorical_transformer = Pipeline(steps=[('imputer', SimpleImputer(strategy='median')),
+                                              ('onehot', OneHotEncoder(handle_unknown='ignore'))])
+    '''
+
+    block10 = '''
+    preprocessor = ColumnTransformer(transformers=[('num', ordinal_transformer, ordinal_features),
+                                                   ('cat', categorical_transformer, categorical_features)])
+    '''
+
+    block11 = '''
+    np.random.seed(0)
+    clf = RandomForestClassifier(n_estimators=50)
+    '''
+
+    block12 = '''
+    model=Pipeline(steps=[("preprocess",preprocessor),("model",clf)])
+    model.fit(X_train,Y_train)
+    '''
+
+    block13 = '''
     def predict_fn(x):
         return model.predict(x)
     '''
 
-    block10 = '''
-    
-    image_shape = (32, 32, 3)
-    segmentation_fn = 'slic'
-    kwargs = {'n_segments': 5, 'compactness': 20, 'sigma': .5}
-    explainer = AnchorImage(predict_fn, image_shape, segmentation_fn=segmentation_fn, 
-                            segmentation_kwargs=kwargs, images_background=None)
-    '''
-
-    block11 = '''
-    idx=0
-    image = X_test[0]
-    np.random.seed(0)
-    explanation = explainer.explain(image, threshold=.95, p_sample=.5, tau=0.25)
-    '''
-
-    block12 = '''
-    X = X_test[idx].reshape(1, 32, 32, 3)
-    plt.imshow(X.reshape(32, 32, 3))
-    plt.axis('off')
-    plt.show()
-    print("class:",class_names[y_test[idx][0]])
-    print("prediction:",class_names[model.predict(X_test[idx:idx+1])[0].argmax()])
-    '''
-
-    block13 = '''
-    plt.imshow(explanation["anchor"])
-    '''
-
     block14 = '''
-    with open("explainer.dill", "wb") as dill_file:
-        dill.dump(explainer, dill_file)    
-        dill_file.close()
-    print(get_minio().fput_object(MINIO_MODEL_BUCKET, f"{EXPLAINER_MODEL_PATH}/explainer.dill", 'explainer.dill'))
+    #predict_fn = lambda x: clf.predict(preprocessor.transform(x))
+    print('Train accuracy: ', accuracy_score(Y_train, predict_fn(X_train)))
+    print('Test accuracy: ', accuracy_score(Y_test, predict_fn(X_test)))
+    '''
+
+    block15 = '''
+    dump(model, 'model.joblib') 
+    '''
+
+    block16 = '''
+    print(get_minio().fput_object(MINIO_MODEL_BUCKET, f"{INCOME_MODEL_PATH}/model.joblib", 'model.joblib'))
     '''
 
     data_saving_block = '''
@@ -243,10 +195,12 @@ def train_model_and_explainer(CIFAR10_MODEL_PATH: str, EXPLAINER_MODEL_PATH: str
     _kale_marshal_utils.set_kale_data_directory("/marshal")
     _kale_marshal_utils.save(X_test, "X_test")
     _kale_marshal_utils.save(X_train, "X_train")
-    _kale_marshal_utils.save(class_names, "class_names")
-    _kale_marshal_utils.save(explanation, "explanation")
-    _kale_marshal_utils.save(y_test, "y_test")
-    _kale_marshal_utils.save(y_train, "y_train")
+    _kale_marshal_utils.save(Y_train, "Y_train")
+    _kale_marshal_utils.save(adult, "adult")
+    _kale_marshal_utils.save(category_map, "category_map")
+    _kale_marshal_utils.save(feature_names, "feature_names")
+    _kale_marshal_utils.save(model, "model")
+    _kale_marshal_utils.save(predict_fn, "predict_fn")
     # -----------------------DATA SAVING END-----------------------------------
     '''
 
@@ -269,25 +223,249 @@ def train_model_and_explainer(CIFAR10_MODEL_PATH: str, EXPLAINER_MODEL_PATH: str
               block12,
               block13,
               block14,
+              block15,
+              block16,
               data_saving_block)
     html_artifact = _kale_run_code(blocks)
-    with open("/train_model_and_explainer.html", "w") as f:
+    with open("/build_model.html", "w") as f:
         f.write(html_artifact)
-    _kale_update_uimetadata('train_model_and_explainer')
+    _kale_update_uimetadata('build_model')
 
     _kale_mlmd_utils.call("mark_execution_complete")
 
 
-def deploy_model(CIFAR10_MODEL_PATH: str, DEPLOY_NAMESPACE: str, EXPLAINER_MODEL_PATH: str, MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_BUCKET: str, MINIO_SECRET_KEY: str):
+def build_outlier(MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_BUCKET: str, MINIO_SECRET_KEY: str, OUTLIER_MODEL_PATH: str):
     pipeline_parameters_block = '''
-    CIFAR10_MODEL_PATH = "{}"
-    DEPLOY_NAMESPACE = "{}"
+    MINIO_ACCESS_KEY = "{}"
+    MINIO_HOST = "{}"
+    MINIO_MODEL_BUCKET = "{}"
+    MINIO_SECRET_KEY = "{}"
+    OUTLIER_MODEL_PATH = "{}"
+    '''.format(MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY, OUTLIER_MODEL_PATH)
+
+    from kale.utils import mlmd_utils as _kale_mlmd_utils
+    _kale_mlmd_utils.init_metadata()
+
+    data_loading_block = '''
+    # -----------------------DATA LOADING START--------------------------------
+    from kale.marshal import utils as _kale_marshal_utils
+    _kale_marshal_utils.set_kale_data_directory("/marshal")
+    _kale_marshal_utils.set_kale_directory_file_names()
+    X_train = _kale_marshal_utils.load("X_train")
+    Y_train = _kale_marshal_utils.load("Y_train")
+    # -----------------------DATA LOADING END----------------------------------
+    '''
+
+    block1 = '''
+    import numpy as np
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.compose import ColumnTransformer
+    from sklearn.pipeline import Pipeline
+    from sklearn.impute import SimpleImputer
+    from sklearn.metrics import accuracy_score
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from alibi.explainers import AnchorTabular
+    from alibi.datasets import fetch_adult
+    from minio import Minio
+    from minio.error import ResponseError
+    from joblib import dump, load
+    import dill
+    import time
+    import json
+    from subprocess import run, Popen, PIPE
+    from alibi_detect.utils.data import create_outlier_batch
+    '''
+
+    block2 = '''
+    def get_minio():
+        return Minio(MINIO_HOST,
+                        access_key=MINIO_ACCESS_KEY,
+                        secret_key=MINIO_SECRET_KEY,
+                        secure=False)
+    '''
+
+    block3 = '''
+    from alibi_detect.od import IForest
+
+    od = IForest(
+        threshold=0.,
+        n_estimators=200,
+    )
+    '''
+
+    block4 = '''
+    od.fit(X_train)
+    '''
+
+    block5 = '''
+    np.random.seed(0)
+    perc_outlier = 5
+    threshold_batch = create_outlier_batch(X_train, Y_train, n_samples=1000, perc_outlier=perc_outlier)
+    X_threshold, y_threshold = threshold_batch.data.astype('float'), threshold_batch.target
+    #X_threshold = (X_threshold - mean) / stdev
+    print('{}% outliers'.format(100 * y_threshold.mean()))
+    '''
+
+    block6 = '''
+    od.infer_threshold(X_threshold, threshold_perc=100-perc_outlier)
+    print('New threshold: {}'.format(od.threshold))
+    threshold = od.threshold
+    '''
+
+    block7 = '''
+    X_outlier = [[300,  4,  4,  2,  1,  4,  4,  0,  0,  0, 600,  9]]
+    '''
+
+    block8 = '''
+    od.predict(
+        X_outlier
+    )
+    '''
+
+    block9 = '''
+    from alibi_detect.utils.saving import save_detector, load_detector
+    from os import listdir
+    from os.path import isfile, join
+
+    filepath="ifoutlier"
+    save_detector(od, filepath) 
+    onlyfiles = [f for f in listdir(filepath) if isfile(join(filepath, f))]
+    for filename in onlyfiles:
+        print(filename)
+        print(get_minio().fput_object(MINIO_MODEL_BUCKET, f"{OUTLIER_MODEL_PATH}/{filename}", join(filepath, filename)))
+    '''
+
+    # run the code blocks inside a jupyter kernel
+    from kale.utils.jupyter_utils import run_code as _kale_run_code
+    from kale.utils.kfp_utils import \
+        update_uimetadata as _kale_update_uimetadata
+    blocks = (pipeline_parameters_block, data_loading_block,
+              block1,
+              block2,
+              block3,
+              block4,
+              block5,
+              block6,
+              block7,
+              block8,
+              block9,
+              )
+    html_artifact = _kale_run_code(blocks)
+    with open("/build_outlier.html", "w") as f:
+        f.write(html_artifact)
+    _kale_update_uimetadata('build_outlier')
+
+    _kale_mlmd_utils.call("mark_execution_complete")
+
+
+def train_explainer(EXPLAINER_MODEL_PATH: str, MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_BUCKET: str, MINIO_SECRET_KEY: str):
+    pipeline_parameters_block = '''
     EXPLAINER_MODEL_PATH = "{}"
     MINIO_ACCESS_KEY = "{}"
     MINIO_HOST = "{}"
     MINIO_MODEL_BUCKET = "{}"
     MINIO_SECRET_KEY = "{}"
-    '''.format(CIFAR10_MODEL_PATH, DEPLOY_NAMESPACE, EXPLAINER_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)
+    '''.format(EXPLAINER_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)
+
+    from kale.utils import mlmd_utils as _kale_mlmd_utils
+    _kale_mlmd_utils.init_metadata()
+
+    data_loading_block = '''
+    # -----------------------DATA LOADING START--------------------------------
+    from kale.marshal import utils as _kale_marshal_utils
+    _kale_marshal_utils.set_kale_data_directory("/marshal")
+    _kale_marshal_utils.set_kale_directory_file_names()
+    X_train = _kale_marshal_utils.load("X_train")
+    category_map = _kale_marshal_utils.load("category_map")
+    feature_names = _kale_marshal_utils.load("feature_names")
+    model = _kale_marshal_utils.load("model")
+    predict_fn = _kale_marshal_utils.load("predict_fn")
+    # -----------------------DATA LOADING END----------------------------------
+    '''
+
+    block1 = '''
+    import numpy as np
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.compose import ColumnTransformer
+    from sklearn.pipeline import Pipeline
+    from sklearn.impute import SimpleImputer
+    from sklearn.metrics import accuracy_score
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from alibi.explainers import AnchorTabular
+    from alibi.datasets import fetch_adult
+    from minio import Minio
+    from minio.error import ResponseError
+    from joblib import dump, load
+    import dill
+    import time
+    import json
+    from subprocess import run, Popen, PIPE
+    from alibi_detect.utils.data import create_outlier_batch
+    '''
+
+    block2 = '''
+    def get_minio():
+        return Minio(MINIO_HOST,
+                        access_key=MINIO_ACCESS_KEY,
+                        secret_key=MINIO_SECRET_KEY,
+                        secure=False)
+    '''
+
+    block3 = '''
+    model.predict(X_train)
+    explainer = AnchorTabular(predict_fn, feature_names, categorical_names=category_map)
+    '''
+
+    block4 = '''
+    explainer.fit(X_train, disc_perc=[25, 50, 75])
+    '''
+
+    block5 = '''
+    with open("explainer.dill", "wb") as dill_file:
+        dill.dump(explainer, dill_file)    
+        dill_file.close()
+    print(get_minio().fput_object(MINIO_MODEL_BUCKET, f"{EXPLAINER_MODEL_PATH}/explainer.dill", 'explainer.dill'))
+    '''
+
+    data_saving_block = '''
+    # -----------------------DATA SAVING START---------------------------------
+    from kale.marshal import utils as _kale_marshal_utils
+    _kale_marshal_utils.set_kale_data_directory("/marshal")
+    _kale_marshal_utils.save(X_train, "X_train")
+    _kale_marshal_utils.save(explainer, "explainer")
+    _kale_marshal_utils.save(model, "model")
+    # -----------------------DATA SAVING END-----------------------------------
+    '''
+
+    # run the code blocks inside a jupyter kernel
+    from kale.utils.jupyter_utils import run_code as _kale_run_code
+    from kale.utils.kfp_utils import \
+        update_uimetadata as _kale_update_uimetadata
+    blocks = (pipeline_parameters_block, data_loading_block,
+              block1,
+              block2,
+              block3,
+              block4,
+              block5,
+              data_saving_block)
+    html_artifact = _kale_run_code(blocks)
+    with open("/train_explainer.html", "w") as f:
+        f.write(html_artifact)
+    _kale_update_uimetadata('train_explainer')
+
+    _kale_mlmd_utils.call("mark_execution_complete")
+
+
+def deploy_kfserving(DEPLOY_NAMESPACE: str, EXPLAINER_MODEL_PATH: str, INCOME_MODEL_PATH: str, MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_BUCKET: str, MINIO_SECRET_KEY: str):
+    pipeline_parameters_block = '''
+    DEPLOY_NAMESPACE = "{}"
+    EXPLAINER_MODEL_PATH = "{}"
+    INCOME_MODEL_PATH = "{}"
+    MINIO_ACCESS_KEY = "{}"
+    MINIO_HOST = "{}"
+    MINIO_MODEL_BUCKET = "{}"
+    MINIO_SECRET_KEY = "{}"
+    '''.format(DEPLOY_NAMESPACE, EXPLAINER_MODEL_PATH, INCOME_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)
 
     from kale.utils import mlmd_utils as _kale_mlmd_utils
     _kale_mlmd_utils.init_metadata()
@@ -300,33 +478,16 @@ def deploy_model(CIFAR10_MODEL_PATH: str, DEPLOY_NAMESPACE: str, EXPLAINER_MODEL
     from sklearn.impute import SimpleImputer
     from sklearn.metrics import accuracy_score
     from sklearn.preprocessing import StandardScaler, OneHotEncoder
-    from alibi.explainers import AnchorImage
+    from alibi.explainers import AnchorTabular
     from alibi.datasets import fetch_adult
     from minio import Minio
     from minio.error import ResponseError
     from joblib import dump, load
     import dill
+    import time
+    import json
     from subprocess import run, Popen, PIPE
     from alibi_detect.utils.data import create_outlier_batch
-    from alibi_detect.utils.fetching import fetch_tf_model
-    import json
-    import logging
-    import matplotlib.pyplot as plt
-    import tensorflow as tf
-    tf.keras.backend.clear_session()
-    from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Layer, Reshape, InputLayer
-    from tqdm import tqdm
-
-    from alibi_detect.models.losses import elbo
-    from alibi_detect.od import OutlierVAE
-    from alibi_detect.utils.fetching import fetch_detector
-    from alibi_detect.utils.perturbation import apply_mask
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from alibi_detect.utils.visualize import plot_instance_score, plot_feature_outlier_image
-    import time
-
-    logger = tf.get_logger()
-    logger.setLevel(logging.ERROR)
     '''
 
     block2 = '''
@@ -341,7 +502,7 @@ def deploy_model(CIFAR10_MODEL_PATH: str, DEPLOY_NAMESPACE: str, EXPLAINER_MODEL
     secret=f"""apiVersion: v1
     kind: Secret
     metadata:
-      name: cifar10-kf-secret
+      name: income-kf-secret
       namespace: {DEPLOY_NAMESPACE}
       annotations:
          serving.kubeflow.org/s3-endpoint: {MINIO_HOST} # replace with your s3 endpoint
@@ -381,7 +542,7 @@ def deploy_model(CIFAR10_MODEL_PATH: str, DEPLOY_NAMESPACE: str, EXPLAINER_MODEL
       name: minio-kf-sa
       namespace: {DEPLOY_NAMESPACE}
     secrets:
-      - name: cifar10-kf-secret
+      - name: income-kf-secret
     """
     with open("sa.yaml","w") as f:
         f.write(sa)
@@ -397,7 +558,7 @@ def deploy_model(CIFAR10_MODEL_PATH: str, DEPLOY_NAMESPACE: str, EXPLAINER_MODEL
     from kfserving import V1alpha2PredictorSpec
     from kfserving import V1alpha2ExplainerSpec
     from kfserving import V1alpha2AlibiExplainerSpec
-    from kfserving import V1alpha2TensorflowSpec
+    from kfserving import V1alpha2SKLearnSpec
     from kfserving import V1alpha2InferenceServiceSpec
     from kfserving import V1alpha2InferenceService
     from kfserving import V1alpha2Logger
@@ -407,8 +568,8 @@ def deploy_model(CIFAR10_MODEL_PATH: str, DEPLOY_NAMESPACE: str, EXPLAINER_MODEL
     default_endpoint_spec = V1alpha2EndpointSpec(
                               predictor=V1alpha2PredictorSpec(
                                 service_account_name='minio-kf-sa',
-                                tensorflow=V1alpha2TensorflowSpec(
-                                  storage_uri='s3://'+MINIO_MODEL_BUCKET+'/'+ CIFAR10_MODEL_PATH,
+                                sklearn=V1alpha2SKLearnSpec(
+                                  storage_uri='s3://'+MINIO_MODEL_BUCKET+'/'+ INCOME_MODEL_PATH,
                                   resources=V1ResourceRequirements(
                                       requests={'cpu':'100m','memory':'1Gi'},
                                       limits={'cpu':'100m', 'memory':'1Gi'})),
@@ -418,7 +579,7 @@ def deploy_model(CIFAR10_MODEL_PATH: str, DEPLOY_NAMESPACE: str, EXPLAINER_MODEL
                                 explainer=V1alpha2ExplainerSpec(
                                   service_account_name='minio-kf-sa',
                                 alibi=V1alpha2AlibiExplainerSpec(
-                                  type='AnchorImages',
+                                  type='AnchorTabular',
                                   storage_uri='s3://'+MINIO_MODEL_BUCKET+'/'+ EXPLAINER_MODEL_PATH,
                                   resources=V1ResourceRequirements(
                                       requests={'cpu':'100m','memory':'1Gi'},
@@ -427,7 +588,7 @@ def deploy_model(CIFAR10_MODEL_PATH: str, DEPLOY_NAMESPACE: str, EXPLAINER_MODEL
     isvc = V1alpha2InferenceService(api_version=api_version,
                               kind=constants.KFSERVING_KIND,
                               metadata=client.V1ObjectMeta(
-                                  name='kf-cifar10', namespace=DEPLOY_NAMESPACE),
+                                  name='kf-income', namespace=DEPLOY_NAMESPACE),
                               spec=V1alpha2InferenceServiceSpec(default=default_endpoint_spec))
     '''
 
@@ -437,7 +598,7 @@ def deploy_model(CIFAR10_MODEL_PATH: str, DEPLOY_NAMESPACE: str, EXPLAINER_MODEL
     '''
 
     block8 = '''
-    KFServing.get('kf-cifar10', namespace=DEPLOY_NAMESPACE, watch=True, timeout_seconds=240)
+    KFServing.get('kf-cifar10', namespace=DEPLOY_NAMESPACE, watch=True, timeout_seconds=120)
     '''
 
     # run the code blocks inside a jupyter kernel
@@ -455,14 +616,14 @@ def deploy_model(CIFAR10_MODEL_PATH: str, DEPLOY_NAMESPACE: str, EXPLAINER_MODEL
               block8,
               )
     html_artifact = _kale_run_code(blocks)
-    with open("/deploy_model.html", "w") as f:
+    with open("/deploy_kfserving.html", "w") as f:
         f.write(html_artifact)
-    _kale_update_uimetadata('deploy_model')
+    _kale_update_uimetadata('deploy_kfserving')
 
     _kale_mlmd_utils.call("mark_execution_complete")
 
 
-def test_model_and_explainer(MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_SECRET_KEY: str):
+def test_model(MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_SECRET_KEY: str):
     pipeline_parameters_block = '''
     MINIO_ACCESS_KEY = "{}"
     MINIO_HOST = "{}"
@@ -472,18 +633,6 @@ def test_model_and_explainer(MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_SECRE
     from kale.utils import mlmd_utils as _kale_mlmd_utils
     _kale_mlmd_utils.init_metadata()
 
-    data_loading_block = '''
-    # -----------------------DATA LOADING START--------------------------------
-    from kale.marshal import utils as _kale_marshal_utils
-    _kale_marshal_utils.set_kale_data_directory("/marshal")
-    _kale_marshal_utils.set_kale_directory_file_names()
-    X_test = _kale_marshal_utils.load("X_test")
-    class_names = _kale_marshal_utils.load("class_names")
-    explanation = _kale_marshal_utils.load("explanation")
-    y_test = _kale_marshal_utils.load("y_test")
-    # -----------------------DATA LOADING END----------------------------------
-    '''
-
     block1 = '''
     import numpy as np
     from sklearn.ensemble import RandomForestClassifier
@@ -492,33 +641,16 @@ def test_model_and_explainer(MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_SECRE
     from sklearn.impute import SimpleImputer
     from sklearn.metrics import accuracy_score
     from sklearn.preprocessing import StandardScaler, OneHotEncoder
-    from alibi.explainers import AnchorImage
+    from alibi.explainers import AnchorTabular
     from alibi.datasets import fetch_adult
     from minio import Minio
     from minio.error import ResponseError
     from joblib import dump, load
     import dill
+    import time
+    import json
     from subprocess import run, Popen, PIPE
     from alibi_detect.utils.data import create_outlier_batch
-    from alibi_detect.utils.fetching import fetch_tf_model
-    import json
-    import logging
-    import matplotlib.pyplot as plt
-    import tensorflow as tf
-    tf.keras.backend.clear_session()
-    from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Layer, Reshape, InputLayer
-    from tqdm import tqdm
-
-    from alibi_detect.models.losses import elbo
-    from alibi_detect.od import OutlierVAE
-    from alibi_detect.utils.fetching import fetch_detector
-    from alibi_detect.utils.perturbation import apply_mask
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from alibi_detect.utils.visualize import plot_instance_score, plot_feature_outlier_image
-    import time
-
-    logger = tf.get_logger()
-    logger.setLevel(logging.ERROR)
     '''
 
     block2 = '''
@@ -530,248 +662,66 @@ def test_model_and_explainer(MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_SECRE
     '''
 
     block3 = '''
-    def test_model():
-     idx=10
-     test_example=X_test[idx:idx+1].tolist()
-     payload='{"instances":'+f"{test_example}"+' }'
-     cmd=f"""curl -v -d '{payload}' \\
-       -H "Host: kf-cifar10.admin.example.com" \\
+    payload='{"instances": [[53,4,0,2,8,4,4,0,0,0,60,9]]}'
+    cmd=f"""curl -v -d '{payload}' \\
+       -H "Host: kf-income.admin.example.com" \\
        -H "Content-Type: application/json" \\
-       http://kfserving-ingressgateway.istio-system/v1/models/kf-cifar10:predict
-     """
-     ret = Popen(cmd, shell=True,stdout=PIPE)
-     raw = ret.stdout.read().decode("utf-8")
-     print(raw)
-     res=json.loads(raw)
-     arr=np.array(res["predictions"])
-     X = X_test[idx].reshape(1, 32, 32, 3)
-     plt.imshow(X.reshape(32, 32, 3))
-     plt.axis('off')
-     plt.show()
-     print("class:",class_names[y_test[idx][0]])
-     print("prediction:",class_names[arr[0].argmax()])
-
-    ok = False
-    while not ok:
-        try:
-            test_model()
-            ok = True
-        except:
-            print("Failed calling model, sleeping")
-            time.sleep(2)
+       http://kfserving-ingressgateway.istio-system/v1/models/kf-income:predict
+    """
+    ret = Popen(cmd, shell=True,stdout=PIPE)
+    raw = ret.stdout.read().decode("utf-8")
+    print(raw)
+    res=json.loads(raw)
+    arr=np.array(res["predictions"])
+    if arr[0] > 0:
+        print("Prediction: High Income")
+    else:
+        print("Prediction: Low Income")
     '''
 
     block4 = '''
-    idx=1
-    test_example=X_test[idx:idx+1].tolist()
-    payload='{"instances":'+f"{test_example}"+' }'
+    payload='{"instances": [[53,4,0,2,8,4,4,0,0,0,60,9]]}'
     cmd=f"""curl -v -d '{payload}' \\
-       -H "Host: kf-cifar10.admin.example.com" \\
+       -H "Host: kf-income.admin.example.com" \\
        -H "Content-Type: application/json" \\
-       http://kfserving-ingressgateway.istio-system/v1/models/kf-cifar10:explain
+       http://kfserving-ingressgateway.istio-system/v1/models/kf-income:explain
     """
     ret = Popen(cmd, shell=True,stdout=PIPE)
     raw = ret.stdout.read().decode("utf-8")
     res=json.loads(raw)
-    plt.imshow(np.array(explanation["anchor"]))
+    print(res["names"])
     '''
 
     # run the code blocks inside a jupyter kernel
     from kale.utils.jupyter_utils import run_code as _kale_run_code
     from kale.utils.kfp_utils import \
         update_uimetadata as _kale_update_uimetadata
-    blocks = (pipeline_parameters_block, data_loading_block,
+    blocks = (pipeline_parameters_block,
               block1,
               block2,
               block3,
               block4,
               )
     html_artifact = _kale_run_code(blocks)
-    with open("/test_model_and_explainer.html", "w") as f:
+    with open("/test_model.html", "w") as f:
         f.write(html_artifact)
-    _kale_update_uimetadata('test_model_and_explainer')
+    _kale_update_uimetadata('test_model')
 
     _kale_mlmd_utils.call("mark_execution_complete")
 
 
-def train_drift_detector(DRIFT_MODEL_PATH: str, MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_BUCKET: str, MINIO_SECRET_KEY: str):
+def deploy_outlier(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_BUCKET: str, MINIO_SECRET_KEY: str, OUTLIER_MODEL_PATH: str):
     pipeline_parameters_block = '''
-    DRIFT_MODEL_PATH = "{}"
-    MINIO_ACCESS_KEY = "{}"
-    MINIO_HOST = "{}"
-    MINIO_MODEL_BUCKET = "{}"
-    MINIO_SECRET_KEY = "{}"
-    '''.format(DRIFT_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)
-
-    from kale.utils import mlmd_utils as _kale_mlmd_utils
-    _kale_mlmd_utils.init_metadata()
-
-    data_loading_block = '''
-    # -----------------------DATA LOADING START--------------------------------
-    from kale.marshal import utils as _kale_marshal_utils
-    _kale_marshal_utils.set_kale_data_directory("/marshal")
-    _kale_marshal_utils.set_kale_directory_file_names()
-    X_test = _kale_marshal_utils.load("X_test")
-    y_test = _kale_marshal_utils.load("y_test")
-    # -----------------------DATA LOADING END----------------------------------
-    '''
-
-    block1 = '''
-    import numpy as np
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.compose import ColumnTransformer
-    from sklearn.pipeline import Pipeline
-    from sklearn.impute import SimpleImputer
-    from sklearn.metrics import accuracy_score
-    from sklearn.preprocessing import StandardScaler, OneHotEncoder
-    from alibi.explainers import AnchorImage
-    from alibi.datasets import fetch_adult
-    from minio import Minio
-    from minio.error import ResponseError
-    from joblib import dump, load
-    import dill
-    from subprocess import run, Popen, PIPE
-    from alibi_detect.utils.data import create_outlier_batch
-    from alibi_detect.utils.fetching import fetch_tf_model
-    import json
-    import logging
-    import matplotlib.pyplot as plt
-    import tensorflow as tf
-    tf.keras.backend.clear_session()
-    from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Layer, Reshape, InputLayer
-    from tqdm import tqdm
-
-    from alibi_detect.models.losses import elbo
-    from alibi_detect.od import OutlierVAE
-    from alibi_detect.utils.fetching import fetch_detector
-    from alibi_detect.utils.perturbation import apply_mask
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from alibi_detect.utils.visualize import plot_instance_score, plot_feature_outlier_image
-    import time
-
-    logger = tf.get_logger()
-    logger.setLevel(logging.ERROR)
-    '''
-
-    block2 = '''
-    def get_minio():
-        return Minio(MINIO_HOST,
-                        access_key=MINIO_ACCESS_KEY,
-                        secret_key=MINIO_SECRET_KEY,
-                        secure=False)
-    '''
-
-    block3 = '''
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import os
-    import tensorflow as tf
-    from tensorflow.keras.layers import Conv2D, Dense, Flatten, InputLayer, Reshape
-
-    from alibi_detect.cd import KSDrift
-    from alibi_detect.cd.preprocess import uae, hidden_output
-    from alibi_detect.models.resnet import scale_by_instance
-    from alibi_detect.utils.fetching import fetch_tf_model, fetch_detector
-    from alibi_detect.utils.prediction import predict_batch
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from alibi_detect.datasets import fetch_cifar10c, corruption_types_cifar10c
-    '''
-
-    block4 = '''
-    tf.random.set_seed(0)
-
-    if True:
-        np.random.seed(0)
-        n_test = X_test.shape[0]
-        idx = np.random.choice(n_test, size=n_test // 2, replace=False)
-        idx_h0 = np.delete(np.arange(n_test), idx, axis=0)
-        X_ref,y_ref = X_test[idx], y_test[idx]
-        X_h0, y_h0 = X_test[idx_h0], y_test[idx_h0]
-        print(X_ref.shape, X_h0.shape)
-        # define encoder
-        encoding_dim = 32
-        encoder_net = tf.keras.Sequential(
-          [
-              InputLayer(input_shape=(32, 32, 3)),
-              Conv2D(64, 4, strides=2, padding='same', activation=tf.nn.relu),
-              Conv2D(128, 4, strides=2, padding='same', activation=tf.nn.relu),
-              Conv2D(512, 4, strides=2, padding='same', activation=tf.nn.relu),
-              Flatten(),
-              Dense(encoding_dim,)
-          ]
-        )
-
-        # initialise drift detector
-        p_val = .05
-        cd = KSDrift(
-            p_val=p_val,        # p-value for K-S test
-            X_ref=X_ref,       # test against original test set
-            preprocess_fn=uae,  # UAE for dimensionality reduction
-            preprocess_kwargs={'encoder_net': encoder_net, 'batch_size': 128},
-            alternative='two-sided'  # other options: 'less', 'greater'
-        )
-    else:
-        cd = load_detector("/home/models/samples/cd/cifar10")
-    '''
-
-    block5 = '''
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from os import listdir
-    from os.path import isfile, join
-
-    filepath="cifar10Drift"
-    save_detector(cd, filepath) 
-    onlyfiles = [f for f in listdir(filepath) if isfile(join(filepath, f))]
-    for filename in onlyfiles:
-        print(filename)
-        print(get_minio().fput_object(MINIO_MODEL_BUCKET, f"{DRIFT_MODEL_PATH}/{filename}", join(filepath, filename)))
-    filepath="cifar10Drift/model"
-    onlyfiles = [f for f in listdir(filepath) if isfile(join(filepath, f))]
-    for filename in onlyfiles:
-        print(filename)
-        print(get_minio().fput_object(MINIO_MODEL_BUCKET, f"{DRIFT_MODEL_PATH}/model/{filename}", join(filepath, filename)))
-    '''
-
-    # run the code blocks inside a jupyter kernel
-    from kale.utils.jupyter_utils import run_code as _kale_run_code
-    from kale.utils.kfp_utils import \
-        update_uimetadata as _kale_update_uimetadata
-    blocks = (pipeline_parameters_block, data_loading_block,
-              block1,
-              block2,
-              block3,
-              block4,
-              block5,
-              )
-    html_artifact = _kale_run_code(blocks)
-    with open("/train_drift_detector.html", "w") as f:
-        f.write(html_artifact)
-    _kale_update_uimetadata('train_drift_detector')
-
-    _kale_mlmd_utils.call("mark_execution_complete")
-
-
-def train_outlier_detector(MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_BUCKET: str, MINIO_SECRET_KEY: str, OUTLIER_MODEL_PATH: str, TRAIN_OUTLIER_DETECTOR: bool):
-    pipeline_parameters_block = '''
+    DEPLOY_NAMESPACE = "{}"
     MINIO_ACCESS_KEY = "{}"
     MINIO_HOST = "{}"
     MINIO_MODEL_BUCKET = "{}"
     MINIO_SECRET_KEY = "{}"
     OUTLIER_MODEL_PATH = "{}"
-    TRAIN_OUTLIER_DETECTOR = {}
-    '''.format(MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY, OUTLIER_MODEL_PATH, TRAIN_OUTLIER_DETECTOR)
+    '''.format(DEPLOY_NAMESPACE, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY, OUTLIER_MODEL_PATH)
 
     from kale.utils import mlmd_utils as _kale_mlmd_utils
     _kale_mlmd_utils.init_metadata()
-
-    data_loading_block = '''
-    # -----------------------DATA LOADING START--------------------------------
-    from kale.marshal import utils as _kale_marshal_utils
-    _kale_marshal_utils.set_kale_data_directory("/marshal")
-    _kale_marshal_utils.set_kale_directory_file_names()
-    X_train = _kale_marshal_utils.load("X_train")
-    # -----------------------DATA LOADING END----------------------------------
-    '''
 
     block1 = '''
     import numpy as np
@@ -781,33 +731,16 @@ def train_outlier_detector(MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_B
     from sklearn.impute import SimpleImputer
     from sklearn.metrics import accuracy_score
     from sklearn.preprocessing import StandardScaler, OneHotEncoder
-    from alibi.explainers import AnchorImage
+    from alibi.explainers import AnchorTabular
     from alibi.datasets import fetch_adult
     from minio import Minio
     from minio.error import ResponseError
     from joblib import dump, load
     import dill
+    import time
+    import json
     from subprocess import run, Popen, PIPE
     from alibi_detect.utils.data import create_outlier_batch
-    from alibi_detect.utils.fetching import fetch_tf_model
-    import json
-    import logging
-    import matplotlib.pyplot as plt
-    import tensorflow as tf
-    tf.keras.backend.clear_session()
-    from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Layer, Reshape, InputLayer
-    from tqdm import tqdm
-
-    from alibi_detect.models.losses import elbo
-    from alibi_detect.od import OutlierVAE
-    from alibi_detect.utils.fetching import fetch_detector
-    from alibi_detect.utils.perturbation import apply_mask
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from alibi_detect.utils.visualize import plot_instance_score, plot_feature_outlier_image
-    import time
-
-    logger = tf.get_logger()
-    logger.setLevel(logging.ERROR)
     '''
 
     block2 = '''
@@ -819,132 +752,85 @@ def train_outlier_detector(MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_B
     '''
 
     block3 = '''
-    import logging
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import tensorflow as tf
-    tf.keras.backend.clear_session()
-    from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Layer, Reshape, InputLayer
-    from tqdm import tqdm
-
-    from alibi_detect.models.losses import elbo
-    from alibi_detect.od import OutlierVAE
-    from alibi_detect.utils.fetching import fetch_detector
-    from alibi_detect.utils.perturbation import apply_mask
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from alibi_detect.utils.visualize import plot_instance_score, plot_feature_outlier_image
-
-    logger = tf.get_logger()
-    logger.setLevel(logging.ERROR)
+    outlier_yaml=f"""apiVersion: serving.knative.dev/v1
+    kind: Service
+    metadata:
+      name: income-outlier
+      namespace: {DEPLOY_NAMESPACE}
+    spec:
+      template:
+        metadata:
+          annotations:
+            autoscaling.knative.dev/minScale: "1"
+        spec:
+          containers:
+          - image: seldonio/alibi-detect-server:1.2.2-dev_alibidetect
+            imagePullPolicy: IfNotPresent
+            args:
+            - --model_name
+            - adultod
+            - --http_port
+            - '8080'
+            - --protocol
+            - tensorflow.http
+            - --storage_uri
+            - s3://{MINIO_MODEL_BUCKET}/{OUTLIER_MODEL_PATH}
+            - --reply_url
+            - http://default-broker       
+            - --event_type
+            - org.kubeflow.serving.inference.outlier
+            - --event_source
+            - org.kubeflow.serving.incomeod
+            - OutlierDetector
+            envFrom:
+            - secretRef:
+                name: seldon-init-container-secret
+    """
+    with open("outlier.yaml","w") as f:
+        f.write(outlier_yaml)
+    run("kubectl apply -f outlier.yaml", shell=True)
     '''
 
     block4 = '''
-    if TRAIN_OUTLIER_DETECTOR:
-        latent_dim = 1024
-        
-        encoder_net = tf.keras.Sequential(
-            [
-                InputLayer(input_shape=(32, 32, 3)),
-                Conv2D(64, 4, strides=2, padding='same', activation=tf.nn.relu),
-                Conv2D(128, 4, strides=2, padding='same', activation=tf.nn.relu),
-                Conv2D(512, 4, strides=2, padding='same', activation=tf.nn.relu)
-            ])
-
-        decoder_net = tf.keras.Sequential(
-            [
-                InputLayer(input_shape=(latent_dim,)),
-                Dense(4*4*128),
-                Reshape(target_shape=(4, 4, 128)),
-                Conv2DTranspose(256, 4, strides=2, padding='same', activation=tf.nn.relu),
-                Conv2DTranspose(64, 4, strides=2, padding='same', activation=tf.nn.relu),
-                Conv2DTranspose(3, 4, strides=2, padding='same', activation='sigmoid')
-            ])
-        
-         # initialize outlier detector
-        od = OutlierVAE(threshold=.015,  # threshold for outlier score
-                    score_type='mse',  # use MSE of reconstruction error for outlier detection
-                    encoder_net=encoder_net,  # can also pass VAE model instead
-                    decoder_net=decoder_net,  # of separate encoder and decoder
-                    latent_dim=latent_dim,
-                    samples=2)
-        # train
-        od.fit(X_train, 
-                loss_fn=elbo,
-                cov_elbo=dict(sim=.05),
-                epochs=50,
-                verbose=True)
-    else:
-        od = load_detector("/home/models/samples/od/cifar10")
+    trigger_outlier_yaml=f"""apiVersion: eventing.knative.dev/v1alpha1
+    kind: Trigger
+    metadata:
+      name: income-outlier-trigger
+      namespace: {DEPLOY_NAMESPACE}
+    spec:
+      filter:
+        sourceAndType:
+          type: org.kubeflow.serving.inference.request
+      subscriber:
+        ref:
+          apiVersion: serving.knative.dev/v1alpha1
+          kind: Service
+          name: income-outlier
+    """
+    with open("outlier_trigger.yaml","w") as f:
+        f.write(trigger_outlier_yaml)
+    run("kubectl apply -f outlier_trigger.yaml", shell=True)
     '''
 
     block5 = '''
-    idx = 8
-    X = X_train[idx].reshape(1, 32, 32, 3)
-    X_recon = od.vae(X)
-    plt.imshow(X.reshape(32, 32, 3))
-    plt.axis('off')
-    plt.show()
-    plt.imshow(X_recon.numpy().reshape(32, 32, 3))
-    plt.axis('off')
-    plt.show()
-    '''
-
-    block6 = '''
-    X = X_train[:500]
-    print(X.shape)
-    od_preds = od.predict(X,
-                          outlier_type='instance',    # use 'feature' or 'instance' level
-                          return_feature_score=True,  # scores used to determine outliers
-                          return_instance_score=True)
-    print(list(od_preds['data'].keys()))
-    target = np.zeros(X.shape[0],).astype(int)  # all normal CIFAR10 training instances
-    labels = ['normal', 'outlier']
-    plot_instance_score(od_preds, target, labels, od.threshold)
-    '''
-
-    block7 = '''
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from os import listdir
-    from os.path import isfile, join
-
-    filepath="cifar10outlier"
-    save_detector(od, filepath) 
-    onlyfiles = [f for f in listdir(filepath) if isfile(join(filepath, f))]
-    for filename in onlyfiles:
-        print(filename)
-        print(get_minio().fput_object(MINIO_MODEL_BUCKET, f"{OUTLIER_MODEL_PATH}/{filename}", join(filepath, filename)))
-    filepath="cifar10outlier/model"
-    onlyfiles = [f for f in listdir(filepath) if isfile(join(filepath, f))]
-    for filename in onlyfiles:
-        print(filename)
-        print(get_minio().fput_object(MINIO_MODEL_BUCKET, f"{OUTLIER_MODEL_PATH}/model/{filename}", join(filepath, filename)))
-    '''
-
-    data_saving_block = '''
-    # -----------------------DATA SAVING START---------------------------------
-    from kale.marshal import utils as _kale_marshal_utils
-    _kale_marshal_utils.set_kale_data_directory("/marshal")
-    _kale_marshal_utils.save(X_train, "X_train")
-    # -----------------------DATA SAVING END-----------------------------------
+    run(f"kubectl rollout status -n {DEPLOY_NAMESPACE} deploy/$(kubectl get deploy -l serving.knative.dev/service=income-outlier -o jsonpath='{{.items[0].metadata.name}}' -n {DEPLOY_NAMESPACE})", shell=True)
     '''
 
     # run the code blocks inside a jupyter kernel
     from kale.utils.jupyter_utils import run_code as _kale_run_code
     from kale.utils.kfp_utils import \
         update_uimetadata as _kale_update_uimetadata
-    blocks = (pipeline_parameters_block, data_loading_block,
+    blocks = (pipeline_parameters_block,
               block1,
               block2,
               block3,
               block4,
               block5,
-              block6,
-              block7,
-              data_saving_block)
+              )
     html_artifact = _kale_run_code(blocks)
-    with open("/train_outlier_detector.html", "w") as f:
+    with open("/deploy_outlier.html", "w") as f:
         f.write(html_artifact)
-    _kale_update_uimetadata('train_outlier_detector')
+    _kale_update_uimetadata('deploy_outlier')
 
     _kale_mlmd_utils.call("mark_execution_complete")
 
@@ -968,33 +854,16 @@ def deploy_event_display(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HOS
     from sklearn.impute import SimpleImputer
     from sklearn.metrics import accuracy_score
     from sklearn.preprocessing import StandardScaler, OneHotEncoder
-    from alibi.explainers import AnchorImage
+    from alibi.explainers import AnchorTabular
     from alibi.datasets import fetch_adult
     from minio import Minio
     from minio.error import ResponseError
     from joblib import dump, load
     import dill
+    import time
+    import json
     from subprocess import run, Popen, PIPE
     from alibi_detect.utils.data import create_outlier_batch
-    from alibi_detect.utils.fetching import fetch_tf_model
-    import json
-    import logging
-    import matplotlib.pyplot as plt
-    import tensorflow as tf
-    tf.keras.backend.clear_session()
-    from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Layer, Reshape, InputLayer
-    from tqdm import tqdm
-
-    from alibi_detect.models.losses import elbo
-    from alibi_detect.od import OutlierVAE
-    from alibi_detect.utils.fetching import fetch_detector
-    from alibi_detect.utils.perturbation import apply_mask
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from alibi_detect.utils.visualize import plot_instance_score, plot_feature_outlier_image
-    import time
-
-    logger = tf.get_logger()
-    logger.setLevel(logging.ERROR)
     '''
 
     block2 = '''
@@ -1041,29 +910,13 @@ def deploy_event_display(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HOS
     apiVersion: eventing.knative.dev/v1alpha1
     kind: Trigger
     metadata:
-      name: cifar10-outlier-display
+      name: income-outlier-display
       namespace: {DEPLOY_NAMESPACE}
     spec:
       broker: default
       filter:
         attributes:
           type: org.kubeflow.serving.inference.outlier
-      subscriber:
-        ref:
-          apiVersion: v1
-          kind: Service
-          name: event-display
-    ---
-    apiVersion: eventing.knative.dev/v1alpha1
-    kind: Trigger
-    metadata:
-      name: cifar10-drift-display
-      namespace: {DEPLOY_NAMESPACE}
-    spec:
-      broker: default
-      filter:
-        attributes:
-          type: org.kubeflow.serving.inference.drift
       subscriber:
         ref:
           apiVersion: v1
@@ -1097,147 +950,7 @@ def deploy_event_display(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HOS
     _kale_mlmd_utils.call("mark_execution_complete")
 
 
-def deploy_outlier_detector(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_BUCKET: str, MINIO_SECRET_KEY: str, OUTLIER_MODEL_PATH: str):
-    pipeline_parameters_block = '''
-    DEPLOY_NAMESPACE = "{}"
-    MINIO_ACCESS_KEY = "{}"
-    MINIO_HOST = "{}"
-    MINIO_MODEL_BUCKET = "{}"
-    MINIO_SECRET_KEY = "{}"
-    OUTLIER_MODEL_PATH = "{}"
-    '''.format(DEPLOY_NAMESPACE, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY, OUTLIER_MODEL_PATH)
-
-    from kale.utils import mlmd_utils as _kale_mlmd_utils
-    _kale_mlmd_utils.init_metadata()
-
-    block1 = '''
-    import numpy as np
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.compose import ColumnTransformer
-    from sklearn.pipeline import Pipeline
-    from sklearn.impute import SimpleImputer
-    from sklearn.metrics import accuracy_score
-    from sklearn.preprocessing import StandardScaler, OneHotEncoder
-    from alibi.explainers import AnchorImage
-    from alibi.datasets import fetch_adult
-    from minio import Minio
-    from minio.error import ResponseError
-    from joblib import dump, load
-    import dill
-    from subprocess import run, Popen, PIPE
-    from alibi_detect.utils.data import create_outlier_batch
-    from alibi_detect.utils.fetching import fetch_tf_model
-    import json
-    import logging
-    import matplotlib.pyplot as plt
-    import tensorflow as tf
-    tf.keras.backend.clear_session()
-    from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Layer, Reshape, InputLayer
-    from tqdm import tqdm
-
-    from alibi_detect.models.losses import elbo
-    from alibi_detect.od import OutlierVAE
-    from alibi_detect.utils.fetching import fetch_detector
-    from alibi_detect.utils.perturbation import apply_mask
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from alibi_detect.utils.visualize import plot_instance_score, plot_feature_outlier_image
-    import time
-
-    logger = tf.get_logger()
-    logger.setLevel(logging.ERROR)
-    '''
-
-    block2 = '''
-    def get_minio():
-        return Minio(MINIO_HOST,
-                        access_key=MINIO_ACCESS_KEY,
-                        secret_key=MINIO_SECRET_KEY,
-                        secure=False)
-    '''
-
-    block3 = '''
-    outlier_yaml=f"""apiVersion: serving.knative.dev/v1
-    kind: Service
-    metadata:
-      name: cifar10-outlier
-      namespace: {DEPLOY_NAMESPACE}
-    spec:
-      template:
-        metadata:
-          annotations:
-            autoscaling.knative.dev/minScale: "1"
-        spec:
-          containers:
-          - image: seldonio/alibi-detect-server:1.2.1
-            imagePullPolicy: IfNotPresent
-            args:
-            - --model_name
-            - cifar10od
-            - --protocol
-            - tensorflow.http
-            - --storage_uri
-            - s3://{MINIO_MODEL_BUCKET}/{OUTLIER_MODEL_PATH}
-            - --reply_url
-            - http://default-broker       
-            - --event_type
-            - org.kubeflow.serving.inference.outlier
-            - --event_source
-            - org.kubeflow.serving.cifar10od
-            - OutlierDetector
-            envFrom:
-            - secretRef:
-                name: seldon-init-container-secret
-    """
-    with open("outlier.yaml","w") as f:
-        f.write(outlier_yaml)
-    run("kubectl apply -f outlier.yaml", shell=True)
-    '''
-
-    block4 = '''
-    trigger_outlier_yaml=f"""apiVersion: eventing.knative.dev/v1alpha1
-    kind: Trigger
-    metadata:
-      name: cifar10-outlier-trigger
-      namespace: {DEPLOY_NAMESPACE}
-    spec:
-      filter:
-        sourceAndType:
-          type: org.kubeflow.serving.inference.request
-      subscriber:
-        ref:
-          apiVersion: serving.knative.dev/v1
-          kind: Service
-          name: cifar10-outlier
-    """
-    with open("outlier_trigger.yaml","w") as f:
-        f.write(trigger_outlier_yaml)
-    run("kubectl apply -f outlier_trigger.yaml", shell=True)
-    '''
-
-    block5 = '''
-    run(f"kubectl rollout status -n {DEPLOY_NAMESPACE} deploy/$(kubectl get deploy -l serving.knative.dev/service=cifar10-outlier -o jsonpath='{{.items[0].metadata.name}}' -n {DEPLOY_NAMESPACE})", shell=True)
-    '''
-
-    # run the code blocks inside a jupyter kernel
-    from kale.utils.jupyter_utils import run_code as _kale_run_code
-    from kale.utils.kfp_utils import \
-        update_uimetadata as _kale_update_uimetadata
-    blocks = (pipeline_parameters_block,
-              block1,
-              block2,
-              block3,
-              block4,
-              block5,
-              )
-    html_artifact = _kale_run_code(blocks)
-    with open("/deploy_outlier_detector.html", "w") as f:
-        f.write(html_artifact)
-    _kale_update_uimetadata('deploy_outlier_detector')
-
-    _kale_mlmd_utils.call("mark_execution_complete")
-
-
-def test_oulier_detection(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_SECRET_KEY: str):
+def test_outliers(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_SECRET_KEY: str):
     pipeline_parameters_block = '''
     DEPLOY_NAMESPACE = "{}"
     MINIO_ACCESS_KEY = "{}"
@@ -1248,17 +961,6 @@ def test_oulier_detection(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HO
     from kale.utils import mlmd_utils as _kale_mlmd_utils
     _kale_mlmd_utils.init_metadata()
 
-    data_loading_block = '''
-    # -----------------------DATA LOADING START--------------------------------
-    from kale.marshal import utils as _kale_marshal_utils
-    _kale_marshal_utils.set_kale_data_directory("/marshal")
-    _kale_marshal_utils.set_kale_directory_file_names()
-    X_train = _kale_marshal_utils.load("X_train")
-    class_names = _kale_marshal_utils.load("class_names")
-    y_train = _kale_marshal_utils.load("y_train")
-    # -----------------------DATA LOADING END----------------------------------
-    '''
-
     block1 = '''
     import numpy as np
     from sklearn.ensemble import RandomForestClassifier
@@ -1267,33 +969,16 @@ def test_oulier_detection(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HO
     from sklearn.impute import SimpleImputer
     from sklearn.metrics import accuracy_score
     from sklearn.preprocessing import StandardScaler, OneHotEncoder
-    from alibi.explainers import AnchorImage
+    from alibi.explainers import AnchorTabular
     from alibi.datasets import fetch_adult
     from minio import Minio
     from minio.error import ResponseError
     from joblib import dump, load
     import dill
+    import time
+    import json
     from subprocess import run, Popen, PIPE
     from alibi_detect.utils.data import create_outlier_batch
-    from alibi_detect.utils.fetching import fetch_tf_model
-    import json
-    import logging
-    import matplotlib.pyplot as plt
-    import tensorflow as tf
-    tf.keras.backend.clear_session()
-    from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Layer, Reshape, InputLayer
-    from tqdm import tqdm
-
-    from alibi_detect.models.losses import elbo
-    from alibi_detect.od import OutlierVAE
-    from alibi_detect.utils.fetching import fetch_detector
-    from alibi_detect.utils.perturbation import apply_mask
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from alibi_detect.utils.visualize import plot_instance_score, plot_feature_outlier_image
-    import time
-
-    logger = tf.get_logger()
-    logger.setLevel(logging.ERROR)
     '''
 
     block2 = '''
@@ -1305,43 +990,19 @@ def test_oulier_detection(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HO
     '''
 
     block3 = '''
-    idx = 1
-    X = X_train[idx:idx+1]
-    '''
-
-    block4 = '''
-    np.random.seed(0) 
-    X_mask, mask = apply_mask(X.reshape(1, 32, 32, 3),
-                                      mask_size=(10,10),
-                                      n_masks=1,
-                                      channels=[0,1,2],
-                                      mask_type='normal',
-                                      noise_distr=(0,1),
-                                      clip_rng=(0,1))
-    '''
-
-    block5 = '''
     def predict():
-        test_example=X_mask.tolist()
-        payload='{"instances":'+f"{test_example}"+' }'
+        payload='{"instances": [[300,  4,  4,  2,  1,  4,  4,  0,  0,  0, 600,  9]]}'
         cmd=f"""curl -v -d '{payload}' \\
-           -H "Host: kf-cifar10.admin.example.com" \\
+           -H "Host: kf-income.admin.example.com" \\
            -H "Content-Type: application/json" \\
-           http://kfserving-ingressgateway.istio-system/v1/models/kf-cifar10:predict
-         """
+           http://kfserving-ingressgateway.istio-system/v1/models/kf-income:predict
+        """
         ret = Popen(cmd, shell=True,stdout=PIPE)
         raw = ret.stdout.read().decode("utf-8")
         print(raw)
-        res=json.loads(raw)
-        arr=np.array(res["predictions"])
-        plt.imshow(X_mask.reshape(32, 32, 3))
-        plt.axis('off')
-        plt.show()
-        print("class:",class_names[y_train[idx][0]])
-        print("prediction:",class_names[arr[0].argmax()])
     '''
 
-    block6 = '''
+    block4 = '''
     def get_outlier_event_display_logs():
         cmd=f"kubectl logs $(kubectl get pod -l app=event-display -o jsonpath='{{.items[0].metadata.name}}' -n {DEPLOY_NAMESPACE}) -n {DEPLOY_NAMESPACE}"
         ret = Popen(cmd, shell=True,stdout=PIPE)
@@ -1367,288 +1028,7 @@ def test_oulier_detection(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HO
     print("Outlier",j["data"]["is_outlier"]==[1])
     '''
 
-    # run the code blocks inside a jupyter kernel
-    from kale.utils.jupyter_utils import run_code as _kale_run_code
-    from kale.utils.kfp_utils import \
-        update_uimetadata as _kale_update_uimetadata
-    blocks = (pipeline_parameters_block, data_loading_block,
-              block1,
-              block2,
-              block3,
-              block4,
-              block5,
-              block6,
-              )
-    html_artifact = _kale_run_code(blocks)
-    with open("/test_oulier_detection.html", "w") as f:
-        f.write(html_artifact)
-    _kale_update_uimetadata('test_oulier_detection')
-
-    _kale_mlmd_utils.call("mark_execution_complete")
-
-
-def deploy_drift_detector(DEPLOY_NAMESPACE: str, DRIFT_MODEL_PATH: str, MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_MODEL_BUCKET: str, MINIO_SECRET_KEY: str):
-    pipeline_parameters_block = '''
-    DEPLOY_NAMESPACE = "{}"
-    DRIFT_MODEL_PATH = "{}"
-    MINIO_ACCESS_KEY = "{}"
-    MINIO_HOST = "{}"
-    MINIO_MODEL_BUCKET = "{}"
-    MINIO_SECRET_KEY = "{}"
-    '''.format(DEPLOY_NAMESPACE, DRIFT_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)
-
-    from kale.utils import mlmd_utils as _kale_mlmd_utils
-    _kale_mlmd_utils.init_metadata()
-
-    block1 = '''
-    import numpy as np
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.compose import ColumnTransformer
-    from sklearn.pipeline import Pipeline
-    from sklearn.impute import SimpleImputer
-    from sklearn.metrics import accuracy_score
-    from sklearn.preprocessing import StandardScaler, OneHotEncoder
-    from alibi.explainers import AnchorImage
-    from alibi.datasets import fetch_adult
-    from minio import Minio
-    from minio.error import ResponseError
-    from joblib import dump, load
-    import dill
-    from subprocess import run, Popen, PIPE
-    from alibi_detect.utils.data import create_outlier_batch
-    from alibi_detect.utils.fetching import fetch_tf_model
-    import json
-    import logging
-    import matplotlib.pyplot as plt
-    import tensorflow as tf
-    tf.keras.backend.clear_session()
-    from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Layer, Reshape, InputLayer
-    from tqdm import tqdm
-
-    from alibi_detect.models.losses import elbo
-    from alibi_detect.od import OutlierVAE
-    from alibi_detect.utils.fetching import fetch_detector
-    from alibi_detect.utils.perturbation import apply_mask
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from alibi_detect.utils.visualize import plot_instance_score, plot_feature_outlier_image
-    import time
-
-    logger = tf.get_logger()
-    logger.setLevel(logging.ERROR)
-    '''
-
-    block2 = '''
-    def get_minio():
-        return Minio(MINIO_HOST,
-                        access_key=MINIO_ACCESS_KEY,
-                        secret_key=MINIO_SECRET_KEY,
-                        secure=False)
-    '''
-
-    block3 = '''
-    drift_yaml=f"""apiVersion: serving.knative.dev/v1
-    kind: Service
-    metadata:
-      name: cifar10-drift
-      namespace: {DEPLOY_NAMESPACE}
-    spec:
-      template:
-        metadata:
-          annotations:
-            autoscaling.knative.dev/minScale: "1"
-        spec:
-          containers:
-          - image: seldonio/alibi-detect-server:1.2.2-dev
-            imagePullPolicy: IfNotPresent
-            args:
-            - --model_name
-            - cifar10cd
-            - --protocol
-            - tensorflow.http
-            - --storage_uri
-            - s3://{MINIO_MODEL_BUCKET}/{DRIFT_MODEL_PATH}
-            - --reply_url
-            - http://default-broker
-            - --event_type
-            - org.kubeflow.serving.inference.drift
-            - --event_source
-            - org.kubeflow.serving.cifar10cd
-            - DriftDetector
-            - --drift_batch_size
-            - '500'
-            envFrom:
-            - secretRef:
-                name: seldon-init-container-secret
-    """
-    with open("drift.yaml","w") as f:
-        f.write(drift_yaml)
-    run("kubectl apply -f drift.yaml", shell=True)
-    '''
-
-    block4 = '''
-    trigger_outlier_yaml=f"""apiVersion: eventing.knative.dev/v1alpha1
-    kind: Trigger
-    metadata:
-      name: cifar10-drift-trigger
-      namespace: {DEPLOY_NAMESPACE}
-    spec:
-      filter:
-        sourceAndType:
-          type: org.kubeflow.serving.inference.request
-      subscriber:
-        ref:
-          apiVersion: serving.knative.dev/v1
-          kind: Service
-          name: cifar10-drift
-    """
-    with open("outlier_trigger.yaml","w") as f:
-        f.write(trigger_outlier_yaml)
-    run("kubectl apply -f outlier_trigger.yaml", shell=True)
-    '''
-
     block5 = '''
-    run(f"kubectl rollout status -n {DEPLOY_NAMESPACE} deploy/$(kubectl get deploy -l serving.knative.dev/service=cifar10-drift -o jsonpath='{{.items[0].metadata.name}}' -n {DEPLOY_NAMESPACE})", shell=True)
-    '''
-
-    # run the code blocks inside a jupyter kernel
-    from kale.utils.jupyter_utils import run_code as _kale_run_code
-    from kale.utils.kfp_utils import \
-        update_uimetadata as _kale_update_uimetadata
-    blocks = (pipeline_parameters_block,
-              block1,
-              block2,
-              block3,
-              block4,
-              block5,
-              )
-    html_artifact = _kale_run_code(blocks)
-    with open("/deploy_drift_detector.html", "w") as f:
-        f.write(html_artifact)
-    _kale_update_uimetadata('deploy_drift_detector')
-
-    _kale_mlmd_utils.call("mark_execution_complete")
-
-
-def test_drift_detector(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_SECRET_KEY: str):
-    pipeline_parameters_block = '''
-    DEPLOY_NAMESPACE = "{}"
-    MINIO_ACCESS_KEY = "{}"
-    MINIO_HOST = "{}"
-    MINIO_SECRET_KEY = "{}"
-    '''.format(DEPLOY_NAMESPACE, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_SECRET_KEY)
-
-    from kale.utils import mlmd_utils as _kale_mlmd_utils
-    _kale_mlmd_utils.init_metadata()
-
-    block1 = '''
-    import numpy as np
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.compose import ColumnTransformer
-    from sklearn.pipeline import Pipeline
-    from sklearn.impute import SimpleImputer
-    from sklearn.metrics import accuracy_score
-    from sklearn.preprocessing import StandardScaler, OneHotEncoder
-    from alibi.explainers import AnchorImage
-    from alibi.datasets import fetch_adult
-    from minio import Minio
-    from minio.error import ResponseError
-    from joblib import dump, load
-    import dill
-    from subprocess import run, Popen, PIPE
-    from alibi_detect.utils.data import create_outlier_batch
-    from alibi_detect.utils.fetching import fetch_tf_model
-    import json
-    import logging
-    import matplotlib.pyplot as plt
-    import tensorflow as tf
-    tf.keras.backend.clear_session()
-    from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Layer, Reshape, InputLayer
-    from tqdm import tqdm
-
-    from alibi_detect.models.losses import elbo
-    from alibi_detect.od import OutlierVAE
-    from alibi_detect.utils.fetching import fetch_detector
-    from alibi_detect.utils.perturbation import apply_mask
-    from alibi_detect.utils.saving import save_detector, load_detector
-    from alibi_detect.utils.visualize import plot_instance_score, plot_feature_outlier_image
-    import time
-
-    logger = tf.get_logger()
-    logger.setLevel(logging.ERROR)
-    '''
-
-    block2 = '''
-    def get_minio():
-        return Minio(MINIO_HOST,
-                        access_key=MINIO_ACCESS_KEY,
-                        secret_key=MINIO_SECRET_KEY,
-                        secure=False)
-    '''
-
-    block3 = '''
-    def show(X):
-        plt.imshow(X.reshape(32, 32, 3))
-        plt.axis('off')
-        plt.show()
-    '''
-
-    block4 = '''
-    from alibi_detect.datasets import fetch_cifar10c, corruption_types_cifar10c
-    corruption = ['motion_blur']
-    X_corr, y_corr = fetch_cifar10c(corruption=corruption, severity=5, return_X_y=True)
-    X_corr = X_corr.astype('float32') / 255
-    '''
-
-    block5 = '''
-    show(X_corr[0])
-    show(X_corr[1])
-    show(X_corr[2])
-    '''
-
-    block6 = '''
-    def predict(X):
-        test_example=X.tolist()
-        payload='{"instances":'+f"{test_example}"+' }'
-        with open("payload.json","w") as f:
-            f.write(payload)
-        cmd=f"""curl -d @./payload.json \\
-           -H "Host: kf-cifar10.admin.example.com" \\
-           -H "Content-Type: application/json" \\
-           http://kfserving-ingressgateway.istio-system/v1/models/kf-cifar10:predict
-        """
-        run(cmd, shell=True)
-    '''
-
-    block7 = '''
-    def get_drift_event_display_logs():
-        cmd=f"kubectl logs $(kubectl get pod -l app=event-display -o jsonpath='{{.items[0].metadata.name}}' -n {DEPLOY_NAMESPACE}) -n {DEPLOY_NAMESPACE}"
-        ret = Popen(cmd, shell=True,stdout=PIPE)
-        res = ret.stdout.read().decode("utf-8").split("\\n")
-        data= []
-        for i in range(0,len(res)):
-            if res[i] == 'Data,':
-                j = json.loads(json.loads(res[i+1]))
-                if "is_drift" in j["data"].keys():
-                    data.append(j)
-        if len(data) > 0:
-            return data[-1]
-        else:
-            return None
-    j = None
-    for i in range(0,1000,50):
-        X = X_corr[i:i+50]
-        predict(X)
-        print("Waiting for drift logs, sleeping")
-        time.sleep(2)
-        j = get_drift_event_display_logs()
-        if j is not None:
-            break
-        
-    print(j)
-    print("Drift",j["data"]["is_drift"]==1)
-    '''
-
-    block8 = '''
     
     '''
 
@@ -1662,14 +1042,94 @@ def test_drift_detector(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HOST
               block3,
               block4,
               block5,
-              block6,
-              block7,
-              block8,
               )
     html_artifact = _kale_run_code(blocks)
-    with open("/test_drift_detector.html", "w") as f:
+    with open("/test_outliers.html", "w") as f:
         f.write(html_artifact)
-    _kale_update_uimetadata('test_drift_detector')
+    _kale_update_uimetadata('test_outliers')
+
+    _kale_mlmd_utils.call("mark_execution_complete")
+
+
+def explain(MINIO_ACCESS_KEY: str, MINIO_HOST: str, MINIO_SECRET_KEY: str):
+    pipeline_parameters_block = '''
+    MINIO_ACCESS_KEY = "{}"
+    MINIO_HOST = "{}"
+    MINIO_SECRET_KEY = "{}"
+    '''.format(MINIO_ACCESS_KEY, MINIO_HOST, MINIO_SECRET_KEY)
+
+    from kale.utils import mlmd_utils as _kale_mlmd_utils
+    _kale_mlmd_utils.init_metadata()
+
+    data_loading_block = '''
+    # -----------------------DATA LOADING START--------------------------------
+    from kale.marshal import utils as _kale_marshal_utils
+    _kale_marshal_utils.set_kale_data_directory("/marshal")
+    _kale_marshal_utils.set_kale_directory_file_names()
+    X_test = _kale_marshal_utils.load("X_test")
+    X_train = _kale_marshal_utils.load("X_train")
+    adult = _kale_marshal_utils.load("adult")
+    explainer = _kale_marshal_utils.load("explainer")
+    model = _kale_marshal_utils.load("model")
+    # -----------------------DATA LOADING END----------------------------------
+    '''
+
+    block1 = '''
+    import numpy as np
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.compose import ColumnTransformer
+    from sklearn.pipeline import Pipeline
+    from sklearn.impute import SimpleImputer
+    from sklearn.metrics import accuracy_score
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from alibi.explainers import AnchorTabular
+    from alibi.datasets import fetch_adult
+    from minio import Minio
+    from minio.error import ResponseError
+    from joblib import dump, load
+    import dill
+    import time
+    import json
+    from subprocess import run, Popen, PIPE
+    from alibi_detect.utils.data import create_outlier_batch
+    '''
+
+    block2 = '''
+    def get_minio():
+        return Minio(MINIO_HOST,
+                        access_key=MINIO_ACCESS_KEY,
+                        secret_key=MINIO_SECRET_KEY,
+                        secure=False)
+    '''
+
+    block3 = '''
+    model.predict(X_train)
+    idx = 0
+    class_names = adult.target_names
+    print('Prediction: ', class_names[explainer.predict_fn(X_test[idx].reshape(1, -1))[0]])
+    '''
+
+    block4 = '''
+    explanation = explainer.explain(X_test[idx], threshold=0.95)
+    print('Anchor: %s' % (' AND '.join(explanation['names'])))
+    print('Precision: %.2f' % explanation['precision'])
+    print('Coverage: %.2f' % explanation['coverage'])
+    '''
+
+    # run the code blocks inside a jupyter kernel
+    from kale.utils.jupyter_utils import run_code as _kale_run_code
+    from kale.utils.kfp_utils import \
+        update_uimetadata as _kale_update_uimetadata
+    blocks = (pipeline_parameters_block, data_loading_block,
+              block1,
+              block2,
+              block3,
+              block4,
+              )
+    html_artifact = _kale_run_code(blocks)
+    with open("/explain.html", "w") as f:
+        f.write(html_artifact)
+    _kale_update_uimetadata('explain')
 
     _kale_mlmd_utils.call("mark_execution_complete")
 
@@ -1678,51 +1138,47 @@ setup_op = comp.func_to_container_op(
     setup, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
 
 
-train_model_and_explainer_op = comp.func_to_container_op(
-    train_model_and_explainer, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
+build_model_op = comp.func_to_container_op(
+    build_model, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
 
 
-deploy_model_op = comp.func_to_container_op(
-    deploy_model, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
+build_outlier_op = comp.func_to_container_op(
+    build_outlier, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
 
 
-test_model_and_explainer_op = comp.func_to_container_op(
-    test_model_and_explainer, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
+train_explainer_op = comp.func_to_container_op(
+    train_explainer, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
 
 
-train_drift_detector_op = comp.func_to_container_op(
-    train_drift_detector, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
+deploy_kfserving_op = comp.func_to_container_op(
+    deploy_kfserving, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
 
 
-train_outlier_detector_op = comp.func_to_container_op(
-    train_outlier_detector, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
+test_model_op = comp.func_to_container_op(
+    test_model, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
+
+
+deploy_outlier_op = comp.func_to_container_op(
+    deploy_outlier, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
 
 
 deploy_event_display_op = comp.func_to_container_op(
     deploy_event_display, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
 
 
-deploy_outlier_detector_op = comp.func_to_container_op(
-    deploy_outlier_detector, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
+test_outliers_op = comp.func_to_container_op(
+    test_outliers, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
 
 
-test_oulier_detection_op = comp.func_to_container_op(
-    test_oulier_detection, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
-
-
-deploy_drift_detector_op = comp.func_to_container_op(
-    deploy_drift_detector, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
-
-
-test_drift_detector_op = comp.func_to_container_op(
-    test_drift_detector, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
+explain_op = comp.func_to_container_op(
+    explain, base_image='seldonio/jupyter-lab-alibi-kale:0.11')
 
 
 @dsl.pipeline(
-    name='kfserving-e2e-cifar10-m0cya',
-    description='KFServing CIFAR10 Example'
+    name='kfserving-e2e-adult-sfmg7',
+    description='KFServing e2e adult'
 )
-def auto_generated_pipeline(CIFAR10_MODEL_PATH='tfserving/cifar10/model', DEPLOY_NAMESPACE='admin', DRIFT_MODEL_PATH='tfserving/cifar10/drift', EXPLAINER_MODEL_PATH='tfserving/cifar10/explainer', MINIO_ACCESS_KEY='minio', MINIO_HOST='minio-service.kubeflow:9000', MINIO_MODEL_BUCKET='seldon', MINIO_SECRET_KEY='minio123', OUTLIER_MODEL_PATH='tfserving/cifar10/outlier', TRAIN_DRIFT_DETECTOR='False', TRAIN_OUTLIER_DETECTOR='False'):
+def auto_generated_pipeline(DEPLOY_NAMESPACE='admin', EXPLAINER_MODEL_PATH='sklearn/income/explainer', INCOME_MODEL_PATH='sklearn/income/model', MINIO_ACCESS_KEY='minio', MINIO_HOST='minio-service.kubeflow:9000', MINIO_MODEL_BUCKET='seldon', MINIO_SECRET_KEY='minio123', OUTLIER_MODEL_PATH='sklearn/income/outlier'):
     pvolumes_dict = OrderedDict()
     volume_step_names = []
     volume_name_parameters = []
@@ -1761,120 +1217,135 @@ def auto_generated_pipeline(CIFAR10_MODEL_PATH='tfserving/cifar10/model', DEPLOY
             "kubeflow-kale.org/volume-name-parameters",
             json.dumps(volume_name_parameters))
 
-    train_model_and_explainer_task = train_model_and_explainer_op(CIFAR10_MODEL_PATH, EXPLAINER_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)\
+    build_model_task = build_model_op(INCOME_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)\
         .add_pvolumes(pvolumes_dict)\
         .after(setup_task)
-    train_model_and_explainer_task.container.working_dir = "/home/jovyan"
-    train_model_and_explainer_task.container.set_security_context(
+    build_model_task.container.working_dir = "/home/jovyan"
+    build_model_task.container.set_security_context(
         k8s_client.V1SecurityContext(run_as_user=0))
     output_artifacts = {}
     output_artifacts.update(
         {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'})
-    output_artifacts.update(
-        {'train_model_and_explainer': '/train_model_and_explainer.html'})
-    train_model_and_explainer_task.output_artifact_paths.update(
-        output_artifacts)
-    train_model_and_explainer_task.add_pod_label(
+    output_artifacts.update({'build_model': '/build_model.html'})
+    build_model_task.output_artifact_paths.update(output_artifacts)
+    build_model_task.add_pod_label(
         "pipelines.kubeflow.org/metadata_written", "true")
-    dep_names = train_model_and_explainer_task.dependent_names + volume_step_names
-    train_model_and_explainer_task.add_pod_annotation(
+    dep_names = build_model_task.dependent_names + volume_step_names
+    build_model_task.add_pod_annotation(
         "kubeflow-kale.org/dependent-templates", json.dumps(dep_names))
     if volume_name_parameters:
-        train_model_and_explainer_task.add_pod_annotation(
+        build_model_task.add_pod_annotation(
             "kubeflow-kale.org/volume-name-parameters",
             json.dumps(volume_name_parameters))
 
-    deploy_model_task = deploy_model_op(CIFAR10_MODEL_PATH, DEPLOY_NAMESPACE, EXPLAINER_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)\
+    build_outlier_task = build_outlier_op(MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY, OUTLIER_MODEL_PATH)\
         .add_pvolumes(pvolumes_dict)\
-        .after(train_model_and_explainer_task)
-    deploy_model_task.container.working_dir = "/home/jovyan"
-    deploy_model_task.container.set_security_context(
+        .after(build_model_task)
+    build_outlier_task.container.working_dir = "/home/jovyan"
+    build_outlier_task.container.set_security_context(
         k8s_client.V1SecurityContext(run_as_user=0))
     output_artifacts = {}
     output_artifacts.update(
         {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'})
-    output_artifacts.update({'deploy_model': '/deploy_model.html'})
-    deploy_model_task.output_artifact_paths.update(output_artifacts)
-    deploy_model_task.add_pod_label(
+    output_artifacts.update({'build_outlier': '/build_outlier.html'})
+    build_outlier_task.output_artifact_paths.update(output_artifacts)
+    build_outlier_task.add_pod_label(
         "pipelines.kubeflow.org/metadata_written", "true")
-    dep_names = deploy_model_task.dependent_names + volume_step_names
-    deploy_model_task.add_pod_annotation(
+    dep_names = build_outlier_task.dependent_names + volume_step_names
+    build_outlier_task.add_pod_annotation(
         "kubeflow-kale.org/dependent-templates", json.dumps(dep_names))
     if volume_name_parameters:
-        deploy_model_task.add_pod_annotation(
+        build_outlier_task.add_pod_annotation(
             "kubeflow-kale.org/volume-name-parameters",
             json.dumps(volume_name_parameters))
 
-    test_model_and_explainer_task = test_model_and_explainer_op(MINIO_ACCESS_KEY, MINIO_HOST, MINIO_SECRET_KEY)\
+    train_explainer_task = train_explainer_op(EXPLAINER_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)\
         .add_pvolumes(pvolumes_dict)\
-        .after(deploy_model_task)
-    test_model_and_explainer_task.container.working_dir = "/home/jovyan"
-    test_model_and_explainer_task.container.set_security_context(
+        .after(build_model_task)
+    train_explainer_task.container.working_dir = "/home/jovyan"
+    train_explainer_task.container.set_security_context(
         k8s_client.V1SecurityContext(run_as_user=0))
     output_artifacts = {}
     output_artifacts.update(
         {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'})
-    output_artifacts.update(
-        {'test_model_and_explainer': '/test_model_and_explainer.html'})
-    test_model_and_explainer_task.output_artifact_paths.update(
-        output_artifacts)
-    test_model_and_explainer_task.add_pod_label(
+    output_artifacts.update({'train_explainer': '/train_explainer.html'})
+    train_explainer_task.output_artifact_paths.update(output_artifacts)
+    train_explainer_task.add_pod_label(
         "pipelines.kubeflow.org/metadata_written", "true")
-    dep_names = test_model_and_explainer_task.dependent_names + volume_step_names
-    test_model_and_explainer_task.add_pod_annotation(
+    dep_names = train_explainer_task.dependent_names + volume_step_names
+    train_explainer_task.add_pod_annotation(
         "kubeflow-kale.org/dependent-templates", json.dumps(dep_names))
     if volume_name_parameters:
-        test_model_and_explainer_task.add_pod_annotation(
+        train_explainer_task.add_pod_annotation(
             "kubeflow-kale.org/volume-name-parameters",
             json.dumps(volume_name_parameters))
 
-    train_drift_detector_task = train_drift_detector_op(DRIFT_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)\
+    deploy_kfserving_task = deploy_kfserving_op(DEPLOY_NAMESPACE, EXPLAINER_MODEL_PATH, INCOME_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)\
         .add_pvolumes(pvolumes_dict)\
-        .after(train_model_and_explainer_task)
-    train_drift_detector_task.container.working_dir = "/home/jovyan"
-    train_drift_detector_task.container.set_security_context(
+        .after(train_explainer_task)
+    deploy_kfserving_task.container.working_dir = "/home/jovyan"
+    deploy_kfserving_task.container.set_security_context(
         k8s_client.V1SecurityContext(run_as_user=0))
     output_artifacts = {}
     output_artifacts.update(
         {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'})
-    output_artifacts.update(
-        {'train_drift_detector': '/train_drift_detector.html'})
-    train_drift_detector_task.output_artifact_paths.update(output_artifacts)
-    train_drift_detector_task.add_pod_label(
+    output_artifacts.update({'deploy_kfserving': '/deploy_kfserving.html'})
+    deploy_kfserving_task.output_artifact_paths.update(output_artifacts)
+    deploy_kfserving_task.add_pod_label(
         "pipelines.kubeflow.org/metadata_written", "true")
-    dep_names = train_drift_detector_task.dependent_names + volume_step_names
-    train_drift_detector_task.add_pod_annotation(
+    dep_names = deploy_kfserving_task.dependent_names + volume_step_names
+    deploy_kfserving_task.add_pod_annotation(
         "kubeflow-kale.org/dependent-templates", json.dumps(dep_names))
     if volume_name_parameters:
-        train_drift_detector_task.add_pod_annotation(
+        deploy_kfserving_task.add_pod_annotation(
             "kubeflow-kale.org/volume-name-parameters",
             json.dumps(volume_name_parameters))
 
-    train_outlier_detector_task = train_outlier_detector_op(MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY, OUTLIER_MODEL_PATH, TRAIN_OUTLIER_DETECTOR)\
+    test_model_task = test_model_op(MINIO_ACCESS_KEY, MINIO_HOST, MINIO_SECRET_KEY)\
         .add_pvolumes(pvolumes_dict)\
-        .after(train_model_and_explainer_task)
-    train_outlier_detector_task.container.working_dir = "/home/jovyan"
-    train_outlier_detector_task.container.set_security_context(
+        .after(deploy_kfserving_task)
+    test_model_task.container.working_dir = "/home/jovyan"
+    test_model_task.container.set_security_context(
         k8s_client.V1SecurityContext(run_as_user=0))
     output_artifacts = {}
     output_artifacts.update(
         {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'})
-    output_artifacts.update(
-        {'train_outlier_detector': '/train_outlier_detector.html'})
-    train_outlier_detector_task.output_artifact_paths.update(output_artifacts)
-    train_outlier_detector_task.add_pod_label(
+    output_artifacts.update({'test_model': '/test_model.html'})
+    test_model_task.output_artifact_paths.update(output_artifacts)
+    test_model_task.add_pod_label(
         "pipelines.kubeflow.org/metadata_written", "true")
-    dep_names = train_outlier_detector_task.dependent_names + volume_step_names
-    train_outlier_detector_task.add_pod_annotation(
+    dep_names = test_model_task.dependent_names + volume_step_names
+    test_model_task.add_pod_annotation(
         "kubeflow-kale.org/dependent-templates", json.dumps(dep_names))
     if volume_name_parameters:
-        train_outlier_detector_task.add_pod_annotation(
+        test_model_task.add_pod_annotation(
+            "kubeflow-kale.org/volume-name-parameters",
+            json.dumps(volume_name_parameters))
+
+    deploy_outlier_task = deploy_outlier_op(DEPLOY_NAMESPACE, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY, OUTLIER_MODEL_PATH)\
+        .add_pvolumes(pvolumes_dict)\
+        .after(build_outlier_task, test_model_task)
+    deploy_outlier_task.container.working_dir = "/home/jovyan"
+    deploy_outlier_task.container.set_security_context(
+        k8s_client.V1SecurityContext(run_as_user=0))
+    output_artifacts = {}
+    output_artifacts.update(
+        {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'})
+    output_artifacts.update({'deploy_outlier': '/deploy_outlier.html'})
+    deploy_outlier_task.output_artifact_paths.update(output_artifacts)
+    deploy_outlier_task.add_pod_label(
+        "pipelines.kubeflow.org/metadata_written", "true")
+    dep_names = deploy_outlier_task.dependent_names + volume_step_names
+    deploy_outlier_task.add_pod_annotation(
+        "kubeflow-kale.org/dependent-templates", json.dumps(dep_names))
+    if volume_name_parameters:
+        deploy_outlier_task.add_pod_annotation(
             "kubeflow-kale.org/volume-name-parameters",
             json.dumps(volume_name_parameters))
 
     deploy_event_display_task = deploy_event_display_op(DEPLOY_NAMESPACE, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_SECRET_KEY)\
         .add_pvolumes(pvolumes_dict)\
-        .after(train_drift_detector_task, train_outlier_detector_task, test_model_and_explainer_task)
+        .after(deploy_outlier_task)
     deploy_event_display_task.container.working_dir = "/home/jovyan"
     deploy_event_display_task.container.set_security_context(
         k8s_client.V1SecurityContext(run_as_user=0))
@@ -1894,91 +1365,45 @@ def auto_generated_pipeline(CIFAR10_MODEL_PATH='tfserving/cifar10/model', DEPLOY
             "kubeflow-kale.org/volume-name-parameters",
             json.dumps(volume_name_parameters))
 
-    deploy_outlier_detector_task = deploy_outlier_detector_op(DEPLOY_NAMESPACE, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY, OUTLIER_MODEL_PATH)\
+    test_outliers_task = test_outliers_op(DEPLOY_NAMESPACE, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_SECRET_KEY)\
         .add_pvolumes(pvolumes_dict)\
         .after(deploy_event_display_task)
-    deploy_outlier_detector_task.container.working_dir = "/home/jovyan"
-    deploy_outlier_detector_task.container.set_security_context(
+    test_outliers_task.container.working_dir = "/home/jovyan"
+    test_outliers_task.container.set_security_context(
         k8s_client.V1SecurityContext(run_as_user=0))
     output_artifacts = {}
     output_artifacts.update(
         {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'})
-    output_artifacts.update(
-        {'deploy_outlier_detector': '/deploy_outlier_detector.html'})
-    deploy_outlier_detector_task.output_artifact_paths.update(output_artifacts)
-    deploy_outlier_detector_task.add_pod_label(
+    output_artifacts.update({'test_outliers': '/test_outliers.html'})
+    test_outliers_task.output_artifact_paths.update(output_artifacts)
+    test_outliers_task.add_pod_label(
         "pipelines.kubeflow.org/metadata_written", "true")
-    dep_names = deploy_outlier_detector_task.dependent_names + volume_step_names
-    deploy_outlier_detector_task.add_pod_annotation(
+    dep_names = test_outliers_task.dependent_names + volume_step_names
+    test_outliers_task.add_pod_annotation(
         "kubeflow-kale.org/dependent-templates", json.dumps(dep_names))
     if volume_name_parameters:
-        deploy_outlier_detector_task.add_pod_annotation(
+        test_outliers_task.add_pod_annotation(
             "kubeflow-kale.org/volume-name-parameters",
             json.dumps(volume_name_parameters))
 
-    test_oulier_detection_task = test_oulier_detection_op(DEPLOY_NAMESPACE, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_SECRET_KEY)\
+    explain_task = explain_op(MINIO_ACCESS_KEY, MINIO_HOST, MINIO_SECRET_KEY)\
         .add_pvolumes(pvolumes_dict)\
-        .after(deploy_outlier_detector_task)
-    test_oulier_detection_task.container.working_dir = "/home/jovyan"
-    test_oulier_detection_task.container.set_security_context(
+        .after(train_explainer_task)
+    explain_task.container.working_dir = "/home/jovyan"
+    explain_task.container.set_security_context(
         k8s_client.V1SecurityContext(run_as_user=0))
     output_artifacts = {}
     output_artifacts.update(
         {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'})
-    output_artifacts.update(
-        {'test_oulier_detection': '/test_oulier_detection.html'})
-    test_oulier_detection_task.output_artifact_paths.update(output_artifacts)
-    test_oulier_detection_task.add_pod_label(
+    output_artifacts.update({'explain': '/explain.html'})
+    explain_task.output_artifact_paths.update(output_artifacts)
+    explain_task.add_pod_label(
         "pipelines.kubeflow.org/metadata_written", "true")
-    dep_names = test_oulier_detection_task.dependent_names + volume_step_names
-    test_oulier_detection_task.add_pod_annotation(
+    dep_names = explain_task.dependent_names + volume_step_names
+    explain_task.add_pod_annotation(
         "kubeflow-kale.org/dependent-templates", json.dumps(dep_names))
     if volume_name_parameters:
-        test_oulier_detection_task.add_pod_annotation(
-            "kubeflow-kale.org/volume-name-parameters",
-            json.dumps(volume_name_parameters))
-
-    deploy_drift_detector_task = deploy_drift_detector_op(DEPLOY_NAMESPACE, DRIFT_MODEL_PATH, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_MODEL_BUCKET, MINIO_SECRET_KEY)\
-        .add_pvolumes(pvolumes_dict)\
-        .after(test_oulier_detection_task)
-    deploy_drift_detector_task.container.working_dir = "/home/jovyan"
-    deploy_drift_detector_task.container.set_security_context(
-        k8s_client.V1SecurityContext(run_as_user=0))
-    output_artifacts = {}
-    output_artifacts.update(
-        {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'})
-    output_artifacts.update(
-        {'deploy_drift_detector': '/deploy_drift_detector.html'})
-    deploy_drift_detector_task.output_artifact_paths.update(output_artifacts)
-    deploy_drift_detector_task.add_pod_label(
-        "pipelines.kubeflow.org/metadata_written", "true")
-    dep_names = deploy_drift_detector_task.dependent_names + volume_step_names
-    deploy_drift_detector_task.add_pod_annotation(
-        "kubeflow-kale.org/dependent-templates", json.dumps(dep_names))
-    if volume_name_parameters:
-        deploy_drift_detector_task.add_pod_annotation(
-            "kubeflow-kale.org/volume-name-parameters",
-            json.dumps(volume_name_parameters))
-
-    test_drift_detector_task = test_drift_detector_op(DEPLOY_NAMESPACE, MINIO_ACCESS_KEY, MINIO_HOST, MINIO_SECRET_KEY)\
-        .add_pvolumes(pvolumes_dict)\
-        .after(deploy_drift_detector_task)
-    test_drift_detector_task.container.working_dir = "/home/jovyan"
-    test_drift_detector_task.container.set_security_context(
-        k8s_client.V1SecurityContext(run_as_user=0))
-    output_artifacts = {}
-    output_artifacts.update(
-        {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json'})
-    output_artifacts.update(
-        {'test_drift_detector': '/test_drift_detector.html'})
-    test_drift_detector_task.output_artifact_paths.update(output_artifacts)
-    test_drift_detector_task.add_pod_label(
-        "pipelines.kubeflow.org/metadata_written", "true")
-    dep_names = test_drift_detector_task.dependent_names + volume_step_names
-    test_drift_detector_task.add_pod_annotation(
-        "kubeflow-kale.org/dependent-templates", json.dumps(dep_names))
-    if volume_name_parameters:
-        test_drift_detector_task.add_pod_annotation(
+        explain_task.add_pod_annotation(
             "kubeflow-kale.org/volume-name-parameters",
             json.dumps(volume_name_parameters))
 
@@ -1992,10 +1417,10 @@ if __name__ == "__main__":
     # Get or create an experiment and submit a pipeline run
     import kfp
     client = kfp.Client()
-    experiment = client.create_experiment('kfserving-e2e-cifar10')
+    experiment = client.create_experiment('kfserving-e2e-adult')
 
     # Submit a pipeline run
     from kale.utils.kfp_utils import generate_run_name
-    run_name = generate_run_name('kfserving-e2e-cifar10-m0cya')
+    run_name = generate_run_name('kfserving-e2e-adult-sfmg7')
     run_result = client.run_pipeline(
         experiment.id, run_name, pipeline_filename, {})
