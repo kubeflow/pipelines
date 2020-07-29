@@ -11,150 +11,177 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from common.sagemaker_component_spec import SageMakerComponentSpec
+from dataclasses import dataclass
+
+from typing import List
+from common.sagemaker_component_spec import (
+    SageMakerComponentSpec,
+    SageMakerComponentBaseOutputs,
+)
 from common.spec_validators import SpecValidators
+from common.common_inputs import (
+    COMMON_INPUTS, SageMakerComponentCommonInputs,
+    SpotInstanceInputs,
+    SPOT_INSTANCE_INPUTS,
+    SageMakerComponentInput as Input,
+    SageMakerComponentOutput as Output,
+    SageMakerComponentInputValidator as InputValidator,
+    SageMakerComponentOutputValidator as OutputValidator
+)
 
 
-class SageMakerTrainingSpec(SageMakerComponentSpec):
-    INPUTS = {
-        **SageMakerComponentSpec.INPUTS,
-        **{
-            "job_name": dict(
-                type=str,
-                required=False,
-                help="The name of the training job.",
-                default="",
-            ),
-            "role": dict(
-                type=str,
-                required=True,
-                help="The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.",
-            ),
-            "image": dict(
-                type=str,
-                required=False,
-                help="The registry path of the Docker image that contains the training algorithm.",
-                default="",
-            ),
-            "algorithm_name": dict(
-                type=str,
-                required=False,
-                help="The name of the resource algorithm to use for the training job. Do not specify a value for this if using training image.",
-                default="",
-            ),
-            "metric_definitions": dict(
-                type=SpecValidators.yaml_or_json_dict,
-                required=False,
-                help="The dictionary of name-regex pairs specify the metrics that the algorithm emits.",
-                default={},
-            ),
-            "training_input_mode": dict(
-                choices=["File", "Pipe"],
-                type=str,
-                help="The input mode that the algorithm supports. File or Pipe.",
-                default="File",
-            ),
-            "hyperparameters": dict(
-                type=SpecValidators.yaml_or_json_dict,
-                help="Dictionary of hyperparameters for the the algorithm.",
-                default={},
-            ),
-            "channels": dict(
-                type=SpecValidators.yaml_or_json_list,
-                required=True,
-                help="A list of dicts specifying the input channels. Must have at least one.",
-            ),
-            "instance_type": dict(
-                required=False,
-                type=str,
-                help="The ML compute instance type.",
-                default="ml.m4.xlarge",
-            ),
-            "instance_count": dict(
-                required=True,
-                type=int,
-                help="The registry path of the Docker image that contains the training algorithm.",
-                default=1,
-            ),
-            "volume_size": dict(
-                type=int,
-                required=True,
-                help="The size of the ML storage volume that you want to provision.",
-                default=30,
-            ),
-            "resource_encryption_key": dict(
-                type=str,
-                required=False,
-                help="The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).",
-                default="",
-            ),
-            "max_run_time": dict(
-                type=int,
-                required=True,
-                help="The maximum run time in seconds for the training job.",
-                default=86400,
-            ),
-            "model_artifact_path": dict(
-                type=str,
-                required=True,
-                help="Identifies the S3 path where you want Amazon SageMaker to store the model artifacts.",
-            ),
-            "output_encryption_key": dict(
-                type=str,
-                required=False,
-                help="The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts.",
-                default="",
-            ),
-            "vpc_security_group_ids": dict(
-                type=str,
-                required=False,
-                help="The VPC security group IDs, in the form sg-xxxxxxxx.",
-            ),
-            "vpc_subnets": dict(
-                type=str,
-                required=False,
-                help="The ID of the subnets in the VPC to which you want to connect your hpo job.",
-            ),
-            "network_isolation": dict(
-                type=SpecValidators.str_to_bool,
-                required=False,
-                help="Isolates the training container.",
-                default=True,
-            ),
-            "traffic_encryption": dict(
-                type=SpecValidators.str_to_bool,
-                required=False,
-                help="Encrypts all communications between ML compute instances in distributed training.",
-                default=False,
-            ),
-            "spot_instance": dict(
-                type=SpecValidators.str_to_bool,
-                required=False,
-                help="Use managed spot training.",
-                default=False,
-            ),
-            "max_wait_time": dict(
-                type=int,
-                required=False,
-                help="The maximum time in seconds you are willing to wait for a managed spot training job to complete.",
-                default=86400,
-            ),
-            "checkpoint_config": dict(
-                type=SpecValidators.yaml_or_json_dict,
-                required=False,
-                help="Dictionary of information about the output location for managed spot training checkpoint data.",
-                default={},
-            ),
-        },
-    }
+@dataclass(frozen=True)
+class SageMakerTrainingInputs(SageMakerComponentCommonInputs, SpotInstanceInputs):
+    """Defines the set of inputs for the training component."""
 
-    OUTPUTS = {
-        **SageMakerComponentSpec.OUTPUTS,
-        **{
-            "model_artifact_url": dict(help="The model artifacts URL.",),
-            "job_name": dict(help="The training job name.",),
-            "training_image": dict(
-                help="The registry path of the Docker image that contains the training algorithm.",
-            ),
-        },
-    }
+    job_name: Input
+    role: Input
+    image: Input
+    algorithm_name: Input
+    metric_definitions: Input
+    training_input_mode: Input
+    hyperparameters: Input
+    channels: Input
+    instance_type: Input
+    instance_count: Input
+    volume_size: Input
+    resource_encryption_key: Input
+    max_run_time: Input
+    model_artifact_path: Input
+    output_encryption_key: Input
+    vpc_security_group_ids: Input
+    vpc_subnets: Input
+    network_isolation: Input
+    traffic_encryption: Input
+
+
+@dataclass(frozen=True)
+class SageMakerTrainingOutputs(SageMakerComponentBaseOutputs):
+    """Defines the set of outputs for the training component."""
+
+    model_artifact_url: Output
+    job_name: Output
+    training_image: Output
+
+
+class SageMakerTrainingSpec(
+    SageMakerComponentSpec[SageMakerTrainingInputs, SageMakerTrainingOutputs]
+):
+    INPUTS: SageMakerTrainingInputs = SageMakerTrainingInputs(
+        job_name=InputValidator(
+            input_type=str, description="The name of the training job.", default="",
+        ),
+        role=InputValidator(
+            input_type=str,
+            required=True,
+            description="The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.",
+        ),
+        image=InputValidator(
+            input_type=str,
+            description="The registry path of the Docker image that contains the training algorithm.",
+            default="",
+        ),
+        algorithm_name=InputValidator(
+            input_type=str,
+            description="The name of the resource algorithm to use for the training job. Do not specify a value for this if using training image.",
+            default="",
+        ),
+        metric_definitions=InputValidator(
+            input_type=SpecValidators.yaml_or_json_dict,
+            description="The dictionary of name-regex pairs specify the metrics that the algorithm emits.",
+            default={},
+        ),
+        training_input_mode=InputValidator(
+            choices=["File", "Pipe"],
+            input_type=str,
+            description="The input mode that the algorithm supports. File or Pipe.",
+            default="File",
+        ),
+        hyperparameters=InputValidator(
+            input_type=SpecValidators.yaml_or_json_dict,
+            description="Dictionary of hyperparameters for the the algorithm.",
+            default={},
+        ),
+        channels=InputValidator(
+            input_type=SpecValidators.yaml_or_json_list,
+            required=True,
+            description="A list of dicts specifying the input channels. Must have at least one.",
+        ),
+        instance_type=InputValidator(
+            input_type=str,
+            description="The ML compute instance type.",
+            default="ml.m4.xlarge",
+        ),
+        instance_count=InputValidator(
+            required=True,
+            input_type=int,
+            description="The registry path of the Docker image that contains the training algorithm.",
+            default=1,
+        ),
+        volume_size=InputValidator(
+            input_type=int,
+            required=True,
+            description="The size of the ML storage volume that you want to provision.",
+            default=30,
+        ),
+        resource_encryption_key=InputValidator(
+            input_type=str,
+            description="The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).",
+            default="",
+        ),
+        max_run_time=InputValidator(
+            input_type=int,
+            required=True,
+            description="The maximum run time in seconds for the training job.",
+            default=86400,
+        ),
+        model_artifact_path=InputValidator(
+            input_type=str,
+            required=True,
+            description="Identifies the S3 path where you want Amazon SageMaker to store the model artifacts.",
+        ),
+        output_encryption_key=InputValidator(
+            input_type=str,
+            description="The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts.",
+            default="",
+        ),
+        vpc_security_group_ids=InputValidator(
+            input_type=str,
+            description="The VPC security group IDs, in the form sg-xxxxxxxx.",
+        ),
+        vpc_subnets=InputValidator(
+            input_type=str,
+            description="The ID of the subnets in the VPC to which you want to connect your hpo job.",
+        ),
+        network_isolation=InputValidator(
+            input_type=SpecValidators.str_to_bool,
+            description="Isolates the training container.",
+            default=True,
+        ),
+        traffic_encryption=InputValidator(
+            input_type=SpecValidators.str_to_bool,
+            description="Encrypts all communications between ML compute instances in distributed training.",
+            default=False,
+        ),
+        **vars(COMMON_INPUTS),
+        **vars(SPOT_INSTANCE_INPUTS)
+    )
+
+    OUTPUTS = SageMakerTrainingOutputs(
+        model_artifact_url=OutputValidator(description="The model artifacts URL."),
+        job_name=OutputValidator(description="The training job name."),
+        training_image=OutputValidator(
+            description="The registry path of the Docker image that contains the training algorithm."
+        )
+    )
+
+    def __init__(self, arguments: List[str]):
+        super().__init__(arguments, SageMakerTrainingInputs, SageMakerTrainingOutputs)
+
+    @property
+    def inputs(self) -> SageMakerTrainingInputs:
+        return self._inputs
+
+    @property
+    def outputs(self) -> SageMakerTrainingOutputs:
+        return self._outputs

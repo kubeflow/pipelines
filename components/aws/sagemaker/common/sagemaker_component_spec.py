@@ -13,13 +13,35 @@ SageMakerComponents."""
 # limitations under the License.
 
 import argparse
+from dataclasses import dataclass
+from types import FunctionType
 
-from typing import Dict, Any, List
+from typing import (
+    Callable, Generic,
+    List,
+    NamedTuple,
+    NewType,
+    TypeVar,
+    Dict,
+    Optional,
+    Union,
+    Any,
+)
 
 from .spec_validators import SpecValidators
+from .common_inputs import (
+    SageMakerComponentBaseInputs,
+    SageMakerComponentBaseOutputs,
+    SageMakerComponentInputValidator,
+    SageMakerComponentOutputValidator,
+    SageMakerIOValue,
+)
+
+IT = TypeVar("IT", bound=SageMakerComponentBaseInputs)  # Input Type
+OT = TypeVar("OT", bound=SageMakerComponentBaseOutputs)  # Output Type
 
 
-class SageMakerComponentSpec(object):
+class SageMakerComponentSpec(Generic[IT, OT]):
     """Defines the set of inputs and outputs as expected for a
     SageMakerComponent.
 
@@ -29,58 +51,69 @@ class SageMakerComponentSpec(object):
     should have a corresponding ComponentSpec inheriting from this
     class and must override all private members:
 
-        - INPUTS (as a dict of string keys)
-        - OUTPUTS (also as a dict of string keys)
+        - INPUTS (as an inherited BaseInputs type)
+        - OUTPUTS (as an inherited BaseOutputs type)
 
     Typical usage example:
 
         class MySageMakerComponentSpec(SageMakerComponentSpec):
-            // TODO: Finish this example
-            INPUTS = {}
-            OUTPUTS = {}
+            INPUTS = MySageMakerComponentInputs
+            OUTPUTS = MySageMakerComponentOutputs
     """
 
     # These inputs apply to all components
-    INPUTS = {
-        "region": dict(
-            type=str, required=True, help="The region where the training job launches."
-        ),
-        "endpoint_url": dict(
-            type=SpecValidators.nullable_string_argument,
-            required=False,
-            help="The URL to use when communicating with the SageMaker service.",
-        ),
-    }
-    OUTPUTS = {}
+    INPUTS: IT = SageMakerComponentBaseInputs()
+    OUTPUTS: OT = SageMakerComponentBaseOutputs()
 
     OUTPUT_ARGUMENT_SUFFIX = "_output_path"
 
-    def __init__(self, arguments: List[str]):
+    def __init__(self, arguments: List[str], input_constructor: Callable, output_constructor: Callable):
         """Instantiates the spec with given user inputs.
 
         Args:
             arguments: A list of command line arguments
         """
+        self._validate_spec()
+
         parsed_args = self._parse_arguments(arguments)
 
         # Split results into inputs and outputs
-        self._inputs = {
-            key: value
-            for key, value in parsed_args.items()
-            if key in self.INPUTS.keys()
-        }
+        self._inputs: IT = input_constructor(
+            **{
+                key: SageMakerIOValue(value)
+                for key, value in parsed_args.items()
+                if key in self.INPUTS.__dict__.keys()
+            }
+        )
 
         # Map parsed keys (including suffix) to original output key name
         parsed_key_to_output_key = {
             f"{output_key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}": output_key
-            for output_key in self.OUTPUTS.keys()
+            for output_key in self.OUTPUTS.__dict__.keys()
         }
         # Fill outputs with original keys, but match based on parsed key name
-        self._outputs = {
-            parsed_key_to_output_key.get(key): value
-            for key, value in parsed_args.items()
-            if key in parsed_key_to_output_key.keys()
-        }
+        self._outputs: OT = output_constructor(
+            **{
+                parsed_key_to_output_key.get(key): value
+                for key, value in parsed_args.items()
+                if key in parsed_key_to_output_key.keys()
+            }
+        )
+
+    def _validate_spec(self):
+        """Ensures that all of the types given as inputs and outputs are validators."""
+        for key, val in self.INPUTS.__dict__.items():
+            if not isinstance(val, SageMakerComponentInputValidator):
+                raise ValueError(
+                    f"Input {key} is not of type {SageMakerComponentInputValidator.__name__}"
+                )
+
+        for key, val in self.OUTPUTS.__dict__.items():
+            if not isinstance(val, SageMakerComponentOutputValidator):
+                raise ValueError(
+                    f"Output {key} is not of type {SageMakerComponentOutputValidator.__name__}"
+                )
+        pass
 
     @property
     def _parser(self):
@@ -93,15 +126,15 @@ class SageMakerComponentSpec(object):
         parser = argparse.ArgumentParser()
 
         # Add each input and output to the parser
-        for key, props in self.INPUTS.items():
-            parser.add_argument(f"--{key}", **props)
-        for key, props in self.OUTPUTS.items():
+        for key, props in self.INPUTS.__dict__.items():
+            parser.add_argument(f"--{key}", **props.to_argparse_mapping())
+        for key, props in self.OUTPUTS.__dict__.items():
             # Outputs are appended with _output_path to differentiate them programatically
             parser.add_argument(
                 f"--{key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}",
                 default=f"/tmp/{key}",
                 type=str,
-                **props,
+                help=props.description,
             )
 
         return parser
@@ -120,9 +153,9 @@ class SageMakerComponentSpec(object):
         return vars(args)
 
     @property
-    def inputs(self) -> Dict[str, Any]:
+    def inputs(self) -> IT:
         return self._inputs
 
     @property
-    def outputs(self) -> Dict[str, str]:
+    def outputs(self) -> OT:
         return self._outputs
