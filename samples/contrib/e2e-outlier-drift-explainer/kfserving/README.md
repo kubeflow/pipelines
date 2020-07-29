@@ -1,6 +1,6 @@
 # KFServing End to End Deployment Examples
 
- * [CIFAR10 Image Classifier with Explainer, Outlier detector and drift detector](#cifar10-image-classification-model)
+ * [CIFAR10 Image Classifier with Explainer, Outlier Detector and Drift Detector](#cifar10-image-classification-model)
  * [Income Classifier with Explainer and Outlier Detector](#income-classification-model)
 
 ## Running Pipelines
