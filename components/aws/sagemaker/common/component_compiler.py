@@ -12,7 +12,8 @@
 # limitations under the License.
 
 import yaml
-from typing import Dict, Mapping, Type, Optional, Union, List, NamedTuple, TypedDict, cast
+from typing import Dict, Mapping, Type, Optional, Union, List, NamedTuple, cast
+from mypy_extensions import TypedDict
 
 from .sagemaker_component import SageMakerComponent
 from .sagemaker_component_spec import SageMakerComponentSpec, SageMakerComponentInputValidator, SageMakerComponentOutputValidator
@@ -122,8 +123,8 @@ class SageMakerComponentCompiler(object):
             # Add optional fields
             if input_validator.default:
                 input_spec["default"] = str(input_validator.default)
-            if input_validator.required:
-                input_spec["required"] = input_validator.required
+            # if input_validator.required:
+            #     input_spec["required"] = input_validator.required
             inputs.append(input_spec)
 
             # Add arguments to input list
