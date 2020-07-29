@@ -11,9 +11,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from typing import Dict, Type
+from sagemaker.amazon.amazon_estimator import get_image_uri
 
-from train.src.sagemaker_training_spec import SageMakerTrainingSpec
+from train.src.sagemaker_training_spec import (
+    SageMakerTrainingSpec,
+    SageMakerTrainingInputs,
+    SageMakerTrainingOutputs,
+)
 from common.sagemaker_component import (
     SageMakerComponent,
     ComponentMetadata,
@@ -29,15 +35,37 @@ from common.sagemaker_component import (
 class SageMakerTrainingComponent(SageMakerComponent):
     """SageMaker component for training."""
 
+    BUILT_IN_ALGOS = {
+        "blazingtext": "blazingtext",
+        "deepar forecasting": "forecasting-deepar",
+        "factorization machines": "factorization-machines",
+        "image classification": "image-classification",
+        "ip insights": "ipinsights",
+        "k-means": "kmeans",
+        "k-nearest neighbors": "knn",
+        "k-nn": "knn",
+        "lda": "lda",
+        "linear learner": "linear-learner",
+        "neural topic model": "ntm",
+        "object2vec": "object2vec",
+        "object detection": "object-detection",
+        "pca": "pca",
+        "random cut forest": "randomcutforest",
+        "semantic segmentation": "semantic-segmentation",
+        "sequence to sequence": "seq2seq",
+        "seq2seq modeling": "seq2seq",
+        "xgboost": "xgboost",
+    }
+
     def Do(self, spec: SageMakerTrainingSpec):
         self._training_job_name = (
-            spec.inputs.get("job_name")
-            if spec.inputs.get("job_name")
+            spec.inputs.job_name
+            if spec.inputs.job_name
             else SageMakerComponent._generate_unique_timestamped_id(
                 prefix="TrainingJob"
             )
         )
-        super().Do(spec)
+        super().Do(spec.inputs, spec.outputs)
 
     def _get_job_status(self) -> SageMakerJobStatus:
         response = self._sm_client.describe_training_job(
@@ -56,74 +84,81 @@ class SageMakerTrainingComponent(SageMakerComponent):
         return SageMakerJobStatus(is_completed=False)
 
     def _after_job_complete(
-        self, job: object, request: Dict, spec: SageMakerTrainingSpec
+        self,
+        job: object,
+        request: Dict,
+        inputs: SageMakerTrainingInputs,
+        outputs: SageMakerTrainingOutputs,
     ):
-        spec.outputs["job_name"] = self._training_job_name
-        spec.outputs["model_artifact_url"] = self._get_model_artifacts_from_job()
-        spec.outputs["training_image"] = self._get_image_from_job()
+        spec.outputs.job_name = self._training_job_name
+        spec.outputs.model_artifact_url = self._get_model_artifacts_from_job()
+        spec.outputs.training_image = self._get_image_from_job()
 
     def _on_job_terminated(self):
-        self._sm_client.stop_training_job(TrainingJobName=job_name)
+        self._sm_client.stop_training_job(TrainingJobName=self._training_job_name)
 
     def _print_logs_for_job(self):
-        self._print_cloudwatch_logs("/aws/sagemaker/TrainingJobs", job_name)
+        self._print_cloudwatch_logs(
+            "/aws/sagemaker/TrainingJobs", self._training_job_name
+        )
 
-    def _create_job_request(self, spec: SageMakerTrainingSpec) -> Dict:
+    def _create_job_request(
+        self, inputs: SageMakerTrainingInputs, outputs: SageMakerTrainingOutputs,
+    ) -> Dict:
         ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_training_job
         request = self._get_request_template("train")
 
         request["TrainingJobName"] = self._training_job_name
-        request["RoleArn"] = spec.inputs.get("role")
+        request["RoleArn"] = spec.inputs.role
         request["HyperParameters"] = self._create_hyperparameters(
-            spec.inputs.get("hyperparameters")
+            spec.inputs.hyperparameters
         )
-        request["AlgorithmSpecification"]["TrainingInputMode"] = spec.inputs.get(
-            "training_input_mode"
-        )
+        request["AlgorithmSpecification"][
+            "TrainingInputMode"
+        ] = spec.inputs.training_input_mode
 
         ### Update training image (for BYOC and built-in algorithms) or algorithm resource name
-        if not spec.inputs.get("image") and not spec.inputs.get("algorithm_name"):
+        if not spec.inputs.image and not spec.inputs.algorithm_name:
             logging.error("Please specify training image or algorithm name.")
             raise Exception("Could not create job request")
-        if spec.inputs.get("image") and spec.inputs.get("algorithm_name"):
+        if spec.inputs.image and spec.inputs.algorithm_name:
             logging.error(
                 "Both image and algorithm name inputted, only one should be specified. Proceeding with image."
             )
 
-        if spec.inputs.get("image"):
-            request["AlgorithmSpecification"]["TrainingImage"] = spec.inputs.get(
-                "image"
-            )
+        if spec.inputs.image:
+            request["AlgorithmSpecification"]["TrainingImage"] = spec.inputs.image
             request["AlgorithmSpecification"].pop("AlgorithmName")
         else:
             # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
-            algo_name = spec.inputs.get("algorithm_name").lower().strip()
-            if algo_name in built_in_algos.keys():
+            algo_name = spec.inputs.algorithm_name.lower().strip()
+            if algo_name in SageMakerTrainingComponent.BUILT_IN_ALGOS.keys():
                 request["AlgorithmSpecification"]["TrainingImage"] = get_image_uri(
-                    spec.inputs.get("region"), built_in_algos[algo_name]
+                    spec.inputs.region,
+                    SageMakerTrainingComponent.BUILT_IN_ALGOS[algo_name],
                 )
                 request["AlgorithmSpecification"].pop("AlgorithmName")
                 logging.warning(
                     "Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm."
                 )
             # Just to give the user more leeway for built-in algorithm name inputs
-            elif algo_name in built_in_algos.values():
+            elif algo_name in SageMakerTrainingComponent.BUILT_IN_ALGOS.values():
                 request["AlgorithmSpecification"]["TrainingImage"] = get_image_uri(
-                    spec.inputs.get("region"), algo_name
+                    spec.inputs.region, algo_name
                 )
                 request["AlgorithmSpecification"].pop("AlgorithmName")
                 logging.warning(
                     "Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm."
                 )
             else:
-                request["AlgorithmSpecification"]["AlgorithmName"] = spec.inputs.get(
-                    "algorithm_name"
-                )
+                request["AlgorithmSpecification"][
+                    "AlgorithmName"
+                ] = spec.inputs.algorithm_name
                 request["AlgorithmSpecification"].pop("TrainingImage")
 
         ### Update metric definitions
-        if spec.inputs.get("metric_definitions"):
-            for key, val in spec.inputs.get("metric_definitions").items():
+        if spec.inputs.metric_definitions:
+            for key, val in spec.inputs.metric_definitions.items():
                 request["AlgorithmSpecification"]["MetricDefinitions"].append(
                     {"Name": key, "Regex": val}
                 )
@@ -131,53 +166,47 @@ class SageMakerTrainingComponent(SageMakerComponent):
             request["AlgorithmSpecification"].pop("MetricDefinitions")
 
         ### Update or pop VPC configs
-        if spec.inputs.get("vpc_security_group_ids") and spec.inputs.get("vpc_subnets"):
-            request["VpcConfig"]["SecurityGroupIds"] = spec.inputs.get(
-                "vpc_security_group_ids"
-            ).split(",")
-            request["VpcConfig"]["Subnets"] = spec.inputs.get("vpc_subnets").split(",")
+        if spec.inputs.vpc_security_group_ids and spec.inputs.vpc_subnets:
+            request["VpcConfig"][
+                "SecurityGroupIds"
+            ] = spec.inputs.vpc_security_group_ids.split(",")
+            request["VpcConfig"]["Subnets"] = spec.inputs.vpc_subnets.split(",")
         else:
             request.pop("VpcConfig")
 
         ### Update input channels, must have at least one specified
-        if len(spec.inputs.get("channels")) > 0:
-            request["InputDataConfig"] = spec.inputs.get("channels")
+        if len(spec.inputs.channels) > 0:
+            request["InputDataConfig"] = spec.inputs.channels
         else:
             logging.error("Must specify at least one input channel.")
             raise Exception("Could not create job request")
 
-        request["OutputDataConfig"]["S3OutputPath"] = spec.inputs.get(
-            "model_artifact_path"
-        )
-        request["OutputDataConfig"]["KmsKeyId"] = spec.inputs.get(
-            "output_encryption_key"
-        )
-        request["ResourceConfig"]["InstanceType"] = spec.inputs.get("instance_type")
-        request["ResourceConfig"]["VolumeKmsKeyId"] = spec.inputs.get(
-            "resource_encryption_key"
-        )
-        request["EnableNetworkIsolation"] = spec.inputs.get("network_isolation")
-        request["EnableInterContainerTrafficEncryption"] = spec.inputs.get(
-            "traffic_encryption"
-        )
+        request["OutputDataConfig"]["S3OutputPath"] = spec.inputs.model_artifact_path
+        request["OutputDataConfig"]["KmsKeyId"] = spec.inputs.output_encryption_key
+        request["ResourceConfig"]["InstanceType"] = spec.inputs.instance_type
+        request["ResourceConfig"][
+            "VolumeKmsKeyId"
+        ] = spec.inputs.resource_encryption_key
+        request["EnableNetworkIsolation"] = spec.inputs.network_isolation
+        request[
+            "EnableInterContainerTrafficEncryption"
+        ] = spec.inputs.traffic_encryption
 
         ### Update InstanceCount, VolumeSizeInGB, and MaxRuntimeInSeconds if input is non-empty and > 0, otherwise use default values
-        if spec.inputs.get("instance_count"):
-            request["ResourceConfig"]["InstanceCount"] = spec.inputs.get(
-                "instance_count"
-            )
+        if spec.inputs.instance_count:
+            request["ResourceConfig"]["InstanceCount"] = spec.inputs.instance_count
 
-        if spec.inputs.get("volume_size"):
-            request["ResourceConfig"]["VolumeSizeInGB"] = spec.inputs.get("volume_size")
+        if spec.inputs.volume_size:
+            request["ResourceConfig"]["VolumeSizeInGB"] = spec.inputs.volume_size
 
-        if spec.inputs.get("max_run_time"):
-            request["StoppingCondition"]["MaxRuntimeInSeconds"] = spec.inputs.get(
-                "max_run_time"
-            )
+        if spec.inputs.max_run_time:
+            request["StoppingCondition"][
+                "MaxRuntimeInSeconds"
+            ] = spec.inputs.max_run_time
 
-        self._enable_spot_instance_support(request, spec)
+        self._enable_spot_instance_support(request, spec.inputs)
 
-        for key, val in spec.inputs.get("tags", {}).items():
+        for key, val in spec.inputs.tags.items():
             request["Tags"].append({"Key": key, "Value": val})
 
         return request
@@ -185,20 +214,18 @@ class SageMakerTrainingComponent(SageMakerComponent):
     def _submit_job_request(self, request: Dict):
         self._sm_client.create_training_job(**request)
 
-    def _after_submit_job_request(self, spec: SageMakerTrainingSpec):
+    def _after_submit_job_request(
+        self, inputs: SageMakerTrainingInputs, outputs: SageMakerTrainingOutputs,
+    ):
         logging.info(f"Created Training Job with name: {self._training_job_name}")
         logging.info(
             "Training job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/jobs/{}".format(
-                spec.inputs.get("region"),
-                spec.inputs.get("region"),
-                self._training_job_name,
+                spec.inputs.region, spec.inputs.region, self._training_job_name,
             )
         )
         logging.info(
             "CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/TrainingJobs;prefix={};streamFilter=typeLogStreamPrefix".format(
-                spec.inputs.get("region"),
-                spec.inputs.get("region"),
-                self._training_job_name,
+                spec.inputs.region, spec.inputs.region, self._training_job_name,
             )
         )
 

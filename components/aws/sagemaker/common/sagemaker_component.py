@@ -18,21 +18,28 @@ import signal
 import string
 import logging
 import json
+from types import FunctionType
 import yaml
 import random
+from pathlib import Path
 from time import strftime, gmtime
 from abc import abstractmethod
-from typing import Type, Dict, List, NamedTuple
+from typing import Any, Type, Dict, List, NamedTuple, Optional
 
 from .sagemaker_component_spec import SageMakerComponentSpec
 from .boto3_manager import Boto3Manager
+from .common_inputs import (
+    SageMakerComponentBaseOutputs,
+    SageMakerComponentCommonInputs,
+    SpotInstanceInputs,
+)
 
 # This handler is called whenever the @ComponentMetadata is applied.
 # It allows the command line compiler to detect every component spec class.
-_component_decorator_handler = None
+_component_decorator_handler: Optional[FunctionType] = None
 
 
-def ComponentMetadata(name: str, description: str, spec: Type[SageMakerComponentSpec]):
+def ComponentMetadata(name: str, description: str, spec: object):
     """Decorator for SageMaker components.
 
     Usage:
@@ -62,7 +69,7 @@ class SageMakerJobStatus(NamedTuple):
 
     is_completed: bool
     has_error: bool = False
-    error_message: str = None
+    error_message: Optional[str] = None
 
 
 class SageMakerComponent(object):
@@ -93,42 +100,48 @@ class SageMakerComponent(object):
     def _initialize_logging(self):
         logging.getLogger().setLevel(logging.INFO)
 
-    def Do(self, spec: SageMakerComponentSpec):
-        self._spec = spec
-
+    def Do(
+        self,
+        inputs: SageMakerComponentCommonInputs,
+        outputs: SageMakerComponentBaseOutputs,
+    ):
         # Global try-catch in order to allow for safe abort
         try:
             self._sm_client = Boto3Manager.get_sagemaker_client(
-                self._get_component_version(), spec.inputs.get("region"), endpoint_url=spec.inputs.get("endpoint_url")
+                self._get_component_version(),
+                inputs.region,
+                endpoint_url=inputs.endpoint_url,
             )
-            self._cw_client = Boto3Manager.get_cloudwatch_client(
-                spec.inputs.get("region")
-            )
+            self._cw_client = Boto3Manager.get_cloudwatch_client(inputs.region)
 
             # Successful execution
-            if not self._do(spec):
+            if not self._do(inputs, outputs):
                 sys.exit(1)
         except Exception as e:
             logging.exception("An error occurred while running the component")
 
-    def _do(self, spec: SageMakerComponentSpec) -> bool:
+    def _do(
+        self,
+        inputs: SageMakerComponentCommonInputs,
+        outputs: SageMakerComponentBaseOutputs,
+    ) -> bool:
         # Set up SIGTERM handling
         def signal_term_handler(signalNumber, frame):
             self._on_job_terminated()
 
         signal.signal(signal.SIGTERM, signal_term_handler)
 
-        request = self._create_job_request(spec)
+        request = self._create_job_request(inputs, outputs)
         try:
             job = self._submit_job_request(request)
-            self._after_submit_job_request(job, spec)
+            self._after_submit_job_request(job, inputs, outputs)
         except Exception as e:
             logging.exception(
                 "An error occurred while attempting to submit the request"
             )
             return False
 
-        status: SageMakerJobStatus = None
+        status: Optional[SageMakerJobStatus] = None
         try:
             # Continue until complete
             while (not status) or (not status.is_completed):
@@ -143,8 +156,8 @@ class SageMakerComponent(object):
             logging.error(status.error_message)
             return False
 
-        self._after_job_complete(job, request, spec)
-        self._write_all_outputs(spec.outputs)
+        self._after_job_complete(job, request, inputs, outputs)
+        self._write_all_outputs(outputs)
 
         return True
 
@@ -158,7 +171,11 @@ class SageMakerComponent(object):
         pass
 
     @abstractmethod
-    def _create_job_request(self, spec: Dict) -> Dict:
+    def _create_job_request(
+        self,
+        inputs: SageMakerComponentCommonInputs,
+        outputs: SageMakerComponentBaseOutputs,
+    ) -> Dict:
         """Creates the boto3 request object to execute the component.
 
         Args:
@@ -188,7 +205,12 @@ class SageMakerComponent(object):
         pass
 
     @abstractmethod
-    def _after_submit_job_request(self, job: object, spec: Dict):
+    def _after_submit_job_request(
+        self,
+        job: object,
+        inputs: SageMakerComponentCommonInputs,
+        outputs: SageMakerComponentBaseOutputs,
+    ):
         """Handles any events required after submitting a job to SageMaker.
 
         Args:
@@ -198,7 +220,13 @@ class SageMakerComponent(object):
         pass
 
     @abstractmethod
-    def _after_job_complete(self, job: object, request: Dict, spec: Dict):
+    def _after_job_complete(
+        self,
+        job: object,
+        request: Dict,
+        inputs: SageMakerComponentCommonInputs,
+        outputs: SageMakerComponentBaseOutputs,
+    ):
         """Handles any events after the job has been completed.
 
         Args:
@@ -231,32 +259,36 @@ class SageMakerComponent(object):
         return f'{prefix}-{strftime("%Y%m%d%H%M%S", gmtime())}-{unique}'
 
     @staticmethod
-    def _enable_spot_instance_support(request: Dict, spec: Dict):
+    def _enable_spot_instance_support(
+        request: Dict,
+        inputs: SpotInstanceInputs,
+    ):
         """Modifies a request object to add support for spot instance fields.
 
         Args:
             request: A request object to modify.
             spec: A component spec object containing the inputs.
         """
-        if spec.inputs.get("spot_instance"):
-            request["EnableManagedSpotTraining"] = spec.inputs.get("spot_instance")
+        if inputs.spot_instance:
+            request["EnableManagedSpotTraining"] = inputs.spot_instance
             if (
-                spec.inputs.get("max_wait_time")
+                inputs.max_wait_time
                 >= request["StoppingCondition"]["MaxRuntimeInSeconds"]
             ):
                 request["StoppingCondition"][
                     "MaxWaitTimeInSeconds"
-                ] = spec.inputs.get("max_wait_time")
+                ] = inputs.max_wait_time
             else:
                 logging.error(
                     "Max wait time must be greater than or equal to max run time."
                 )
                 raise Exception("Could not create job request.")
 
-            if spec.inputs.get("checkpoint_config") and "S3Uri" in spec.inputs.get(
-                "checkpoint_config"
+            if (
+                inputs.checkpoint_config
+                and "S3Uri" in inputs.checkpoint_config
             ):
-                request["CheckpointConfig"] = spec.inputs.get("checkpoint_config")
+                request["CheckpointConfig"] = inputs.checkpoint_config
             else:
                 logging.error(
                     "EnableManagedSpotTraining requires checkpoint config with an S3 uri."
@@ -280,18 +312,20 @@ class SageMakerComponent(object):
         # Validate all values are strings
         for key, value in hyperparam_args.items():
             if not isinstance(value, str):
-                raise Exception(f"Could not parse hyperparameters. Value for {key} was not a string.")
+                raise Exception(
+                    f"Could not parse hyperparameters. Value for {key} was not a string."
+                )
 
         return hyperparam_args
 
-    def _write_all_outputs(self, outputs: Dict):
-        for output_key, output_path in self.COMPONENT_SPEC.OUTPUTS.items():
-            if output_key not in outputs.keys():
+    def _write_all_outputs(self, outputs: SageMakerComponentBaseOutputs):
+        for output_key, output_path in self.COMPONENT_SPEC.OUTPUTS.__dict__.items():
+            if output_key not in outputs.__dict__.keys():
                 # Warn user that an output might be empty
                 logging.error(f"No output defined for {output_key}")
                 continue
 
-            output_value = outputs[output_key]
+            output_value = outputs.__dict__.get(output_key)
             # Encode it if it's a List or Dict (not primitive)
             encoded_types = (List, Dict)
             self._write_output(
@@ -301,7 +335,7 @@ class SageMakerComponent(object):
             )
 
     def _write_output(
-        self, output_path: str, output_value: str, json_encode: bool = False
+        self, output_path: str, output_value: Any, json_encode: bool = False
     ):
         """Write an output value to the associated path, dumping as a JSON object
         if specified.
@@ -327,7 +361,9 @@ class SageMakerComponent(object):
 
         # Get license file using known common directory
         license_file_path = os.path.abspath(
-            os.path.join(SageMakerComponent._get_common_path(), "../THIRD-PARTY-LICENSES.txt")
+            os.path.join(
+                SageMakerComponent._get_common_path(), "../THIRD-PARTY-LICENSES.txt"
+            )
         )
         with open(license_file_path, "r") as license_file:
             version_match = re.search(
@@ -349,18 +385,20 @@ class SageMakerComponent(object):
         return os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
     @staticmethod
-    def _get_request_template(template_name: str) -> object:
+    def _get_request_template(template_name: str) -> Dict[str, Any]:
         """Loads and returns a template file as a Python construct.
 
         Args:
             template_name: The name corresponding to the template file to load.
 
         Returns:
-            object: A Python construct created by loading the template file.
+            dict: A Python construct created by loading the template file.
         """
         with open(
             os.path.join(
-                SageMakerComponent._get_common_path(), "templates", f"{template_name}.template.yaml"
+                SageMakerComponent._get_common_path(),
+                "templates",
+                f"{template_name}.template.yaml",
             ),
             "r",
         ) as f:

@@ -12,62 +12,66 @@
 # limitations under the License.
 
 import yaml
-from typing import Type, Optional, Union, List, NamedTuple
-from mypy_extensions import TypedDict
+from typing import Dict, Mapping, Type, Optional, Union, List, NamedTuple, TypedDict, cast
 
 from .sagemaker_component import SageMakerComponent
-from .sagemaker_component_spec import SageMakerComponentSpec
+from .sagemaker_component_spec import SageMakerComponentSpec, SageMakerComponentInputValidator, SageMakerComponentOutputValidator
 from .spec_validators import SpecValidators
 
+
+class InputSpec(TypedDict, total=False):
+    name: str
+    description: str
+    type: str
+    default: Optional[str]
+    required: Optional[bool]
+
+
+class OutputSpec(TypedDict):
+    name: str
+    description: str
+
+
+
+class ArgumentValueSpec(TypedDict):
+    inputValue: str
+
+class ContainerSpec(TypedDict):
+
+    image: str
+    command: List[str]
+    args: List[Union[str, ArgumentValueSpec]]
+
+class ImplementationSpec(TypedDict):
+
+    container: ContainerSpec
 
 class ComponentSpec(TypedDict):
     """Defines the structure of a KFP `component.yaml` file."""
 
-    class InputSpec(TypedDict, total=False):
-        name: str
-        description: str
-        type: str
-        default: Optional[str]
-        required: Optional[bool]
-
-    class OutputSpec(TypedDict):
-        name: str
-        description: str
-
-    class ImplementationSpec(TypedDict):
-        class ContainerSpec(TypedDict):
-            class ArgumentValueSpec(TypedDict):
-                inputValue: str
-
-            image: str
-            command: List[str]
-            args: List[Union[str, Type[ArgumentValueSpec]]]
-
-        container: Type[ContainerSpec]
-
     name: str
     description: str
-    inputs: List[Type[InputSpec]]
-    outputs: List[Type[OutputSpec]]
-    implementation: Type[ImplementationSpec]
+    inputs: List[InputSpec]
+    outputs: List[OutputSpec]
+    implementation: ImplementationSpec
 
 
 class IOArgs(NamedTuple):
     """Represents a structure that fills in a YAML spec inputs/outputs and
     provides the associated container args."""
 
-    inputs: List[ComponentSpec.InputSpec]
-    outputs: List[ComponentSpec.OutputSpec]
+    inputs: List[InputSpec]
+    outputs: List[OutputSpec]
     args: List[
         Union[
-            str, Type[ComponentSpec.ImplementationSpec.ContainerSpec.ArgumentValueSpec]
+            str, ArgumentValueSpec
         ]
     ]
 
 
 class SageMakerComponentCompiler(object):
     # Maps all Python argument parser types to their associated KFP input types
-    KFP_TYPE_FROM_ARGS = {
+    KFP_TYPE_FROM_ARGS: Dict[object, str] = {
         str: "String",
         int: "Integer",
         bool: "Bool",
@@ -83,11 +87,14 @@ class SageMakerComponentCompiler(object):
         component_file_path: str,
         output_path: str,
         component_image_uri: str,
-        component_image_tag: str
+        component_image_tag: str,
     ):
         """Creates a component YAML specification and writes it to file."""
         component_spec = SageMakerComponentCompiler._create_component_spec(
-            component_def, component_file_path, component_image_uri=component_image_uri, component_image_tag=component_image_tag
+            component_def,
+            component_file_path,
+            component_image_uri=component_image_uri,
+            component_image_tag=component_image_tag,
         )
         SageMakerComponentCompiler._write_component(component_spec, output_path)
 
@@ -100,40 +107,43 @@ class SageMakerComponentCompiler(object):
         args = []
 
         # Iterate through all inputs adding them to the argument list
-        for key, _input in spec.INPUTS.items():
+        for key, _input in spec.INPUTS.__dict__.items():
+            # We know all of these values are validators as we have validated the spec
+            input_validator: SageMakerComponentInputValidator = cast(SageMakerComponentInputValidator, _input)
             # Map from argsparser to KFP component
-            input_spec = ComponentSpec.InputSpec(
+            input_spec = InputSpec(
                 name=key,
-                description=_input.get("help"),
+                description=input_validator.description,
                 type=SageMakerComponentCompiler.KFP_TYPE_FROM_ARGS.get(
-                    _input.get("type")
+                    input_validator.input_type, "String"
                 ),
             )
 
             # Add optional fields
-            if "default" in _input:
-                input_spec["default"] = _input.get("default")
-            if "required" in _input:
-                input_spec["required"] = _input.get("required")
+            if input_validator.default:
+                input_spec["default"] = str(input_validator.default)
+            if input_validator.required:
+                input_spec["required"] = input_validator.required
             inputs.append(input_spec)
 
             # Add arguments to input list
             args.append(f"--{key}")
             args.append(
-                ComponentSpec.ImplementationSpec.ContainerSpec.ArgumentValueSpec(
+                ArgumentValueSpec(
                     inputValue=key
                 )
             )
 
-        for key, _output in spec.OUTPUTS.items():
+        for key, _output in spec.OUTPUTS.__dict__.items():
+            output_validator: SageMakerComponentOutputValidator = cast(SageMakerComponentOutputValidator, _output)
             outputs.append(
-                ComponentSpec.OutputSpec(name=key, description=_output.get("help"))
+                OutputSpec(name=key, description=output_validator.description)
             )
 
             # Add arguments to input list
             args.append(f"--{key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}")
             args.append(
-                ComponentSpec.ImplementationSpec.ContainerSpec.ArgumentValueSpec(
+                ArgumentValueSpec(
                     inputValue=key
                 )
             )
@@ -158,11 +168,11 @@ class SageMakerComponentCompiler(object):
             description=component_def.COMPONENT_DESCRIPTION,
             inputs=io_args.inputs,
             outputs=io_args.outputs,
-            implementation=ComponentSpec.ImplementationSpec(
-                container=ComponentSpec.ImplementationSpec.ContainerSpec(
+            implementation=ImplementationSpec(
+                container=ContainerSpec(
                     image=f"{component_image_uri}:{component_image_tag}",
                     command=["python3"],
-                    args=[component_file_path,] + io_args.args,
+                    args=[component_file_path,] + io_args.args, # type: ignore
                 )
             ),
         )
