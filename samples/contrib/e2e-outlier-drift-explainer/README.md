@@ -26,7 +26,7 @@ helm install nfs-cp stable/nfs-client-provisioner --set nfs.server=${FSADDR} --s
 kubectl rollout status  deploy/nfs-cp-nfs-client-provisioner -n kubeflow
 ```
 
-If you build the pipeline python using Kale from the notebook you will at present need to modify the created pyhton and change the Kale `VolumeOp` by adding a `storage_class` for the NFS PV, for example:
+If you build the pipeline Python DSL using Kale from the notebook you will at present need to modify the created pyhton and change the Kale `VolumeOp` by adding a `storage_class` for the NFS PV, for example:
 
 ```
 marshal_vop = dsl.VolumeOp(
