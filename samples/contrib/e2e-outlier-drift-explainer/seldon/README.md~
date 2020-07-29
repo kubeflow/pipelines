@@ -1,6 +1,0 @@
-## Seldon End to End Deployment Examples
-
- * Seldon CIFAR10 Image Model with deployed explainer, outlier detector and drift detector
-    [kale annotated Jupyter Notebook](seldon_e2e_cifar10.ipynb)
-    [Pipeline](seldon_e2e_cifar10.kale.py)
-    

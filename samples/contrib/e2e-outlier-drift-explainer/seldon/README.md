@@ -16,8 +16,10 @@
 
  * Seldon CIFAR10 Image Model with deployed explainer, outlier detector and drift detector
     * [Kale annotated Jupyter Notebook](./seldon_e2e_cifar10.ipynb)
-    * [Pipeline](./seldon_e2e_cifar10.kale.py)
+    * [Pipeline](./seldon_e2e_cifar10.kale.nfs.py)
       * Assumes `storage_class="nfs-client"`
+    * [Pipeline](./seldon_e2e_cifar10.kale.default.py)
+      * Assumes a ReadWriteMany PVC will succeed on your cluster      
 
 ![pipeline](cifar10-pipeline.png)
 
@@ -53,8 +55,10 @@ This example illustrates a simple tabular data use case built on [demographic fe
 
  * Seldon Income Classification Model with deployed explainer and outlier detector
     * [Kale annotated Jupyter Notebook](./seldon_e2e_adult.ipynb)
-    * [Pipeline](./seldon_e2e_adult.kale.py)
+    * [Pipeline](./seldon_e2e_adult.kale.nfs.py)
       * Assumes `storage_class="nfs-client"`
+    * [Pipeline](./seldon_e2e_adult.kale.default.py)
+      * Assumes a ReadWriteMany PVC will succeed on your cluster      
 
 ![income pipeline](income-pipeline.png)
 
