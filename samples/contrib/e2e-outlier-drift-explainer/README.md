@@ -1,4 +1,4 @@
-# End to end Deployments with Drift, Outlier and Explainers
+# Build, Train and Deploy with Drift, Outlier Detectors and Explainers enabled on KFServing and Seldon
 
 These examples show how to build a model and then deploy with [KFServing](https://github.com/kubeflow/kfserving) or [Seldon Core](https://github.com/SeldonIO/seldon-core) with model explainers, drift detectors and outlier detectors. The pipelines are built using [Kale](https://github.com/kubeflow-kale/kale).
 
