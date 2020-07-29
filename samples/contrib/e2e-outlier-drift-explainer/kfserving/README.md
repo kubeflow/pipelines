@@ -14,7 +14,7 @@
 
 ## CIFAR10 Image Classification Model
 
- * Seldon CIFAR10 Image Model with deployed explainer, outlier detector and drift detector
+ * Tensorflow CIFAR10 Image Model with deployed explainer, outlier detector and drift detector
     * [Kale annotated Jupyter Notebook](./kfserving_e2e_cifar10.ipynb)
     * [Pipeline](./kfserving_e2e_cifar10.kale.py)
       * Assumes `storage_class="nfs-client"`
@@ -24,7 +24,7 @@
 
 ### Model Deployment and Predictions
 
-Deploy a trained Tensorflow model and call the Seldon API to get predictions.
+Deploy a trained Tensorflow model and call the KFServing API to get predictions.
 
 ![cifar10 prediction](cifar10-prediction.png)
 
