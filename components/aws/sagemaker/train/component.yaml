@@ -4,116 +4,161 @@ implementation:
     args:
     - sagemaker_training_component.py
     - --spot_instance
-    - {inputValue: spot_instance}
+    - inputValue: spot_instance
     - --max_wait_time
-    - {inputValue: max_wait_time}
+    - inputValue: max_wait_time
     - --checkpoint_config
-    - {inputValue: checkpoint_config}
+    - inputValue: checkpoint_config
     - --region
-    - {inputValue: region}
+    - inputValue: region
     - --endpoint_url
-    - {inputValue: endpoint_url}
+    - inputValue: endpoint_url
     - --tags
-    - {inputValue: tags}
+    - inputValue: tags
     - --job_name
-    - {inputValue: job_name}
+    - inputValue: job_name
     - --role
-    - {inputValue: role}
+    - inputValue: role
     - --image
-    - {inputValue: image}
+    - inputValue: image
     - --algorithm_name
-    - {inputValue: algorithm_name}
+    - inputValue: algorithm_name
     - --metric_definitions
-    - {inputValue: metric_definitions}
+    - inputValue: metric_definitions
     - --training_input_mode
-    - {inputValue: training_input_mode}
+    - inputValue: training_input_mode
     - --hyperparameters
-    - {inputValue: hyperparameters}
+    - inputValue: hyperparameters
     - --channels
-    - {inputValue: channels}
+    - inputValue: channels
     - --instance_type
-    - {inputValue: instance_type}
+    - inputValue: instance_type
     - --instance_count
-    - {inputValue: instance_count}
+    - inputValue: instance_count
     - --volume_size
-    - {inputValue: volume_size}
+    - inputValue: volume_size
     - --resource_encryption_key
-    - {inputValue: resource_encryption_key}
+    - inputValue: resource_encryption_key
     - --max_run_time
-    - {inputValue: max_run_time}
+    - inputValue: max_run_time
     - --model_artifact_path
-    - {inputValue: model_artifact_path}
+    - inputValue: model_artifact_path
     - --output_encryption_key
-    - {inputValue: output_encryption_key}
+    - inputValue: output_encryption_key
     - --vpc_security_group_ids
-    - {inputValue: vpc_security_group_ids}
+    - inputValue: vpc_security_group_ids
     - --vpc_subnets
-    - {inputValue: vpc_subnets}
+    - inputValue: vpc_subnets
     - --network_isolation
-    - {inputValue: network_isolation}
+    - inputValue: network_isolation
     - --traffic_encryption
-    - {inputValue: traffic_encryption}
+    - inputValue: traffic_encryption
     - --model_artifact_url_output_path
-    - {inputValue: model_artifact_url}
+    - inputValue: model_artifact_url
     - --job_name_output_path
-    - {inputValue: job_name}
+    - inputValue: job_name
     - --training_image_output_path
-    - {inputValue: training_image}
-    command: [python3]
-    image: amazon/aws-sagemaker-kfp-components:v0.6.2
+    - inputValue: training_image
+    command:
+    - python3
+    image: redbackthomson/aws-kubeflow-sagemaker:latest
 inputs:
-- {description: Use managed spot training., name: spot_instance, type: Bool}
-- {default: '86400', description: The maximum time in seconds you are willing to wait
-    for a managed spot training job to complete., name: max_wait_time, type: Integer}
-- {description: Dictionary of information about the output location for managed spot
-    training checkpoint data., name: checkpoint_config, type: JsonObject}
-- {description: The region where the training job launches., name: region, required: true,
-  type: String}
-- {description: The URL to use when communicating with the SageMaker service., name: endpoint_url,
-  type: String}
-- {description: 'An array of key-value pairs, to categorize AWS resources.', name: tags,
-  type: JsonObject}
-- {description: The name of the training job., name: job_name, type: String}
-- {description: The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform
-    tasks on your behalf., name: role, required: true, type: String}
-- {description: The registry path of the Docker image that contains the training algorithm.,
-  name: image, type: String}
-- {description: The name of the resource algorithm to use for the training job. Do
-    not specify a value for this if using training image., name: algorithm_name, type: String}
-- {description: The dictionary of name-regex pairs specify the metrics that the algorithm
-    emits., name: metric_definitions, type: JsonObject}
-- {default: File, description: The input mode that the algorithm supports. File or
-    Pipe., name: training_input_mode, type: String}
-- {description: Dictionary of hyperparameters for the the algorithm., name: hyperparameters,
-  type: JsonObject}
-- {description: A list of dicts specifying the input channels. Must have at least
-    one., name: channels, required: true, type: JsonArray}
-- {default: ml.m4.xlarge, description: The ML compute instance type., name: instance_type,
-  type: String}
-- {default: '1', description: The registry path of the Docker image that contains
-    the training algorithm., name: instance_count, required: true, type: Integer}
-- {default: '30', description: The size of the ML storage volume that you want to
-    provision., name: volume_size, required: true, type: Integer}
-- {description: The AWS KMS key that Amazon SageMaker uses to encrypt data on the
-    storage volume attached to the ML compute instance(s)., name: resource_encryption_key,
-  type: String}
-- {default: '86400', description: The maximum run time in seconds for the training
-    job., name: max_run_time, required: true, type: Integer}
-- {description: Identifies the S3 path where you want Amazon SageMaker to store the
-    model artifacts., name: model_artifact_path, required: true, type: String}
-- {description: The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts.,
-  name: output_encryption_key, type: String}
-- {description: 'The VPC security group IDs, in the form sg-xxxxxxxx.', name: vpc_security_group_ids,
-  type: String}
-- {description: The ID of the subnets in the VPC to which you want to connect your
-    hpo job., name: vpc_subnets, type: String}
-- {default: 'True', description: Isolates the training container., name: network_isolation,
-  type: Bool}
-- {description: Encrypts all communications between ML compute instances in distributed
-    training., name: traffic_encryption, type: Bool}
+- description: Use managed spot training.
+  name: spot_instance
+  type: Bool
+- default: '86400'
+  description: The maximum time in seconds you are willing to wait for a managed spot
+    training job to complete.
+  name: max_wait_time
+  type: Integer
+- description: Dictionary of information about the output location for managed spot
+    training checkpoint data.
+  name: checkpoint_config
+  type: JsonObject
+- description: The region where the training job launches.
+  name: region
+  type: String
+- description: The URL to use when communicating with the SageMaker service.
+  name: endpoint_url
+  type: String
+- description: An array of key-value pairs, to categorize AWS resources.
+  name: tags
+  type: JsonObject
+- description: The name of the training job.
+  name: job_name
+  type: String
+- description: The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform
+    tasks on your behalf.
+  name: role
+  type: String
+- description: The registry path of the Docker image that contains the training algorithm.
+  name: image
+  type: String
+- description: The name of the resource algorithm to use for the training job. Do
+    not specify a value for this if using training image.
+  name: algorithm_name
+  type: String
+- description: The dictionary of name-regex pairs specify the metrics that the algorithm
+    emits.
+  name: metric_definitions
+  type: JsonObject
+- default: File
+  description: The input mode that the algorithm supports. File or Pipe.
+  name: training_input_mode
+  type: String
+- description: Dictionary of hyperparameters for the the algorithm.
+  name: hyperparameters
+  type: JsonObject
+- description: A list of dicts specifying the input channels. Must have at least one.
+  name: channels
+  type: JsonArray
+- default: ml.m4.xlarge
+  description: The ML compute instance type.
+  name: instance_type
+  type: String
+- default: '1'
+  description: The registry path of the Docker image that contains the training algorithm.
+  name: instance_count
+  type: Integer
+- default: '30'
+  description: The size of the ML storage volume that you want to provision.
+  name: volume_size
+  type: Integer
+- description: The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage
+    volume attached to the ML compute instance(s).
+  name: resource_encryption_key
+  type: String
+- default: '86400'
+  description: The maximum run time in seconds for the training job.
+  name: max_run_time
+  type: Integer
+- description: Identifies the S3 path where you want Amazon SageMaker to store the
+    model artifacts.
+  name: model_artifact_path
+  type: String
+- description: The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts.
+  name: output_encryption_key
+  type: String
+- description: The VPC security group IDs, in the form sg-xxxxxxxx.
+  name: vpc_security_group_ids
+  type: String
+- description: The ID of the subnets in the VPC to which you want to connect your
+    hpo job.
+  name: vpc_subnets
+  type: String
+- default: 'True'
+  description: Isolates the training container.
+  name: network_isolation
+  type: Bool
+- description: Encrypts all communications between ML compute instances in distributed
+    training.
+  name: traffic_encryption
+  type: Bool
 name: SageMaker - Training Job
 outputs:
-- {description: The model artifacts URL., name: model_artifact_url}
-- {description: The training job name., name: job_name}
-- {description: The registry path of the Docker image that contains the training algorithm.,
-  name: training_image}
+- description: The model artifacts URL.
+  name: model_artifact_url
+- description: The training job name.
+  name: job_name
+- description: The registry path of the Docker image that contains the training algorithm.
+  name: training_image
