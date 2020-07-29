@@ -24,7 +24,7 @@
 
 ### Model Deployment and Predictions
 
-Deploy a trained tensorflow model and call the Seldon API to get predictions.
+Deploy a trained Tensorflow model and call the Seldon API to get predictions.
 
 ![cifar10 prediction](cifar10-prediction.png)
 
