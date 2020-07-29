@@ -1207,22 +1207,23 @@ def test_oulier_detection(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HO
     '''
 
     block5 = '''
-    test_example=X_mask.tolist()
-    payload='{"instances":'+f"{test_example}"+' }'
-    cmd=f"""curl -d '{payload}' \\
-       http://cifar10-classifier-default.{DEPLOY_NAMESPACE}:8000/v1/models/classifier/:predict \\
-       -H "Content-Type: application/json"
-    """
-    ret = Popen(cmd, shell=True,stdout=PIPE)
-    raw = ret.stdout.read().decode("utf-8")
-    print(raw)
-    res=json.loads(raw)
-    arr=np.array(res["predictions"])
-    plt.imshow(X_mask.reshape(32, 32, 3))
-    plt.axis('off')
-    plt.show()
-    print("class:",class_names[y_train[idx][0]])
-    print("prediction:",class_names[arr[0].argmax()])
+    def predict():
+        test_example=X_mask.tolist()
+        payload='{"instances":'+f"{test_example}"+' }'
+        cmd=f"""curl -d '{payload}' \\
+           http://cifar10-classifier-default.{DEPLOY_NAMESPACE}:8000/v1/models/classifier/:predict \\
+           -H "Content-Type: application/json"
+        """
+        ret = Popen(cmd, shell=True,stdout=PIPE)
+        raw = ret.stdout.read().decode("utf-8")
+        print(raw)
+        res=json.loads(raw)
+        arr=np.array(res["predictions"])
+        plt.imshow(X_mask.reshape(32, 32, 3))
+        plt.axis('off')
+        plt.show()
+        print("class:",class_names[y_train[idx][0]])
+        print("prediction:",class_names[arr[0].argmax()])
     '''
 
     block6 = '''
@@ -1242,6 +1243,7 @@ def test_oulier_detection(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HO
             return None
     j = None
     while j is None:
+        predict()
         print("Waiting for outlier logs, sleeping")
         time.sleep(2)
         j = get_outlier_event_display_logs()
@@ -1502,12 +1504,6 @@ def test_drift_detector(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HOST
     '''
 
     block7 = '''
-    for i in tqdm(range(0,1000,50)):
-        X = X_corr[i:i+50]
-        predict(X)
-    '''
-
-    block8 = '''
     def get_drift_event_display_logs():
         cmd=f"kubectl logs $(kubectl get pod -l app=event-display -o jsonpath='{{.items[0].metadata.name}}' -n {DEPLOY_NAMESPACE}) -n {DEPLOY_NAMESPACE}"
         ret = Popen(cmd, shell=True,stdout=PIPE)
@@ -1523,16 +1519,20 @@ def test_drift_detector(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HOST
         else:
             return None
     j = None
-    while j is None:
+    for i in range(0,1000,50):
+        X = X_corr[i:i+50]
+        predict(X)
         print("Waiting for drift logs, sleeping")
         time.sleep(2)
         j = get_drift_event_display_logs()
+        if j is not None:
+            break
         
     print(j)
     print("Drift",j["data"]["is_drift"]==1)
     '''
 
-    block9 = '''
+    block8 = '''
     
     '''
 
@@ -1549,7 +1549,6 @@ def test_drift_detector(DEPLOY_NAMESPACE: str, MINIO_ACCESS_KEY: str, MINIO_HOST
               block6,
               block7,
               block8,
-              block9,
               )
     html_artifact = _kale_run_code(blocks)
     with open("/test_drift_detector.html", "w") as f:
@@ -1600,7 +1599,7 @@ test_drift_detector_op = comp.func_to_container_op(
 
 
 @dsl.pipeline(
-    name='seldon-e2e-cifar10-6wv2w',
+    name='seldon-e2e-cifar10-glv9p',
     description='Seldon CIFAR10 Example'
 )
 def auto_generated_pipeline(CIFAR10_MODEL_PATH='tfserving/cifar10/model', DEPLOY_NAMESPACE='admin', DRIFT_MODEL_PATH='tfserving/cifar10/drift', EXPLAINER_MODEL_PATH='tfserving/cifar10/explainer', MINIO_ACCESS_KEY='minio', MINIO_HOST='minio-service.kubeflow:9000', MINIO_MODEL_BUCKET='seldon', MINIO_SECRET_KEY='minio123', OUTLIER_MODEL_PATH='tfserving/cifar10/outlier', TRAIN_DRIFT_DETECTOR='False', TRAIN_OUTLIER_DETECTOR='False'):
@@ -1849,10 +1848,10 @@ if __name__ == "__main__":
     # Get or create an experiment and submit a pipeline run
     import kfp
     client = kfp.Client()
-    experiment = client.create_experiment('seldon-e2e')
+    experiment = client.create_experiment('seldon-e2e-cifar10')
 
     # Submit a pipeline run
     from kale.utils.kfp_utils import generate_run_name
-    run_name = generate_run_name('seldon-e2e-cifar10-6wv2w')
+    run_name = generate_run_name('seldon-e2e-cifar10-glv9p')
     run_result = client.run_pipeline(
         experiment.id, run_name, pipeline_filename, {})
