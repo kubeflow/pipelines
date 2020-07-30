@@ -54,14 +54,14 @@ implementation:
     - --traffic_encryption
     - inputValue: traffic_encryption
     - --model_artifact_url_output_path
-    - outputValue: model_artifact_url
+    - outputPath: model_artifact_url
     - --job_name_output_path
-    - outputValue: job_name
+    - outputPath: job_name
     - --training_image_output_path
-    - outputValue: training_image
+    - outputPath: training_image
     command:
     - python3
-    image: amazon/aws-sagemaker-kfp-components:v0.6.2
+    image: redbackthomson/aws-kubeflow-sagemaker:latest
 inputs:
 - description: Use managed spot training.
   name: spot_instance
