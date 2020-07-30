@@ -21,10 +21,10 @@ class Boto3Manager(object):
         """Builds a client to the AWS SageMaker API.
 
         Args:
-            - component_version: The version of the component to include in
+            component_version: The version of the component to include in
                 the user agent.
-            - region: The AWS region for the SageMaker client.
-            - endpoint_url: A private link endpoint for SageMaker.
+            region: The AWS region for the SageMaker client.
+            endpoint_url: A private link endpoint for SageMaker.
 
         Returns:
             object: A SageMaker boto3 client.
@@ -40,7 +40,7 @@ class Boto3Manager(object):
         """Builds a client to the AWS CloudWatch API.
 
         Args:
-            - region: The AWS region for the CloudWatch client.
+            region: The AWS region for the CloudWatch client.
 
         Returns:
             object: A CloudWatch boto3 client.
