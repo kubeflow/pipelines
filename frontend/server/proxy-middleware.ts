@@ -15,6 +15,7 @@
 import express from 'express';
 import proxy from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
+import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts';
 
 export function _extractUrlFromReferer(proxyPrefix: string, referer = ''): string {
   const index = referer.indexOf(proxyPrefix);
@@ -72,14 +73,13 @@ export default (app: express.Application, apisPrefix: string) => {
       changeOrigin: true,
       logLevel: process.env.NODE_ENV === 'test' ? 'warn' : 'debug',
       target: 'http://127.0.0.1',
-
       router: (req: any) => {
         return _routePathWithReferer(proxyPrefix, req.path, req.headers.referer as string);
       },
-
       pathRewrite: (_: any, req: any) => {
         return _rewritePath(proxyPrefix, req.path, req.query);
       },
+      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
     }),
   );
 };
