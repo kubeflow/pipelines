@@ -65,7 +65,7 @@ class SageMakerComponentBaseInputs:
     pass
 
 
-@dataclass(frozen=True)
+@dataclass
 class SageMakerComponentBaseOutputs:
     """A base class for all component outputs."""
 
