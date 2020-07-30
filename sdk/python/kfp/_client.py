@@ -259,15 +259,13 @@ class Client(object):
       }
 
   def _guess_user_namespace_or_default(self):
-    """Guess user namespace from environment variable NB_PREFIX"""
-    env_nb_prefix = os.environ.get('NB_PREFIX')
+    """Guess user namespace from pod service account metadata"""
+    SA_NAMESPACE_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
     default_namespace = ''
 
-    if env_nb_prefix:
-      # convention from kf notebook controller: NB_PREFIX looks like "/notebook/<user-namsepace>/<instance-name>"
-      matches = re.findall(r'(?<=\/notebook\/)[^\/]+', env_nb_prefix)
-      if len(matches) > 0:
-        default_namespace = matches[0]
+    if os.path.isfile(SA_NAMESPACE_PATH):
+      with open(SA_NAMESPACE_PATH, 'r') as f:
+        default_namespace = f.readline()
 
     return default_namespace
       
