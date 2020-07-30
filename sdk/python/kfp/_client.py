@@ -255,8 +255,21 @@ class Client(object):
         self._context_setting = json.load(f)
     else:
       self._context_setting = {
-        'namespace': '',
+        'namespace': self._guess_user_namespace_or_default(),
       }
+
+  def _guess_user_namespace_or_default(self):
+    """Guess user namespace from environment variable NB_PREFIX"""
+    env_nb_prefix = os.environ.get('NB_PREFIX')
+    default_namespace = ''
+
+    if env_nb_prefix:
+      # convention from kf notebook controller: NB_PREFIX looks like "/notebook/<user-namsepace>/<instance-name>"
+      matches = re.findall(r'(?<=\/notebook\/)[^\/]+', env_nb_prefix)
+      if len(matches) > 0:
+        default_namespace = matches[0]
+
+    return default_namespace
       
   def _refresh_api_client_token(self):
     """Refreshes the existing token associated with the kfp_api_client."""
