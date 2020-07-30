@@ -1,4 +1,4 @@
-"""Custom argument parser validators for SageMaker components"""
+"""Custom argument parser validators for SageMaker components."""
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -23,7 +23,7 @@ from typing import List, Dict
 class SpecValidators:
     @staticmethod
     def nullable_string_argument(value):
-        """Strips strings and returns None if they are empty"""
+        """Strips strings and returns None if they are empty."""
         value = value.strip()
         if not value:
             return None
@@ -40,7 +40,7 @@ class SpecValidators:
 
     @staticmethod
     def yaml_or_json_list(value):
-        """Parses a YAML or JSON list to a Python list"""
+        """Parses a YAML or JSON list to a Python list."""
         parsed = SpecValidators._yaml_or_json_str(value)
         if not isinstance(parsed, List):
             raise ArgumentTypeError(f"{value} is not a list")
@@ -48,7 +48,7 @@ class SpecValidators:
 
     @staticmethod
     def yaml_or_json_dict(value):
-        """Parses a YAML or JSON dictionary to a Python dictionary"""
+        """Parses a YAML or JSON dictionary to a Python dictionary."""
         parsed = SpecValidators._yaml_or_json_str(value)
         if not isinstance(parsed, Dict):
             raise ArgumentTypeError(f"{value} is not a dictionary")
@@ -56,7 +56,7 @@ class SpecValidators:
 
     @staticmethod
     def str_to_bool(value):
-        """Converts a string interpretation of a boolean to a Python bool"""
+        """Converts a string interpretation of a boolean to a Python bool."""
         # This distutils function returns an integer representation of the boolean
         # rather than a True/False value. This simply hard casts it.
         return bool(strtobool(value))

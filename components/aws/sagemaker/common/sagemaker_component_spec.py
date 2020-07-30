@@ -114,7 +114,8 @@ class SageMakerComponentSpec(Generic[IT, OT]):
 
 
     def _validate_spec(self):
-        """Ensures that all of the types given as inputs and outputs are validators."""
+        """Ensures that all of the types given as inputs and outputs are
+        validators."""
         for key, val in self.INPUTS.__dict__.items():
             if not isinstance(val, SageMakerComponentInputValidator):
                 raise ValueError(
