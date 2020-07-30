@@ -64,6 +64,7 @@ type token struct {
 	Filter *filter.Filter
 
 	// The listable model this token is applied to. Not used in json marshal/unmarshal.
+	// The types that implement the listable interface and hence can be used in this field are at backend/src/apiserver/model.
 	Model Listable `json:"-"`
 	// ModelType and the ModelMessage are helper fields to unmarshal data correctly to
 	// the underlying listable model, and this underlying listable model will be stored
