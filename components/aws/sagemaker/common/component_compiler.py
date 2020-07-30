@@ -122,7 +122,7 @@ class SageMakerComponentCompiler(object):
             )
 
             # Add optional fields
-            if input_validator.default:
+            if input_validator.default is not None:
                 input_spec["default"] = str(input_validator.default)
             elif not input_validator.required:
                 # If not required and has no default, add empty string
