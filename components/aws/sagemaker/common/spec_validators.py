@@ -12,10 +12,13 @@
 # limitations under the License.
 
 
+import json
 import yaml
 
+from distutils.util import strtobool
 from argparse import ArgumentTypeError
 from typing import List, Dict
+
 
 class SpecValidators:
     @staticmethod
