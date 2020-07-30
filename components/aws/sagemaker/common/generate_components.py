@@ -53,11 +53,13 @@ class ComponentCollectorContext:
 
 def compile_spec_file(spec_file, component_file, spec_dir, args):
     output_path = Path(spec_dir.parent, "component.yaml")
-    relative_path = os.path.splitext(str(component_file.relative_to(root)))[0]
+    relative_path = component_file.relative_to(root)
+    # Remove extension
+    relative_module = os.path.splitext(str(relative_path))[0]
 
     with ComponentCollectorContext() as component_metadatas:
         # Import the file using the path relative to the root
-        __import__(relative_path.replace("/", "."))
+        __import__(relative_module.replace("/", "."))
 
     if len(component_metadatas) != 1:
         raise ValueError(
@@ -65,7 +67,7 @@ def compile_spec_file(spec_file, component_file, spec_dir, args):
         )
 
     SageMakerComponentCompiler.compile(
-        component_metadatas[0], component_file.name, str(output_path.resolve()), component_image_tag=args.tag, component_image_uri=args.image
+        component_metadatas[0], str(relative_path), str(output_path.resolve()), component_image_tag=args.tag, component_image_uri=args.image
     )
 
 
