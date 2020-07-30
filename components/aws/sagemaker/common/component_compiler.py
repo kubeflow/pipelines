@@ -36,7 +36,7 @@ class OutputSpec(TypedDict):
 
 class ArgumentValueSpec(TypedDict, total=False):
     inputValue: str
-    outputValue: str
+    outputPath: str
 
 class ContainerSpec(TypedDict):
 
@@ -146,7 +146,7 @@ class SageMakerComponentCompiler(object):
             args.append(f"--{key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}")
             args.append(
                 ArgumentValueSpec(
-                    outputValue=key
+                    outputPath=key
                 )
             )
 
