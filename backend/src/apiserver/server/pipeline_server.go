@@ -25,6 +25,25 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+// Metric variables. Please prefix the metric names with pipeline_server_.
+var (
+	// Used to calculate the request rate.
+	creationRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_creation_requests",
+		Help: "The total number of CreatePipeline requests",
+	})
+
+	currentPipelineCount = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "pipeline_server_current_pipeline_count",
+		Help: "The current number of pipelines in Kubeflow Pipelines instance",
+	})
+
+	// TODO(jingzhang36): other metrics for pipeline deletion, pipeline version creation/deletion.
 )
 
 type PipelineServer struct {
@@ -58,6 +77,8 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed.")
 	}
+	creationRequests.Inc()
+	currentPipelineCount.Inc()
 
 	return ToApiPipeline(pipeline), nil
 }
@@ -90,6 +111,7 @@ func (s *PipelineServer) DeletePipeline(ctx context.Context, request *api.Delete
 	if err != nil {
 		return nil, util.Wrap(err, "Delete pipelines failed.")
 	}
+	currentPipelineCount.Dec()
 
 	return &empty.Empty{}, nil
 }

@@ -38,6 +38,8 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -140,6 +142,9 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	})
 
 	topMux.Handle("/apis/", mux)
+
+	// Register a handler for Prometheus to poll.
+	topMux.Handle("/metrics", promhttp.Handler())
 
 	http.ListenAndServe(*httpPortFlag, topMux)
 	glog.Info("Http Proxy started")

@@ -8,6 +8,7 @@ bases:
 - metadata
 - cache
 - cache-deployer
+- prometheus
 resources:
 - pipeline-application.yaml
 # Used by Kustomize
