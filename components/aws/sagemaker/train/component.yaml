@@ -63,7 +63,7 @@ implementation:
     - python3
     image: redbackthomson/aws-kubeflow-sagemaker:latest
 inputs:
-- default: ''
+- default: 'False'
   description: Use managed spot training.
   name: spot_instance
   type: Bool
@@ -72,7 +72,7 @@ inputs:
     training job to complete.
   name: max_wait_time
   type: Integer
-- default: ''
+- default: '{}'
   description: Dictionary of information about the output location for managed spot
     training checkpoint data.
   name: checkpoint_config
@@ -84,7 +84,7 @@ inputs:
   description: The URL to use when communicating with the SageMaker service.
   name: endpoint_url
   type: String
-- default: ''
+- default: '{}'
   description: An array of key-value pairs, to categorize AWS resources.
   name: tags
   type: JsonObject
@@ -105,7 +105,7 @@ inputs:
     not specify a value for this if using training image.
   name: algorithm_name
   type: String
-- default: ''
+- default: '{}'
   description: The dictionary of name-regex pairs specify the metrics that the algorithm
     emits.
   name: metric_definitions
@@ -114,7 +114,7 @@ inputs:
   description: The input mode that the algorithm supports. File or Pipe.
   name: training_input_mode
   type: String
-- default: ''
+- default: '{}'
   description: Dictionary of hyperparameters for the the algorithm.
   name: hyperparameters
   type: JsonObject
@@ -163,7 +163,7 @@ inputs:
   description: Isolates the training container.
   name: network_isolation
   type: Bool
-- default: ''
+- default: 'False'
   description: Encrypts all communications between ML compute instances in distributed
     training.
   name: traffic_encryption
