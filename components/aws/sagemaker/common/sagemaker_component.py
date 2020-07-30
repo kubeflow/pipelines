@@ -246,14 +246,12 @@ class SageMakerComponent(object):
 
     @abstractmethod
     def _on_job_terminated(self):
-        """Handles any SIGTERM events.
-        """
+        """Handles any SIGTERM events."""
         pass
 
     @abstractmethod
     def _print_logs_for_job(self):
-        """Print the associated logs for the current job.
-        """
+        """Print the associated logs for the current job."""
         pass
 
     @staticmethod
@@ -262,7 +260,7 @@ class SageMakerComponent(object):
         size: int = 4,
         chars: str = string.ascii_uppercase + string.digits,
     ):
-        """Generate a random string of characters"""
+        """Generate a random string of characters."""
         unique = "".join(random.choice(chars) for _ in range(size))
         return f'{prefix}-{strftime("%Y%m%d%H%M%S", gmtime())}-{unique}'
 
@@ -309,7 +307,8 @@ class SageMakerComponent(object):
 
     @staticmethod
     def _create_hyperparameters(hyperparam_args: Dict) -> Dict:
-        """Validates hyperparameters and returns the dictionary used for a request.
+        """Validates hyperparameters and returns the dictionary used for a
+        request.
 
         Args:
             hyperparam_args: HyperParameters as passed in by the user.
@@ -348,8 +347,8 @@ class SageMakerComponent(object):
     def _write_output(
         self, output_path: str, output_value: Any, json_encode: bool = False
     ):
-        """Write an output value to the associated path, dumping as a JSON object
-        if specified.
+        """Write an output value to the associated path, dumping as a JSON
+        object if specified.
 
         Args:
             output_path: The file path of the output.
@@ -365,9 +364,10 @@ class SageMakerComponent(object):
     @staticmethod
     def _get_component_version() -> str:
         """Get component version from the first line of License file.
-        
+
         Returns:
-            str: The string version as specified in the License file."""
+            str: The string version as specified in the License file.
+        """
         component_version = "NULL"
 
         # Get license file using known common directory
@@ -389,7 +389,7 @@ class SageMakerComponent(object):
     @staticmethod
     def _get_common_path() -> str:
         """Gets the path of the common directory in the project.
-        
+
         Returns:
             str: The `realpath` representation of the common directory.
         """
@@ -418,7 +418,7 @@ class SageMakerComponent(object):
 
     def _print_cloudwatch_logs(self, log_grp: str, job_name: str):
         """Gets the CloudWatch logs for SageMaker jobs.
-        
+
         Args:
             log_grp: The name of a CloudWatch log group.
             job_name: The name of the job as defined in CloudWatch.

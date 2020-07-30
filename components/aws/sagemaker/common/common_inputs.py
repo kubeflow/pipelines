@@ -23,7 +23,7 @@ class SageMakerComponentInputValidator:
 
     def to_argparse_mapping(self):
         """Maps each property to an argparse argument.
-        
+
         See: https://docs.python.org/3/library/argparse.html#adding-arguments
         """
         return {
