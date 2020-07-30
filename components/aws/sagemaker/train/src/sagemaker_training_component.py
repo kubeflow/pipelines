@@ -65,7 +65,7 @@ class SageMakerTrainingComponent(SageMakerComponent):
                 prefix="TrainingJob"
             )
         )
-        super().Do(spec.inputs, spec.outputs)
+        super().Do(spec.inputs, spec.outputs, spec.output_paths)
 
     def _get_job_status(self) -> SageMakerJobStatus:
         response = self._sm_client.describe_training_job(
@@ -74,14 +74,19 @@ class SageMakerTrainingComponent(SageMakerComponent):
         status = response["TrainingJobStatus"]
 
         if status == "Completed":
-            return SageMakerJobStatus(is_completed=True, has_error=False)
+            return SageMakerJobStatus(
+                is_completed=True, has_error=False, raw_status=status
+            )
         if status == "Failed":
             message = response["FailureReason"]
             return SageMakerJobStatus(
-                is_completed=True, has_error=True, error_message=message
+                is_completed=True,
+                has_error=True,
+                error_message=message,
+                raw_status=status,
             )
 
-        return SageMakerJobStatus(is_completed=False)
+        return SageMakerJobStatus(is_completed=False, raw_status=status)
 
     def _after_job_complete(
         self,
@@ -215,7 +220,10 @@ class SageMakerTrainingComponent(SageMakerComponent):
         self._sm_client.create_training_job(**request)
 
     def _after_submit_job_request(
-        self, inputs: SageMakerTrainingInputs, outputs: SageMakerTrainingOutputs,
+        self,
+        job: object,
+        inputs: SageMakerTrainingInputs,
+        outputs: SageMakerTrainingOutputs,
     ):
         logging.info(f"Created Training Job with name: {self._training_job_name}")
         logging.info(
