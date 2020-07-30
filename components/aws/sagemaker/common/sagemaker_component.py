@@ -22,7 +22,7 @@ from types import FunctionType
 import yaml
 import random
 from pathlib import Path
-from time import strftime, gmtime
+from time import sleep, strftime, gmtime
 from abc import abstractmethod
 from typing import Any, Type, Dict, List, NamedTuple, Optional
 
@@ -68,6 +68,7 @@ class SageMakerJobStatus(NamedTuple):
     """Generic representation of a job status."""
 
     is_completed: bool
+    raw_status: str
     has_error: bool = False
     error_message: Optional[str] = None
 
@@ -104,6 +105,7 @@ class SageMakerComponent(object):
         self,
         inputs: SageMakerComponentCommonInputs,
         outputs: SageMakerComponentBaseOutputs,
+        output_paths: SageMakerComponentBaseOutputs,
     ):
         # Global try-catch in order to allow for safe abort
         try:
@@ -115,7 +117,7 @@ class SageMakerComponent(object):
             self._cw_client = Boto3Manager.get_cloudwatch_client(inputs.region)
 
             # Successful execution
-            if not self._do(inputs, outputs):
+            if not self._do(inputs, outputs, output_paths):
                 sys.exit(1)
         except Exception as e:
             logging.exception("An error occurred while running the component")
@@ -124,6 +126,7 @@ class SageMakerComponent(object):
         self,
         inputs: SageMakerComponentCommonInputs,
         outputs: SageMakerComponentBaseOutputs,
+        output_paths: SageMakerComponentBaseOutputs,
     ) -> bool:
         # Set up SIGTERM handling
         def signal_term_handler(signalNumber, frame):
@@ -143,9 +146,14 @@ class SageMakerComponent(object):
 
         status: Optional[SageMakerJobStatus] = None
         try:
-            # Continue until complete
-            while (not status) or (not status.is_completed):
+            while True:
                 status = self._get_job_status()
+                sleep(self.STATUS_POLL_INTERVAL)
+                logging.info(f"Job is in status: {status.raw_status}")
+
+                # Continue until complete
+                if status and status.is_completed:
+                    break
         except Exception as e:
             logging.exception("An error occurred while polling for job status")
             return False
@@ -157,7 +165,7 @@ class SageMakerComponent(object):
             return False
 
         self._after_job_complete(job, request, inputs, outputs)
-        self._write_all_outputs(outputs)
+        self._write_all_outputs(output_paths, outputs)
 
         return True
 
@@ -318,14 +326,17 @@ class SageMakerComponent(object):
 
         return hyperparam_args
 
-    def _write_all_outputs(self, outputs: SageMakerComponentBaseOutputs):
-        for output_key, output_path in self.COMPONENT_SPEC.OUTPUTS.__dict__.items():
+    def _write_all_outputs(self, output_paths: SageMakerComponentBaseOutputs, outputs: SageMakerComponentBaseOutputs):
+        for output_key, output_value in outputs.__dict__.items():
             if output_key not in outputs.__dict__.keys():
                 # Warn user that an output might be empty
                 logging.error(f"No output defined for {output_key}")
                 continue
 
-            output_value = outputs.__dict__.get(output_key)
+            output_path = output_paths.__dict__.get(output_key)
+            if not output_path:
+                logging.error(f"Could not find output path for {output_key}")
+                continue
             # Encode it if it's a List or Dict (not primitive)
             encoded_types = (List, Dict)
             self._write_output(

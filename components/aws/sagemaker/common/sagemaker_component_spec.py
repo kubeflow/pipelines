@@ -92,13 +92,26 @@ class SageMakerComponentSpec(Generic[IT, OT]):
             for output_key in self.OUTPUTS.__dict__.keys()
         }
         # Fill outputs with original keys, but match based on parsed key name
+        # Default all initial values to None so we can check for completeness
+        # by the end.
         self._outputs: OT = output_constructor(
+            **{
+                parsed_key_to_output_key.get(key): None
+                for key, _ in parsed_args.items()
+                if key in parsed_key_to_output_key.keys()
+            }
+        )
+
+        # Store the path arguments for when we write the values to files
+        self._output_paths: OT = output_constructor(
             **{
                 parsed_key_to_output_key.get(key): value
                 for key, value in parsed_args.items()
                 if key in parsed_key_to_output_key.keys()
             }
         )
+
+
 
     def _validate_spec(self):
         """Ensures that all of the types given as inputs and outputs are validators."""
@@ -159,3 +172,7 @@ class SageMakerComponentSpec(Generic[IT, OT]):
     @property
     def outputs(self) -> OT:
         return self._outputs
+
+    @property
+    def output_paths(self) -> OT:
+        return self._output_paths

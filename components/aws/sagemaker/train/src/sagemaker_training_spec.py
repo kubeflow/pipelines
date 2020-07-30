@@ -55,7 +55,7 @@ class SageMakerTrainingInputs(SageMakerComponentCommonInputs, SpotInstanceInputs
     traffic_encryption: Input
 
 
-@dataclass(frozen=True)
+@dataclass
 class SageMakerTrainingOutputs(SageMakerComponentBaseOutputs):
     """Defines the set of outputs for the training component."""
 
@@ -185,3 +185,7 @@ class SageMakerTrainingSpec(
     @property
     def outputs(self) -> SageMakerTrainingOutputs:
         return self._outputs
+
+    @property
+    def output_paths(self) -> SageMakerTrainingOutputs:
+        return self._output_paths
