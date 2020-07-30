@@ -2,7 +2,7 @@ description: Train Machine Learning and Deep Learning Models using SageMaker
 implementation:
   container:
     args:
-    - sagemaker_training_component.py
+    - train/src/sagemaker_training_component.py
     - --spot_instance
     - inputValue: spot_instance
     - --max_wait_time
