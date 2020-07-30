@@ -51,8 +51,8 @@ class SageMakerComponentSpec(Generic[IT, OT]):
     should have a corresponding ComponentSpec inheriting from this
     class and must override all private members:
 
-        - INPUTS (as an inherited BaseInputs type)
-        - OUTPUTS (as an inherited BaseOutputs type)
+        INPUTS (as an inherited BaseInputs type)
+        OUTPUTS (as an inherited BaseOutputs type)
 
     Typical usage example:
 

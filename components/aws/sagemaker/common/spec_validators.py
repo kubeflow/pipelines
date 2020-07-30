@@ -21,6 +21,8 @@ from typing import List, Dict
 
 
 class SpecValidators:
+    """Utility class to define argparse validator methods."""
+
     @staticmethod
     def nullable_string_argument(value):
         """Strips strings and returns None if they are empty."""
