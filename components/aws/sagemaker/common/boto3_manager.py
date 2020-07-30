@@ -18,7 +18,17 @@ from botocore.exceptions import ClientError
 class Boto3Manager(object):
     @staticmethod
     def get_sagemaker_client(component_version, region, endpoint_url=None):
-        """Builds a client to the AWS SageMaker API."""
+        """Builds a client to the AWS SageMaker API.
+
+        Args:
+            - component_version: The version of the component to include in
+                the user agent.
+            - region: The AWS region for the SageMaker client.
+            - endpoint_url: A private link endpoint for SageMaker.
+
+        Returns:
+            object: A SageMaker boto3 client.
+        """
         session_config = botocore.config.Config(
             user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(component_version)
         )
@@ -27,5 +37,13 @@ class Boto3Manager(object):
 
     @staticmethod
     def get_cloudwatch_client(region):
+        """Builds a client to the AWS CloudWatch API.
+
+        Args:
+            - region: The AWS region for the CloudWatch client.
+
+        Returns:
+            object: A CloudWatch boto3 client.
+        """
         client = boto3.client('logs', region_name=region)
         return client
