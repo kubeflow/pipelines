@@ -63,7 +63,8 @@ implementation:
     - python3
     image: redbackthomson/aws-kubeflow-sagemaker:latest
 inputs:
-- description: Use managed spot training.
+- default: ''
+  description: Use managed spot training.
   name: spot_instance
   type: Bool
 - default: '86400'
@@ -71,34 +72,41 @@ inputs:
     training job to complete.
   name: max_wait_time
   type: Integer
-- description: Dictionary of information about the output location for managed spot
+- default: ''
+  description: Dictionary of information about the output location for managed spot
     training checkpoint data.
   name: checkpoint_config
   type: JsonObject
 - description: The region where the training job launches.
   name: region
   type: String
-- description: The URL to use when communicating with the SageMaker service.
+- default: ''
+  description: The URL to use when communicating with the SageMaker service.
   name: endpoint_url
   type: String
-- description: An array of key-value pairs, to categorize AWS resources.
+- default: ''
+  description: An array of key-value pairs, to categorize AWS resources.
   name: tags
   type: JsonObject
-- description: The name of the training job.
+- default: ''
+  description: The name of the training job.
   name: job_name
   type: String
 - description: The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform
     tasks on your behalf.
   name: role
   type: String
-- description: The registry path of the Docker image that contains the training algorithm.
+- default: ''
+  description: The registry path of the Docker image that contains the training algorithm.
   name: image
   type: String
-- description: The name of the resource algorithm to use for the training job. Do
+- default: ''
+  description: The name of the resource algorithm to use for the training job. Do
     not specify a value for this if using training image.
   name: algorithm_name
   type: String
-- description: The dictionary of name-regex pairs specify the metrics that the algorithm
+- default: ''
+  description: The dictionary of name-regex pairs specify the metrics that the algorithm
     emits.
   name: metric_definitions
   type: JsonObject
@@ -106,7 +114,8 @@ inputs:
   description: The input mode that the algorithm supports. File or Pipe.
   name: training_input_mode
   type: String
-- description: Dictionary of hyperparameters for the the algorithm.
+- default: ''
+  description: Dictionary of hyperparameters for the the algorithm.
   name: hyperparameters
   type: JsonObject
 - description: A list of dicts specifying the input channels. Must have at least one.
@@ -124,7 +133,8 @@ inputs:
   description: The size of the ML storage volume that you want to provision.
   name: volume_size
   type: Integer
-- description: The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage
+- default: ''
+  description: The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage
     volume attached to the ML compute instance(s).
   name: resource_encryption_key
   type: String
@@ -136,13 +146,16 @@ inputs:
     model artifacts.
   name: model_artifact_path
   type: String
-- description: The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts.
+- default: ''
+  description: The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts.
   name: output_encryption_key
   type: String
-- description: The VPC security group IDs, in the form sg-xxxxxxxx.
+- default: ''
+  description: The VPC security group IDs, in the form sg-xxxxxxxx.
   name: vpc_security_group_ids
   type: String
-- description: The ID of the subnets in the VPC to which you want to connect your
+- default: ''
+  description: The ID of the subnets in the VPC to which you want to connect your
     hpo job.
   name: vpc_subnets
   type: String
@@ -150,7 +163,8 @@ inputs:
   description: Isolates the training container.
   name: network_isolation
   type: Bool
-- description: Encrypts all communications between ML compute instances in distributed
+- default: ''
+  description: Encrypts all communications between ML compute instances in distributed
     training.
   name: traffic_encryption
   type: Bool
