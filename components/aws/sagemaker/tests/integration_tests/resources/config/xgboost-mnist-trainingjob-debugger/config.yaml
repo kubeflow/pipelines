@@ -50,7 +50,7 @@ Arguments:
           save_interval: "5"
   debug_rule_config:
     - RuleConfigurationName: LossNotDecreasing
-      RuleEvaluatorImage: ((BUILTIN_RULE_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/sagemaker-debugger-rules:latest
+      RuleEvaluatorImage: ((BUILTIN_RULE_IMAGE))
       RuleParameters:
         collection_names: metrics
         num_steps: "10"

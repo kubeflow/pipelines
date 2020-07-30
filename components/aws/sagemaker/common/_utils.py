@@ -22,6 +22,7 @@ import yaml
 import re
 import json
 from pathlib2 import Path
+from enum import Enum, auto
 
 import boto3
 import botocore
@@ -87,6 +88,10 @@ def get_component_version():
 
     return component_version
 
+
+def print_log_header(header_len, title=""):
+    header_buffer = header_len // 2 * '*'
+    logging.info(f"{header_buffer}{title}{header_buffer}")
 
 def print_logs_for_job(cw_client, log_grp, job_name):
     """Gets the CloudWatch logs for SageMaker jobs"""
@@ -244,7 +249,7 @@ def create_training_job(client, args):
       raise Exception(e.response['Error']['Message'])
 
 
-def wait_for_training_job(client, training_job_name, poll_interval=31):
+def wait_for_training_job(client, training_job_name, poll_interval=30):
     while(True):
         response = client.describe_training_job(TrainingJobName=training_job_name)
         status = response['TrainingJobStatus']
@@ -253,13 +258,13 @@ def wait_for_training_job(client, training_job_name, poll_interval=31):
             break
         if status == 'Failed':
             message = response['FailureReason']
-            logging.info('Training failed with the following error: {}'.format(message))
+            logging.info(f'Training failed with the following error: {message}')
             raise Exception('Training job failed')
         logging.info("Training job is still in status: " + status)
         time.sleep(poll_interval)
 
 
-def wait_for_debug_rules(client, training_job_name, poll_interval=31):
+def wait_for_debug_rules(client, training_job_name, poll_interval=30):
     first_poll = True
     while(True):
         response = client.describe_training_job(TrainingJobName=training_job_name)
@@ -268,7 +273,7 @@ def wait_for_debug_rules(client, training_job_name, poll_interval=31):
         if first_poll:
             logging.info("Polling for status of all debug rules:")
             first_poll = False
-        if debug_rules_completed(response):
+        if DebugRulesStatus.status(response) != DebugRulesStatus.INPROGRESS:
             logging.info("Rules have ended with status:\n")
             print_debug_rule_status(response, True)
             break
@@ -276,40 +281,56 @@ def wait_for_debug_rules(client, training_job_name, poll_interval=31):
         time.sleep(poll_interval)
 
 
-def debug_rules_errored(response):
-    if 'DebugRuleEvaluationStatuses' in response:
+class DebugRulesStatus(Enum):
+    COMPLETED = auto()
+    ERRORED = auto()
+    INPROGRESS = auto()
+
+    @classmethod
+    def status(self, response):
+        has_error = False
         for debug_rule in response['DebugRuleEvaluationStatuses']:
             if debug_rule['RuleEvaluationStatus'] == "Error":
-                return True
-    return False
-
-
-def debug_rules_completed(response):
-    if 'DebugRuleEvaluationStatuses' in response:
-        for debug_rule in response['DebugRuleEvaluationStatuses']:
+                has_error = True
             if debug_rule['RuleEvaluationStatus'] == "InProgress":
-                return False
-    return True
+                return DebugRulesStatus.INPROGRESS
+        if has_error:
+            return DebugRulesStatus.ERRORED
+        else:
+            return DebugRulesStatus.COMPLETED
 
 
 def print_debug_rule_status(response, last_print=False):
+    """
+    If last_print is False:
+    INFO:root: - LossNotDecreasing: InProgress
+    INFO:root: - Overtraining: NoIssuesFound
+    ERROR:root:- CustomGradientRule: Error
+
+    If last_print is True:
+    INFO:root: - LossNotDecreasing: IssuesFound
+    INFO:root:   - RuleEvaluationConditionMet: Evaluation of the rule LossNotDecreasing at step 10 resulted in the condition being met
+
+    INFO:root: - Overtraining: NoIssuesFound
+
+    ERROR:root:- CustomGradientRule: Error
+    ERROR:root:  - ClientError: Required key source_s3_uri not found in rule parameters map for rule configuration CustomGradientRule. 
+
+    """
     for debug_rule in response['DebugRuleEvaluationStatuses']:
         line_ending = "\n" if last_print else ""
         if 'StatusDetails' in debug_rule:
-            status_details = "- {}{}".format(debug_rule['StatusDetails'].rstrip(), line_ending)
+            status_details = f"- {debug_rule['StatusDetails'].rstrip()}{line_ending}"
             line_ending = ""
         else:
             status_details = ""
-        rule_status = "- {}: {}{}".format(debug_rule['RuleConfigurationName'], debug_rule['RuleEvaluationStatus'], line_ending)
-        if debug_rule['RuleEvaluationStatus'] == "Error":
-            logging.error("{}".format(rule_status))
-            if last_print and status_details:
-                logging.error("  {}".format(status_details))
-        else:
-            logging.info(" {}".format(rule_status))
-            if last_print and status_details:
-                logging.info("   {}".format(status_details))
-    logging.info(50 * "-")
+        rule_status = f"- {debug_rule['RuleConfigurationName']}: {debug_rule['RuleEvaluationStatus']}{line_ending}"
+        log = logging.error if debug_rule['RuleEvaluationStatus'] == "Error" else logging.info
+        log(f" {rule_status}")
+        if last_print and status_details:
+            log(f"   {status_details}")
+    print_log_header(50)
+
 
 def get_model_artifacts_from_job(client, job_name):
   info = client.describe_training_job(TrainingJobName=job_name)

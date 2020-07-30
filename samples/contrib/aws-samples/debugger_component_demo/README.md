@@ -1,7 +1,6 @@
-# Simple pipeline with train component and debugger
+# Simple Pipeline for Training Component with Debugger
 
-An example pipeline with only [train component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/train). The training component has
-
+The `debugger-component-demo.py` sample creates a pipeline consisting of only a training component. In that component we are using the XGBoost algorithm but with poor hyperparameter choices. By enabling debugger rules and hooks, we can quickly learn that the model produced has issues.
 
 ## Prerequisites
 
@@ -10,8 +9,8 @@ This pipeline uses the exact same setup as [simple_training_pipeline](https://gi
 ## Steps
 1. Compile the pipeline:
    `dsl-compile --py debugger-component-demo.py --output debugger-component-demo.tar.gz`
-2. In the Kubeflow UI, upload this compiled pipeline specification (the .tar.gz file) and click on create run.
-3. Once the pipeline completes, you can view the results of each debugger rule under 'Logs'.
+2. In the Kubeflow UI, upload this compiled pipeline specification (the .tar.gz file), fill in the necessary run parameters, and click create run.
+3. Once the pipeline finished running, you can view the results of each debugger rule under 'Logs'.
 
 Inputs format to `debug_hook_config` and `debug_rule_config` :
 ```buildoutcfg
@@ -40,10 +39,10 @@ debug_hook_config = {
 
 debug_rule_config = {
     "RuleConfigurationName": "rule_name"
-    "RuleEvaluatorImage": "503895931360.dkr.ecr.ap-south-1.amazonaws.com/sagemaker-debugger-rules:latest"
+    "RuleEvaluatorImage": "503895931360.dkr.ecr.us-east-1.amazonaws.com/sagemaker-debugger-rules:latest"
     "RuleParameters": {
-        "rule_to_invoke": "LossNotDecreasing",
-        "tensor_regex": ".*"
+        "rule_to_invoke": "VanishingGradient",
+        "threshold": "0.01"
     }
 }
 ```
