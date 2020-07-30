@@ -122,9 +122,9 @@ class Client(object):
 
     host = host or ''
     # Preprocess the host endpoint to prevent some common user mistakes.
-    # This should only be done for non-IAP cases (when client_id is None). IAP requires preserving the protocol.
     if not client_id:
-      host = re.sub(r'^(http|https)://', '', host).rstrip('/')
+      # always preserving the protocol (http://localhost requires it)
+      host = host.rstrip('/')
 
     if host:
       config.host = host
