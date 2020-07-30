@@ -147,7 +147,7 @@ class SageMakerTrainingSpec(
         ),
         vpc_security_group_ids=InputValidator(
             input_type=str,
-            description="The VPC security group IDs, in the form sg-xxxxxxxx.",
+            description="The VPC security group IDs, in the form sg-xxxxxxxx."
         ),
         vpc_subnets=InputValidator(
             input_type=str,
