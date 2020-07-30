@@ -35,6 +35,7 @@ def parse_arguments():
     return args
 
 class ComponentCollectorContext:
+    """Context for collecting components registered using their decorators."""
     def __enter__(self):
         component_specs = []
 
@@ -51,7 +52,18 @@ class ComponentCollectorContext:
         component_module._component_decorator_handler = self.old_handler
 
 
-def compile_spec_file(spec_file, component_file, spec_dir, args):
+def compile_spec_file(component_file, spec_dir, args):
+    """Attempts to compile a component specification file into a YAML spec.
+
+    Writes a `component.yaml` file into a file one directory above where the
+    specification file exists. For example if the spec is in `/my/spec/src`,
+    it will create a file `/my/spec/component.yaml`.
+
+    Args:
+        component_file: A path to a component definition.
+        spec_dir: The path containing the specification.
+        args: Optional arguments as defined by the command line.
+    """
     output_path = Path(spec_dir.parent, "component.yaml")
     relative_path = component_file.relative_to(root)
     # Remove extension
@@ -63,7 +75,7 @@ def compile_spec_file(spec_file, component_file, spec_dir, args):
 
     if len(component_metadatas) != 1:
         raise ValueError(
-            f"Expected exactly 1 ComponentMetadata in {spec_file}, found {len(component_metadatas)}"
+            f"Expected exactly 1 ComponentMetadata in {component_file}, found {len(component_metadatas)}"
         )
 
     SageMakerComponentCompiler.compile(

@@ -42,6 +42,9 @@ _component_decorator_handler: Optional[FunctionType] = None
 def ComponentMetadata(name: str, description: str, spec: object):
     """Decorator for SageMaker components.
 
+    Used to define necessary metadata attributes about the component which will
+    be used for logging output and for the component specification file.
+
     Usage:
     ```python
     @ComponentMetadata(
@@ -85,13 +88,15 @@ class SageMakerComponent(object):
         COMPONENT_DESCRIPTION: The description of the component as displayed to
             the user.
         COMPONENT_SPEC: The correspending spec associated with the component.
+
+        STATUS_POLL_INTERVAL: Number of seconds between polling for the job
+            status.
     """
 
     COMPONENT_NAME = ""
     COMPONENT_DESCRIPTION = ""
     COMPONENT_SPEC = SageMakerComponentSpec
 
-    # Number of seconds between polling requests for the job status.
     STATUS_POLL_INTERVAL = 30
 
     def __init__(self):
@@ -99,6 +104,7 @@ class SageMakerComponent(object):
         self._initialize_logging()
 
     def _initialize_logging(self):
+        """Initializes the global logging structure."""
         logging.getLogger().setLevel(logging.INFO)
 
     def Do(
@@ -107,6 +113,13 @@ class SageMakerComponent(object):
         outputs: SageMakerComponentBaseOutputs,
         output_paths: SageMakerComponentBaseOutputs,
     ):
+        """The main execution entrypoint for a component at runtime.
+
+        Args:
+            inputs: A populated list of user inputs.
+            outputs: An unpopulated list of component output variables.
+            output_paths: Paths to the respective output locations.
+        """
         # Global try-catch in order to allow for safe abort
         try:
             self._sm_client = Boto3Manager.get_sagemaker_client(
@@ -187,7 +200,8 @@ class SageMakerComponent(object):
         """Creates the boto3 request object to execute the component.
 
         Args:
-            spec: The input specification for the component.
+            inputs: A populated list of user inputs.
+            outputs: An unpopulated list of component output variables.
 
         Returns:
             dict: A dictionary object representing the request.
@@ -222,8 +236,8 @@ class SageMakerComponent(object):
         """Handles any events required after submitting a job to SageMaker.
 
         Args:
-            job: The job object that was created.
-            spec: The component spec used to create the request.
+            inputs: A populated list of user inputs.
+            outputs: An unpopulated list of component output variables.
         """
         pass
 
@@ -240,7 +254,8 @@ class SageMakerComponent(object):
         Args:
             job: The job object that was created.
             request: The request object used to execute the component.
-            spec: The component spec used to create the request.
+            inputs: A populated list of user inputs.
+            outputs: An unpopulated list of component output variables.
         """
         pass
 
@@ -259,8 +274,20 @@ class SageMakerComponent(object):
         prefix: str = "",
         size: int = 4,
         chars: str = string.ascii_uppercase + string.digits,
-    ):
-        """Generate a random string of characters."""
+    ) -> str:
+        """Generate a pseudo-random string of characters appended to a
+        timestamp.
+
+        Format of the ID is as follows: `prefix-YYYYMMDDHHMMSS-unique`.
+
+        Args:
+            prefix: A prefix to append to the random suffix.
+            size: The number of unique characters to append to the ID.
+            chars: A list of characters to use in the random suffix.
+
+        Returns:
+            string: A pseudo-random string with included timestamp and prefix.
+        """
         unique = "".join(random.choice(chars) for _ in range(size))
         return f'{prefix}-{strftime("%Y%m%d%H%M%S", gmtime())}-{unique}'
 
@@ -273,7 +300,7 @@ class SageMakerComponent(object):
 
         Args:
             request: A request object to modify.
-            spec: A component spec object containing the inputs.
+            inputs: A populated list of user inputs.
         """
         if inputs.spot_instance:
             request["EnableManagedSpotTraining"] = inputs.spot_instance
@@ -326,6 +353,13 @@ class SageMakerComponent(object):
         return hyperparam_args
 
     def _write_all_outputs(self, output_paths: SageMakerComponentBaseOutputs, outputs: SageMakerComponentBaseOutputs):
+        """Writes all of the outputs specified by the component to their
+        respective file paths.
+
+        Args:
+            output_paths: A populated list of output paths.
+            outputs: A populated list of output values.
+        """
         for output_key, output_value in outputs.__dict__.items():
             if output_key not in outputs.__dict__.keys():
                 # Warn user that an output might be empty
