@@ -134,6 +134,7 @@ class SageMakerComponent(object):
                 sys.exit(1)
         except Exception as e:
             logging.exception("An error occurred while running the component")
+            raise e
 
     def _do(
         self,
@@ -289,7 +290,7 @@ class SageMakerComponent(object):
             string: A pseudo-random string with included timestamp and prefix.
         """
         unique = "".join(random.choice(chars) for _ in range(size))
-        return f'{prefix}-{strftime("%Y%m%d%H%M%S", gmtime())}-{unique}'
+        return f'{prefix}{"-" if prefix else ""}{strftime("%Y%m%d%H%M%S", gmtime())}-{unique}'
 
     @staticmethod
     def _enable_spot_instance_support(
