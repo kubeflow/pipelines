@@ -17,7 +17,8 @@ from dataclasses import dataclass
 from types import FunctionType
 
 from typing import (
-    Callable, Generic,
+    Callable,
+    Generic,
     List,
     NamedTuple,
     NewType,
@@ -67,7 +68,12 @@ class SageMakerComponentSpec(Generic[IT, OT]):
 
     OUTPUT_ARGUMENT_SUFFIX = "_output_path"
 
-    def __init__(self, arguments: List[str], input_constructor: Callable, output_constructor: Callable):
+    def __init__(
+        self,
+        arguments: List[str],
+        input_constructor: Callable[..., IT],
+        output_constructor: Callable[..., OT],
+    ):
         """Instantiates the spec with given user inputs.
 
         Args:
@@ -117,20 +123,19 @@ class SageMakerComponentSpec(Generic[IT, OT]):
             }
         )
 
-
-
-    def _validate_spec(self):
+    @classmethod
+    def _validate_spec(cls):
         """Ensures that all of the types given as inputs and outputs are
         validators."""
-        if self.INPUTS:
-            for key, val in self.INPUTS.__dict__.items():
+        if cls.INPUTS:
+            for key, val in cls.INPUTS.__dict__.items():
                 if not isinstance(val, SageMakerComponentInputValidator):
                     raise ValueError(
                         f"Input {key} is not of type {SageMakerComponentInputValidator.__name__}"
                     )
 
-        if self.OUTPUTS:
-            for key, val in self.OUTPUTS.__dict__.items():
+        if cls.OUTPUTS:
+            for key, val in cls.OUTPUTS.__dict__.items():
                 if not isinstance(val, SageMakerComponentOutputValidator):
                     raise ValueError(
                         f"Output {key} is not of type {SageMakerComponentOutputValidator.__name__}"
