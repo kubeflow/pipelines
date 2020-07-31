@@ -92,11 +92,60 @@ cd backend/src/ && go test ./...
 ### Frontend
 TODO: add instruction
 
-### DSL
+### Python SDK
 ```bash
-pip install ./dsl/ --upgrade && python ./dsl/tests/main.py
-pip install ./dsl-compiler/ --upgrade && python ./dsl-compiler/tests/main.py
+python -m venv /tmp/.env && source /tmp/.env/bin/activate # Optional, stops you installing dependencies globally.
+pip install -r ./sdk/python/requirements.txt && pip install -r ./sdk/python/requirements-test.txt
+./sdk/python/tests/run_tests.sh
 ```
+
+## Generate Docs
+
+### Python SDK
+
+To generate the SDK Docs locally run:
+
+```bash
+python -m venv /tmp/.env && source /tmp/.env/bin/activate # Optional, stops you installing dependencies globally.
+pip install -r ./docs/requirements.txt
+# Make sure you have "make" installed, see: https://www.gnu.org/software/make/
+cd ./docs && make html
+# This will output the built files to ./docs/_build/html, open the ./docs/_build/html/index.html in a browser to view.
+```
+
+#### Contributing to SDK Docs
+
+We use the [Sphinx](https://www.sphinx-doc.org/en/master/index.html) documentation engine, which can be quite picky about the
+syntax it accepts. In particular we use the [Napoleon extension](https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html)
+which is compatible with [Google style docstrings](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings). Some
+common pitfalls to avoid include:
+
+1. Leave newlines between sections within the docstring. A good docstring example:
+
+    ```python
+    """This is my title.
+
+    Args:
+        my_argument: My argument description.
+
+    Return:
+       My function return type.
+    ```
+
+1. Use the `::` directive to start code examples, also remember to add in a newline!
+
+    ```python
+    """This is my title.
+
+    ...
+
+    Example::
+
+        # This is how to use my function.
+        my_return = my_function(...)
+    ```
+
+1. To refer to other parts of the SDK use [Python domain directives](https://www.sphinx-doc.org/en/master/usage/restructuredtext/domains.html#the-python-domain).
 
 ## Integration test & E2E test
 
