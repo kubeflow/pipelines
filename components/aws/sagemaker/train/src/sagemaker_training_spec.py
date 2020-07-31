@@ -129,12 +129,6 @@ class SageMakerTrainingSpec(
             description="The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).",
             default="",
         ),
-        max_run_time=InputValidator(
-            input_type=int,
-            required=True,
-            description="The maximum run time in seconds for the training job.",
-            default=86400,
-        ),
         model_artifact_path=InputValidator(
             input_type=str,
             required=True,
