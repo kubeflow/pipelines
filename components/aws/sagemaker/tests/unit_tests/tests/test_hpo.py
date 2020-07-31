@@ -88,7 +88,7 @@ class HyperparameterTestCase(unittest.TestCase):
       call('/tmp/training_image_output_path', 'training-image')
     ])
 
-  def test_main(self):
+  def test_main_assumes_role(self):
     # Mock out all of utils except parser
     hpo._utils = MagicMock()
     hpo._utils.add_default_client_arguments = _utils.add_default_client_arguments
@@ -96,8 +96,6 @@ class HyperparameterTestCase(unittest.TestCase):
     # Set some static returns
     hpo._utils.create_hyperparameter_tuning_job.return_value = 'job-name'
     hpo._utils.get_best_training_job_and_hyperparameters.return_value = 'best_job', {"key_1": "best_hp_1"}
-    hpo._utils.get_image_from_job.return_value = 'training-image'
-    hpo._utils.get_model_artifacts_from_job.return_value = 'model-artifacts'
 
     assume_role_args = required_args + ['--assume_role', 'my-role']
 
@@ -142,7 +140,7 @@ class HyperparameterTestCase(unittest.TestCase):
 
   def test_main_stop_hyperparameter_tuning_job(self):
     hpo._utils = MagicMock()
-    hpo._utils.create_processing_job.return_value = 'job-name'
+    hpo._utils.create_hyperparameter_tuning_job.return_value = 'job-name'
 
     try:
       os.kill(os.getpid(), signal.SIGTERM)
