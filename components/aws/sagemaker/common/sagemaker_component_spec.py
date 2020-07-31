@@ -78,19 +78,25 @@ class SageMakerComponentSpec(Generic[IT, OT]):
         parsed_args = self._parse_arguments(arguments)
 
         # Split results into inputs and outputs
-        self._inputs: IT = input_constructor(
-            **{
-                key: SageMakerIOValue(value)
-                for key, value in parsed_args.items()
-                if key in self.INPUTS.__dict__.keys()
-            }
-        )
+        if self.INPUTS:
+            self._inputs: IT = input_constructor(
+                **{
+                    key: SageMakerIOValue(value)
+                    for key, value in parsed_args.items()
+                    if key in self.INPUTS.__dict__.keys()
+                }
+            )
+        else:
+            self._inputs = input_constructor()
 
         # Map parsed keys (including suffix) to original output key name
-        parsed_key_to_output_key = {
-            f"{output_key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}": output_key
-            for output_key in self.OUTPUTS.__dict__.keys()
-        }
+        if self.OUTPUTS:
+            parsed_key_to_output_key = {
+                f"{output_key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}": output_key
+                for output_key in self.OUTPUTS.__dict__.keys()
+            }
+        else:
+            parsed_key_to_output_key = {}
         # Fill outputs with original keys, but match based on parsed key name
         # Default all initial values to None so we can check for completeness
         # by the end.
@@ -116,17 +122,19 @@ class SageMakerComponentSpec(Generic[IT, OT]):
     def _validate_spec(self):
         """Ensures that all of the types given as inputs and outputs are
         validators."""
-        for key, val in self.INPUTS.__dict__.items():
-            if not isinstance(val, SageMakerComponentInputValidator):
-                raise ValueError(
-                    f"Input {key} is not of type {SageMakerComponentInputValidator.__name__}"
-                )
+        if self.INPUTS:
+            for key, val in self.INPUTS.__dict__.items():
+                if not isinstance(val, SageMakerComponentInputValidator):
+                    raise ValueError(
+                        f"Input {key} is not of type {SageMakerComponentInputValidator.__name__}"
+                    )
 
-        for key, val in self.OUTPUTS.__dict__.items():
-            if not isinstance(val, SageMakerComponentOutputValidator):
-                raise ValueError(
-                    f"Output {key} is not of type {SageMakerComponentOutputValidator.__name__}"
-                )
+        if self.OUTPUTS:
+            for key, val in self.OUTPUTS.__dict__.items():
+                if not isinstance(val, SageMakerComponentOutputValidator):
+                    raise ValueError(
+                        f"Output {key} is not of type {SageMakerComponentOutputValidator.__name__}"
+                    )
         pass
 
     @property
@@ -140,16 +148,18 @@ class SageMakerComponentSpec(Generic[IT, OT]):
         parser = argparse.ArgumentParser()
 
         # Add each input and output to the parser
-        for key, props in self.INPUTS.__dict__.items():
-            parser.add_argument(f"--{key}", **props.to_argparse_mapping())
-        for key, props in self.OUTPUTS.__dict__.items():
-            # Outputs are appended with _output_path to differentiate them programatically
-            parser.add_argument(
-                f"--{key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}",
-                default=f"/tmp/{key}",
-                type=str,
-                help=props.description,
-            )
+        if self.INPUTS:
+            for key, props in self.INPUTS.__dict__.items():
+                parser.add_argument(f"--{key}", **props.to_argparse_mapping())
+        if self.OUTPUTS:
+            for key, props in self.OUTPUTS.__dict__.items():
+                # Outputs are appended with _output_path to differentiate them programatically
+                parser.add_argument(
+                    f"--{key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}",
+                    default=f"/tmp/{key}",
+                    type=str,
+                    help=props.description,
+                )
 
         return parser
 

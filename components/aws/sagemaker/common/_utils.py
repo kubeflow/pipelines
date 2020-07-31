@@ -269,9 +269,6 @@ def create_training_job_request(args):
     if args['volume_size']:
         request['ResourceConfig']['VolumeSizeInGB'] = args['volume_size']
 
-    if args['max_run_time']:
-        request['StoppingCondition']['MaxRuntimeInSeconds'] = args['max_run_time']
-
     enable_spot_instance_support(request, args)
 
     ### Update tags

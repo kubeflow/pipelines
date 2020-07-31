@@ -204,11 +204,6 @@ class SageMakerTrainingComponent(SageMakerComponent):
         if spec.inputs.volume_size:
             request["ResourceConfig"]["VolumeSizeInGB"] = spec.inputs.volume_size
 
-        if spec.inputs.max_run_time:
-            request["StoppingCondition"][
-                "MaxRuntimeInSeconds"
-            ] = spec.inputs.max_run_time
-
         self._enable_spot_instance_support(request, spec.inputs)
 
         for key, val in spec.inputs.tags.items():

@@ -151,12 +151,13 @@ class SageMakerComponent(object):
         request = self._create_job_request(inputs, outputs)
         try:
             job = self._submit_job_request(request)
-            self._after_submit_job_request(job, inputs, outputs)
         except Exception as e:
             logging.exception(
                 "An error occurred while attempting to submit the request"
             )
             return False
+    
+        self._after_submit_job_request(job, inputs, outputs)
 
         status: Optional[SageMakerJobStatus] = None
         try:
@@ -296,13 +297,19 @@ class SageMakerComponent(object):
     def _enable_spot_instance_support(
         request: Dict,
         inputs: SpotInstanceInputs,
-    ):
+    ) -> Dict:
         """Modifies a request object to add support for spot instance fields.
 
         Args:
             request: A request object to modify.
             inputs: A populated list of user inputs.
+
+        Returns:
+            dict: The modified dictionary
         """
+        if inputs.max_run_time:
+            request['StoppingCondition']['MaxRuntimeInSeconds'] = inputs.max_run_time
+
         if inputs.spot_instance:
             request["EnableManagedSpotTraining"] = inputs.spot_instance
             if (
@@ -333,6 +340,8 @@ class SageMakerComponent(object):
             del request["StoppingCondition"]["MaxWaitTimeInSeconds"]
             del request["CheckpointConfig"]
 
+        return request
+
     @staticmethod
     def _create_hyperparameters(hyperparam_args: Dict) -> Dict:
         """Validates hyperparameters and returns the dictionary used for a
@@ -362,15 +371,11 @@ class SageMakerComponent(object):
             outputs: A populated list of output values.
         """
         for output_key, output_value in outputs.__dict__.items():
-            if output_key not in outputs.__dict__.keys():
-                # Warn user that an output might be empty
-                logging.error(f"No output defined for {output_key}")
-                continue
-
             output_path = output_paths.__dict__.get(output_key)
             if not output_path:
                 logging.error(f"Could not find output path for {output_key}")
                 continue
+            
             # Encode it if it's a List or Dict (not primitive)
             encoded_types = (List, Dict)
             self._write_output(
