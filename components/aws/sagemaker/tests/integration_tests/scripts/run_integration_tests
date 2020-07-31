@@ -164,6 +164,7 @@ function generate_assumed_role() {
   # If not defined in the env file
   if [[ -z "${ASSUMED_ROLE_NAME}" ]]; then
     ASSUMED_ROLE_NAME="${DEPLOY_NAME}-assumed-role"
+    CREATED_ASSUMED_ROLE="true"
 
     # Create a trust file that allows the OIDC role to authenticate
     local assumed_trust_file="assumed-role-trust.json"
@@ -189,7 +190,8 @@ function generate_assumed_role() {
 }
 
 function delete_assumed_role() {
-  if [[ ! -z "${ASSUMED_ROLE_NAME}" ]]; then
+  # Ensure that the automated script created the assumed role
+  if [[ ! -z "${ASSUMED_ROLE_NAME}" && "${CREATED_ASSUMED_ROLE:-false}" == "true" ]]; then
     # Delete the role associated with the cluster thats being deleted
     aws iam detach-role-policy --role-name "${ASSUMED_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
     aws iam delete-role --role-name "${ASSUMED_ROLE_NAME}"
