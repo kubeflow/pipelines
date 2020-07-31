@@ -111,6 +111,7 @@ class SageMakerComponentTestCase(unittest.TestCase):
             SageMakerJobStatus(is_completed=False, raw_status="status1"),
             SageMakerJobStatus(is_completed=False, raw_status="status2"),
             SageMakerJobStatus(is_completed=True, raw_status="status3"),
+            SageMakerJobStatus(is_completed=True, raw_status="don't reach"),
         ]
 
         self.component._after_job_complete = MagicMock()
@@ -130,6 +131,7 @@ class SageMakerComponentTestCase(unittest.TestCase):
             SageMakerJobStatus(is_completed=False, raw_status="status1"),
             SageMakerJobStatus(is_completed=False, raw_status="status2"),
             Exception("A random error occurred"),
+            SageMakerJobStatus(is_completed=False, raw_status="don't reach"),
         ]
 
         self.component._after_job_complete = MagicMock()
