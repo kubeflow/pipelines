@@ -117,6 +117,7 @@ class SpotInstanceInputs(SageMakerComponentBaseInputs):
 
     spot_instance: SageMakerComponentInput
     max_wait_time: SageMakerComponentInput
+    max_run_time: SageMakerComponentInput
     checkpoint_config: SageMakerComponentInput
 
 
@@ -129,6 +130,11 @@ SPOT_INSTANCE_INPUTS = SpotInstanceInputs(
     max_wait_time=SageMakerComponentInputValidator(
         input_type=int,
         description="The maximum time in seconds you are willing to wait for a managed spot training job to complete.",
+        default=86400,
+    ),
+    max_run_time=SageMakerComponentInputValidator(
+        input_type=int,
+        description="The maximum run time in seconds for the training job.",
         default=86400,
     ),
     checkpoint_config=SageMakerComponentInputValidator(
