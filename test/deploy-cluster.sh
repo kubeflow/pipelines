@@ -72,7 +72,7 @@ else
     --enable-autoscaling --max-nodes=8 --min-nodes=2"
   KUBERNETES_VERSION_ARG="--cluster-version=1.14"
   if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
-    WI_ARG="--identity-namespace=$PROJECT.svc.id.goog"
+    WI_ARG="--workload-pool=$PROJECT.svc.id.goog"
     SCOPE_ARG=
   else
     WI_ARG=
