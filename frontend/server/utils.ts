@@ -67,29 +67,20 @@ export function loadJSON<T>(filepath?: string, defaultValue?: T): T | undefined 
 }
 
 /**
- * prune remainingMaybePrunePath to relativePath, then concat with rootPath.
- * for example:
- * console.log(pruneAndConcatPath('/data', 'a/b/c', undefined))
- * console.log(pruneAndConcatPath('/data', 'a/b/c', a))
- * console.log(pruneAndConcatPath('/data', 'a/b/c', a/b))
- * console.log(pruneAndConcatPath('/data', 'a/b/c', other))
- *
- * result is:
- * /data/a/b/c
- * /data/b/c
- * /data/c
- * /data/a/b/c
+ * prune subMaybePrunedPath to relativePath, then concat with rootFixedPath.
  */
 export function pruneAndConcatPath(
   rootFixedPath: string,
-  remainingMaybePrunePath: string,
-  prefixPrunePath: string | undefined,
+  subMaybePrunedPath: string,
+  prefixPrune: string | undefined,
 ): string {
-  let relativePath = remainingMaybePrunePath;
-  if (prefixPrunePath && remainingMaybePrunePath.startsWith(prefixPrunePath)) {
-    relativePath = remainingMaybePrunePath.substring(prefixPrunePath.length);
+  if(!prefixPrune){
+    return path.join(rootFixedPath, subMaybePrunedPath);
   }
-  return path.join(rootFixedPath, relativePath);
+  if(subMaybePrunedPath.startsWith(prefixPrune)){
+    return path.join(rootFixedPath, subMaybePrunedPath.substring(prefixPrune.length));
+  }
+  throw new Error(`${prefixPrune} should be prefix of ${subMaybePrunedPath}`);
 }
 
 export interface PreviewStreamOptions extends TransformOptions {

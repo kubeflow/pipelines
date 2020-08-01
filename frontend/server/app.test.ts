@@ -543,7 +543,7 @@ describe('UIServer apis', () => {
       const request = requests(app.start());
       request
         .get(`/artifacts/get?source=volume&bucket=notexist&key=content`)
-        .expect(404, 'Failed to open volume://notexist/content, volume notexist not found', done);
+        .expect(404, 'Failed to open volume://notexist/content, volume notexist not configured', done);
     });
 
     it('responds error with a not exist volume mount path if source=volume', done => {
@@ -585,7 +585,7 @@ describe('UIServer apis', () => {
         .get(`/artifacts/get?source=volume&bucket=artifact&key=notexist/config`)
         .expect(
           404,
-          'Failed to open volume://artifact/notexist/config, volume mount artifact not found',
+          'Failed to open volume://artifact/notexist/config, volume artifact not mounted or volume artifact with subPath(which is prefix of notexist/config) not mounted',
           done,
         );
     });
@@ -629,7 +629,7 @@ describe('UIServer apis', () => {
         .get(`/artifacts/get?source=volume&bucket=artifact&key=subartifact/notxist.csv`)
         .expect(
           404,
-          'Failed to open volume://artifact/subartifact/notxist.csv, file not found',
+          'Failed to open volume://artifact/subartifact/notxist.csv, file /foo/bar/notxist.csv not found or not readable',
           done,
         );
     });
@@ -1438,7 +1438,7 @@ describe('UIServer apis', () => {
               'volume://notexistvolume/logs/log-dir-1',
             )}&namespace=test-ns&tfversion=2.0.0`,
           )
-          .expect(500, `Failed to start Tensorboard app: Volume notexistvolume not found`, err => {
+          .expect(500, `Failed to start Tensorboard app: Volume notexistvolume not configured`, err => {
             expect(errorSpy).toHaveBeenCalledTimes(1);
             done(err);
           });
@@ -1464,7 +1464,7 @@ describe('UIServer apis', () => {
               'volume://data/notexit/mountnotexist/log-dir-1',
             )}&namespace=test-ns&tfversion=2.0.0`,
           )
-          .expect(500, `Failed to start Tensorboard app: Volume mount data not found`, err => {
+          .expect(500, `Failed to start Tensorboard app: Volume data not mounted or volume data with subPath(which is prefix of notexit/mountnotexist/log-dir-1) not mounted`, err => {
             expect(errorSpy).toHaveBeenCalledTimes(1);
             done(err);
           });

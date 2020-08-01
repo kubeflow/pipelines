@@ -76,7 +76,7 @@ function parseTensorboardLogDir(logdir: string, podTemplateSpec: object): string
       // check volume exist
       const volumes = podTemplateSpec['spec'] && podTemplateSpec['spec']['volumes'];
       if (!Array.isArray(volumes) || !volumes.find(v => v?.name === bucket)) {
-        throw new Error(`Volume ${bucket} not found`);
+        throw new Error(`Volume ${bucket} not configured`);
       }
 
       // get volume mount object, backend viewer CRD only use containers[0] as viewer main container
@@ -87,7 +87,7 @@ function parseTensorboardLogDir(logdir: string, podTemplateSpec: object): string
         podTemplateSpec['spec']['containers'][0]['volumeMounts'];
 
       if (!Array.isArray(volumeMounts)) {
-        throw new Error(`Volume mount not found`);
+        throw new Error(`Volume ${bucket} not mounted`);
       }
 
       // find volumes mount
@@ -103,7 +103,7 @@ function parseTensorboardLogDir(logdir: string, podTemplateSpec: object): string
       });
 
       if (!volumeMount) {
-        throw new Error(`Volume mount ${bucket} not found`);
+        throw new Error(`Volume ${bucket} not mounted or volume ${bucket} with subPath(which is prefix of ${key}) not mounted`);
       }
 
       // finally file path
@@ -127,7 +127,7 @@ export async function newTensorboardInstance(
   tfversion: string,
   podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<void> {
-  const currentPod = await getTensorboardInstance(logdir, namespace, podTemplateSpec);
+  const currentPod = await getTensorboardInstance(logdir, namespace);
   if (currentPod.podAddress) {
     if (tfversion === currentPod.tfVersion) {
       return;
@@ -169,7 +169,6 @@ export async function newTensorboardInstance(
 export async function getTensorboardInstance(
   logdir: string,
   namespace: string,
-  podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<{ podAddress: string; tfVersion: string }> {
   return await k8sV1CustomObjectClient
     .getNamespacedCustomObject(
@@ -183,12 +182,16 @@ export async function getTensorboardInstance(
       // Viewer CRD pod has tensorboard instance running at port 6006 while
       // viewer CRD service has tensorboard instance running at port 80. Since
       // we return service address here (instead of pod address), so use 80.
+
+      // remove to check viewer.body.spec.tensorboardSpec.logDir===logdir
+      // actually getNameOfViewerResource(logdir) may have hash collision
+      // but if there is a hash collision, not check logdir will return error tensorboard link
+      // if check logdir and then create Viewer CRD with same name will break anyway.
+      // TODO fix hash collision
       (viewer: any) => {
         if (
           viewer &&
           viewer.body &&
-          viewer.body.spec.tensorboardSpec.logDir ===
-            parseTensorboardLogDir(logdir, podTemplateSpec) &&
           viewer.body.spec.type === 'tensorboard'
         ) {
           const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
@@ -220,9 +223,8 @@ export async function getTensorboardInstance(
 export async function deleteTensorboardInstance(
   logdir: string,
   namespace: string,
-  podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<void> {
-  const currentPod = await getTensorboardInstance(logdir, namespace, podTemplateSpec);
+  const currentPod = await getTensorboardInstance(logdir, namespace);
   if (!currentPod.podAddress) {
     return;
   }
@@ -248,7 +250,6 @@ export function waitForTensorboardInstance(
   logdir: string,
   namespace: string,
   timeout: number,
-  podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<string> {
   const start = Date.now();
   return new Promise((resolve, reject) => {
@@ -257,7 +258,7 @@ export function waitForTensorboardInstance(
         clearInterval(handle);
         reject('Timed out waiting for tensorboard');
       }
-      const tensorboardInstance = await getTensorboardInstance(logdir, namespace, podTemplateSpec);
+      const tensorboardInstance = await getTensorboardInstance(logdir, namespace);
       const tensorboardAddress = tensorboardInstance.podAddress;
       if (tensorboardAddress) {
         clearInterval(handle);

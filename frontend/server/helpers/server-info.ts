@@ -47,7 +47,7 @@ export async function getHostPod(): Promise<[V1Pod | undefined, undefined] | [un
   if (err) {
     const { message, additionalInfo } = err;
     console.error(message, additionalInfo);
-    return [undefined, message];
+    return [undefined, `Failed to get host pod: ${message}`];
   }
 
   hostPod = pod;

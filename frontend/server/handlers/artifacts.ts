@@ -22,7 +22,6 @@ import { Storage } from '@google-cloud/storage';
 import proxy from 'http-proxy-middleware';
 
 import * as fs from 'fs';
-import * as path from 'path';
 import { V1Container } from '@kubernetes/client-node/dist/api';
 
 /**
@@ -271,24 +270,26 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
 
       // volumes not specified or volume named ${bucket} not specified
       if (!Array.isArray(pod?.spec?.volumes) || !pod.spec.volumes.find(v => v?.name === bucket)) {
-        const message = `Failed to open volume://${bucket}/${key}, volume ${bucket} not found`;
+        const message = `Failed to open volume://${bucket}/${key}, volume ${bucket} not configured`;
         res.status(404).send(message);
         return;
       }
 
       let serverContainer: V1Container | undefined;
       if (Array.isArray(pod?.spec?.containers)) {
-        serverContainer = pod?.spec.containers.find(c => c.name === 'ml-pipeline-ui');
+        // container name also be called 'ml-pipeline-ui-artifact' in KFP multi user mode.
+        // https://github.com/kubeflow/manifests/blob/master/pipeline/installs/multi-user/pipelines-profile-controller/sync.py#L212
+        serverContainer = pod?.spec.containers.find(c => c.name === 'ml-pipeline-ui' || c.name === 'ml-pipeline-ui-artifact');
       }
 
       if (!serverContainer) {
-        const message = `Failed to open volume://${bucket}/${key}, server deployment container ml-pipeline-ui not found`;
+        const message = `Failed to open volume://${bucket}/${key}, server deployment container ml-pipeline-ui or ml-pipeline-ui-artifact not found`;
         res.status(404).send(message);
         return;
       }
 
       if (!Array.isArray(serverContainer.volumeMounts)) {
-        const message = `Failed to open volume://${bucket}/${key}, volume mount not found`;
+        const message = `Failed to open volume://${bucket}/${key}, volume ${bucket} not mounted`;
         res.status(404).send(message);
         return;
       }
@@ -308,7 +309,7 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
 
       // volumes mount named ${bucket} not found
       if (!volumeMount) {
-        const message = `Failed to open volume://${bucket}/${key}, volume mount ${bucket} not found`;
+        const message = `Failed to open volume://${bucket}/${key}, volume ${bucket} not mounted or volume ${bucket} with subPath(which is prefix of ${key}) not mounted`;
         res.status(404).send(message);
         return;
       }
@@ -316,17 +317,20 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
       // finally file path
       const filePath = pruneAndConcatPath(volumeMount.mountPath, key, volumeMount.subPath);
 
-      if (!fs.existsSync(filePath)) {
-        res.status(404).send(`Failed to open volume://${bucket}/${key}, file not found`);
+      const canAccess = await fs.promises.access(filePath, fs.constants.F_OK | fs.constants.R_OK)
+          .then(()=>true)
+          .catch(()=>false);
+      if (!canAccess) {
+        res.status(404).send(`Failed to open volume://${bucket}/${key}, file ${filePath} not found or not readable`);
         return;
       }
 
       // TODO: support directory and support filePath include wildcards '*'
-      const stat = fs.statSync(filePath);
+      const stat = await fs.promises.stat(filePath);
       if (stat.isDirectory()) {
         res
           .status(400)
-          .send(`Failed to open volume://${bucket}/${key}, directory does not support`);
+          .send(`Failed to open volume://${bucket}/${key}, file ${filePath} is directory, does not support now`);
         return;
       }
 
