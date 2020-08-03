@@ -543,7 +543,11 @@ describe('UIServer apis', () => {
       const request = requests(app.start());
       request
         .get(`/artifacts/get?source=volume&bucket=notexist&key=content`)
-        .expect(404, 'Failed to open volume://notexist/content, volume notexist not configured', done);
+        .expect(
+          404,
+          'Failed to open volume://notexist/content, volume notexist not configured',
+          done,
+        );
     });
 
     it('responds error with a not exist volume mount path if source=volume', done => {
@@ -1438,10 +1442,14 @@ describe('UIServer apis', () => {
               'volume://notexistvolume/logs/log-dir-1',
             )}&namespace=test-ns&tfversion=2.0.0`,
           )
-          .expect(500, `Failed to start Tensorboard app: Volume notexistvolume not configured`, err => {
-            expect(errorSpy).toHaveBeenCalledTimes(1);
-            done(err);
-          });
+          .expect(
+            500,
+            `Failed to start Tensorboard app: Volume notexistvolume not configured`,
+            err => {
+              expect(errorSpy).toHaveBeenCalledTimes(1);
+              done(err);
+            },
+          );
       });
 
       it('creates tensorboard viewer with not exist subPath volume mount and return error', done => {
@@ -1464,10 +1472,14 @@ describe('UIServer apis', () => {
               'volume://data/notexit/mountnotexist/log-dir-1',
             )}&namespace=test-ns&tfversion=2.0.0`,
           )
-          .expect(500, `Failed to start Tensorboard app: Volume data not mounted or volume data with subPath(which is prefix of notexit/mountnotexist/log-dir-1) not mounted`, err => {
-            expect(errorSpy).toHaveBeenCalledTimes(1);
-            done(err);
-          });
+          .expect(
+            500,
+            `Failed to start Tensorboard app: Volume data not mounted or volume data with subPath(which is prefix of notexit/mountnotexist/log-dir-1) not mounted`,
+            err => {
+              expect(errorSpy).toHaveBeenCalledTimes(1);
+              done(err);
+            },
+          );
       });
 
       it('returns error when there is an existing tensorboard with different version', done => {

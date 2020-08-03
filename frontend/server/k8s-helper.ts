@@ -103,7 +103,9 @@ function parseTensorboardLogDir(logdir: string, podTemplateSpec: object): string
       });
 
       if (!volumeMount) {
-        throw new Error(`Volume ${bucket} not mounted or volume ${bucket} with subPath(which is prefix of ${key}) not mounted`);
+        throw new Error(
+          `Volume ${bucket} not mounted or volume ${bucket} with subPath(which is prefix of ${key}) not mounted`,
+        );
       }
 
       // finally file path
@@ -189,11 +191,7 @@ export async function getTensorboardInstance(
       // if check logdir and then create Viewer CRD with same name will break anyway.
       // TODO fix hash collision
       (viewer: any) => {
-        if (
-          viewer &&
-          viewer.body &&
-          viewer.body.spec.type === 'tensorboard'
-        ) {
+        if (viewer && viewer.body && viewer.body.spec.type === 'tensorboard') {
           const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
           const tfImageParts = viewer.body.spec.tensorboardSpec.tensorflowImage.split(':', 2);
           const tfVersion = tfImageParts.length == 2 ? tfImageParts[1] : '';
@@ -220,10 +218,7 @@ export async function getTensorboardInstance(
  * and returns the deleted podAddress
  */
 
-export async function deleteTensorboardInstance(
-  logdir: string,
-  namespace: string,
-): Promise<void> {
+export async function deleteTensorboardInstance(logdir: string, namespace: string): Promise<void> {
   const currentPod = await getTensorboardInstance(logdir, namespace);
   if (!currentPod.podAddress) {
     return;

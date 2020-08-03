@@ -54,8 +54,8 @@ describe('utils', () => {
     });
 
     it('with not exist prefixPrunePath', () => {
-      expect(()=>pruneAndConcatPath('/data', 'a/b/c', 'other')).toThrowError(
-          'other should be prefix of a/b/c',
+      expect(() => pruneAndConcatPath('/data', 'a/b/c', 'other')).toThrowError(
+        'other should be prefix of a/b/c',
       );
     });
   });

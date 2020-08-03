@@ -279,7 +279,9 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
       if (Array.isArray(pod?.spec?.containers)) {
         // container name also be called 'ml-pipeline-ui-artifact' in KFP multi user mode.
         // https://github.com/kubeflow/manifests/blob/master/pipeline/installs/multi-user/pipelines-profile-controller/sync.py#L212
-        serverContainer = pod?.spec.containers.find(c => c.name === 'ml-pipeline-ui' || c.name === 'ml-pipeline-ui-artifact');
+        serverContainer = pod?.spec.containers.find(
+          c => c.name === 'ml-pipeline-ui' || c.name === 'ml-pipeline-ui-artifact',
+        );
       }
 
       if (!serverContainer) {
@@ -317,11 +319,16 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
       // finally file path
       const filePath = pruneAndConcatPath(volumeMount.mountPath, key, volumeMount.subPath);
 
-      const canAccess = await fs.promises.access(filePath, fs.constants.F_OK | fs.constants.R_OK)
-          .then(()=>true)
-          .catch(()=>false);
+      const canAccess = await fs.promises
+        .access(filePath, fs.constants.F_OK | fs.constants.R_OK)
+        .then(() => true)
+        .catch(() => false);
       if (!canAccess) {
-        res.status(404).send(`Failed to open volume://${bucket}/${key}, file ${filePath} not found or not readable`);
+        res
+          .status(404)
+          .send(
+            `Failed to open volume://${bucket}/${key}, file ${filePath} not found or not readable`,
+          );
         return;
       }
 
@@ -330,7 +337,9 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
       if (stat.isDirectory()) {
         res
           .status(400)
-          .send(`Failed to open volume://${bucket}/${key}, file ${filePath} is directory, does not support now`);
+          .send(
+            `Failed to open volume://${bucket}/${key}, file ${filePath} is directory, does not support now`,
+          );
         return;
       }
 

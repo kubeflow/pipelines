@@ -74,10 +74,10 @@ export function pruneAndConcatPath(
   subMaybePrunedPath: string,
   prefixPrune: string | undefined,
 ): string {
-  if(!prefixPrune){
+  if (!prefixPrune) {
     return path.join(rootFixedPath, subMaybePrunedPath);
   }
-  if(subMaybePrunedPath.startsWith(prefixPrune)){
+  if (subMaybePrunedPath.startsWith(prefixPrune)) {
     return path.join(rootFixedPath, subMaybePrunedPath.substring(prefixPrune.length));
   }
   throw new Error(`${prefixPrune} should be prefix of ${subMaybePrunedPath}`);
