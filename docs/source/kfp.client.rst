@@ -1,5 +1,5 @@
 kfp.Client class
-------------------
+================
 
 .. autoclass:: kfp.Client
     :members:
@@ -7,7 +7,7 @@ kfp.Client class
     :show-inheritance:
 
 Generated APIs
-------------------
+--------------
 
 .. toctree::
     :maxdepth: 2

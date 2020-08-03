@@ -63,7 +63,27 @@ class Resource(object):
 
 
 class ResourceOp(BaseOp):
-    """Represents an op which will be translated into a resource template"""
+    """Represents an op which will be translated into a resource template
+
+    Args:
+        k8s_resource: A k8s resource which will be submitted to the cluster
+        action: One of "create"/"delete"/"apply"/"patch"
+            (default is "create")
+        merge_strategy: The merge strategy for the "apply" action
+        success_condition: The successCondition of the template
+        failure_condition: The failureCondition of the template
+            For more info see:
+            https://github.com/argoproj/argo/blob/master/examples/k8s-jobs.yaml
+        attribute_outputs: Maps output labels to resource's json paths,
+            similarly to file_outputs of ContainerOp
+        kwargs: name, sidecars. See BaseOp definition
+
+    Raises:
+        ValueError: if not inside a pipeline
+            if the name is an invalid string
+            if no k8s_resource is provided
+            if merge_strategy is set without "apply" action
+    """
 
     def __init__(self,
                  k8s_resource=None,
@@ -73,26 +93,6 @@ class ResourceOp(BaseOp):
                  failure_condition: str = None,
                  attribute_outputs: Dict[str, str] = None,
                  **kwargs):
-        """Create a new instance of ResourceOp.
-
-        Args:
-            k8s_resource: A k8s resource which will be submitted to the cluster
-            action: One of "create"/"delete"/"apply"/"patch"
-                (default is "create")
-            merge_strategy: The merge strategy for the "apply" action
-            success_condition: The successCondition of the template
-            failure_condition: The failureCondition of the template
-                For more info see:
-                https://github.com/argoproj/argo/blob/master/examples/k8s-jobs.yaml
-            attribute_outputs: Maps output labels to resource's json paths,
-                similarly to file_outputs of ContainerOp
-            kwargs: name, sidecars. See BaseOp definition
-        Raises:
-        ValueError: if not inside a pipeline
-                    if the name is an invalid string
-                    if no k8s_resource is provided
-                    if merge_strategy is set without "apply" action
-        """
 
         super().__init__(**kwargs)
         self.attrs_with_pipelineparams = list(self.attrs_with_pipelineparams)
