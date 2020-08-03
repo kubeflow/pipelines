@@ -50,7 +50,7 @@ def main(argv=None):
   args = parser.parse_args(argv)
 
   logging.getLogger().setLevel(logging.INFO)
-  client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
+  client = _utils.get_sagemaker_client(args.region, args.endpoint_url, assume_role_arn=args.assume_role)
 
   logging.info('Submitting Processing Job to SageMaker...')
   job_name = _utils.create_processing_job(client, vars(args))
@@ -68,7 +68,7 @@ def main(argv=None):
   except:
     raise
   finally:
-    cw_client = _utils.get_cloudwatch_client(args.region)
+    cw_client = _utils.get_cloudwatch_client(args.region, assume_role_arn=args.assume_role)
     _utils.print_logs_for_job(cw_client, '/aws/sagemaker/ProcessingJobs', job_name)
 
   outputs = _utils.get_processing_job_outputs(client, job_name)
