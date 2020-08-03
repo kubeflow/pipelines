@@ -1,0 +1,18 @@
+bokeh==1.2.0
+gcsfs==0.2.3
+google-api-python-client==1.7.*
+itables==0.1.0
+ipykernel==5.1.1
+ipython==7.12.0
+jupyter_client==5.3.*
+nbconvert==5.5.0
+nbformat==4.4.0
+pandas==0.24.2
+pyarrow==0.16.*
+scikit_learn==0.21.2
+tensorflow-metadata==0.22.*
+tensorflow-model-analysis==0.22.*
+tensorflow-data-validation==0.22.*
+tornado==6.0.2
+# Increase google-api-core to some release AFTER 1.21.0 when it becomes available
+google-api-core==1.16.0
