@@ -1,7 +1,8 @@
 import unittest
 import json
 
-from unittest.mock import patch, call, Mock, MagicMock, mock_open
+from unittest.mock import patch, call, Mock, MagicMock, mock_open, ANY
+from boto3.session import Session
 from botocore.exceptions import ClientError
 
 from common import _utils
@@ -66,3 +67,37 @@ class UtilsTestCase(unittest.TestCase):
                 mock_path("/tmp/test-output").write_text.assert_called_with(
                     json.dumps(case)
                 )
+
+    def test_assume_default_boto3_session(self):
+        with patch("common._utils.boto3", MagicMock()) as mock_boto3:
+            returned_session = _utils.get_boto3_session("us-east-1")
+
+        assert isinstance(returned_session, Session)
+        assert returned_session.region_name == "us-east-1"
+        mock_boto3.assert_not_called()
+
+    @patch("common._utils.DeferredRefreshableCredentials", MagicMock())
+    @patch("common._utils.AssumeRoleCredentialFetcher", MagicMock())
+    def test_assume_role_boto3_session(self):
+        returned_session = _utils.get_boto3_session("us-east-1", role_arn="abc123")
+
+        assert isinstance(returned_session, Session)
+        assert returned_session.region_name == "us-east-1"
+
+        # Bury into the internals to ensure our provider was registered correctly
+        our_provider = returned_session._session._components.get_component('credential_provider').providers[0]
+        assert isinstance(our_provider, _utils.AssumeRoleProvider)
+
+    def test_assumed_sagemaker_client(self):
+        _utils.get_boto3_session = MagicMock()
+
+        mock_sm_client = MagicMock()
+        # Mock the client("SageMaker", ...) return value
+        _utils.get_boto3_session.return_value.client.return_value = mock_sm_client
+
+        client = _utils.get_sagemaker_client("us-east-1", assume_role_arn="abc123")
+        assert client == mock_sm_client
+
+        _utils.get_boto3_session.assert_called_once_with("us-east-1", "abc123")
+        _utils.get_boto3_session.return_value.client.assert_called_once_with("sagemaker", endpoint_url=None, config=ANY)
+        

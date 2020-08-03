@@ -11,6 +11,8 @@ For hyperparameter tuning jobs using AWS SageMaker.
 Argument        | Description                 | Optional (in pipeline definition) | Optional (in UI) | Data type  | Accepted values | Default    |
 :---            | :----------                 | :----------                       | :----------      | :----------| :----------     | :----------|
 region | The region where the cluster launches | No | No | String | | |
+endpoint_url | The endpoint URL for the private link VPC endpoint | Yes | String | | |
+assume_role | The ARN of an IAM role to assume when connecting to SageMaker | Yes | String | | |
 job_name | The name of the tuning job. Must be unique within the same AWS account and AWS region | Yes | Yes | String | | HPOJob-[datetime]-[random id] |
 role | The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf | No | No | String | | |
 image | The registry path of the Docker image that contains the training algorithm | Yes | Yes | String | | |
@@ -44,7 +46,6 @@ max_wait_time | The maximum time in seconds you are willing to wait for a manage
 checkpoint_config | Dictionary of information about the output location for managed spot training checkpoint data | Yes | Yes | Dict | | {} |
 warm_start_type | Specifies the type of warm start used | Yes | No | String | IdenticalDataAndAlgorithm, TransferLearning | |
 parent_hpo_jobs | List of previously completed or stopped hyperparameter tuning jobs to be used as a starting point | Yes | Yes | String | Yes | | |
-endpoint_url | The endpoint URL for the private link VPC endpoint. | Yes | Yes | String | | |
 tags | Key-value pairs to categorize AWS resources | Yes | Yes | Dict | | {} |
 
 Notes:

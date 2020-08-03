@@ -26,10 +26,12 @@ EKS_PRIVATE_SUBNETS=${EKS_PRIVATE_SUBNETS:-""}
 MINIO_LOCAL_PORT=${MINIO_LOCAL_PORT:-9000}
 KFP_NAMESPACE=${KFP_NAMESPACE:-"kubeflow"}
 KFP_SERVICE_ACCOUNT=${KFP_SERVICE_ACCOUNT:-"pipeline-runner"}
+AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-"$(aws sts get-caller-identity --query=Account --output=text)"}
 
 PYTEST_MARKER=${PYTEST_MARKER:-""}
 S3_DATA_BUCKET=${S3_DATA_BUCKET:-""}
 SAGEMAKER_EXECUTION_ROLE_ARN=${SAGEMAKER_EXECUTION_ROLE_ARN:-""}
+ASSUMED_ROLE_NAME=${ASSUMED_ROLE_NAME:-""}
 
 SKIP_FSX_TESTS=${SKIP_FSX_TESTS:-"false"}
 
@@ -78,7 +80,8 @@ function cleanup() {
   set +e
 
   cleanup_kfp
-  delete_generated_role
+  delete_assumed_role
+  delete_oidc_role
 
   if [[ "${SKIP_FSX_TESTS}" == "false" ]]; then
     delete_fsx_instance
@@ -141,19 +144,58 @@ function install_kfp() {
   echo "[Installing KFP] Pipeline pods are ready"
 }
 
-function generate_iam_role_name() {
+function generate_oidc_role_name() {
   OIDC_ROLE_NAME="$(echo "${DEPLOY_NAME}-kubeflow-role" | cut -c1-64)"
-  OIDC_ROLE_ARN="arn:aws:iam::$(aws sts get-caller-identity --query=Account --output=text):role/${OIDC_ROLE_NAME}"
+  OIDC_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OIDC_ROLE_NAME}"
 }
 
-function install_generated_role() {
+function install_oidc_role() {
   kubectl patch serviceaccount -n ${KFP_NAMESPACE} ${KFP_SERVICE_ACCOUNT} --patch '{"metadata": {"annotations": {"eks.amazonaws.com/role-arn": "'"${OIDC_ROLE_ARN}"'"}}}'
 }
 
-function delete_generated_role() {
+function delete_oidc_role() {
   # Delete the role associated with the cluster thats being deleted
   aws iam detach-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+  aws iam delete-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-name AllowAssumeRole
   aws iam delete-role --role-name "${OIDC_ROLE_NAME}"
+}
+
+function generate_assumed_role() {
+  # If not defined in the env file
+  if [[ -z "${ASSUMED_ROLE_NAME}" ]]; then
+    ASSUMED_ROLE_NAME="${DEPLOY_NAME}-assumed-role"
+    CREATED_ASSUMED_ROLE="true"
+
+    # Create a trust file that allows the OIDC role to authenticate
+    local assumed_trust_file="assumed-role-trust.json"
+    printf '{
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "AWS": "arn:aws:iam::'"${AWS_ACCOUNT_ID}"':root"
+          },
+          "Action": "sts:AssumeRole",
+          "Condition": {}
+        }
+      ]
+    }' > "${assumed_trust_file}"
+    aws iam create-role --role-name "${ASSUMED_ROLE_NAME}" --assume-role-policy-document file://${assumed_trust_file} --output=text --query "Role.Arn"
+    aws iam attach-role-policy --role-name ${ASSUMED_ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+  fi
+
+  # Generate the ARN using the role name
+  ASSUMED_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ASSUMED_ROLE_NAME}"
+}
+
+function delete_assumed_role() {
+  # Ensure that the automated script created the assumed role
+  if [[ ! -z "${ASSUMED_ROLE_NAME}" && "${CREATED_ASSUMED_ROLE:-false}" == "true" ]]; then
+    # Delete the role associated with the cluster thats being deleted
+    aws iam detach-role-policy --role-name "${ASSUMED_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+    aws iam delete-role --role-name "${ASSUMED_ROLE_NAME}"
+  fi
 }
 
 function cleanup_kfp() {
@@ -187,12 +229,16 @@ else
   wait
 fi
 
-generate_iam_role_name
+generate_oidc_role_name
 "$cwd"/generate_iam_role ${EKS_CLUSTER_NAME} ${OIDC_ROLE_NAME} ${REGION} ${KFP_NAMESPACE} ${KFP_SERVICE_ACCOUNT}
 install_kfp
-install_generated_role
+install_oidc_role
 
-pytest_args=( --region "${REGION}" --role-arn "${SAGEMAKER_EXECUTION_ROLE_ARN}" --s3-data-bucket "${S3_DATA_BUCKET}" --minio-service-port "${MINIO_LOCAL_PORT}" --kfp-namespace "${KFP_NAMESPACE}" )
+generate_assumed_role
+
+pytest_args=( --region "${REGION}" --role-arn "${SAGEMAKER_EXECUTION_ROLE_ARN}" \
+  --s3-data-bucket "${S3_DATA_BUCKET}" --kfp-namespace "${KFP_NAMESPACE}" \
+  --minio-service-port "${MINIO_LOCAL_PORT}" --assume-role-arn "${ASSUMED_ROLE_ARN}")
 
 if [[ "${SKIP_FSX_TESTS}" == "true" ]]; then
   pytest_args+=( -m "not fsx_test" )
