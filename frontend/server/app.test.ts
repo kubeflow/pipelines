@@ -632,8 +632,8 @@ describe('UIServer apis', () => {
       request
         .get(`/artifacts/get?source=volume&bucket=artifact&key=subartifact/notxist.csv`)
         .expect(
-          404,
-          'Failed to open volume://artifact/subartifact/notxist.csv, file /foo/bar/notxist.csv not found or not readable',
+          500,
+          "Failed to open volume://artifact/subartifact/notxist.csv: Error: ENOENT: no such file or directory, stat '/foo/bar/notxist.csv'",
           done,
         );
     });
@@ -1444,7 +1444,7 @@ describe('UIServer apis', () => {
           )
           .expect(
             500,
-            `Failed to start Tensorboard app: Volume notexistvolume not configured`,
+            `Failed to start Tensorboard app: volume notexistvolume not configured`,
             err => {
               expect(errorSpy).toHaveBeenCalledTimes(1);
               done(err);
@@ -1474,7 +1474,7 @@ describe('UIServer apis', () => {
           )
           .expect(
             500,
-            `Failed to start Tensorboard app: Volume data not mounted or volume data with subPath(which is prefix of notexit/mountnotexist/log-dir-1) not mounted`,
+            `Failed to start Tensorboard app: volume data not mounted or volume data with subPath(which is prefix of notexit/mountnotexist/log-dir-1) not mounted`,
             err => {
               expect(errorSpy).toHaveBeenCalledTimes(1);
               done(err);

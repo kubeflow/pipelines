@@ -14,7 +14,7 @@
 import fetch from 'node-fetch';
 import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv } from '../configs';
 import { Client as MinioClient } from 'minio';
-import { PreviewStream, pruneAndConcatPath } from '../utils';
+import { PreviewStream, parseFilePathOnPodVolume } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
 import * as serverInfo from '../helpers/server-info';
 import { Handler, Request, Response } from 'express';
@@ -268,67 +268,15 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
         return;
       }
 
-      // volumes not specified or volume named ${bucket} not specified
-      if (!Array.isArray(pod?.spec?.volumes) || !pod.spec.volumes.find(v => v?.name === bucket)) {
-        const message = `Failed to open volume://${bucket}/${key}, volume ${bucket} not configured`;
-        res.status(404).send(message);
-        return;
-      }
-
-      let serverContainer: V1Container | undefined;
-      if (Array.isArray(pod?.spec?.containers)) {
-        // container name also be called 'ml-pipeline-ui-artifact' in KFP multi user mode.
-        // https://github.com/kubeflow/manifests/blob/master/pipeline/installs/multi-user/pipelines-profile-controller/sync.py#L212
-        serverContainer = pod?.spec.containers.find(
-          c => c.name === 'ml-pipeline-ui' || c.name === 'ml-pipeline-ui-artifact',
-        );
-      }
-
-      if (!serverContainer) {
-        const message = `Failed to open volume://${bucket}/${key}, server deployment container ml-pipeline-ui or ml-pipeline-ui-artifact not found`;
-        res.status(404).send(message);
-        return;
-      }
-
-      if (!Array.isArray(serverContainer.volumeMounts)) {
-        const message = `Failed to open volume://${bucket}/${key}, volume ${bucket} not mounted`;
-        res.status(404).send(message);
-        return;
-      }
-
-      // find volumes mount
-      const volumeMount = serverContainer.volumeMounts.find(v => {
-        // volume name must be same
-        if (v?.name !== bucket) {
-          return false;
-        }
-        // if volume subPath set, volume subPath must be prefix of key
-        if (v?.subPath) {
-          return key.startsWith(v.subPath);
-        }
-        return true;
+      // ml-pipeline-ui server container name also be called 'ml-pipeline-ui-artifact' in KFP multi user mode.
+      // https://github.com/kubeflow/manifests/blob/master/pipeline/installs/multi-user/pipelines-profile-controller/sync.py#L212
+      const [filePath, parseError] = parseFilePathOnPodVolume(pod, {
+        containerNames: ['ml-pipeline-ui', 'ml-pipeline-ui-artifact'],
+        volumeMountName: bucket,
+        volumeMountPath: key,
       });
-
-      // volumes mount named ${bucket} not found
-      if (!volumeMount) {
-        const message = `Failed to open volume://${bucket}/${key}, volume ${bucket} not mounted or volume ${bucket} with subPath(which is prefix of ${key}) not mounted`;
-        res.status(404).send(message);
-        return;
-      }
-
-      // finally file path
-      const filePath = pruneAndConcatPath(volumeMount.mountPath, key, volumeMount.subPath);
-
-      const canAccess = await fs.promises
-        .access(filePath, fs.constants.F_OK | fs.constants.R_OK)
-        .then(() => true)
-        .catch(() => false);
-      if (!canAccess) {
-        res
-          .status(404)
-          .send(
-            `Failed to open volume://${bucket}/${key}, file ${filePath} not found or not readable`,
-          );
+      if (parseError) {
+        res.status(404).send(`Failed to open volume://${bucket}/${key}, ${parseError}`);
         return;
       }
 

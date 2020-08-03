@@ -23,7 +23,7 @@ import {
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import { PartialArgoWorkflow } from './workflow-helper';
-import { parseError, pruneAndConcatPath } from './utils';
+import { parseError, parseFilePathOnPodVolume } from './utils';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
@@ -62,58 +62,33 @@ function getNameOfViewerResource(logdir: string): string {
   return 'viewer-' + crypto.SHA1(logdir);
 }
 
+/**
+ * Parse logdir to Support volume:// url in logdir,
+ * otherwise, there's no need to parse logdir, we can just use them.
+ */
 function parseTensorboardLogDir(logdir: string, podTemplateSpec: object): string {
   const urls: string[] = [];
   const seriesParts = logdir.split(',');
   for (const seriesPart of seriesParts) {
-    const strPath = seriesPart.replace(/Series\d*:/g, '');
-
-    // volume storage: parse real local mount path
-    if (strPath.startsWith('volume://')) {
-      const pathParts = strPath.substr('volume://'.length).split('/');
-      const bucket = pathParts[0];
-      const key = pathParts.slice(1).join('/');
-      // check volume exist
-      const volumes = podTemplateSpec['spec'] && podTemplateSpec['spec']['volumes'];
-      if (!Array.isArray(volumes) || !volumes.find(v => v?.name === bucket)) {
-        throw new Error(`Volume ${bucket} not configured`);
-      }
-
-      // get volume mount object, backend viewer CRD only use containers[0] as viewer main container
-      const volumeMounts =
-        podTemplateSpec['spec'] &&
-        podTemplateSpec['spec']['containers'] &&
-        podTemplateSpec['spec']['containers'][0] &&
-        podTemplateSpec['spec']['containers'][0]['volumeMounts'];
-
-      if (!Array.isArray(volumeMounts)) {
-        throw new Error(`Volume ${bucket} not mounted`);
-      }
-
-      // find volumes mount
-      const volumeMount = volumeMounts.find(v => {
-        // volume name must be same
-        if (v?.name !== bucket) {
-          return false;
-        }
-        if (v?.subPath) {
-          return key.startsWith(v.subPath);
-        }
-        return true;
-      });
-
-      if (!volumeMount) {
-        throw new Error(
-          `Volume ${bucket} not mounted or volume ${bucket} with subPath(which is prefix of ${key}) not mounted`,
-        );
-      }
-
-      // finally file path
-      const filePath = pruneAndConcatPath(volumeMount.mountPath, key, volumeMount.subPath);
-      urls.push(filePath);
-    } else {
+    const strPath = seriesPart.replace(/Series\d+:/g, '');
+    if (!strPath.startsWith('volume://')) {
       urls.push(strPath);
+      continue;
     }
+    // volume storage: parse real local mount path
+    const pathParts = strPath.substr('volume://'.length).split('/');
+    const bucket = pathParts[0];
+    const key = pathParts.slice(1).join('/');
+
+    const [filePath, err] = parseFilePathOnPodVolume(podTemplateSpec, {
+      volumeMountName: bucket,
+      volumeMountPath: key,
+      containerNames: undefined,
+    });
+    if (err) {
+      throw new Error(err);
+    }
+    urls.push(filePath);
   }
   return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
 }

@@ -67,20 +67,92 @@ export function loadJSON<T>(filepath?: string, defaultValue?: T): T | undefined 
 }
 
 /**
- * prune subMaybePrunedPath to relativePath, then concat with rootFixedPath.
+ * Parse file path with pod info
  */
-export function pruneAndConcatPath(
-  rootFixedPath: string,
-  subMaybePrunedPath: string,
-  prefixPrune: string | undefined,
-): string {
-  if (!prefixPrune) {
-    return path.join(rootFixedPath, subMaybePrunedPath);
+export function parseFilePathOnPodVolume(
+  pod: any,
+  options: {
+    containerNames: string[] | undefined;
+    volumeMountName: string;
+    volumeMountPath: string;
+  },
+): [string, string | undefined] {
+  const { containerNames, volumeMountName, volumeMountPath } = options;
+
+  const volumes = pod?.spec && pod.spec?.volumes;
+  // volumes not specified or volume named ${volumeMountName} not specified
+  if (!Array.isArray(volumes) || !volumes.find(v => v?.name === volumeMountName)) {
+    return ['', `volume ${volumeMountName} not configured`];
   }
-  if (subMaybePrunedPath.startsWith(prefixPrune)) {
-    return path.join(rootFixedPath, subMaybePrunedPath.substring(prefixPrune.length));
+
+  // get pod main container
+  let container;
+  if (Array.isArray(pod.spec.containers)) {
+    if (containerNames) {
+      // find main container by container name match containerNames
+      container = pod.spec.containers.find((c: { [name: string]: string }) =>
+        containerNames.includes(c.name),
+      );
+    } else {
+      // use containers[0] as pod main container
+      container = pod.spec.containers[0];
+    }
   }
-  throw new Error(`${prefixPrune} should be prefix of ${subMaybePrunedPath}`);
+
+  if (!container) {
+    const containerNamesMessage = containerNames ? containerNames.join(' or ') : '';
+    return ['', `container ${containerNamesMessage} not found`];
+  }
+
+  const volumeMounts = container.volumeMounts;
+  if (!Array.isArray(volumeMounts)) {
+    return ['', `volume ${volumeMountName} not mounted`];
+  }
+
+  // find volumes mount
+  const volumeMount = volumeMounts.find(v => {
+    // volume name must be same
+    if (v?.name !== volumeMountName) {
+      return false;
+    }
+    // if volume subPath set, volume subPath must be prefix of key
+    if (v?.subPath) {
+      return volumeMountPath.startsWith(v.subPath);
+    }
+    return true;
+  });
+
+  if (!volumeMount) {
+    return [
+      '',
+      `volume ${volumeMountName} not mounted or volume ${volumeMountName} with subPath(which is prefix of ${volumeMountPath}) not mounted`,
+    ];
+  }
+
+  // resolve file path
+  const filePath = resolveFilePathOnVolume({
+    filePathInVolume: volumeMount.mountPath,
+    volumeMountPath,
+    volumeMountSubPath: volumeMount.subPath,
+  });
+  return [filePath, undefined];
+}
+
+export function resolveFilePathOnVolume(volume: {
+  filePathInVolume: string;
+  volumeMountPath: string;
+  volumeMountSubPath: string | undefined;
+}): string {
+  const { filePathInVolume, volumeMountPath, volumeMountSubPath } = volume;
+  if (!volumeMountSubPath) {
+    return path.join(filePathInVolume, volumeMountPath);
+  }
+  if (volumeMountPath.startsWith(volumeMountSubPath)) {
+    return path.join(filePathInVolume, volumeMountPath.substring(volumeMountSubPath.length));
+  }
+  throw new Error(
+    `File ${filePathInVolume} not mounted, expecting the file to be inside volume mount subpath ${volumeMountSubPath}`,
+  );
 }
 
 export interface PreviewStreamOptions extends TransformOptions {
