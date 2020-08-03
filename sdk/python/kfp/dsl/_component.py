@@ -37,16 +37,16 @@ def python_component(name, description=None, base_image=None, target_component_f
   Returns:
       The same function (with some metadata fields set).
 
-  Usage:
-  ```python
-  @dsl.python_component(
-    name='my awesome component',
-    description='Come, Let's play',
-    base_image='tensorflow/tensorflow:1.11.0-py3',
-  )
-  def my_component(a: str, b: int) -> str:
-    ...
-  ```
+  Example:
+    ::
+
+      @dsl.python_component(
+        name='my awesome component',
+        description='Come, Let's play',
+        base_image='tensorflow/tensorflow:1.11.0-py3',
+      )
+      def my_component(a: str, b: int) -> str:
+        ...
   """
   def _python_component(func):
     func._component_human_name = name
@@ -64,11 +64,12 @@ def component(func):
   """Decorator for component functions that returns a ContainerOp.
   This is useful to enable type checking in the DSL compiler
 
-  Usage:
-  ```python
-  @dsl.component
-  def foobar(model: TFModel(), step: MLStep()):
-    return dsl.ContainerOp()
+  Example:
+    ::
+
+      @dsl.component
+      def foobar(model: TFModel(), step: MLStep()):
+        return dsl.ContainerOp()
   """
   from functools import wraps
   @wraps(func)
@@ -103,19 +104,20 @@ def graph_component(func):
   """Decorator for graph component functions.
   This decorator returns an ops_group.
 
-  Usage:
-  ```python
-  # Warning: caching is tricky when recursion is involved. Please be careful and 
-  # set proper max_cache_staleness in case of infinite loop.
-  import kfp.dsl as dsl
-  @dsl.graph_component
-  def flip_component(flip_result):
-    print_flip = PrintOp(flip_result)
-    flipA = FlipCoinOp().after(print_flip)
-    flipA.execution_options.caching_strategy.max_cache_staleness = "P0D"
-    with dsl.Condition(flipA.output == 'heads'):
-      flip_component(flipA.output)
-    return {'flip_result': flipA.output}
+  Example:
+    ::
+
+      # Warning: caching is tricky when recursion is involved. Please be careful and 
+      # set proper max_cache_staleness in case of infinite loop.
+      import kfp.dsl as dsl
+      @dsl.graph_component
+      def flip_component(flip_result):
+        print_flip = PrintOp(flip_result)
+        flipA = FlipCoinOp().after(print_flip)
+        flipA.execution_options.caching_strategy.max_cache_staleness = "P0D"
+        with dsl.Condition(flipA.output == 'heads'):
+          flip_component(flipA.output)
+        return {'flip_result': flipA.output}
   """
   from functools import wraps
   @wraps(func)

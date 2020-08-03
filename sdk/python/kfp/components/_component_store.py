@@ -33,26 +33,45 @@ class ComponentStore:
         self._url_to_info_db = KeyValueStore(cache_dir=cache_base_dir / 'url_to_info')
 
     def load_component_from_url(self, url):
+        """Loads a component from a URL.
+
+        Args:
+            url: The url of the component specification.
+
+        Returns:
+            A factory function with a strongly-typed signature.
+        """
         return comp.load_component_from_url(url=url, auth=self._auth)
 
     def load_component_from_file(self, path):
+        """Loads a component from a path.
+
+        Args:
+            path: The path of the component specification.
+
+        Returns:
+            A factory function with a strongly-typed signature.
+        """
         return comp.load_component_from_file(path)
 
     def load_component(self, name, digest=None, tag=None):
-        '''
+        """
         Loads component local file or URL and creates a task factory function
 
         Search locations:
-        <local-search-path>/<name>/component.yaml
-        <url-search-prefix>/<name>/component.yaml
+
+        * :code:`<local-search-path>/<name>/component.yaml`
+        * :code:`<url-search-prefix>/<name>/component.yaml`
 
         If the digest is specified, then the search locations are:
-        <local-search-path>/<name>/versions/sha256/<digest>
-        <url-search-prefix>/<name>/versions/sha256/<digest>
+
+        * :code:`<local-search-path>/<name>/versions/sha256/<digest>`
+        * :code:`<url-search-prefix>/<name>/versions/sha256/<digest>`
 
         If the tag is specified, then the search locations are:
-        <local-search-path>/<name>/versions/tags/<digest>
-        <url-search-prefix>/<name>/versions/tags/<digest>
+
+        * :code:`<local-search-path>/<name>/versions/tags/<digest>`
+        * :code:`<url-search-prefix>/<name>/versions/tags/<digest>`
 
         Args:
             name:   Component name used to search and load the component artifact containing the component definition.
@@ -63,7 +82,7 @@ class ComponentStore:
         Returns:
             A factory function with a strongly-typed signature.
             Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp).
-        '''
+        """
         #This function should be called load_task_factory since it returns a factory function.
         #The real load_component function should produce an object with component properties (e.g. name, description, inputs/outputs).
         #TODO: Change this function to return component spec object but it should be callable to construct tasks.
@@ -78,10 +97,10 @@ class ComponentStore:
         self,
         component_ref: ComponentReference,
     ) -> ComponentReference:
-        '''Takes component_ref, finds the component spec and returns component_ref with .spec set to the component spec.
+        """Takes component_ref, finds the component spec and returns component_ref with .spec set to the component spec.
 
         See ComponentStore.load_component for the details of the search logic.
-        '''
+        """
         if component_ref.spec:
             return component_ref
 
@@ -144,7 +163,7 @@ class ComponentStore:
         return comp._create_task_factory_from_component_spec(component_spec=component_ref.spec, component_ref=component_ref)
 
     def search(self, name: str):
-        '''Searches for components by name in the configured component store.
+        """Searches for components by name in the configured component store.
 
         Prints the component name and URL for components that match the given name.
         Only components on GitHub are currently supported.
@@ -152,10 +171,11 @@ class ComponentStore:
         Example::
 
             kfp.components.ComponentStore.default_store.search('xgboost')
-            
-            >>> Xgboost train   https://raw.githubusercontent.com/.../components/XGBoost/Train/component.yaml
-            >>> Xgboost predict https://raw.githubusercontent.com/.../components/XGBoost/Predict/component.yaml
-        '''
+
+            # Returns results:
+            #     Xgboost train   https://raw.githubusercontent.com/.../components/XGBoost/Train/component.yaml
+            #     Xgboost predict https://raw.githubusercontent.com/.../components/XGBoost/Predict/component.yaml
+        """
         self._refresh_component_cache()
         for url in self._url_to_info_db.keys():
             component_info = json.loads(self._url_to_info_db.try_get_value_bytes(url))
