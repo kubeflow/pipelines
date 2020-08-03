@@ -140,3 +140,6 @@ SecretStorage,https://raw.githubusercontent.com/mitya57/secretstorage/master/LIC
 Mako,https://raw.githubusercontent.com/sqlalchemy/mako/master/LICENSE,MIT
 typing-extensions,https://raw.githubusercontent.com/python/typing/master/typing_extensions/LICENSE,Python Software Foundation License
 QtPy,https://raw.githubusercontent.com/spyder-ide/qtpy/master/LICENSE.txt,MIT
+argon2-cffi,https://raw.githubusercontent.com/hynek/argon2-cffi/master/LICENSE,MIT
+pycparser,https://raw.githubusercontent.com/eliben/pycparser/master/LICENSE,BSD
+cffi,https://raw.githubusercontent.com/cffi/cffi/master/COPYRIGHT,MIT
