@@ -74,8 +74,7 @@ implementation:
       --validate_only, {inputValue: validate_only},
       --staging_dir, {inputValue: staging_dir},
       --wait_interval, {inputValue: wait_interval},
+      --job_id_output_path, {outputPath: job_id},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
-    fileOutputs:
-      job_id: /tmp/kfp/output/dataflow/job_id.txt

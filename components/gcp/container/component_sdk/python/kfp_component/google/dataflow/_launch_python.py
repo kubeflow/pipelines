@@ -25,7 +25,10 @@ from ._process import Process
 from ..storage import parse_blob_path
 
 def launch_python(python_file_path, project_id, staging_dir=None, requirements_file_path=None, 
-    args=[], wait_interval=30):
+    args=[], wait_interval=30,
+    job_id_output_path='/tmp/kfp/output/dataflow/job_id.txt',
+    job_object_output_path='/tmp/kfp/output/dataflow/job.json',
+):
     """Launch a self-executing beam python file.
 
     Args:
@@ -60,7 +63,10 @@ def launch_python(python_file_path, project_id, staging_dir=None, requirements_f
         if job_id:
             job = df_client.get_job(project_id, job_id, location)
             return wait_and_dump_job(df_client, project_id, location, job,
-                wait_interval)
+                wait_interval,
+                job_id_output_path=job_id_output_path,
+                job_object_output_path=job_object_output_path,
+            )
 
         _install_requirements(requirements_file_path)
         python_file_path = stage_file(python_file_path)
@@ -80,7 +86,10 @@ def launch_python(python_file_path, project_id, staging_dir=None, requirements_f
         job = df_client.get_job(project_id, job_id, 
             location=location)
         return wait_and_dump_job(df_client, project_id, location, job,
-            wait_interval)
+            wait_interval,
+            job_id_output_path=job_id_output_path,
+            job_object_output_path=job_object_output_path,
+        )
 
 def _prepare_cmd(project_id, python_file_path, args, staging_location):
     dataflow_args = [
