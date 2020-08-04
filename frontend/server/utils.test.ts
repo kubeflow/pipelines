@@ -134,7 +134,9 @@ describe('utils', () => {
         volumeMountName: 'other',
         filePathInVolume: 'a/b/c',
       });
-      expect(err).toEqual('volume other not configured');
+      expect(err).toEqual(
+        'Cannot find file "volume://other/a/b/c" in pod unknown: volume other not configured',
+      );
       expect(filePath).toEqual('');
     });
 
@@ -144,7 +146,9 @@ describe('utils', () => {
         volumeMountName: 'output',
         filePathInVolume: 'a/b/c',
       });
-      expect(err).toEqual('container other1 or other2 not found');
+      expect(err).toEqual(
+        'Cannot find file "volume://output/a/b/c" in pod unknown: container other1 or other2 not found',
+      );
       expect(filePath).toEqual('');
     });
 
@@ -155,7 +159,7 @@ describe('utils', () => {
         filePathInVolume: 'a/b/c',
       });
       expect(err).toEqual(
-        'volume artifact not mounted or volume artifact with subPath(which is prefix of a/b/c) not mounted',
+        'Cannot find file "volume://artifact/a/b/c" in pod unknown: volume artifact not mounted or volume artifact with subPath(which is prefix of a/b/c) not mounted',
       );
       expect(filePath).toEqual('');
     });
