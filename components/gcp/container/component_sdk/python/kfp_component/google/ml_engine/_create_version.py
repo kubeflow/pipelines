@@ -28,7 +28,10 @@ from ._common_ops import wait_existing_version, wait_for_operation_done
 @decorators.SetParseFns(python_version=str, runtime_version=str)
 def create_version(model_name, deployemnt_uri=None, version_id=None, 
     runtime_version=None, python_version=None, version=None, 
-    replace_existing=False, wait_interval=30):
+    replace_existing=False, wait_interval=30,
+    version_name_output_path='/tmp/kfp/output/ml_engine/version_name.txt',
+    version_object_output_path='/tmp/kfp/output/ml_engine/version.json',
+):
     """Creates a MLEngine version and wait for the operation to be done.
 
     Args:
@@ -61,11 +64,17 @@ def create_version(model_name, deployemnt_uri=None, version_id=None,
         version['pythonVersion'] = python_version
 
     return CreateVersionOp(model_name, version, 
-        replace_existing, wait_interval).execute_and_wait()
+        replace_existing, wait_interval,
+        version_name_output_path=version_name_output_path,
+        version_object_output_path=version_object_output_path,
+    ).execute_and_wait()
 
 class CreateVersionOp:
     def __init__(self, model_name, version, 
-        replace_existing, wait_interval):
+        replace_existing, wait_interval,
+        version_name_output_path,
+        version_object_output_path,
+    ):
         self._ml = MLEngineClient()
         self._model_name = model_name
         self._project_id, self._model_id = self._parse_model_name(model_name)
@@ -80,6 +89,8 @@ class CreateVersionOp:
         self._wait_interval = wait_interval
         self._create_operation_name = None
         self._delete_operation_name = None
+        self._version_name_output_path = version_name_output_path
+        self._version_object_output_path = version_object_output_path
 
     def execute_and_wait(self):
         with KfpExecutionContext(on_cancel=self._cancel) as ctx:
@@ -189,8 +200,8 @@ gcloud ai-platform predict --model {}  \
 
     def _dump_version(self, version):
         logging.info('Dumping version: {}'.format(version))
-        gcp_common.dump_file('/tmp/kfp/output/ml_engine/version.json', json.dumps(version))
-        gcp_common.dump_file('/tmp/kfp/output/ml_engine/version_name.txt', version['name'])
+        gcp_common.dump_file(self._version_name_output_path, json.dumps(version))
+        gcp_common.dump_file(self._version_object_output_path, version['name'])
 
     def _is_dup_version(self, existing_version):
         return not gcp_common.check_resource_changed(

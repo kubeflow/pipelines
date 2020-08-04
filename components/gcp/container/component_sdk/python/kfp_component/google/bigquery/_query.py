@@ -28,7 +28,12 @@ KFP_OUTPUT_PATH = '/tmp/kfp/output/'
 
 def query(query, project_id, dataset_id=None, table_id=None, 
     output_gcs_path=None, dataset_location='US', job_config=None,
-    output_path=None, output_filename=None):
+    output_path=None, output_filename=None,
+    job_object_output_path='/tmp/kfp/output/bigquery/query-job.json',
+    output_gcs_path_output_path='/tmp/kfp/output/bigquery/query-output-path.txt',
+    output_dataset_id_output_path='/tmp/kfp/output/bigquery/query-dataset-id.txt',
+    output_table_id_output_path='/tmp/kfp/output/bigquery/query-table-id.txt',
+):
     """Submit a query to Bigquery service and dump outputs to Bigquery table or 
     a GCS blob.
     
@@ -71,6 +76,8 @@ def query(query, project_id, dataset_id=None, table_id=None,
                     table_id = job_id
                 table_ref = dataset_ref.table(table_id)
                 job_config.destination = table_ref
+                gcp_common.dump_file(output_dataset_id_output_path, table_ref.dataset_id)
+                gcp_common.dump_file(output_table_id_output_path, table_ref.table_id)
             query_job = client.query(query, job_config, job_id=job_id)
         _display_job_link(project_id, job_id)
         if output_path != None: #Write to local file
@@ -88,7 +95,10 @@ def query(query, project_id, dataset_id=None, table_id=None,
                 if not extract_job:
                     extract_job = client.extract_table(table_ref, output_gcs_path)
                 extract_job.result()  # Wait for export to finish
-        _dump_outputs(query_job, output_gcs_path, table_ref)
+            # TODO: Replace '-' with empty string when most users upgrade to Argo version which has the fix: https://github.com/argoproj/argo/pull/1653
+            gcp_common.dump_file(output_gcs_path_output_path, output_gcs_path or '-')
+
+        gcp_common.dump_file(job_object_output_path, json.dumps(query_job.to_api_repr()))
         return query_job.to_api_repr()
 
 def _get_job(client, job_id):

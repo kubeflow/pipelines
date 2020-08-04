@@ -18,7 +18,15 @@ from kfp_component.core import KfpExecutionContext
 from ._client import MLEngineClient
 from .. import common as gcp_common
 
-def wait_job(project_id, job_id, wait_interval=30, show_tensorboard=True):
+def wait_job(
+    project_id,
+    job_id,
+    wait_interval=30,
+    show_tensorboard=True,
+    job_object_output_path='/tmp/kfp/output/ml_engine/job.json',
+    job_id_output_path='/tmp/kfp/output/ml_engine/job_id.txt',
+    job_dir_output_path='/tmp/kfp/output/ml_engine/job_dir.txt',
+):
     """Waits a MLEngine job.
 
     Args:
@@ -27,12 +35,19 @@ def wait_job(project_id, job_id, wait_interval=30, show_tensorboard=True):
         wait_interval (int): optional wait interval between calls
             to get job status. Defaults to 30.
         show_tensorboard (bool): optional. True to dump Tensorboard metadata.
-
-    Outputs:
-        /tmp/kfp/output/ml_engine/job.json: The json payload of the waiting job.
-        /tmp/kfp/output/ml_engine/job_id.txt: The ID of the waiting job.
-        /tmp/kfp/output/ml_engine/job_dir.txt: The `jobDir` of the waiting job.
+        job_object_output_path: Path for the json payload of the waiting job.
+        job_id_output_path: Path for the ID of the waiting job.
+        job_dir_output_path: Path for the `jobDir` of the waiting job.
     """
     ml_client = MLEngineClient()
     with KfpExecutionContext(on_cancel=lambda: cancel_job(ml_client, project_id, job_id)):
-        return wait_for_job_done(ml_client, project_id, job_id, wait_interval, show_tensorboard = show_tensorboard)
+        return wait_for_job_done(
+            ml_client=ml_client,
+            project_id=project_id,
+            job_id=job_id,
+            wait_interval=wait_interval,
+            show_tensorboard=show_tensorboard,
+            job_object_output_path=job_object_output_path,
+            job_id_output_path=job_id_output_path,
+            job_dir_output_path=job_dir_output_path,
+        )
