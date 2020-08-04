@@ -47,6 +47,8 @@ var (
 	httpPortFlag     = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
 	configPath       = flag.String("config", "", "Path to JSON file containing config")
 	sampleConfigPath = flag.String("sampleconfig", "", "Path to samples")
+
+	collectMetricsForPrometheusFlag = flag.Bool("collectMetricsForPrometheusFlag", true, "Whether to collect Prometheus metrics in API server.")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
@@ -89,7 +91,7 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 		glog.Fatalf("Failed to start RPC server: %v", err)
 	}
 	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor), grpc.MaxRecvMsgSize(math.MaxInt32))
-	api.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager))
+	api.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager, &server.PipelineServerOptions{CollectMetricsForPrometheus: *collectMetricsForPrometheusFlag}))
 	api.RegisterExperimentServiceServer(s, server.NewExperimentServer(resourceManager))
 	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager))
 	api.RegisterJobServiceServer(s, server.NewJobServer(resourceManager))

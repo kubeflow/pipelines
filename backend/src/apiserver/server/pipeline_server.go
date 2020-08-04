@@ -46,9 +46,13 @@ var (
 	// TODO(jingzhang36): other metrics for pipeline deletion, pipeline version creation/deletion.
 )
 
+type PipelineServerOptions struct {
+	CollectMetricsForPrometheus bool
+}
 type PipelineServer struct {
 	resourceManager *resource.ResourceManager
 	httpClient      *http.Client
+	options         *PipelineServerOptions
 }
 
 func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.CreatePipelineRequest) (*api.Pipeline, error) {
@@ -77,8 +81,10 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed.")
 	}
-	creationRequests.Inc()
-	currentPipelineCount.Inc()
+	if s.options.CollectMetricsForPrometheus {
+		creationRequests.Inc()
+		currentPipelineCount.Inc()
+	}
 
 	return ToApiPipeline(pipeline), nil
 }
@@ -111,7 +117,9 @@ func (s *PipelineServer) DeletePipeline(ctx context.Context, request *api.Delete
 	if err != nil {
 		return nil, util.Wrap(err, "Delete pipelines failed.")
 	}
-	currentPipelineCount.Dec()
+	if s.options.CollectMetricsForPrometheus {
+		currentPipelineCount.Dec()
+	}
 
 	return &empty.Empty{}, nil
 }
@@ -137,8 +145,8 @@ func ValidateCreatePipelineRequest(request *api.CreatePipelineRequest) error {
 	return nil
 }
 
-func NewPipelineServer(resourceManager *resource.ResourceManager) *PipelineServer {
-	return &PipelineServer{resourceManager: resourceManager, httpClient: http.DefaultClient}
+func NewPipelineServer(resourceManager *resource.ResourceManager, options *PipelineServerOptions) *PipelineServer {
+	return &PipelineServer{resourceManager: resourceManager, httpClient: http.DefaultClient, options: options}
 }
 
 func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api.CreatePipelineVersionRequest) (*api.PipelineVersion, error) {
