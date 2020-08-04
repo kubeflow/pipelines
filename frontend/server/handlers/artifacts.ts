@@ -14,7 +14,7 @@
 import fetch from 'node-fetch';
 import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv } from '../configs';
 import { Client as MinioClient } from 'minio';
-import { PreviewStream, parseFilePathOnPodVolume } from '../utils';
+import { PreviewStream, findFileOnPodVolume } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
 import * as serverInfo from '../helpers/server-info';
 import { Handler, Request, Response } from 'express';
@@ -270,10 +270,10 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
 
       // ml-pipeline-ui server container name also be called 'ml-pipeline-ui-artifact' in KFP multi user mode.
       // https://github.com/kubeflow/manifests/blob/master/pipeline/installs/multi-user/pipelines-profile-controller/sync.py#L212
-      const [filePath, parseError] = parseFilePathOnPodVolume(pod, {
+      const [filePath, parseError] = findFileOnPodVolume(pod, {
         containerNames: ['ml-pipeline-ui', 'ml-pipeline-ui-artifact'],
         volumeMountName: bucket,
-        volumeMountPath: key,
+        filePathInVolume: key,
       });
       if (parseError) {
         res.status(404).send(`Failed to open volume://${bucket}/${key}, ${parseError}`);

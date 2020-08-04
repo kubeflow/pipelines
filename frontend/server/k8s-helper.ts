@@ -23,7 +23,7 @@ import {
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import { PartialArgoWorkflow } from './workflow-helper';
-import { parseError, parseFilePathOnPodVolume } from './utils';
+import { parseError, findFileOnPodVolume } from './utils';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
@@ -80,9 +80,9 @@ function parseTensorboardLogDir(logdir: string, podTemplateSpec: object): string
     const bucket = pathParts[0];
     const key = pathParts.slice(1).join('/');
 
-    const [filePath, err] = parseFilePathOnPodVolume(podTemplateSpec, {
+    const [filePath, err] = findFileOnPodVolume(podTemplateSpec, {
       volumeMountName: bucket,
-      volumeMountPath: key,
+      filePathInVolume: key,
       containerNames: undefined,
     });
     if (err) {

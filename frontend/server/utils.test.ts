@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { PassThrough } from 'stream';
-import { PreviewStream, parseFilePathOnPodVolume, resolveFilePathOnVolume } from './utils';
+import { PreviewStream, findFileOnPodVolume, resolveFilePathOnVolume } from './utils';
 
 describe('utils', () => {
   describe('PreviewStream', () => {
@@ -37,7 +37,7 @@ describe('utils', () => {
     });
   });
 
-  describe('parseFilePathOnPodVolume', () => {
+  describe('findFileOnPodVolume', () => {
     const podTemplateSpec = {
       spec: {
         containers: [
@@ -99,60 +99,60 @@ describe('utils', () => {
     };
 
     it('parse file path with containerNames', () => {
-      const [filePath, err] = parseFilePathOnPodVolume(podTemplateSpec, {
+      const [filePath, err] = findFileOnPodVolume(podTemplateSpec, {
         containerNames: ['ml-pipeline-ui', 'ml-pipeline-ui-artifact'],
         volumeMountName: 'output',
-        volumeMountPath: 'a/b/c',
+        filePathInVolume: 'a/b/c',
       });
       expect(err).toEqual(undefined);
       expect(filePath).toEqual('/data/a/b/c');
     });
 
     it('parse file path with containerNames and subPath', () => {
-      const [filePath, err] = parseFilePathOnPodVolume(podTemplateSpec, {
+      const [filePath, err] = findFileOnPodVolume(podTemplateSpec, {
         containerNames: ['ml-pipeline-ui', 'ml-pipeline-ui-artifact'],
         volumeMountName: 'artifact',
-        volumeMountPath: 'pipeline1/a/b/c',
+        filePathInVolume: 'pipeline1/a/b/c',
       });
       expect(err).toEqual(undefined);
       expect(filePath).toEqual('/data1/a/b/c');
     });
 
     it('parse file path without containerNames', () => {
-      const [filePath, err] = parseFilePathOnPodVolume(podTemplateSpec, {
+      const [filePath, err] = findFileOnPodVolume(podTemplateSpec, {
         containerNames: undefined,
         volumeMountName: 'output',
-        volumeMountPath: 'a/b/c',
+        filePathInVolume: 'a/b/c',
       });
       expect(err).toEqual(undefined);
       expect(filePath).toEqual('/main/a/b/c');
     });
 
     it('parse file path error with not exist volume', () => {
-      const [filePath, err] = parseFilePathOnPodVolume(podTemplateSpec, {
+      const [filePath, err] = findFileOnPodVolume(podTemplateSpec, {
         containerNames: undefined,
         volumeMountName: 'other',
-        volumeMountPath: 'a/b/c',
+        filePathInVolume: 'a/b/c',
       });
       expect(err).toEqual('volume other not configured');
       expect(filePath).toEqual('');
     });
 
     it('parse file path error with not exist container', () => {
-      const [filePath, err] = parseFilePathOnPodVolume(podTemplateSpec, {
+      const [filePath, err] = findFileOnPodVolume(podTemplateSpec, {
         containerNames: ['other1', 'other2'],
         volumeMountName: 'output',
-        volumeMountPath: 'a/b/c',
+        filePathInVolume: 'a/b/c',
       });
       expect(err).toEqual('container other1 or other2 not found');
       expect(filePath).toEqual('');
     });
 
     it('parse file path error with volume not mount error', () => {
-      const [filePath, err] = parseFilePathOnPodVolume(podTemplateSpec, {
+      const [filePath, err] = findFileOnPodVolume(podTemplateSpec, {
         containerNames: undefined,
         volumeMountName: 'artifact',
-        volumeMountPath: 'a/b/c',
+        filePathInVolume: 'a/b/c',
       });
       expect(err).toEqual(
         'volume artifact not mounted or volume artifact with subPath(which is prefix of a/b/c) not mounted',
@@ -164,41 +164,41 @@ describe('utils', () => {
   describe('resolveFilePathOnVolume', () => {
     it('undefined volumeMountSubPath', () => {
       const path = resolveFilePathOnVolume({
-        filePathInVolume: '/data',
-        volumeMountPath: 'a/b/c',
+        filePathInVolume: 'a/b/c',
+        volumeMountPath: '/data',
         volumeMountSubPath: undefined,
       });
-      expect(path).toEqual('/data/a/b/c');
+      expect(path).toEqual(['/data/a/b/c', undefined]);
     });
 
     it('with volumeMountSubPath', () => {
       const path = resolveFilePathOnVolume({
-        filePathInVolume: '/data',
-        volumeMountPath: 'a/b/c',
+        volumeMountPath: '/data',
+        filePathInVolume: 'a/b/c',
         volumeMountSubPath: 'a',
       });
-      expect(path).toEqual('/data/b/c');
+      expect(path).toEqual(['/data/b/c', undefined]);
     });
 
     it('with multiple layer volumeMountSubPath', () => {
       const path = resolveFilePathOnVolume({
-        filePathInVolume: '/data',
-        volumeMountPath: 'a/b/c',
+        volumeMountPath: '/data',
+        filePathInVolume: 'a/b/c',
         volumeMountSubPath: 'a/b',
       });
-      expect(path).toEqual('/data/c');
+      expect(path).toEqual(['/data/c', undefined]);
     });
 
     it('with not exist volumeMountSubPath', () => {
-      expect(() =>
-        resolveFilePathOnVolume({
-          filePathInVolume: '/data',
-          volumeMountPath: 'a/b/c',
-          volumeMountSubPath: 'other',
-        }),
-      ).toThrowError(
-        'File /data not mounted, expecting the file to be inside volume mount subpath other',
-      );
+      const path = resolveFilePathOnVolume({
+        volumeMountPath: '/data',
+        filePathInVolume: 'a/b/c',
+        volumeMountSubPath: 'other',
+      });
+      expect(path).toEqual([
+        '',
+        'File a/b/c not mounted, expecting the file to be inside volume mount subpath other',
+      ]);
     });
   });
 });
