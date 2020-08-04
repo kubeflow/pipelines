@@ -77,7 +77,7 @@ bad_hyperparameters = {
     name='XGBoost Training Pipeline with bad hyperparameters',
     description='SageMaker training job test with debugger'
 )
-def training(role_arn="", bucket_name=""):
+def training(role_arn="", bucket_name="my-bucket"):
     train_channels = [
         training_input("train", f"s3://{bucket_name}/mnist_kmeans_example/input/valid_data.csv", 'text/csv')
     ]

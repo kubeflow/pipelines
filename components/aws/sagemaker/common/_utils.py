@@ -90,8 +90,7 @@ def get_component_version():
 
 
 def print_log_header(header_len, title=""):
-    header_buffer = header_len // 2 * '*'
-    logging.info(f"{header_buffer}{title}{header_buffer}")
+    logging.info(f"{title:*^{header_len}}")
 
 def print_logs_for_job(cw_client, log_grp, job_name):
     """Gets the CloudWatch logs for SageMaker jobs"""
@@ -273,7 +272,7 @@ def wait_for_debug_rules(client, training_job_name, poll_interval=30):
         if first_poll:
             logging.info("Polling for status of all debug rules:")
             first_poll = False
-        if DebugRulesStatus.status(response) != DebugRulesStatus.INPROGRESS:
+        if DebugRulesStatus.from_describe(response) != DebugRulesStatus.INPROGRESS:
             logging.info("Rules have ended with status:\n")
             print_debug_rule_status(response, True)
             break
@@ -287,7 +286,7 @@ class DebugRulesStatus(Enum):
     INPROGRESS = auto()
 
     @classmethod
-    def status(self, response):
+    def from_describe(self, response):
         has_error = False
         for debug_rule in response['DebugRuleEvaluationStatuses']:
             if debug_rule['RuleEvaluationStatus'] == "Error":
@@ -325,10 +324,16 @@ def print_debug_rule_status(response, last_print=False):
         else:
             status_details = ""
         rule_status = f"- {debug_rule['RuleConfigurationName']}: {debug_rule['RuleEvaluationStatus']}{line_ending}"
-        log = logging.error if debug_rule['RuleEvaluationStatus'] == "Error" else logging.info
-        log(f" {rule_status}")
+        if debug_rule['RuleEvaluationStatus'] == "Error":
+            log = logging.error
+            status_padding = 1
+        else:
+            log = logging.info
+            status_padding = 2
+
+        log(f"{status_padding * ' '}{rule_status}")
         if last_print and status_details:
-            log(f"   {status_details}")
+            log(f"{(status_padding + 2) * ' '}{status_details}")
     print_log_header(50)
 
 

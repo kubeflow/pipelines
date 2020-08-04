@@ -10,7 +10,7 @@ This pipeline uses the exact same setup as [simple_training_pipeline](https://gi
 1. Compile the pipeline:
    `dsl-compile --py debugger-component-demo.py --output debugger-component-demo.tar.gz`
 2. In the Kubeflow UI, upload this compiled pipeline specification (the .tar.gz file), fill in the necessary run parameters, and click create run.
-3. Once the pipeline finished running, you can view the results of each debugger rule under 'Logs'.
+3. Once the pipeline has finished running, you can view the results of each debugger rule under 'Logs'.
 
 Inputs format to `debug_hook_config` and `debug_rule_config` :
 ```buildoutcfg
