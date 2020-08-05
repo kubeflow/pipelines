@@ -21,4 +21,7 @@ rules:
   - mutatingwebhookconfigurations
   verbs:
   - create
+  - delete
   - get
+  - list
+  - patch
