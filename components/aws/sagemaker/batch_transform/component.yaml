@@ -57,7 +57,7 @@ implementation:
     - python3
     image: redbackthomson/aws-kubeflow-sagemaker:latest
 inputs:
-- description: The region where the training job launches.
+- description: The region for the SageMaker resource.
   name: region
   type: String
 - default: ''
