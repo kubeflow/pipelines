@@ -47,7 +47,7 @@ def create_version(model_name, deployemnt_uri=None, version_id=None,
             If not set, the default version is '2.7'. Python '3.5' is available
             when runtimeVersion is set to '1.4' and above. Python '2.7' works 
             with all supported runtime versions.
-        version (str): optional, the payload of the new version.
+        version (dict): optional, the payload of the new version.
         replace_existing (boolean): boolean flag indicates whether to replace 
             existing version in case of conflict.
         wait_interval (int): the interval to wait for a long running operation.
