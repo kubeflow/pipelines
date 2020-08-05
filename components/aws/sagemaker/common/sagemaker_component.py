@@ -156,7 +156,7 @@ class SageMakerComponent(object):
                 "An error occurred while attempting to submit the request"
             )
             return False
-    
+
         self._after_submit_job_request(job, inputs, outputs)
 
         status: Optional[SageMakerJobStatus] = None
@@ -295,8 +295,7 @@ class SageMakerComponent(object):
 
     @staticmethod
     def _enable_spot_instance_support(
-        request: Dict,
-        inputs: SpotInstanceInputs,
+        request: Dict, inputs: SpotInstanceInputs,
     ) -> Dict:
         """Modifies a request object to add support for spot instance fields.
 
@@ -308,7 +307,7 @@ class SageMakerComponent(object):
             dict: The modified dictionary
         """
         if inputs.max_run_time:
-            request['StoppingCondition']['MaxRuntimeInSeconds'] = inputs.max_run_time
+            request["StoppingCondition"]["MaxRuntimeInSeconds"] = inputs.max_run_time
 
         if inputs.spot_instance:
             request["EnableManagedSpotTraining"] = inputs.spot_instance
@@ -325,10 +324,7 @@ class SageMakerComponent(object):
                 )
                 raise Exception("Could not create job request.")
 
-            if (
-                inputs.checkpoint_config
-                and "S3Uri" in inputs.checkpoint_config
-            ):
+            if inputs.checkpoint_config and "S3Uri" in inputs.checkpoint_config:
                 request["CheckpointConfig"] = inputs.checkpoint_config
             else:
                 logging.error(
@@ -362,7 +358,11 @@ class SageMakerComponent(object):
 
         return hyperparam_args
 
-    def _write_all_outputs(self, output_paths: SageMakerComponentBaseOutputs, outputs: SageMakerComponentBaseOutputs):
+    def _write_all_outputs(
+        self,
+        output_paths: SageMakerComponentBaseOutputs,
+        outputs: SageMakerComponentBaseOutputs,
+    ):
         """Writes all of the outputs specified by the component to their
         respective file paths.
 
@@ -375,7 +375,7 @@ class SageMakerComponent(object):
             if not output_path:
                 logging.error(f"Could not find output path for {output_key}")
                 continue
-            
+
             # Encode it if it's a List or Dict (not primitive)
             encoded_types = (List, Dict)
             self._write_output(

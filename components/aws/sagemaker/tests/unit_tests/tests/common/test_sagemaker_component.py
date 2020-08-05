@@ -210,7 +210,7 @@ class SageMakerComponentTestCase(unittest.TestCase):
 
         mock_paths = DummyOutputs(output1="/tmp/output1", output2="/tmp/output2")
         mock_values = DummyOutputs(output1="value1", output2=["value2"])
-        mock_values.extra_param = "How did this even get here?" # type: ignore
+        mock_values.extra_param = "How did this even get here?"  # type: ignore
 
         self.component._write_all_outputs(mock_paths, mock_values)
 
@@ -284,38 +284,55 @@ class SageMakerComponentTestCase(unittest.TestCase):
 
     def test_cw_logging_successfully(self):
         self.component._cw_client = mock_cw_client = MagicMock()
-        mock_cw_client.describe_log_streams.return_value = {'logStreams': [{'logStreamName': 'logStream1'},
-                                                                           {'logStreamName': 'logStream2'}]}
+        mock_cw_client.describe_log_streams.return_value = {
+            "logStreams": [
+                {"logStreamName": "logStream1"},
+                {"logStreamName": "logStream2"},
+            ]
+        }
 
         def my_get_log_events(logStreamName, **kwargs):
-            if logStreamName =='logStream1':
-                return {'events': [{'message': 'fake log logStream1 line1'},
-                                   {'message': 'fake log logStream1 line2'}
-                                   ]}
-            elif logStreamName =='logStream2':
-                return {'events': [{'message': 'fake log logStream2 line1'},
-                                   {'message': 'fake log logStream2 line2'}
-                                   ]}
+            if logStreamName == "logStream1":
+                return {
+                    "events": [
+                        {"message": "fake log logStream1 line1"},
+                        {"message": "fake log logStream1 line2"},
+                    ]
+                }
+            elif logStreamName == "logStream2":
+                return {
+                    "events": [
+                        {"message": "fake log logStream2 line1"},
+                        {"message": "fake log logStream2 line2"},
+                    ]
+                }
+
         mock_cw_client.get_log_events.side_effect = my_get_log_events
 
-        with patch('logging.Logger.info') as infoLog:
-            self.component._print_cloudwatch_logs('/aws/sagemaker/FakeJobs', 'fake_job_name')
-            print (infoLog.call_args_list)
-            calls = [call('fake log logStream1 line1'),
-                     call('fake log logStream1 line2'),
-                     call('fake log logStream2 line1'),
-                     call('fake log logStream2 line2')
-                     ]
+        with patch("logging.Logger.info") as infoLog:
+            self.component._print_cloudwatch_logs(
+                "/aws/sagemaker/FakeJobs", "fake_job_name"
+            )
+            print(infoLog.call_args_list)
+            calls = [
+                call("fake log logStream1 line1"),
+                call("fake log logStream1 line2"),
+                call("fake log logStream2 line1"),
+                call("fake log logStream2 line2"),
+            ]
             infoLog.assert_has_calls(calls, any_order=True)
-
 
     def test_cw_logging_error(self):
         self.component._cw_client = mock_cw_client = MagicMock()
-        mock_exception = ClientError({"Error": {"Message": "CloudWatch broke"}}, "describe_log_streams")
+        mock_exception = ClientError(
+            {"Error": {"Message": "CloudWatch broke"}}, "describe_log_streams"
+        )
         mock_cw_client.describe_log_streams.side_effect = mock_exception
 
-        with patch('logging.Logger.error') as errorLog:
-            self.component._print_cloudwatch_logs('/aws/sagemaker/FakeJobs', 'fake_job_name')
+        with patch("logging.Logger.error") as errorLog:
+            self.component._print_cloudwatch_logs(
+                "/aws/sagemaker/FakeJobs", "fake_job_name"
+            )
             errorLog.assert_called()
 
 
@@ -432,6 +449,8 @@ class ComponentFeatureTestCase(unittest.TestCase):
         valid_params = {"tag1": "val1", "tag2": "val2"}
         invalid_params = {"tag1": 1500}
 
-        self.assertEqual(valid_params, SageMakerComponent._create_hyperparameters(valid_params))
+        self.assertEqual(
+            valid_params, SageMakerComponent._create_hyperparameters(valid_params)
+        )
         with self.assertRaises(Exception):
             SageMakerComponent._create_hyperparameters(invalid_params)

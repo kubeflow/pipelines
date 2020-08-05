@@ -532,4 +532,3 @@ class TrainingComponentTestCase(unittest.TestCase):
 #         response = _utils.create_training_job_request(vars(args))
 #         self.assertIn({"Key": "key1", "Value": "val1"}, response["Tags"])
 #         self.assertIn({"Key": "key2", "Value": "val2"}, response["Tags"])
-

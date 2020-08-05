@@ -17,25 +17,29 @@ COMPONENT_DIRECTORIES = [
     # "workteam"
 ]
 
+
 def parse_arguments():
     """Parse command line arguments."""
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--tag',
-                        type=str,
-                        required=True,
-                        help='The component container tag.')
-    parser.add_argument('--image',
-                        type=str,
-                        required=False,
-                        default="amazon/aws-sagemaker-kfp-components",
-                        help='The component container image.')
+    parser.add_argument(
+        "--tag", type=str, required=True, help="The component container tag."
+    )
+    parser.add_argument(
+        "--image",
+        type=str,
+        required=False,
+        default="amazon/aws-sagemaker-kfp-components",
+        help="The component container image.",
+    )
 
     args = parser.parse_args()
     return args
 
+
 class ComponentCollectorContext:
     """Context for collecting components registered using their decorators."""
+
     def __enter__(self):
         component_specs = []
 
@@ -79,7 +83,11 @@ def compile_spec_file(component_file, spec_dir, args):
         )
 
     SageMakerComponentCompiler.compile(
-        component_metadatas[0], str(relative_path), str(output_path.resolve()), component_image_tag=args.tag, component_image_uri=args.image
+        component_metadatas[0],
+        str(relative_path),
+        str(output_path.resolve()),
+        component_image_tag=args.tag,
+        component_image_uri=args.image,
     )
 
 
