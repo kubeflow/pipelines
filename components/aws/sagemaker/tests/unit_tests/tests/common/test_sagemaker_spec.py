@@ -195,4 +195,3 @@ class SageMakerComponentSpecTestCase(unittest.TestCase):
                     ),
                 ]
             )
-

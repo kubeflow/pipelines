@@ -296,32 +296,49 @@ def create_parser():
 
 
 def main(argv=None):
-  parser = create_parser()
-  args = parser.parse_args(argv)
+    parser = create_parser()
+    args = parser.parse_args(argv)
 
+<<<<<<< HEAD
   logging.getLogger().setLevel(logging.INFO)
   client = _utils.get_sagemaker_client(args.region, args.endpoint_url, assume_role_arn=args.assume_role)
   logging.info('Submitting HyperParameter Tuning Job request to SageMaker...')
   hpo_job_name = _utils.create_hyperparameter_tuning_job(client, vars(args))
+=======
+    logging.getLogger().setLevel(logging.INFO)
+    client = _utils.get_sagemaker_client(args.region)
+    logging.info("Submitting HyperParameter Tuning Job request to SageMaker...")
+    hpo_job_name = _utils.create_hyperparameter_tuning_job(client, vars(args))
+>>>>>>> Update include black formatting
 
-  def signal_term_handler(signalNumber, frame):
-    _utils.stop_hyperparameter_tuning_job(client, hpo_job_name)
-    logging.info(f"HyperParameter Tuning Job: {hpo_job_name} request submitted to Stop")
-  signal.signal(signal.SIGTERM, signal_term_handler)
+    def signal_term_handler(signalNumber, frame):
+        _utils.stop_hyperparameter_tuning_job(client, hpo_job_name)
+        logging.info(
+            f"HyperParameter Tuning Job: {hpo_job_name} request submitted to Stop"
+        )
 
-  logging.info('HyperParameter Tuning Job request submitted. Waiting for completion...')
-  _utils.wait_for_hyperparameter_training_job(client, hpo_job_name)
-  best_job, best_hyperparameters = _utils.get_best_training_job_and_hyperparameters(client, hpo_job_name)
-  model_artifact_url = _utils.get_model_artifacts_from_job(client, best_job)
-  image = _utils.get_image_from_job(client, best_job)
+    signal.signal(signal.SIGTERM, signal_term_handler)
 
-  logging.info('HyperParameter Tuning Job completed.')
+    logging.info(
+        "HyperParameter Tuning Job request submitted. Waiting for completion..."
+    )
+    _utils.wait_for_hyperparameter_training_job(client, hpo_job_name)
+    best_job, best_hyperparameters = _utils.get_best_training_job_and_hyperparameters(
+        client, hpo_job_name
+    )
+    model_artifact_url = _utils.get_model_artifacts_from_job(client, best_job)
+    image = _utils.get_image_from_job(client, best_job)
 
-  _utils.write_output(args.hpo_job_name_output_path, hpo_job_name)
-  _utils.write_output(args.model_artifact_url_output_path, model_artifact_url)
-  _utils.write_output(args.best_job_name_output_path, best_job)
-  _utils.write_output(args.best_hyperparameters_output_path, best_hyperparameters, json_encode=True)
-  _utils.write_output(args.training_image_output_path, image)
+    logging.info("HyperParameter Tuning Job completed.")
 
-if __name__== "__main__":
-  main(sys.argv[1:])
+    _utils.write_output(args.hpo_job_name_output_path, hpo_job_name)
+    _utils.write_output(args.model_artifact_url_output_path, model_artifact_url)
+    _utils.write_output(args.best_job_name_output_path, best_job)
+    _utils.write_output(
+        args.best_hyperparameters_output_path, best_hyperparameters, json_encode=True
+    )
+    _utils.write_output(args.training_image_output_path, image)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

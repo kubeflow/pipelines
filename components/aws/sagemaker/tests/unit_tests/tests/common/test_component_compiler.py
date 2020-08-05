@@ -78,20 +78,28 @@ class ComponentCompilerTestCase(unittest.TestCase):
             InputSpec({"name": "inputStr", "description": "str", "type": "String"}),
             InputSpec({"name": "inputInt", "description": "int", "type": "Integer"}),
             InputSpec({"name": "inputBool", "description": "bool", "type": "Bool"}),
-            InputSpec({"name": "inputDict", "description": "dict", "type": "JsonObject"}),
-            InputSpec({"name": "inputList", "description": "list", "type": "JsonArray"}),
-            InputSpec({
-                "name": "inputOptional",
-                "description": "optional",
-                "type": "String",
-                "default": "default-string",
-            }),
-            InputSpec({
-                "name": "inputOptionalNoDefault",
-                "description": "optional",
-                "type": "String",
-                "default": "",
-            }),
+            InputSpec(
+                {"name": "inputDict", "description": "dict", "type": "JsonObject"}
+            ),
+            InputSpec(
+                {"name": "inputList", "description": "list", "type": "JsonArray"}
+            ),
+            InputSpec(
+                {
+                    "name": "inputOptional",
+                    "description": "optional",
+                    "type": "String",
+                    "default": "default-string",
+                }
+            ),
+            InputSpec(
+                {
+                    "name": "inputOptionalNoDefault",
+                    "description": "optional",
+                    "type": "String",
+                    "default": "",
+                }
+            ),
         ],
         outputs=[],
         args=[

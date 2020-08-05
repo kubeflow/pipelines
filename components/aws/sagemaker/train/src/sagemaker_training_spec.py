@@ -20,13 +20,14 @@ from common.sagemaker_component_spec import (
 )
 from common.spec_validators import SpecValidators
 from common.common_inputs import (
-    COMMON_INPUTS, SageMakerComponentCommonInputs,
+    COMMON_INPUTS,
+    SageMakerComponentCommonInputs,
     SpotInstanceInputs,
     SPOT_INSTANCE_INPUTS,
     SageMakerComponentInput as Input,
     SageMakerComponentOutput as Output,
     SageMakerComponentInputValidator as InputValidator,
-    SageMakerComponentOutputValidator as OutputValidator
+    SageMakerComponentOutputValidator as OutputValidator,
 )
 
 
@@ -141,7 +142,7 @@ class SageMakerTrainingSpec(
         ),
         vpc_security_group_ids=InputValidator(
             input_type=str,
-            description="The VPC security group IDs, in the form sg-xxxxxxxx."
+            description="The VPC security group IDs, in the form sg-xxxxxxxx.",
         ),
         vpc_subnets=InputValidator(
             input_type=str,
@@ -166,7 +167,7 @@ class SageMakerTrainingSpec(
         job_name=OutputValidator(description="The training job name."),
         training_image=OutputValidator(
             description="The registry path of the Docker image that contains the training algorithm."
-        )
+        ),
     )
 
     def __init__(self, arguments: List[str]):
