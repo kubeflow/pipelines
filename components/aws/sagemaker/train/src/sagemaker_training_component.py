@@ -204,12 +204,13 @@ class SageMakerTrainingComponent(SageMakerComponent):
 
         return request
 
-    def _submit_job_request(self, request: Dict):
-        self._sm_client.create_training_job(**request)
+    def _submit_job_request(self, request: Dict) -> object:
+        return self._sm_client.create_training_job(**request)
 
     def _after_submit_job_request(
         self,
         job: object,
+        request: Dict,
         inputs: SageMakerTrainingInputs,
         outputs: SageMakerTrainingOutputs,
     ):

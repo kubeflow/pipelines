@@ -194,7 +194,7 @@ class SageMakerDeploySpec(
             default="",
         ),
         endpoint_config_tags=InputValidator(
-            input_type=_utils.yaml_or_json_str,
+            input_type=SpecValidators.yaml_or_json_dict,
             required=False,
             description="An array of key-value pairs, to categorize AWS resources.",
             default={},

@@ -12,8 +12,7 @@
 # limitations under the License.
 
 import logging
-from typing import Dict, Type
-from sagemaker.amazon.amazon_estimator import get_image_uri
+from typing import Dict
 
 from batch_transform.src.sagemaker_transform_spec import (
     SageMakerTransformSpec,
@@ -132,12 +131,13 @@ class SageMakerTransformComponent(SageMakerComponent):
 
         return request
 
-    def _submit_job_request(self, request: Dict):
-        self._sm_client.create_transform_job(**request)
+    def _submit_job_request(self, request: Dict) -> object:
+        return self._sm_client.create_transform_job(**request)
 
     def _after_submit_job_request(
         self,
         job: object,
+        request: Dict,
         inputs: SageMakerTransformInputs,
         outputs: SageMakerTransformOutputs,
     ):
