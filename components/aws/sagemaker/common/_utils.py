@@ -81,7 +81,7 @@ def add_default_client_arguments(parser):
 
 
 def get_component_version():
-    """Get component version from the first line of License file"""
+    """Get component version from the first line of License file."""
     component_version = "NULL"
 
     # Get license file using known common directory
@@ -103,7 +103,7 @@ def print_log_header(header_len, title=""):
     logging.info(f"{title:*^{header_len}}")
 
 def print_logs_for_job(cw_client, log_grp, job_name):
-    """Gets the CloudWatch logs for SageMaker jobs"""
+    """Gets the CloudWatch logs for SageMaker jobs."""
     try:
         logging.info(
             "\n******************** CloudWatch logs for {} {} ********************\n".format(
@@ -957,7 +957,7 @@ def create_hyperparameter_tuning_job_request(args):
 
 
 def create_hyperparameter_tuning_job(client, args):
-    """Create a SageMaker HPO job"""
+    """Create a SageMaker HPO job."""
     request = create_hyperparameter_tuning_job_request(args)
     try:
         client.create_hyper_parameter_tuning_job(**request)
@@ -1034,7 +1034,7 @@ def create_workteam(client, args):
 
 def create_workteam_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_workteam
-    """Create a workteam"""
+    """Create a workteam."""
     with open(os.path.join(__cwd__, "workteam.template.yaml"), "r") as f:
         request = yaml.safe_load(f)
 
@@ -1288,7 +1288,7 @@ def create_labeling_job_request(args):
 
 
 def create_labeling_job(client, args):
-    """Create a SageMaker Ground Truth job"""
+    """Create a SageMaker Ground Truth job."""
     request = create_labeling_job_request(args)
     try:
         client.create_labeling_job(**request)

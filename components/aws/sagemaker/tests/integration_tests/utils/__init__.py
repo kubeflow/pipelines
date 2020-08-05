@@ -115,7 +115,7 @@ def load_params(file_name):
 
 
 def generate_random_string(length):
-    """Generate a random string with twice the length of input parameter"""
+    """Generate a random string with twice the length of input parameter."""
     assert isinstance(length, int)
     return "".join(
         [random.choice(string.ascii_lowercase) for n in range(length)]

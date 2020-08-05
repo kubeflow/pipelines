@@ -337,6 +337,13 @@ class SageMakerComponentTestCase(unittest.TestCase):
 
 
 class ComponentFeatureTestCase(unittest.TestCase):
+    class CommonInputsSpec(SageMakerComponentSpec[SageMakerComponentCommonInputs, SageMakerComponentBaseOutputs]):
+        INPUTS = COMMON_INPUTS
+        OUTPUTS = {}
+
+        def __init__(self, arguments):
+            super().__init__(arguments, SageMakerComponentCommonInputs, SageMakerComponentBaseOutputs)
+
     class SpotInstanceSpec(
         SageMakerComponentSpec[SpotInstanceInputs, SageMakerComponentBaseOutputs]
     ):
@@ -454,3 +461,11 @@ class ComponentFeatureTestCase(unittest.TestCase):
         )
         with self.assertRaises(Exception):
             SageMakerComponent._create_hyperparameters(invalid_params)
+
+    def test_tags(self):
+        spec = self.CommonInputsSpec(
+            ["--region", "us-east-1", "--tags", '{"key1": "val1", "key2": "val2"}']
+        )
+        response = SageMakerComponent._enable_tag_support(self.template, spec.inputs)
+        self.assertIn({"Key": "key1", "Value": "val1"}, self.template["Tags"])
+        self.assertIn({"Key": "key2", "Value": "val2"}, self.template["Tags"])
