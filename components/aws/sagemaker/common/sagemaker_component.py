@@ -157,18 +157,18 @@ class SageMakerComponent(object):
             )
             return False
 
-        self._after_submit_job_request(job, inputs, outputs)
+        self._after_submit_job_request(job, request, inputs, outputs)
 
         status: Optional[SageMakerJobStatus] = None
         try:
             while True:
                 status = self._get_job_status()
-                sleep(self.STATUS_POLL_INTERVAL)
-                logging.info(f"Job is in status: {status.raw_status}")
-
                 # Continue until complete
                 if status and status.is_completed:
                     break
+
+                sleep(self.STATUS_POLL_INTERVAL)
+                logging.info(f"Job is in status: {status.raw_status}")
         except Exception as e:
             logging.exception("An error occurred while polling for job status")
             return False
@@ -232,12 +232,15 @@ class SageMakerComponent(object):
     def _after_submit_job_request(
         self,
         job: object,
+        request: Dict,
         inputs: SageMakerComponentCommonInputs,
         outputs: SageMakerComponentBaseOutputs,
     ):
         """Handles any events required after submitting a job to SageMaker.
 
         Args:
+            job: The job returned after creation.
+            request: The request submitted prior.
             inputs: A populated list of user inputs.
             outputs: An unpopulated list of component output variables.
         """
