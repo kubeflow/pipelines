@@ -36,7 +36,10 @@ rules:
   - mutatingwebhookconfigurations
   verbs:
   - create
+  - delete
   - get
+  - list
+  - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -52,8 +55,10 @@ rules:
   - secrets
   verbs:
   - create
+  - delete
   - get
   - patch
+  - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
