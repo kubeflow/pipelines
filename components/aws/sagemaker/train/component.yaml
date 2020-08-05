@@ -7,6 +7,8 @@ implementation:
     - inputValue: spot_instance
     - --max_wait_time
     - inputValue: max_wait_time
+    - --max_run_time
+    - inputValue: max_run_time
     - --checkpoint_config
     - inputValue: checkpoint_config
     - --region
@@ -39,8 +41,6 @@ implementation:
     - inputValue: volume_size
     - --resource_encryption_key
     - inputValue: resource_encryption_key
-    - --max_run_time
-    - inputValue: max_run_time
     - --model_artifact_path
     - inputValue: model_artifact_path
     - --output_encryption_key
@@ -71,6 +71,10 @@ inputs:
   description: The maximum time in seconds you are willing to wait for a managed spot
     training job to complete.
   name: max_wait_time
+  type: Integer
+- default: '86400'
+  description: The maximum run time in seconds for the training job.
+  name: max_run_time
   type: Integer
 - default: '{}'
   description: Dictionary of information about the output location for managed spot
@@ -138,10 +142,6 @@ inputs:
     volume attached to the ML compute instance(s).
   name: resource_encryption_key
   type: String
-- default: '86400'
-  description: The maximum run time in seconds for the training job.
-  name: max_run_time
-  type: Integer
 - description: Identifies the S3 path where you want Amazon SageMaker to store the
     model artifacts.
   name: model_artifact_path

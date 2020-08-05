@@ -7,7 +7,7 @@ import common.sagemaker_component as component_module
 
 
 COMPONENT_DIRECTORIES = [
-    # "batch_transform",
+    "batch_transform",
     # "deploy",
     # "ground_truth",
     # "hyperparameter_tuning",
@@ -103,17 +103,11 @@ if __name__ == "__main__":
     for component in COMPONENT_DIRECTORIES:
         component_dir = Path(root, component)
         component_src_dir = Path(component_dir, "src")
-        specs = sorted(component_src_dir.glob("*_spec.py"))
         components = sorted(component_src_dir.glob("*_component.py"))
-
-        if len(specs) < 1:
-            raise ValueError(f"Unable to find _spec.py file for {component}")
-        elif len(specs) > 1:
-            raise ValueError(f"Found multiple _spec.py files for {component}")
 
         if len(components) < 1:
             raise ValueError(f"Unable to find _component.py file for {component}")
         elif len(components) > 1:
             raise ValueError(f"Found multiple _component.py files for {component}")
 
-        compile_spec_file(specs[0], components[0], component_src_dir, args)
+        compile_spec_file(components[0], component_src_dir, args)

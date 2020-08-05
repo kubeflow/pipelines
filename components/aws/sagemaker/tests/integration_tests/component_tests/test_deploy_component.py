@@ -13,8 +13,11 @@ from utils import sagemaker_utils
 
 
 def run_predict_mnist(boto3_session, endpoint_name, download_dir):
-    """https://github.com/awslabs/amazon-sagemaker-examples/blob/a8c20eeb72dc7d3e94aaaf28be5bf7d7cd5695cb
-    /sagemaker-python-sdk/1P_kmeans_lowlevel/kmeans_mnist_lowlevel.ipynb"""
+    """https://github.com/awslabs/amazon-sagemaker-
+    examples/blob/a8c20eeb72dc7d3e94aaaf28be5bf7d7cd5695cb.
+
+    /sagemaker-python-sdk/1P_kmeans_lowlevel/kmeans_mnist_lowlevel.ipynb
+    """
     # Download and load dataset
     region = boto3_session.region_name
     download_path = os.path.join(download_dir, "mnist.pkl.gz")
