@@ -68,6 +68,21 @@ class ProcessTestCase(unittest.TestCase):
       call('/tmp/output_artifacts_output_path', mock_outputs, json_encode=True)
     ])
 
+  def test_main_assumes_role(self):
+    # Mock out all of utils except parser
+    process._utils = MagicMock()
+    process._utils.add_default_client_arguments = _utils.add_default_client_arguments
+
+    # Set some static returns
+    process._utils.create_processing_job.return_value = 'job-name'
+    process._utils.get_processing_job_outputs.return_value = mock_outputs = {'val1': 's3://1', 'val2': 's3://2'}
+
+    assume_role_args = required_args + ['--assume_role', 'my-role']
+
+    process.main(assume_role_args)
+
+    process._utils.get_sagemaker_client.assert_called_once_with('us-west-2', None, assume_role_arn='my-role')
+
   def test_create_processing_job(self):
     mock_client = MagicMock()
     mock_args = self.parser.parse_args(required_args + ['--job_name', 'test-job'])

@@ -14,6 +14,10 @@
 
 package model
 
+import (
+	"strings"
+)
+
 type Run struct {
 	UUID               string `gorm:"column:UUID; not null; primary_key"`
 	ExperimentUUID     string `gorm:"column:ExperimentUUID; not null;"`
@@ -92,6 +96,16 @@ func (r *Run) GetModelName() string {
 	return ""
 }
 
+func (r *Run) GetField(name string) (string, bool) {
+	if field, ok := runAPIToModelFieldMap[name]; ok {
+		return field, true
+	}
+	if strings.HasPrefix(name, "metric:") {
+		return name[7:], true
+	}
+	return "", false
+}
+
 func (r *Run) GetFieldValue(name string) interface{} {
 	// "name" could be a field in Run type or a name inside an array typed field
 	// in Run type
@@ -119,4 +133,28 @@ func (r *Run) GetFieldValue(name string) interface{} {
 		}
 	}
 	return nil
+}
+
+// Regular fields are the fields that are mapped to columns in Run table.
+// Non-regular fields are the run metrics for now. Could have other non-regular
+// sorting fields later.
+func (r *Run) IsRegularField(name string) bool {
+	for _, field := range runAPIToModelFieldMap {
+		if field == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Run) GetSortByFieldPrefix(name string) string {
+	if r.IsRegularField(name) {
+		return r.GetModelName()
+	} else {
+		return ""
+	}
+}
+
+func (r *Run) GetKeyFieldPrefix() string {
+	return r.GetModelName()
 }

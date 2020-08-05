@@ -52,7 +52,7 @@ def main(argv=None):
   args = parser.parse_args(argv)
 
   logging.getLogger().setLevel(logging.INFO)
-  client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
+  client = _utils.get_sagemaker_client(args.region, args.endpoint_url, assume_role_arn=args.assume_role)
   logging.info('Submitting Endpoint request to SageMaker...')
   endpoint_name = _utils.deploy_model(client, vars(args))
   logging.info('Endpoint creation request submitted. Waiting for completion...')

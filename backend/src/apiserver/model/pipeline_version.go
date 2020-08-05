@@ -74,7 +74,32 @@ func (p *PipelineVersion) GetModelName() string {
 	return "pipeline_versions"
 }
 
+func (p *PipelineVersion) GetField(name string) (string, bool) {
+	if field, ok := p.APIToModelFieldMap()[name]; ok {
+		return field, true
+	}
+	return "", false
+}
+
 func (p *PipelineVersion) GetFieldValue(name string) interface{} {
-	// TODO(jingzhang36): follow the example of GetFieldValue in run.go
-	return nil
+	switch name {
+	case "UUID":
+		return p.UUID
+	case "Name":
+		return p.Name
+	case "CreatedAtInSec":
+		return p.CreatedAtInSec
+	case "Status":
+		return p.Status
+	default:
+		return nil
+	}
+}
+
+func (p *PipelineVersion) GetSortByFieldPrefix(name string) string {
+	return "pipeline_versions."
+}
+
+func (p *PipelineVersion) GetKeyFieldPrefix() string {
+	return "pipeline_versions."
 }

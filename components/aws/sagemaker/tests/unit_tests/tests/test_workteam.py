@@ -31,6 +31,20 @@ class WorkTeamTestCase(unittest.TestCase):
     # Set some static returns
     workteam._utils.create_workteam.return_value = 'arn:aws:sagemaker:us-east-1:999999999999:work-team'
 
+    assume_role_args = required_args + ['--assume_role', 'my-role']
+
+    workteam.main(assume_role_args)
+
+    workteam._utils.get_sagemaker_client.assert_called_once_with('us-west-2', None, assume_role_arn='my-role')
+
+  def test_main(self):
+    # Mock out all of utils except parser
+    workteam._utils = MagicMock()
+    workteam._utils.add_default_client_arguments = _utils.add_default_client_arguments
+
+    # Set some static returns
+    workteam._utils.create_workteam.return_value = 'arn:aws:sagemaker:us-east-1:999999999999:work-team'
+
     workteam.main(required_args)
 
     # Check if correct requests were created and triggered

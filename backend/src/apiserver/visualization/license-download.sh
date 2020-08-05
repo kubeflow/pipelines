@@ -28,6 +28,6 @@ do
   if [[ -f "$DEST" ]]; then
     echo "Skip downloaded license file $DEST."
   else
-    wget -O $2/$col1.LICENSE $col2
+    curl -Lo $2/$col1.LICENSE $col2
   fi
 done < $1

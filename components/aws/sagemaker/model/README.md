@@ -19,7 +19,8 @@ Create a model in Amazon SageMaker to be used for [creating an endpoint](https:/
 Argument        | Description                 | Optional (in pipeline definition) | Optional (in UI) | Data type  | Accepted values | Default    |
 :---            | :----------                 | :----------                       | :----------      | :----------| :----------     | :----------|
 region | The region where the model is created | No | No | String | | |
-endpoint_url | The endpoint URL for the private link VPC endpoint | Yes | Yes | String | | |
+endpoint_url | The endpoint URL for the private link VPC endpoint | Yes | String | | |
+assume_role | The ARN of an IAM role to assume when connecting to SageMaker | Yes | String | | |
 tags | Key-value pairs to tag the model created in AWS | Yes | Yes | Dict | | {} |
 role | The ARN of the IAM role that Amazon SageMaker can assume to access model artifacts and docker image for deployment on ML compute instances or for batch transform jobs | No | No | String | | |
 network_isolation | Isolates the model container. No inbound or outbound network calls can be made to or from the model container | Yes | Yes | Boolean | | True |

@@ -53,6 +53,20 @@ class BatchTransformTestCase(unittest.TestCase):
       call('/tmp/output', 's3://fake-bucket/output')
     ])
 
+  def test_main_assumes_role(self):
+    # Mock out all of utils except parser
+    batch_transform._utils = MagicMock()
+    batch_transform._utils.add_default_client_arguments = _utils.add_default_client_arguments
+
+    # Set some static returns
+    batch_transform._utils.create_transform_job.return_value = 'test-batch-job'
+
+    assume_role_args = required_args + ['--assume_role', 'my-role']
+
+    batch_transform.main(assume_role_args)
+
+    batch_transform._utils.get_sagemaker_client.assert_called_once_with('us-west-2', None, assume_role_arn='my-role')
+
 
   def test_batch_transform(self):
     mock_client = MagicMock()

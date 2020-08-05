@@ -14,7 +14,7 @@
 
 from ._submit_job import submit_job
 
-def submit_spark_job(project_id, region, cluster_name, 
+def submit_spark_job(project_id, region, cluster_name, job_id_output_path,
     main_jar_file_uri=None, main_class=None, args=[], spark_job={}, job={}, 
     wait_interval=30):
     """Submits a Cloud Dataproc job for running Apache Spark applications on YARN.
@@ -38,12 +38,10 @@ def submit_spark_job(project_id, region, cluster_name,
             https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs).
         wait_interval (int): The wait seconds between polling the operation. 
             Defaults to 30s.
+        job_id_output_path (str): Path for the ID of the created job
 
     Returns:
         The created job payload.
-
-    Output Files:
-        $KFP_OUTPUT_PATH/dataproc/job_id.txt: The ID of the created job.
     """
     if not spark_job:
         spark_job = {}
@@ -56,4 +54,4 @@ def submit_spark_job(project_id, region, cluster_name,
     if args:
         spark_job['args'] = args
     job['sparkJob'] = spark_job
-    return submit_job(project_id, region, cluster_name, job, wait_interval)
+    return submit_job(project_id, region, cluster_name, job, wait_interval, job_id_output_path=job_id_output_path)

@@ -106,28 +106,26 @@ class Container(V1Container):
     required property). 
 
     See: 
-    - https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_container.py
-    - https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
+    * https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_container.py
+    * https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
 
-    
     Example:
+      ::
 
-      from kfp.dsl import ContainerOp
-      from kubernetes.client.models import V1EnvVar
-      
+        from kfp.dsl import ContainerOp
+        from kubernetes.client.models import V1EnvVar
+        
 
-      # creates a operation
-      op = ContainerOp(name='bash-ops', 
-                       image='busybox:latest', 
-                       command=['echo'], 
-                       arguments=['$MSG'])
+        # creates a operation
+        op = ContainerOp(name='bash-ops', 
+                        image='busybox:latest', 
+                        command=['echo'], 
+                        arguments=['$MSG'])
 
-      # returns a `Container` object from `ContainerOp`
-      # and add an environment variable to `Container`
-      op.container.add_env_variable(V1EnvVar(name='MSG', value='hello world'))
+        # returns a `Container` object from `ContainerOp`
+        # and add an environment variable to `Container`
+        op.container.add_env_variable(V1EnvVar(name='MSG', value='hello world'))
 
-    """
-    """
     Attributes:
       attribute_map (dict): The key is attribute name
                             and the value is json key in definition.
@@ -556,7 +554,23 @@ class UserContainer(Container):
 
     See https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
 
-    Example
+    Args:
+        name: unique name for the user container
+        image: image to use for the user container, e.g. redis:alpine
+        command: entrypoint array.  Not executed within a shell.
+        args: arguments to the entrypoint.
+        mirror_volume_mounts: MirrorVolumeMounts will mount the same
+            volumes specified in the main container to the container (including artifacts),
+            at the same mountPaths. This enables dind daemon to partially see the same
+            filesystem as the main container in order to use features such as docker
+            volume binding
+        **kwargs: keyword arguments available for `Container`
+
+    Attributes:
+      swagger_types (dict): The key is attribute name
+                            and the value is attribute type.
+
+    Example::
 
         from kfp.dsl import ContainerOp, UserContainer
 
@@ -564,14 +578,6 @@ class UserContainer(Container):
         op = (ContainerOp(name='foo-op', image='busybox:latest')
                 .add_initContainer(
                     UserContainer(name='redis', image='redis:alpine')))
-
-    """
-    """
-    Attributes:
-      swagger_types (dict): The key is attribute name
-                            and the value is attribute type.
-      attribute_map (dict): The key is attribute name
-                            and the value is json key in definition.
     """
     # adds `mirror_volume_mounts` to `UserContainer` swagger definition
     # NOTE inherits definition from `V1Container` rather than `Container`
@@ -592,21 +598,6 @@ class UserContainer(Container):
         args: StringOrStringList = None,
         mirror_volume_mounts: bool = None,
         **kwargs):
-        """Creates a new instance of `UserContainer`.
-
-        Args:
-            name {str}: unique name for the user container
-            image {str}: image to use for the user container, e.g. redis:alpine
-            command {StringOrStringList}: entrypoint array.  Not executed within a shell.
-            args {StringOrStringList}: arguments to the entrypoint.
-            mirror_volume_mounts {bool}: MirrorVolumeMounts will mount the same
-                volumes specified in the main container to the container (including artifacts),
-                at the same mountPaths. This enables dind daemon to partially see the same
-                filesystem as the main container in order to use features such as docker
-                volume binding
-            **kwargs: keyword arguments available for `Container`
-
-        """
         super().__init__(
             name=name,
             image=image,
@@ -638,6 +629,20 @@ class UserContainer(Container):
 
 
 class Sidecar(UserContainer):
+    """Creates a new instance of `Sidecar`.
+
+    Args:
+        name: unique name for the sidecar container
+        image: image to use for the sidecar container, e.g. redis:alpine
+        command: entrypoint array.  Not executed within a shell.
+        args: arguments to the entrypoint.
+        mirror_volume_mounts: MirrorVolumeMounts will mount the same
+            volumes specified in the main container to the sidecar (including artifacts),
+            at the same mountPaths. This enables dind daemon to partially see the same
+            filesystem as the main container in order to use features such as docker
+            volume binding
+        **kwargs: keyword arguments available for `Container`
+    """
 
     def __init__(self,
         name: str,
@@ -646,21 +651,6 @@ class Sidecar(UserContainer):
         args: StringOrStringList = None,
         mirror_volume_mounts: bool = None,
         **kwargs):
-        """Creates a new instance of `Sidecar`.
-
-        Args:
-            name {str}: unique name for the sidecar container
-            image {str}: image to use for the sidecar container, e.g. redis:alpine
-            command {StringOrStringList}: entrypoint array.  Not executed within a shell.
-            args {StringOrStringList}: arguments to the entrypoint.
-            mirror_volume_mounts {bool}: MirrorVolumeMounts will mount the same
-                volumes specified in the main container to the sidecar (including artifacts),
-                at the same mountPaths. This enables dind daemon to partially see the same
-                filesystem as the main container in order to use features such as docker
-                volume binding
-            **kwargs: keyword arguments available for `Container`
-
-        """
         super().__init__(
             name=name,
             image=image,
@@ -680,6 +670,17 @@ _register_op_handler = _make_hash_based_id_for_op
 
 
 class BaseOp(object):
+    """Base operator
+
+    Args:
+        name: the name of the op. It does not have to be unique within a pipeline
+            because the pipeline will generates a unique new name in case of conflicts.
+        init_containers: the list of `UserContainer` objects describing the InitContainer
+                to deploy before the `main` container.
+        sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy
+                together with the `main` container.
+        is_exit_handler: Deprecated.
+    """
 
     # list of attributes that might have pipeline params - used to generate
     # the input parameters during compilation.
@@ -695,18 +696,6 @@ class BaseOp(object):
                  init_containers: List[UserContainer] = None,
                  sidecars: List[Sidecar] = None,
                  is_exit_handler: bool = False):
-        """Create a new instance of BaseOp
-
-        Args:
-          name: the name of the op. It does not have to be unique within a pipeline
-              because the pipeline will generates a unique new name in case of conflicts.
-          init_containers: the list of `UserContainer` objects describing the InitContainer
-                    to deploy before the `main` container.
-          sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy
-                    together with the `main` container.
-          is_exit_handler: Deprecated.
-        """
-
         valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
         if not re.match(valid_name_regex, name):
             raise ValueError(
@@ -772,14 +761,15 @@ class BaseOp(object):
         """Applies a modifier function to self. The function should return the passed object.
         This is needed to chain "extention methods" to this class.
 
-        Example:
-          from kfp.gcp import use_gcp_secret
-          task = (
-            train_op(...)
-              .set_memory_request('1G')
-              .apply(use_gcp_secret('user-gcp-sa'))
-              .set_memory_limit('2G')
-          )
+        Example::
+
+            from kfp.gcp import use_gcp_secret
+            task = (
+                train_op(...)
+                    .set_memory_request('1G')
+                    .apply(use_gcp_secret('user-gcp-sa'))
+                    .set_memory_limit('2G')
+            )
         """
         return mod_func(self) or self
 
@@ -813,16 +803,20 @@ class BaseOp(object):
 
     def add_affinity(self, affinity: V1Affinity):
         """Add K8s Affinity
+
         Args:
           affinity: Kubernetes affinity
           For detailed spec, check affinity definition
           https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_affinity.py
-          example: V1Affinity(
-                    node_affinity=V1NodeAffinity(
-                        required_during_scheduling_ignored_during_execution=V1NodeSelector(
-                            node_selector_terms=[V1NodeSelectorTerm(
-                                match_expressions=[V1NodeSelectorRequirement(
-                                    key='beta.kubernetes.io/instance-type', operator='In', values=['p2.xlarge'])])])))
+        
+        Example::
+
+            V1Affinity(
+                node_affinity=V1NodeAffinity(
+                    required_during_scheduling_ignored_during_execution=V1NodeSelector(
+                        node_selector_terms=[V1NodeSelectorTerm(
+                            match_expressions=[V1NodeSelectorRequirement(
+                                key='beta.kubernetes.io/instance-type', operator='In', values=['p2.xlarge'])])])))
         """
         self.affinity = affinity
         return self
@@ -921,14 +915,43 @@ class InputArgumentPath:
 
 
 class ContainerOp(BaseOp):
-    """
-    Represents an op implemented by a container image.
-    
+    """Represents an op implemented by a container image.
+
+    Args:
+        name: the name of the op. It does not have to be unique within a pipeline
+            because the pipeline will generates a unique new name in case of conflicts.
+        image: the container image name, such as 'python:3.5-jessie'
+        command: the command to run in the container.
+            If None, uses default CMD in defined in container.
+        arguments: the arguments of the command. The command can include "%s" and supply
+            a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
+            At container run time the argument will be 'echo param_value'.
+        init_containers: the list of `UserContainer` objects describing the InitContainer
+                to deploy before the `main` container.
+        sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy
+                together with the `main` container.
+        container_kwargs: the dict of additional keyword arguments to pass to the
+                        op's `Container` definition.
+        artifact_argument_paths: Optional. Maps input artifact arguments (values or references) to the local file paths where they'll be placed.
+            At pipeline run time, the value of the artifact argument is saved to a local file with specified path.
+            This parameter is only needed when the input file paths are hard-coded in the program.
+            Otherwise it's better to pass input artifact placement paths by including artifact arguments in the command-line using the InputArgumentPath class instances.
+        file_outputs: Maps output labels to local file paths. At pipeline run time,
+            the value of a PipelineParam is saved to its corresponding local file. It's
+            one way for outside world to receive outputs of the container.
+        output_artifact_paths: Maps output artifact labels to local artifact file paths.
+            It has the following default artifact paths during compile time.
+            {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json',
+            'mlpipeline-metrics': '/mlpipeline-metrics.json'}
+        is_exit_handler: Deprecated. This is no longer needed.
+        pvolumes: Dictionary for the user to match a path on the op's fs with a
+            V1Volume or it inherited type.
+            E.g {"/my/path": vol, "/mnt": other_op.pvolumes["/output"]}.
+
     Example::
 
         from kfp import dsl
         from kubernetes.client.models import V1EnvVar, V1SecretKeySelector
-
 
         @dsl.pipeline(
             name='foo',
@@ -952,7 +975,6 @@ class ContainerOp(BaseOp):
             # add sidecar with parameterized image tag
             # sidecar follows the argo sidecar swagger spec
             op.add_sidecar(dsl.Sidecar('redis', 'redis:%s' % tag).set_image_pull_policy('Always'))
-    
     """
 
     # list of attributes that might have pipeline params - used to generate
@@ -977,40 +999,6 @@ class ContainerOp(BaseOp):
       is_exit_handler=False,
       pvolumes: Dict[str, V1Volume] = None,
     ):
-        """Create a new instance of ContainerOp.
-
-        Args:
-          name: the name of the op. It does not have to be unique within a pipeline
-              because the pipeline will generates a unique new name in case of conflicts.
-          image: the container image name, such as 'python:3.5-jessie'
-          command: the command to run in the container.
-              If None, uses default CMD in defined in container.
-          arguments: the arguments of the command. The command can include "%s" and supply
-              a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
-              At container run time the argument will be 'echo param_value'.
-          init_containers: the list of `UserContainer` objects describing the InitContainer
-                    to deploy before the `main` container.
-          sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy
-                    together with the `main` container.
-          container_kwargs: the dict of additional keyword arguments to pass to the
-                            op's `Container` definition.
-          artifact_argument_paths: Optional. Maps input artifact arguments (values or references) to the local file paths where they'll be placed.
-              At pipeline run time, the value of the artifact argument is saved to a local file with specified path.
-              This parameter is only needed when the input file paths are hard-coded in the program.
-              Otherwise it's better to pass input artifact placement paths by including artifact arguments in the command-line using the InputArgumentPath class instances.
-          file_outputs: Maps output labels to local file paths. At pipeline run time,
-              the value of a PipelineParam is saved to its corresponding local file. It's
-              one way for outside world to receive outputs of the container.
-          output_artifact_paths: Maps output artifact labels to local artifact file paths.
-              It has the following default artifact paths during compile time.
-              {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json',
-               'mlpipeline-metrics': '/mlpipeline-metrics.json'}
-          is_exit_handler: Deprecated. This is no longer needed.
-          pvolumes: Dictionary for the user to match a path on the op's fs with a
-              V1Volume or it inherited type.
-              E.g {"/my/path": vol, "/mnt": other_op.pvolumes["/output"]}.
-        """
-
         super().__init__(name=name, init_containers=init_containers, sidecars=sidecars, is_exit_handler=is_exit_handler)
 
         if not ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING and '--component_launcher_class_path' not in (arguments or []):
@@ -1149,14 +1137,15 @@ class ContainerOp(BaseOp):
         `io.argoproj.workflow.v1alpha1.Template`. Can be used to update the
         container configurations. 
         
-        Example:
+        Example::
+
             import kfp.dsl as dsl
             from kubernetes.client.models import V1EnvVar
     
             @dsl.pipeline(name='example_pipeline')
             def immediate_value_pipeline():
                 op1 = (dsl.ContainerOp(name='example', image='nginx:alpine')
-                          .container
+                        .container
                             .add_env_variable(V1EnvVar(name='HOST', value='foo.bar'))
                             .add_env_variable(V1EnvVar(name='PORT', value='80'))
                             .parent # return the parent `ContainerOp`
@@ -1165,8 +1154,9 @@ class ContainerOp(BaseOp):
         return self._container
 
     def _set_metadata(self, metadata):
-        '''_set_metadata passes the containerop the metadata information
+        '''Passes the ContainerOp the metadata information
         and configures the right output
+
         Args:
           metadata (ComponentSpec): component metadata
         '''

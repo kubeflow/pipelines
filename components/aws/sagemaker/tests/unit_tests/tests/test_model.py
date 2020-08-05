@@ -43,6 +43,20 @@ class ModelTestCase(unittest.TestCase):
       call('/tmp/output', 'model_test')
     ])
 
+  def test_main_assumes_role(self):
+    # Mock out all of utils except parser
+    create_model._utils = MagicMock()
+    create_model._utils.add_default_client_arguments = _utils.add_default_client_arguments
+
+    # Set some static returns
+    create_model._utils.create_model.return_value = 'model_test'
+
+    assume_role_args = required_args + ['--assume_role', 'my-role']
+
+    create_model.main(assume_role_args)
+
+    create_model._utils.get_sagemaker_client.assert_called_once_with('us-west-2', None, assume_role_arn='my-role')
+
   def test_create_model(self):
     mock_client = MagicMock()
     mock_args = self.parser.parse_args(required_args)
