@@ -5,10 +5,12 @@ def calculate_regression_metrics_from_csv(
     true_values_path: InputPath(),
     predicted_values_path: InputPath(),
 ) -> NamedTuple('Outputs', [
+    ('number_of_items', int),
     ('max_absolute_error', float),
     ('mean_absolute_error', float),
     ('mean_squared_error', float),
     ('root_mean_squared_error', float),
+    ('metrics', dict),
 ]):
     '''Calculates regression metrics.
 
@@ -29,7 +31,7 @@ def calculate_regression_metrics_from_csv(
     if predicted_values.shape != true_values.shape:
         raise ValueError('Input shapes are different: {} != {}'.format(predicted_values.shape, true_values.shape))
 
-    num_true_values = true_values
+    number_of_items = true_values.size
     errors = (true_values - predicted_values)
     abs_errors = numpy.abs(errors)
     squared_errors = errors ** 2
@@ -37,12 +39,21 @@ def calculate_regression_metrics_from_csv(
     mean_absolute_error = numpy.average(abs_errors)
     mean_squared_error = numpy.average(squared_errors)
     root_mean_squared_error = math.sqrt(mean_squared_error)
+    metrics = dict(
+        number_of_items=number_of_items,
+        max_absolute_error=max_absolute_error,
+        mean_absolute_error=mean_absolute_error,
+        mean_squared_error=mean_squared_error,
+        root_mean_squared_error=root_mean_squared_error,
+    )
 
     return (
+        number_of_items,
         max_absolute_error,
         mean_absolute_error,
         mean_squared_error,
         root_mean_squared_error,
+        metrics,
     )
 
 
