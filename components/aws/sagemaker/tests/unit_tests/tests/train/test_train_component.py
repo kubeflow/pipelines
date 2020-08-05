@@ -348,11 +348,3 @@ class TrainingComponentTestCase(unittest.TestCase):
         self.assertEqual(
             response["AlgorithmSpecification"]["TrainingInputMode"], "Pipe"
         )
-
-    def test_tags(self):
-        spec = SageMakerTrainingSpec(
-            self.REQUIRED_ARGS + ["--tags", '{"key1": "val1", "key2": "val2"}']
-        )
-        response = self.component._create_job_request(spec.inputs, spec.outputs)
-        self.assertIn({"Key": "key1", "Value": "val1"}, response["Tags"])
-        self.assertIn({"Key": "key2", "Value": "val2"}, response["Tags"])

@@ -200,10 +200,7 @@ class SageMakerTrainingComponent(SageMakerComponent):
             request["ResourceConfig"]["VolumeSizeInGB"] = inputs.volume_size
 
         self._enable_spot_instance_support(request, inputs)
-
-        # TODO: Move into higher class
-        for key, val in inputs.tags.items():
-            request["Tags"].append({"Key": key, "Value": val})
+        self._enable_tag_support(request, inputs)
 
         return request
 

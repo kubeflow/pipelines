@@ -83,7 +83,7 @@ class SageMakerComponentBaseOutputs:
     pass
 
 
-@dataclass()
+@dataclass(frozen=True)
 class SageMakerComponentCommonInputs(SageMakerComponentBaseInputs):
     """A set of common inputs for all components."""
 

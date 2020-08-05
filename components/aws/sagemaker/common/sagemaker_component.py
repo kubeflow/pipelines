@@ -358,6 +358,22 @@ class SageMakerComponent(object):
 
         return hyperparam_args
 
+    @staticmethod
+    def _enable_tag_support(request: Dict, inputs: SageMakerComponentCommonInputs) -> Dict:
+        """Modifies a request object to add support for tag fields.
+
+        Args:
+            request: A request object to modify.
+            inputs: A populated list of user inputs.
+
+        Returns:
+            dict: The modified dictionary
+        """
+        for key, val in inputs.tags.items():
+            request["Tags"].append({"Key": key, "Value": val})
+
+        return request
+
     def _write_all_outputs(
         self,
         output_paths: SageMakerComponentBaseOutputs,
