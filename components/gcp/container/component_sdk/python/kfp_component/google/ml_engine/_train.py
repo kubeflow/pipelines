@@ -16,7 +16,7 @@ from fire import decorators
 from ._create_job import create_job
 
 @decorators.SetParseFns(python_version=str, runtime_version=str)
-def train(project_id, python_module=None, package_uris=None, 
+def train(project_id, job_id_output_path, python_module=None, package_uris=None, 
     region=None, args=None, job_dir=None, python_version=None, 
     runtime_version=None, master_image_uri=None, worker_image_uri=None, 
     training_input=None, job_id_prefix=None, job_id=None, wait_interval=30):
@@ -82,4 +82,4 @@ def train(project_id, python_module=None, package_uris=None,
     job = {
         'trainingInput': training_input
     }
-    return create_job(project_id, job, job_id_prefix, job_id, wait_interval)
+    return create_job(project_id, job, job_id_prefix, job_id, wait_interval, job_id_output_path=job_id_output_path)

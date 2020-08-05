@@ -26,7 +26,9 @@ from ._set_default_version import set_default_version
 KNOWN_MODEL_NAMES = ['saved_model.pb', 'saved_model.pbtext', 'model.pkl', 'model.pkl', 'model.pkl']
 
 @decorators.SetParseFns(python_version=str, runtime_version=str)
-def deploy(model_uri, project_id, model_id=None, version_id=None, 
+def deploy(model_uri, project_id,
+    model_uri_output_path, model_name_output_path, version_name_output_path,
+    model_id=None, version_id=None, 
     runtime_version=None, python_version=None, model=None, version=None, 
     replace_existing_version=False, set_default=False, wait_interval=30):
     """Deploy a model to MLEngine from GCS URI
@@ -59,13 +61,15 @@ def deploy(model_uri, project_id, model_id=None, version_id=None,
     """
     storage_client = storage.Client()
     model_uri = _search_dir_with_model(storage_client, model_uri)
-    gcp_common.dump_file('/tmp/kfp/output/ml_engine/model_uri.txt', 
-        model_uri)
-    model = create_model(project_id, model_id, model)
+    gcp_common.dump_file(model_uri_output_path, model_uri)
+    model = create_model(project_id, model_id, model,
+        model_name_output_path=model_name_output_path,
+    )
     model_name = model.get('name')
     version = create_version(model_name, model_uri, version_id,
         runtime_version, python_version, version, replace_existing_version,
-        wait_interval)
+        wait_interval, version_name_output_path=version_name_output_path,
+    )
     if set_default:
         version_name = version.get('name')
         version = set_default_version(version_name)

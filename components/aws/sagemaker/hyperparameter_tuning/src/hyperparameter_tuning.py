@@ -76,7 +76,7 @@ def main(argv=None):
   args = parser.parse_args(argv)
 
   logging.getLogger().setLevel(logging.INFO)
-  client = _utils.get_sagemaker_client(args.region)
+  client = _utils.get_sagemaker_client(args.region, args.endpoint_url, assume_role_arn=args.assume_role)
   logging.info('Submitting HyperParameter Tuning Job request to SageMaker...')
   hpo_job_name = _utils.create_hyperparameter_tuning_job(client, vars(args))
 

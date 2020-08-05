@@ -43,16 +43,15 @@ type token struct {
 	SortByFieldName string
 	// SortByFieldValue is the value of the sorted field of the next row to be
 	// returned.
-	SortByFieldValue interface{}
-	// SortByFieldIsRunMetric indicates whether the SortByFieldName field is
-	// a run metric field or not.
-	SortByFieldIsRunMetric bool
+	SortByFieldValue  interface{}
+	SortByFieldPrefix string
 
 	// KeyFieldName is the name of the primary key for the model being queried.
 	KeyFieldName string
 	// KeyFieldValue is the value of the sorted field of the next row to be
 	// returned.
-	KeyFieldValue interface{}
+	KeyFieldValue  interface{}
+	KeyFieldPrefix string
 
 	// IsDesc is true if the sorting order should be descending.
 	IsDesc bool
@@ -101,7 +100,7 @@ type Options struct {
 // Matches returns trues if the sorting and filtering criteria in o matches that
 // of the one supplied in opts.
 func (o *Options) Matches(opts *Options) bool {
-	return o.SortByFieldName == opts.SortByFieldName && o.SortByFieldIsRunMetric == opts.SortByFieldIsRunMetric &&
+	return o.SortByFieldName == opts.SortByFieldName && o.SortByFieldPrefix == opts.SortByFieldPrefix &&
 		o.IsDesc == opts.IsDesc &&
 		reflect.DeepEqual(o.Filter, opts.Filter)
 }
@@ -147,24 +146,16 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 	}
 
 	token.SortByFieldName = listable.DefaultSortField()
-	token.SortByFieldIsRunMetric = false
 	if len(queryList) > 0 {
-		var err error
-		n, ok := listable.APIToModelFieldMap()[queryList[0]]
+		n, ok := listable.GetField(queryList[0])
 		if ok {
 			token.SortByFieldName = n
-		} else if strings.HasPrefix(queryList[0], "metric:") {
-			// Sorting on metrics is only available on certain runs.
-			model := reflect.ValueOf(listable).Elem().Type().Name()
-			if model != "Run" {
-				return nil, util.NewInvalidInputError("Invalid sorting field: %q on %q : %s", queryList[0], model, err)
-			}
-			token.SortByFieldName = queryList[0][7:]
-			token.SortByFieldIsRunMetric = true
 		} else {
-			return nil, util.NewInvalidInputError("Invalid sorting field: %q: %s", queryList[0], err)
+			return nil, util.NewInvalidInputError("Invalid sorting field: %q on listable type %s", queryList[0], reflect.ValueOf(listable).Elem().Type().Name())
 		}
 	}
+	token.SortByFieldPrefix = listable.GetSortByFieldPrefix(token.SortByFieldName)
+	token.KeyFieldPrefix = listable.GetKeyFieldPrefix()
 
 	if len(queryList) == 2 {
 		token.IsDesc = queryList[1] == "desc"
@@ -196,31 +187,18 @@ func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBu
 // AddSortingToSelect adds Order By clause.
 func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	// When sorting by a direct field in the listable model (i.e., name in Run or uuid in Pipeline), a sortByFieldPrefix can be specified; when sorting by a field in an array-typed dictionary (i.e., a run metric inside the metrics in Run), a sortByFieldPrefix is not needed.
-	var keyFieldPrefix string
-	var sortByFieldPrefix string
-	if len(o.ModelName) == 0 {
-		keyFieldPrefix = ""
-		sortByFieldPrefix = ""
-	} else if o.SortByFieldIsRunMetric {
-		keyFieldPrefix = o.ModelName + "."
-		sortByFieldPrefix = ""
-	} else {
-		keyFieldPrefix = o.ModelName + "."
-		sortByFieldPrefix = o.ModelName + "."
-	}
-
 	// If next row's value is specified, set those values in the clause.
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		if o.IsDesc {
 			sqlBuilder = sqlBuilder.
-				Where(sq.Or{sq.Lt{sortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{sortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-						sq.LtOrEq{keyFieldPrefix + o.KeyFieldName: o.KeyFieldValue}}})
+				Where(sq.Or{sq.Lt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.And{sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.LtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue}}})
 		} else {
 			sqlBuilder = sqlBuilder.
-				Where(sq.Or{sq.Gt{sortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{sortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-						sq.GtOrEq{keyFieldPrefix + o.KeyFieldName: o.KeyFieldValue}}})
+				Where(sq.Or{sq.Gt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.And{sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.GtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue}}})
 		}
 	}
 
@@ -229,23 +207,10 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 		order = "DESC"
 	}
 	sqlBuilder = sqlBuilder.
-		OrderBy(fmt.Sprintf("%v %v", sortByFieldPrefix+o.SortByFieldName, order)).
-		OrderBy(fmt.Sprintf("%v %v", keyFieldPrefix+o.KeyFieldName, order))
+		OrderBy(fmt.Sprintf("%v %v", o.SortByFieldPrefix+o.SortByFieldName, order)).
+		OrderBy(fmt.Sprintf("%v %v", o.KeyFieldPrefix+o.KeyFieldName, order))
 
 	return sqlBuilder
-}
-
-// Add a metric as a new field to the select clause by join the passed-in SQL query with run_metrics table.
-// With the metric as a field in the select clause enable sorting on this metric afterwards.
-func (o *Options) AddSortByRunMetricToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-	if !o.SortByFieldIsRunMetric {
-		return sqlBuilder
-	}
-	// TODO(jingzhang36): address the case where runs doesn't have the specified metric.
-	return sq.
-		Select("selected_runs.*, run_metrics.numbervalue as "+o.SortByFieldName).
-		FromSelect(sqlBuilder, "selected_runs").
-		LeftJoin("run_metrics ON selected_runs.uuid=run_metrics.runuuid AND run_metrics.name='" + o.SortByFieldName + "'")
 }
 
 // AddFilterToSelect adds WHERE clauses with the filtering criteria in the
@@ -345,6 +310,12 @@ type Listable interface {
 	APIToModelFieldMap() map[string]string
 	// GetModelName returns table name used as sort field prefix.
 	GetModelName() string
+	// Get the prefix of sorting field.
+	GetSortByFieldPrefix(string) string
+	// Get the prefix of key field.
+	GetKeyFieldPrefix() string
+	// Get a valid field for sorting/filtering in a listable model from the given string.
+	GetField(name string) (string, bool)
 	// Find the value of a given field in a listable object.
 	GetFieldValue(name string) interface{}
 }
@@ -365,20 +336,8 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	elemName := elem.Type().Name()
 
 	var sortByField interface{}
-	// TODO(jingzhang36): this if-else block can be simplified to one call to
-	// GetFieldValue after all the models (run, job, experiment, etc.) implement
-	// GetFieldValue method in listable interface.
-	if !o.SortByFieldIsRunMetric {
-		if value := elem.FieldByName(o.SortByFieldName); value.IsValid() {
-			sortByField = value.Interface()
-		} else {
-			return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
-		}
-	} else {
-		sortByField = listable.GetFieldValue(o.SortByFieldName)
-		if sortByField == nil {
-			return nil, util.NewInvalidInputError("Unable to find run metric %s", o.SortByFieldName)
-		}
+	if sortByField = listable.GetFieldValue(o.SortByFieldName); sortByField == nil {
+		return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
 	}
 
 	keyField := elem.FieldByName(listable.PrimaryKeyColumnName())
@@ -387,14 +346,15 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	}
 
 	return &token{
-		SortByFieldName:        o.SortByFieldName,
-		SortByFieldValue:       sortByField,
-		SortByFieldIsRunMetric: o.SortByFieldIsRunMetric,
-		KeyFieldName:           listable.PrimaryKeyColumnName(),
-		KeyFieldValue:          keyField.Interface(),
-		IsDesc:                 o.IsDesc,
-		Filter:                 o.Filter,
-		ModelName:              o.ModelName,
+		SortByFieldName:   o.SortByFieldName,
+		SortByFieldValue:  sortByField,
+		SortByFieldPrefix: listable.GetSortByFieldPrefix(o.SortByFieldName),
+		KeyFieldName:      listable.PrimaryKeyColumnName(),
+		KeyFieldValue:     keyField.Interface(),
+		KeyFieldPrefix:    listable.GetKeyFieldPrefix(),
+		IsDesc:            o.IsDesc,
+		Filter:            o.Filter,
+		ModelName:         o.ModelName,
 	}, nil
 }
 

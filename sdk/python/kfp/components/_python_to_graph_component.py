@@ -33,10 +33,15 @@ def create_graph_component_from_pipeline_func(
     output_component_file: str = None,
     embed_component_specs: bool = False,
 ) -> Callable:
-    '''Experimental! Creates graph component definition from a python pipeline function. The component file can be published for sharing.
+    '''Creates graph component definition from a python pipeline function. The component file can be published for sharing.
+
     Pipeline function is a function that only calls component functions and passes outputs to inputs.
     This feature is experimental and lacks support for some of the DSL features like conditions and loops.
     Only pipelines consisting of loaded components or python components are currently supported (no manually created ContainerOps or ResourceOps).
+
+    .. warning::
+
+        Please note this feature is considered experimental!
 
     Args:
         pipeline_func: Python function to convert
