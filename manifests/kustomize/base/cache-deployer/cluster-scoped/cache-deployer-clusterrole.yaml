@@ -21,7 +21,10 @@ rules:
   - mutatingwebhookconfigurations
   verbs:
   - create
+  - delete
   - get
+  - list
+  - patch
 - apiGroups:
   - certificates.k8s.io
   resources:
