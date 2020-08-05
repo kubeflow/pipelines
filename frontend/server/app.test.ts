@@ -34,7 +34,6 @@ jest.mock('minio');
 jest.mock('node-fetch');
 jest.mock('@google-cloud/storage');
 jest.mock('./minio-helper');
-jest.mock('./helpers/server-info');
 
 // TODO: move sections of tests here to individual files in `frontend/server/integration-tests/`
 // for better organization and shorter/more focused tests.
@@ -548,7 +547,7 @@ describe('UIServer apis', () => {
         .get(`/artifacts/get?source=volume&bucket=notexist&key=content`)
         .expect(
           404,
-          'Failed to open volume://notexist/content, Cannot find file "volume://notexist/content" in pod ml-pipeline-ui: volume notexist not configured',
+          'Failed to open volume://notexist/content, Cannot find file "volume://notexist/content" in pod "ml-pipeline-ui": volume "notexist" not configured',
           done,
         );
     });
@@ -595,7 +594,7 @@ describe('UIServer apis', () => {
         .get(`/artifacts/get?source=volume&bucket=artifact&key=notexist/config`)
         .expect(
           404,
-          'Failed to open volume://artifact/notexist/config, Cannot find file "volume://artifact/notexist/config" in pod ml-pipeline-ui: volume artifact not mounted or volume artifact with subPath(which is prefix of notexist/config) not mounted',
+          'Failed to open volume://artifact/notexist/config, Cannot find file "volume://artifact/notexist/config" in pod "ml-pipeline-ui": volume "artifact" not mounted or volume "artifact" with subPath (which is prefix of notexist/config) not mounted',
           done,
         );
     });
@@ -1450,7 +1449,7 @@ describe('UIServer apis', () => {
           )
           .expect(
             500,
-            `Failed to start Tensorboard app: Cannot find file "volume://notexistvolume/logs/log-dir-1" in pod unknown: volume notexistvolume not configured`,
+            `Failed to start Tensorboard app: Cannot find file "volume://notexistvolume/logs/log-dir-1" in pod "unknown": volume "notexistvolume" not configured`,
             err => {
               expect(errorSpy).toHaveBeenCalledTimes(1);
               done(err);
@@ -1480,7 +1479,7 @@ describe('UIServer apis', () => {
           )
           .expect(
             500,
-            `Failed to start Tensorboard app: Cannot find file "volume://data/notexit/mountnotexist/log-dir-1" in pod unknown: volume data not mounted or volume data with subPath(which is prefix of notexit/mountnotexist/log-dir-1) not mounted`,
+            `Failed to start Tensorboard app: Cannot find file "volume://data/notexit/mountnotexist/log-dir-1" in pod "unknown": volume "data" not mounted or volume "data" with subPath (which is prefix of notexit/mountnotexist/log-dir-1) not mounted`,
             err => {
               expect(errorSpy).toHaveBeenCalledTimes(1);
               done(err);

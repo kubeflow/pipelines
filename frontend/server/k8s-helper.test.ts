@@ -96,14 +96,14 @@ describe('k8s-helper', () => {
     it('handles volume storage without subPath throw volume not configured error', () => {
       const logdir = 'volume://other/path';
       expect(() => K8S_TEST_EXPORT.parseTensorboardLogDir(logdir, podTemplateSpec)).toThrowError(
-        'Cannot find file "volume://other/path" in pod unknown: volume other not configured',
+        'Cannot find file "volume://other/path" in pod "unknown": volume "other" not configured',
       );
     });
 
     it('handles volume storage without subPath throw volume not configured error with Series', () => {
       const logdir = 'Series1:volume://output/volume/path1,Series2:volume://other/volume/path2';
       expect(() => K8S_TEST_EXPORT.parseTensorboardLogDir(logdir, podTemplateSpec)).toThrowError(
-        'Cannot find file "volume://other/volume/path2" in pod unknown: volume other not configured',
+        'Cannot find file "volume://other/volume/path2" in pod "unknown": volume "other" not configured',
       );
     });
 
@@ -124,7 +124,7 @@ describe('k8s-helper', () => {
       expect(() =>
         K8S_TEST_EXPORT.parseTensorboardLogDir(logdir, noMountPodTemplateSpec),
       ).toThrowError(
-        'Cannot find file "volume://artifact/path1" in pod unknown: container  not found',
+        'Cannot find file "volume://artifact/path1" in pod "unknown": container "" not found',
       );
     });
 
@@ -153,14 +153,14 @@ describe('k8s-helper', () => {
       };
       const logdir = 'volume://artifact/path';
       expect(() => K8S_TEST_EXPORT.parseTensorboardLogDir(logdir, podTemplateSpec)).toThrowError(
-        'Cannot find file "volume://artifact/path" in pod unknown: volume artifact not mounted',
+        'Cannot find file "volume://artifact/path" in pod "unknown": volume "artifact" not mounted',
       );
     });
 
     it('handles volume storage with subPath throw volume mount not found', () => {
       const logdir = 'volume://artifact/other';
       expect(() => K8S_TEST_EXPORT.parseTensorboardLogDir(logdir, podTemplateSpec)).toThrowError(
-        'Cannot find file "volume://artifact/other" in pod unknown: volume artifact not mounted or volume artifact with subPath(which is prefix of other) not mounted',
+        'Cannot find file "volume://artifact/other" in pod "unknown": volume "artifact" not mounted or volume "artifact" with subPath (which is prefix of other) not mounted',
       );
     });
   });

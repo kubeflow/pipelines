@@ -89,11 +89,11 @@ export function findFileOnPodVolume(
   const { containerNames, volumeMountName, filePathInVolume } = options;
 
   const volumes = pod?.spec?.volumes;
-  const prefixErrorMessage = `Cannot find file "volume://${volumeMountName}/${filePathInVolume}" in pod ${pod
-    ?.metadata?.name || 'unknown'}:`;
+  const prefixErrorMessage = `Cannot find file "volume://${volumeMountName}/${filePathInVolume}" in pod "${pod
+    ?.metadata?.name || 'unknown'}":`;
   // volumes not specified or volume named ${volumeMountName} not specified
   if (!Array.isArray(volumes) || !volumes.find(v => v?.name === volumeMountName)) {
-    return ['', `${prefixErrorMessage} volume ${volumeMountName} not configured`];
+    return ['', `${prefixErrorMessage} volume "${volumeMountName}" not configured`];
   }
 
   // get pod main container
@@ -111,13 +111,13 @@ export function findFileOnPodVolume(
   }
 
   if (!container) {
-    const containerNamesMessage = containerNames ? containerNames.join(' or ') : '';
-    return ['', `${prefixErrorMessage} container ${containerNamesMessage} not found`];
+    const containerNamesMessage = containerNames ? containerNames.join('" or "') : '';
+    return ['', `${prefixErrorMessage} container "${containerNamesMessage}" not found`];
   }
 
   const volumeMounts = container.volumeMounts;
   if (!Array.isArray(volumeMounts)) {
-    return ['', `${prefixErrorMessage} volume ${volumeMountName} not mounted`];
+    return ['', `${prefixErrorMessage} volume "${volumeMountName}" not mounted`];
   }
 
   // find volumes mount
@@ -136,7 +136,7 @@ export function findFileOnPodVolume(
   if (!volumeMount) {
     return [
       '',
-      `${prefixErrorMessage} volume ${volumeMountName} not mounted or volume ${volumeMountName} with subPath(which is prefix of ${filePathInVolume}) not mounted`,
+      `${prefixErrorMessage} volume "${volumeMountName}" not mounted or volume "${volumeMountName}" with subPath (which is prefix of ${filePathInVolume}) not mounted`,
     ];
   }
 
