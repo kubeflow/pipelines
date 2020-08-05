@@ -1,13 +1,12 @@
 from common.sagemaker_component import SageMakerJobStatus
 from train.src.sagemaker_training_spec import (
     SageMakerTrainingSpec,
-    SageMakerTrainingOutputs,
 )
 from train.src.sagemaker_training_component import SageMakerTrainingComponent
 from tests.unit_tests.tests.train.test_train_spec import TrainingSpecTestCase
 import unittest
 
-from unittest.mock import patch, call, Mock, MagicMock, mock_open, ANY
+from unittest.mock import patch, MagicMock, ANY
 
 
 class TrainingComponentTestCase(unittest.TestCase):
