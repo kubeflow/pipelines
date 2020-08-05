@@ -50,9 +50,9 @@ _FILTER_OPERATIONS = {"UNKNOWN": 0,
     "LESS_THAN_EQUALS": 7}
 
 def _add_generated_apis(target_struct, api_module, api_client):
-  '''Initializes a hierarchical API object based on the generated API module.
+  """Initializes a hierarchical API object based on the generated API module.
   PipelineServiceApi.create_pipeline becomes target_struct.pipelines.create_pipeline
-  '''
+  """
   Struct = type('Struct', (), {})
 
   def camel_case_to_snake_case(name):
@@ -88,7 +88,26 @@ KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME = 'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'
 
 
 class Client(object):
-  """ API Client for KubeFlow Pipeline.
+  """API Client for KubeFlow Pipeline.
+
+  Args:
+    host: The host name to use to talk to Kubeflow Pipelines. If not set, the in-cluster
+        service DNS name will be used, which only works if the current environment is a pod
+        in the same cluster (such as a Jupyter instance spawned by Kubeflow's
+        JupyterHub). If you have a different connection to cluster, such as a kubectl
+        proxy connection, then set it to something like "127.0.0.1:8080/pipeline.
+        If you connect to an IAP enabled cluster, set it to
+        https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
+    client_id: The client ID used by Identity-Aware Proxy.
+    namespace: The namespace where the kubeflow pipeline system is run.
+    other_client_id: The client ID used to obtain the auth codes and refresh tokens.
+        Reference: https://cloud.google.com/iap/docs/authentication-howto#authenticating_from_a_desktop_app.
+    other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
+    existing_token: Pass in token directly, it's used for cases better get token outside of SDK, e.x. GCP Cloud Functions
+        or caller already has a token
+    cookies: CookieJar object containing cookies that will be passed to the pipelines API.
+    proxy: HTTP or HTTPS proxy server
+    ssl_ca_cert: Cert for proxy
   """
 
   # in-cluster DNS name of the pipeline service
@@ -100,25 +119,6 @@ class Client(object):
   # TODO: Wrap the configurations for different authentication methods.
   def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None):
     """Create a new instance of kfp client.
-
-    Args:
-      host: the host name to use to talk to Kubeflow Pipelines. If not set, the in-cluster
-          service DNS name will be used, which only works if the current environment is a pod
-          in the same cluster (such as a Jupyter instance spawned by Kubeflow's
-          JupyterHub). If you have a different connection to cluster, such as a kubectl
-          proxy connection, then set it to something like "127.0.0.1:8080/pipeline.
-          If you connect to an IAP enabled cluster, set it to
-          https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
-      client_id: The client ID used by Identity-Aware Proxy.
-      namespace: the namespace where the kubeflow pipeline system is run.
-      other_client_id: The client ID used to obtain the auth codes and refresh tokens.
-          Reference: https://cloud.google.com/iap/docs/authentication-howto#authenticating_from_a_desktop_app.
-      other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
-      existing_token: pass in token directly, it's used for cases better get token outside of SDK, e.x. GCP Cloud Functions
-          or caller already has a token
-      cookies: CookieJar object containing cookies that will be passed to the pipelines API.
-      proxy: HTTP or HTTPS proxy server
-      ssl_ca_cert: cert for proxy
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
@@ -265,7 +265,9 @@ class Client(object):
 
   def set_user_namespace(self, namespace):
     """Set user namespace into local context setting file.
-       This function should only be used when Kubeflow Pipelines is in the multi-user mode.
+    
+    This function should only be used when Kubeflow Pipelines is in the multi-user mode.
+
     Args:
       namespace: kubernetes namespace the user has access to.
     """
@@ -275,6 +277,7 @@ class Client(object):
 
   def get_user_namespace(self):
     """Get user namespace in context config.
+
     Returns:
       namespace: kubernetes namespace from the local context file or empty if it wasn't set.
     """
@@ -282,12 +285,14 @@ class Client(object):
 
   def create_experiment(self, name, description=None, namespace=None):
     """Create a new experiment.
+
     Args:
-      name: the name of the experiment.
-      description: description of the experiment.
-      namespace: kubernetes namespace where the experiment should be created.
+      name: The name of the experiment.
+      description: Description of the experiment.
+      namespace: Kubernetes namespace where the experiment should be created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized.
+
     Returns:
       An Experiment object. Most important field is id.
     """
@@ -323,11 +328,13 @@ class Client(object):
     return experiment
 
   def get_pipeline_id(self, name):
-    """Returns the pipeline id if a pipeline with the name exsists.
+    """Find the id of a pipeline by name.
+
     Args:
-      name: pipeline name
+      name: Pipeline name.
+
     Returns:
-      A response object including a list of experiments and next page token.
+      Returns the pipeline id if a pipeline with the name exists.
     """
     pipeline_filter = json.dumps({
       "predicates": [
@@ -347,13 +354,15 @@ class Client(object):
 
   def list_experiments(self, page_token='', page_size=10, sort_by='', namespace=None):
     """List experiments.
+
     Args:
-      page_token: token for starting of the page.
-      page_size: size of the page.
-      sort_by: can be '[field_name]', '[field_name] des'. For example, 'name desc'.
-      namespace: kubernetes namespace where the experiment was created.
+      page_token: Token for starting of the page.
+      page_size: Size of the page.
+      sort_by: Can be '[field_name]', '[field_name] des'. For example, 'name desc'.
+      namespace: Kubernetes namespace where the experiment was created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized.
+  
     Returns:
       A response object including a list of experiments and next page token.
     """
@@ -368,15 +377,19 @@ class Client(object):
 
   def get_experiment(self, experiment_id=None, experiment_name=None, namespace=None):
     """Get details of an experiment
+
     Either experiment_id or experiment_name is required
+
     Args:
-      experiment_id: id of the experiment. (Optional)
-      experiment_name: name of the experiment. (Optional)
-      namespace: kubernetes namespace where the experiment was created.
+      experiment_id: Id of the experiment. (Optional)
+      experiment_name: Name of the experiment. (Optional)
+      namespace: Kubernetes namespace where the experiment was created.
         For single user deployment, leave it as None;
         For multi user, input the namespace where the user is authorized.
+
     Returns:
       A response object including details of a experiment.
+
     Throws:
       Exception if experiment is not found or None of the arguments is provided
     """
@@ -426,10 +439,12 @@ class Client(object):
 
   def list_pipelines(self, page_token='', page_size=10, sort_by=''):
     """List pipelines.
+
     Args:
-      page_token: token for starting of the page.
-      page_size: size of the page.
+      page_token: Token for starting of the page.
+      page_size: Size of the page.
       sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
+
     Returns:
       A response object including a list of pipelines and next page token.
     """
@@ -437,13 +452,15 @@ class Client(object):
 
   def list_pipeline_versions(self, pipeline_id: str, page_token='', page_size=10, sort_by=''):
     """List all versions of a given pipeline.
+
     Args:
-      pipeline_id: the string ID of a pipeline.
-      page_token: token for starting of the page.
-      page_size: size of the page.
-      sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
+      pipeline_id: The id of a pipeline.
+      page_token: Token for starting of the page.
+      page_size: Size of the page.
+        sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
+
     Returns:
-      A response object including a list of pipelines and next page token.
+      A response object including a list of pipeline versions and next page token.
     """
     return self._pipelines_api.list_pipeline_versions(
         resource_key_type="PIPELINE",
@@ -458,12 +475,12 @@ class Client(object):
     """Run a specified pipeline.
 
     Args:
-      experiment_id: The string id of an experiment.
-      job_name: name of the job.
-      pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
-      params: a dictionary with key (string) as param name and value (string) as as param value.
-      pipeline_id: the string ID of a pipeline.
-      version_id: the string ID of a pipeline version.
+      experiment_id: The id of an experiment.
+      job_name: Name of the job.
+      pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+      params: A dictionary with key (string) as param name and value (string) as as param value.
+      pipeline_id: The id of a pipeline.
+      version_id: The id of a pipeline version.
         If both pipeline_id and version_id are specified, version_id will take precendence.
         If only pipeline_id is specified, the default version of this pipeline is used to create the run.
 
@@ -490,9 +507,10 @@ class Client(object):
 
   def create_recurring_run(self, experiment_id, job_name, description=None, start_time=None, end_time=None, interval_second=None, cron_expression=None, max_concurrency=1, no_catchup=None, params={}, pipeline_package_path=None, pipeline_id=None, version_id=None, enabled=True):
     """Create a recurring run.
+
     Args:
       experiment_id: The string id of an experiment.
-      job_name: name of the job.
+      job_name: Name of the job.
       description: An optional job description.
       start_time: The RFC3339 time string of the time when to start the job.
       end_time: The RFC3339 time string of the time when to end the job.
@@ -513,6 +531,7 @@ class Client(object):
         If both pipeline_id and version_id are specified, pipeline_id will take precendence
         This will change in a future version, so it is recommended to use version_id by itself.
       enabled: A bool indicating whether the recurring run is enabled or disabled.
+
     Returns:
       A Job object. Most important field is id.
     """
@@ -549,14 +568,16 @@ class Client(object):
 
   def _create_job_config(self, experiment_id, params, pipeline_package_path, pipeline_id, version_id):
     """Create a JobConfig with spec and resource_references.
+
     Args:
-      experiment_id: The string id of an experiment.
+      experiment_id: The id of an experiment.
       pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: A dictionary with key (string) as param name and value (string) as param value.
-      pipeline_id: The string ID of a pipeline.
-      version_id: The string ID of a pipeline version. 
+      pipeline_id: The id of a pipeline.
+      version_id: The id of a pipeline version. 
         If both pipeline_id and version_id are specified, pipeline_id will take precendence
         This will change in a future version, so it is recommended to use version_id by itself.
+
     Returns:
       A JobConfig object with attributes spec and resource_reference.
     """
@@ -594,7 +615,8 @@ class Client(object):
     return JobConfig(spec=spec, resource_references=resource_references)
 
   def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None, pipeline_conf: kfp.dsl.PipelineConf = None, namespace=None):
-    '''Runs pipeline on KFP-enabled Kubernetes cluster.
+    """Runs pipeline on KFP-enabled Kubernetes cluster.
+
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
 
     Args:
@@ -602,10 +624,10 @@ class Client(object):
       arguments: Arguments to the pipeline function provided as a dict.
       run_name: Optional. Name of the run to be shown in the UI.
       experiment_name: Optional. Name of the experiment to add the run to.
-      namespace: kubernetes namespace where the pipeline runs are created.
+      namespace: Kubernetes namespace where the pipeline runs are created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized
-    '''
+    """
     #TODO: Check arguments against the pipeline function
     pipeline_name = pipeline_func.__name__
     run_name = run_name or pipeline_name + ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
@@ -615,7 +637,8 @@ class Client(object):
       return self.create_run_from_pipeline_package(pipeline_package_path, arguments, run_name, experiment_name, namespace)
 
   def create_run_from_pipeline_package(self, pipeline_file: str, arguments: Mapping[str, str], run_name=None, experiment_name=None, namespace=None):
-    '''Runs pipeline on KFP-enabled Kubernetes cluster.
+    """Runs pipeline on KFP-enabled Kubernetes cluster.
+
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
 
     Args:
@@ -623,10 +646,10 @@ class Client(object):
       arguments: Arguments to the pipeline function provided as a dict.
       run_name: Optional. Name of the run to be shown in the UI.
       experiment_name: Optional. Name of the experiment to add the run to.
-      namespace: kubernetes namespace where the pipeline runs are created.
+      namespace: Kubernetes namespace where the pipeline runs are created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized
-    '''
+    """
 
     class RunPipelineResult:
       def __init__(self, client, run_info):
@@ -657,15 +680,17 @@ class Client(object):
     return RunPipelineResult(self, run_info)
 
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None, namespace=None):
-    """List runs.
+    """List runs, optionally can be filtered by experiment or namespace.
+
     Args:
-      page_token: token for starting of the page.
-      page_size: size of the page.
-      sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
-      experiment_id: experiment id to filter upon
-      namespace: kubernetes namespace to filter upon.
+      page_token: Token for starting of the page.
+      page_size: Size of the page.
+      sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
+      experiment_id: Experiment id to filter upon
+      namespace: Kubernetes namespace to filter upon.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized.
+
     Returns:
       A response object including a list of experiments and next page token.
     """
@@ -680,11 +705,13 @@ class Client(object):
 
   def list_recurring_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
     """List recurring runs.
+
     Args:
-      page_token: token for starting of the page.
-      page_size: size of the page.
-      sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
-      experiment_id: experiment id to filter upon
+      page_token: Token for starting of the page.
+      page_size: Size of the page.
+      sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
+      experiment_id: Experiment id to filter upon.
+
     Returns:
       A response object including a list of recurring_runs and next page token.
     """
@@ -696,10 +723,13 @@ class Client(object):
 
   def get_recurring_run(self, job_id):
     """Get recurring_run details.
+
     Args:
-      id of the recurring_run.
+      job_id: id of the recurring_run.
+
     Returns:
       A response object including details of a recurring_run.
+
     Throws:
       Exception if recurring_run is not found.
     """
@@ -708,10 +738,13 @@ class Client(object):
 
   def get_run(self, run_id):
     """Get run details.
+
     Args:
-      id of the run.
+      run_id: id of the run.
+
     Returns:
       A response object including details of a run.
+
     Throws:
       Exception if run is not found.
     """
@@ -719,14 +752,16 @@ class Client(object):
 
   def wait_for_run_completion(self, run_id, timeout):
     """Waits for a run to complete.
+
     Args:
-      run_id: run id, returned from run_pipeline.
-      timeout: timeout in seconds.
+      run_id: Run id, returned from run_pipeline.
+      timeout: Timeout in seconds.
+
     Returns:
       A run detail object: Most important fields are run and pipeline_runtime.
+
     Raises:
-      TimeoutError: if the pipeline run failed to finish before the specified
-        timeout.
+      TimeoutError: if the pipeline run failed to finish before the specified timeout.
     """
     status = 'Running:'
     start_time = datetime.datetime.now()
@@ -750,10 +785,12 @@ class Client(object):
 
   def _get_workflow_json(self, run_id):
     """Get the workflow json.
+
     Args:
       run_id: run id, returned from run_pipeline.
+
     Returns:
-      workflow: json workflow
+      workflow: Json workflow
     """
     get_run_response = self._run_api.get_run(run_id=run_id)
     workflow = get_run_response.pipeline_runtime.workflow_manifest
@@ -767,10 +804,12 @@ class Client(object):
     description: str = None,
   ):
     """Uploads the pipeline to the Kubeflow Pipelines cluster.
+
     Args:
       pipeline_package_path: Local path to the pipeline package.
       pipeline_name: Optional. Name of the pipeline to be shown in the UI.
       description: Optional. Description of the pipeline to be shown in the UI.
+
     Returns:
       Server response object containing pipleine id and other information.
     """
@@ -822,10 +861,13 @@ class Client(object):
 
   def get_pipeline(self, pipeline_id):
     """Get pipeline details.
+
     Args:
-      id of the pipeline.
+      pipeline_id: id of the pipeline.
+
     Returns:
       A response object including details of a pipeline.
+
     Throws:
       Exception if pipeline is not found.
     """
@@ -833,11 +875,13 @@ class Client(object):
 
   def delete_pipeline(self, pipeline_id):
     """Delete pipeline.
+
     Args:
-      id of the pipeline.
+      pipeline_id: id of the pipeline.
+
     Returns:
-      Object. If the method is called asynchronously,
-      returns the request thread.
+      Object. If the method is called asynchronously, returns the request thread.
+
     Throws:
       Exception if pipeline is not found.
     """
@@ -845,11 +889,13 @@ class Client(object):
 
   def list_pipeline_versions(self, pipeline_id, page_token='', page_size=10, sort_by=''):
     """Lists pipeline versions.
+
     Args:
-      pipeline_id: id of the pipeline to list versions
-      page_token: token for starting of the page.
-      page_size: size of the page.
-      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+      pipeline_id: Id of the pipeline to list versions
+      page_token: Token for starting of the page.
+      page_size: Size of the page.
+      sort_by: One of 'field_name', 'field_name des'. For example, 'name des'.
+
     Returns:
       A response object including a list of versions and next page token.
     """

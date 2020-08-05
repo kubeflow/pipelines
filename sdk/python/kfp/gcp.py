@@ -17,9 +17,9 @@ from kubernetes.client import V1Toleration, V1Affinity, V1NodeAffinity, \
 
 def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume=None, volume_name=None, secret_volume_mount_path='/secret/gcp-credentials'):
     """An operator that configures the container to use GCP service account by service account key
-        stored in a Kubernetes secret.
+    stored in a Kubernetes secret.
 
-        For cluster setup and alternatives to using service account key, check https://www.kubeflow.org/docs/gke/authentication-pipelines/.
+    For cluster setup and alternatives to using service account key, check https://www.kubeflow.org/docs/gke/authentication-pipelines/.
     """
 
     # permitted values for secret_name = ['admin-gcp-sa', 'user-gcp-sa']
@@ -95,9 +95,10 @@ def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(effect='NoS
                                                              value='true'),
                               hard_constraint: bool = False):
   """An operator that configures the GKE preemptible in a container op.
+
   Args:
-    toleration (V1Toleration): toleration to pods, default is the preemptible label.
-    hard_constraint (bool): the constraint of scheduling the pods on preemptible
+    toleration: toleration to pods, default is the preemptible label.
+    hard_constraint: the constraint of scheduling the pods on preemptible
         nodepools is hard. (Default: False)
   """
 
@@ -127,7 +128,7 @@ def add_gpu_toleration(toleration: V1Toleration = V1Toleration(
     """An operator that configures the GKE GPU nodes in a container op.
 
     Args:
-      toleration {V1Toleration} -- toleration to pods, default is the nvidia.com/gpu label.
+      toleration: toleration to pods, default is the nvidia.com/gpu label.
     """
 
     def _set_toleration(task):

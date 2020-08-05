@@ -19,7 +19,8 @@ Create an endpoint in AWS SageMaker Hosting Service for model deployment.
 Argument        | Description                 | Optional (in pipeline definition) | Optional (in UI) | Data type  | Accepted values | Default    |
 :---            | :----------                 | :----------                       | :----------      | :----------| :----------     | :----------|
 region | The region where the endpoint is created | No | No | String | | |
-endpoint_url | The endpoint URL for the private link VPC endpoint | Yes | Yes | String | | |
+endpoint_url | The endpoint URL for the private link VPC endpoint | Yes | String | | |
+assume_role | The ARN of an IAM role to assume when connecting to SageMaker | Yes | String | | |
 endpoint_config_name | The name of the endpoint configuration | Yes | Yes | String | | |
 endpoint_config_tags | Key-value pairs to tag endpoint configurations in AWS | Yes | Yes | Dict | | {} |
 endpoint_tags | Key-value pairs to tag the Hosting endpoint in AWS | Yes | Yes | Dict | | {} |

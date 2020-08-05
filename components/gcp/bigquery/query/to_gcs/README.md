@@ -175,7 +175,7 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 
 
 ```python
-!gsutil cat OUTPUT_PATH
+!gsutil cat $OUTPUT_PATH
 ```
 
 ## References

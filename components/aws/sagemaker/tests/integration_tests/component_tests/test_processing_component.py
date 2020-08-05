@@ -14,7 +14,8 @@ from utils import argo_utils
         pytest.param(
             "resources/config/kmeans-algo-mnist-processing",
             marks=pytest.mark.canary_test,
-        )
+        ),
+        "resources/config/assume-role-processing"
     ],
 )
 def test_processingjob(
