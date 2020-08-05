@@ -21,6 +21,7 @@ from typing import (
 )
 from .spec_validators import SpecValidators
 
+
 @dataclass(frozen=True)
 class SageMakerComponentInputValidator:
     """Defines the structure of a component input to be used for validation."""
@@ -41,7 +42,7 @@ class SageMakerComponentInputValidator:
             "help": self.description,
             "required": self.required,
             "choices": self.choices,
-            "default": self.default
+            "default": self.default,
         }
 
 

@@ -202,9 +202,9 @@ def get_cloudwatch_client(region):
     return client
 
 
-
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):
-  return ''.join(random.choice(chars) for _ in range(size))
+    return "".join(random.choice(chars) for _ in range(size))
+
 
 def write_output(output_path, output_value, json_encode=False):
     """Write an output value to the associated path, dumping as a JSON object
@@ -215,14 +215,16 @@ def write_output(output_path, output_value, json_encode=False):
     - json_encode: True if the value should be encoded as a JSON object.
     """
 
-    write_value = json.dumps(output_value) if json_encode else output_value 
+    write_value = json.dumps(output_value) if json_encode else output_value
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     Path(output_path).write_text(write_value)
 
+
 ###################################################
 ### EVERYTHING BELOW IS SPECIFIC TO A COMPONENT ###
 ###################################################
+
 
 def create_training_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_training_job
@@ -384,7 +386,7 @@ def stop_training_job(client, job_name):
     try:
         client.stop_training_job(TrainingJobName=job_name)
     except ClientError as e:
-        raise Exception(e.response['Error']['Message'])
+        raise Exception(e.response["Error"]["Message"])
 
 
 def create_model(client, args):
@@ -707,7 +709,7 @@ def stop_transform_job(client, job_name):
     try:
         client.stop_transform_job(TransformJobName=job_name)
     except ClientError as e:
-        raise Exception(e.response['Error']['Message'])
+        raise Exception(e.response["Error"]["Message"])
 
 
 def create_hyperparameter_tuning_job_request(args):
@@ -956,7 +958,7 @@ def stop_hyperparameter_tuning_job(client, job_name):
     try:
         client.stop_hyper_parameter_tuning_job(HyperParameterTuningJobName=job_name)
     except ClientError as e:
-        raise Exception(e.response['Error']['Message'])
+        raise Exception(e.response["Error"]["Message"])
 
 
 def create_workteam(client, args):
@@ -1280,7 +1282,7 @@ def stop_labeling_job(client, job_name):
     try:
         client.stop_labeling_job(LabelingJobName=job_name)
     except ClientError as e:
-        raise Exception(e.response['Error']['Message'])
+        raise Exception(e.response["Error"]["Message"])
 
 
 def create_hyperparameters(hyperparam_args):
@@ -1467,4 +1469,4 @@ def stop_processing_job(client, job_name):
     try:
         client.stop_processing_job(ProcessingJobName=job_name)
     except ClientError as e:
-        raise Exception(e.response['Error']['Message'])
+        raise Exception(e.response["Error"]["Message"])

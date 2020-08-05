@@ -16,7 +16,11 @@ from typing import Dict, Type, Optional, Union, List, NamedTuple, cast
 from mypy_extensions import TypedDict
 
 from .sagemaker_component import SageMakerComponent
-from .sagemaker_component_spec import SageMakerComponentSpec, SageMakerComponentInputValidator, SageMakerComponentOutputValidator
+from .sagemaker_component_spec import (
+    SageMakerComponentSpec,
+    SageMakerComponentInputValidator,
+    SageMakerComponentOutputValidator,
+)
 from .spec_validators import SpecValidators
 
 # The following classes are structures defining KFP component.yaml files
@@ -33,9 +37,11 @@ class OutputSpec(TypedDict):
     name: str
     description: str
 
+
 class ArgumentValueSpec(TypedDict, total=False):
     inputValue: str
     outputPath: str
+
 
 class ContainerSpec(TypedDict):
 
@@ -43,9 +49,11 @@ class ContainerSpec(TypedDict):
     command: List[str]
     args: List[Union[str, ArgumentValueSpec]]
 
+
 class ImplementationSpec(TypedDict):
 
     container: ContainerSpec
+
 
 class ComponentSpec(TypedDict):
     """Defines the structure of a KFP `component.yaml` file."""
@@ -63,11 +71,7 @@ class IOArgs(NamedTuple):
 
     inputs: List[InputSpec]
     outputs: List[OutputSpec]
-    args: List[
-        Union[
-            str, ArgumentValueSpec
-        ]
-    ]
+    args: List[Union[str, ArgumentValueSpec]]
 
 
 class SageMakerComponentCompiler(object):
@@ -128,7 +132,9 @@ class SageMakerComponentCompiler(object):
         # Iterate through all inputs adding them to the argument list
         for key, _input in spec.INPUTS.__dict__.items():
             # We know all of these values are validators as we have validated the spec
-            input_validator: SageMakerComponentInputValidator = cast(SageMakerComponentInputValidator, _input)
+            input_validator: SageMakerComponentInputValidator = cast(
+                SageMakerComponentInputValidator, _input
+            )
             # Map from argsparser to KFP component
             input_spec = InputSpec(
                 name=key,
@@ -148,25 +154,19 @@ class SageMakerComponentCompiler(object):
 
             # Add arguments to input list
             args.append(f"--{key}")
-            args.append(
-                ArgumentValueSpec(
-                    inputValue=key
-                )
-            )
+            args.append(ArgumentValueSpec(inputValue=key))
 
         for key, _output in spec.OUTPUTS.__dict__.items():
-            output_validator: SageMakerComponentOutputValidator = cast(SageMakerComponentOutputValidator, _output)
+            output_validator: SageMakerComponentOutputValidator = cast(
+                SageMakerComponentOutputValidator, _output
+            )
             outputs.append(
                 OutputSpec(name=key, description=output_validator.description)
             )
 
             # Add arguments to input list
             args.append(f"--{key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}")
-            args.append(
-                ArgumentValueSpec(
-                    outputPath=key
-                )
-            )
+            args.append(ArgumentValueSpec(outputPath=key))
 
         return IOArgs(inputs=inputs, outputs=outputs, args=args)
 
@@ -201,7 +201,7 @@ class SageMakerComponentCompiler(object):
                 container=ContainerSpec(
                     image=f"{component_image_uri}:{component_image_tag}",
                     command=["python3"],
-                    args=[component_file_path,] + io_args.args, # type: ignore
+                    args=[component_file_path,] + io_args.args,  # type: ignore
                 )
             ),
         )

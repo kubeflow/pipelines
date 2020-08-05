@@ -105,9 +105,7 @@ def test_terminate_transformJob(kfp_client, experiment_id, region, sagemaker_cli
     # Generate random prefix for model, job name to avoid errors if resources with same name exists
     test_params["Arguments"]["model_name"] = test_params["Arguments"][
         "job_name"
-    ] = input_job_name = (
-        utils.generate_random_string(4) + "-terminate-job"
-    )
+    ] = input_job_name = (utils.generate_random_string(4) + "-terminate-job")
 
     run_id, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,

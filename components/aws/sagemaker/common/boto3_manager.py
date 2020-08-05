@@ -15,6 +15,7 @@ import boto3
 import botocore
 from botocore.exceptions import ClientError
 
+
 class Boto3Manager(object):
     @staticmethod
     def get_sagemaker_client(component_version, region, endpoint_url=None):
@@ -30,9 +31,14 @@ class Boto3Manager(object):
             object: A SageMaker boto3 client.
         """
         session_config = botocore.config.Config(
-            user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(component_version)
+            user_agent="sagemaker-on-kubeflow-pipelines-v{}".format(component_version)
         )
-        client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
+        client = boto3.client(
+            "sagemaker",
+            region_name=region,
+            endpoint_url=endpoint_url,
+            config=session_config,
+        )
         return client
 
     @staticmethod
@@ -45,5 +51,5 @@ class Boto3Manager(object):
         Returns:
             object: A CloudWatch boto3 client.
         """
-        client = boto3.client('logs', region_name=region)
+        client = boto3.client("logs", region_name=region)
         return client

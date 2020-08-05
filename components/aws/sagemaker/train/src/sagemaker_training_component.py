@@ -139,8 +139,7 @@ class SageMakerTrainingComponent(SageMakerComponent):
             algo_name = inputs.algorithm_name.lower().strip()
             if algo_name in SageMakerTrainingComponent.BUILT_IN_ALGOS.keys():
                 request["AlgorithmSpecification"]["TrainingImage"] = get_image_uri(
-                    inputs.region,
-                    SageMakerTrainingComponent.BUILT_IN_ALGOS[algo_name],
+                    inputs.region, SageMakerTrainingComponent.BUILT_IN_ALGOS[algo_name],
                 )
                 request["AlgorithmSpecification"].pop("AlgorithmName")
                 logging.warning(
@@ -189,13 +188,9 @@ class SageMakerTrainingComponent(SageMakerComponent):
         request["OutputDataConfig"]["S3OutputPath"] = inputs.model_artifact_path
         request["OutputDataConfig"]["KmsKeyId"] = inputs.output_encryption_key
         request["ResourceConfig"]["InstanceType"] = inputs.instance_type
-        request["ResourceConfig"][
-            "VolumeKmsKeyId"
-        ] = inputs.resource_encryption_key
+        request["ResourceConfig"]["VolumeKmsKeyId"] = inputs.resource_encryption_key
         request["EnableNetworkIsolation"] = inputs.network_isolation
-        request[
-            "EnableInterContainerTrafficEncryption"
-        ] = inputs.traffic_encryption
+        request["EnableInterContainerTrafficEncryption"] = inputs.traffic_encryption
 
         ### Update InstanceCount, VolumeSizeInGB, and MaxRuntimeInSeconds if input is non-empty and > 0, otherwise use default values
         if inputs.instance_count:

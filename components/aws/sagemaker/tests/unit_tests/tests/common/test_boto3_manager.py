@@ -9,4 +9,3 @@ from common.boto3_manager import Boto3Manager
 
 class Boto3ManagerTestCase(unittest.TestCase):
     pass
-
