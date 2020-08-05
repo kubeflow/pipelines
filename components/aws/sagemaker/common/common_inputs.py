@@ -96,7 +96,7 @@ COMMON_INPUTS = SageMakerComponentCommonInputs(
     region=SageMakerComponentInputValidator(
         input_type=str,
         required=True,
-        description="The region where the training job launches.",
+        description="The region for the SageMaker resource.",
     ),
     endpoint_url=SageMakerComponentInputValidator(
         input_type=SpecValidators.nullable_string_argument,
