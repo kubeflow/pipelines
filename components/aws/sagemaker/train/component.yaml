@@ -81,7 +81,7 @@ inputs:
     training checkpoint data.
   name: checkpoint_config
   type: JsonObject
-- description: The region where the training job launches.
+- description: The region for the SageMaker resource.
   name: region
   type: String
 - default: ''
