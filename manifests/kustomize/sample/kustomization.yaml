@@ -4,7 +4,7 @@ kind: Kustomization
 bases:
   # Or github.com/kubeflow/pipelines/manifests/kustomize/env/gcp?ref=1.0.0
   - ../env/gcp
-  - prometheus
+  - third-party/prometheus
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected
