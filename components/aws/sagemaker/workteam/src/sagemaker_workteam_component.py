@@ -39,7 +39,7 @@ class SageMakerWorkteamComponent(SageMakerComponent):
         super().Do(spec.inputs, spec.outputs, spec.output_paths)
 
     def _get_job_status(self) -> SageMakerJobStatus:
-        return SageMakerJobStatus(is_completed=False, raw_status="")
+        return SageMakerJobStatus(is_completed=True, raw_status="")
 
     def _after_job_complete(
         self,
