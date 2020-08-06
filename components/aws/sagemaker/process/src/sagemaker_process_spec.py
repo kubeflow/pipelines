@@ -1,4 +1,4 @@
-"""Specification for the SageMaker training component."""
+"""Specification for the SageMaker processing component."""
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -30,8 +30,8 @@ from common.common_inputs import (
 
 
 @dataclass(frozen=True)
-class SageMakerTransformInputs(SageMakerComponentCommonInputs):
-    """Defines the set of inputs for the transform component."""
+class SageMakerProcessInputs(SageMakerComponentCommonInputs):
+    """Defines the set of inputs for the process component."""
 
     job_name: Input
     role: Input
@@ -54,17 +54,17 @@ class SageMakerTransformInputs(SageMakerComponentCommonInputs):
 
 
 @dataclass
-class SageMakerTransformOutputs(SageMakerComponentBaseOutputs):
-    """Defines the set of outputs for the transform component."""
+class SageMakerProcessOutputs(SageMakerComponentBaseOutputs):
+    """Defines the set of outputs for the process component."""
 
     job_name: Output
     output_artifacts: Output
 
 
-class SageMakerTransformSpec(
-    SageMakerComponentSpec[SageMakerTransformInputs, SageMakerTransformOutputs]
+class SageMakerProcessSpec(
+    SageMakerComponentSpec[SageMakerProcessInputs, SageMakerProcessOutputs]
 ):
-    INPUTS: SageMakerTransformInputs = SageMakerTransformInputs(
+    INPUTS: SageMakerProcessInputs = SageMakerProcessInputs(
         job_name=InputValidator(
             input_type=str,
             required=False,
@@ -173,7 +173,7 @@ class SageMakerTransformSpec(
         **vars(COMMON_INPUTS),
     )
 
-    OUTPUTS = SageMakerTransformOutputs(
+    OUTPUTS = SageMakerProcessOutputs(
         job_name=OutputValidator(description="Processing job name."),
         output_artifacts=OutputValidator(
             description="A dictionary containing the output S3 artifacts."
@@ -181,16 +181,16 @@ class SageMakerTransformSpec(
     )
 
     def __init__(self, arguments: List[str]):
-        super().__init__(arguments, SageMakerTransformInputs, SageMakerTransformOutputs)
+        super().__init__(arguments, SageMakerProcessInputs, SageMakerProcessOutputs)
 
     @property
-    def inputs(self) -> SageMakerTransformInputs:
+    def inputs(self) -> SageMakerProcessInputs:
         return self._inputs
 
     @property
-    def outputs(self) -> SageMakerTransformOutputs:
+    def outputs(self) -> SageMakerProcessOutputs:
         return self._outputs
 
     @property
-    def output_paths(self) -> SageMakerTransformOutputs:
+    def output_paths(self) -> SageMakerProcessOutputs:
         return self._output_paths
