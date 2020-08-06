@@ -14,7 +14,7 @@ COMPONENT_DIRECTORIES = [
     "model",
     "process",
     "train",
-    "workteam"
+    "workteam",
 ]
 
 

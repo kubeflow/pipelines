@@ -154,9 +154,7 @@ class SageMakerTuningComponent(SageMakerComponent):
             if algo_name in BUILT_IN_ALGOS.keys():
                 request["TrainingJobDefinition"]["AlgorithmSpecification"][
                     "TrainingImage"
-                ] = get_image_uri(
-                    inputs.region, BUILT_IN_ALGOS[algo_name]
-                )
+                ] = get_image_uri(inputs.region, BUILT_IN_ALGOS[algo_name])
                 request["TrainingJobDefinition"]["AlgorithmSpecification"].pop(
                     "AlgorithmName"
                 )

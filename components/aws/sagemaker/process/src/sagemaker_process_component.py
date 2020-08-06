@@ -182,9 +182,10 @@ class SageMakerProcessComponent(SageMakerComponent):
 
     def _get_job_outputs(self):
         """Map the S3 outputs of a processing job to a dictionary object.
-        
+
         Returns:
-            dict: A dictionary of output S3 URIs."""
+            dict: A dictionary of output S3 URIs.
+        """
         response = self._sm_client.describe_processing_job(
             ProcessingJobName=self._processing_job_name
         )
