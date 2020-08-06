@@ -42,7 +42,7 @@ class ProcessSpecTestCase(unittest.TestCase):
                     },
                 }
             ]
-        )
+        ),
     ]
 
     def test_minimum_required_args(self):

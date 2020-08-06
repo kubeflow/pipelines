@@ -10,7 +10,7 @@ class WorkteamSpecTestCase(unittest.TestCase):
         "--team_name",
         "test-team",
         "--description",
-        "fake team"
+        "fake team",
     ]
 
     def test_minimum_required_args(self):

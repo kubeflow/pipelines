@@ -209,9 +209,7 @@ class SageMakerDeploySpec(
     )
 
     OUTPUTS = SageMakerDeployOutputs(
-        endpoint_name=OutputValidator(
-            description="The created endpoint name."
-        ),
+        endpoint_name=OutputValidator(description="The created endpoint name."),
     )
 
     def __init__(self, arguments: List[str]):

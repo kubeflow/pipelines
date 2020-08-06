@@ -76,7 +76,9 @@ class SageMakerGroundTruthSpec(
 ):
     INPUTS: SageMakerGroundTruthInputs = SageMakerGroundTruthInputs(
         role=InputValidator(
-            input_type=str, required=True, description="The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf."
+            input_type=str,
+            required=True,
+            description="The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.",
         ),
         job_name=InputValidator(
             input_type=str, default="", description="The name of the labeling job."

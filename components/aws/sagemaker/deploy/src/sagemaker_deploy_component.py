@@ -26,6 +26,7 @@ from common.sagemaker_component import (
     SageMakerJobStatus,
 )
 
+
 @dataclass(frozen=True)
 class EndpointRequests:
     """Holds the request types for creating each of the deploy steps."""
@@ -54,13 +55,15 @@ class SageMakerDeployComponent(SageMakerComponent):
         self._endpoint_config_name = (
             spec.inputs.endpoint_config_name
             if spec.inputs.endpoint_config_name
-            else "EndpointConfig" + spec.inputs.model_name_1[spec.inputs.model_name_1.index("-") :]
+            else "EndpointConfig"
+            + spec.inputs.model_name_1[spec.inputs.model_name_1.index("-") :]
         )
 
         self._endpoint_name = (
             spec.inputs.endpoint_name
             if spec.inputs.endpoint_name
-            else "Endpoint" + self._endpoint_config_name[self._endpoint_config_name.index("-") :]
+            else "Endpoint"
+            + self._endpoint_config_name[self._endpoint_config_name.index("-") :]
         )
         super().Do(spec.inputs, spec.outputs, spec.output_paths)
 
@@ -135,7 +138,7 @@ class SageMakerDeployComponent(SageMakerComponent):
     ):
         ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint
         request = {}
-        
+
         request["EndpointName"] = self._endpoint_name
         request["EndpointConfigName"] = self._endpoint_config_name
 
@@ -148,14 +151,18 @@ class SageMakerDeployComponent(SageMakerComponent):
     ) -> EndpointRequests:
         return EndpointRequests(
             config_request=self._create_endpoint_config_request(inputs, outputs),
-            endpoint_request=self._create_endpoint_request(inputs, outputs)
+            endpoint_request=self._create_endpoint_request(inputs, outputs),
         )
 
     def _submit_job_request(self, request: EndpointRequests) -> EndpointResponses:
-        config_response = self._sm_client.create_endpoint_config(**request.config_request)
+        config_response = self._sm_client.create_endpoint_config(
+            **request.config_request
+        )
         endpoint_response = self._sm_client.create_endpoint(**request.endpoint_request)
 
-        return EndpointResponses(config_response=config_response, endpoint_response=endpoint_response)
+        return EndpointResponses(
+            config_response=config_response, endpoint_response=endpoint_response
+        )
 
     def _after_submit_job_request(
         self,
@@ -170,10 +177,7 @@ class SageMakerDeployComponent(SageMakerComponent):
                 region, region, request.config_request["EndpointConfigName"]
             )
         )
-        logging.info(
-            "Endpoint Config Arn: "
-            + job.config_response["EndpointConfigArn"]
-        )
+        logging.info("Endpoint Config Arn: " + job.config_response["EndpointConfigArn"])
         logging.info("Created endpoint with name: " + self._endpoint_name)
         logging.info(
             "Endpoint in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/endpoints/{}".format(

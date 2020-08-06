@@ -43,7 +43,9 @@ class SageMakerGroundTruthComponent(SageMakerComponent):
         super().Do(spec.inputs, spec.outputs, spec.output_paths)
 
     def _get_job_status(self) -> SageMakerJobStatus:
-        response = self._sm_client.describe_labeling_job(LabelingJobName=self._labeling_job_name)
+        response = self._sm_client.describe_labeling_job(
+            LabelingJobName=self._labeling_job_name
+        )
         status = response["LabelingJobStatus"]
 
         if status == "Completed":
@@ -154,7 +156,9 @@ class SageMakerGroundTruthComponent(SageMakerComponent):
         else:
             request["LabelAttributeName"] = inputs.job_name
 
-        request["InputConfig"]["DataSource"]["S3DataSource"]["ManifestS3Uri"] = inputs.manifest_location
+        request["InputConfig"]["DataSource"]["S3DataSource"][
+            "ManifestS3Uri"
+        ] = inputs.manifest_location
         request["OutputConfig"]["S3OutputPath"] = inputs.output_location
         request["OutputConfig"]["KmsKeyId"] = inputs.output_encryption_key
         request["RoleArn"] = inputs.role
