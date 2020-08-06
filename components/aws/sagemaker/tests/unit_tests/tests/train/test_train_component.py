@@ -131,33 +131,6 @@ class TrainingComponentTestCase(unittest.TestCase):
         self.assertEqual(spec.outputs.model_artifact_url, "model")
         self.assertEqual(spec.outputs.training_image, "image")
 
-    def test_get_model_artifacts_from_job(self):
-        self.component._sm_client = mock_client = MagicMock()
-        mock_client.describe_training_job.return_value = {
-            "ModelArtifacts": {"S3ModelArtifacts": "s3://path/"}
-        }
-
-        self.assertEqual(self.component._get_model_artifacts_from_job(), "s3://path/")
-
-    def test_get_image_from_defined_job(self):
-        self.component._sm_client = mock_client = MagicMock()
-        mock_client.describe_training_job.return_value = {
-            "AlgorithmSpecification": {"TrainingImage": "training-image-url"}
-        }
-
-        self.assertEqual(self.component._get_image_from_job(), "training-image-url")
-
-    def test_get_image_from_algorithm_job(self):
-        self.component._sm_client = mock_client = MagicMock()
-        mock_client.describe_training_job.return_value = {
-            "AlgorithmSpecification": {"AlgorithmName": "my-algorithm"}
-        }
-        mock_client.describe_algorithm.return_value = {
-            "TrainingSpecification": {"TrainingImage": "training-image-url"}
-        }
-
-        self.assertEqual(self.component._get_image_from_job(), "training-image-url")
-
     def test_metric_definitions(self):
         spec = SageMakerTrainingSpec(
             self.REQUIRED_ARGS
