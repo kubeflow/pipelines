@@ -8,13 +8,13 @@ import common.sagemaker_component as component_module
 
 COMPONENT_DIRECTORIES = [
     "batch_transform",
-    # "deploy",
-    # "ground_truth",
-    # "hyperparameter_tuning",
-    # "model",
-    # "process",
+    "deploy",
+    "ground_truth",
+    "hyperparameter_tuning",
+    "model",
+    "process",
     "train",
-    # "workteam"
+    "workteam"
 ]
 
 
