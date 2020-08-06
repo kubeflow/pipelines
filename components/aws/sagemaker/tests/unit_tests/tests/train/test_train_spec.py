@@ -21,13 +21,7 @@ class TrainingSpecTestCase(unittest.TestCase):
         "--max_run_time",
         "3600",
         "--model_artifact_path",
-        "test-path",
-        "--model_artifact_url_output_path",
-        "/tmp/model_artifact_url_output_path",
-        "--job_name_output_path",
-        "/tmp/job_name_output_path",
-        "--training_image_output_path",
-        "/tmp/training_image_output_path",
+        "test-path"
     ]
 
     def test_minimum_required_args(self):
