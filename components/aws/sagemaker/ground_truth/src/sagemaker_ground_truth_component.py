@@ -154,9 +154,7 @@ class SageMakerGroundTruthComponent(SageMakerComponent):
         else:
             request["LabelAttributeName"] = inputs.job_name
 
-        request["InputConfig"]["DataSource"]["S3DataSource"]["ManifestS3Uri"] = args[
-            "manifest_location"
-        ]
+        request["InputConfig"]["DataSource"]["S3DataSource"]["ManifestS3Uri"] = inputs.manifest_location
         request["OutputConfig"]["S3OutputPath"] = inputs.output_location
         request["OutputConfig"]["KmsKeyId"] = inputs.output_encryption_key
         request["RoleArn"] = inputs.role

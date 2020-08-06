@@ -9,8 +9,6 @@ class GroundTruthSpecTestCase(unittest.TestCase):
         "us-west-2",
         "--role",
         "arn:aws:iam::123456789012:user/Development/product_1234/*",
-        "--job_name",
-        "test_job",
         "--manifest_location",
         "s3://fake-bucket/manifest",
         "--output_location",
