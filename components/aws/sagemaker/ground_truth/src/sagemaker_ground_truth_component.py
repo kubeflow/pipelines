@@ -64,8 +64,8 @@ class SageMakerGroundTruthComponent(SageMakerComponent):
         return SageMakerJobStatus(is_completed=False, raw_status=status)
 
     def _get_labeling_job_outputs(self, auto_labeling):
-        """Get labeling job output values
-        
+        """Get labeling job output values.
+
         Args:
             auto_labeling: Determines whether to return a active learning model ARN.
 

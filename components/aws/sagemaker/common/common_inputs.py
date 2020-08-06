@@ -107,7 +107,7 @@ COMMON_INPUTS = SageMakerComponentCommonInputs(
     assume_role=SageMakerComponentInputValidator(
         input_type=str,
         required=False,
-        description="The ARN of an IAM role to assume when connecting to SageMaker."
+        description="The ARN of an IAM role to assume when connecting to SageMaker.",
     ),
     tags=SageMakerComponentInputValidator(
         input_type=SpecValidators.yaml_or_json_dict,
