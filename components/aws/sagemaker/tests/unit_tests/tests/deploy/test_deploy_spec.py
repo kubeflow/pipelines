@@ -8,9 +8,7 @@ class DeploySpecTestCase(unittest.TestCase):
         "--region",
         "us-west-2",
         "--model_name_1",
-        "model-test",
-        "--endpoint_name_output_path",
-        "/tmp/output",
+        "model-test"
     ]
 
     def test_minimum_required_args(self):

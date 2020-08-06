@@ -42,11 +42,7 @@ class ProcessSpecTestCase(unittest.TestCase):
                     },
                 }
             ]
-        ),
-        "--job_name_output_path",
-        "/tmp/job_name_output_path",
-        "--output_artifacts_output_path",
-        "/tmp/output_artifacts_output_path",
+        )
     ]
 
     def test_minimum_required_args(self):
