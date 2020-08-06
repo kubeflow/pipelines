@@ -359,6 +359,10 @@ class ComponentFeatureTestCase(unittest.TestCase):
     class SpotInstanceComponent(SageMakerComponent):
         pass
 
+    @ComponentMetadata(name="common", description="common", spec=CommonInputsSpec)
+    class CommonInputsComponent(SageMakerComponent):
+        pass
+
     @classmethod
     def setUp(cls):
         # Load the train template as an example
@@ -469,3 +473,33 @@ class ComponentFeatureTestCase(unittest.TestCase):
         response = SageMakerComponent._enable_tag_support(self.template, spec.inputs)
         self.assertIn({"Key": "key1", "Value": "val1"}, self.template["Tags"])
         self.assertIn({"Key": "key2", "Value": "val2"}, self.template["Tags"])
+
+    def test_get_model_artifacts_from_job(self):
+        component = self.CommonInputsComponent()
+        component._sm_client = mock_client = MagicMock()
+        mock_client.describe_training_job.return_value = {
+            "ModelArtifacts": {"S3ModelArtifacts": "s3://path/"}
+        }
+
+        self.assertEqual(component._get_model_artifacts_from_job("job-name"), "s3://path/")
+
+    def test_get_image_from_defined_job(self):
+        component = self.CommonInputsComponent()
+        component._sm_client = mock_client = MagicMock()
+        mock_client.describe_training_job.return_value = {
+            "AlgorithmSpecification": {"TrainingImage": "training-image-url"}
+        }
+
+        self.assertEqual(component._get_image_from_job("job-name"), "training-image-url")
+
+    def test_get_image_from_algorithm_job(self):
+        component = self.CommonInputsComponent()
+        component._sm_client = mock_client = MagicMock()
+        mock_client.describe_training_job.return_value = {
+            "AlgorithmSpecification": {"AlgorithmName": "my-algorithm"}
+        }
+        mock_client.describe_algorithm.return_value = {
+            "TrainingSpecification": {"TrainingImage": "training-image-url"}
+        }
+
+        self.assertEqual(component._get_image_from_job("job-name"), "training-image-url")

@@ -57,7 +57,6 @@ class SageMakerTuningInputs(SageMakerComponentCommonInputs, SpotInstanceInputs):
     volume_size: Input
     max_num_jobs: Input
     max_parallel_jobs: Input
-    max_run_time: Input
     resource_encryption_key: Input
     vpc_security_group_ids: Input
     vpc_subnets: Input
@@ -209,12 +208,6 @@ class SageMakerTuningSpec(
             input_type=int,
             required=True,
             description="The maximum number of concurrent training jobs that a hyperparameter tuning job can launch.",
-        ),
-        max_run_time=InputValidator(
-            input_type=int,
-            required=False,
-            description="The maximum run time in seconds per training job.",
-            default=86400,
         ),
         resource_encryption_key=InputValidator(
             input_type=str,
