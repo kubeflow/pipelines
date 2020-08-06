@@ -512,3 +512,24 @@ class SageMakerComponent(object):
         except Exception as e:
             logging.error(CW_ERROR_MESSAGE)
             logging.error(e)
+
+    def _get_model_artifacts_from_job(self, job_name):
+        info = self._sm_client.describe_training_job(
+            TrainingJobName=job_name
+        )
+        model_artifact_url = info["ModelArtifacts"]["S3ModelArtifacts"]
+        return model_artifact_url
+
+    def _get_image_from_job(self, job_name):
+        info = self._sm_client.describe_training_job(
+            TrainingJobName=job_name
+        )
+        if "TrainingImage" in info["AlgorithmSpecification"]:
+            image = info["AlgorithmSpecification"]["TrainingImage"]
+        else:
+            algorithm_name = info["AlgorithmSpecification"]["AlgorithmName"]
+            image = self._sm_client.describe_algorithm(AlgorithmName=algorithm_name)[
+                "TrainingSpecification"
+            ]["TrainingImage"]
+
+        return image
