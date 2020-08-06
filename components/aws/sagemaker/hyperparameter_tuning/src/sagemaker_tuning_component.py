@@ -12,10 +12,10 @@
 # limitations under the License.
 
 import logging
-from train.src.sagemaker_training_component import SageMakerTrainingComponent
 from typing import Dict
 from sagemaker.amazon.amazon_estimator import get_image_uri
 
+from train.src.built_in_algos import BUILT_IN_ALGOS
 from hyperparameter_tuning.src.sagemaker_tuning_spec import (
     SageMakerTuningSpec,
     SageMakerTuningInputs,
@@ -151,11 +151,11 @@ class SageMakerTuningComponent(SageMakerComponent):
         else:
             # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
             algo_name = inputs.algorithm_name.lower().strip()
-            if algo_name in SageMakerTrainingComponent.BUILT_IN_ALGOS.keys():
+            if algo_name in BUILT_IN_ALGOS.keys():
                 request["TrainingJobDefinition"]["AlgorithmSpecification"][
                     "TrainingImage"
                 ] = get_image_uri(
-                    inputs.region, SageMakerTrainingComponent.BUILT_IN_ALGOS[algo_name]
+                    inputs.region, BUILT_IN_ALGOS[algo_name]
                 )
                 request["TrainingJobDefinition"]["AlgorithmSpecification"].pop(
                     "AlgorithmName"
@@ -164,7 +164,7 @@ class SageMakerTuningComponent(SageMakerComponent):
                     "Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm."
                 )
             # To give the user more leeway for built-in algorithm name inputs
-            elif algo_name in SageMakerTrainingComponent.BUILT_IN_ALGOS.values():
+            elif algo_name in BUILT_IN_ALGOS.values():
                 request["TrainingJobDefinition"]["AlgorithmSpecification"][
                     "TrainingImage"
                 ] = get_image_uri(inputs.region, algo_name)

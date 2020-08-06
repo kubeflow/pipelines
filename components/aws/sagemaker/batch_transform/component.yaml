@@ -7,6 +7,8 @@ implementation:
     - inputValue: region
     - --endpoint_url
     - inputValue: endpoint_url
+    - --assume_role
+    - inputValue: assume_role
     - --tags
     - inputValue: tags
     - --job_name
@@ -63,6 +65,10 @@ inputs:
 - default: ''
   description: The URL to use when communicating with the SageMaker service.
   name: endpoint_url
+  type: String
+- default: ''
+  description: The ARN of an IAM role to assume when connecting to SageMaker.
+  name: assume_role
   type: String
 - default: '{}'
   description: An array of key-value pairs, to categorize AWS resources.

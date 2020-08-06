@@ -12,9 +12,10 @@
 # limitations under the License.
 
 import logging
-from typing import Dict, Type
+from typing import Dict
 from sagemaker.amazon.amazon_estimator import get_image_uri
 
+from train.src.built_in_algos import BUILT_IN_ALGOS
 from train.src.sagemaker_training_spec import (
     SageMakerTrainingSpec,
     SageMakerTrainingInputs,
@@ -34,28 +35,6 @@ from common.sagemaker_component import (
 )
 class SageMakerTrainingComponent(SageMakerComponent):
     """SageMaker component for training."""
-
-    BUILT_IN_ALGOS = {
-        "blazingtext": "blazingtext",
-        "deepar forecasting": "forecasting-deepar",
-        "factorization machines": "factorization-machines",
-        "image classification": "image-classification",
-        "ip insights": "ipinsights",
-        "k-means": "kmeans",
-        "k-nearest neighbors": "knn",
-        "k-nn": "knn",
-        "lda": "lda",
-        "linear learner": "linear-learner",
-        "neural topic model": "ntm",
-        "object2vec": "object2vec",
-        "object detection": "object-detection",
-        "pca": "pca",
-        "random cut forest": "randomcutforest",
-        "semantic segmentation": "semantic-segmentation",
-        "sequence to sequence": "seq2seq",
-        "seq2seq modeling": "seq2seq",
-        "xgboost": "xgboost",
-    }
 
     def Do(self, spec: SageMakerTrainingSpec):
         self._training_job_name = (
@@ -139,16 +118,16 @@ class SageMakerTrainingComponent(SageMakerComponent):
         else:
             # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
             algo_name = inputs.algorithm_name.lower().strip()
-            if algo_name in SageMakerTrainingComponent.BUILT_IN_ALGOS.keys():
+            if algo_name in BUILT_IN_ALGOS.keys():
                 request["AlgorithmSpecification"]["TrainingImage"] = get_image_uri(
-                    inputs.region, SageMakerTrainingComponent.BUILT_IN_ALGOS[algo_name],
+                    inputs.region, BUILT_IN_ALGOS[algo_name],
                 )
                 request["AlgorithmSpecification"].pop("AlgorithmName")
                 logging.warning(
                     "Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm."
                 )
             # Just to give the user more leeway for built-in algorithm name inputs
-            elif algo_name in SageMakerTrainingComponent.BUILT_IN_ALGOS.values():
+            elif algo_name in BUILT_IN_ALGOS.values():
                 request["AlgorithmSpecification"]["TrainingImage"] = get_image_uri(
                     inputs.region, algo_name
                 )
