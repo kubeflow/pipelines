@@ -66,6 +66,9 @@ class SageMakerGroundTruthComponent(SageMakerComponent):
         
         Args:
             auto_labeling: Determines whether to return a active learning model ARN.
+
+        Returns:
+            tuple: (Output manifest S3 URI, active learning model ARN)
         """
         ### Get and return labeling job outputs
         info = self._sm_client.describe_labeling_job(

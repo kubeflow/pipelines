@@ -96,8 +96,8 @@ class SageMakerTrainingComponent(SageMakerComponent):
         outputs: SageMakerTrainingOutputs,
     ):
         outputs.job_name = self._training_job_name
-        outputs.model_artifact_url = self._get_model_artifacts_from_job()
-        outputs.training_image = self._get_image_from_job()
+        outputs.model_artifact_url = self._get_model_artifacts_from_job(self._training_job_name)
+        outputs.training_image = self._get_image_from_job(self._training_job_name)
 
     def _on_job_terminated(self):
         self._sm_client.stop_training_job(TrainingJobName=self._training_job_name)
@@ -225,27 +225,6 @@ class SageMakerTrainingComponent(SageMakerComponent):
                 inputs.region, inputs.region, self._training_job_name,
             )
         )
-
-    def _get_model_artifacts_from_job(self):
-        info = self._sm_client.describe_training_job(
-            TrainingJobName=self._training_job_name
-        )
-        model_artifact_url = info["ModelArtifacts"]["S3ModelArtifacts"]
-        return model_artifact_url
-
-    def _get_image_from_job(self):
-        info = self._sm_client.describe_training_job(
-            TrainingJobName=self._training_job_name
-        )
-        if "TrainingImage" in info["AlgorithmSpecification"]:
-            image = info["AlgorithmSpecification"]["TrainingImage"]
-        else:
-            algorithm_name = info["AlgorithmSpecification"]["AlgorithmName"]
-            image = self._sm_client.describe_algorithm(AlgorithmName=algorithm_name)[
-                "TrainingSpecification"
-            ]["TrainingImage"]
-
-        return image
 
 
 if __name__ == "__main__":
