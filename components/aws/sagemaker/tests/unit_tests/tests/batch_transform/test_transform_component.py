@@ -104,8 +104,6 @@ class TransformComponentTestCase(unittest.TestCase):
 
         request = self.component._create_job_request(spec.inputs, spec.outputs)
 
-        print(request)
-
         self.assertEqual(
             request,
             {

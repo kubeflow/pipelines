@@ -2,7 +2,7 @@ from model.src.sagemaker_model_spec import SageMakerCreateModelSpec
 import unittest
 
 
-class ModelSpecTestCase(unittest.TestCase):
+class CreateModelSpecTestCase(unittest.TestCase):
 
     REQUIRED_ARGS = [
         "--region",
