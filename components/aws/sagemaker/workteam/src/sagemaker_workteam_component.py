@@ -96,7 +96,7 @@ class SageMakerWorkteamComponent(SageMakerComponent):
 
     def _get_portal_domain(self):
         """Gets the domain for the newly created workteam.
-        
+
         Returns:
             str: The portal domain URL.
         """
