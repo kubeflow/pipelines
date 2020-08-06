@@ -71,12 +71,6 @@ built_in_algos = {
 __cwd__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 
-def nullable_string_argument(value):
-    value = value.strip()
-    if not value:
-        return None
-    return value
-
 
 def add_default_client_arguments(parser):
     parser.add_argument('--region', type=str, required=True, help='The region where the training job launches.')
@@ -179,6 +173,41 @@ def get_cloudwatch_client(region, assume_role_arn=None):
     client = session.client('logs')
     return client
 
+
+
+def id_generator(size=4, chars=string.ascii_uppercase + string.digits):
+  return ''.join(random.choice(chars) for _ in range(size))
+
+def yaml_or_json_str(str):
+  if str == "" or str == None:
+    return None
+  try:
+    return json.loads(str)
+  except:
+    return yaml.safe_load(str)
+
+def str_to_bool(str):
+    # This distutils function returns an integer representation of the boolean
+    # rather than a True/False value. This simply hard casts it.
+    return bool(strtobool(str))
+
+def write_output(output_path, output_value, json_encode=False):
+    """Write an output value to the associated path, dumping as a JSON object
+    if specified.
+    Arguments:
+    - output_path: The file path of the output.
+    - output_value: The output value to write to the file.
+    - json_encode: True if the value should be encoded as a JSON object.
+    """
+
+    write_value = json.dumps(output_value) if json_encode else output_value 
+
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(output_path).write_text(write_value)
+
+###################################################
+### EVERYTHING BELOW IS SPECIFIC TO A COMPONENT ###
+###################################################
 
 def create_training_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_training_job
@@ -1105,34 +1134,3 @@ def stop_processing_job(client, job_name):
         client.stop_processing_job(ProcessingJobName=job_name)
     except ClientError as e:
         raise Exception(e.response['Error']['Message'])
-
-
-def id_generator(size=4, chars=string.ascii_uppercase + string.digits):
-  return ''.join(random.choice(chars) for _ in range(size))
-
-def yaml_or_json_str(str):
-  if str == "" or str == None:
-    return None
-  try:
-    return json.loads(str)
-  except:
-    return yaml.safe_load(str)
-
-def str_to_bool(str):
-    # This distutils function returns an integer representation of the boolean
-    # rather than a True/False value. This simply hard casts it.
-    return bool(strtobool(str))
-
-def write_output(output_path, output_value, json_encode=False):
-    """Write an output value to the associated path, dumping as a JSON object
-    if specified.
-    Arguments:
-    - output_path: The file path of the output.
-    - output_value: The output value to write to the file.
-    - json_encode: True if the value should be encoded as a JSON object.
-    """
-
-    write_value = json.dumps(output_value) if json_encode else output_value 
-
-    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    Path(output_path).write_text(write_value)
