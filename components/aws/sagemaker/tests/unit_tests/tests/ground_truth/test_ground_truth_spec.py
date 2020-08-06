@@ -26,7 +26,7 @@ class GroundTruthSpecTestCase(unittest.TestCase):
         "--num_workers_per_object",
         "1",
         "--time_limit",
-        "180"
+        "180",
     ]
 
     def test_minimum_required_args(self):

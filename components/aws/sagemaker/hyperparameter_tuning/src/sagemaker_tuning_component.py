@@ -72,7 +72,10 @@ class SageMakerTuningComponent(SageMakerComponent):
         inputs: SageMakerTuningInputs,
         outputs: SageMakerTuningOutputs,
     ):
-        best_job, best_hyperparameters = self._get_best_training_job_and_hyperparameters()
+        (
+            best_job,
+            best_hyperparameters,
+        ) = self._get_best_training_job_and_hyperparameters()
         model_artifact_url = self._get_model_artifacts_from_job(best_job)
         image = self._get_image_from_job(best_job)
 
@@ -83,7 +86,9 @@ class SageMakerTuningComponent(SageMakerComponent):
         outputs.hpo_job_name = self._tuning_job_name
 
     def _on_job_terminated(self):
-        self._sm_client.stop_hyper_parameter_tuning_job(HyperParameterTuningJobName=self._tuning_job_name)
+        self._sm_client.stop_hyper_parameter_tuning_job(
+            HyperParameterTuningJobName=self._tuning_job_name
+        )
 
     def _create_job_request(
         self, inputs: SageMakerTuningInputs, outputs: SageMakerTuningOutputs,
@@ -116,11 +121,13 @@ class SageMakerTuningComponent(SageMakerComponent):
         request["HyperParameterTuningJobConfig"]["ParameterRanges"][
             "CategoricalParameterRanges"
         ] = inputs.categorical_parameters
-        request["HyperParameterTuningJobConfig"]["TrainingJobEarlyStoppingType"] = inputs.early_stopping_type
+        request["HyperParameterTuningJobConfig"][
+            "TrainingJobEarlyStoppingType"
+        ] = inputs.early_stopping_type
 
-        request["TrainingJobDefinition"]["StaticHyperParameters"] = self._create_hyperparameters(
-            inputs.static_parameters
-        )
+        request["TrainingJobDefinition"][
+            "StaticHyperParameters"
+        ] = self._create_hyperparameters(inputs.static_parameters)
         request["TrainingJobDefinition"]["AlgorithmSpecification"][
             "TrainingInputMode"
         ] = inputs.training_input_mode
@@ -138,14 +145,18 @@ class SageMakerTuningComponent(SageMakerComponent):
             request["TrainingJobDefinition"]["AlgorithmSpecification"][
                 "TrainingImage"
             ] = inputs.image
-            request["TrainingJobDefinition"]["AlgorithmSpecification"].pop("AlgorithmName")
+            request["TrainingJobDefinition"]["AlgorithmSpecification"].pop(
+                "AlgorithmName"
+            )
         else:
             # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
             algo_name = inputs.algorithm_name.lower().strip()
             if algo_name in SageMakerTrainingComponent.BUILT_IN_ALGOS.keys():
                 request["TrainingJobDefinition"]["AlgorithmSpecification"][
                     "TrainingImage"
-                ] = get_image_uri(inputs.region, SageMakerTrainingComponent.BUILT_IN_ALGOS[algo_name])
+                ] = get_image_uri(
+                    inputs.region, SageMakerTrainingComponent.BUILT_IN_ALGOS[algo_name]
+                )
                 request["TrainingJobDefinition"]["AlgorithmSpecification"].pop(
                     "AlgorithmName"
                 )
@@ -184,8 +195,12 @@ class SageMakerTuningComponent(SageMakerComponent):
 
         ### Update or pop VPC configs
         if inputs.vpc_security_group_ids and inputs.vpc_subnets:
-            request["TrainingJobDefinition"]["VpcConfig"]["SecurityGroupIds"] = inputs.vpc_security_group_ids.split(",")
-            request["TrainingJobDefinition"]["VpcConfig"]["Subnets"] = inputs.vpc_subnets.split(",")
+            request["TrainingJobDefinition"]["VpcConfig"][
+                "SecurityGroupIds"
+            ] = inputs.vpc_security_group_ids.split(",")
+            request["TrainingJobDefinition"]["VpcConfig"][
+                "Subnets"
+            ] = inputs.vpc_subnets.split(",")
         else:
             request["TrainingJobDefinition"].pop("VpcConfig")
 
@@ -196,20 +211,36 @@ class SageMakerTuningComponent(SageMakerComponent):
             logging.error("Must specify at least one input channel.")
             raise Exception("Could not make job request")
 
-        request["TrainingJobDefinition"]["OutputDataConfig"]["S3OutputPath"] = inputs.output_location
-        request["TrainingJobDefinition"]["OutputDataConfig"]["KmsKeyId"] = inputs.output_encryption_key
-        request["TrainingJobDefinition"]["ResourceConfig"]["InstanceType"] = inputs.instance_type
-        request["TrainingJobDefinition"]["ResourceConfig"]["VolumeKmsKeyId"] = inputs.resource_encryption_key
-        request["TrainingJobDefinition"]["EnableNetworkIsolation"] = inputs.network_isolation
-        request["TrainingJobDefinition"]["EnableInterContainerTrafficEncryption"] = inputs.traffic_encryption
+        request["TrainingJobDefinition"]["OutputDataConfig"][
+            "S3OutputPath"
+        ] = inputs.output_location
+        request["TrainingJobDefinition"]["OutputDataConfig"][
+            "KmsKeyId"
+        ] = inputs.output_encryption_key
+        request["TrainingJobDefinition"]["ResourceConfig"][
+            "InstanceType"
+        ] = inputs.instance_type
+        request["TrainingJobDefinition"]["ResourceConfig"][
+            "VolumeKmsKeyId"
+        ] = inputs.resource_encryption_key
+        request["TrainingJobDefinition"][
+            "EnableNetworkIsolation"
+        ] = inputs.network_isolation
+        request["TrainingJobDefinition"][
+            "EnableInterContainerTrafficEncryption"
+        ] = inputs.traffic_encryption
         request["TrainingJobDefinition"]["RoleArn"] = inputs.role
 
         ### Update InstanceCount, VolumeSizeInGB, and MaxRuntimeInSeconds if input is non-empty and > 0, otherwise use default values
         if inputs.instance_count:
-            request["TrainingJobDefinition"]["ResourceConfig"]["InstanceCount"] = inputs.instance_count
+            request["TrainingJobDefinition"]["ResourceConfig"][
+                "InstanceCount"
+            ] = inputs.instance_count
 
         if inputs.volume_size:
-            request["TrainingJobDefinition"]["ResourceConfig"]["VolumeSizeInGB"] = inputs.volume_size
+            request["TrainingJobDefinition"]["ResourceConfig"][
+                "VolumeSizeInGB"
+            ] = inputs.volume_size
 
         if inputs.max_run_time:
             request["TrainingJobDefinition"]["StoppingCondition"][
@@ -252,7 +283,9 @@ class SageMakerTuningComponent(SageMakerComponent):
         inputs: SageMakerTuningInputs,
         outputs: SageMakerTuningOutputs,
     ):
-        logging.info("Created Hyperparameter Training Job with name: " + self._tuning_job_name)
+        logging.info(
+            "Created Hyperparameter Training Job with name: " + self._tuning_job_name
+        )
         logging.info(
             "HPO job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/hyper-tuning-jobs/{}".format(
                 inputs.region, inputs.region, self._tuning_job_name

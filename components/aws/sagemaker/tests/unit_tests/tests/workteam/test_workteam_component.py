@@ -49,12 +49,10 @@ class WorkteamComponentTestCase(unittest.TestCase):
         )
 
     def test_create_workteam_job_most_arguments(self):
-        spec = SageMakerWorkteamSpec(self.REQUIRED_ARGS + [
-            "--sns_topic",
-            "fake-topic",
-            "--tags",
-            '{"fake_key": "fake_value"}',
-        ])
+        spec = SageMakerWorkteamSpec(
+            self.REQUIRED_ARGS
+            + ["--sns_topic", "fake-topic", "--tags", '{"fake_key": "fake_value"}',]
+        )
         request = self.component._create_job_request(spec.inputs, spec.outputs)
 
         self.assertEqual(

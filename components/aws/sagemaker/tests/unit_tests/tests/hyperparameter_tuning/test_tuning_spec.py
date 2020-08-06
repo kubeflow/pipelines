@@ -22,7 +22,7 @@ class TuningSpecTestCase(unittest.TestCase):
         "--max_num_jobs",
         "5",
         "--max_parallel_jobs",
-        "2"
+        "2",
     ]
 
     def test_minimum_required_args(self):

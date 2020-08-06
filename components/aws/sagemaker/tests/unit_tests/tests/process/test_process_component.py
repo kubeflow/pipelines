@@ -176,7 +176,9 @@ class ProcessComponentTestCase(unittest.TestCase):
                 json.dumps(arguments),
             ]
         )
-        response = self.component._create_job_request(container_args.inputs, container_args.outputs)
+        response = self.component._create_job_request(
+            container_args.inputs, container_args.outputs
+        )
 
         self.assertEqual(
             response["AppSpecification"]["ContainerEntrypoint"], entrypoint
@@ -189,7 +191,9 @@ class ProcessComponentTestCase(unittest.TestCase):
         environment_args = SageMakerProcessSpec(
             self.REQUIRED_ARGS + ["--environment", json.dumps(env_vars)]
         )
-        response = self.component._create_job_request(environment_args.inputs, environment_args.outputs)
+        response = self.component._create_job_request(
+            environment_args.inputs, environment_args.outputs
+        )
 
         self.assertEqual(response["Environment"], env_vars)
 
@@ -203,7 +207,9 @@ class ProcessComponentTestCase(unittest.TestCase):
                 "subnet1,subnet2",
             ]
         )
-        response = self.component._create_job_request(required_vpc_args.inputs, required_vpc_args.outputs)
+        response = self.component._create_job_request(
+            required_vpc_args.inputs, required_vpc_args.outputs
+        )
 
         self.assertIn("VpcConfig", response["NetworkConfig"])
         self.assertIn("sg1", response["NetworkConfig"]["VpcConfig"]["SecurityGroupIds"])

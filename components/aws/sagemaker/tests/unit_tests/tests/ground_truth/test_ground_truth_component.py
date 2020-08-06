@@ -196,17 +196,28 @@ class GroundTruthComponentTestCase(unittest.TestCase):
 
     def test_after_job_completed(self):
         spec = SageMakerGroundTruthSpec(self.REQUIRED_ARGS)
-        auto_labeling_spec = SageMakerGroundTruthSpec(self.REQUIRED_ARGS + ['--enable_auto_labeling', 'True'])
-        
+        auto_labeling_spec = SageMakerGroundTruthSpec(
+            self.REQUIRED_ARGS + ["--enable_auto_labeling", "True"]
+        )
+
         self.component._sm_client = mock_client = MagicMock()
         mock_client.describe_labeling_job.return_value = {
-            "LabelingJobOutput": {"OutputDatasetS3Uri": "s3://path/", "FinalActiveLearningModelArn": "model-arn"}
+            "LabelingJobOutput": {
+                "OutputDatasetS3Uri": "s3://path/",
+                "FinalActiveLearningModelArn": "model-arn",
+            }
         }
 
         self.component._after_job_complete({}, {}, spec.inputs, spec.outputs)
         self.assertEqual(spec.outputs.active_learning_model_arn, " ")
         self.assertEqual(spec.outputs.output_manifest_location, "s3://path/")
 
-        self.component._after_job_complete({}, {}, auto_labeling_spec.inputs, auto_labeling_spec.outputs)
-        self.assertEqual(auto_labeling_spec.outputs.active_learning_model_arn, "model-arn")
-        self.assertEqual(auto_labeling_spec.outputs.output_manifest_location, "s3://path/")
+        self.component._after_job_complete(
+            {}, {}, auto_labeling_spec.inputs, auto_labeling_spec.outputs
+        )
+        self.assertEqual(
+            auto_labeling_spec.outputs.active_learning_model_arn, "model-arn"
+        )
+        self.assertEqual(
+            auto_labeling_spec.outputs.output_manifest_location, "s3://path/"
+        )

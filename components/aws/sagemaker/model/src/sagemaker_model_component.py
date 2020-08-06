@@ -66,7 +66,9 @@ class SageMakerCreateModelComponent(SageMakerComponent):
             request.pop("Containers")
             ### Update primary container and handle input errors
             if inputs.container_host_name:
-                request["PrimaryContainer"]["ContainerHostname"] = inputs.container_host_name
+                request["PrimaryContainer"][
+                    "ContainerHostname"
+                ] = inputs.container_host_name
             else:
                 request["PrimaryContainer"].pop("ContainerHostname")
 
